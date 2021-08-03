@@ -32,14 +32,23 @@
 
 
 #include "spim.h"
+
 #include "string-stream.h"
+
 #include "spim-utils.h"
+
 #include "inst.h"
+
 #include "reg.h"
+
 #include "mem.h"
+
 #include "sym-tbl.h"
+
 #include "parser.h"
+
 #include "run.h"
+
 #include "data.h"
 
 

@@ -32,14 +32,23 @@
 
 
 #include "spim.h"
+
 #include "string-stream.h"
+
 #include "spim-utils.h"
+
 #include "inst.h"
+
 #include "reg.h"
+
 #include "mem.h"
+
 #include "data.h"
+
 #include "parser.h"
+
 #include "sym-tbl.h"
+
 #include "parser_yacc.h"
 
 

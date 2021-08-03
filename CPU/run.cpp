@@ -34,33 +34,51 @@
 #ifdef mips
 #define _IEEE 1
 #include <nan.h>
+
 #else
 #define NaN(X) ((X) != (X))
 #endif
 
 #include <math.h>
+
 #include <stdio.h>
+
 
 #ifdef _WIN32
 #define VC_EXTRALEAN
 #include <Windows.h>
+
 #else
 #include <errno.h>
+
 #include <stdlib.h>
+
 #include <signal.h>
+
 #include <sys/time.h>
+
 #endif
 
 #include "spim.h"
+
 #include "string-stream.h"
+
 #include "spim-utils.h"
+
 #include "inst.h"
+
 #include "reg.h"
+
 #include "mem.h"
+
 #include "sym-tbl.h"
+
 #include "parser_yacc.h"
+
 #include "syscall.h"
+
 #include "run.h"
+
 
 bool force_break = false;	/* For the execution env. to force an execution break */
 

@@ -32,14 +32,23 @@
 
 
 #include "spim.h"
+
 #include "string-stream.h"
+
 #include "spim-utils.h"
+
 #include "inst.h"
+
 #include "data.h"
+
 #include "reg.h"
+
 #include "mem.h"
+
 #include "run.h"
+
 #include "sym-tbl.h"
+
 
 
 char* int_reg_names[32] =

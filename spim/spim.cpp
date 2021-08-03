@@ -33,12 +33,18 @@
 
 #ifndef WIN32
 #include <unistd.h>
+
 #endif
 #include <stdio.h>
+
 #include <ctype.h>
+
 #include <setjmp.h>
+
 #include <signal.h>
+
 #include <arpa/inet.h>
+
 
 
 #ifdef RS
@@ -47,7 +53,9 @@
 #endif
 
 #include <sys/types.h>
+
 #include <sys/select.h>
+
 
 #ifdef _AIX
 #ifndef NBBY
@@ -58,27 +66,43 @@
 
 #ifndef WIN32
 #include <sys/time.h>
+
 #ifdef NEED_TERMIOS
 #include <sys/ioctl.h>
+
 #include <sgtty.h>
+
 #else
 #include <termios.h>
+
 #endif
 #endif
 
 #include <stdarg.h>
 
+
 #include "spim.h"
+
 #include "string-stream.h"
+
 #include "spim-utils.h"
+
 #include "inst.h"
+
 #include "reg.h"
+
 #include "mem.h"
+
 #include "parser.h"
+
 #include "sym-tbl.h"
+
 #include "scanner.h"
+
 #include "parser_yacc.h"
+
 #include "data.h"
+
 
 
 /* Internal functions: */
@@ -1219,8 +1243,8 @@ read_token ()
 }
 
 
-/* 
- * Writes the contents of the (user and optionally kernel) data segment into data.asm file. 
+/*
+ * Writes the contents of the (user and optionally kernel) data segment into data.asm file.
  * If data.asm already exists, it's replaced.
  */
 
@@ -1230,7 +1254,7 @@ dump_data_seg(bool kernel_also)
   static str_stream ss;
   ss_clear (&ss);
 
-  if (kernel_also) 
+  if (kernel_also)
     {
       format_data_segs (&ss);
     }
@@ -1239,7 +1263,7 @@ dump_data_seg(bool kernel_also)
       ss_printf (&ss, "\tDATA\n");
       format_mem (&ss, DATA_BOT, data_top);
     }
-  
+
   FILE *fp;
   fp = fopen ("data.asm", "w");
   fprintf (fp, "%s", ss_to_string (&ss));
@@ -1247,8 +1271,8 @@ dump_data_seg(bool kernel_also)
 }
 
 
-/* 
- * Writes the contents of the (user and optionally kernel) text segment in text.asm file. 
+/*
+ * Writes the contents of the (user and optionally kernel) text segment in text.asm file.
  * If data.asm already exists, it's replaced.
  */
 
@@ -1269,7 +1293,7 @@ dump_text_seg(bool kernel_also)
       ss_printf (&ss, "\n\tUSER TEXT SEGMENT\n");
       format_insts (&ss, TEXT_BOT, text_top);
     }
-  
+
   FILE *fp;
   fp = fopen ("text.asm", "w");
   fprintf (fp, "%s", ss_to_string (&ss));

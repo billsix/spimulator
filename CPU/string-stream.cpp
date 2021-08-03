@@ -36,7 +36,9 @@
 #include <stdio.h>
 
 #include "spim.h"
+
 #include "string-stream.h"
+
 
 
 #ifndef SS_BUF_LENGTH

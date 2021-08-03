@@ -37,18 +37,31 @@
 #include <stdarg.h>
 
 #include "spim.h"
+
 #include "version.h"
+
 #include "string-stream.h"
+
 #include "spim-utils.h"
+
 #include "inst.h"
+
 #include "data.h"
+
 #include "reg.h"
+
 #include "mem.h"
+
 #include "scanner.h"
+
 #include "parser.h"
+
 #include "parser_yacc.h"
+
 #include "run.h"
+
 #include "sym-tbl.h"
+
 
 
 /* Internal functions: */

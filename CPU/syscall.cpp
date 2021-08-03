@@ -33,24 +33,38 @@
 
 #ifndef _WIN32
 #include <unistd.h>
+
 #endif
 #include <sys/types.h>
+
 #include <sys/stat.h>
+
 #include <fcntl.h>
+
 #include <stdio.h>
+
 #include <sys/types.h>
+
 
 #ifdef _WIN32
 #include <io.h>
+
 #endif
 
 #include "spim.h"
+
 #include "string-stream.h"
+
 #include "inst.h"
+
 #include "reg.h"
+
 #include "mem.h"
+
 #include "sym-tbl.h"
+
 #include "syscall.h"
+
 
 
 #ifdef _WIN32
@@ -63,13 +77,16 @@
 */
 
 #include <stdio.h>
+
 #include <stdlib.h>
+
 #include <crtdbg.h>
 
+
 void myInvalidParameterHandler(const wchar_t* expression,
-   const wchar_t* function, 
-   const wchar_t* file, 
-   unsigned int line, 
+   const wchar_t* function,
+   const wchar_t* file,
+   unsigned int line,
    uintptr_t pReserved)
 {
   if (function != NULL)
