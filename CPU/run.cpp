@@ -243,1249 +243,1256 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
       exception_occurred = 0;
       inst = read_mem_inst(PC);
-      if (exception_occurred) /* In reading instruction */
       {
-        exception_occurred = 0;
-        handle_exception();
-        continue;
-      } else if (inst == NULL) {
-        run_error("Attempt to execute non-instruction at 0x%08x\n", PC);
-        return false;
-      } else if (EXPR(inst) != NULL && EXPR(inst)->symbol != NULL &&
-                 EXPR(inst)->symbol->addr == 0) {
-        run_error("Instruction references undefined symbol at 0x%08x\n  %s", PC,
-                  inst_to_string(PC));
-        return false;
-      }
+        // execute instruction
+        {
+          if (exception_occurred) /* In reading instruction */
+          {
+            exception_occurred = 0;
+            handle_exception();
+            continue;
+          } else if (inst == NULL) {
+            run_error("Attempt to execute non-instruction at 0x%08x\n", PC);
+            return false;
+          } else if (EXPR(inst) != NULL && EXPR(inst)->symbol != NULL &&
+                     EXPR(inst)->symbol->addr == 0) {
+            run_error("Instruction references undefined symbol at 0x%08x\n  %s",
+                      PC, inst_to_string(PC));
+            return false;
+          }
 
-      if (display)
-        print_inst(PC);
+          if (display)
+            print_inst(PC);
 
 #ifdef TEST_ASM
-      test_assembly(inst);
+          test_assembly(inst);
 #endif
 
-      DO_DELAYED_UPDATE();
+          DO_DELAYED_UPDATE();
 
-      switch (OPCODE(inst)) {
-      case Y_ADD_OP: {
-        reg_word vs = R[RS(inst)], vt = R[RT(inst)];
-        reg_word sum = vs + vt;
+          switch (OPCODE(inst)) {
+          case Y_ADD_OP: {
+            reg_word vs = R[RS(inst)], vt = R[RT(inst)];
+            reg_word sum = vs + vt;
 
-        if (ARITH_OVFL(sum, vs, vt))
-          RAISE_EXCEPTION(ExcCode_Ov, break);
-        R[RD(inst)] = sum;
-        break;
-      }
+            if (ARITH_OVFL(sum, vs, vt))
+              RAISE_EXCEPTION(ExcCode_Ov, break);
+            R[RD(inst)] = sum;
+            break;
+          }
 
-      case Y_ADDI_OP: {
-        reg_word vs = R[RS(inst)], imm = (short)IMM(inst);
-        reg_word sum = vs + imm;
+          case Y_ADDI_OP: {
+            reg_word vs = R[RS(inst)], imm = (short)IMM(inst);
+            reg_word sum = vs + imm;
 
-        if (ARITH_OVFL(sum, vs, imm))
-          RAISE_EXCEPTION(ExcCode_Ov, break);
-        R[RT(inst)] = sum;
-        break;
-      }
+            if (ARITH_OVFL(sum, vs, imm))
+              RAISE_EXCEPTION(ExcCode_Ov, break);
+            R[RT(inst)] = sum;
+            break;
+          }
 
-      case Y_ADDIU_OP:
-        R[RT(inst)] = R[RS(inst)] + (short)IMM(inst);
-        break;
-
-      case Y_ADDU_OP:
-        R[RD(inst)] = R[RS(inst)] + R[RT(inst)];
-        break;
-
-      case Y_AND_OP:
-        R[RD(inst)] = R[RS(inst)] & R[RT(inst)];
-        break;
-
-      case Y_ANDI_OP:
-        R[RT(inst)] = R[RS(inst)] & (0xffff & IMM(inst));
-        break;
-
-      case Y_BC2F_OP:
-      case Y_BC2FL_OP:
-      case Y_BC2T_OP:
-      case Y_BC2TL_OP:
-        RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
-        break;
-
-      case Y_BEQ_OP:
-        BRANCH_INST(R[RS(inst)] == R[RT(inst)], PC + IDISP(inst), 0);
-        break;
-
-      case Y_BEQL_OP:
-        BRANCH_INST(R[RS(inst)] == R[RT(inst)], PC + IDISP(inst), 1);
-        break;
-
-      case Y_BGEZ_OP:
-        BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + IDISP(inst), 0);
-        break;
-
-      case Y_BGEZL_OP:
-        BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + IDISP(inst), 1);
-        break;
-
-      case Y_BGEZAL_OP:
-        R[31] = PC + (delayed_branches ? 2 * BYTES_PER_WORD : BYTES_PER_WORD);
-        BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + IDISP(inst), 0);
-        break;
-
-      case Y_BGEZALL_OP:
-        R[31] = PC + (delayed_branches ? 2 * BYTES_PER_WORD : BYTES_PER_WORD);
-        BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + IDISP(inst), 1);
-        break;
-
-      case Y_BGTZ_OP:
-        BRANCH_INST(R[RS(inst)] != 0 && SIGN_BIT(R[RS(inst)]) == 0,
-                    PC + IDISP(inst), 0);
-        break;
-
-      case Y_BGTZL_OP:
-        BRANCH_INST(R[RS(inst)] != 0 && SIGN_BIT(R[RS(inst)]) == 0,
-                    PC + IDISP(inst), 1);
-        break;
-
-      case Y_BLEZ_OP:
-        BRANCH_INST(R[RS(inst)] == 0 || SIGN_BIT(R[RS(inst)]) != 0,
-                    PC + IDISP(inst), 0);
-        break;
-
-      case Y_BLEZL_OP:
-        BRANCH_INST(R[RS(inst)] == 0 || SIGN_BIT(R[RS(inst)]) != 0,
-                    PC + IDISP(inst), 1);
-        break;
-
-      case Y_BLTZ_OP:
-        BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + IDISP(inst), 0);
-        break;
-
-      case Y_BLTZL_OP:
-        BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + IDISP(inst), 1);
-        break;
-
-      case Y_BLTZAL_OP:
-        R[31] = PC + (delayed_branches ? 2 * BYTES_PER_WORD : BYTES_PER_WORD);
-        BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + IDISP(inst), 0);
-        break;
-
-      case Y_BLTZALL_OP:
-        R[31] = PC + (delayed_branches ? 2 * BYTES_PER_WORD : BYTES_PER_WORD);
-        BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + IDISP(inst), 1);
-        break;
-
-      case Y_BNE_OP:
-        BRANCH_INST(R[RS(inst)] != R[RT(inst)], PC + IDISP(inst), 0);
-        break;
-
-      case Y_BNEL_OP:
-        BRANCH_INST(R[RS(inst)] != R[RT(inst)], PC + IDISP(inst), 1);
-        break;
-
-      case Y_BREAK_OP:
-        if (RD(inst) == 1)
-          /* Debugger breakpoint */
-          RAISE_EXCEPTION(ExcCode_Bp, return true)
-        else
-          RAISE_EXCEPTION(ExcCode_Bp, break);
-
-      case Y_CACHE_OP:
-        break; /* Memory details not implemented */
-
-      case Y_CFC0_OP:
-        R[RT(inst)] = CCR[0][RD(inst)];
-        break;
-
-      case Y_CFC2_OP:
-        RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
-        break;
-
-      case Y_CLO_OP: {
-        reg_word val = R[RS(inst)];
-        int i;
-        for (i = 31; 0 <= i; i -= 1)
-          if (((val >> i) & 0x1) == 0)
+          case Y_ADDIU_OP:
+            R[RT(inst)] = R[RS(inst)] + (short)IMM(inst);
             break;
 
-        R[RD(inst)] = 31 - i;
-        break;
-      }
-
-      case Y_CLZ_OP: {
-        reg_word val = R[RS(inst)];
-        int i;
-        for (i = 31; 0 <= i; i -= 1)
-          if (((val >> i) & 0x1) == 1)
+          case Y_ADDU_OP:
+            R[RD(inst)] = R[RS(inst)] + R[RT(inst)];
             break;
 
-        R[RD(inst)] = 31 - i;
-        break;
-      }
+          case Y_AND_OP:
+            R[RD(inst)] = R[RS(inst)] & R[RT(inst)];
+            break;
 
-      case Y_COP2_OP:
-        RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
-        break;
+          case Y_ANDI_OP:
+            R[RT(inst)] = R[RS(inst)] & (0xffff & IMM(inst));
+            break;
 
-      case Y_CTC0_OP:
-        CCR[0][RD(inst)] = R[RT(inst)];
-        break;
+          case Y_BC2F_OP:
+          case Y_BC2FL_OP:
+          case Y_BC2T_OP:
+          case Y_BC2TL_OP:
+            RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
+            break;
 
-      case Y_CTC2_OP:
-        RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
-        break;
+          case Y_BEQ_OP:
+            BRANCH_INST(R[RS(inst)] == R[RT(inst)], PC + IDISP(inst), 0);
+            break;
 
-      case Y_DIV_OP:
-        /* The behavior of this instruction is undefined on divide by
-           zero or overflow. */
-        if (R[RT(inst)] != 0 && !(R[RS(inst)] == (reg_word)0x80000000 &&
-                                  R[RT(inst)] == (reg_word)0xffffffff)) {
-          LO = (reg_word)R[RS(inst)] / (reg_word)R[RT(inst)];
-          HI = (reg_word)R[RS(inst)] % (reg_word)R[RT(inst)];
-        }
-        break;
+          case Y_BEQL_OP:
+            BRANCH_INST(R[RS(inst)] == R[RT(inst)], PC + IDISP(inst), 1);
+            break;
 
-      case Y_DIVU_OP:
-        /* The behavior of this instruction is undefined on divide by
-           zero or overflow. */
-        if (R[RT(inst)] != 0 && !(R[RS(inst)] == (reg_word)0x80000000 &&
-                                  R[RT(inst)] == (reg_word)0xffffffff)) {
-          LO = (u_reg_word)R[RS(inst)] / (u_reg_word)R[RT(inst)];
-          HI = (u_reg_word)R[RS(inst)] % (u_reg_word)R[RT(inst)];
-        }
-        break;
+          case Y_BGEZ_OP:
+            BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + IDISP(inst), 0);
+            break;
 
-      case Y_ERET_OP: {
-        CP0_Status &= ~CP0_Status_EXL; /* Clear EXL bit */
-        JUMP_INST(CP0_EPC);            /* Jump to EPC */
-      } break;
+          case Y_BGEZL_OP:
+            BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + IDISP(inst), 1);
+            break;
 
-      case Y_J_OP:
-        JUMP_INST(((PC & 0xf0000000) | TARGET(inst) << 2));
-        break;
+          case Y_BGEZAL_OP:
+            R[31] =
+                PC + (delayed_branches ? 2 * BYTES_PER_WORD : BYTES_PER_WORD);
+            BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + IDISP(inst), 0);
+            break;
 
-      case Y_JAL_OP:
-        if (delayed_branches)
-          R[31] = PC + 2 * BYTES_PER_WORD;
-        else
-          R[31] = PC + BYTES_PER_WORD;
-        JUMP_INST(((PC & 0xf0000000) | (TARGET(inst) << 2)));
-        break;
+          case Y_BGEZALL_OP:
+            R[31] =
+                PC + (delayed_branches ? 2 * BYTES_PER_WORD : BYTES_PER_WORD);
+            BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + IDISP(inst), 1);
+            break;
 
-      case Y_JALR_OP: {
-        mem_addr tmp = R[RS(inst)];
+          case Y_BGTZ_OP:
+            BRANCH_INST(R[RS(inst)] != 0 && SIGN_BIT(R[RS(inst)]) == 0,
+                        PC + IDISP(inst), 0);
+            break;
 
-        if (delayed_branches)
-          R[RD(inst)] = PC + 2 * BYTES_PER_WORD;
-        else
-          R[RD(inst)] = PC + BYTES_PER_WORD;
-        JUMP_INST(tmp);
-      } break;
+          case Y_BGTZL_OP:
+            BRANCH_INST(R[RS(inst)] != 0 && SIGN_BIT(R[RS(inst)]) == 0,
+                        PC + IDISP(inst), 1);
+            break;
 
-      case Y_JR_OP: {
-        mem_addr tmp = R[RS(inst)];
+          case Y_BLEZ_OP:
+            BRANCH_INST(R[RS(inst)] == 0 || SIGN_BIT(R[RS(inst)]) != 0,
+                        PC + IDISP(inst), 0);
+            break;
 
-        JUMP_INST(tmp);
-      } break;
+          case Y_BLEZL_OP:
+            BRANCH_INST(R[RS(inst)] == 0 || SIGN_BIT(R[RS(inst)]) != 0,
+                        PC + IDISP(inst), 1);
+            break;
 
-      case Y_LB_OP:
-        LOAD_INST(&R[RT(inst)], read_mem_byte(R[BASE(inst)] + IOFFSET(inst)),
-                  0xffffffff);
-        break;
+          case Y_BLTZ_OP:
+            BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + IDISP(inst), 0);
+            break;
 
-      case Y_LBU_OP:
-        LOAD_INST(&R[RT(inst)], read_mem_byte(R[BASE(inst)] + IOFFSET(inst)),
-                  0xff);
-        break;
+          case Y_BLTZL_OP:
+            BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + IDISP(inst), 1);
+            break;
 
-      case Y_LH_OP:
-        LOAD_INST(&R[RT(inst)], read_mem_half(R[BASE(inst)] + IOFFSET(inst)),
-                  0xffffffff);
-        break;
+          case Y_BLTZAL_OP:
+            R[31] =
+                PC + (delayed_branches ? 2 * BYTES_PER_WORD : BYTES_PER_WORD);
+            BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + IDISP(inst), 0);
+            break;
 
-      case Y_LHU_OP:
-        LOAD_INST(&R[RT(inst)], read_mem_half(R[BASE(inst)] + IOFFSET(inst)),
-                  0xffff);
-        break;
+          case Y_BLTZALL_OP:
+            R[31] =
+                PC + (delayed_branches ? 2 * BYTES_PER_WORD : BYTES_PER_WORD);
+            BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + IDISP(inst), 1);
+            break;
 
-      case Y_LL_OP:
-        /* Uniprocess, so this instruction is just a load */
-        LOAD_INST(&R[RT(inst)], read_mem_word(R[BASE(inst)] + IOFFSET(inst)),
-                  0xffffffff);
-        break;
+          case Y_BNE_OP:
+            BRANCH_INST(R[RS(inst)] != R[RT(inst)], PC + IDISP(inst), 0);
+            break;
 
-      case Y_LUI_OP:
-        R[RT(inst)] = (IMM(inst) << 16) & 0xffff0000;
-        break;
+          case Y_BNEL_OP:
+            BRANCH_INST(R[RS(inst)] != R[RT(inst)], PC + IDISP(inst), 1);
+            break;
 
-      case Y_LW_OP:
-        LOAD_INST(&R[RT(inst)], read_mem_word(R[BASE(inst)] + IOFFSET(inst)),
-                  0xffffffff);
-        break;
+          case Y_BREAK_OP:
+            if (RD(inst) == 1)
+              /* Debugger breakpoint */
+              RAISE_EXCEPTION(ExcCode_Bp, return true)
+            else
+              RAISE_EXCEPTION(ExcCode_Bp, break);
 
-      case Y_LDC2_OP:
-        RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
-        break;
+          case Y_CACHE_OP:
+            break; /* Memory details not implemented */
 
-      case Y_LWC2_OP:
-        RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
-        break;
+          case Y_CFC0_OP:
+            R[RT(inst)] = CCR[0][RD(inst)];
+            break;
 
-      case Y_LWL_OP: {
-        mem_addr addr = R[BASE(inst)] + IOFFSET(inst);
-        reg_word word; /* Can't be register */
-        int byte = addr & 0x3;
-        reg_word reg_val = R[RT(inst)];
+          case Y_CFC2_OP:
+            RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
+            break;
 
-        word = read_mem_word(addr & 0xfffffffc);
-        if (!exception_occurred)
+          case Y_CLO_OP: {
+            reg_word val = R[RS(inst)];
+            int i;
+            for (i = 31; 0 <= i; i -= 1)
+              if (((val >> i) & 0x1) == 0)
+                break;
+
+            R[RD(inst)] = 31 - i;
+            break;
+          }
+
+          case Y_CLZ_OP: {
+            reg_word val = R[RS(inst)];
+            int i;
+            for (i = 31; 0 <= i; i -= 1)
+              if (((val >> i) & 0x1) == 1)
+                break;
+
+            R[RD(inst)] = 31 - i;
+            break;
+          }
+
+          case Y_COP2_OP:
+            RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
+            break;
+
+          case Y_CTC0_OP:
+            CCR[0][RD(inst)] = R[RT(inst)];
+            break;
+
+          case Y_CTC2_OP:
+            RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
+            break;
+
+          case Y_DIV_OP:
+            /* The behavior of this instruction is undefined on divide by
+               zero or overflow. */
+            if (R[RT(inst)] != 0 && !(R[RS(inst)] == (reg_word)0x80000000 &&
+                                      R[RT(inst)] == (reg_word)0xffffffff)) {
+              LO = (reg_word)R[RS(inst)] / (reg_word)R[RT(inst)];
+              HI = (reg_word)R[RS(inst)] % (reg_word)R[RT(inst)];
+            }
+            break;
+
+          case Y_DIVU_OP:
+            /* The behavior of this instruction is undefined on divide by
+               zero or overflow. */
+            if (R[RT(inst)] != 0 && !(R[RS(inst)] == (reg_word)0x80000000 &&
+                                      R[RT(inst)] == (reg_word)0xffffffff)) {
+              LO = (u_reg_word)R[RS(inst)] / (u_reg_word)R[RT(inst)];
+              HI = (u_reg_word)R[RS(inst)] % (u_reg_word)R[RT(inst)];
+            }
+            break;
+
+          case Y_ERET_OP: {
+            CP0_Status &= ~CP0_Status_EXL; /* Clear EXL bit */
+            JUMP_INST(CP0_EPC);            /* Jump to EPC */
+          } break;
+
+          case Y_J_OP:
+            JUMP_INST(((PC & 0xf0000000) | TARGET(inst) << 2));
+            break;
+
+          case Y_JAL_OP:
+            if (delayed_branches)
+              R[31] = PC + 2 * BYTES_PER_WORD;
+            else
+              R[31] = PC + BYTES_PER_WORD;
+            JUMP_INST(((PC & 0xf0000000) | (TARGET(inst) << 2)));
+            break;
+
+          case Y_JALR_OP: {
+            mem_addr tmp = R[RS(inst)];
+
+            if (delayed_branches)
+              R[RD(inst)] = PC + 2 * BYTES_PER_WORD;
+            else
+              R[RD(inst)] = PC + BYTES_PER_WORD;
+            JUMP_INST(tmp);
+          } break;
+
+          case Y_JR_OP: {
+            mem_addr tmp = R[RS(inst)];
+
+            JUMP_INST(tmp);
+          } break;
+
+          case Y_LB_OP:
+            LOAD_INST(&R[RT(inst)],
+                      read_mem_byte(R[BASE(inst)] + IOFFSET(inst)), 0xffffffff);
+            break;
+
+          case Y_LBU_OP:
+            LOAD_INST(&R[RT(inst)],
+                      read_mem_byte(R[BASE(inst)] + IOFFSET(inst)), 0xff);
+            break;
+
+          case Y_LH_OP:
+            LOAD_INST(&R[RT(inst)],
+                      read_mem_half(R[BASE(inst)] + IOFFSET(inst)), 0xffffffff);
+            break;
+
+          case Y_LHU_OP:
+            LOAD_INST(&R[RT(inst)],
+                      read_mem_half(R[BASE(inst)] + IOFFSET(inst)), 0xffff);
+            break;
+
+          case Y_LL_OP:
+            /* Uniprocess, so this instruction is just a load */
+            LOAD_INST(&R[RT(inst)],
+                      read_mem_word(R[BASE(inst)] + IOFFSET(inst)), 0xffffffff);
+            break;
+
+          case Y_LUI_OP:
+            R[RT(inst)] = (IMM(inst) << 16) & 0xffff0000;
+            break;
+
+          case Y_LW_OP:
+            LOAD_INST(&R[RT(inst)],
+                      read_mem_word(R[BASE(inst)] + IOFFSET(inst)), 0xffffffff);
+            break;
+
+          case Y_LDC2_OP:
+            RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
+            break;
+
+          case Y_LWC2_OP:
+            RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
+            break;
+
+          case Y_LWL_OP: {
+            mem_addr addr = R[BASE(inst)] + IOFFSET(inst);
+            reg_word word; /* Can't be register */
+            int byte = addr & 0x3;
+            reg_word reg_val = R[RT(inst)];
+
+            word = read_mem_word(addr & 0xfffffffc);
+            if (!exception_occurred)
 #ifdef SPIM_BIGENDIAN
-          switch (byte) {
-          case 0:
-            word = word;
-            break;
+              switch (byte) {
+              case 0:
+                word = word;
+                break;
 
-          case 1:
-            word = ((word & 0xffffff) << 8) | (reg_val & 0xff);
-            break;
+              case 1:
+                word = ((word & 0xffffff) << 8) | (reg_val & 0xff);
+                break;
 
-          case 2:
-            word = ((word & 0xffff) << 16) | (reg_val & 0xffff);
-            break;
+              case 2:
+                word = ((word & 0xffff) << 16) | (reg_val & 0xffff);
+                break;
 
-          case 3:
-            word = ((word & 0xff) << 24) | (reg_val & 0xffffff);
-            break;
-          }
+              case 3:
+                word = ((word & 0xff) << 24) | (reg_val & 0xffffff);
+                break;
+              }
 #else
-          switch (byte) {
-          case 0:
-            word = ((word & 0xff) << 24) | (reg_val & 0xffffff);
-            break;
+              switch (byte) {
+              case 0:
+                word = ((word & 0xff) << 24) | (reg_val & 0xffffff);
+                break;
 
-          case 1:
-            word = ((word & 0xffff) << 16) | (reg_val & 0xffff);
-            break;
+              case 1:
+                word = ((word & 0xffff) << 16) | (reg_val & 0xffff);
+                break;
 
-          case 2:
-            word = ((word & 0xffffff) << 8) | (reg_val & 0xff);
-            break;
+              case 2:
+                word = ((word & 0xffffff) << 8) | (reg_val & 0xff);
+                break;
 
-          case 3:
+              case 3:
+                break;
+              }
+#endif
+            LOAD_INST_BASE(&R[RT(inst)], word);
             break;
           }
-#endif
-        LOAD_INST_BASE(&R[RT(inst)], word);
-        break;
-      }
 
-      case Y_LWR_OP: {
-        mem_addr addr = R[BASE(inst)] + IOFFSET(inst);
-        reg_word word; /* Can't be register */
-        int byte = addr & 0x3;
-        reg_word reg_val = R[RT(inst)];
+          case Y_LWR_OP: {
+            mem_addr addr = R[BASE(inst)] + IOFFSET(inst);
+            reg_word word; /* Can't be register */
+            int byte = addr & 0x3;
+            reg_word reg_val = R[RT(inst)];
 
-        word = read_mem_word(addr & 0xfffffffc);
-        if (!exception_occurred)
+            word = read_mem_word(addr & 0xfffffffc);
+            if (!exception_occurred)
 #ifdef SPIM_BIGENDIAN
-          switch (byte) {
-          case 0:
-            word =
-                (reg_val & 0xffffff00) | ((unsigned)(word & 0xff000000) >> 24);
-            break;
+              switch (byte) {
+              case 0:
+                word = (reg_val & 0xffffff00) |
+                       ((unsigned)(word & 0xff000000) >> 24);
+                break;
 
-          case 1:
-            word =
-                (reg_val & 0xffff0000) | ((unsigned)(word & 0xffff0000) >> 16);
-            break;
+              case 1:
+                word = (reg_val & 0xffff0000) |
+                       ((unsigned)(word & 0xffff0000) >> 16);
+                break;
 
-          case 2:
-            word =
-                (reg_val & 0xff000000) | ((unsigned)(word & 0xffffff00) >> 8);
-            break;
+              case 2:
+                word = (reg_val & 0xff000000) |
+                       ((unsigned)(word & 0xffffff00) >> 8);
+                break;
 
-          case 3:
-            word = word;
-            break;
-          }
+              case 3:
+                word = word;
+                break;
+              }
 #else
-          switch (byte) {
-          case 0:
-            break;
+              switch (byte) {
+              case 0:
+                break;
 
-          case 1:
-            word = (reg_val & 0xff000000) | ((word & 0xffffff00) >> 8);
-            break;
+              case 1:
+                word = (reg_val & 0xff000000) | ((word & 0xffffff00) >> 8);
+                break;
 
-          case 2:
-            word = (reg_val & 0xffff0000) | ((word & 0xffff0000) >> 16);
-            break;
+              case 2:
+                word = (reg_val & 0xffff0000) | ((word & 0xffff0000) >> 16);
+                break;
 
-          case 3:
-            word = (reg_val & 0xffffff00) | ((word & 0xff000000) >> 24);
+              case 3:
+                word = (reg_val & 0xffffff00) | ((word & 0xff000000) >> 24);
+                break;
+              }
+#endif
+            LOAD_INST_BASE(&R[RT(inst)], word);
             break;
           }
-#endif
-        LOAD_INST_BASE(&R[RT(inst)], word);
-        break;
-      }
 
-      case Y_MADD_OP:
-      case Y_MADDU_OP: {
-        reg_word lo = LO, hi = HI;
-        reg_word tmp;
-        if (OPCODE(inst) == Y_MADD_OP) {
-          signed_multiply(R[RS(inst)], R[RT(inst)]);
-        } else /* Y_MADDU_OP */
-        {
-          unsigned_multiply(R[RS(inst)], R[RT(inst)]);
-        }
-        tmp = lo + LO;
-        if ((unsigned)tmp < (unsigned)LO || (unsigned)tmp < (unsigned)lo) {
-          /* Addition of low-order word overflows */
-          hi += 1;
-        }
-        LO = tmp;
-        HI = hi + HI;
-        break;
-      }
+          case Y_MADD_OP:
+          case Y_MADDU_OP: {
+            reg_word lo = LO, hi = HI;
+            reg_word tmp;
+            if (OPCODE(inst) == Y_MADD_OP) {
+              signed_multiply(R[RS(inst)], R[RT(inst)]);
+            } else /* Y_MADDU_OP */
+            {
+              unsigned_multiply(R[RS(inst)], R[RT(inst)]);
+            }
+            tmp = lo + LO;
+            if ((unsigned)tmp < (unsigned)LO || (unsigned)tmp < (unsigned)lo) {
+              /* Addition of low-order word overflows */
+              hi += 1;
+            }
+            LO = tmp;
+            HI = hi + HI;
+            break;
+          }
 
-      case Y_MFC0_OP:
-        R[RT(inst)] = CPR[0][FS(inst)];
-        break;
+          case Y_MFC0_OP:
+            R[RT(inst)] = CPR[0][FS(inst)];
+            break;
 
-      case Y_MFC2_OP:
-        RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
-        break;
+          case Y_MFC2_OP:
+            RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
+            break;
 
-      case Y_MFHI_OP:
-        R[RD(inst)] = HI;
-        break;
+          case Y_MFHI_OP:
+            R[RD(inst)] = HI;
+            break;
 
-      case Y_MFLO_OP:
-        R[RD(inst)] = LO;
-        break;
+          case Y_MFLO_OP:
+            R[RD(inst)] = LO;
+            break;
 
-      case Y_MOVN_OP:
-        if (R[RT(inst)] != 0)
-          R[RD(inst)] = R[RS(inst)];
-        break;
+          case Y_MOVN_OP:
+            if (R[RT(inst)] != 0)
+              R[RD(inst)] = R[RS(inst)];
+            break;
 
-      case Y_MOVZ_OP:
-        if (R[RT(inst)] == 0)
-          R[RD(inst)] = R[RS(inst)];
-        break;
+          case Y_MOVZ_OP:
+            if (R[RT(inst)] == 0)
+              R[RD(inst)] = R[RS(inst)];
+            break;
 
-      case Y_MSUB_OP:
-      case Y_MSUBU_OP: {
-        reg_word lo = LO, hi = HI;
-        reg_word tmp;
+          case Y_MSUB_OP:
+          case Y_MSUBU_OP: {
+            reg_word lo = LO, hi = HI;
+            reg_word tmp;
 
-        if (OPCODE(inst) == Y_MSUB_OP) {
-          signed_multiply(R[RS(inst)], R[RT(inst)]);
-        } else /* Y_MSUBU_OP */
-        {
-          unsigned_multiply(R[RS(inst)], R[RT(inst)]);
-        }
+            if (OPCODE(inst) == Y_MSUB_OP) {
+              signed_multiply(R[RS(inst)], R[RT(inst)]);
+            } else /* Y_MSUBU_OP */
+            {
+              unsigned_multiply(R[RS(inst)], R[RT(inst)]);
+            }
 
-        tmp = lo - LO;
-        if ((unsigned)LO > (unsigned)lo) {
-          /* Subtraction of low-order word borrows */
-          hi -= 1;
-        }
-        LO = tmp;
-        HI = hi - HI;
-        break;
-      }
+            tmp = lo - LO;
+            if ((unsigned)LO > (unsigned)lo) {
+              /* Subtraction of low-order word borrows */
+              hi -= 1;
+            }
+            LO = tmp;
+            HI = hi - HI;
+            break;
+          }
 
-      case Y_MTC0_OP:
-        CPR[0][FS(inst)] = R[RT(inst)];
-        switch (FS(inst)) {
-        case CP0_Compare_Reg:
-          CP0_Cause &= ~CP0_Cause_IP7; /* Writing clears HW interrupt 5 */
-          break;
+          case Y_MTC0_OP:
+            CPR[0][FS(inst)] = R[RT(inst)];
+            switch (FS(inst)) {
+            case CP0_Compare_Reg:
+              CP0_Cause &= ~CP0_Cause_IP7; /* Writing clears HW interrupt 5 */
+              break;
 
-        case CP0_Status_Reg:
-          CP0_Status &= CP0_Status_Mask;
-          CP0_Status |= ((CP0_Status_CU & 0x30000000) | CP0_Status_UM);
-          break;
+            case CP0_Status_Reg:
+              CP0_Status &= CP0_Status_Mask;
+              CP0_Status |= ((CP0_Status_CU & 0x30000000) | CP0_Status_UM);
+              break;
 
-        case CP0_Cause_Reg:
-          CPR[0][FS(inst)] &= CP0_Cause_Mask;
-          break;
+            case CP0_Cause_Reg:
+              CPR[0][FS(inst)] &= CP0_Cause_Mask;
+              break;
 
-        case CP0_Config_Reg:
-          CPR[0][FS(inst)] &= CP0_Config_Mask;
-          break;
+            case CP0_Config_Reg:
+              CPR[0][FS(inst)] &= CP0_Config_Mask;
+              break;
 
-        default:
-          break;
-        }
-        break;
+            default:
+              break;
+            }
+            break;
 
-      case Y_MTC2_OP:
-        RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
-        break;
+          case Y_MTC2_OP:
+            RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
+            break;
 
-      case Y_MTHI_OP:
-        HI = R[RS(inst)];
-        break;
+          case Y_MTHI_OP:
+            HI = R[RS(inst)];
+            break;
 
-      case Y_MTLO_OP:
-        LO = R[RS(inst)];
-        break;
+          case Y_MTLO_OP:
+            LO = R[RS(inst)];
+            break;
 
-      case Y_MUL_OP:
-        signed_multiply(R[RS(inst)], R[RT(inst)]);
-        R[RD(inst)] = LO;
-        break;
+          case Y_MUL_OP:
+            signed_multiply(R[RS(inst)], R[RT(inst)]);
+            R[RD(inst)] = LO;
+            break;
 
-      case Y_MULT_OP:
-        signed_multiply(R[RS(inst)], R[RT(inst)]);
-        break;
+          case Y_MULT_OP:
+            signed_multiply(R[RS(inst)], R[RT(inst)]);
+            break;
 
-      case Y_MULTU_OP:
-        unsigned_multiply(R[RS(inst)], R[RT(inst)]);
-        break;
+          case Y_MULTU_OP:
+            unsigned_multiply(R[RS(inst)], R[RT(inst)]);
+            break;
 
-      case Y_NOR_OP:
-        R[RD(inst)] = ~(R[RS(inst)] | R[RT(inst)]);
-        break;
+          case Y_NOR_OP:
+            R[RD(inst)] = ~(R[RS(inst)] | R[RT(inst)]);
+            break;
 
-      case Y_OR_OP:
-        R[RD(inst)] = R[RS(inst)] | R[RT(inst)];
-        break;
+          case Y_OR_OP:
+            R[RD(inst)] = R[RS(inst)] | R[RT(inst)];
+            break;
 
-      case Y_ORI_OP:
-        R[RT(inst)] = R[RS(inst)] | (0xffff & IMM(inst));
-        break;
+          case Y_ORI_OP:
+            R[RT(inst)] = R[RS(inst)] | (0xffff & IMM(inst));
+            break;
 
-      case Y_PREF_OP:
-        break; /* Memory details not implemented */
+          case Y_PREF_OP:
+            break; /* Memory details not implemented */
 
-      case Y_RFE_OP:
+          case Y_RFE_OP:
 #ifdef MIPS1
-        /* This is MIPS-I, not compatible with MIPS32 or the
-           definition of the bits in the CP0 Status register in that
-           architecture. */
-        CP0_Status = (CP0_Status & 0xfffffff0) | ((CP0_Status & 0x3c) >> 2);
+            /* This is MIPS-I, not compatible with MIPS32 or the
+               definition of the bits in the CP0 Status register in that
+               architecture. */
+            CP0_Status = (CP0_Status & 0xfffffff0) | ((CP0_Status & 0x3c) >> 2);
 #else
-        RAISE_EXCEPTION(ExcCode_RI, {}); /* Not MIPS32 instruction */
+            RAISE_EXCEPTION(ExcCode_RI, {}); /* Not MIPS32 instruction */
 #endif
-        break;
-
-      case Y_SB_OP:
-        set_mem_byte(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
-        break;
-
-      case Y_SC_OP:
-        /* Uniprocessor, so instruction is just a store */
-        set_mem_word(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
-        break;
-
-      case Y_SDC2_OP:
-        RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
-        break;
-
-      case Y_SH_OP:
-        set_mem_half(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
-        break;
-
-      case Y_SLL_OP: {
-        int shamt = SHAMT(inst);
-
-        if (shamt >= 0 && shamt < 32)
-          R[RD(inst)] = R[RT(inst)] << shamt;
-        else
-          R[RD(inst)] = R[RT(inst)];
-        break;
-      }
-
-      case Y_SLLV_OP: {
-        int shamt = (R[RS(inst)] & 0x1f);
-
-        if (shamt >= 0 && shamt < 32)
-          R[RD(inst)] = R[RT(inst)] << shamt;
-        else
-          R[RD(inst)] = R[RT(inst)];
-        break;
-      }
-
-      case Y_SLT_OP:
-        if (R[RS(inst)] < R[RT(inst)])
-          R[RD(inst)] = 1;
-        else
-          R[RD(inst)] = 0;
-        break;
-
-      case Y_SLTI_OP:
-        if (R[RS(inst)] < (short)IMM(inst))
-          R[RT(inst)] = 1;
-        else
-          R[RT(inst)] = 0;
-        break;
-
-      case Y_SLTIU_OP: {
-        int x = (short)IMM(inst);
-
-        if ((u_reg_word)R[RS(inst)] < (u_reg_word)x)
-          R[RT(inst)] = 1;
-        else
-          R[RT(inst)] = 0;
-        break;
-      }
-
-      case Y_SLTU_OP:
-        if ((u_reg_word)R[RS(inst)] < (u_reg_word)R[RT(inst)])
-          R[RD(inst)] = 1;
-        else
-          R[RD(inst)] = 0;
-        break;
-
-      case Y_SRA_OP: {
-        int shamt = SHAMT(inst);
-        reg_word val = R[RT(inst)];
-
-        if (shamt >= 0 && shamt < 32)
-          R[RD(inst)] = val >> shamt;
-        else
-          R[RD(inst)] = val;
-        break;
-      }
-
-      case Y_SRAV_OP: {
-        int shamt = R[RS(inst)] & 0x1f;
-        reg_word val = R[RT(inst)];
-
-        if (shamt >= 0 && shamt < 32)
-          R[RD(inst)] = val >> shamt;
-        else
-          R[RD(inst)] = val;
-        break;
-      }
-
-      case Y_SRL_OP: {
-        int shamt = SHAMT(inst);
-        u_reg_word val = R[RT(inst)];
-
-        if (shamt >= 0 && shamt < 32)
-          R[RD(inst)] = val >> shamt;
-        else
-          R[RD(inst)] = val;
-        break;
-      }
-
-      case Y_SRLV_OP: {
-        int shamt = R[RS(inst)] & 0x1f;
-        u_reg_word val = R[RT(inst)];
-
-        if (shamt >= 0 && shamt < 32)
-          R[RD(inst)] = val >> shamt;
-        else
-          R[RD(inst)] = val;
-        break;
-      }
-
-      case Y_SUB_OP: {
-        reg_word vs = R[RS(inst)], vt = R[RT(inst)];
-        reg_word diff = vs - vt;
-
-        if (SIGN_BIT(vs) != SIGN_BIT(vt) && SIGN_BIT(vs) != SIGN_BIT(diff))
-          RAISE_EXCEPTION(ExcCode_Ov, break);
-        R[RD(inst)] = diff;
-        break;
-      }
-
-      case Y_SUBU_OP:
-        R[RD(inst)] = (u_reg_word)R[RS(inst)] - (u_reg_word)R[RT(inst)];
-        break;
-
-      case Y_SW_OP:
-        set_mem_word(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
-        break;
-
-      case Y_SWC2_OP:
-        RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
-        break;
-
-      case Y_SWL_OP: {
-        mem_addr addr = R[BASE(inst)] + IOFFSET(inst);
-        mem_word data;
-        reg_word reg = R[RT(inst)];
-        int byte = addr & 0x3;
-
-        data = read_mem_word(addr & 0xfffffffc);
-#ifdef SPIM_BIGENDIAN
-        switch (byte) {
-        case 0:
-          data = reg;
-          break;
-
-        case 1:
-          data = (data & 0xff000000) | (reg >> 8 & 0xffffff);
-          break;
-
-        case 2:
-          data = (data & 0xffff0000) | (reg >> 16 & 0xffff);
-          break;
-
-        case 3:
-          data = (data & 0xffffff00) | (reg >> 24 & 0xff);
-          break;
-        }
-#else
-        switch (byte) {
-        case 0:
-          data = (data & 0xffffff00) | (reg >> 24 & 0xff);
-          break;
-
-        case 1:
-          data = (data & 0xffff0000) | (reg >> 16 & 0xffff);
-          break;
-
-        case 2:
-          data = (data & 0xff000000) | (reg >> 8 & 0xffffff);
-          break;
-
-        case 3:
-          data = reg;
-          break;
-        }
-#endif
-        set_mem_word(addr & 0xfffffffc, data);
-        break;
-      }
-
-      case Y_SWR_OP: {
-        mem_addr addr = R[BASE(inst)] + IOFFSET(inst);
-        mem_word data;
-        reg_word reg = R[RT(inst)];
-        int byte = addr & 0x3;
-
-        data = read_mem_word(addr & 0xfffffffc);
-#ifdef SPIM_BIGENDIAN
-        switch (byte) {
-        case 0:
-          data = ((reg << 24) & 0xff000000) | (data & 0xffffff);
-          break;
-
-        case 1:
-          data = ((reg << 16) & 0xffff0000) | (data & 0xffff);
-          break;
-
-        case 2:
-          data = ((reg << 8) & 0xffffff00) | (data & 0xff);
-          break;
-
-        case 3:
-          data = reg;
-          break;
-        }
-#else
-        switch (byte) {
-        case 0:
-          data = reg;
-          break;
-
-        case 1:
-          data = ((reg << 8) & 0xffffff00) | (data & 0xff);
-          break;
-
-        case 2:
-          data = ((reg << 16) & 0xffff0000) | (data & 0xffff);
-          break;
-
-        case 3:
-          data = ((reg << 24) & 0xff000000) | (data & 0xffffff);
-          break;
-        }
-#endif
-        set_mem_word(addr & 0xfffffffc, data);
-        break;
-      }
-
-      case Y_SYNC_OP:
-        break; /* Memory details not implemented */
-
-      case Y_SYSCALL_OP:
-        if (!do_syscall())
-          return false;
-        break;
-
-      case Y_TEQ_OP:
-        if (R[RS(inst)] == R[RT(inst)])
-          RAISE_EXCEPTION(ExcCode_Tr, {});
-        break;
-
-      case Y_TEQI_OP:
-        if (R[RS(inst)] == IMM(inst))
-          RAISE_EXCEPTION(ExcCode_Tr, {});
-        break;
-
-      case Y_TGE_OP:
-        if (R[RS(inst)] >= R[RT(inst)])
-          RAISE_EXCEPTION(ExcCode_Tr, {});
-        break;
-
-      case Y_TGEI_OP:
-        if (R[RS(inst)] >= IMM(inst))
-          RAISE_EXCEPTION(ExcCode_Tr, {});
-        break;
-
-      case Y_TGEIU_OP:
-        if ((u_reg_word)R[RS(inst)] >= (u_reg_word)IMM(inst))
-          RAISE_EXCEPTION(ExcCode_Tr, {});
-        break;
-
-      case Y_TGEU_OP:
-        if ((u_reg_word)R[RS(inst)] >= (u_reg_word)R[RT(inst)])
-          RAISE_EXCEPTION(ExcCode_Tr, {});
-        break;
-
-      case Y_TLBP_OP:
-        RAISE_EXCEPTION(ExcCode_RI, {}); /* TLB not implemented */
-        break;
-
-      case Y_TLBR_OP:
-        RAISE_EXCEPTION(ExcCode_RI, {}); /* TLB not implemented */
-        break;
-
-      case Y_TLBWI_OP:
-        RAISE_EXCEPTION(ExcCode_RI, {}); /* TLB not implemented */
-        break;
-
-      case Y_TLBWR_OP:
-        RAISE_EXCEPTION(ExcCode_RI, {}); /* TLB not implemented */
-        break;
-
-      case Y_TLT_OP:
-        if (R[RS(inst)] < R[RT(inst)])
-          RAISE_EXCEPTION(ExcCode_Tr, {});
-        break;
-
-      case Y_TLTI_OP:
-        if (R[RS(inst)] < IMM(inst))
-          RAISE_EXCEPTION(ExcCode_Tr, {});
-        break;
-
-      case Y_TLTIU_OP:
-        if ((u_reg_word)R[RS(inst)] < (u_reg_word)IMM(inst))
-          RAISE_EXCEPTION(ExcCode_Tr, {});
-        break;
-
-      case Y_TLTU_OP:
-        if ((u_reg_word)R[RS(inst)] < (u_reg_word)R[RT(inst)])
-          RAISE_EXCEPTION(ExcCode_Tr, {});
-        break;
-
-      case Y_TNE_OP:
-        if (R[RS(inst)] != R[RT(inst)])
-          RAISE_EXCEPTION(ExcCode_Tr, {});
-        break;
-
-      case Y_TNEI_OP:
-        if (R[RS(inst)] != IMM(inst))
-          RAISE_EXCEPTION(ExcCode_Tr, {});
-        break;
-
-      case Y_XOR_OP:
-        R[RD(inst)] = R[RS(inst)] ^ R[RT(inst)];
-        break;
-
-      case Y_XORI_OP:
-        R[RT(inst)] = R[RS(inst)] ^ (0xffff & IMM(inst));
-        break;
-
-        /* FPA Operations */
-
-      case Y_ABS_S_OP:
-        SET_FPR_S(FD(inst), fabs(FPR_S(FS(inst))));
-        break;
-
-      case Y_ABS_D_OP:
-        SET_FPR_D(FD(inst), fabs(FPR_D(FS(inst))));
-        break;
-
-      case Y_ADD_S_OP:
-        SET_FPR_S(FD(inst), FPR_S(FS(inst)) + FPR_S(FT(inst)));
-        /* Should trap on inexact/overflow/underflow */
-        break;
-
-      case Y_ADD_D_OP:
-        SET_FPR_D(FD(inst), FPR_D(FS(inst)) + FPR_D(FT(inst)));
-        /* Should trap on inexact/overflow/underflow */
-        break;
-
-      case Y_BC1F_OP:
-      case Y_BC1FL_OP:
-      case Y_BC1T_OP:
-      case Y_BC1TL_OP: {
-        int cc = CC(inst);
-        int nd = ND(inst); /* 1 => nullify */
-        int tf = TF(inst); /* 0 => BC1F, 1 => BC1T */
-        BRANCH_INST((FCCR & (1 << cc)) == (tf << cc), PC + IDISP(inst), nd);
-        break;
-      }
-
-      case Y_C_F_S_OP:
-      case Y_C_UN_S_OP:
-      case Y_C_EQ_S_OP:
-      case Y_C_UEQ_S_OP:
-      case Y_C_OLT_S_OP:
-      case Y_C_OLE_S_OP:
-      case Y_C_ULT_S_OP:
-      case Y_C_ULE_S_OP:
-      case Y_C_SF_S_OP:
-      case Y_C_NGLE_S_OP:
-      case Y_C_SEQ_S_OP:
-      case Y_C_NGL_S_OP:
-      case Y_C_LT_S_OP:
-      case Y_C_NGE_S_OP:
-      case Y_C_LE_S_OP:
-      case Y_C_NGT_S_OP: {
-        float v1 = FPR_S(FS(inst)), v2 = FPR_S(FT(inst));
-        double dv1 = v1, dv2 = v2;
-        int cond = COND(inst);
-        int cc = FD(inst);
-
-        if (NaN(dv1) || NaN(dv2)) {
-          if (cond & COND_IN) {
-            RAISE_EXCEPTION(ExcCode_FPE, break);
+            break;
+
+          case Y_SB_OP:
+            set_mem_byte(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
+            break;
+
+          case Y_SC_OP:
+            /* Uniprocessor, so instruction is just a store */
+            set_mem_word(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
+            break;
+
+          case Y_SDC2_OP:
+            RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
+            break;
+
+          case Y_SH_OP:
+            set_mem_half(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
+            break;
+
+          case Y_SLL_OP: {
+            int shamt = SHAMT(inst);
+
+            if (shamt >= 0 && shamt < 32)
+              R[RD(inst)] = R[RT(inst)] << shamt;
+            else
+              R[RD(inst)] = R[RT(inst)];
+            break;
           }
-          set_fpu_cc(cond, cc, 0, 0, 1);
-        } else {
-          set_fpu_cc(cond, cc, v1 < v2, v1 == v2, 0);
-        }
-      } break;
 
-      case Y_C_F_D_OP:
-      case Y_C_UN_D_OP:
-      case Y_C_EQ_D_OP:
-      case Y_C_UEQ_D_OP:
-      case Y_C_OLT_D_OP:
-      case Y_C_OLE_D_OP:
-      case Y_C_ULT_D_OP:
-      case Y_C_ULE_D_OP:
-      case Y_C_SF_D_OP:
-      case Y_C_NGLE_D_OP:
-      case Y_C_SEQ_D_OP:
-      case Y_C_NGL_D_OP:
-      case Y_C_LT_D_OP:
-      case Y_C_NGE_D_OP:
-      case Y_C_LE_D_OP:
-      case Y_C_NGT_D_OP: {
-        double v1 = FPR_D(FS(inst)), v2 = FPR_D(FT(inst));
-        int cond = COND(inst);
-        int cc = FD(inst);
+          case Y_SLLV_OP: {
+            int shamt = (R[RS(inst)] & 0x1f);
 
-        if (NaN(v1) || NaN(v2)) {
-          if (cond & COND_IN) {
-            RAISE_EXCEPTION(ExcCode_FPE, break);
+            if (shamt >= 0 && shamt < 32)
+              R[RD(inst)] = R[RT(inst)] << shamt;
+            else
+              R[RD(inst)] = R[RT(inst)];
+            break;
           }
-          set_fpu_cc(cond, cc, 0, 0, 1);
-        } else {
-          set_fpu_cc(cond, cc, v1 < v2, v1 == v2, 0);
+
+          case Y_SLT_OP:
+            if (R[RS(inst)] < R[RT(inst)])
+              R[RD(inst)] = 1;
+            else
+              R[RD(inst)] = 0;
+            break;
+
+          case Y_SLTI_OP:
+            if (R[RS(inst)] < (short)IMM(inst))
+              R[RT(inst)] = 1;
+            else
+              R[RT(inst)] = 0;
+            break;
+
+          case Y_SLTIU_OP: {
+            int x = (short)IMM(inst);
+
+            if ((u_reg_word)R[RS(inst)] < (u_reg_word)x)
+              R[RT(inst)] = 1;
+            else
+              R[RT(inst)] = 0;
+            break;
+          }
+
+          case Y_SLTU_OP:
+            if ((u_reg_word)R[RS(inst)] < (u_reg_word)R[RT(inst)])
+              R[RD(inst)] = 1;
+            else
+              R[RD(inst)] = 0;
+            break;
+
+          case Y_SRA_OP: {
+            int shamt = SHAMT(inst);
+            reg_word val = R[RT(inst)];
+
+            if (shamt >= 0 && shamt < 32)
+              R[RD(inst)] = val >> shamt;
+            else
+              R[RD(inst)] = val;
+            break;
+          }
+
+          case Y_SRAV_OP: {
+            int shamt = R[RS(inst)] & 0x1f;
+            reg_word val = R[RT(inst)];
+
+            if (shamt >= 0 && shamt < 32)
+              R[RD(inst)] = val >> shamt;
+            else
+              R[RD(inst)] = val;
+            break;
+          }
+
+          case Y_SRL_OP: {
+            int shamt = SHAMT(inst);
+            u_reg_word val = R[RT(inst)];
+
+            if (shamt >= 0 && shamt < 32)
+              R[RD(inst)] = val >> shamt;
+            else
+              R[RD(inst)] = val;
+            break;
+          }
+
+          case Y_SRLV_OP: {
+            int shamt = R[RS(inst)] & 0x1f;
+            u_reg_word val = R[RT(inst)];
+
+            if (shamt >= 0 && shamt < 32)
+              R[RD(inst)] = val >> shamt;
+            else
+              R[RD(inst)] = val;
+            break;
+          }
+
+          case Y_SUB_OP: {
+            reg_word vs = R[RS(inst)], vt = R[RT(inst)];
+            reg_word diff = vs - vt;
+
+            if (SIGN_BIT(vs) != SIGN_BIT(vt) && SIGN_BIT(vs) != SIGN_BIT(diff))
+              RAISE_EXCEPTION(ExcCode_Ov, break);
+            R[RD(inst)] = diff;
+            break;
+          }
+
+          case Y_SUBU_OP:
+            R[RD(inst)] = (u_reg_word)R[RS(inst)] - (u_reg_word)R[RT(inst)];
+            break;
+
+          case Y_SW_OP:
+            set_mem_word(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
+            break;
+
+          case Y_SWC2_OP:
+            RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
+            break;
+
+          case Y_SWL_OP: {
+            mem_addr addr = R[BASE(inst)] + IOFFSET(inst);
+            mem_word data;
+            reg_word reg = R[RT(inst)];
+            int byte = addr & 0x3;
+
+            data = read_mem_word(addr & 0xfffffffc);
+#ifdef SPIM_BIGENDIAN
+            switch (byte) {
+            case 0:
+              data = reg;
+              break;
+
+            case 1:
+              data = (data & 0xff000000) | (reg >> 8 & 0xffffff);
+              break;
+
+            case 2:
+              data = (data & 0xffff0000) | (reg >> 16 & 0xffff);
+              break;
+
+            case 3:
+              data = (data & 0xffffff00) | (reg >> 24 & 0xff);
+              break;
+            }
+#else
+            switch (byte) {
+            case 0:
+              data = (data & 0xffffff00) | (reg >> 24 & 0xff);
+              break;
+
+            case 1:
+              data = (data & 0xffff0000) | (reg >> 16 & 0xffff);
+              break;
+
+            case 2:
+              data = (data & 0xff000000) | (reg >> 8 & 0xffffff);
+              break;
+
+            case 3:
+              data = reg;
+              break;
+            }
+#endif
+            set_mem_word(addr & 0xfffffffc, data);
+            break;
+          }
+
+          case Y_SWR_OP: {
+            mem_addr addr = R[BASE(inst)] + IOFFSET(inst);
+            mem_word data;
+            reg_word reg = R[RT(inst)];
+            int byte = addr & 0x3;
+
+            data = read_mem_word(addr & 0xfffffffc);
+#ifdef SPIM_BIGENDIAN
+            switch (byte) {
+            case 0:
+              data = ((reg << 24) & 0xff000000) | (data & 0xffffff);
+              break;
+
+            case 1:
+              data = ((reg << 16) & 0xffff0000) | (data & 0xffff);
+              break;
+
+            case 2:
+              data = ((reg << 8) & 0xffffff00) | (data & 0xff);
+              break;
+
+            case 3:
+              data = reg;
+              break;
+            }
+#else
+            switch (byte) {
+            case 0:
+              data = reg;
+              break;
+
+            case 1:
+              data = ((reg << 8) & 0xffffff00) | (data & 0xff);
+              break;
+
+            case 2:
+              data = ((reg << 16) & 0xffff0000) | (data & 0xffff);
+              break;
+
+            case 3:
+              data = ((reg << 24) & 0xff000000) | (data & 0xffffff);
+              break;
+            }
+#endif
+            set_mem_word(addr & 0xfffffffc, data);
+            break;
+          }
+
+          case Y_SYNC_OP:
+            break; /* Memory details not implemented */
+
+          case Y_SYSCALL_OP:
+            if (!do_syscall())
+              return false;
+            break;
+
+          case Y_TEQ_OP:
+            if (R[RS(inst)] == R[RT(inst)])
+              RAISE_EXCEPTION(ExcCode_Tr, {});
+            break;
+
+          case Y_TEQI_OP:
+            if (R[RS(inst)] == IMM(inst))
+              RAISE_EXCEPTION(ExcCode_Tr, {});
+            break;
+
+          case Y_TGE_OP:
+            if (R[RS(inst)] >= R[RT(inst)])
+              RAISE_EXCEPTION(ExcCode_Tr, {});
+            break;
+
+          case Y_TGEI_OP:
+            if (R[RS(inst)] >= IMM(inst))
+              RAISE_EXCEPTION(ExcCode_Tr, {});
+            break;
+
+          case Y_TGEIU_OP:
+            if ((u_reg_word)R[RS(inst)] >= (u_reg_word)IMM(inst))
+              RAISE_EXCEPTION(ExcCode_Tr, {});
+            break;
+
+          case Y_TGEU_OP:
+            if ((u_reg_word)R[RS(inst)] >= (u_reg_word)R[RT(inst)])
+              RAISE_EXCEPTION(ExcCode_Tr, {});
+            break;
+
+          case Y_TLBP_OP:
+            RAISE_EXCEPTION(ExcCode_RI, {}); /* TLB not implemented */
+            break;
+
+          case Y_TLBR_OP:
+            RAISE_EXCEPTION(ExcCode_RI, {}); /* TLB not implemented */
+            break;
+
+          case Y_TLBWI_OP:
+            RAISE_EXCEPTION(ExcCode_RI, {}); /* TLB not implemented */
+            break;
+
+          case Y_TLBWR_OP:
+            RAISE_EXCEPTION(ExcCode_RI, {}); /* TLB not implemented */
+            break;
+
+          case Y_TLT_OP:
+            if (R[RS(inst)] < R[RT(inst)])
+              RAISE_EXCEPTION(ExcCode_Tr, {});
+            break;
+
+          case Y_TLTI_OP:
+            if (R[RS(inst)] < IMM(inst))
+              RAISE_EXCEPTION(ExcCode_Tr, {});
+            break;
+
+          case Y_TLTIU_OP:
+            if ((u_reg_word)R[RS(inst)] < (u_reg_word)IMM(inst))
+              RAISE_EXCEPTION(ExcCode_Tr, {});
+            break;
+
+          case Y_TLTU_OP:
+            if ((u_reg_word)R[RS(inst)] < (u_reg_word)R[RT(inst)])
+              RAISE_EXCEPTION(ExcCode_Tr, {});
+            break;
+
+          case Y_TNE_OP:
+            if (R[RS(inst)] != R[RT(inst)])
+              RAISE_EXCEPTION(ExcCode_Tr, {});
+            break;
+
+          case Y_TNEI_OP:
+            if (R[RS(inst)] != IMM(inst))
+              RAISE_EXCEPTION(ExcCode_Tr, {});
+            break;
+
+          case Y_XOR_OP:
+            R[RD(inst)] = R[RS(inst)] ^ R[RT(inst)];
+            break;
+
+          case Y_XORI_OP:
+            R[RT(inst)] = R[RS(inst)] ^ (0xffff & IMM(inst));
+            break;
+
+            /* FPA Operations */
+
+          case Y_ABS_S_OP:
+            SET_FPR_S(FD(inst), fabs(FPR_S(FS(inst))));
+            break;
+
+          case Y_ABS_D_OP:
+            SET_FPR_D(FD(inst), fabs(FPR_D(FS(inst))));
+            break;
+
+          case Y_ADD_S_OP:
+            SET_FPR_S(FD(inst), FPR_S(FS(inst)) + FPR_S(FT(inst)));
+            /* Should trap on inexact/overflow/underflow */
+            break;
+
+          case Y_ADD_D_OP:
+            SET_FPR_D(FD(inst), FPR_D(FS(inst)) + FPR_D(FT(inst)));
+            /* Should trap on inexact/overflow/underflow */
+            break;
+
+          case Y_BC1F_OP:
+          case Y_BC1FL_OP:
+          case Y_BC1T_OP:
+          case Y_BC1TL_OP: {
+            int cc = CC(inst);
+            int nd = ND(inst); /* 1 => nullify */
+            int tf = TF(inst); /* 0 => BC1F, 1 => BC1T */
+            BRANCH_INST((FCCR & (1 << cc)) == (tf << cc), PC + IDISP(inst), nd);
+            break;
+          }
+
+          case Y_C_F_S_OP:
+          case Y_C_UN_S_OP:
+          case Y_C_EQ_S_OP:
+          case Y_C_UEQ_S_OP:
+          case Y_C_OLT_S_OP:
+          case Y_C_OLE_S_OP:
+          case Y_C_ULT_S_OP:
+          case Y_C_ULE_S_OP:
+          case Y_C_SF_S_OP:
+          case Y_C_NGLE_S_OP:
+          case Y_C_SEQ_S_OP:
+          case Y_C_NGL_S_OP:
+          case Y_C_LT_S_OP:
+          case Y_C_NGE_S_OP:
+          case Y_C_LE_S_OP:
+          case Y_C_NGT_S_OP: {
+            float v1 = FPR_S(FS(inst)), v2 = FPR_S(FT(inst));
+            double dv1 = v1, dv2 = v2;
+            int cond = COND(inst);
+            int cc = FD(inst);
+
+            if (NaN(dv1) || NaN(dv2)) {
+              if (cond & COND_IN) {
+                RAISE_EXCEPTION(ExcCode_FPE, break);
+              }
+              set_fpu_cc(cond, cc, 0, 0, 1);
+            } else {
+              set_fpu_cc(cond, cc, v1 < v2, v1 == v2, 0);
+            }
+          } break;
+
+          case Y_C_F_D_OP:
+          case Y_C_UN_D_OP:
+          case Y_C_EQ_D_OP:
+          case Y_C_UEQ_D_OP:
+          case Y_C_OLT_D_OP:
+          case Y_C_OLE_D_OP:
+          case Y_C_ULT_D_OP:
+          case Y_C_ULE_D_OP:
+          case Y_C_SF_D_OP:
+          case Y_C_NGLE_D_OP:
+          case Y_C_SEQ_D_OP:
+          case Y_C_NGL_D_OP:
+          case Y_C_LT_D_OP:
+          case Y_C_NGE_D_OP:
+          case Y_C_LE_D_OP:
+          case Y_C_NGT_D_OP: {
+            double v1 = FPR_D(FS(inst)), v2 = FPR_D(FT(inst));
+            int cond = COND(inst);
+            int cc = FD(inst);
+
+            if (NaN(v1) || NaN(v2)) {
+              if (cond & COND_IN) {
+                RAISE_EXCEPTION(ExcCode_FPE, break);
+              }
+              set_fpu_cc(cond, cc, 0, 0, 1);
+            } else {
+              set_fpu_cc(cond, cc, v1 < v2, v1 == v2, 0);
+            }
+          } break;
+
+          case Y_CFC1_OP:
+            R[RT(inst)] = FCR[FS(inst)];
+            break;
+
+          case Y_CTC1_OP:
+            FCR[FS(inst)] = R[RT(inst)];
+
+            if (FIR_REG == FS(inst)) {
+              /* Read only register */
+              FIR = FIR_MASK;
+            } else if (FCCR_REG == FS(inst)) {
+              /* FCC bits in FCSR and FCCR linked */
+              FCSR = (FCSR & ~0xfe400000) | ((FCCR & 0xfe) << 24) |
+                     ((FCCR & 0x1) << 23);
+              FCCR &= FCCR_MASK;
+            } else if (FCSR_REG == FS(inst)) {
+              /* FCC bits in FCSR and FCCR linked */
+              FCCR = ((FCSR >> 24) & 0xfe) | ((FCSR >> 23) & 0x1);
+              FCSR &= FCSR_MASK;
+              if ((R[RT(inst)] & ~FCSR_MASK) != 0)
+                /* Trying to set unsupported mode */
+                RAISE_EXCEPTION(ExcCode_FPE, {});
+            }
+            break;
+
+          case Y_CEIL_W_D_OP: {
+            double val = FPR_D(FS(inst));
+
+            SET_FPR_W(FD(inst), (int32)ceil(val));
+            break;
+          }
+
+          case Y_CEIL_W_S_OP: {
+            double val = (double)FPR_S(FS(inst));
+
+            SET_FPR_W(FD(inst), (int32)ceil(val));
+            break;
+          }
+
+          case Y_CVT_D_S_OP: {
+            double val = FPR_S(FS(inst));
+
+            SET_FPR_D(FD(inst), val);
+            break;
+          }
+
+          case Y_CVT_D_W_OP: {
+            double val = (double)FPR_W(FS(inst));
+
+            SET_FPR_D(FD(inst), val);
+            break;
+          }
+
+          case Y_CVT_S_D_OP: {
+            float val = (float)FPR_D(FS(inst));
+
+            SET_FPR_S(FD(inst), val);
+            break;
+          }
+
+          case Y_CVT_S_W_OP: {
+            float val = (float)FPR_W(FS(inst));
+
+            SET_FPR_S(FD(inst), val);
+            break;
+          }
+
+          case Y_CVT_W_D_OP: {
+            int val = (int32)FPR_D(FS(inst));
+
+            SET_FPR_W(FD(inst), val);
+            break;
+          }
+
+          case Y_CVT_W_S_OP: {
+            int val = (int32)FPR_S(FS(inst));
+
+            SET_FPR_W(FD(inst), val);
+            break;
+          }
+
+          case Y_DIV_S_OP:
+            SET_FPR_S(FD(inst), FPR_S(FS(inst)) / FPR_S(FT(inst)));
+            break;
+
+          case Y_DIV_D_OP:
+            SET_FPR_D(FD(inst), FPR_D(FS(inst)) / FPR_D(FT(inst)));
+            break;
+
+          case Y_FLOOR_W_D_OP: {
+            double val = FPR_D(FS(inst));
+
+            SET_FPR_W(FD(inst), (int32)floor(val));
+            break;
+          }
+
+          case Y_FLOOR_W_S_OP: {
+            double val = (double)FPR_S(FS(inst));
+
+            SET_FPR_W(FD(inst), (int32)floor(val));
+            break;
+          }
+
+          case Y_LDC1_OP: {
+            mem_addr addr = R[BASE(inst)] + IOFFSET(inst);
+            if ((addr & 0x3) != 0)
+              RAISE_EXCEPTION(ExcCode_AdEL, CP0_BadVAddr = addr);
+
+            LOAD_INST((reg_word *)&FPR_S(FT(inst)), read_mem_word(addr),
+                      0xffffffff);
+            LOAD_INST((reg_word *)&FPR_S(FT(inst) + 1),
+                      read_mem_word(addr + sizeof(mem_word)), 0xffffffff);
+            break;
+          }
+
+          case Y_LWC1_OP:
+            LOAD_INST((reg_word *)&FPR_S(FT(inst)),
+                      read_mem_word(R[BASE(inst)] + IOFFSET(inst)), 0xffffffff);
+            break;
+
+          case Y_MFC1_OP: {
+            float val = FPR_S(FS(inst));
+            reg_word *vp = (reg_word *)&val;
+
+            R[RT(inst)] = *vp; /* Fool coercion */
+            break;
+          }
+
+          case Y_MOV_S_OP:
+            SET_FPR_S(FD(inst), FPR_S(FS(inst)));
+            break;
+
+          case Y_MOV_D_OP:
+            SET_FPR_D(FD(inst), FPR_D(FS(inst)));
+            break;
+
+          case Y_MOVF_OP: {
+            int cc = CC(inst);
+            if ((FCCR & (1 << cc)) == 0)
+              R[RD(inst)] = R[RS(inst)];
+            break;
+          }
+
+          case Y_MOVF_D_OP: {
+            int cc = CC(inst);
+            if ((FCCR & (1 << cc)) == 0)
+              SET_FPR_D(FD(inst), FPR_D(FS(inst)));
+            break;
+          }
+
+          case Y_MOVF_S_OP: {
+            int cc = CC(inst);
+            if ((FCCR & (1 << cc)) == 0)
+              SET_FPR_S(FD(inst), FPR_S(FS(inst)));
+            break;
+          }
+
+          case Y_MOVN_D_OP: {
+            if (R[RT(inst)] != 0)
+              SET_FPR_D(FD(inst), FPR_D(FS(inst)));
+            break;
+          }
+
+          case Y_MOVN_S_OP: {
+            if (R[RT(inst)] != 0)
+              SET_FPR_S(FD(inst), FPR_S(FS(inst)));
+            break;
+          }
+
+          case Y_MOVT_OP: {
+            int cc = CC(inst);
+            if ((FCCR & (1 << cc)) != 0)
+              R[RD(inst)] = R[RS(inst)];
+            break;
+          }
+
+          case Y_MOVT_D_OP: {
+            int cc = CC(inst);
+            if ((FCCR & (1 << cc)) != 0)
+              SET_FPR_D(FD(inst), FPR_D(FS(inst)));
+            break;
+          }
+
+          case Y_MOVT_S_OP: {
+            int cc = CC(inst);
+            if ((FCCR & (1 << cc)) != 0)
+              SET_FPR_S(FD(inst), FPR_S(FS(inst)));
+            break;
+          }
+
+          case Y_MOVZ_D_OP: {
+            if (R[RT(inst)] == 0)
+              SET_FPR_D(FD(inst), FPR_D(FS(inst)));
+            break;
+          }
+
+          case Y_MOVZ_S_OP: {
+            if (R[RT(inst)] == 0)
+              SET_FPR_S(FD(inst), FPR_S(FS(inst)));
+            break;
+          }
+
+          case Y_MTC1_OP: {
+            reg_word word = R[RT(inst)];
+            float *wp = (float *)&word;
+
+            SET_FPR_S(FS(inst), *wp); /* fool coercion */
+            break;
+          }
+
+          case Y_MUL_S_OP:
+            SET_FPR_S(FD(inst), FPR_S(FS(inst)) * FPR_S(FT(inst)));
+            break;
+
+          case Y_MUL_D_OP:
+            SET_FPR_D(FD(inst), FPR_D(FS(inst)) * FPR_D(FT(inst)));
+            break;
+
+          case Y_NEG_S_OP:
+            SET_FPR_S(FD(inst), -FPR_S(FS(inst)));
+            break;
+
+          case Y_NEG_D_OP:
+            SET_FPR_D(FD(inst), -FPR_D(FS(inst)));
+            break;
+
+          case Y_ROUND_W_D_OP: {
+            double val = FPR_D(FS(inst));
+
+            SET_FPR_W(FD(inst), (int32)(val + 0.5)); /* Casting truncates */
+            break;
+          }
+
+          case Y_ROUND_W_S_OP: {
+            double val = (double)FPR_S(FS(inst));
+
+            SET_FPR_W(FD(inst), (int32)(val + 0.5)); /* Casting truncates */
+            break;
+          }
+
+          case Y_SDC1_OP: {
+            double val = FPR_D(RT(inst));
+            reg_word *vp = (reg_word *)&val;
+            mem_addr addr = R[BASE(inst)] + IOFFSET(inst);
+            if ((addr & 0x3) != 0)
+              RAISE_EXCEPTION(ExcCode_AdEL, CP0_BadVAddr = addr);
+
+            set_mem_word(addr, *vp);
+            set_mem_word(addr + sizeof(mem_word), *(vp + 1));
+            break;
+          }
+
+          case Y_SQRT_D_OP:
+            SET_FPR_D(FD(inst), sqrt(FPR_D(FS(inst))));
+            break;
+
+          case Y_SQRT_S_OP:
+            SET_FPR_S(FD(inst), sqrt(FPR_S(FS(inst))));
+            break;
+
+          case Y_SUB_S_OP:
+            SET_FPR_S(FD(inst), FPR_S(FS(inst)) - FPR_S(FT(inst)));
+            break;
+
+          case Y_SUB_D_OP:
+            SET_FPR_D(FD(inst), FPR_D(FS(inst)) - FPR_D(FT(inst)));
+            break;
+
+          case Y_SWC1_OP: {
+            float val = FPR_S(RT(inst));
+            reg_word *vp = (reg_word *)&val;
+
+            set_mem_word(R[BASE(inst)] + IOFFSET(inst), *vp);
+            break;
+          }
+
+          case Y_TRUNC_W_D_OP: {
+            double val = FPR_D(FS(inst));
+
+            SET_FPR_W(FD(inst), (int32)val); /* Casting truncates */
+            break;
+          }
+
+          case Y_TRUNC_W_S_OP: {
+            double val = (double)FPR_S(FS(inst));
+
+            SET_FPR_W(FD(inst), (int32)val); /* Casting truncates */
+            break;
+          }
+
+          default:
+            fatal_error("Unknown instruction type: %d\n", OPCODE(inst));
+            break;
+          }
         }
-      } break;
-
-      case Y_CFC1_OP:
-        R[RT(inst)] = FCR[FS(inst)];
-        break;
-
-      case Y_CTC1_OP:
-        FCR[FS(inst)] = R[RT(inst)];
-
-        if (FIR_REG == FS(inst)) {
-          /* Read only register */
-          FIR = FIR_MASK;
-        } else if (FCCR_REG == FS(inst)) {
-          /* FCC bits in FCSR and FCCR linked */
-          FCSR = (FCSR & ~0xfe400000) | ((FCCR & 0xfe) << 24) |
-                 ((FCCR & 0x1) << 23);
-          FCCR &= FCCR_MASK;
-        } else if (FCSR_REG == FS(inst)) {
-          /* FCC bits in FCSR and FCCR linked */
-          FCCR = ((FCSR >> 24) & 0xfe) | ((FCSR >> 23) & 0x1);
-          FCSR &= FCSR_MASK;
-          if ((R[RT(inst)] & ~FCSR_MASK) != 0)
-            /* Trying to set unsupported mode */
-            RAISE_EXCEPTION(ExcCode_FPE, {});
-        }
-        break;
-
-      case Y_CEIL_W_D_OP: {
-        double val = FPR_D(FS(inst));
-
-        SET_FPR_W(FD(inst), (int32)ceil(val));
-        break;
+        /* After instruction executes: */
+        PC += BYTES_PER_WORD;
       }
-
-      case Y_CEIL_W_S_OP: {
-        double val = (double)FPR_S(FS(inst));
-
-        SET_FPR_W(FD(inst), (int32)ceil(val));
-        break;
-      }
-
-      case Y_CVT_D_S_OP: {
-        double val = FPR_S(FS(inst));
-
-        SET_FPR_D(FD(inst), val);
-        break;
-      }
-
-      case Y_CVT_D_W_OP: {
-        double val = (double)FPR_W(FS(inst));
-
-        SET_FPR_D(FD(inst), val);
-        break;
-      }
-
-      case Y_CVT_S_D_OP: {
-        float val = (float)FPR_D(FS(inst));
-
-        SET_FPR_S(FD(inst), val);
-        break;
-      }
-
-      case Y_CVT_S_W_OP: {
-        float val = (float)FPR_W(FS(inst));
-
-        SET_FPR_S(FD(inst), val);
-        break;
-      }
-
-      case Y_CVT_W_D_OP: {
-        int val = (int32)FPR_D(FS(inst));
-
-        SET_FPR_W(FD(inst), val);
-        break;
-      }
-
-      case Y_CVT_W_S_OP: {
-        int val = (int32)FPR_S(FS(inst));
-
-        SET_FPR_W(FD(inst), val);
-        break;
-      }
-
-      case Y_DIV_S_OP:
-        SET_FPR_S(FD(inst), FPR_S(FS(inst)) / FPR_S(FT(inst)));
-        break;
-
-      case Y_DIV_D_OP:
-        SET_FPR_D(FD(inst), FPR_D(FS(inst)) / FPR_D(FT(inst)));
-        break;
-
-      case Y_FLOOR_W_D_OP: {
-        double val = FPR_D(FS(inst));
-
-        SET_FPR_W(FD(inst), (int32)floor(val));
-        break;
-      }
-
-      case Y_FLOOR_W_S_OP: {
-        double val = (double)FPR_S(FS(inst));
-
-        SET_FPR_W(FD(inst), (int32)floor(val));
-        break;
-      }
-
-      case Y_LDC1_OP: {
-        mem_addr addr = R[BASE(inst)] + IOFFSET(inst);
-        if ((addr & 0x3) != 0)
-          RAISE_EXCEPTION(ExcCode_AdEL, CP0_BadVAddr = addr);
-
-        LOAD_INST((reg_word *)&FPR_S(FT(inst)), read_mem_word(addr),
-                  0xffffffff);
-        LOAD_INST((reg_word *)&FPR_S(FT(inst) + 1),
-                  read_mem_word(addr + sizeof(mem_word)), 0xffffffff);
-        break;
-      }
-
-      case Y_LWC1_OP:
-        LOAD_INST((reg_word *)&FPR_S(FT(inst)),
-                  read_mem_word(R[BASE(inst)] + IOFFSET(inst)), 0xffffffff);
-        break;
-
-      case Y_MFC1_OP: {
-        float val = FPR_S(FS(inst));
-        reg_word *vp = (reg_word *)&val;
-
-        R[RT(inst)] = *vp; /* Fool coercion */
-        break;
-      }
-
-      case Y_MOV_S_OP:
-        SET_FPR_S(FD(inst), FPR_S(FS(inst)));
-        break;
-
-      case Y_MOV_D_OP:
-        SET_FPR_D(FD(inst), FPR_D(FS(inst)));
-        break;
-
-      case Y_MOVF_OP: {
-        int cc = CC(inst);
-        if ((FCCR & (1 << cc)) == 0)
-          R[RD(inst)] = R[RS(inst)];
-        break;
-      }
-
-      case Y_MOVF_D_OP: {
-        int cc = CC(inst);
-        if ((FCCR & (1 << cc)) == 0)
-          SET_FPR_D(FD(inst), FPR_D(FS(inst)));
-        break;
-      }
-
-      case Y_MOVF_S_OP: {
-        int cc = CC(inst);
-        if ((FCCR & (1 << cc)) == 0)
-          SET_FPR_S(FD(inst), FPR_S(FS(inst)));
-        break;
-      }
-
-      case Y_MOVN_D_OP: {
-        if (R[RT(inst)] != 0)
-          SET_FPR_D(FD(inst), FPR_D(FS(inst)));
-        break;
-      }
-
-      case Y_MOVN_S_OP: {
-        if (R[RT(inst)] != 0)
-          SET_FPR_S(FD(inst), FPR_S(FS(inst)));
-        break;
-      }
-
-      case Y_MOVT_OP: {
-        int cc = CC(inst);
-        if ((FCCR & (1 << cc)) != 0)
-          R[RD(inst)] = R[RS(inst)];
-        break;
-      }
-
-      case Y_MOVT_D_OP: {
-        int cc = CC(inst);
-        if ((FCCR & (1 << cc)) != 0)
-          SET_FPR_D(FD(inst), FPR_D(FS(inst)));
-        break;
-      }
-
-      case Y_MOVT_S_OP: {
-        int cc = CC(inst);
-        if ((FCCR & (1 << cc)) != 0)
-          SET_FPR_S(FD(inst), FPR_S(FS(inst)));
-        break;
-      }
-
-      case Y_MOVZ_D_OP: {
-        if (R[RT(inst)] == 0)
-          SET_FPR_D(FD(inst), FPR_D(FS(inst)));
-        break;
-      }
-
-      case Y_MOVZ_S_OP: {
-        if (R[RT(inst)] == 0)
-          SET_FPR_S(FD(inst), FPR_S(FS(inst)));
-        break;
-      }
-
-      case Y_MTC1_OP: {
-        reg_word word = R[RT(inst)];
-        float *wp = (float *)&word;
-
-        SET_FPR_S(FS(inst), *wp); /* fool coercion */
-        break;
-      }
-
-      case Y_MUL_S_OP:
-        SET_FPR_S(FD(inst), FPR_S(FS(inst)) * FPR_S(FT(inst)));
-        break;
-
-      case Y_MUL_D_OP:
-        SET_FPR_D(FD(inst), FPR_D(FS(inst)) * FPR_D(FT(inst)));
-        break;
-
-      case Y_NEG_S_OP:
-        SET_FPR_S(FD(inst), -FPR_S(FS(inst)));
-        break;
-
-      case Y_NEG_D_OP:
-        SET_FPR_D(FD(inst), -FPR_D(FS(inst)));
-        break;
-
-      case Y_ROUND_W_D_OP: {
-        double val = FPR_D(FS(inst));
-
-        SET_FPR_W(FD(inst), (int32)(val + 0.5)); /* Casting truncates */
-        break;
-      }
-
-      case Y_ROUND_W_S_OP: {
-        double val = (double)FPR_S(FS(inst));
-
-        SET_FPR_W(FD(inst), (int32)(val + 0.5)); /* Casting truncates */
-        break;
-      }
-
-      case Y_SDC1_OP: {
-        double val = FPR_D(RT(inst));
-        reg_word *vp = (reg_word *)&val;
-        mem_addr addr = R[BASE(inst)] + IOFFSET(inst);
-        if ((addr & 0x3) != 0)
-          RAISE_EXCEPTION(ExcCode_AdEL, CP0_BadVAddr = addr);
-
-        set_mem_word(addr, *vp);
-        set_mem_word(addr + sizeof(mem_word), *(vp + 1));
-        break;
-      }
-
-      case Y_SQRT_D_OP:
-        SET_FPR_D(FD(inst), sqrt(FPR_D(FS(inst))));
-        break;
-
-      case Y_SQRT_S_OP:
-        SET_FPR_S(FD(inst), sqrt(FPR_S(FS(inst))));
-        break;
-
-      case Y_SUB_S_OP:
-        SET_FPR_S(FD(inst), FPR_S(FS(inst)) - FPR_S(FT(inst)));
-        break;
-
-      case Y_SUB_D_OP:
-        SET_FPR_D(FD(inst), FPR_D(FS(inst)) - FPR_D(FT(inst)));
-        break;
-
-      case Y_SWC1_OP: {
-        float val = FPR_S(RT(inst));
-        reg_word *vp = (reg_word *)&val;
-
-        set_mem_word(R[BASE(inst)] + IOFFSET(inst), *vp);
-        break;
-      }
-
-      case Y_TRUNC_W_D_OP: {
-        double val = FPR_D(FS(inst));
-
-        SET_FPR_W(FD(inst), (int32)val); /* Casting truncates */
-        break;
-      }
-
-      case Y_TRUNC_W_S_OP: {
-        double val = (double)FPR_S(FS(inst));
-
-        SET_FPR_W(FD(inst), (int32)val); /* Casting truncates */
-        break;
-      }
-
-      default:
-        fatal_error("Unknown instruction type: %d\n", OPCODE(inst));
-        break;
-      }
-
-      /* After instruction executes: */
-      PC += BYTES_PER_WORD;
-
       if (exception_occurred) {
         handle_exception();
       }

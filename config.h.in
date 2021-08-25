@@ -1,0 +1,6 @@
+#ifndef _config_h_
+#define _config_h_
+
+
+#cmakedefine DEFAULT_EXCEPTION_HANDLER "@DEFAULT_EXCEPTION_HANDLER@"
+#endif
