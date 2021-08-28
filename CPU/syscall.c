@@ -50,6 +50,8 @@
 
 #endif
 
+#include <stdbool.h>
+
 #include "spim.h"
 
 #include "string-stream.h"

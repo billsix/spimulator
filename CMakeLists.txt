@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.0)
 
-project(spim LANGUAGES C CXX)
+project(spim LANGUAGES C)
 
-set(CMAKE_CXX_STANDARD 98)
+set(CMAKE_CXX_STANDARD 99)
 
 add_compile_definitions(IMGUI_IMPL_OPENGL_LOADER_GL3W=1)
 
@@ -31,22 +31,22 @@ set(INCLUDE_FILES
 
 
 set(SOURCE_FILES
-  CPU/spim-utils.cpp
-  CPU/lex.yy.cpp
-  CPU/parser_yacc.cpp
-  CPU/run.cpp
-  CPU/mem.cpp
-  CPU/inst.cpp
-  CPU/data.cpp
-  CPU/sym-tbl.cpp
-  CPU/syscall.cpp
-  CPU/display-utils.cpp
-  CPU/string-stream.cpp
+  CPU/spim-utils.c
+  CPU/lex.yy.c
+  CPU/parser_yacc.c
+  CPU/run.c
+  CPU/mem.c
+  CPU/inst.c
+  CPU/data.c
+  CPU/sym-tbl.c
+  CPU/syscall.c
+  CPU/display-utils.c
+  CPU/string-stream.c
 )
 
 set(SPIM_SOURCE_FILES
   ${SOURCE_FILES}
-  spim/spim.cpp
+  spim/spim.c
 )
 
 
@@ -69,8 +69,12 @@ include_directories(
   )
 
 if(WIN32)
-  target_link_libraries(${SPIM_EXE} wsock32 ws2_32)
+  set(LINK_LIBRARIES wsock32 ws2_32)
+else()
+  set(LINK_LIBRARIES m)
 endif()
+
+target_link_libraries(${SPIM_EXE} ${LINK_LIBRARIES} )
 
 
 install(TARGETS ${SPIM_EXE} DESTINATION bin)

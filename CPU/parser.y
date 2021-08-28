@@ -439,6 +439,8 @@
 %{
 #include <stdio.h>
 
+#include <stdbool.h>
+
 #include "spim.h"
 #include "string-stream.h"
 #include "spim-utils.h"

@@ -1,6 +1,6 @@
-#line 1 "lex.yy.cpp"
+#line 1 "lex.yy.c"
 
-#line 3 "lex.yy.cpp"
+#line 3 "lex.yy.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -512,6 +512,8 @@ char *yytext;
 */
 
 
+#include <stdbool.h>
+
 #include "spim.h"
 #include "string-stream.h"
 #include "spim-utils.h"
@@ -560,8 +562,8 @@ static char scan_escape (char **str);
 
 #undef yywrap
 
-#line 563 "lex.yy.cpp"
-#line 564 "lex.yy.cpp"
+#line 565 "lex.yy.c"
+#line 566 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -778,10 +780,10 @@ YY_DECL
 		}
 
 	{
-#line 85 "scanner.l"
+#line 87 "scanner.l"
 
 
-#line 784 "lex.yy.cpp"
+#line 786 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -840,7 +842,7 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 87 "scanner.l"
+#line 89 "scanner.l"
 {
 		        if (current_line == NULL)
 			  {
@@ -852,7 +854,7 @@ YY_RULE_SETUP
 case 2:
 /* rule 2 can match eol */
 YY_RULE_SETUP
-#line 96 "scanner.l"
+#line 98 "scanner.l"
 {
 			 line_no += 1;
 			 return (Y_NL);
@@ -860,19 +862,19 @@ YY_RULE_SETUP
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 101 "scanner.l"
+#line 103 "scanner.l"
 { /* Ignore carrage returns */ }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 103 "scanner.l"
+#line 105 "scanner.l"
 {
 			 return (Y_NL);
 			}
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 108 "scanner.l"
+#line 110 "scanner.l"
 {	/* Marker character inserted to allow scanner to
 				   return Y_EOF before returning hard EOF. */
 			  return (Y_EOF);
@@ -880,14 +882,14 @@ YY_RULE_SETUP
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 113 "scanner.l"
+#line 115 "scanner.l"
 {
 				/* Ignore comments */
 			}
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 118 "scanner.l"
+#line 120 "scanner.l"
 {
 			 if (current_line == NULL)
 			   {
@@ -900,7 +902,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 129 "scanner.l"
+#line 131 "scanner.l"
 {
 			  if (current_line == NULL)
 			    {
@@ -921,7 +923,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 148 "scanner.l"
+#line 150 "scanner.l"
 {
 			  if (current_line == NULL)
 			    {
@@ -935,7 +937,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 160 "scanner.l"
+#line 162 "scanner.l"
 {
 			  int token = check_keyword (yytext,
 						     !bare_machine
@@ -976,7 +978,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 199 "scanner.l"
+#line 201 "scanner.l"
 {
 			  int reg_no = register_name_to_number (yytext + 1);
 
@@ -1021,7 +1023,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 242 "scanner.l"
+#line 244 "scanner.l"
 {
 			  if (current_line == NULL)
 			    {
@@ -1033,7 +1035,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 252 "scanner.l"
+#line 254 "scanner.l"
 {
 			 if (current_line == NULL)
 			   {
@@ -1045,7 +1047,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 261 "scanner.l"
+#line 263 "scanner.l"
 {
 			  if (current_line == NULL)
 			    {
@@ -1060,7 +1062,7 @@ YY_RULE_SETUP
 case 15:
 /* rule 15 can match eol */
 YY_RULE_SETUP
-#line 273 "scanner.l"
+#line 275 "scanner.l"
 {
 			  if (current_line == NULL)
 			    {
@@ -1074,7 +1076,7 @@ YY_RULE_SETUP
 case 16:
 /* rule 16 can match eol */
 YY_RULE_SETUP
-#line 283 "scanner.l"
+#line 285 "scanner.l"
 {
 			  if (current_line == NULL)
 			    {
@@ -1097,7 +1099,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 303 "scanner.l"
+#line 305 "scanner.l"
 {
 			  if (current_line == NULL)
 			    {
@@ -1109,10 +1111,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 313 "scanner.l"
+#line 315 "scanner.l"
 ECHO;
 	YY_BREAK
-#line 1115 "lex.yy.cpp"
+#line 1117 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2117,7 +2119,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 313 "scanner.l"
+#line 315 "scanner.l"
 
 
 

@@ -31,6 +31,8 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <stdbool.h>
+
 #include "spim.h"
 
 #include "string-stream.h"
