@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 
 project(spim LANGUAGES C CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 98)
 
 add_compile_definitions(IMGUI_IMPL_OPENGL_LOADER_GL3W=1)
 
