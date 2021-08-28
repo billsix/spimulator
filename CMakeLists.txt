@@ -52,18 +52,14 @@ set(SPIM_SOURCE_FILES
 
 
 
-IF (WIN32)
-ELSE()
-  # definition of the spim, and its dependent sources
-  set(SPIM_EXE
-    spim)
-  add_executable(
-    ${SPIM_EXE}
-    ${SPIM_SOURCE_FILES}
-    ${INCLUDE_FILES}
-    )
-ENDIF()
-
+# definition of the spim, and its dependent sources
+set(SPIM_EXE
+  spim)
+add_executable(
+  ${SPIM_EXE}
+  ${SPIM_SOURCE_FILES}
+  ${INCLUDE_FILES}
+  )
 
 
 include_directories(
@@ -72,6 +68,9 @@ include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}/spim
   )
 
+if(WIN32)
+  target_link_libraries(${SPIM_EXE} wsock32 ws2_32)
+endif()
 
 
 install(TARGETS ${SPIM_EXE} DESTINATION bin)

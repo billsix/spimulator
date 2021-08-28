@@ -45,7 +45,13 @@
 
 #include <signal.h>
 
+#ifndef WIN32
 #include <arpa/inet.h>
+#else
+#include <winsock.h>
+
+#include <io.h>
+#endif
 
 #ifdef RS
 /* This is problem on HP Snakes, which define RS in syscall.h */
@@ -54,7 +60,9 @@
 
 #include <sys/types.h>
 
+#ifndef WIN32
 #include <sys/select.h>
+#endif
 
 #ifdef _AIX
 #ifndef NBBY
@@ -142,11 +150,17 @@ int spim_return_value; /* Value returned when spim exits */
 /* => load standard exception handler */
 static bool load_exception_handler = true;
 static int console_state_saved;
+
+#ifndef WIN32
+
 #ifdef NEED_TERMIOS
 static struct sgttyb saved_console_state;
 #else
 static struct termios saved_console_state;
 #endif
+
+#endif
+
 static int program_argc;
 static char **program_argv;
 static bool dump_user_segments = false;
@@ -1001,6 +1015,8 @@ void read_input(char *str, int str_size) {
 /* Give the console to the program for IO. */
 
 static void console_to_program() {
+#ifndef WIN32
+
   if (mapped_io && !console_state_saved) {
 #ifdef NEED_TERMIOS
     int flags;
@@ -1030,11 +1046,14 @@ static void console_to_program() {
 #endif
     console_state_saved = 1;
   }
+#endif
 }
 
 /* Return the console to SPIM. */
 
 static void console_to_spim() {
+#ifndef WIN32
+
   if (mapped_io && console_state_saved)
 #ifdef NEED_TERMIOS
     ioctl((int)console_in.i, TIOCSETP, (char *)&saved_console_state);
@@ -1042,6 +1061,7 @@ static void console_to_spim() {
     tcsetattr(console_in.i, TCSANOW, &saved_console_state);
 #endif
   console_state_saved = 0;
+#endif
 }
 
 int console_input_available() {
