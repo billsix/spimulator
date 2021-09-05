@@ -4,7 +4,7 @@ if [ "$(uname)" == "Darwin" ]; then
     # Do something under Mac OS X platform
     echo
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-    cd CPU/
+    cd src/
     flex -I -8 -o lex.yy.c scanner.l
     bison -d --defines=parser_yacc.h --output=parser_yacc.c -p yy parser.y
     cd ../
@@ -25,8 +25,8 @@ cmake -DCMAKE_INSTALL_PREFIX=../buildInstall  -DCMAKE_BUILD_TYPE=Debug ../
 cmake --build  . --target all
 cmake --build  . --target install
 
-export TEST_DIR=$MAIN_DIRECTORY/Tests/
-export CPU_DIR=$MAIN_DIRECTORY/CPU/
+export TEST_DIR=$MAIN_DIRECTORY/tests/
+export SRC_DIR=$MAIN_DIRECTORY/src/
 
 # test
 cd ../buildInstall/bin
@@ -36,11 +36,11 @@ echo "Testing tt.bare.s:"
 tail -2 test.out
 
 echo "Testing tt.core.s:"
-./spimulator -ef $CPU_DIR/exceptions.s -file $TEST_DIR/tt.core.s < $TEST_DIR/tt.in >& test.out
+./spimulator -ef $SRC_DIR/exceptions.s -file $TEST_DIR/tt.core.s < $TEST_DIR/tt.in >& test.out
 tail -2 test.out
 
 echo "Testing tt.le.s:"
-./spimulator -ef $CPU_DIR/exceptions.s -file $TEST_DIR/tt.le.s  >& test.out
+./spimulator -ef $SRC_DIR/exceptions.s -file $TEST_DIR/tt.le.s  >& test.out
 tail -2 test.out
 
 # The following two tests come from test_bare, and they don't pass on version
