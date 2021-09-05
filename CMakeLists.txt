@@ -76,6 +76,5 @@ endif()
 
 target_link_libraries(${SPIM_EXE} ${LINK_LIBRARIES} )
 
-
 install(TARGETS ${SPIM_EXE} DESTINATION bin)
 install(FILES CPU/exceptions.s DESTINATION share/spim/)
