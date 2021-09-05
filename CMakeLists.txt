@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 
-project(spim LANGUAGES C)
+project(spimulator LANGUAGES C)
 
 set(CMAKE_CXX_STANDARD 99)
 
@@ -54,7 +54,7 @@ set(SPIM_SOURCE_FILES
 
 # definition of the spim, and its dependent sources
 set(SPIM_EXE
-  spim)
+  spimulator)
 add_executable(
   ${SPIM_EXE}
   ${SPIM_SOURCE_FILES}

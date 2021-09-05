@@ -32,24 +32,24 @@ export CPU_DIR=$MAIN_DIRECTORY/CPU/
 cd ../buildInstall/bin
 
 echo "Testing tt.bare.s:"
-./spim -delayed_branches -delayed_loads -noexception -file $TEST_DIR/tt.bare.s >& test.out
+./spimulator -delayed_branches -delayed_loads -noexception -file $TEST_DIR/tt.bare.s >& test.out
 tail -2 test.out
 
 echo "Testing tt.core.s:"
-./spim -ef $CPU_DIR/exceptions.s -file $TEST_DIR/tt.core.s < $TEST_DIR/tt.in >& test.out
+./spimulator -ef $CPU_DIR/exceptions.s -file $TEST_DIR/tt.core.s < $TEST_DIR/tt.in >& test.out
 tail -2 test.out
 
 echo "Testing tt.le.s:"
-./spim -ef $CPU_DIR/exceptions.s -file $TEST_DIR/tt.le.s  >& test.out
+./spimulator -ef $CPU_DIR/exceptions.s -file $TEST_DIR/tt.le.s  >& test.out
 tail -2 test.out
 
 # The following two tests come from test_bare, and they don't pass on version
 # v9.1.2, so I don't care that they fail the same way in my branch
 
 # echo "Testing tt.alu.bare.s:"
-# ./spim -bare -noexception -file $TEST_DIR/tt.alu.bare.s >& test.out
+# ./spimulator -bare -noexception -file $TEST_DIR/tt.alu.bare.s >& test.out
 # tail -2 test.out
 
 # echo "Testing tt.fpt.bare.s:"
-# ./spim -bare -noexception -file $TEST_DIR/tt.fpu.bare.s >& test.out
+# ./spimulator -bare -noexception -file $TEST_DIR/tt.fpu.bare.s >& test.out
 # tail -2 test.out
