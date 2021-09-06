@@ -1,28 +1,25 @@
-1.1 - loop, function call, print
-1.2 - nested loops, prime numbers calc, printing
-1.3 - get char from user, print
-1.4 - Read 10 chars into array.  Bubble sort
 2.3 - print out all characters in ascii
 2.4 - command and period counter, read from stdin
-2.9 - bitwise arithmatic
-2.10 - increment ints, printing to stdout
-2.11 - floating point
-3.1 - equality and comparisons of ints
 3.2 - read characters, print them out.  End at EOF
-3.3 - print 1 through 10
+5.6 - read lines, count characters, until "stop" is input
+5.7 - test strings for equality
+5.10 - get strings from stdin, sort them
 3.5 - switch statement
-3.8 - loop and print floats
+2.9 - bitwise arithmatic
 3.9 - boolean test, and tertiary expressions
+3.1 - equality and comparisons of ints
+1.1 - loop, function call, print
+1.4 - Read 10 chars into array.  Bubble sort
 4.3 - nested loop, procedure call, print out max value
-4.4 - iterated sqrt, printing
+1.2 - nested loops, prime numbers calc, printing
 4.7 - printing, procedure call, pass by value.  Perhaps add in a pass by reference
 4.8 - calculator.  procedure calls.  This needs to be refactored
 4.13 - static local variables
 5.1 - pointers
 5.3 - array
-5.6 - read lines, count characters, until "stop" is input
-5.7 - test strings for equality
-5.10 - get strings from stdin, sort them
 5.13 - malloc
 5.14 - size of array.  sizeof character pointer
 5.16 - function pointer
+2.11 - floating point
+3.8 - loop and print floats
+4.4 - iterated sqrt, printing
