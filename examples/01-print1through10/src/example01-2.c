@@ -41,14 +41,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+struct main_stack_frame {
+  int32_t i;
+  int return_value;
+};
+
 int main(int argc, char *argv[]) {
-  /* initialise */
-  int32_t i = 0;
-  /* check */
-  while (i <= 10) {
-    printf("%d\n", i);
-    /* update */
-    i++;
-  }
-  exit(EXIT_SUCCESS);
+
+  struct main_stack_frame main_stack_frame = {.i = 0,
+                                              .return_value = EXIT_SUCCESS};
+
+beginningOfLoop:
+  if (main_stack_frame.i <= 10)
+    goto loopBody;
+  else
+    goto endOfLoop;
+loopBody:
+  printf("%d\n", main_stack_frame.i);
+  main_stack_frame.i = main_stack_frame.i + 1;
+  goto beginningOfLoop;
+endOfLoop:
+  return main_stack_frame.return_value;
 }
