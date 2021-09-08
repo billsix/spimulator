@@ -41,9 +41,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "iolib.h"
+
 struct main_stack_frame {
   int32_t i;
-  int return_value;
+  int32_t return_value;
 };
 
 int main(int argc, char *argv[]) {
@@ -57,7 +59,8 @@ beginningOfLoop:
   else
     goto endOfLoop;
 loopBody:
-  printf("%d\n", main_stack_frame.i);
+  print_int(main_stack_frame.i);
+  print_char('\n');
   main_stack_frame.i = main_stack_frame.i + 1;
   goto beginningOfLoop;
 endOfLoop:

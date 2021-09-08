@@ -41,24 +41,59 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-struct main_stack_frame {
+#include "iolib.h"
+
+/*struct main_stack_frame {
   int32_t i;
   int return_value;
-};
+  };*/
+
+#define MAIN_STACK_FRAME_OFFSET_TO_I 0
+#define MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE sizeof(int32_t)
+#define SIZE_OF_MAIN_STACK_FRAME                                               \
+  = MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE + sizeof(int32_t)
 
 int main(int argc, char *argv[]) {
 
-  struct main_stack_frame main_stack_frame = {.i = 0,
-                                              .return_value = EXIT_SUCCESS};
+  // the frame pointer is the current stack frame, aka, where the local
+  // variables are
+  frame_pointer = frame_pointer - SIZE_OF_MAIN_STACK_FRAME;
+
+  // main's stack frame
+  // set i and return value
+  {
+    // set i
+    {
+      int32_t toCopy = 0;
+      memcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
+             /*src*/ &toCopy,
+             /*numberOfBytes*/ SIZE_OF_INT32_T);
+    }
+    // set return value
+    {
+      int toCopy = EXIT_SUCCESS;
+      memcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
+             /*src*/ &toCopy,
+             /*numberOfBytes*/ sizeof(int));
+    }
+  }
 
 beginningOfLoop:
-  if (main_stack_frame.i <= 10)
+  if (*((int32_t *)(frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I)) <= 10)
     goto loopBody;
   else
     goto endOfLoop;
 loopBody:
-  printf("%d\n", main_stack_frame.i);
-  main_stack_frame.i = main_stack_frame.i + 1;
+  print_int(*((int32_t *)(frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I)));
+  print_char('\n');
+  // increment i
+  {
+    int32_t incrementedI =
+        *((int32_t *)(frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I)) + 1;
+    memcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
+           /*src*/ &incrementedI,
+           /*numberOfBytes*/ SIZE_OF_INT32_T);
+  }
   goto beginningOfLoop;
 endOfLoop:
   return main_stack_frame.return_value;
