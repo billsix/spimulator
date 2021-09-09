@@ -41,17 +41,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "iolib.h"
+#include "platformabstraction.h"
 
 /*struct main_stack_frame {
+  int32_t argc;
+  char ** argv;
   int32_t i;
-  int return_value;
+  int32_t return_value;
   };*/
 
-#define MAIN_STACK_FRAME_OFFSET_TO_I 0
-#define MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE sizeof(int32_t)
+#define MAIN_STACK_FRAME_OFFSET_TO_ARGC 0
+#define MAIN_STACK_FRAME_OFFSET_TO_ARGV                                        \
+  (MAIN_STACK_FRAME_OFFSET_TO_ARGC + SIZE_OF_INT32_T)
+#define MAIN_STACK_FRAME_OFFSET_TO_I                                           \
+  (MAIN_STACK_FRAME_OFFSET_TO_ARGV + SIZE_OF_ADDRESS_OF_BYTE)
+#define MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE                                \
+  (MAIN_STACK_FRAME_OFFSET_TO_I + SIZE_OF_INT32_T)
 #define SIZE_OF_MAIN_STACK_FRAME                                               \
-  = MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE + sizeof(int32_t)
+  = (MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE + SIZE_OF_INT32_T)
 
 int main(int argc, char *argv[]) {
 
@@ -62,37 +69,59 @@ int main(int argc, char *argv[]) {
   // main's stack frame
   // set i and return value
   {
+    // set argc
+    {
+      xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_ARGC,
+              /*src*/ &argc,
+              /*numberOfBytes*/ SIZE_OF_INT32_T);
+    }
+    // set argv
+    {
+      xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_ARGC,
+              /*src*/ &argc,
+              /*numberOfBytes*/ SIZE_OF_INT32_T);
+    }
+
     // set i
     {
       int32_t toCopy = 0;
-      memcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
-             /*src*/ &toCopy,
-             /*numberOfBytes*/ SIZE_OF_INT32_T);
+      xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
+              /*src*/ &toCopy,
+              /*numberOfBytes*/ SIZE_OF_INT32_T);
     }
     // set return value
     {
       int toCopy = EXIT_SUCCESS;
-      memcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
-             /*src*/ &toCopy,
-             /*numberOfBytes*/ sizeof(int));
+      xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
+              /*src*/ &toCopy,
+              /*numberOfBytes*/ sizeof(int));
     }
   }
 
-beginningOfLoop:
-  if (*((int32_t *)(frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I)) <= 10)
-    goto loopBody;
-  else
-    goto endOfLoop;
-loopBody:
-  print_int(*((int32_t *)(frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I)));
+beginningOfLoop : {
+  int32_t i;
+  xmemcpy(/*dest*/ &i,
+          /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
+          SIZE_OF_INT32_T) if (!(i <= 10)) goto endOfLoop;
+}
+loopBody : {
+  int32_t i;
+  xmemcpy(/*dest*/ &i,
+          /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
+          SIZE_OF_INT32_T);
+  print_int(i);
+}
   print_char('\n');
   // increment i
   {
-    int32_t incrementedI =
-        *((int32_t *)(frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I)) + 1;
-    memcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
-           /*src*/ &incrementedI,
-           /*numberOfBytes*/ SIZE_OF_INT32_T);
+    int32_t i;
+    xmemcpy(/*dest*/ &i,
+            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
+            SIZE_OF_INT32_T);
+    int32_t incrementedI = i + 1;
+    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
+            /*src*/ &incrementedI,
+            /*numberOfBytes*/ SIZE_OF_INT32_T);
   }
   goto beginningOfLoop;
 endOfLoop:

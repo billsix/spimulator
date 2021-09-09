@@ -1,12 +1,13 @@
 #ifndef __IOLIB_H
 #define __IOLIB_H
 
-void print_char(char c);
-char read_char();
-
+void print_string(char* c);
+char* read_string();
 
 void print_int(int32_t i);
 int32_t read_int();
+
+void xmemcpy(void* dest, void* src, size_t n);
 
 
 // define CPU
@@ -34,10 +35,9 @@ int32_t read_int();
 
 
 // define the Random Access Memory that will be available to our program
-#define RAM_SIZE (10 * MEGABYTE)
-BYTE random_access_memory[RAM_SIZE];
+extern BYTE random_access_memory[];
 
 // byte of the begining of the frame
-ADDRESS_OF_BYTE frame_pointer = (ADDRESS_OF_BYTE)(random_access_memory + RAM_SIZE);
+extern ADDRESS_OF_BYTE frame_pointer;
 
 #endif

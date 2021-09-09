@@ -41,26 +41,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "iolib.h"
+#include "platformabstraction.h"
 
 struct main_stack_frame {
+  int32_t argc;
+  char **argv;
   int32_t i;
   int32_t return_value;
 };
 
 int main(int argc, char *argv[]) {
 
-  struct main_stack_frame main_stack_frame = {.i = 0,
-                                              .return_value = EXIT_SUCCESS};
+  struct main_stack_frame main_stack_frame = {
+      .argc = argc, .argv = argv, .i = 0, .return_value = EXIT_SUCCESS};
 
 beginningOfLoop:
-  if (main_stack_frame.i <= 10)
-    goto loopBody;
-  else
+  if (!(main_stack_frame.i <= 10))
     goto endOfLoop;
 loopBody:
   print_int(main_stack_frame.i);
-  print_char('\n');
+  print_string("\n");
   main_stack_frame.i = main_stack_frame.i + 1;
   goto beginningOfLoop;
 endOfLoop:
