@@ -1,7 +1,6 @@
 ## spimulator
 
 spimulator is an text-based MIPS32 simulator. Works on Windows, Linux, and MacOS.
-Derived from spim, https://sourceforge.net/projects/spimsimulator/.
 
 ### Building from source
 
@@ -30,7 +29,7 @@ spimulator is built using CMake.
 #### Linux
 
 * Install cmake.
-** On Debian based system, apt install cmake gcc
+    * On Debian based system, apt install cmake gcc
 * ./buildDebug.sh
 * spimulator is now under buildInstall/bin/spimulator
 * add to PATH on command line
@@ -49,7 +48,7 @@ spimulator is built using CMake.
 #### MacOS
 
 * Install cmake.
-** I use brew. brew install cmake gcc
+    * I use brew. brew install cmake gcc
 * If you just want to use the command line
     * ./buildDebug.sh
     * spimulator is now under buildInstall/bin/spimulator
@@ -79,3 +78,8 @@ SPIM is Copyright (c) 2021, by William Emerison Six, starting from git commit e1
 All rights reserved.
 
 SPIM is distributed under a BSD license.  See LICENSE
+
+
+### Original work
+
+This project is derived from spim, https://sourceforge.net/projects/spimsimulator/.
