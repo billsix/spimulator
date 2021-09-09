@@ -41,7 +41,7 @@ nl:    .asciiz     "\n"
 
 
    */
-  printf(c);
+  printf("%s", c);
 }
 
 char *read_string() {

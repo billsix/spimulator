@@ -6,45 +6,48 @@ add_library(platformabstraction STATIC platformabstraction/src/platformabstracti
 
 include_directories(platformabstraction/include/)
 
-add_executable(example01 01-helloworld/example01.c)
-set_property(TARGET example01 PROPERTY C_STANDARD 11)
-TARGET_LINK_LIBRARIES( example01 platformabstraction )
-install(TARGETS example01 DESTINATION bin)
+add_executable(01-helloworld-1 01-helloworld/01-helloworld-1.c)
+set_property(TARGET 01-helloworld-1 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 01-helloworld-1 platformabstraction )
+install(TARGETS 01-helloworld-1 DESTINATION bin)
 
-add_executable(example01-2 01-helloworld/example01-2.c)
-set_property(TARGET example01-2 PROPERTY C_STANDARD 11)
-TARGET_LINK_LIBRARIES( example01-2 platformabstraction )
-install(TARGETS example01-2 DESTINATION bin)
+add_executable(01-helloworld-2 01-helloworld/01-helloworld-2.c)
+set_property(TARGET 01-helloworld-2 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 01-helloworld-2 platformabstraction )
+install(TARGETS 01-helloworld-2 DESTINATION bin)
 
-add_executable(example01-3 01-helloworld/example01-3.c)
-set_property(TARGET example01-3 PROPERTY C_STANDARD 11)
-TARGET_LINK_LIBRARIES( example01-3 platformabstraction )
-install(TARGETS example01-3 DESTINATION bin)
-
-
-
-add_executable(example03 03-print1through10/example03.c)
-set_property(TARGET example03 PROPERTY C_STANDARD 11)
-TARGET_LINK_LIBRARIES( example03 platformabstraction )
-install(TARGETS example03 DESTINATION bin)
-
-add_executable(example03-2 03-print1through10/example03-2.c)
-set_property(TARGET example03-2 PROPERTY C_STANDARD 11)
-TARGET_LINK_LIBRARIES( example03-2 platformabstraction )
-install(TARGETS example03-2 DESTINATION bin)
-
-add_executable(example03-3 03-print1through10/example03-3.c)
-set_property(TARGET example03-3 PROPERTY C_STANDARD 11)
-TARGET_LINK_LIBRARIES( example03-3 platformabstraction )
-install(TARGETS example03-3 DESTINATION bin)
+add_executable(01-helloworld-3 01-helloworld/01-helloworld-3.c)
+set_property(TARGET 01-helloworld-3 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 01-helloworld-3 platformabstraction )
+install(TARGETS 01-helloworld-3 DESTINATION bin)
 
 
-add_executable(example04 04-increment-ints/example04.c)
-set_property(TARGET example04 PROPERTY C_STANDARD 11)
-TARGET_LINK_LIBRARIES( example04 platformabstraction )
-install(TARGETS example04 DESTINATION bin)
 
-add_executable(example05 05-get-char-from-user/example05.c)
-set_property(TARGET example05 PROPERTY C_STANDARD 11)
-TARGET_LINK_LIBRARIES( example05 platformabstraction )
-install(TARGETS example05 DESTINATION bin)
+add_executable(02-print1through10-1 02-print1through10/02-print1through10-1.c)
+set_property(TARGET 02-print1through10-1 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 02-print1through10-1 platformabstraction )
+install(TARGETS 02-print1through10-1 DESTINATION bin)
+
+add_executable(02-print1through10-2 02-print1through10/02-print1through10-2.c)
+set_property(TARGET 02-print1through10-2 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 02-print1through10-2 platformabstraction )
+install(TARGETS 02-print1through10-2 DESTINATION bin)
+
+add_executable(02-print1through10-3 02-print1through10/02-print1through10-3.c)
+set_property(TARGET 02-print1through10-3 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 02-print1through10-3 platformabstraction )
+install(TARGETS 02-print1through10-3 DESTINATION bin)
+
+
+
+
+add_executable(03-increment-ints-1 03-increment-ints/03-increment-ints-1.c)
+set_property(TARGET 03-increment-ints-1 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 03-increment-ints-1 platformabstraction )
+install(TARGETS 03-increment-ints-1 DESTINATION bin)
+
+
+add_executable(04-get-char-from-user-1 04-get-char-from-user/04-get-char-from-user-1.c)
+set_property(TARGET 04-get-char-from-user-1 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 04-get-char-from-user-1 platformabstraction )
+install(TARGETS 04-get-char-from-user-1 DESTINATION bin)
