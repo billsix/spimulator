@@ -1,18 +1,3 @@
-// Permission is hereby granted for anyone to do anything that they
-// want with this material—you may freely reprint it, redistribute it,
-// amend it or do whatever you like with it provided that
-// you include an acknowledgement of the original authorship and copyright in
-// the form of a link to this page. In doing so
-// you must accept that you do so strictly on your own
-// liability and that you accept any consequences with no liability whatsoever
-// remaining with the original authors. If you find the material useful
-// and happen to encounter one of the authors, it is unlikely
-// that they will refuse offers to buy them a drink. You
-// may therefore like to consider this material ‘drinkware’. (Offer void where
-// prohibited by law, in which case fawning and flattery may be substituted.)
-
-// https://publications.gbdirect.co.uk//c_book/copyright.html
-
 // Copyright (c) 2021 William Emerison Six
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -43,27 +28,24 @@
 
 #include "platformabstraction.h"
 
-/*struct main_stack_frame {
+/*
+struct main_stack_frame {
   int32_t argc;
-  char ** argv;
-  int32_t i;
+  char** argv;
   int32_t return_value;
-  };*/
+  };
+*/
 
 #define MAIN_STACK_FRAME_OFFSET_TO_ARGC 0
 #define MAIN_STACK_FRAME_OFFSET_TO_ARGV                                        \
   (MAIN_STACK_FRAME_OFFSET_TO_ARGC + SIZE_OF_INT32_T)
-#define MAIN_STACK_FRAME_OFFSET_TO_I                                           \
-  (MAIN_STACK_FRAME_OFFSET_TO_ARGV + SIZE_OF_ADDRESS_OF_BYTE)
 #define MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE                                \
-  (MAIN_STACK_FRAME_OFFSET_TO_I + SIZE_OF_INT32_T)
+  (MAIN_STACK_FRAME_OFFSET_TO_ARGV + SIZE_OF_INT32_T)
 #define SIZE_OF_MAIN_STACK_FRAME                                               \
-  = (MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE + SIZE_OF_INT32_T)
+  (MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE + SIZE_OF_ADDRESS_OF_BYTE)
 
 int main(int argc, char *argv[]) {
 
-  // the frame pointer is the current stack frame, aka, where the local
-  // variables are
   frame_pointer = frame_pointer - SIZE_OF_MAIN_STACK_FRAME;
 
   // main's stack frame
@@ -82,13 +64,6 @@ int main(int argc, char *argv[]) {
               /*numberOfBytes*/ SIZE_OF_INT32_T);
     }
 
-    // set i
-    {
-      int32_t toCopy = 0;
-      xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
-              /*src*/ &toCopy,
-              /*numberOfBytes*/ SIZE_OF_INT32_T);
-    }
     // set return value
     {
       int toCopy = EXIT_SUCCESS;
@@ -98,32 +73,12 @@ int main(int argc, char *argv[]) {
     }
   }
 
-beginningOfLoop : {
-  int32_t i;
-  xmemcpy(/*dest*/ &i,
-          /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
-          SIZE_OF_INT32_T) if (!(i <= 10)) goto endOfLoop;
-}
-loopBody : {
-  int32_t i;
-  xmemcpy(/*dest*/ &i,
-          /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
-          SIZE_OF_INT32_T);
-  print_int(i);
-}
-  print_char('\n');
-  // increment i
+  print_string("hello world\n");
   {
-    int32_t i;
-    xmemcpy(/*dest*/ &i,
-            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
+    int32_t return_value;
+    xmemcpy(/*dest*/ &return_value,
+            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
             SIZE_OF_INT32_T);
-    int32_t incrementedI = i + 1;
-    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
-            /*src*/ &incrementedI,
-            /*numberOfBytes*/ SIZE_OF_INT32_T);
+    return return_value;
   }
-  goto beginningOfLoop;
-endOfLoop:
-  return main_stack_frame.return_value;
 }
