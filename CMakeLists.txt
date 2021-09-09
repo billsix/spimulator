@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.0)
 
-project(spimulator LANGUAGES C)
+project(spimulator LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 99)
+set(CMAKE_CXX_STANDARD 98)
 
 add_compile_definitions(IMGUI_IMPL_OPENGL_LOADER_GL3W=1)
 
@@ -31,22 +31,22 @@ set(INCLUDE_FILES
 
 
 set(SOURCE_FILES
-  src/spim-utils.c
-  src/lex.yy.c
-  src/parser_yacc.c
-  src/run.c
-  src/mem.c
-  src/inst.c
-  src/data.c
-  src/sym-tbl.c
-  src/syscall.c
-  src/display-utils.c
-  src/string-stream.c
+  src/spim-utils.cpp
+  src/lex.yy.cpp
+  src/parser_yacc.cpp
+  src/run.cpp
+  src/mem.cpp
+  src/inst.cpp
+  src/data.cpp
+  src/sym-tbl.cpp
+  src/syscall.cpp
+  src/display-utils.cpp
+  src/string-stream.cpp
 )
 
 set(SPIM_SOURCE_FILES
   ${SOURCE_FILES}
-  src/spim.c
+  src/spim.cpp
 )
 
 
