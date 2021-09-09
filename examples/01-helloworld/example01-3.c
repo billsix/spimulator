@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
       int toCopy = EXIT_SUCCESS;
       xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
               /*src*/ &toCopy,
-              /*numberOfBytes*/ sizeof(int));
+              /*numberOfBytes*/ SIZE_OF_INT32_T);
     }
   }
 
