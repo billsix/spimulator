@@ -15,17 +15,17 @@ spimulator is built using CMake.
 * Double click buildDebug.bat
 * spimulator is now under buildInstall/bin/spimulator
 * add to PATH on command line
-** set PATH=set PATH=%PATH%;%CD%\buildInstall\bin
+    * set PATH=set PATH=%PATH%;%CD%\buildInstall\bin
 * run programs
-** batch
-*** spimulator -f examples\01-print1through10\src\example01.asm command line arguments
-** interactively
-*** spimulator
-**** load "examples\01-print1through10\src\example01.asm"
-**** step
-**** step
-**** step
-**** step
+    * batch
+        * spimulator -f examples\01-print1through10\src\example01.asm command line arguments
+    * interactively
+        * spimulator
+            * load "examples\01-print1through10\src\example01.asm"
+            * step
+            * step
+            * step
+            * step
 
 #### Linux
 
@@ -34,40 +34,40 @@ spimulator is built using CMake.
 * ./buildDebug.sh
 * spimulator is now under buildInstall/bin/spimulator
 * add to PATH on command line
-** export PATH=$(pwd)/buildInstall/bin
+    * export PATH=$(pwd)/buildInstall/bin
 * run programs
-** batch
-*** spimulator -f examples/01-print1through10/src/example01.asm command line arguments
-** interactively
-*** spimulator
-**** load "examples/01-print1through10/src/example01.asm"
-**** step
-**** step
-**** step
-**** step
+    * batch
+        * spimulator -f examples/01-print1through10/src/example01.asm command line arguments
+    * interactively
+        * spimulator
+            * load "examples/01-print1through10/src/example01.asm"
+            * step
+            * step
+            * step
+            * step
 
 #### MacOS
 
 * Install cmake.
 ** I use brew. brew install cmake gcc
 * If you just want to use the command line
-** ./buildDebug.sh
-** spimulator is now under buildInstall/bin/spimulator
+    * ./buildDebug.sh
+    * spimulator is now under buildInstall/bin/spimulator
 * add to PATH on command line
-** export PATH=$(pwd)/buildInstall/bin
+    * export PATH=$(pwd)/buildInstall/bin
 * run programs
-** batch
-*** spimulator -f examples/01-print1through10/src/example01.asm command line arguments
-** interactively
-*** spimulator
-**** load "examples/01-print1through10/src/example01.asm"
-**** step
-**** step
-**** step
-**** step
+    * batch
+        * spimulator -f examples/01-print1through10/src/example01.asm command line arguments
+    * interactively
+        * spimulator
+            * load "examples/01-print1through10/src/example01.asm"
+            * step
+            * step
+            * step
+            * step
 * If you want to use XCode
-** ./macBuildDebug.sh
-** make sure that you configure the project to use an external console, rather than XCode's embedded console.
+    * ./macBuildDebug.sh
+    * make sure that you configure the project to use an external console, rather than XCode's embedded console.
 
 
 ### Copyright
