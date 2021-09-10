@@ -75,15 +75,16 @@ spimulator is built using CMake.
 
 ### Copyright
 
-SPIM is Copyright (c) 1990-2020, by James R. Larus.
+spimulator is Copyright (c) 2021, by William Emerison Six, starting from git commit e10b97408f6d2c405c36ab05cdffbf40828970fd
 All rights reserved.
 
-SPIM is Copyright (c) 2021, by William Emerison Six, starting from git commit e10b97408f6d2c405c36ab05cdffbf40828970fd
-All rights reserved.
-
-SPIM is distributed under a BSD license.  See LICENSE
+spimulator is distributed under a BSD license.  See LICENSE
 
 
 ### Original work
+
+SPIM is Copyright (c) 1990-2020, by James R. Larus.
+All rights reserved.
+
 
 This project is derived from spim, https://sourceforge.net/projects/spimsimulator/.
