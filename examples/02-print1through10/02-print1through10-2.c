@@ -44,16 +44,14 @@
 #include "platformabstraction.h"
 
 struct main_stack_frame {
-  int32_t argc;
-  char **argv;
   int32_t i;
   int32_t return_value;
 };
 
 int main(int argc, char *argv[]) {
 
-  struct main_stack_frame main_stack_frame = {
-      .argc = argc, .argv = argv, .i = 0, .return_value = EXIT_SUCCESS};
+  struct main_stack_frame main_stack_frame = {.i = 0,
+                                              .return_value = EXIT_SUCCESS};
 
 beginningOfLoop:
   if (!(main_stack_frame.i <= 10))

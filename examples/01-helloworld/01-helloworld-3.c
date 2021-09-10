@@ -30,40 +30,20 @@
 
 /*
 struct main_stack_frame {
-  int32_t argc;
-  char** argv;
   int32_t return_value;
   };
 */
 
-#define MAIN_STACK_FRAME_OFFSET_TO_ARGC 0
-#define MAIN_STACK_FRAME_OFFSET_TO_ARGV                                        \
-  (MAIN_STACK_FRAME_OFFSET_TO_ARGC + SIZE_OF_INT32_T)
-#define MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE                                \
-  (MAIN_STACK_FRAME_OFFSET_TO_ARGV + SIZE_OF_INT32_T)
+#define MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE 0
 #define SIZE_OF_MAIN_STACK_FRAME                                               \
-  (MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE + SIZE_OF_ADDRESS_OF_BYTE)
+  (MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE + SIZE_OF_INT32_T)
 
 int main(int argc, char *argv[]) {
 
   frame_pointer = frame_pointer - SIZE_OF_MAIN_STACK_FRAME;
 
   // main's stack frame
-  // set i and return value
   {
-    // set argc
-    {
-      xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_ARGC,
-              /*src*/ &argc,
-              /*numberOfBytes*/ SIZE_OF_INT32_T);
-    }
-    // set argv
-    {
-      xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_ARGC,
-              /*src*/ &argc,
-              /*numberOfBytes*/ SIZE_OF_INT32_T);
-    }
-
     // set return value
     {
       int toCopy = EXIT_SUCCESS;

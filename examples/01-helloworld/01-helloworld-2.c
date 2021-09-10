@@ -29,15 +29,12 @@
 #include "platformabstraction.h"
 
 struct main_stack_frame {
-  int32_t argc;
-  char **argv;
   int32_t return_value;
 };
 
 int main(int argc, char *argv[]) {
 
-  struct main_stack_frame main_stack_frame = {
-      .argc = argc, .argv = argv, .return_value = EXIT_SUCCESS};
+  struct main_stack_frame main_stack_frame = {.return_value = EXIT_SUCCESS};
   print_string("hello world\n");
   return main_stack_frame.return_value;
 }

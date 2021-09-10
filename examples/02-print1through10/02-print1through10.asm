@@ -32,34 +32,27 @@ main:
         # make the frame pointer be the stack pointer
         move $fp, $sp
         # frame pointer = frame_pointer - size of main stack frame
-        addi $fp, $fp, -16 # subtract 3 int32_t and one pointer, each of which are 4 bytes
-        # s0-8 are free to use, as are t0-8
+        addi $fp, $fp, -8 # subtract 3 int32_t and one pointer, each of which are 4 bytes
 
-        # $a0 = argc, $a1 = argv
-        # 4($a1) is first command line argv 8($a1) is second
-        # save argc onto the stack
-        sw $a0, 0($fp)  # now stackframe argc can go on the stack,
-        # save argv onto the stack
-        sw $a1, 4($fp)  # now stackframe argv can go on the stack,
         # set i
         li $t0, 0       # stackframe i has to go into a register before
                         # being put on the stack
-        sw $t0, 8($fp)  # now stackframe i can go on the stack,
+        sw $t0, 0($fp)  # now stackframe i can go on the stack,
                         # at 0 offset from stack pointer
                         # our use of t1 for set is is now complete
         # set return value
         li $t0, 0       # stackframe return has to go into a register before
                         # being put on the stack
-        sw $t0, 12($fp)  # now stackframe returncode can go on the stack,
+        sw $t0, 4($fp)  # now stackframe returncode can go on the stack,
                         # at 4 offset from stack pointer
                         # our use of t1 for set is is now complete
 beginningOfLoop:
-        lw $t0, 8($fp)  # now stackframe i goes into register t1
+        lw $t0, 0($fp)  # now stackframe i goes into register t1
         bgt $t0, 10, endOfLoop # negate the test because, by default,
                                # if the test fails, the loopBody instruction
                                #
 loopBody:
-        lw $t0, 8($fp)   # now stackframe i goes into register t1
+        lw $t0, 0($fp)   # now stackframe i goes into register t1
         # print integer.  v0 must be one, int to print in a0, syscall
         # stack frame i is in t0, copy it to a0
         move $a0, $t0
@@ -72,12 +65,12 @@ loopBody:
         syscall
 
         # increment stack frame's i
-        lw $t0, 8($fp)
+        lw $t0, 0($fp)
         addi $t0, $t0, 1
-        sw $t0, 8($fp)
+        sw $t0, 0($fp)
 
         # iterate in the loop again
         b beginningOfLoop
 endOfLoop:
-        lw $v0, 12($fp)
+        lw $v0, 4($fp)
         jr $ra

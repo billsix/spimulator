@@ -30,19 +30,6 @@ helloworld:
         .text
         .globl main
 main:
-        # make the frame pointer be the stack pointer
-        move $fp, $sp
-        # frame pointer = frame_pointer - size of main stack frame
-        addi $fp, $fp, -12 # subtract 2 int32_t and one pointer, each of which are 4 bytes
-        # s0-8 are free to use, as are t0-8
-
-        # $a0 = argc, $a1 = argv
-        # 4($a1) is first command line argv 8($a1) is second
-        # save argc onto the stack
-        sw $a0, 0($fp)  # now stackframe argc can go on the stack,
-        # save argv onto the stack
-        sw $a1, 4($fp)  # now stackframe argv can go on the stack,
-
         # print a hello world
         li $v0, 4
         la $a0, helloworld
