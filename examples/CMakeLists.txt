@@ -51,3 +51,13 @@ add_executable(04-get-char-from-user-1 04-get-char-from-user/04-get-char-from-us
 set_property(TARGET 04-get-char-from-user-1 PROPERTY C_STANDARD 11)
 TARGET_LINK_LIBRARIES( 04-get-char-from-user-1 platformabstraction )
 install(TARGETS 04-get-char-from-user-1 DESTINATION bin)
+
+add_executable(05-print-out-ascii-1 05-print-out-ascii/05-print-out-ascii-1.c)
+set_property(TARGET 05-print-out-ascii-1 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 05-print-out-ascii-1 platformabstraction )
+install(TARGETS 05-print-out-ascii-1 DESTINATION bin)
+
+add_executable(06-commaAndPeriodCounter 06-commaAndPeriodCounter/06-commaAndPeriodCounter-1.c)
+set_property(TARGET 06-commaAndPeriodCounter PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 06-commaAndPeriodCounter platformabstraction )
+install(TARGETS 06-commaAndPeriodCounter DESTINATION bin)
