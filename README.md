@@ -66,7 +66,11 @@ spimulator is built using CMake.
             * step
 * If you want to use XCode
     * ./macBuildDebug.sh
-    * make sure that you configure the project to use an external console, rather than XCode's embedded console.
+    * make sure that you configure the project to use an external console, rather than XCode's embedded console.  Because otherwise you can't rum spimulator through XCode's debugger.
+        * once XCode is open, click on "spimulator" at the top of the window, middle pane, on the left.
+	* Click "Edit Scheme"
+	* "Run" should be selected on the left.  On the right pane, scroll down to "Console", and check "Use Termimal".
+	* Take note of where the console says the working directory is.  "load [assemblyfile]" will need for assembly file to be relative to the working directory
 
 
 ### Copyright

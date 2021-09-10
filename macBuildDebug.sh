@@ -6,5 +6,5 @@ cmake -DCMAKE_INSTALL_PREFIX=../buildInstall -DCMAKE_BUILD_TYPE=Debug -GXcode ..
 cmake --build  . --target all
 cmake --build  . --target install
 
-open spim.xcodeproj
+open spimulator.xcodeproj
 cd ..
