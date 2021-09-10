@@ -12,9 +12,9 @@ spimulator is built using CMake.
 
 * Install Cmake, install Visual Studio.  I use community edition.
 * Double click buildDebug.bat
-* spimulator is now under buildInstall/bin/spimulator
+* spimulator is now under buildInstall\bin\spimulator
 * add to PATH on command line
-    * set PATH=set PATH=%PATH%;%CD%\buildInstall\bin
+    * set PATH=%PATH%;%CD%\buildInstall\bin
 * run programs
     * batch
         * spimulator -f examples\01-print1through10\src\example01.asm command line arguments
