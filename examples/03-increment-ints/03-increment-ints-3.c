@@ -54,13 +54,12 @@ struct main_stack_frame {
 */
 
 #define MAIN_STACK_FRAME_OFFSET_TO_A 0
-#define MAIN_STACK_FRAME_OFFSET_TO_B                                \
+#define MAIN_STACK_FRAME_OFFSET_TO_B                                           \
   (MAIN_STACK_FRAME_OFFSET_TO_A + SIZE_OF_INT32_T)
 #define MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE                                \
   (MAIN_STACK_FRAME_OFFSET_TO_B + SIZE_OF_INT32_T)
 #define SIZE_OF_MAIN_STACK_FRAME                                               \
   (MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE + SIZE_OF_INT32_T)
-
 
 int main(int argc, char *argv[]) {
 
@@ -69,63 +68,46 @@ int main(int argc, char *argv[]) {
   frame_pointer = frame_pointer - SIZE_OF_MAIN_STACK_FRAME;
 
   // main's stack frame
-  // set i and return value
   {
-    // set a
-    {
-      int32_t a = 5;
-      xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_A,
-              /*src*/ &a,
-              /*numberOfBytes*/ SIZE_OF_INT32_T);
-    }
-    // set mb
-    {
-      int32_t b = 5;
-      xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_B,
-              /*src*/ &b,
-              /*numberOfBytes*/ SIZE_OF_INT32_T);
-    }
-    // set return value
-    {
-      int return_value = EXIT_SUCCESS;
-      xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
-              /*src*/ &return_value,
-              /*numberOfBytes*/ SIZE_OF_INT32_T);
-    }
+    int32_t a = 5;
+    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_A,
+            /*src*/ &a,
+            /*numberOfBytes*/ SIZE_OF_INT32_T);
+    int32_t b = 5;
+    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_B,
+            /*src*/ &b,
+            /*numberOfBytes*/ SIZE_OF_INT32_T);
+    int return_value = EXIT_SUCCESS;
+    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
+            /*src*/ &return_value,
+            /*numberOfBytes*/ SIZE_OF_INT32_T);
   }
 
   {
+    int32_t a;
+    xmemcpy(/*dest*/ &a,
+            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_A,
+            SIZE_OF_INT32_T);
+    a = a + 1;
+    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_A,
+            /*src*/ &a, SIZE_OF_INT32_T);
     int32_t a;
     // get a
     xmemcpy(/*dest*/ &a,
             /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_A,
             SIZE_OF_INT32_T);
-    a = a + 1;
-    // store a
-    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_A,
-            /*src*/ &a,
-            SIZE_OF_INT32_T);
-    {
-      int32_t a;
-      // get a
-      xmemcpy(/*dest*/ &a,
-              /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_A,
-              SIZE_OF_INT32_T);
 
-      int32_t a_plus_five = a + 5;
-      print_int(a_plus_five);
-      print_string("\n");
+    int32_t a_plus_five = a + 5;
+    print_int(a_plus_five);
+    print_string("\n");
 
-      print_int(a);
-      print_string("\n");
-    }
+    print_int(a);
+    print_string("\n");
   }
 
-
+  // print b + 5
   {
-    // print b + 5
     int32_t b;
-    // get b
     xmemcpy(/*dest*/ &b,
             /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_B,
             SIZE_OF_INT32_T);
@@ -135,20 +117,15 @@ int main(int argc, char *argv[]) {
     // increment b
     {
       int32_t b;
-      // get b
       xmemcpy(/*dest*/ &b,
               /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_B,
               SIZE_OF_INT32_T);
-      // inc b
       b = b + 1;
-      // store b
       xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_B,
-              /*src*/  &b,
-              SIZE_OF_INT32_T);
+              /*src*/ &b, SIZE_OF_INT32_T);
 
       print_int(b);
       print_string("\n");
-
     }
   }
 
@@ -156,10 +133,8 @@ int main(int argc, char *argv[]) {
   {
 
     int32_t return_value;
-    // get return_value
     xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
-            /*src*/ &return_value,
-            SIZE_OF_INT32_T);
+            /*src*/ &return_value, SIZE_OF_INT32_T);
     return return_value;
   }
 }

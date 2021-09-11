@@ -63,19 +63,15 @@ int main(int argc, char *argv[]) {
   // set i and return value
   {
     // set i
-    {
-      int32_t toCopy = 0;
-      xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
-              /*src*/ &toCopy,
-              /*numberOfBytes*/ SIZE_OF_INT32_T);
-    }
+    int32_t i = 0;
+    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
+            /*src*/ &i,
+            /*numberOfBytes*/ SIZE_OF_INT32_T);
     // set return value
-    {
-      int toCopy = EXIT_SUCCESS;
-      xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
-              /*src*/ &toCopy,
-              /*numberOfBytes*/ SIZE_OF_INT32_T);
-    }
+    int return_value = EXIT_SUCCESS;
+    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
+            /*src*/ &return_value,
+            /*numberOfBytes*/ SIZE_OF_INT32_T);
   }
 
 beginningOfLoop : {
