@@ -23,7 +23,6 @@
 /* Print out the numbers 1 through 10, each on their own line */
 
 #include <inttypes.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "platformabstraction.h"

@@ -34,83 +34,43 @@
 // SOFTWARE.
 //
 
-/* Purpose: */
-/* Print out the numbers 1 through 10, each on their own line */
+// Purpose
+
+/* Define a couple of ints.  Increment them.  Compute addition of various
+ * integers. */
+/* Print out the results */
 
 #include <inttypes.h>
 #include <stdlib.h>
 
 #include "platformabstraction.h"
 
-/*struct main_stack_frame {
-  int32_t i;
+struct main_stack_frame {
+  int32_t a;
+  int32_t b;
   int32_t return_value;
-  };*/
-
-#define MAIN_STACK_FRAME_OFFSET_TO_I 0
-#define MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE                                \
-  (MAIN_STACK_FRAME_OFFSET_TO_I + SIZE_OF_INT32_T)
-#define SIZE_OF_MAIN_STACK_FRAME                                               \
-  (MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE + SIZE_OF_INT32_T)
+};
 
 int main(int argc, char *argv[]) {
 
-  // the frame pointer is the current stack frame, aka, where the local
-  // variables are
-  frame_pointer = frame_pointer - SIZE_OF_MAIN_STACK_FRAME;
+  struct main_stack_frame main_stack_frame = {
+      .a = 5, .b = 5, .return_value = EXIT_SUCCESS};
 
-  // main's stack frame
-  // set i and return value
-  {
-    // set i
-    {
-      int32_t toCopy = 0;
-      xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
-              /*src*/ &toCopy,
-              /*numberOfBytes*/ SIZE_OF_INT32_T);
-    }
-    // set return value
-    {
-      int toCopy = EXIT_SUCCESS;
-      xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
-              /*src*/ &toCopy,
-              /*numberOfBytes*/ SIZE_OF_INT32_T);
-    }
-  }
-
-beginningOfLoop : {
-  int32_t i;
-  xmemcpy(/*dest*/ &i,
-          /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
-          SIZE_OF_INT32_T);
-  if (!(i <= 10))
-    goto endOfLoop;
-}
-loopBody : {
-  int32_t i;
-  xmemcpy(/*dest*/ &i,
-          /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
-          SIZE_OF_INT32_T);
-  print_int(i);
-}
+  // the first version of the C code uses preincement
+  main_stack_frame.a++;
+  print_int(main_stack_frame.a + 5);
   print_string("\n");
-  // increment i
-  {
-    int32_t i;
-    xmemcpy(/*dest*/ &i,
-            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
-            SIZE_OF_INT32_T);
-    int32_t incrementedI = i + 1;
-    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
-            /*src*/ &incrementedI,
-            /*numberOfBytes*/ SIZE_OF_INT32_T);
-  }
-  goto beginningOfLoop;
-endOfLoop : {
-  int32_t return_value;
-  xmemcpy(/*dest*/ &return_value,
-          /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
-          SIZE_OF_INT32_T);
-  return return_value;
-}
+
+  print_int(main_stack_frame.a);
+  print_string("\n");
+
+  print_int(main_stack_frame.b + 5);
+  // the first version of the C code uses postincrement
+  main_stack_frame.b++;
+  print_string("\n");
+
+  print_int(main_stack_frame.b);
+  print_string("\n");
+
+  return main_stack_frame.return_value;
 }

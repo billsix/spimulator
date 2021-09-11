@@ -46,6 +46,11 @@ set_property(TARGET 03-increment-ints-1 PROPERTY C_STANDARD 11)
 TARGET_LINK_LIBRARIES( 03-increment-ints-1 platformabstraction )
 install(TARGETS 03-increment-ints-1 DESTINATION bin)
 
+add_executable(03-increment-ints-2 03-increment-ints/03-increment-ints-2.c)
+set_property(TARGET 03-increment-ints-2 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 03-increment-ints-2 platformabstraction )
+install(TARGETS 03-increment-ints-2 DESTINATION bin)
+
 
 add_executable(04-get-char-from-user-1 04-get-char-from-user/04-get-char-from-user-1.c)
 set_property(TARGET 04-get-char-from-user-1 PROPERTY C_STANDARD 11)
