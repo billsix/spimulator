@@ -53,6 +53,10 @@ char *read_string() {
   return NULL;
 }
 
+char read_char() { return getchar(); }
+
+void print_char(char c) { printf("%c", c); }
+
 void print_int(int32_t i) {
   /*
     For spim, assuming your int start 8 bytes away from the

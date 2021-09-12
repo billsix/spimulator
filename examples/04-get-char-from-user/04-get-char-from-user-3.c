@@ -34,22 +34,27 @@
 // SOFTWARE.
 //
 
-/* Purpose: */
-/* Print out the numbers 1 through 10, each on their own line */
+/* Purpose */
+
+/* Get a character from the user, print out the value. */
+/* Terminate when the character 'a' is read in */
 
 #include <inttypes.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "platformabstraction.h"
 
-/*struct main_stack_frame {
-  int32_t i;
-  int32_t return_value;
-  };*/
+/*
+struct main_stack_frame{
+  char ch;
+  int32_t return_code;
+};
+*/
 
-#define MAIN_STACK_FRAME_OFFSET_TO_I 0
+#define MAIN_STACK_FRAME_OFFSET_TO_CH 0
 #define MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE                                \
-  (MAIN_STACK_FRAME_OFFSET_TO_I + SIZE_OF_INT32_T)
+  (MAIN_STACK_FRAME_OFFSET_TO_CH + SIZE_OF_BYTE)
 #define SIZE_OF_MAIN_STACK_FRAME                                               \
   (MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE + SIZE_OF_INT32_T)
 
@@ -59,61 +64,72 @@ int main(int argc, char *argv[]) {
   // variables are
   frame_pointer = frame_pointer - SIZE_OF_MAIN_STACK_FRAME;
 
-  /*
-  struct main_stack_frame main_stack_frame = {.i = 0,
-                                              .return_value = EXIT_SUCCESS};
-
-   */
+  //   struct main_stack_frame main_stack_frame = {.ch = 0, .return_code = 0};
   {
-    int32_t i_in_register = 0;
-    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
-            /*src*/ &i_in_register,
-            /*numberOfBytes*/ SIZE_OF_INT32_T);
-    int return_value_in_register = EXIT_SUCCESS;
+    int32_t ch_in_register = 0;
+    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
+            /*src*/ &ch_in_register,
+            /*numberOfBytes*/ SIZE_OF_BYTE);
+    int32_t return_code_in_register = 0;
     xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
-            /*src*/ &return_value_in_register,
+            /*src*/ &return_code_in_register,
             /*numberOfBytes*/ SIZE_OF_INT32_T);
   }
 
-beginningOfLoop : {
-  /*
-if (!(main_stack_frame.i <= 10))
-  goto endOfLoop;
-   */
-  int32_t i_in_register;
-  xmemcpy(/*dest*/ &i_in_register,
-          /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
-          SIZE_OF_INT32_T);
-  if (!(i_in_register <= 10))
-    goto endOfLoop;
+  {
+    // main_stack_frame.ch = read_char();
+    char ch_in_register = read_char();
+    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
+            /*src*/ &ch_in_register,
+            /*numberOfBytes*/ SIZE_OF_BYTE);
+  }
+loopTest : {
+  char ch_in_register;
+  // if (! (main_stack_frame.ch != 'a')) goto loopEnd;
+  xmemcpy(/*dest*/ &ch_in_register,
+          /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
+          /*numberOfBytes*/ SIZE_OF_BYTE);
+  if (!(ch_in_register != 'a'))
+    goto loopEnd;
 }
 loopBody : {
-  //   print_int(main_stack_frame.i);
-  int32_t i_in_register;
-  xmemcpy(/*dest*/ &i_in_register,
-          /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
-          SIZE_OF_INT32_T);
-  print_int(i_in_register);
+  // if (! (main_stack_frame.ch != '\n')) goto getNextChar;
+  char ch_in_register;
+  xmemcpy(/*dest*/ &ch_in_register,
+          /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
+          /*numberOfBytes*/ SIZE_OF_BYTE);
+  if (!(ch_in_register != '\n'))
+    goto getNextChar;
 }
-  print_string("\n");
+  print_string("ch was ");
   {
-    //   main_stack_frame.i = main_stack_frame.i + 1;
-    int32_t i_in_register;
-    xmemcpy(/*dest*/ &i_in_register,
-            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
-            SIZE_OF_INT32_T);
-    int32_t incrementedI_in_register = i_in_register + 1;
-    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_I,
-            /*src*/ &incrementedI_in_register,
-            /*numberOfBytes*/ SIZE_OF_INT32_T);
+    char ch_in_register;
+    xmemcpy(/*dest*/ &ch_in_register,
+            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
+            /*numberOfBytes*/ SIZE_OF_BYTE);
+    print_char(ch_in_register);
   }
-  goto beginningOfLoop;
-endOfLoop : {
-  //   return main_stack_frame.return_value;
-  int32_t return_value_in_register;
-  xmemcpy(/*dest*/ &return_value_in_register,
+  print_string(", value ");
+  {
+    char ch_in_register;
+    xmemcpy(/*dest*/ &ch_in_register,
+            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
+            /*numberOfBytes*/ SIZE_OF_BYTE);
+    print_int(ch_in_register);
+  }
+  print_string("\n");
+getNextChar : {
+  char ch_in_register = read_char();
+  xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
+          /*src*/ &ch_in_register,
+          /*numberOfBytes*/ SIZE_OF_BYTE);
+  goto loopTest;
+}
+loopEnd : {
+  int32_t return_code_in_register;
+  xmemcpy(/*dest*/ &return_code_in_register,
           /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
-          SIZE_OF_INT32_T);
-  return return_value_in_register;
+          /*numberOfBytes*/ SIZE_OF_INT32_T);
+  return return_code_in_register;
 }
 }

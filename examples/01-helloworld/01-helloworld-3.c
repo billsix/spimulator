@@ -41,20 +41,22 @@ int main(int argc, char *argv[]) {
 
   frame_pointer = frame_pointer - SIZE_OF_MAIN_STACK_FRAME;
 
-  // main's stack frame
+  //   struct main_stack_frame main_stack_frame = {.return_value =
+  //   EXIT_SUCCESS};
   {
-    int return_value = EXIT_SUCCESS;
+    int return_value_in_register = EXIT_SUCCESS;
     xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
-            /*src*/ &return_value,
+            /*src*/ &return_value_in_register,
             /*numberOfBytes*/ SIZE_OF_INT32_T);
   }
 
   print_string("hello world\n");
+  //   return main_stack_frame.return_value;
   {
-    int32_t return_value;
-    xmemcpy(/*dest*/ &return_value,
+    int32_t return_value_in_register;
+    xmemcpy(/*dest*/ &return_value_in_register,
             /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
             SIZE_OF_INT32_T);
-    return return_value;
+    return return_value_in_register;
   }
 }

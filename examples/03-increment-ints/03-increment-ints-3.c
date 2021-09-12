@@ -69,79 +69,80 @@ int main(int argc, char *argv[]) {
 
   // main's stack frame
   {
-    int32_t a = 5;
+    int32_t a_in_register = 5;
     xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_A,
-            /*src*/ &a,
+            /*src*/ &a_in_register,
             /*numberOfBytes*/ SIZE_OF_INT32_T);
-    int32_t b = 5;
+    int32_t b_in_register = 5;
     xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_B,
-            /*src*/ &b,
+            /*src*/ &b_in_register,
             /*numberOfBytes*/ SIZE_OF_INT32_T);
-    int return_value = EXIT_SUCCESS;
+    int return_value_in_register = EXIT_SUCCESS;
     xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
-            /*src*/ &return_value,
+            /*src*/ &return_value_in_register,
             /*numberOfBytes*/ SIZE_OF_INT32_T);
   }
 
   // increment a
   {
-    int32_t a;
-    xmemcpy(/*dest*/ &a,
+    int32_t a_in_register;
+    xmemcpy(/*dest*/ &a_in_register,
             /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_A,
-            SIZE_OF_INT32_T);
-    a = a + 1;
+            /*numberOfBytes*/ SIZE_OF_INT32_T);
+    a_in_register = a_in_register + 1;
     xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_A,
-            /*src*/ &a, SIZE_OF_INT32_T);
+            /*src*/ &a_in_register, /*numberOfBytes*/ SIZE_OF_INT32_T);
   }
 
   // get a, add 5, and print i
   {
 
-    int32_t a;
+    int32_t a_in_register;
     // get a
-    xmemcpy(/*dest*/ &a,
+    xmemcpy(/*dest*/ &a_in_register,
             /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_A,
-            SIZE_OF_INT32_T);
+            /*numberOfBytes*/ SIZE_OF_INT32_T);
 
-    int32_t a_plus_five = a + 5;
-    print_int(a_plus_five);
+    int32_t a_plus_five_in_register = a_in_register + 5;
+    print_int(a_plus_five_in_register);
     print_string("\n");
 
-    print_int(a);
+    print_int(a_in_register);
     print_string("\n");
   }
 
   // print b + 5
   {
-    int32_t b;
-    xmemcpy(/*dest*/ &b,
+    int32_t b_in_register;
+    xmemcpy(/*dest*/ &b_in_register,
             /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_B,
-            SIZE_OF_INT32_T);
-    int b_plus_five = b + 5;
-    print_int(b_plus_five);
+            /*numberOfBytes*/ SIZE_OF_INT32_T);
+    int b_plus_five_in_register = b_in_register + 5;
+    print_int(b_plus_five_in_register);
     print_string("\n");
   }
 
   // increment b and print it
   {
-    int32_t b;
-    xmemcpy(/*dest*/ &b,
+    int32_t b_in_register;
+    xmemcpy(/*dest*/ &b_in_register,
             /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_B,
-            SIZE_OF_INT32_T);
-    b = b + 1;
+            /*numberOfBytes*/ SIZE_OF_INT32_T);
+    b_in_register = b_in_register + 1;
     xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_B,
-            /*src*/ &b, SIZE_OF_INT32_T);
+            /*src*/ &b_in_register, /*numberOfBytes*/ SIZE_OF_INT32_T);
 
-    print_int(b);
+    print_int(b_in_register);
     print_string("\n");
   }
 
   // get return value
   {
 
-    int32_t return_value;
+    int32_t return_value_in_register;
     xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
-            /*src*/ &return_value, SIZE_OF_INT32_T);
-    return return_value;
+            /*src*/ &return_value_in_register,
+            /*numberOfBytes*/ SIZE_OF_INT32_T);
+    return return_value_in_register;
   }
 }

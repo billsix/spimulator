@@ -1,6 +1,9 @@
 #ifndef __IOLIB_H
 #define __IOLIB_H
 
+char read_char();
+void print_char(char c);
+
 void print_string(char* c);
 char* read_string();
 
@@ -28,6 +31,7 @@ void xmemcpy(void* dest, void* src, size_t n);
 
 
 #define BYTE uint8_t
+#define SIZE_OF_BYTE (sizeof(BYTE))
 #define ADDRESS_OF_BYTE BYTE *
 
 #define KILOBYTE 1024

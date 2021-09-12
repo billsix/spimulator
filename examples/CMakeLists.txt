@@ -62,6 +62,16 @@ set_property(TARGET 04-get-char-from-user-1 PROPERTY C_STANDARD 11)
 TARGET_LINK_LIBRARIES( 04-get-char-from-user-1 platformabstraction )
 install(TARGETS 04-get-char-from-user-1 DESTINATION bin)
 
+add_executable(04-get-char-from-user-2 04-get-char-from-user/04-get-char-from-user-2.c)
+set_property(TARGET 04-get-char-from-user-2 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 04-get-char-from-user-2 platformabstraction )
+install(TARGETS 04-get-char-from-user-2 DESTINATION bin)
+
+add_executable(04-get-char-from-user-3 04-get-char-from-user/04-get-char-from-user-3.c)
+set_property(TARGET 04-get-char-from-user-3 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 04-get-char-from-user-3 platformabstraction )
+install(TARGETS 04-get-char-from-user-3 DESTINATION bin)
+
 add_executable(05-print-out-ascii-1 05-print-out-ascii/05-print-out-ascii-1.c)
 set_property(TARGET 05-print-out-ascii-1 PROPERTY C_STANDARD 11)
 TARGET_LINK_LIBRARIES( 05-print-out-ascii-1 platformabstraction )
