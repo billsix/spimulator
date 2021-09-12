@@ -17,10 +17,10 @@ spimulator is built using CMake.
     * set PATH=%PATH%;%CD%\buildInstall\bin
 * run programs
     * batch
-        * spimulator -f examples\01-print1through10\src\example01.asm command line arguments
+        * spimulator -f examples\01-helloworld\01-helloworld.asm
     * interactively
         * spimulator
-            * load "examples\01-print1through10\src\example01.asm"
+            * load "examples\01-helloworld\01-helloworld.asm"
             * step
             * step
             * step
@@ -36,10 +36,10 @@ spimulator is built using CMake.
     * export PATH=$(pwd)/buildInstall/bin
 * run programs
     * batch
-        * spimulator -f examples/01-print1through10/src/example01.asm command line arguments
+        * spimulator -f examples/01-helloworld/01-helloworld.asm
     * interactively
         * spimulator
-            * load "examples/01-print1through10/src/example01.asm"
+            * load "examples/01-helloworld/01-helloworld.asm"
             * step
             * step
             * step
@@ -56,10 +56,10 @@ spimulator is built using CMake.
     * export PATH=$(pwd)/buildInstall/bin
 * run programs
     * batch
-        * spimulator -f examples/01-print1through10/src/example01.asm command line arguments
+        * spimulator -f examples/01-helloworld/01-helloworld.asm
     * interactively
         * spimulator
-            * load "examples/01-print1through10/src/example01.asm"
+            * load "examples/01-helloworld/01-helloworld.asm"
             * step
             * step
             * step
