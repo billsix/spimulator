@@ -83,6 +83,7 @@ int main(int argc, char *argv[]) {
             /*numberOfBytes*/ SIZE_OF_INT32_T);
   }
 
+  // increment a
   {
     int32_t a;
     xmemcpy(/*dest*/ &a,
@@ -91,6 +92,11 @@ int main(int argc, char *argv[]) {
     a = a + 1;
     xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_A,
             /*src*/ &a, SIZE_OF_INT32_T);
+  }
+
+  // get a, add 5, and print i
+  {
+
     int32_t a;
     // get a
     xmemcpy(/*dest*/ &a,
@@ -114,19 +120,20 @@ int main(int argc, char *argv[]) {
     int b_plus_five = b + 5;
     print_int(b_plus_five);
     print_string("\n");
-    // increment b
-    {
-      int32_t b;
-      xmemcpy(/*dest*/ &b,
-              /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_B,
-              SIZE_OF_INT32_T);
-      b = b + 1;
-      xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_B,
-              /*src*/ &b, SIZE_OF_INT32_T);
+  }
 
-      print_int(b);
-      print_string("\n");
-    }
+  // increment b and print it
+  {
+    int32_t b;
+    xmemcpy(/*dest*/ &b,
+            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_B,
+            SIZE_OF_INT32_T);
+    b = b + 1;
+    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_B,
+            /*src*/ &b, SIZE_OF_INT32_T);
+
+    print_int(b);
+    print_string("\n");
   }
 
   // get return value

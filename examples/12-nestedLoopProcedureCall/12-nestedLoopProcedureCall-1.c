@@ -35,24 +35,33 @@
 //
 
 /* Purpose */
-// Read from std in until EOF (Ctrl-D on Linux)
-// Print out number of command and periods
+// Do a nested loop, each of which iterates between -10 and 10 (inclusive)
+// call a procedure "pmax" to determine which is the bigger of the two,
+// and print out the results
 
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-  int32_t comma_count = 0;
-  int32_t stop_count = 0;
-  char this_char = getchar();
-  while (this_char != EOF) {
-    if (this_char == '.')
-      stop_count = stop_count + 1;
-    if (this_char == ',')
-      comma_count = comma_count + 1;
-    this_char = getchar();
+  void pmax(int32_t first, int32_t second); /*declaration*/
+
+  for (int32_t i = -10; i <= 10; i++) {
+    for (int32_t j = -10; j <= 10; j++) {
+      pmax(i, j);
+    }
   }
-  printf("%d commas, %d stops\n", comma_count, stop_count);
   exit(EXIT_SUCCESS);
+}
+
+void pmax(int32_t a1, int32_t a2) { /*definition*/
+  int32_t biggest;
+
+  if (a1 > a2) {
+    biggest = a1;
+  } else {
+    biggest = a2;
+  }
+
+  printf("largest of %d and %d is %d\n", a1, a2, biggest);
 }

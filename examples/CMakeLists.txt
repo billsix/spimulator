@@ -67,7 +67,45 @@ set_property(TARGET 05-print-out-ascii-1 PROPERTY C_STANDARD 11)
 TARGET_LINK_LIBRARIES( 05-print-out-ascii-1 platformabstraction )
 install(TARGETS 05-print-out-ascii-1 DESTINATION bin)
 
-add_executable(06-commaAndPeriodCounter 06-commaAndPeriodCounter/06-commaAndPeriodCounter-1.c)
-set_property(TARGET 06-commaAndPeriodCounter PROPERTY C_STANDARD 11)
-TARGET_LINK_LIBRARIES( 06-commaAndPeriodCounter platformabstraction )
-install(TARGETS 06-commaAndPeriodCounter DESTINATION bin)
+add_executable(06-commaAndPeriodCounter-1 06-commaAndPeriodCounter/06-commaAndPeriodCounter-1.c)
+set_property(TARGET 06-commaAndPeriodCounter-1 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 06-commaAndPeriodCounter-1 platformabstraction )
+install(TARGETS 06-commaAndPeriodCounter-1 DESTINATION bin)
+
+add_executable(07-readCharactersAndPrintThemOut-1 07-readCharactersAndPrintThemOut/07-readCharactersAndPrintThemOut-1.c)
+set_property(TARGET 07-readCharactersAndPrintThemOut-1 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 07-readCharactersAndPrintThemOut-1 platformabstraction )
+install(TARGETS 07-readCharactersAndPrintThemOut-1 DESTINATION bin)
+
+add_executable(08-readUntilStopIsInput-1 08-readUntilStopIsInput/08-readUntilStopIsInput-1.c)
+set_property(TARGET 08-readUntilStopIsInput-1 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 08-readUntilStopIsInput-1 platformabstraction )
+install(TARGETS 08-readUntilStopIsInput-1 DESTINATION bin)
+
+
+add_executable(09-testStringsForEquality-1 09-testStringsForEquality/09-testStringsForEquality-1.c)
+set_property(TARGET 09-testStringsForEquality-1 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 09-testStringsForEquality-1 platformabstraction )
+install(TARGETS 09-testStringsForEquality-1 DESTINATION bin)
+
+add_executable(10-loopFunctionCallPrint-1 10-loopFunctionCallPrint/10-loopFunctionCallPrint-1.c)
+set_property(TARGET 10-loopFunctionCallPrint-1 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 10-loopFunctionCallPrint-1 platformabstraction )
+install(TARGETS 10-loopFunctionCallPrint-1 DESTINATION bin)
+
+add_executable(11-bubbleSort-1 11-bubbleSort/11-bubbleSort-1.c)
+set_property(TARGET 11-bubbleSort-1 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 11-bubbleSort-1 platformabstraction )
+install(TARGETS 11-bubbleSort-1 DESTINATION bin)
+
+add_executable(12-nestedLoopProcedureCall-1 12-nestedLoopProcedureCall/12-nestedLoopProcedureCall-1.c)
+set_property(TARGET 12-nestedLoopProcedureCall-1 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 12-nestedLoopProcedureCall-1 platformabstraction )
+install(TARGETS 12-nestedLoopProcedureCall-1 DESTINATION bin)
+
+
+
+add_executable(13-sortStrings-1 13-sortStrings/13-sortStrings-1.c)
+set_property(TARGET 13-sortStrings-1 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 13-sortStrings-1 platformabstraction )
+install(TARGETS 13-sortStrings-1 DESTINATION bin)

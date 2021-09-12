@@ -35,24 +35,36 @@
 //
 
 /* Purpose */
-// Read from std in until EOF (Ctrl-D on Linux)
-// Print out number of command and periods
+// Read line of text from stdin, until stop is read
+// Print out results on stdout
 
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+#define LINELNG 100 /* max. length of input line */
 
 int main(int argc, char *argv[]) {
-  int32_t comma_count = 0;
-  int32_t stop_count = 0;
-  char this_char = getchar();
-  while (this_char != EOF) {
-    if (this_char == '.')
-      stop_count = stop_count + 1;
-    if (this_char == ',')
-      comma_count = comma_count + 1;
-    this_char = getchar();
+  char in_line[LINELNG];
+  int32_t c;
+
+  char *cp = in_line;
+  while ((c = getc(stdin)) != EOF) {
+    if (cp == &in_line[LINELNG - 1] || c == '\n') {
+      /*
+       * Insert end-of-line marker
+       */
+      *cp = 0;
+      if (strcmp(in_line, "stop") == 0) {
+        exit(EXIT_SUCCESS);
+      } else {
+        puts(in_line);
+        printf("line was %d characters long\n", (int)(cp - in_line));
+      }
+      cp = in_line;
+    } else
+      *cp++ = c;
   }
-  printf("%d commas, %d stops\n", comma_count, stop_count);
   exit(EXIT_SUCCESS);
 }

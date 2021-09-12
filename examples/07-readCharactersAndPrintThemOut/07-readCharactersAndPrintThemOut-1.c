@@ -35,24 +35,19 @@
 //
 
 /* Purpose */
-// Read from std in until EOF (Ctrl-D on Linux)
-// Print out number of command and periods
+// Read from stdin, echoing out each charater, until EOF is read (Ctrl-D on
+// Linux) Print out results on stdout
 
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-  int32_t comma_count = 0;
-  int32_t stop_count = 0;
-  char this_char = getchar();
-  while (this_char != EOF) {
-    if (this_char == '.')
-      stop_count = stop_count + 1;
-    if (this_char == ',')
-      comma_count = comma_count + 1;
-    this_char = getchar();
+  char input_c;
+
+  /* The Classic Bit */
+  while ((input_c = getchar()) != EOF) {
+    printf("%c was read\n", input_c);
   }
-  printf("%d commas, %d stops\n", comma_count, stop_count);
   exit(EXIT_SUCCESS);
 }
