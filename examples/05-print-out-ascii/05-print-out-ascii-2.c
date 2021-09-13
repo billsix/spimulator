@@ -35,40 +35,30 @@
 //
 
 /* Purpose */
-
-/* Get a character from the user, print out the value. */
-/* Terminate when the character 'a' is read in */
+// Print out all charaters.  Ascii are 0-127
 
 #include <inttypes.h>
+#include <limits.h>
 #include <stdlib.h>
 
 #include "platformabstraction.h"
 
 struct main_stack_frame {
-  char ch;
+  char c;
   int32_t return_code;
 };
 
 int main(int argc, char *argv[]) {
 
-  struct main_stack_frame main_stack_frame = {.ch = 0, .return_code = 0};
-
-  main_stack_frame.ch = read_char();
-loopTest:
-  if (!(main_stack_frame.ch != 'a'))
-    goto loopEnd;
-loopBody:
-  if (!(main_stack_frame.ch != '\n'))
-    goto getNextChar;
-
-  print_string("ch was ");
-  print_char(main_stack_frame.ch);
-  print_string(", value ");
-  print_int(main_stack_frame.ch);
+  struct main_stack_frame main_stack_frame = {.c = CHAR_MIN, .return_code = 0};
+  print_int(main_stack_frame.c);
   print_string("\n");
-getNextChar:
-  main_stack_frame.ch = read_char();
-  goto loopTest;
-loopEnd:
+loopBegin:
+  main_stack_frame.c = main_stack_frame.c + 1;
+  print_int(main_stack_frame.c);
+  print_string("\n");
+  if (main_stack_frame.c != CHAR_MAX)
+    goto loopBegin;
+
   return main_stack_frame.return_code;
 }

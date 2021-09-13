@@ -77,6 +77,16 @@ set_property(TARGET 05-print-out-ascii-1 PROPERTY C_STANDARD 11)
 TARGET_LINK_LIBRARIES( 05-print-out-ascii-1 platformabstraction )
 install(TARGETS 05-print-out-ascii-1 DESTINATION bin)
 
+add_executable(05-print-out-ascii-2 05-print-out-ascii/05-print-out-ascii-2.c)
+set_property(TARGET 05-print-out-ascii-2 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 05-print-out-ascii-2 platformabstraction )
+install(TARGETS 05-print-out-ascii-2 DESTINATION bin)
+
+add_executable(05-print-out-ascii-3 05-print-out-ascii/05-print-out-ascii-3.c)
+set_property(TARGET 05-print-out-ascii-3 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 05-print-out-ascii-3 platformabstraction )
+install(TARGETS 05-print-out-ascii-3 DESTINATION bin)
+
 add_executable(06-commaAndPeriodCounter-1 06-commaAndPeriodCounter/06-commaAndPeriodCounter-1.c)
 set_property(TARGET 06-commaAndPeriodCounter-1 PROPERTY C_STANDARD 11)
 TARGET_LINK_LIBRARIES( 06-commaAndPeriodCounter-1 platformabstraction )
