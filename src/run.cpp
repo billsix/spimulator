@@ -243,6 +243,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
       }
 #endif
 
+
       exception_occurred = 0;
       inst = read_mem_inst(PC);
       {
@@ -262,9 +263,6 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
                       PC, inst_to_string(PC));
             return false;
           }
-
-          if (display)
-            print_inst(PC);
 
 #ifdef TEST_ASM
           test_assembly(inst);
@@ -1494,6 +1492,10 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         }
         /* After instruction executes: */
         PC += BYTES_PER_WORD;
+
+        if (display)
+          print_inst(PC);
+
       }
       if (exception_occurred) {
         handle_exception();
