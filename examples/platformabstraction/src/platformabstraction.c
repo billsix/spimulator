@@ -53,9 +53,37 @@ char *read_string() {
   return NULL;
 }
 
-char read_char() { return getchar(); }
+char read_char() {
+  /*
+    For spim,
 
-void print_char(char c) { printf("%c", c); }
+    li $v0, 12
+    syscall
+
+    and then the chacter will be in $v0, which you should then put in RAM like
+
+    sw $v0, 0($fp)
+
+    the reason for saving it to RAM is so that you don't have to care about the
+    how the value of $v0 changes over time, especially since it is used
+    during system calls
+  */
+
+  return getchar();
+}
+
+void print_char(char c) {
+
+  /*
+    For spim, assuming that you char is in $t0
+
+    li $v0, 11
+    move $a0, $t0
+    syscall
+
+   */
+  printf("%c", c);
+}
 
 void print_int(int32_t i) {
   /*
