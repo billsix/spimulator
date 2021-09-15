@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
             /*numberOfBytes*/ SIZE_OF_INT32_T);
   }
 
-  // increment a
+  // a++
   {
     int32_t a_in_register;
     xmemcpy(/*dest*/ &a_in_register,
