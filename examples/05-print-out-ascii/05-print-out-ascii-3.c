@@ -53,7 +53,8 @@ struct main_stack_frame {
 
 #define MAIN_STACK_FRAME_OFFSET_TO_C 0
 #define MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE                                \
-  (MAIN_STACK_FRAME_OFFSET_TO_C + SIZE_OF_BYTE)
+  (MAIN_STACK_FRAME_OFFSET_TO_C + SIZE_OF_INT32_T)  // even though c is a byte, return code
+                                                    // must be aligned on a 32 bit boundary
 #define SIZE_OF_MAIN_STACK_FRAME                                               \
   (MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE + SIZE_OF_INT32_T)
 
@@ -73,7 +74,7 @@ int main(int argc, char *argv[]) {
     int32_t c_in_register = CHAR_MIN;
     xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_C,
             /*src*/ &c_in_register,
-            /*numberOfBytes*/ SIZE_OF_BYTE);
+            /*numberOfBytes*/ SIZE_OF_INT32_T);
     int32_t return_code_in_register = 0;
     xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
             /*src*/ &return_code_in_register,
@@ -85,8 +86,8 @@ int main(int argc, char *argv[]) {
     char c_in_register;
     xmemcpy(/*dest*/ &c_in_register,
             /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_C,
-            /*numberOfBytes*/ SIZE_OF_BYTE);
-    print_char(c_in_register);
+            /*numberOfBytes*/ SIZE_OF_INT32_T);
+    print_int(c_in_register);
     print_string("\n");
   }
 loopBegin : {
@@ -94,12 +95,12 @@ loopBegin : {
   char c_in_register;
   xmemcpy(/*dest*/ &c_in_register,
           /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_C,
-          /*numberOfBytes*/ SIZE_OF_BYTE);
+          /*numberOfBytes*/ SIZE_OF_INT32_T);
   c_in_register = c_in_register + 1;
 
   xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_C,
           /*src*/ &c_in_register,
-          /*numberOfBytes*/ SIZE_OF_BYTE);
+          /*numberOfBytes*/ SIZE_OF_INT32_T);
   print_int(c_in_register);
   print_string("\n");
 }
@@ -109,7 +110,7 @@ loopBegin : {
     char c_in_register;
     xmemcpy(/*dest*/ &c_in_register,
             /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_C,
-            /*numberOfBytes*/ SIZE_OF_BYTE);
+            /*numberOfBytes*/ SIZE_OF_INT32_T);
     if (c_in_register != CHAR_MAX)
       goto loopBegin;
   }
