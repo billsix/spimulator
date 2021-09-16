@@ -30,6 +30,7 @@ helloworld:
         .text
         .globl main
 main:
+        #   print_string("hello world\n");
         # print a hello world
         li $v0, 4
         la $a0, helloworld

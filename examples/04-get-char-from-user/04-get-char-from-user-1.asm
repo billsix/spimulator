@@ -43,7 +43,7 @@ main:
         move $fp, $sp
 
         ############ frame pointer = frame_pointer - size of main stack frame
-        addi $fp, $fp, 5 # subtract 1 char and 1 int32_t
+        addi $fp, $fp, -5 # subtract 1 char and 1 int32_t
 
 
         ############ set ch

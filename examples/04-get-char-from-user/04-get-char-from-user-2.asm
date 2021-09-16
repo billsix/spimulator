@@ -71,10 +71,12 @@ main:
         #
 
 
+        # frame_pointer = frame_pointer - SIZE_OF_MAIN_STACK_FRAME;
+
 
         ############ frame pointer = frame_pointer - size of main stack frame
-        addi $fp, $fp, 8 # subtract 1 char and 1 int32_t, but align the int to
-                         # be at an address mod 4 = 0
+        addi $fp, $fp, -8 # subtract 1 char and 1 int32_t, but align the int to
+                          # be at an address mod 4 = 0
 
 
         #                                                  current SP
@@ -95,9 +97,16 @@ main:
         #
 
 
-        ############ set ch
+        #  {
+        #    int32_t ch_in_register = 0;
         li $t0, 0
+        #    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
+        #            /*src*/ &ch_in_register,
+        #            /*numberOfBytes*/ SIZE_OF_BYTE);
+        ############ set ch
         sw $t0, 0($fp)
+
+
 
         #                                                  current SP
         #                             current FP               |
@@ -119,7 +128,12 @@ main:
 
 
         ############ set return_value
+        #    int32_t return_code_in_register = 0;
         li $t0, 0
+        #    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
+        #            /*src*/ &return_code_in_register,
+        #            /*numberOfBytes*/ SIZE_OF_INT32_T);
+        #  }
         sw $t0, 4($fp)
 
         #                                                  current SP
@@ -141,9 +155,20 @@ main:
 
 
 
+
+        #
+        #  {
+        #    // main_stack_frame.ch = read_char();
+        #    char ch_in_register = read_char();
+
         # read char, which will end up in $v0, and store it in 0($fp)
         li $v0 12
         syscall
+
+        #    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
+        #            /*src*/ &ch_in_register,
+        #            /*numberOfBytes*/ SIZE_OF_BYTE);
+        #  }
 
         sw $v0, 0($fp)
         #                                                  current SP
@@ -164,19 +189,32 @@ main:
         #
 
 
+        #loopTest : {
 
 loopTest:
-        # if (!(ch_in_register != 'a'))
-        #   goto loopEnd;
-
+        #  char ch_in_register;
+        #  xmemcpy(/*dest*/ &ch_in_register,
+        #          /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
+        #          /*numberOfBytes*/ SIZE_OF_BYTE);
         lw $t0, 0($fp)
+        #  if (!(ch_in_register != 'a'))
+        #    goto loopEnd;
+        #}
         beq $t0, 'a', loopEnd
 
+
+        #loopBody : {
 loopBody:
-        # if (!(ch_in_register != '\n'))
         #   goto getNextChar;
 
+        #  char ch_in_register;
+        #  xmemcpy(/*dest*/ &ch_in_register,
+        #          /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
+        #          /*numberOfBytes*/ SIZE_OF_BYTE);
         lw $t0, 0($fp)
+        #  if (!(ch_in_register != '\n'))
+        #    goto getNextChar;
+        #}
         beq $t0, '\n', getNextChar
 
         # print_string("ch was ");
@@ -184,11 +222,17 @@ loopBody:
         la $a0, chWas
         syscall
 
-        #     print_char(ch_in_register);
+        #  {
+        #    char ch_in_register;
+        #    xmemcpy(/*dest*/ &ch_in_register,
+        #            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
+        #            /*numberOfBytes*/ SIZE_OF_BYTE);
         lw $t0, 0($fp)
+        #    print_char(ch_in_register);
         move $a0, $t0
         li $v0, 1
         syscall
+        #  }
 
 
         #   print_string(", value ");
@@ -196,24 +240,38 @@ loopBody:
         la $a0, commaSpaceValue
         syscall
 
-        #     print_int(ch_in_register);
+        #  {
+        #    char ch_in_register;
+        #    xmemcpy(/*dest*/ &ch_in_register,
+        #            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
+        #            /*numberOfBytes*/ SIZE_OF_BYTE);
         lw $t0, 0($fp)
+        #    print_int(ch_in_register);
         li $v0, 11
         move $a0, $t0
         syscall
+        #  }
 
         #   print_string("\n");
         li $v0, 4
         la $a0, nl
         syscall
 
-
+        #getNextChar : {
 getNextChar:
+        #  char ch_in_register = read_char();
         # read char, which will end up in $v0
         li $v0 12
         syscall
 
+        #  xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
+        #          /*src*/ &ch_in_register,
+        #          /*numberOfBytes*/ SIZE_OF_BYTE);
         sw $v0, 0($fp)
+
+
+        #}
+
         #                                                  current SP
         #                             current FP               |
         #                                 |                    |
@@ -232,11 +290,17 @@ getNextChar:
         #
 
 
+        #  goto loopTest;
         j loopTest
 
 loopEnd:
-
-
+        #loopEnd : {
+        #  int32_t return_code_in_register;
+        #  xmemcpy(/*dest*/ &return_code_in_register,
+        #          /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
+        #          /*numberOfBytes*/ SIZE_OF_INT32_T);
         ############ return the return code
         lw $v0, 4($fp)
+        #  return return_code_in_register;
         jr $ra
+        #}
