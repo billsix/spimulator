@@ -92,6 +92,18 @@ set_property(TARGET 06-commaAndPeriodCounter-1 PROPERTY C_STANDARD 11)
 TARGET_LINK_LIBRARIES( 06-commaAndPeriodCounter-1 platformabstraction )
 install(TARGETS 06-commaAndPeriodCounter-1 DESTINATION bin)
 
+add_executable(06-commaAndPeriodCounter-2 06-commaAndPeriodCounter/06-commaAndPeriodCounter-2.c)
+set_property(TARGET 06-commaAndPeriodCounter-2 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 06-commaAndPeriodCounter-2 platformabstraction )
+install(TARGETS 06-commaAndPeriodCounter-2 DESTINATION bin)
+
+add_executable(06-commaAndPeriodCounter-3 06-commaAndPeriodCounter/06-commaAndPeriodCounter-3.c)
+set_property(TARGET 06-commaAndPeriodCounter-3 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 06-commaAndPeriodCounter-3 platformabstraction )
+install(TARGETS 06-commaAndPeriodCounter-3 DESTINATION bin)
+
+
+
 add_executable(07-readCharactersAndPrintThemOut-1 07-readCharactersAndPrintThemOut/07-readCharactersAndPrintThemOut-1.c)
 set_property(TARGET 07-readCharactersAndPrintThemOut-1 PROPERTY C_STANDARD 11)
 TARGET_LINK_LIBRARIES( 07-readCharactersAndPrintThemOut-1 platformabstraction )

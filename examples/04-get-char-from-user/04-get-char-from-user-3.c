@@ -54,8 +54,9 @@ struct main_stack_frame{
 
 #define MAIN_STACK_FRAME_OFFSET_TO_CH 0
 #define MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE                                \
-  (MAIN_STACK_FRAME_OFFSET_TO_CH + SIZE_OF_INT32_T) // even though CH is a character, the subsequent
-                                                    // int needs to be aligned on a 32-bit boundary
+  (MAIN_STACK_FRAME_OFFSET_TO_CH +                                             \
+   SIZE_OF_INT32_T) // even though CH is a character, the subsequent
+                    // int needs to be aligned on a 32-bit boundary
 #define SIZE_OF_MAIN_STACK_FRAME                                               \
   (MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE + SIZE_OF_INT32_T)
 
