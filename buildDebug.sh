@@ -5,8 +5,8 @@ if [ "$(uname)" == "Darwin" ]; then
     echo
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
     cd src/
-    flex -I -8 -o lex.yy.cpp scanner.l
-    bison -d --defines=parser_yacc.h --output=parser_yacc.cpp -p yy parser.y
+    flex -I -8 -o lex.yy.c scanner.l
+    bison -d --defines=parser_yacc.h --output=parser_yacc.c -p yy parser.y
     cd ../
 elif [ "$(expr substr $(uname -s) 1 10)" == "MINGW32_NT" ]; then
     # Do something under 32 bits Windows NT platform

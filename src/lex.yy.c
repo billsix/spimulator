@@ -1,6 +1,6 @@
-#line 1 "lex.yy.cpp"
+#line 1 "lex.yy.c"
 
-#line 3 "lex.yy.cpp"
+#line 3 "lex.yy.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -562,8 +562,8 @@ static char scan_escape (char **str);
 
 #undef yywrap
 
-#line 565 "lex.yy.cpp"
-#line 566 "lex.yy.cpp"
+#line 565 "lex.yy.c"
+#line 566 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -783,7 +783,7 @@ YY_DECL
 #line 87 "scanner.l"
 
 
-#line 786 "lex.yy.cpp"
+#line 786 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1114,7 +1114,7 @@ YY_RULE_SETUP
 #line 315 "scanner.l"
 ECHO;
 	YY_BREAK
-#line 1117 "lex.yy.cpp"
+#line 1117 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 

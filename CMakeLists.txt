@@ -1,8 +1,14 @@
 cmake_minimum_required(VERSION 3.0)
 
+if(WIN32)
 project(spimulator LANGUAGES CXX)
-
 set(CMAKE_CXX_STANDARD 98)
+file(GLOB_RECURSE CFILES "${CMAKE_SOURCE_DIR}/src/*.c")
+SET_SOURCE_FILES_PROPERTIES(${CFILES} PROPERTIES LANGUAGE CXX )
+else(WIN32)
+project(spimulator LANGUAGES C)
+set(CMAKE_C_STANDARD 11)
+endif(WIN32)
 
 add_compile_definitions(IMGUI_IMPL_OPENGL_LOADER_GL3W=1)
 
@@ -31,22 +37,22 @@ set(INCLUDE_FILES
 
 
 set(SOURCE_FILES
-  src/spim-utils.cpp
-  src/lex.yy.cpp
-  src/parser_yacc.cpp
-  src/run.cpp
-  src/mem.cpp
-  src/inst.cpp
-  src/data.cpp
-  src/sym-tbl.cpp
-  src/syscall.cpp
-  src/display-utils.cpp
-  src/string-stream.cpp
+  src/spim-utils.c
+  src/lex.yy.c
+  src/parser_yacc.c
+  src/run.c
+  src/mem.c
+  src/inst.c
+  src/data.c
+  src/sym-tbl.c
+  src/syscall.c
+  src/display-utils.c
+  src/string-stream.c
 )
 
 set(SPIM_SOURCE_FILES
   ${SOURCE_FILES}
-  src/spim.cpp
+  src/spim.c
 )
 
 
