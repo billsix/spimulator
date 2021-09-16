@@ -67,6 +67,12 @@ char read_char() {
     the reason for saving it to RAM is so that you don't have to care about the
     how the value of $v0 changes over time, especially since it is used
     during system calls
+
+    SPIM doesn't support EOF.  So set some other terminal input, such as "z"
+
+    blt $t0, 'z', loopEnd
+
+
   */
 
   return getchar();

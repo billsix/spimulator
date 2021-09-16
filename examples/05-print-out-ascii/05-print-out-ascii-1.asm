@@ -70,8 +70,8 @@ main:
 
 
         ############ frame pointer = frame_pointer - size of main stack frame
-        addi $fp, $fp, 8 # subtract 1 char and 1 int32_t, but align the int to
-                         # be at an address mod 4 = 0
+        addi $fp, $fp, -8 # subtract 1 char and 1 int32_t, but align the int to
+                          # be at an address mod 4 = 0
 
 
         #                                                  current SP
