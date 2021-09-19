@@ -108,6 +108,12 @@ set_property(TARGET 07-testStringsForEquality-1 PROPERTY C_STANDARD 11)
 TARGET_LINK_LIBRARIES( 07-testStringsForEquality-1 platformabstraction )
 install(TARGETS 07-testStringsForEquality-1 DESTINATION bin)
 
+add_executable(07-testStringsForEquality-2 07-testStringsForEquality/07-testStringsForEquality-2.c)
+set_property(TARGET 07-testStringsForEquality-2 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 07-testStringsForEquality-2 platformabstraction )
+install(TARGETS 07-testStringsForEquality-2 DESTINATION bin)
+
+
 add_executable(08-loopFunctionCallPrint-1 08-loopFunctionCallPrint/08-loopFunctionCallPrint-1.c)
 set_property(TARGET 08-loopFunctionCallPrint-1 PROPERTY C_STANDARD 11)
 TARGET_LINK_LIBRARIES( 08-loopFunctionCallPrint-1 platformabstraction )

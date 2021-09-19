@@ -38,6 +38,7 @@
 // Test strings for equality and print out the results on stdout
 
 #include <inttypes.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,18 +48,18 @@
   two strings for equality.
 * Return 'false' if they are.
 */
-int32_t str_eq(const char *s1, const char *s2) {
+bool str_eq(const char *s1, const char *s2) {
   while (*s1 == *s2) {
     /*
      * At end of string return 0.
      */
     if (*s1 == 0)
-      return 0;
+      return false;
     s1++;
     s2++;
   }
   /* Difference detected! */
-  return 1;
+  return true;
 }
 
 int main(int argc, char *argv[]) {
