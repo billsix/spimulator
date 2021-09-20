@@ -69,31 +69,29 @@ int main(int argc, char *argv[]) {
 
   goto main_label;
 
-str_eq_label:
+str_eq_label : {
+  struct str_eq_stack_frame current_str_eq_stack_frame =
+      *((struct str_eq_stack_frame *)current_stack_frame);
 loopBegin:
-  if (*((struct str_eq_stack_frame *)current_stack_frame)->s1 !=
-      *((struct str_eq_stack_frame *)current_stack_frame)->s2)
+  if (*current_str_eq_stack_frame.s1 != *current_str_eq_stack_frame.s2)
     goto loopEnd;
-  if (*((struct str_eq_stack_frame *)current_stack_frame)->s1 != 0)
+  if (*current_str_eq_stack_frame.s1 != 0)
     goto incrementAndContinue;
-  *((struct str_eq_stack_frame *)current_stack_frame)->return_value = false;
+  *current_str_eq_stack_frame.return_value = false;
   goto str_eq_exit;
 incrementAndContinue:
-  ((struct str_eq_stack_frame *)current_stack_frame)->s1 =
-      ((struct str_eq_stack_frame *)current_stack_frame)->s1 + 1;
-  ((struct str_eq_stack_frame *)current_stack_frame)->s2 =
-      ((struct str_eq_stack_frame *)current_stack_frame)->s2 + 1;
+  current_str_eq_stack_frame.s1 = current_str_eq_stack_frame.s1 + 1;
+  current_str_eq_stack_frame.s2 = current_str_eq_stack_frame.s2 + 1;
   goto loopBegin;
 loopEnd:
 
-  *((struct str_eq_stack_frame *)current_stack_frame)->return_value = true;
+  *current_str_eq_stack_frame.return_value = true;
 str_eq_exit : {
   void *whatToDoAfterProcedureCall =
-      ((struct str_eq_stack_frame *)current_stack_frame)
-          ->whatToDoAfterProcedureCall;
-  current_stack_frame =
-      ((struct str_eq_stack_frame *)current_stack_frame)->stack_frame_of_caller;
+      current_str_eq_stack_frame.whatToDoAfterProcedureCall;
+  current_stack_frame = current_str_eq_stack_frame.stack_frame_of_caller;
   goto *whatToDoAfterProcedureCall;
+}
 }
 main_label : {
   struct main_stack_frame main_stack_frame = {
