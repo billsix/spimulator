@@ -50,15 +50,17 @@ struct main_stack_frame {
 
 int main(int argc, char *argv[]) {
 
-  struct main_stack_frame main_stack_frame = {.c = CHAR_MIN, .return_code = 0};
-  print_int(main_stack_frame.c);
+  struct main_stack_frame msf = {.c = CHAR_MIN, .return_code = 0};
+  struct main_stack_frame *main_stack_frame = &msf;
+
+  print_int(main_stack_frame->c);
   print_string("\n");
 loopBegin:
-  main_stack_frame.c = main_stack_frame.c + 1;
-  print_int(main_stack_frame.c);
+  main_stack_frame->c = main_stack_frame->c + 1;
+  print_int(main_stack_frame->c);
   print_string("\n");
-  if (main_stack_frame.c != CHAR_MAX)
+  if (main_stack_frame->c != CHAR_MAX)
     goto loopBegin;
 
-  return main_stack_frame.return_code;
+  return main_stack_frame->return_code;
 }

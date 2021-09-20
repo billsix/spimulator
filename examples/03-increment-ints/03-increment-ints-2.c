@@ -53,24 +53,24 @@ struct main_stack_frame {
 
 int main(int argc, char *argv[]) {
 
-  struct main_stack_frame main_stack_frame = {
-      .a = 5, .b = 5, .return_value = EXIT_SUCCESS};
+  struct main_stack_frame msf = {.a = 5, .b = 5, .return_value = EXIT_SUCCESS};
+  struct main_stack_frame *main_stack_frame = &msf;
 
   // the first version of the C code uses preincement
-  main_stack_frame.a++;
-  print_int(main_stack_frame.a + 5);
+  main_stack_frame->a++;
+  print_int(main_stack_frame->a + 5);
   print_string("\n");
 
-  print_int(main_stack_frame.a);
+  print_int(main_stack_frame->a);
   print_string("\n");
 
-  print_int(main_stack_frame.b + 5);
+  print_int(main_stack_frame->b + 5);
   print_string("\n");
   // the first version of the C code uses postincrement
-  main_stack_frame.b++;
+  main_stack_frame->b++;
 
-  print_int(main_stack_frame.b);
+  print_int(main_stack_frame->b);
   print_string("\n");
 
-  return main_stack_frame.return_value;
+  return main_stack_frame->return_value;
 }

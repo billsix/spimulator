@@ -53,32 +53,33 @@ struct main_stack_frame {
 
 int main(int argc, char *argv[]) {
 
-  struct main_stack_frame main_stack_frame = {.comma_count = 0,
-                                              .stop_count = 0,
-                                              .this_char = 0,
-                                              .return_code = EXIT_SUCCESS};
+  struct main_stack_frame msf = {.comma_count = 0,
+                                 .stop_count = 0,
+                                 .this_char = 0,
+                                 .return_code = EXIT_SUCCESS};
+  struct main_stack_frame *main_stack_frame = &msf;
 
-  main_stack_frame.this_char = read_char();
+  main_stack_frame->this_char = read_char();
 
 loopBegin:
-  if (main_stack_frame.this_char == EOF)
+  if (main_stack_frame->this_char == EOF)
     goto loopEnd;
-  if (main_stack_frame.this_char != '.')
+  if (main_stack_frame->this_char != '.')
     goto notAPeriod;
-  main_stack_frame.stop_count = main_stack_frame.stop_count + 1;
+  main_stack_frame->stop_count = main_stack_frame->stop_count + 1;
 notAPeriod:
-  if (main_stack_frame.this_char != ',')
+  if (main_stack_frame->this_char != ',')
     goto notAComma;
-  main_stack_frame.comma_count = main_stack_frame.comma_count + 1;
+  main_stack_frame->comma_count = main_stack_frame->comma_count + 1;
 notAComma:
-  main_stack_frame.this_char = read_char();
+  main_stack_frame->this_char = read_char();
   goto loopBegin;
 
 loopEnd:
 
-  print_int(main_stack_frame.comma_count);
+  print_int(main_stack_frame->comma_count);
   print_string(" commas, ");
-  print_int(main_stack_frame.stop_count);
+  print_int(main_stack_frame->stop_count);
   print_string(" stops\n");
-  return main_stack_frame.return_code;
+  return main_stack_frame->return_code;
 }

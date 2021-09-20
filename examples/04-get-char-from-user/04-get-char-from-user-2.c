@@ -51,24 +51,25 @@ struct main_stack_frame {
 
 int main(int argc, char *argv[]) {
 
-  struct main_stack_frame main_stack_frame = {.ch = 0, .return_code = 0};
+  struct main_stack_frame msf = {.ch = 0, .return_code = 0};
+  struct main_stack_frame *main_stack_frame = &msf;
 
-  main_stack_frame.ch = read_char();
+  main_stack_frame->ch = read_char();
 loopTest:
-  if (!(main_stack_frame.ch != 'a'))
+  if (!(main_stack_frame->ch != 'a'))
     goto loopEnd;
 loopBody:
-  if (!(main_stack_frame.ch != '\n'))
+  if (!(main_stack_frame->ch != '\n'))
     goto getNextChar;
 
   print_string("ch was ");
-  print_char(main_stack_frame.ch);
+  print_char(main_stack_frame->ch);
   print_string(", value ");
-  print_int(main_stack_frame.ch);
+  print_int(main_stack_frame->ch);
   print_string("\n");
 getNextChar:
-  main_stack_frame.ch = read_char();
+  main_stack_frame->ch = read_char();
   goto loopTest;
 loopEnd:
-  return main_stack_frame.return_code;
+  return main_stack_frame->return_code;
 }

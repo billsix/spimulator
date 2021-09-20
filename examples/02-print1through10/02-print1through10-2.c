@@ -49,17 +49,17 @@ struct main_stack_frame {
 
 int main(int argc, char *argv[]) {
 
-  struct main_stack_frame main_stack_frame = {.i = 0,
-                                              .return_value = EXIT_SUCCESS};
+  struct main_stack_frame msf = {.i = 0, .return_value = EXIT_SUCCESS};
+  struct main_stack_frame *main_stack_frame = &msf;
 
 beginningOfLoop:
-  if (!(main_stack_frame.i <= 10))
+  if (!(main_stack_frame->i <= 10))
     goto endOfLoop;
 loopBody:
-  print_int(main_stack_frame.i);
+  print_int(main_stack_frame->i);
   print_string("\n");
-  main_stack_frame.i = main_stack_frame.i + 1;
+  main_stack_frame->i = main_stack_frame->i + 1;
   goto beginningOfLoop;
 endOfLoop:
-  return main_stack_frame.return_value;
+  return main_stack_frame->return_value;
 }
