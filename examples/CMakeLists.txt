@@ -107,6 +107,12 @@ set_property(TARGET 06.5-subrountines-1 PROPERTY C_STANDARD 11)
 TARGET_LINK_LIBRARIES( 06.5-subrountines-1 platformabstraction )
 install(TARGETS 06.5-subrountines-1 DESTINATION bin)
 
+add_executable(06.5-subrountines-2 06.5-subrountines/06.5-subrountines-2.c)
+set_property(TARGET 06.5-subrountines-2 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 06.5-subrountines-2 platformabstraction )
+install(TARGETS 06.5-subrountines-2 DESTINATION bin)
+
+
 
 
 add_executable(07-testStringsForEquality-1 07-testStringsForEquality/07-testStringsForEquality-1.c)

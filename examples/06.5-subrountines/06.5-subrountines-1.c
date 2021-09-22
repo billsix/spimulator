@@ -27,16 +27,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int mxPlusB(int m, int x, int b) {
-  int result = m * x + b;
+int32_t mxPlusB(int32_t m, int32_t x, int32_t b) {
+  int32_t result = m * x + b;
   return result;
 }
 
-int main(int argc, char *argv[]) {
+int main(int32_t argc, char *argv[]) {
 
-  int result1 = mxPlusB(1, 2, 3);
+  int32_t result1 = mxPlusB(1, 2, 3);
   printf("%d \n", result1);
-  int result2 = mxPlusB(4, 5, 6);
+  int32_t result2 = mxPlusB(4, 5, 6);
   printf("%d \n", result2);
   exit(EXIT_SUCCESS);
 }
