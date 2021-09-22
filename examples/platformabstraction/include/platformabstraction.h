@@ -17,6 +17,7 @@ void xmemcpy(void* dest, void* src, size_t n);
 #define x86_64_linux
 //#define spim
 
+#define SIZE_OF_CHAR 1
 
 // define sizes based on the CPU
 #ifdef x86_64_linux
@@ -43,5 +44,6 @@ extern BYTE random_access_memory[];
 
 // byte of the begining of the frame
 extern ADDRESS_OF_BYTE frame_pointer;
+extern ADDRESS_OF_BYTE stack_pointer;
 
 #endif

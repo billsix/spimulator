@@ -18,6 +18,9 @@ BYTE random_access_memory[RAM_SIZE];
 ADDRESS_OF_BYTE frame_pointer =
     (ADDRESS_OF_BYTE)(random_access_memory + RAM_SIZE);
 
+ADDRESS_OF_BYTE stack_pointer =
+    (ADDRESS_OF_BYTE)(random_access_memory + RAM_SIZE);
+
 void print_string(char *c) {
   /*
     For spim, in the data section at the top, give your string

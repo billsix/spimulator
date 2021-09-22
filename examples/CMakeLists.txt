@@ -102,6 +102,12 @@ set_property(TARGET 06-commaAndPeriodCounter-3 PROPERTY C_STANDARD 11)
 TARGET_LINK_LIBRARIES( 06-commaAndPeriodCounter-3 platformabstraction )
 install(TARGETS 06-commaAndPeriodCounter-3 DESTINATION bin)
 
+add_executable(06.5-subrountines-1 06.5-subrountines/06.5-subrountines-1.c)
+set_property(TARGET 06.5-subrountines-1 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 06.5-subrountines-1 platformabstraction )
+install(TARGETS 06.5-subrountines-1 DESTINATION bin)
+
+
 
 add_executable(07-testStringsForEquality-1 07-testStringsForEquality/07-testStringsForEquality-1.c)
 set_property(TARGET 07-testStringsForEquality-1 PROPERTY C_STANDARD 11)

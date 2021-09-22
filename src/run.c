@@ -243,7 +243,6 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
       }
 #endif
 
-
       exception_occurred = 0;
       inst = read_mem_inst(PC);
       {
@@ -1495,7 +1494,6 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
         if (display)
           print_inst(PC);
-
       }
       if (exception_occurred) {
         handle_exception();

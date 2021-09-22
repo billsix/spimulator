@@ -45,22 +45,26 @@
 #include "platformabstraction.h"
 
 struct main_stack_frame {
-  char *str1;
-  char *str2;
-  char *str3;
+  char *address_of_str1;
+  char *address_of_str2;
+  char *address_of_str3;
   bool result_of_evaluation_ofstr12_eq;
   bool result_of_evaluation_ofstr13_eq;
   bool result_of_evaluation_ofstr23_eq;
   int32_t return_value;
-  void *whatToDoAfterProcedureCall; // i.e. return address
+  // return address
+  void
+      *address_of_instruction_of_caller_to_execute_after_subrountine_terminates;
 };
 
 struct str_eq_stack_frame {
-  const char *s1;
-  const char *s2;
-  bool *return_value;
-  void *whatToDoAfterProcedureCall; // i.e. return address
-  struct main_stack_frame *stack_frame_of_caller;
+  const char *address_of_s1;
+  const char *address_of_s2;
+  bool *address_of_value_to_return;
+  // i.e. return address
+  void
+      *address_of_instruction_of_caller_to_execute_after_subrountine_terminates;
+  struct main_stack_frame *address_of_stack_frame_of_caller;
 };
 
 int main(int argc, char *argv[]) {
@@ -73,45 +77,53 @@ str_eq_label : {
   struct str_eq_stack_frame current_str_eq_stack_frame =
       *((struct str_eq_stack_frame *)current_stack_frame);
 loopBegin:
-  if (*current_str_eq_stack_frame.s1 != *current_str_eq_stack_frame.s2)
+  if (*current_str_eq_stack_frame.address_of_s1 !=
+      *current_str_eq_stack_frame.address_of_s2)
     goto loopEnd;
-  if (*current_str_eq_stack_frame.s1 != 0)
+  if (*current_str_eq_stack_frame.address_of_s1 != 0)
     goto incrementAndContinue;
-  *current_str_eq_stack_frame.return_value = false;
+  *current_str_eq_stack_frame.address_of_value_to_return = false;
   goto str_eq_exit;
 incrementAndContinue:
-  current_str_eq_stack_frame.s1 = current_str_eq_stack_frame.s1 + 1;
-  current_str_eq_stack_frame.s2 = current_str_eq_stack_frame.s2 + 1;
+  current_str_eq_stack_frame.address_of_s1 =
+      current_str_eq_stack_frame.address_of_s1 + 1;
+  current_str_eq_stack_frame.address_of_s2 =
+      current_str_eq_stack_frame.address_of_s2 + 1;
   goto loopBegin;
 loopEnd:
 
-  *current_str_eq_stack_frame.return_value = true;
+  *current_str_eq_stack_frame.address_of_value_to_return = true;
 str_eq_exit : {
-  void *whatToDoAfterProcedureCall =
-      current_str_eq_stack_frame.whatToDoAfterProcedureCall;
-  current_stack_frame = current_str_eq_stack_frame.stack_frame_of_caller;
-  goto *whatToDoAfterProcedureCall;
+  void *instruction_of_caller_to_execute_after_subrountine_terminates =
+      current_str_eq_stack_frame
+          .address_of_instruction_of_caller_to_execute_after_subrountine_terminates;
+  current_stack_frame =
+      current_str_eq_stack_frame.address_of_stack_frame_of_caller;
+  goto *instruction_of_caller_to_execute_after_subrountine_terminates;
 }
 }
 main_label : {
   struct main_stack_frame main_stack_frame = {
-      .str1 = "str1",
-      .str2 = "str2",
-      .str3 = "str1",
+      .address_of_str1 = "str1",
+      .address_of_str2 = "str2",
+      .address_of_str3 = "str1",
       .result_of_evaluation_ofstr12_eq = false,
       .result_of_evaluation_ofstr13_eq = false,
       .result_of_evaluation_ofstr23_eq = false,
       .return_value = EXIT_SUCCESS,
-      .whatToDoAfterProcedureCall = &&return_label};
+      .address_of_instruction_of_caller_to_execute_after_subrountine_terminates =
+          &&return_label};
 
   current_stack_frame = (void *)&main_stack_frame;
 
   struct str_eq_stack_frame first_eq_call = {
-      .s1 = main_stack_frame.str1,
-      .s2 = main_stack_frame.str2,
-      .return_value = &main_stack_frame.result_of_evaluation_ofstr12_eq,
-      .whatToDoAfterProcedureCall = &&return_point_after_first_eq_call,
-      .stack_frame_of_caller = current_stack_frame};
+      .address_of_s1 = main_stack_frame.address_of_str1,
+      .address_of_s2 = main_stack_frame.address_of_str2,
+      .address_of_value_to_return =
+          &main_stack_frame.result_of_evaluation_ofstr12_eq,
+      .address_of_instruction_of_caller_to_execute_after_subrountine_terminates =
+          &&return_point_after_first_eq_call,
+      .address_of_stack_frame_of_caller = current_stack_frame};
 
   current_stack_frame = (void *)&first_eq_call;
   goto str_eq_label;
@@ -123,11 +135,13 @@ return_point_after_first_eq_call : {
   print_string("\n");
 
   struct str_eq_stack_frame second_eq_call = {
-      .s1 = main_stack_frame.str1,
-      .s2 = main_stack_frame.str3,
-      .return_value = &main_stack_frame.result_of_evaluation_ofstr13_eq,
-      .whatToDoAfterProcedureCall = &&return_point_after_second_eq_call,
-      .stack_frame_of_caller = current_stack_frame};
+      .address_of_s1 = main_stack_frame.address_of_str1,
+      .address_of_s2 = main_stack_frame.address_of_str3,
+      .address_of_value_to_return =
+          &main_stack_frame.result_of_evaluation_ofstr13_eq,
+      .address_of_instruction_of_caller_to_execute_after_subrountine_terminates =
+          &&return_point_after_second_eq_call,
+      .address_of_stack_frame_of_caller = current_stack_frame};
 
   current_stack_frame = (void *)&second_eq_call;
   goto str_eq_label;
@@ -139,11 +153,13 @@ return_point_after_second_eq_call : {
   print_string("\n");
 
   struct str_eq_stack_frame third_eq_call = {
-      .s1 = main_stack_frame.str2,
-      .s2 = main_stack_frame.str3,
-      .return_value = &main_stack_frame.result_of_evaluation_ofstr23_eq,
-      .whatToDoAfterProcedureCall = &&return_point_after_third_eq_call,
-      .stack_frame_of_caller = current_stack_frame};
+      .address_of_s1 = main_stack_frame.address_of_str2,
+      .address_of_s2 = main_stack_frame.address_of_str3,
+      .address_of_value_to_return =
+          &main_stack_frame.result_of_evaluation_ofstr23_eq,
+      .address_of_instruction_of_caller_to_execute_after_subrountine_terminates =
+          &&return_point_after_third_eq_call,
+      .address_of_stack_frame_of_caller = current_stack_frame};
 
   current_stack_frame = (void *)&third_eq_call;
   goto str_eq_label;
