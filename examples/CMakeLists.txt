@@ -112,6 +112,11 @@ set_property(TARGET 06.5-subrountines-2 PROPERTY C_STANDARD 11)
 TARGET_LINK_LIBRARIES( 06.5-subrountines-2 platformabstraction )
 install(TARGETS 06.5-subrountines-2 DESTINATION bin)
 
+add_executable(06.5-subrountines-3 06.5-subrountines/06.5-subrountines-3.c)
+set_property(TARGET 06.5-subrountines-3 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 06.5-subrountines-3 platformabstraction )
+install(TARGETS 06.5-subrountines-3 DESTINATION bin)
+
 
 
 

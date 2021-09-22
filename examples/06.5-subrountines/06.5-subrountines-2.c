@@ -24,7 +24,6 @@
 //
 
 #include <inttypes.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "platformabstraction.h"
@@ -41,7 +40,6 @@ struct mxPlusB_stack_frame {
   int32_t b;
 
   int32_t *address_of_return_value;
-  // return address
   void *
       address_of_instruction_of_caller_to_be_executed_after_mxPlusB_stack_frame_terminates;
   void *stack_frame_of_caller;
@@ -90,7 +88,9 @@ main_label : {
   current_stack_frame = (void *)&firstMxPlusBCall;
   goto mxPlusBLabel;
 continueMainPt1:
-  printf("%d \n", main_stack_frame->result1);
+
+  print_int(main_stack_frame->result1);
+  print_string("\n");
 
   struct mxPlusB_stack_frame secondMxPlusBCall = {
       .m = 4,
@@ -105,7 +105,9 @@ continueMainPt1:
   goto mxPlusBLabel;
 
 continueMainPt2:
-  printf("%d \n", main_stack_frame->result2);
+  print_int(main_stack_frame->result2);
+  print_string("\n");
+
   exit(EXIT_SUCCESS);
 }
 }
