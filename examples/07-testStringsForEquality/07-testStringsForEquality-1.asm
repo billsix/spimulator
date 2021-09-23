@@ -23,94 +23,88 @@
 
         .data
 nl:    .asciiz     "\n"
+str1:    .asciiz     "str1"
+str2:    .asciiz     "str2"
+str3:    .asciiz     "str1"
         .text
         .globl main
 
-mxPlusB:
-        move $fp, $sp # make the stack pointer the frame pointer
-
-        # $fp    the caller's frame pointer
-        # $r0    address of return instruction of caller, automatically set by jal
+streq:
+        # $fp     the caller's frame pointer
+        # $r0     address of return instruction of caller, automatically set by jal
         # $v0     return value
-        # $a2     b
-        # $a1     x
-        # $a0     m
+        # $a1     address of s2
+        # $a0     address of s1
+        # we don't need to use the stack to store anything,
+        # so we don't need to push the frame pointer
+        # nor use the stack pointer
 
-        # do mult
-        mult $a1, $a0 # m * x
-        mflo $v0
-        # do addition
-        addu $v0, $a2, $v0 # m * x + b
-
+loopBegin:
+        lb $t0, ($a0)  # they are pointers, not values, so load them
+                       # and we only want a byte, not a full word
+        lb $t1, ($a1)
+        bne $t0, $t1, loopEnd
+        bne $t0, 0, incrementAndContinue
+        li $v0, 0
+        j str_eq_exit
+incrementAndContinue:
+        addi $a0, $a0, 1
+        addi $a1, $a1, 1
+        j loopBegin
+loopEnd:
+        li $v0, 1
+str_eq_exit:
         jr $ra
 main:
         move $fp, $sp
-        addi $fp, $fp, -8
+        addi $fp, $fp, -4
 
-        # save onto $ra, since the evaluation of mxPlus will
+        # save onto $ra, since the evaluation of str_eq
         # overwrite the value
 
         sw $ra, 0($fp)
 
-        # initiaze return value to a default value
-        li $t0, 0
-        sw $t0, 4($fp)
-
-
-        # get ready to invocate y=mx+b
-
         move $sp, $fp
 
-        li $a0, 1
-        li $a1, 2
-        li $a2, 3
-
-        # setup for y=mx+b function is complete, jump to the address of the first instruction
-        jal mxPlusB # location of continueMainPt1 is stored into $ra
-
-continueMainPt1:
-
-        move $sp, $fp
-
+        # first invocation
+        la $a0, str1
+        la $a1, str2
+        jal streq
         # print result
-
         move $a0, $v0
         li $v0, 1
         syscall
-
         # print newline
         li $v0, 4
         la $a0, nl
         syscall
 
 
-# second invoration
-
-        move $sp, $fp
-
-        li $a0, 4
-        li $a1, 5
-        li $a2, 6
-
-        # setup for y=mx+b function is complete, jump to the address of the first instruction
-        jal mxPlusB # location of continueMainPt1 is stored into $ra
-
-continueMainPt2:
-
-        move $sp, $fp
-
+        # second invocation
+        la $a0, str1
+        la $a1, str3
+        jal streq
         # print result
-
         move $a0, $v0
         li $v0, 1
         syscall
-
         # print newline
         li $v0, 4
         la $a0, nl
         syscall
 
-
+        # third invocation
+        la $a0, str2
+        la $a1, str3
+        jal streq
+        # print result
+        move $a0, $v0
+        li $v0, 1
+        syscall
+        # print newline
+        li $v0, 4
+        la $a0, nl
+        syscall
 
 
 
