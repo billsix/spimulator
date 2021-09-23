@@ -54,7 +54,7 @@ mxPlusB:
         # the address in t0 is no longer needed
         lw $t0, 16($fp)
         lw $fp, 20($fp)
-        j $t0
+        jr $t0
 main:
         move $fp, $sp
         addi $fp, $fp, -12
