@@ -102,44 +102,35 @@ set_property(TARGET 06-commaAndPeriodCounter-3 PROPERTY C_STANDARD 11)
 TARGET_LINK_LIBRARIES( 06-commaAndPeriodCounter-3 platformabstraction )
 install(TARGETS 06-commaAndPeriodCounter-3 DESTINATION bin)
 
-add_executable(06.5-subrountines-1 06.5-subrountines/06.5-subrountines-1.c)
-set_property(TARGET 06.5-subrountines-1 PROPERTY C_STANDARD 11)
-TARGET_LINK_LIBRARIES( 06.5-subrountines-1 platformabstraction )
-install(TARGETS 06.5-subrountines-1 DESTINATION bin)
+add_executable(07-subrountines-1 07-subrountines/07-subrountines-1.c)
+set_property(TARGET 07-subrountines-1 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 07-subrountines-1 platformabstraction )
+install(TARGETS 07-subrountines-1 DESTINATION bin)
 
-add_executable(06.5-subrountines-2 06.5-subrountines/06.5-subrountines-2.c)
-set_property(TARGET 06.5-subrountines-2 PROPERTY C_STANDARD 11)
-TARGET_LINK_LIBRARIES( 06.5-subrountines-2 platformabstraction )
-install(TARGETS 06.5-subrountines-2 DESTINATION bin)
+add_executable(07-subrountines-2 07-subrountines/07-subrountines-2.c)
+set_property(TARGET 07-subrountines-2 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 07-subrountines-2 platformabstraction )
+install(TARGETS 07-subrountines-2 DESTINATION bin)
 
-add_executable(06.5-subrountines-3 06.5-subrountines/06.5-subrountines-3.c)
-set_property(TARGET 06.5-subrountines-3 PROPERTY C_STANDARD 11)
-TARGET_LINK_LIBRARIES( 06.5-subrountines-3 platformabstraction )
-install(TARGETS 06.5-subrountines-3 DESTINATION bin)
-
-
+add_executable(07-subrountines-3 07-subrountines/07-subrountines-3.c)
+set_property(TARGET 07-subrountines-3 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 07-subrountines-3 platformabstraction )
+install(TARGETS 07-subrountines-3 DESTINATION bin)
 
 
-add_executable(07-testStringsForEquality-1 07-testStringsForEquality/07-testStringsForEquality-1.c)
-set_property(TARGET 07-testStringsForEquality-1 PROPERTY C_STANDARD 11)
-TARGET_LINK_LIBRARIES( 07-testStringsForEquality-1 platformabstraction )
-install(TARGETS 07-testStringsForEquality-1 DESTINATION bin)
-
-add_executable(07-testStringsForEquality-2 07-testStringsForEquality/07-testStringsForEquality-2.c)
-set_property(TARGET 07-testStringsForEquality-2 PROPERTY C_STANDARD 11)
-TARGET_LINK_LIBRARIES( 07-testStringsForEquality-2 platformabstraction )
-install(TARGETS 07-testStringsForEquality-2 DESTINATION bin)
 
 
-add_executable(08-loopFunctionCallPrint-1 08-loopFunctionCallPrint/08-loopFunctionCallPrint-1.c)
-set_property(TARGET 08-loopFunctionCallPrint-1 PROPERTY C_STANDARD 11)
-TARGET_LINK_LIBRARIES( 08-loopFunctionCallPrint-1 platformabstraction )
-install(TARGETS 08-loopFunctionCallPrint-1 DESTINATION bin)
+add_executable(08-testStringsForEquality-1 08-testStringsForEquality/08-testStringsForEquality-1.c)
+set_property(TARGET 08-testStringsForEquality-1 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 08-testStringsForEquality-1 platformabstraction )
+install(TARGETS 08-testStringsForEquality-1 DESTINATION bin)
 
-add_executable(09-bubbleSort-1 09-bubbleSort/09-bubbleSort-1.c)
-set_property(TARGET 09-bubbleSort-1 PROPERTY C_STANDARD 11)
-TARGET_LINK_LIBRARIES( 09-bubbleSort-1 platformabstraction )
-install(TARGETS 09-bubbleSort-1 DESTINATION bin)
+add_executable(08-testStringsForEquality-2 08-testStringsForEquality/08-testStringsForEquality-2.c)
+set_property(TARGET 08-testStringsForEquality-2 PROPERTY C_STANDARD 11)
+TARGET_LINK_LIBRARIES( 08-testStringsForEquality-2 platformabstraction )
+install(TARGETS 08-testStringsForEquality-2 DESTINATION bin)
+
+
 
 add_executable(10-nestedLoopProcedureCall-1 10-nestedLoopProcedureCall/10-nestedLoopProcedureCall-1.c)
 set_property(TARGET 10-nestedLoopProcedureCall-1 PROPERTY C_STANDARD 11)
