@@ -29,12 +29,16 @@ nl:    .asciiz     "\n"
 mxPlusB:
         move $fp, $sp # make the stack pointer the frame pointer
 
-        # 20($fp)    the caller's frame pointer
-        # 16($fp)    address of return instruction of caller
-        # 12($fp)    address of return value
-        # 8($fp)     b
-        # 4($fp)     x
-        # 0($fp)     m
+        # -------------------------------------------------------------
+        # |Address in RAM  |   Value at that location                 |
+        # |-----------------------------------------------------------|
+        # |  20($fp)       | the caller's frame pointer               |
+        # |  16($fp)       | address of return instruction of caller  |
+        # |  12($fp)       | address of return value                  |
+        # |  8($fp)        | b                                        |
+        # |  4($fp)        | x                                        |
+        # |  0($fp)        | m                                        |
+        # -------------------------------------------------------------
 
         lw $t0, 0($fp) #m
         lw $t1, 4($fp) #x
