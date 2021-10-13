@@ -24,8 +24,9 @@
 //
 
 #include <inttypes.h>
-#include <stdio.h>
 #include <stdlib.h>
+
+#include "platformabstraction.h"
 
 int32_t mxPlusB(int32_t m, int32_t x, int32_t b) {
   int32_t result = m * x + b;
@@ -35,8 +36,10 @@ int32_t mxPlusB(int32_t m, int32_t x, int32_t b) {
 int main(int32_t argc, char *argv[]) {
 
   int32_t result1 = mxPlusB(1, 2, 3);
-  printf("%d \n", result1);
+  print_int(result1);
+  print_string("\n");
   int32_t result2 = mxPlusB(4, 5, 6);
-  printf("%d \n", result2);
+  print_int(result2);
+  print_string("\n");
   exit(EXIT_SUCCESS);
 }

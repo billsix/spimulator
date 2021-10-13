@@ -39,9 +39,10 @@
 
 #include <inttypes.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "platformabstraction.h"
 
 /*
 * Compare
@@ -68,7 +69,15 @@ int main(int argc, char *argv[]) {
   char *str2 = "str2";
   char *str3 = "str1";
 
-  printf("str1 compared to str2 is %d\n", str_eq(str1, str2));
-  printf("str1 compared to str3 is %d\n", str_eq(str1, str3));
-  printf("str2 compared to str3 is %d\n", str_eq(str2, str3));
+
+  print_string("str1 compared to str2 is ");
+  print_int(str_eq(str1, str2));
+  print_string("\n");
+  print_string("str1 compared to str3 is ");
+  print_int(str_eq(str1, str3));
+  print_string("\n");
+  print_string("str2 compared to str3 is ");
+  print_int(str_eq(str2, str3));
+  print_string("\n");
+  return 0;
 }

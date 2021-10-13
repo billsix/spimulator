@@ -23,10 +23,11 @@
 /* Print out the numbers 1 through 10, each on their own line */
 
 #include <inttypes.h>
-#include <stdio.h>
 #include <stdlib.h>
 
+#include "platformabstraction.h"
+
 int main(int argc, char *argv[]) {
-  printf("hello world\n");
+  print_string("hello world\n");
   exit(EXIT_SUCCESS);
 }

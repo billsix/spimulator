@@ -42,10 +42,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "platformabstraction.h"
+
 int main(int argc, char *argv[]) {
   int32_t comma_count = 0;
   int32_t stop_count = 0;
-  char this_char = getchar();
+  char this_char = read_char();
   while (this_char != EOF) {
     if (this_char == '.')
       stop_count = stop_count + 1;
@@ -53,6 +55,9 @@ int main(int argc, char *argv[]) {
       comma_count = comma_count + 1;
     this_char = getchar();
   }
-  printf("%d commas, %d stops\n", comma_count, stop_count);
+  print_int(comma_count);
+  print_string(" commas, ");
+  print_int(stop_count);
+  print_string(" stops\n");
   exit(EXIT_SUCCESS);
 }

@@ -39,15 +39,18 @@
 
 #include <inttypes.h>
 #include <limits.h>
-#include <stdio.h>
 #include <stdlib.h>
+
+#include "platformabstraction.h"
 
 int main(int argc, char *argv[]) {
   char c = CHAR_MIN;
-  printf("%d\n", c);
+  print_int(c);
+  print_string("\n");
   do {
     c = c + 1;
-    printf("%d\n", c);
+    print_int(c);
+    print_string("\n");
   } while (c != CHAR_MAX);
 
   exit(EXIT_SUCCESS);

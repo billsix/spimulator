@@ -41,15 +41,20 @@
 /* Print out the results */
 
 #include <inttypes.h>
-#include <stdio.h>
 #include <stdlib.h>
+
+#include "platformabstraction.h"
 
 int main(int argc, char *argv[]) {
   int32_t a, b;
   a = b = 5;
-  printf("%d\n", ++a + 5);
-  printf("%d\n", a);
-  printf("%d\n", b++ + 5);
-  printf("%d\n", b);
+  print_int(++a + 5);
+  print_string("\n");
+  print_int(a);
+  print_string("\n");
+  print_int(b++ + 5);
+  print_string("\n");
+  print_int(b);
+  print_string("\n");
   exit(EXIT_SUCCESS);
 }

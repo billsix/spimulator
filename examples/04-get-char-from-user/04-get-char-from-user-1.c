@@ -40,15 +40,22 @@
 /* Terminate when the character 'a' is read in */
 
 #include <inttypes.h>
-#include <stdio.h>
 #include <stdlib.h>
 
+#include "platformabstraction.h"
+
 int main(int argc, char *argv[]) {
-  char ch = getchar();
+  char ch = read_char();
   while (ch != 'a') {
     if (ch != '\n')
-      printf("ch was %c, value %d\n", ch, ch);
-    ch = getchar();
+      {
+        print_string("ch was ");
+        print_char(ch);
+        print_string(", value ");
+        print_int(ch);
+        print_string("\n");
+      }
+    ch = read_char();
   }
   exit(EXIT_SUCCESS);
 }
