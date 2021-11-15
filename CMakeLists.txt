@@ -13,7 +13,7 @@ endif(WIN32)
 add_compile_definitions(IMGUI_IMPL_OPENGL_LOADER_GL3W=1)
 
 
-set(DEFAULT_EXCEPTION_HANDLER "${CMAKE_INSTALL_PREFIX}/share/spim/exceptions.s")
+set(DEFAULT_EXCEPTION_HANDLER "${CMAKE_INSTALL_PREFIX}/share/spimulator/exceptions.s")
 
 configure_file(src/config.h.in src/config.h)
 
@@ -83,4 +83,4 @@ endif()
 target_link_libraries(${SPIM_EXE} ${LINK_LIBRARIES} )
 
 install(TARGETS ${SPIM_EXE} DESTINATION bin)
-install(FILES src/exceptions.s DESTINATION share/spim/)
+install(FILES src/exceptions.s DESTINATION share/spimulator/)
