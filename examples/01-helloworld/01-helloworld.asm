@@ -30,10 +30,15 @@ helloworld:
         .text
         .globl main
 main:
-        #   print_string("hello world\n");
-        # print a hello world
+        move $fp, $sp
+        li $t0, 0
+        sw $t0, -4($fp)
+
+
+        # print hello world
         li $v0, 4
         la $a0, helloworld
         syscall
 
+        lw $v0, -4($fp)
         jr $ra
