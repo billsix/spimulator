@@ -111,4 +111,5 @@ main:
         lw $ra, 0($fp)
          ############ return the return code
         lw $v0, 4($fp)
+        addi $fp, $fp, 4
         jr $ra

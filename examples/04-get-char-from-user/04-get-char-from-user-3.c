@@ -132,6 +132,7 @@ loopEnd : {
   xmemcpy(/*dest*/ &return_code_in_register,
           /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
           /*numberOfBytes*/ SIZE_OF_INT32_T);
+  frame_pointer = frame_pointer + SIZE_OF_MAIN_STACK_FRAME;
   return return_code_in_register;
 }
 }

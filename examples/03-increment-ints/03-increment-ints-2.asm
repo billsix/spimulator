@@ -1333,6 +1333,7 @@ instructionNumber0x004000cc: la $a0, nl  # actual instruction - lui $4, 4097 [nl
         #
         #
 instructionNumber0x004000d0: syscall  # actual instruction - syscall ; binary representation of actual instruction 0x0000000c
+instructionNumber0x004000d4: addi $fp, $fp, 12
         ############ return the return_code
-instructionNumber0x004000d4: lw $v0, 8($fp)  # actual instruction - lw $2, 8($30) ; binary representation of actual instruction 0x8fc20008
-instructionNumber0x004000d8: jr $ra  # actual instruction - jr $31 ; binary representation of actual instruction 0x03e00008
+instructionNumber0x004000d8: lw $v0, 8($fp)  # actual instruction - lw $2, 8($30) ; binary representation of actual instruction 0x8fc20008
+instructionNumber0x004000dc: jr $ra  # actual instruction - jr $31 ; binary representation of actual instruction 0x03e00008

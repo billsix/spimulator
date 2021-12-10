@@ -104,4 +104,5 @@ getNextChar:
 
         ############ return the return code
         lw $v0, 8($fp)
+        addi $fp, $fp, 5
         jr $ra

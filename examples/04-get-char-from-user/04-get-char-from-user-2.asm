@@ -308,6 +308,7 @@ loopEnd:
         #          /*numberOfBytes*/ SIZE_OF_INT32_T);
         ############ return the return code
         lw $v0, 4($fp)
+        addi $fp, $fp, 8
         #  return return_code_in_register;
         jr $ra
         #}

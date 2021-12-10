@@ -115,4 +115,5 @@ endOfLoop:
         lw $v0, 4($fp)
         #  return return_value_in_register;
         #}
+        addi $fp, $fp, 8
         jr $ra

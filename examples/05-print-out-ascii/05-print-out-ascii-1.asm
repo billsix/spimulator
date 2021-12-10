@@ -227,4 +227,5 @@ loopBegin:
 
          ############ return the return code
         lw $v0, 4($fp)
+        addi $fp, $fp, 8
         jr $ra

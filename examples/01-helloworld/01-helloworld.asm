@@ -31,8 +31,10 @@ helloworld:
         .globl main
 main:
         move $fp, $sp
+        addi $fp, $fp, -4
+
         li $t0, 0
-        sw $t0, -4($fp)
+        sw $t0, 0($fp)
 
 
         # print hello world
@@ -40,5 +42,6 @@ main:
         la $a0, helloworld
         syscall
 
-        lw $v0, -4($fp)
+        lw $v0, 0($fp)
+        addi $fp, $fp, 4
         jr $ra

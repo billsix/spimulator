@@ -315,6 +315,8 @@ continueMainPt2:
   }
   print_string("\n");
 
+  frame_pointer = frame_pointer + SIZE_OF_MAIN_STACK_FRAME;
+
   exit(EXIT_SUCCESS);
 }
 }

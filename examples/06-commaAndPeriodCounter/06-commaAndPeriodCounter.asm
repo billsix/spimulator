@@ -195,7 +195,7 @@ notAPeriod:
         lw $t0,  8($fp)
         #
         #    if (this_char_in_register != ',')  goto notAComma;
-        bne $t0, '.', notAComma
+        bne $t0, ',', notAComma
 
         #  }
         #  {
@@ -278,6 +278,7 @@ loopEnd:
         #            /*numberOfBytes*/ SIZE_OF_INT32_T);
         lw $v0, 16($fp)
 
+        addi $fp, $fp, 32
         #    return return_code_in_register;
         jr $ra
         #  }

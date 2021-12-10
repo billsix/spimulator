@@ -164,6 +164,7 @@ continueMainPt2:
 
 
 
+        addi $fp, $fp, 12
          ############ return the return code
         lw $v0, 4($fp)
         jr $ra

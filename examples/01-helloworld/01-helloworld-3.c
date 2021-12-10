@@ -57,6 +57,7 @@ int main(int argc, char *argv[]) {
     xmemcpy(/*dest*/ &return_value_in_register,
             /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
             SIZE_OF_INT32_T);
+    frame_pointer = frame_pointer + SIZE_OF_MAIN_STACK_FRAME;
     return return_value_in_register;
   }
 }
