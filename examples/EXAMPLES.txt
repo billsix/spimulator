@@ -1,0 +1,16 @@
+3.5 - switch statement
+2.9 - bitwise arithmatic
+3.9 - boolean test, and tertiary expressions
+3.1 - equality and comparisons of ints
+1.2 - nested loops, prime numbers calc, printing
+4.7 - printing, procedure call, pass by value.  Perhaps add in a pass by reference
+4.8 - calculator.  procedure calls.  This needs to be refactored
+4.13 - static local variables
+5.1 - pointers
+5.3 - array
+5.13 - malloc
+5.14 - size of array.  sizeof character pointer
+5.16 - function pointer
+2.11 - floating point
+3.8 - loop and print floats
+4.4 - iterated sqrt, printing
