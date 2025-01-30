@@ -19,15 +19,18 @@
 // SOFTWARE.
 //
 
-/* Purpose: */
-/* Print out the numbers 1 through 10, each on their own line */
-
+// doc-region-begin include
 #include <inttypes.h>
 #include <stdlib.h>
+// doc-region-end include
 
+// doc-region-begin os functions
 #include "operatingsystemfunctions.h"
+// doc-region-end os functions
 
+// doc-region-begin main
 int main(int argc, char *argv[]) {
   operating_system_print_string("hello world\n");
   exit(EXIT_SUCCESS);
 }
+// doc-region-end main

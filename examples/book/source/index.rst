@@ -15,3 +15,21 @@ documentation for details.
    :maxdepth: 2
    :caption: Contents:
 
+   ch01
+
+
+..
+   02-print1through10
+   03-increment-ints
+   04-get-char-from-user
+   05-print-out-ascii
+   06-commaAndPeriodCounter
+   07-subrountines
+   08-testStringsForEquality
+   CMakeLists.txt
+   EXAMPLES.txt
+   buildDebug.sh
+   codeblocksbuildDebug.sh
+   deps
+   operatingsystemfunctions
+   template
