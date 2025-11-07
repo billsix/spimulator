@@ -2,6 +2,7 @@ FROM registry.fedoraproject.org/fedora:43
 
 COPY helloworld.s meson.build /spimulator/
 COPY src/ /spimulator/src
+COPY include/ /spimulator/include
 COPY tests/ /spimulator/tests
 
 RUN sed -i -e "s@tsflags=nodocs@#tsflags=nodocs@g" /etc/dnf/dnf.conf && \

@@ -18,28 +18,11 @@ conf_data.set_quoted('DEFAULT_EXCEPTION_HANDLER',
                      get_option('prefix') / get_option('datadir') / 'spimulator/exceptions.s')
 
 configure_file(
-  input: 'src/config.h.in',
+  input: 'include/config.h.in',
   output: 'config.h',
   configuration: conf_data
 )
 
-# Source files
-include_files = files(
-  'src/data.h',
-  'src/inst.h',
-  'src/mem.h',
-  'src/op.h',
-  'src/parser.h',
-  'src/reg.h',
-  'src/run.h',
-  'src/scanner.h',
-  'src/spim.h',
-  'src/spim-utils.h',
-  'src/string-stream.h',
-  'src/sym-tbl.h',
-  'src/syscall.h',
-  'src/parser_yacc.h'
-)
 
 source_files = files(
   'src/spim-utils.c',
@@ -58,7 +41,7 @@ source_files = files(
 spim_source_files = source_files + files('src/spim.c')
 
 # Include directories
-inc = include_directories('src', '.')
+inc = include_directories('include')
 
 # Platform-specific libraries
 if host_machine.system() == 'windows'
