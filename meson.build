@@ -3,6 +3,10 @@ project('spimulator', 'c',
   default_options: ['c_std=gnu11']
 )
 
+# Find flex and bison
+flex = find_program('flex', required: true)
+bison = find_program('bison', required: true)
+
 # Platform-specific configuration
 if host_machine.system() == 'windows'
   add_project_arguments('-x', 'c++', language: 'c')
@@ -23,11 +27,24 @@ configure_file(
   configuration: conf_data
 )
 
+# Generate lexer from flex (output to src/)
+lex_gen = custom_target('lex',
+  input: 'src/scanner.l',
+  output: 'lex.yy.c',
+  command: [flex, '-o', '@OUTPUT@', '@INPUT@']
+)
 
+# Generate parser from bison
+# Note: We'll generate both .c and .h files
+parser_gen = custom_target('parser',
+  input: 'src/parser.y',
+  output: ['parser_yacc.c', 'parser_yacc.h'],
+  command: [bison, '-d', '@INPUT@', '-o', '@OUTPUT0@']
+)
+
+# Source files (without the generated ones)
 source_files = files(
   'src/spim-utils.c',
-  'src/lex.yy.c',
-  'src/parser_yacc.c',
   'src/run.c',
   'src/mem.c',
   'src/inst.c',
@@ -38,9 +55,11 @@ source_files = files(
   'src/string-stream.c'
 )
 
-spim_source_files = source_files + files('src/spim.c')
+# Add generated sources
+spim_source_files = source_files + files('src/spim.c') + lex_gen + parser_gen
 
 # Include directories
+# Note: meson.current_build_dir() allows accessing generated files
 inc = include_directories('include')
 
 # Platform-specific libraries
