@@ -34,7 +34,7 @@
 #include <stdio.h>
 
 typedef struct inst_t {
-  char *opcode;
+  char* opcode;
 
   union {
     unsigned int x;
@@ -54,7 +54,7 @@ inst ops[] = {
 #include "op.h"
 };
 
-int compare_ops(inst *p1, inst *p2) {
+int compare_ops(inst* p1, inst* p2) {
   if (p1->f.op < p2->f.op)
     return (-1);
   else if (p1->f.op > p2->f.op)
@@ -81,7 +81,7 @@ int compare_ops(inst *p1, inst *p2) {
   }
 }
 
-main(int argc, char **argv) {
+main(int argc, char** argv) {
   /* Remove pseudo ops (opcode == -1) from table */
   int empty, next;
   for (empty = 0, next = 0; next < (sizeof(ops) / sizeof(ops[0])); next += 1) {

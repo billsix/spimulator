@@ -46,38 +46,38 @@ reg_word R[R_LENGTH];
 reg_word HI, LO;
 int HI_present, LO_present;
 mem_addr PC, nPC;
-double *FPR; /* Dynamically allocate so overlay */
-float *FGR;  /* is possible */
-int *FWR;    /* is possible */
+double* FPR; /* Dynamically allocate so overlay */
+float* FGR;  /* is possible */
+int* FWR;    /* is possible */
 reg_word CCR[4][32], CPR[4][32];
 
-instruction **text_seg;
+instruction** text_seg;
 bool text_modified; /* => text segment was written */
 mem_addr text_top;
-mem_word *data_seg;
+mem_word* data_seg;
 bool data_modified;    /* => a data segment was written */
-short *data_seg_h;     /* Points to same vector as DATA_SEG */
-BYTE_TYPE *data_seg_b; /* Ditto */
+short* data_seg_h;     /* Points to same vector as DATA_SEG */
+BYTE_TYPE* data_seg_b; /* Ditto */
 mem_addr data_top;
 mem_addr gp_midpoint; /* Middle of $gp area */
-mem_word *stack_seg;
-short *stack_seg_h;     /* Points to same vector as STACK_SEG */
-BYTE_TYPE *stack_seg_b; /* Ditto */
+mem_word* stack_seg;
+short* stack_seg_h;     /* Points to same vector as STACK_SEG */
+BYTE_TYPE* stack_seg_b; /* Ditto */
 mem_addr stack_bot;
-instruction **k_text_seg;
+instruction** k_text_seg;
 mem_addr k_text_top;
-mem_word *k_data_seg;
-short *k_data_seg_h;
-BYTE_TYPE *k_data_seg_b;
+mem_word* k_data_seg;
+short* k_data_seg_h;
+BYTE_TYPE* k_data_seg_b;
 mem_addr k_data_top;
 
 /* Local functions: */
 
 static mem_word bad_mem_read(mem_addr addr, int mask);
 static void bad_mem_write(mem_addr addr, mem_word value, int mask);
-static instruction *bad_text_read(mem_addr addr);
-static void bad_text_write(mem_addr addr, instruction *inst);
-static void free_instructions(instruction **inst, int n);
+static instruction* bad_text_read(mem_addr addr);
+static void bad_text_write(mem_addr addr, instruction* inst);
+static void free_instructions(instruction** inst, int n);
 static mem_word read_memory_mapped_IO(mem_addr addr);
 static void write_memory_mapped_IO(mem_addr addr, mem_word value);
 
@@ -113,7 +113,7 @@ static int32 data_size_limit, stack_size_limit, k_data_size_limit;
    up in case size is not a multiple of BYTES_PER_WORD.  */
 
 #define BYTES_TO_INST(N) \
-  (((N) + BYTES_PER_WORD - 1) / BYTES_PER_WORD * sizeof(instruction *))
+  (((N) + BYTES_PER_WORD - 1) / BYTES_PER_WORD * sizeof(instruction*))
 
 void make_memory(int text_size, int data_size, int data_limit, int stack_size,
                  int stack_limit, int k_text_size, int k_data_size,
@@ -122,54 +122,53 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   data_size = ROUND_UP(data_size, BYTES_PER_WORD); /* Keep word aligned */
 
   if (text_seg == NULL)
-    text_seg = (instruction **)xmalloc(BYTES_TO_INST(text_size));
+    text_seg = (instruction**)xmalloc(BYTES_TO_INST(text_size));
   else {
     free_instructions(text_seg, (text_top - TEXT_BOT) / BYTES_PER_WORD);
-    text_seg = (instruction **)realloc(text_seg, BYTES_TO_INST(text_size));
+    text_seg = (instruction**)realloc(text_seg, BYTES_TO_INST(text_size));
   }
   memclr(text_seg, BYTES_TO_INST(text_size));
   text_top = TEXT_BOT + text_size;
 
   data_size = ROUND_UP(data_size, BYTES_PER_WORD); /* Keep word aligned */
   if (data_seg == NULL)
-    data_seg = (mem_word *)xmalloc(data_size);
+    data_seg = (mem_word*)xmalloc(data_size);
   else
-    data_seg = (mem_word *)realloc(data_seg, data_size);
+    data_seg = (mem_word*)realloc(data_seg, data_size);
   memclr(data_seg, data_size);
-  data_seg_b = (BYTE_TYPE *)data_seg;
-  data_seg_h = (short *)data_seg;
+  data_seg_b = (BYTE_TYPE*)data_seg;
+  data_seg_h = (short*)data_seg;
   data_top = DATA_BOT + data_size;
   data_size_limit = data_limit;
 
   stack_size = ROUND_UP(stack_size, BYTES_PER_WORD); /* Keep word aligned */
   if (stack_seg == NULL)
-    stack_seg = (mem_word *)xmalloc(stack_size);
+    stack_seg = (mem_word*)xmalloc(stack_size);
   else
-    stack_seg = (mem_word *)realloc(stack_seg, stack_size);
+    stack_seg = (mem_word*)realloc(stack_seg, stack_size);
   memclr(stack_seg, stack_size);
-  stack_seg_b = (BYTE_TYPE *)stack_seg;
-  stack_seg_h = (short *)stack_seg;
+  stack_seg_b = (BYTE_TYPE*)stack_seg;
+  stack_seg_h = (short*)stack_seg;
   stack_bot = STACK_TOP - stack_size;
   stack_size_limit = stack_limit;
 
   if (k_text_seg == NULL)
-    k_text_seg = (instruction **)xmalloc(BYTES_TO_INST(k_text_size));
+    k_text_seg = (instruction**)xmalloc(BYTES_TO_INST(k_text_size));
   else {
     free_instructions(k_text_seg, (k_text_top - K_TEXT_BOT) / BYTES_PER_WORD);
-    k_text_seg =
-        (instruction **)realloc(k_text_seg, BYTES_TO_INST(k_text_size));
+    k_text_seg = (instruction**)realloc(k_text_seg, BYTES_TO_INST(k_text_size));
   }
   memclr(k_text_seg, BYTES_TO_INST(k_text_size));
   k_text_top = K_TEXT_BOT + k_text_size;
 
   k_data_size = ROUND_UP(k_data_size, BYTES_PER_WORD); /* Keep word aligned */
   if (k_data_seg == NULL)
-    k_data_seg = (mem_word *)xmalloc(k_data_size);
+    k_data_seg = (mem_word*)xmalloc(k_data_size);
   else
-    k_data_seg = (mem_word *)realloc(k_data_seg, k_data_size);
+    k_data_seg = (mem_word*)realloc(k_data_seg, k_data_size);
   memclr(k_data_seg, k_data_size);
-  k_data_seg_b = (BYTE_TYPE *)k_data_seg;
-  k_data_seg_h = (short *)k_data_seg;
+  k_data_seg_b = (BYTE_TYPE*)k_data_seg;
+  k_data_seg_h = (short*)k_data_seg;
   k_data_top = K_DATA_BOT + k_data_size;
   k_data_size_limit = k_data_limit;
 
@@ -179,7 +178,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
 
 /* Free the storage used by the old instructions in memory. */
 
-static void free_instructions(instruction **inst, int n) {
+static void free_instructions(instruction** inst, int n) {
   for (; n > 0; n--, inst++)
     if (*inst) free_inst(*inst);
 }
@@ -190,18 +189,18 @@ void expand_data(int addl_bytes) {
   int delta = ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
   int old_size = data_top - DATA_BOT;
   int new_size = old_size + delta;
-  BYTE_TYPE *p;
+  BYTE_TYPE* p;
 
   if ((addl_bytes < 0) || (new_size > data_size_limit)) {
     error("Can't expand data segment by %d bytes to %d bytes\n", addl_bytes,
           new_size);
     run_error("Use -ldata # with # > %d\n", new_size);
   }
-  data_seg = (mem_word *)realloc(data_seg, new_size);
+  data_seg = (mem_word*)realloc(data_seg, new_size);
   if (data_seg == NULL) fatal_error("realloc failed in expand_data\n");
 
-  data_seg_b = (BYTE_TYPE *)data_seg;
-  data_seg_h = (short *)data_seg;
+  data_seg_b = (BYTE_TYPE*)data_seg;
+  data_seg_h = (short*)data_seg;
   data_top += delta;
 
   /* Zero new memory */
@@ -216,7 +215,7 @@ void expand_stack(int addl_bytes) {
   int delta = ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
   int old_size = STACK_TOP - stack_bot;
   int new_size = old_size + MAX(delta, old_size);
-  mem_word *new_seg;
+  mem_word* new_seg;
   mem_word *po, *pn;
 
   if ((addl_bytes < 0) || (new_size > stack_size_limit)) {
@@ -226,7 +225,7 @@ void expand_stack(int addl_bytes) {
         addl_bytes, new_size, new_size);
   }
 
-  new_seg = (mem_word *)xmalloc(new_size);
+  new_seg = (mem_word*)xmalloc(new_size);
   memset(new_seg, 0, new_size);
 
   po = stack_seg + (old_size / BYTES_PER_WORD - 1);
@@ -235,8 +234,8 @@ void expand_stack(int addl_bytes) {
 
   free(stack_seg);
   stack_seg = new_seg;
-  stack_seg_b = (BYTE_TYPE *)stack_seg;
-  stack_seg_h = (short *)stack_seg;
+  stack_seg_b = (BYTE_TYPE*)stack_seg;
+  stack_seg_h = (short*)stack_seg;
   stack_bot -= (new_size - old_size);
 }
 
@@ -246,7 +245,7 @@ void expand_k_data(int addl_bytes) {
   int delta = ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
   int old_size = k_data_top - K_DATA_BOT;
   int new_size = old_size + delta;
-  BYTE_TYPE *p;
+  BYTE_TYPE* p;
 
   if ((addl_bytes < 0) || (new_size > k_data_size_limit)) {
     run_error(
@@ -254,11 +253,11 @@ void expand_k_data(int addl_bytes) {
         "-lkdata # with # > %d\n",
         addl_bytes, new_size, new_size);
   }
-  k_data_seg = (mem_word *)realloc(k_data_seg, new_size);
+  k_data_seg = (mem_word*)realloc(k_data_seg, new_size);
   if (k_data_seg == NULL) fatal_error("realloc failed in expand_k_data\n");
 
-  k_data_seg_b = (BYTE_TYPE *)k_data_seg;
-  k_data_seg_h = (short *)k_data_seg;
+  k_data_seg_b = (BYTE_TYPE*)k_data_seg;
+  k_data_seg_h = (short*)k_data_seg;
   k_data_top += delta;
 
   /* Zero new memory */
@@ -269,24 +268,24 @@ void expand_k_data(int addl_bytes) {
 
 /* Access memory */
 
-void *mem_reference(mem_addr addr) {
+void* mem_reference(mem_addr addr) {
   if ((addr >= TEXT_BOT) && (addr < text_top))
-    return addr - TEXT_BOT + (char *)text_seg;
+    return addr - TEXT_BOT + (char*)text_seg;
   else if ((addr >= DATA_BOT) && (addr < data_top))
-    return addr - DATA_BOT + (char *)data_seg;
+    return addr - DATA_BOT + (char*)data_seg;
   else if ((addr >= stack_bot) && (addr < STACK_TOP))
-    return addr - stack_bot + (char *)stack_seg;
+    return addr - stack_bot + (char*)stack_seg;
   else if ((addr >= K_TEXT_BOT) && (addr < k_text_top))
-    return addr - K_TEXT_BOT + (char *)k_text_seg;
+    return addr - K_TEXT_BOT + (char*)k_text_seg;
   else if ((addr >= K_DATA_BOT) && (addr < k_data_top))
-    return addr - K_DATA_BOT + (char *)k_data_seg;
+    return addr - K_DATA_BOT + (char*)k_data_seg;
   else {
     run_error("Memory address out of bounds\n");
     return NULL;
   }
 }
 
-instruction *read_mem_inst(mem_addr addr) {
+instruction* read_mem_inst(mem_addr addr) {
   if ((addr >= TEXT_BOT) && (addr < text_top) && !(addr & 0x3))
     return text_seg[(addr - TEXT_BOT) >> 2];
   else if ((addr >= K_TEXT_BOT) && (addr < k_text_top) && !(addr & 0x3))
@@ -328,7 +327,7 @@ reg_word read_mem_word(mem_addr addr) {
     return bad_mem_read(addr, 0x3);
 }
 
-void set_mem_inst(mem_addr addr, instruction *inst) {
+void set_mem_inst(mem_addr addr, instruction* inst) {
   text_modified = true;
   if ((addr >= TEXT_BOT) && (addr < text_top) && !(addr & 0x3))
     text_seg[(addr - TEXT_BOT) >> 2] = inst;
@@ -376,12 +375,12 @@ void set_mem_word(mem_addr addr, reg_word value) {
 
 /* Handle the infrequent and erroneous cases in memory accesses. */
 
-static instruction *bad_text_read(mem_addr addr) {
+static instruction* bad_text_read(mem_addr addr) {
   RAISE_EXCEPTION(ExcCode_IBE, CP0_BadVAddr = addr);
   return (inst_decode(0));
 }
 
-static void bad_text_write(mem_addr addr, instruction *inst) {
+static void bad_text_write(mem_addr addr, instruction* inst) {
   RAISE_EXCEPTION(ExcCode_IBE, CP0_BadVAddr = addr);
   set_mem_word(addr, ENCODING(inst));
 }
@@ -412,7 +411,7 @@ static mem_word bad_mem_read(mem_addr addr, int mask) {
         return (0xffff & tmp);
 
       case 0x3: {
-        instruction *inst = text_seg[(addr - TEXT_BOT) >> 2];
+        instruction* inst = text_seg[(addr - TEXT_BOT) >> 2];
         if (inst == NULL)
           return 0;
         else

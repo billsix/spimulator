@@ -55,7 +55,7 @@
 /* Internal functions: */
 
 static mem_addr copy_int_to_stack(int n);
-static mem_addr copy_str_to_stack(char *s);
+static mem_addr copy_str_to_stack(char* s);
 static void delete_all_breakpoints();
 
 int exception_occurred;
@@ -78,9 +78,9 @@ mem_addr initial_k_data_limit = K_DATA_LIMIT;
 
 /* Initialize or reinitialize the state of the machine. */
 
-void initialize_world(char *exception_file_names, bool print_message) {
+void initialize_world(char* exception_file_names, bool print_message) {
   /* Allocate the floating point registers */
-  if (FGR == NULL) FPR = (double *)xmalloc(FPR_LENGTH * sizeof(double));
+  if (FGR == NULL) FPR = (double*)xmalloc(FPR_LENGTH * sizeof(double));
   /* Allocate the memory */
   make_memory(initial_text_size, initial_data_size, initial_data_limit,
               initial_stack_size, initial_stack_limit, initial_k_text_size,
@@ -96,8 +96,8 @@ void initialize_world(char *exception_file_names, bool print_message) {
   if (exception_file_names != NULL) {
     bool old_bare = bare_machine;
     bool old_accept = accept_pseudo_insts;
-    char *filename;
-    char *files;
+    char* filename;
+    char* files;
 
     /* Save machine state */
     bare_machine = false; /* Exception handler uses extended machine */
@@ -142,8 +142,8 @@ void write_startup_message() {
 
 void initialize_registers() {
   memclr(FPR, FPR_LENGTH * sizeof(double));
-  FGR = (float *)FPR;
-  FWR = (int *)FPR;
+  FGR = (float*)FPR;
+  FWR = (int*)FPR;
 
   memclr(R, R_LENGTH * sizeof(reg_word));
   R[REG_SP] = STACK_TOP - BYTES_PER_WORD - 4096; /* Initialize $sp */
@@ -169,8 +169,8 @@ void initialize_registers() {
 /* Read file NAME, which should contain assembly code. Return true if
    successful and false otherwise. */
 
-bool read_assembly_file(char *name) {
-  FILE *file = fopen(name, "rt");
+bool read_assembly_file(char* name) {
+  FILE* file = fopen(name, "rt");
 
   if (file == NULL) {
     error("Cannot open file: `%s'\n", name);
@@ -179,8 +179,7 @@ bool read_assembly_file(char *name) {
     initialize_scanner(file);
     initialize_parser(name);
 
-    while (!yyparse())
-      ;
+    while (!yyparse());
 
     fclose(file);
     flush_local_labels(!parse_error_occurred);
@@ -197,12 +196,12 @@ mem_addr starting_address() {
 
 /* Initialize the SPIM stack from a string containing the command line. */
 
-void initialize_stack(const char *command_line) {
+void initialize_stack(const char* command_line) {
   int argc = 0;
-  char *argv[MAX_ARGS];
-  char *a;
-  char *args = str_copy((char *)command_line); /* Destructively modify string */
-  char *orig_args = args;
+  char* argv[MAX_ARGS];
+  char* a;
+  char* args = str_copy((char*)command_line); /* Destructively modify string */
+  char* orig_args = args;
 
   while (*args != '\0') {
     /* Skip leading blanks */
@@ -236,9 +235,9 @@ void initialize_stack(const char *command_line) {
 #define environ _environ
 #endif
 
-void initialize_run_stack(int argc, char **argv) {
-  char **p;
-  extern char **environ;
+void initialize_run_stack(int argc, char** argv) {
+  char** p;
+  extern char** environ;
   int i, j = 0, env_j;
   mem_addr addrs[10000];
 
@@ -271,7 +270,7 @@ void initialize_run_stack(int argc, char **argv) {
   set_mem_word(R[REG_SP], argc); /* Leave argc on stack */
 }
 
-static mem_addr copy_str_to_stack(char *s) {
+static mem_addr copy_str_to_stack(char* s) {
   int i = (int)strlen(s);
   while (i >= 0) {
     set_mem_byte(R[REG_SP], s[i]);
@@ -293,7 +292,7 @@ static mem_addr copy_int_to_stack(int n) {
    execution can continue. Return true if breakpoint is encountered. */
 
 bool run_program(mem_addr pc, int steps, bool display, bool cont_bkpt,
-                 bool *continuable) {
+                 bool* continuable) {
   if (cont_bkpt && inst_is_breakpoint(pc)) {
     mem_addr addr = PC == 0 ? pc : PC;
 
@@ -321,16 +320,16 @@ bool run_program(mem_addr pc, int steps, bool display, bool cont_bkpt,
 
 typedef struct bkptrec {
   mem_addr addr;
-  instruction *inst;
-  struct bkptrec *next;
+  instruction* inst;
+  struct bkptrec* next;
 } bkpt;
 
-static bkpt *bkpts = NULL;
+static bkpt* bkpts = NULL;
 
 /* Set a breakpoint at memory location ADDR. */
 
 void add_breakpoint(mem_addr addr) {
-  bkpt *rec = (bkpt *)xmalloc(sizeof(bkpt));
+  bkpt* rec = (bkpt*)xmalloc(sizeof(bkpt));
 
   rec->next = bkpts;
   rec->addr = addr;
@@ -354,7 +353,7 @@ void delete_breakpoint(mem_addr addr) {
 
   for (p = NULL, b = bkpts; b != NULL;)
     if (b->addr == addr) {
-      bkpt *n;
+      bkpt* n;
 
       set_mem_inst(addr, b->inst);
       if (p == NULL)
@@ -383,7 +382,7 @@ static void delete_all_breakpoints() {
 /* List all breakpoints. */
 
 void list_breakpoints() {
-  bkpt *b;
+  bkpt* b;
 
   if (bkpts)
     for (b = bkpts; b != NULL; b = b->next)
@@ -398,8 +397,8 @@ void list_breakpoints() {
    TABLE must be sorted on the key field.
    Return NULL if no such entry exists. */
 
-name_val_val *map_string_to_name_val_val(name_val_val tbl[], int tbl_len,
-                                         char *id) {
+name_val_val* map_string_to_name_val_val(name_val_val tbl[], int tbl_len,
+                                         char* id) {
   int low = 0;
   int hi = tbl_len - 1;
 
@@ -427,7 +426,7 @@ name_val_val *map_string_to_name_val_val(name_val_val tbl[], int tbl_len,
    TABLE must be sorted on the VALUE1 field.
    Return NULL if no such entry exists. */
 
-name_val_val *map_int_to_name_val_val(name_val_val tbl[], int tbl_len,
+name_val_val* map_int_to_name_val_val(name_val_val tbl[], int tbl_len,
                                       int num) {
   int low = 0;
   int hi = tbl_len - 1;
@@ -447,9 +446,9 @@ name_val_val *map_int_to_name_val_val(name_val_val tbl[], int tbl_len,
 }
 
 #ifdef NEED_VSPRINTF
-char *vsprintf(str, fmt, args)
+char* vsprintf(str, fmt, args)
 char *str, *fmt;
-va_list *args;
+va_list* args;
 {
   FILE _strbuf;
 
@@ -463,7 +462,7 @@ va_list *args;
 #endif
 
 #ifdef NEED_STRTOL
-unsigned long strtol(const char *str, const char **eptr, int base) {
+unsigned long strtol(const char* str, const char** eptr, int base) {
   long result;
 
   if (base != 0 && base != 16)
@@ -481,7 +480,7 @@ unsigned long strtol(const char *str, const char **eptr, int base) {
 #endif
 
 #ifdef NEED_STRTOUL
-unsigned long strtoul(const char *str, char **eptr, int base) {
+unsigned long strtoul(const char* str, char** eptr, int base) {
   unsigned long result;
 
   if (base != 0 && base != 16)
@@ -498,12 +497,12 @@ unsigned long strtoul(const char *str, char **eptr, int base) {
 }
 #endif
 
-char *str_copy(char *str) {
-  return (strcpy((char *)xmalloc((int)strlen(str) + 1), str));
+char* str_copy(char* str) {
+  return (strcpy((char*)xmalloc((int)strlen(str) + 1), str));
 }
 
-void *xmalloc(int size) {
-  void *x = (void *)malloc(size);
+void* xmalloc(int size) {
+  void* x = (void*)malloc(size);
 
   if (x == 0) fatal_error("Out of memory at request for %d bytes.\n");
   return (x);
@@ -511,8 +510,8 @@ void *xmalloc(int size) {
 
 /* Allocate a zero'ed block of storage. */
 
-void *zmalloc(int size) {
-  void *z = (void *)malloc(size);
+void* zmalloc(int size) {
+  void* z = (void*)malloc(size);
 
   if (z == 0) fatal_error("Out of memory at request for %d bytes.\n");
 

@@ -46,8 +46,8 @@
 
 /* Local functions: */
 
-static void get_hash(char *name, int *slot_no, label **entry);
-static void resolve_a_label_sub(label *sym, instruction *inst, mem_addr pc);
+static void get_hash(char* name, int* slot_no, label** entry);
+static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc);
 
 /* Keep track of the memory location that a label represents.  If we
    see a reference to a label that is not yet defined, then record the
@@ -57,7 +57,7 @@ static void resolve_a_label_sub(label *sym, instruction *inst, mem_addr pc);
    At the end of a file, we flush the hash table of all non-global
    labels so they can't be seen in other files.	 */
 
-static label *local_labels = NULL; /* Labels local to current file. */
+static label* local_labels = NULL; /* Labels local to current file. */
 
 #define HASHBITS 30
 
@@ -65,7 +65,7 @@ static label *local_labels = NULL; /* Labels local to current file. */
 
 /* Map from name of a label to a label structure. */
 
-static label *label_hash_table[LABEL_HASH_TABLE_SIZE];
+static label* label_hash_table[LABEL_HASH_TABLE_SIZE];
 
 /* Initialize the symbol table by removing and freeing old entries. */
 
@@ -91,15 +91,14 @@ void initialize_symbol_table() {
    record is already in the table, set ENTRY to point to it.  Otherwise,
    set ENTRY to be NULL. */
 
-static void get_hash(char *name, int *slot_no, label **entry) {
+static void get_hash(char* name, int* slot_no, label** entry) {
   int hi;
   int i;
-  label *lab;
+  label* lab;
   int len;
 
   /* Compute length of name in len.  */
-  for (len = 0; name[len]; len++)
-    ;
+  for (len = 0; name[len]; len++);
 
   /* Compute hash code */
   hi = len;
@@ -121,9 +120,9 @@ static void get_hash(char *name, int *slot_no, label **entry) {
 /* Lookup label with NAME.  Either return its symbol table entry or NULL
    if it is not in the table. */
 
-label *label_is_defined(char *name) {
+label* label_is_defined(char* name) {
   int hi;
-  label *entry;
+  label* entry;
 
   get_hash(name, &hi, &entry);
 
@@ -133,7 +132,7 @@ label *label_is_defined(char *name) {
 /* Return a label with a given NAME.  If an label with that name has
    previously been looked-up, the same node is returned this time.  */
 
-label *lookup_label(char *name) {
+label* lookup_label(char* name) {
   int hi;
   label *entry, *lab;
 
@@ -142,7 +141,7 @@ label *lookup_label(char *name) {
   if (entry != NULL) return (entry);
 
   /* Not found, create one, add to chain */
-  lab = (label *)xmalloc(sizeof(label));
+  lab = (label*)xmalloc(sizeof(label));
   lab->name = str_copy(name);
   lab->addr = 0;
   lab->global_flag = 0;
@@ -158,8 +157,8 @@ label *lookup_label(char *name) {
 /* Record that the label named NAME refers to ADDRESS.	If RESOLVE_USES is
    true, resolve all references to it.  Return the label structure. */
 
-label *record_label(char *name, mem_addr address, int resolve_uses) {
-  label *l = lookup_label(name);
+label* record_label(char* name, mem_addr address, int resolve_uses) {
+  label* l = lookup_label(name);
 
   if (!l->gp_flag) {
     if (l->addr != 0) {
@@ -182,8 +181,8 @@ label *record_label(char *name, mem_addr address, int resolve_uses) {
 
 /* Make the label named NAME global.  Return its symbol. */
 
-label *make_label_global(char *name) {
-  label *l = lookup_label(name);
+label* make_label_global(char* name) {
+  label* l = lookup_label(name);
 
   l->global_flag = 1;
   return (l);
@@ -191,8 +190,8 @@ label *make_label_global(char *name) {
 
 /* Record that an INSTRUCTION uses the as-yet undefined SYMBOL. */
 
-void record_inst_uses_symbol(instruction *inst, label *sym) {
-  label_use *u = (label_use *)xmalloc(sizeof(label_use));
+void record_inst_uses_symbol(instruction* inst, label* sym) {
+  label_use* u = (label_use*)xmalloc(sizeof(label_use));
 
   if (data_dir) /* Want to free up original instruction */
   {
@@ -208,8 +207,8 @@ void record_inst_uses_symbol(instruction *inst, label *sym) {
 
 /* Record that a memory LOCATION uses the as-yet undefined SYMBOL. */
 
-void record_data_uses_symbol(mem_addr location, label *sym) {
-  label_use *u = (label_use *)xmalloc(sizeof(label_use));
+void record_data_uses_symbol(mem_addr location, label* sym) {
+  label_use* u = (label_use*)xmalloc(sizeof(label_use));
 
   u->inst = NULL;
   u->addr = location;
@@ -220,9 +219,9 @@ void record_data_uses_symbol(mem_addr location, label *sym) {
 /* Given a newly-defined LABEL, resolve the previously encountered
    instructions and data locations that refer to the label. */
 
-void resolve_label_uses(label *sym) {
-  label_use *use;
-  label_use *next_use;
+void resolve_label_uses(label* sym) {
+  label_use* use;
+  label_use* next_use;
 
   for (use = sym->uses; use != NULL; use = next_use) {
     resolve_a_label_sub(sym, use->inst, use->addr);
@@ -238,12 +237,12 @@ void resolve_label_uses(label *sym) {
 
 /* Resolve the newly-defined label in INSTRUCTION. */
 
-void resolve_a_label(label *sym, instruction *inst) {
+void resolve_a_label(label* sym, instruction* inst) {
   resolve_a_label_sub(sym, inst,
                       (data_dir ? current_data_pc() : current_text_pc()));
 }
 
-static void resolve_a_label_sub(label *sym, instruction *inst, mem_addr pc) {
+static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc) {
   if (inst == NULL) {
     /* Memory data: */
     set_mem_word(pc, sym->addr);
@@ -288,8 +287,8 @@ static void resolve_a_label_sub(label *sym, instruction *inst, mem_addr pc) {
         if (value & 0x8000) {
           /* LW/SW sign extends offset. Compensate by adding 1 to high 16 bits.
            */
-          instruction *prev_inst;
-          instruction *prev_prev_inst;
+          instruction* prev_inst;
+          instruction* prev_prev_inst;
           prev_inst = read_mem_inst(pc - BYTES_PER_WORD);
           prev_prev_inst = read_mem_inst(pc - 2 * BYTES_PER_WORD);
 
@@ -334,7 +333,7 @@ static void resolve_a_label_sub(label *sym, instruction *inst, mem_addr pc) {
 /* Remove all local (non-global) label from the table. */
 
 void flush_local_labels(int issue_undef_warnings) {
-  label *l;
+  label* l;
 
   for (l = local_labels; l != NULL; l = l->next_local) {
     int hi;
@@ -359,8 +358,8 @@ void flush_local_labels(int issue_undef_warnings) {
 
 /* Return the address of SYMBOL or 0 if it is undefined. */
 
-mem_addr find_symbol_address(char *symbol) {
-  label *l = lookup_label(symbol);
+mem_addr find_symbol_address(char* symbol) {
+  label* l = lookup_label(symbol);
 
   if (l == NULL || l->addr == 0)
     return 0;
@@ -372,7 +371,7 @@ mem_addr find_symbol_address(char *symbol) {
 
 void print_symbols() {
   int i;
-  label *l;
+  label* l;
 
   for (i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
     for (l = label_hash_table[i]; l != NULL; l = l->next)
@@ -384,7 +383,7 @@ void print_symbols() {
 
 void print_undefined_symbols() {
   int i;
-  label *l;
+  label* l;
 
   for (i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
     for (l = label_hash_table[i]; l != NULL; l = l->next)
@@ -395,13 +394,13 @@ void print_undefined_symbols() {
    table, seperated by a newline character.  Return NULL if no symbols
    are undefined. */
 
-char *undefined_symbol_string() {
+char* undefined_symbol_string() {
   int buffer_length = 128;
   int string_length = 0;
-  char *buffer = (char *)malloc(buffer_length);
+  char* buffer = (char*)malloc(buffer_length);
 
   int i;
-  label *l;
+  label* l;
 
   for (i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
     for (l = label_hash_table[i]; l != NULL; l = l->next)
@@ -410,7 +409,7 @@ char *undefined_symbol_string() {
         int after_length = string_length + name_length + 2;
         if (buffer_length < after_length) {
           buffer_length = MAX(2 * buffer_length, 2 * after_length);
-          buffer = (char *)realloc(buffer, buffer_length);
+          buffer = (char*)realloc(buffer, buffer_length);
         }
         memcpy(buffer + string_length, l->name, name_length);
         string_length += name_length;

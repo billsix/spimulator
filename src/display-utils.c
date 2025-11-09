@@ -43,17 +43,17 @@
 #include "run.h"
 #include "sym-tbl.h"
 
-char *int_reg_names[32] = {"r0", "at", "v0", "v1", "a0", "a1", "a2", "a3",
+char* int_reg_names[32] = {"r0", "at", "v0", "v1", "a0", "a1", "a2", "a3",
                            "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
                            "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7",
                            "t8", "t9", "k0", "k1", "gp", "sp", "s8", "ra"};
 
-static mem_addr format_partial_line(str_stream *ss, mem_addr addr);
+static mem_addr format_partial_line(str_stream* ss, mem_addr addr);
 
 /* Write to the stream the contents of the machine's registers, in a wide
    variety of formats. */
 
-void format_registers(str_stream *ss, int print_gpr_hex, int print_fpr_hex) {
+void format_registers(str_stream* ss, int print_gpr_hex, int print_fpr_hex) {
   int i;
   char *grstr, *fpstr;
   char *grfill, *fpfill;
@@ -99,22 +99,22 @@ void format_registers(str_stream *ss, int print_gpr_hex, int print_fpr_hex) {
 
       /* Use pointers to cast to ints without invoking float->int conversion
          so we can just print the bits. */
-      r1 = (int *)&FPR[i];
+      r1 = (int*)&FPR[i];
       r2 = r1 + 1;
       ss_printf(ss, fpstr, 2 * i, *r1, *r2);
       ss_printf(ss, fpfill);
 
-      r1 = (int *)&FPR[i + 4];
+      r1 = (int*)&FPR[i + 4];
       r2 = r1 + 1;
       ss_printf(ss, fpstr, 2 * i + 8, *r1, *r2);
       ss_printf(ss, fpfill);
 
-      r1 = (int *)&FPR[i + 8];
+      r1 = (int*)&FPR[i + 8];
       r2 = r1 + 1;
       ss_printf(ss, fpstr, 2 * i + 16, *r1, *r2);
       ss_printf(ss, fpfill);
 
-      r1 = (int *)&FPR[i + 12];
+      r1 = (int*)&FPR[i + 12];
       r2 = r1 + 1;
       ss_printf(ss, fpstr, 2 * i + 24, *r1, *r2);
       ss_printf(ss, "\n");
@@ -142,16 +142,16 @@ void format_registers(str_stream *ss, int print_gpr_hex, int print_fpr_hex) {
     for (i = 0; i < 8; i += 1) {
       /* Use pointers to cast to ints without invoking float->int conversion
          so we can just print the bits. */
-      ss_printf(ss, fpstr, i, *(int *)&FPR_S(i));
+      ss_printf(ss, fpstr, i, *(int*)&FPR_S(i));
       ss_printf(ss, fpfill);
 
-      ss_printf(ss, fpstr, i + 8, *(int *)&FPR_S(i + 8));
+      ss_printf(ss, fpstr, i + 8, *(int*)&FPR_S(i + 8));
       ss_printf(ss, fpfill);
 
-      ss_printf(ss, fpstr, i + 16, *(int *)&FPR_S(i + 16));
+      ss_printf(ss, fpstr, i + 16, *(int*)&FPR_S(i + 16));
       ss_printf(ss, fpfill);
 
-      ss_printf(ss, fpstr, i + 24, *(int *)&FPR_S(i + 24));
+      ss_printf(ss, fpstr, i + 24, *(int*)&FPR_S(i + 24));
       ss_printf(ss, "\n");
     }
   else
@@ -170,8 +170,8 @@ void format_registers(str_stream *ss, int print_gpr_hex, int print_fpr_hex) {
 /* Write to the stream a printable representation of the instructions in
    memory addresses: FROM...TO. */
 
-void format_insts(str_stream *ss, mem_addr from, mem_addr to) {
-  instruction *inst;
+void format_insts(str_stream* ss, mem_addr from, mem_addr to) {
+  instruction* inst;
   mem_addr i;
 
   for (i = from; i < to; i += 4) {
@@ -185,7 +185,7 @@ void format_insts(str_stream *ss, mem_addr from, mem_addr to) {
 /* Write to the stream a printable representation of the data and stack
    segments. */
 
-void format_data_segs(str_stream *ss) {
+void format_data_segs(str_stream* ss) {
   ss_printf(ss, "\tDATA\n");
   format_mem(ss, DATA_BOT, data_top);
 
@@ -201,7 +201,7 @@ void format_data_segs(str_stream *ss) {
 /* Write to the stream a printable representation of the data in memory
    address: FROM...TO. */
 
-void format_mem(str_stream *ss, mem_addr from, mem_addr to) {
+void format_mem(str_stream* ss, mem_addr from, mem_addr to) {
   mem_word val;
   mem_addr i = ROUND_UP(from, BYTES_PER_WORD);
   int j;
@@ -241,7 +241,7 @@ void format_mem(str_stream *ss, mem_addr from, mem_addr to) {
 /* Write to the stream a text line containing a fraction of a
    quadword. Return the address after the last one written.  */
 
-static mem_addr format_partial_line(str_stream *ss, mem_addr addr) {
+static mem_addr format_partial_line(str_stream* ss, mem_addr addr) {
   if ((addr % BYTES_PER_LINE) != 0) {
     ss_printf(ss, "[0x%08x]		      ", addr);
 

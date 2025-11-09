@@ -99,13 +99,13 @@ static int get_opt_int();
 static bool parse_spim_command(bool redo);
 static void print_reg(int reg_no);
 static int print_fp_reg(int reg_no);
-static int print_reg_from_string(char *reg);
+static int print_reg_from_string(char* reg);
 static void print_all_regs(int hex_flag);
 static int read_assembly_command();
-static int str_prefix(char *s1, char *s2, int min_match);
+static int str_prefix(char* s1, char* s2, int min_match);
 static void top_level();
 static int read_token();
-static bool write_assembled_code(char *program_name);
+static bool write_assembled_code(char* program_name);
 static void dump_data_seg(bool kernel_also);
 static void dump_text_seg(bool kernel_also);
 
@@ -120,7 +120,7 @@ bool delayed_loads;       /* => simulate delayed loads */
 bool accept_pseudo_insts; /* => parse pseudo instructions  */
 bool quiet;               /* => no warning messages */
 bool assemble;            /* => assemble, disassemble to file and exit */
-char *exception_file_name = DEFAULT_EXCEPTION_HANDLER;
+char* exception_file_name = DEFAULT_EXCEPTION_HANDLER;
 port message_out, console_out, console_in;
 bool mapped_io; /* => activate memory-mapped IO */
 int pipe_out;
@@ -140,11 +140,11 @@ static struct termios saved_console_state;
 #endif
 #endif
 static int program_argc;
-static char **program_argv;
+static char** program_argv;
 static bool dump_user_segments = false;
 static bool dump_all_segments = false;
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   int i;
   bool assembly_file_loaded = false;
   int print_usage_msg = 0;
@@ -161,9 +161,8 @@ int main(int argc, char **argv) {
   spim_return_value = 0;
 
   /* Input comes directly (not through stdio): */
-     console_in.i = 0;
+  console_in.i = 0;
   mapped_io = false;
-
 
   // write_startup_message ();
 
@@ -300,7 +299,7 @@ int main(int argc, char **argv) {
       console_to_program();
       initialize_run_stack(program_argc, program_argv);
       if (!setjmp(spim_top_level_env)) {
-        char *undefs = undefined_symbol_string();
+        char* undefs = undefined_symbol_string();
         if (undefs != NULL) {
           write_output(message_out, "The following symbols are undefined:\n");
           write_output(message_out, undefs);
@@ -386,7 +385,7 @@ static bool parse_spim_command(bool redo) {
 
       if (!redo) flush_to_newline();
       if (token == Y_STR) {
-        read_assembly_file((char *)yylval.p);
+        read_assembly_file((char*)yylval.p);
         pop_scanner();
       } else
         error("Must supply a filename to read\n");
@@ -404,7 +403,7 @@ static bool parse_spim_command(bool redo) {
       initialize_run_stack(program_argc, program_argv);
       console_to_program();
       if (addr != 0) {
-        char *undefs = undefined_symbol_string();
+        char* undefs = undefined_symbol_string();
         if (undefs != NULL) {
           write_output(message_out, "The following symbols are undefined:\n");
           write_output(message_out, undefs);
@@ -476,11 +475,11 @@ static bool parse_spim_command(bool redo) {
           loc = yylval.i;
         print_mem(loc);
       } else if (token == Y_ID) {
-        if (!print_reg_from_string((char *)yylval.p)) {
+        if (!print_reg_from_string((char*)yylval.p)) {
           if (redo)
             loc += 4;
           else
-            loc = find_symbol_address((char *)yylval.p);
+            loc = find_symbol_address((char*)yylval.p);
 
           if (loc != 0)
             print_mem(loc);
@@ -504,7 +503,7 @@ static bool parse_spim_command(bool redo) {
     case PRINT_ALL_REGS_CMD: {
       int hex_flag = 0;
       int token = (redo ? prev_token : read_token());
-      if (token == Y_ID && streq((char *)yylval.p, "hex")) hex_flag = 1;
+      if (token == Y_ID && streq((char*)yylval.p, "hex")) hex_flag = 1;
       print_all_regs(hex_flag);
       if (!redo) flush_to_newline();
       prev_cmd = NOP_CMD;
@@ -594,7 +593,7 @@ static bool parse_spim_command(bool redo) {
       if (token == Y_INT)
         addr = redo ? addr + 4 : (mem_addr)yylval.i;
       else if (token == Y_ID)
-        addr = redo ? addr + 4 : find_symbol_address((char *)yylval.p);
+        addr = redo ? addr + 4 : find_symbol_address((char*)yylval.p);
       else
         error("Must supply an address for breakpoint\n");
       if (cmd == SET_BKPT_CMD)
@@ -616,8 +615,8 @@ static bool parse_spim_command(bool redo) {
     case DUMP_TEXT_CMD: {
       int token = (redo ? prev_token : read_token());
 
-      FILE *fp = NULL;
-      char *filename = NULL;
+      FILE* fp = NULL;
+      char* filename = NULL;
 
       int words = 0;
       mem_addr addr;
@@ -625,7 +624,7 @@ static bool parse_spim_command(bool redo) {
       mem_addr dump_end;
 
       if (token == Y_STR)
-        filename = (char *)yylval.p;
+        filename = (char*)yylval.p;
       else if (token == Y_NL)
         filename = "spim.dump";
       else {
@@ -662,8 +661,7 @@ static bool parse_spim_command(bool redo) {
     }
 
     default:
-      while (read_token() != Y_NL)
-        ;
+      while (read_token() != Y_NL);
       error("Unknown spim command\n");
       return (0);
   }
@@ -679,43 +677,43 @@ static int read_assembly_command() {
     return (REDO_CMD);
   else if (token != Y_ID) /* Better be a string */
     return (UNKNOWN_CMD);
-  else if (str_prefix((char *)yylval.p, "exit", 2))
+  else if (str_prefix((char*)yylval.p, "exit", 2))
     return (EXIT_CMD);
-  else if (str_prefix((char *)yylval.p, "quit", 2))
+  else if (str_prefix((char*)yylval.p, "quit", 2))
     return (EXIT_CMD);
-  else if (str_prefix((char *)yylval.p, "print", 1))
+  else if (str_prefix((char*)yylval.p, "print", 1))
     return (PRINT_CMD);
-  else if (str_prefix((char *)yylval.p, "print_symbols", 7))
+  else if (str_prefix((char*)yylval.p, "print_symbols", 7))
     return (PRINT_SYM_CMD);
-  else if (str_prefix((char *)yylval.p, "print_all_regs", 7))
+  else if (str_prefix((char*)yylval.p, "print_all_regs", 7))
     return (PRINT_ALL_REGS_CMD);
-  else if (str_prefix((char *)yylval.p, "run", 2))
+  else if (str_prefix((char*)yylval.p, "run", 2))
     return (RUN_CMD);
-  else if (str_prefix((char *)yylval.p, "read", 2))
+  else if (str_prefix((char*)yylval.p, "read", 2))
     return (READ_CMD);
-  else if (str_prefix((char *)yylval.p, "load", 2))
+  else if (str_prefix((char*)yylval.p, "load", 2))
     return (READ_CMD);
-  else if (str_prefix((char *)yylval.p, "reinitialize", 6))
+  else if (str_prefix((char*)yylval.p, "reinitialize", 6))
     return (REINITIALIZE_CMD);
-  else if (str_prefix((char *)yylval.p, "step", 1))
+  else if (str_prefix((char*)yylval.p, "step", 1))
     return (STEP_CMD);
-  else if (str_prefix((char *)yylval.p, "help", 1))
+  else if (str_prefix((char*)yylval.p, "help", 1))
     return (HELP_CMD);
-  else if (str_prefix((char *)yylval.p, "continue", 1))
+  else if (str_prefix((char*)yylval.p, "continue", 1))
     return (CONTINUE_CMD);
-  else if (str_prefix((char *)yylval.p, "breakpoint", 2))
+  else if (str_prefix((char*)yylval.p, "breakpoint", 2))
     return (SET_BKPT_CMD);
-  else if (str_prefix((char *)yylval.p, "delete", 1))
+  else if (str_prefix((char*)yylval.p, "delete", 1))
     return (DELETE_BKPT_CMD);
-  else if (str_prefix((char *)yylval.p, "list", 2))
+  else if (str_prefix((char*)yylval.p, "list", 2))
     return (LIST_BKPT_CMD);
-  else if (str_prefix((char *)yylval.p, "dumpnative", 5))
+  else if (str_prefix((char*)yylval.p, "dumpnative", 5))
     return (DUMPNATIVE_TEXT_CMD);
-  else if (str_prefix((char *)yylval.p, "dump", 4))
+  else if (str_prefix((char*)yylval.p, "dump", 4))
     return (DUMP_TEXT_CMD);
-  else if (*(char *)yylval.p == '?')
+  else if (*(char*)yylval.p == '?')
     return (HELP_CMD);
-  else if (*(char *)yylval.p == '.')
+  else if (*(char*)yylval.p == '.')
     return (ASM_CMD);
   else
     return (UNKNOWN_CMD);
@@ -723,7 +721,7 @@ static int read_assembly_command() {
 
 /* Return non-nil if STRING1 is a (proper) prefix of STRING2. */
 
-static int str_prefix(char *s1, char *s2, int min_match) {
+static int str_prefix(char* s1, char* s2, int min_match) {
   for (; *s1 == *s2 && *s1 != '\0'; s1++, s2++) min_match--;
   return (*s1 == '\0' && min_match <= 0);
 }
@@ -748,10 +746,7 @@ static int get_opt_int() {
 
 /* Flush the rest of the input line up to and including the next newline. */
 
-static void flush_to_newline() {
-  while (read_token() != Y_NL)
-    ;
-}
+static void flush_to_newline() { while (read_token() != Y_NL); }
 
 /* Print register number N. */
 
@@ -768,9 +763,9 @@ static int print_fp_reg(int reg_no) {
   return (1);
 }
 
-static int print_reg_from_string(char *reg_num) {
+static int print_reg_from_string(char* reg_num) {
   char s[100];
-  char *s1 = s;
+  char* s1 = s;
 
   /* Conver to lower case */
   while (*reg_num != '\0' && s1 - s < 100) *s1++ = tolower(*reg_num++);
@@ -812,19 +807,19 @@ static void print_all_regs(int hex_flag) {
   write_output(message_out, "%s\n", ss_to_string(&ss));
 }
 
-static bool write_assembled_code(char *program_name) {
+static bool write_assembled_code(char* program_name) {
   if (parse_error_occurred) {
     return (parse_error_occurred);
   }
 
-  FILE *fp = NULL;
-  char *filename = NULL;
+  FILE* fp = NULL;
+  char* filename = NULL;
 
   mem_addr addr;
   mem_addr dump_start;
   mem_addr dump_end;
 
-  filename = (char *)xmalloc(strlen(program_name) + 5);
+  filename = (char*)xmalloc(strlen(program_name) + 5);
   strcpy(filename, program_name);
   strcat(filename, ".out");
 
@@ -872,7 +867,7 @@ static bool write_assembled_code(char *program_name) {
 
 /* Print an error message. */
 
-void error(char *fmt, ...) {
+void error(char* fmt, ...) {
   va_list args;
 
   va_start(args, fmt);
@@ -887,10 +882,10 @@ void error(char *fmt, ...) {
 
 /* Print the error message then exit. */
 
-void fatal_error(char *fmt, ...) {
+void fatal_error(char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  fmt = va_arg(args, char *);
+  fmt = va_arg(args, char*);
 
 #ifdef NEED_VFPRINTF
   _doprnt(fmt, args, stderr);
@@ -902,7 +897,7 @@ void fatal_error(char *fmt, ...) {
 
 /* Print an error message and return to top level. */
 
-void run_error(char *fmt, ...) {
+void run_error(char* fmt, ...) {
   va_list args;
 
   va_start(args, fmt);
@@ -920,9 +915,9 @@ void run_error(char *fmt, ...) {
 
 /* IO facilities: */
 
-void write_output(port fp, char *fmt, ...) {
+void write_output(port fp, char* fmt, ...) {
   va_list args;
-  FILE *f;
+  FILE* f;
   int restore_console_to_program = 0;
 
   va_start(args, fmt);
@@ -955,8 +950,8 @@ void write_output(port fp, char *fmt, ...) {
 
 /* Simulate the semantics of fgets (not gets) on Unix file. */
 
-void read_input(char *str, int str_size) {
-  char *ptr;
+void read_input(char* str, int str_size) {
+  char* ptr;
   int restore_console_to_program = 0;
 
   if (console_state_saved) {
@@ -989,10 +984,10 @@ static void console_to_program() {
   if (mapped_io && !console_state_saved) {
 #ifdef NEED_TERMIOS
     int flags;
-    ioctl((int)console_in.i, TIOCGETP, (char *)&saved_console_state);
+    ioctl((int)console_in.i, TIOCGETP, (char*)&saved_console_state);
     flags = saved_console_state.sg_flags;
     saved_console_state.sg_flags = (flags | RAW) & ~(CRMOD | ECHO);
-    ioctl((int)console_in.i, TIOCSETP, (char *)&saved_console_state);
+    ioctl((int)console_in.i, TIOCSETP, (char*)&saved_console_state);
     saved_console_state.sg_flags = flags;
 #else
     struct termios params;
@@ -1023,7 +1018,7 @@ static void console_to_spim() {
 #ifndef WIN32
   if (mapped_io && console_state_saved)
 #ifdef NEED_TERMIOS
-    ioctl((int)console_in.i, TIOCSETP, (char *)&saved_console_state);
+    ioctl((int)console_in.i, TIOCSETP, (char*)&saved_console_state);
 #else
     tcsetattr(console_in.i, TCSANOW, &saved_console_state);
 #endif
@@ -1088,7 +1083,7 @@ static void dump_data_seg(bool kernel_also) {
     format_mem(&ss, DATA_BOT, data_top);
   }
 
-  FILE *fp;
+  FILE* fp;
   fp = fopen("data.asm", "w");
   fprintf(fp, "%s", ss_to_string(&ss));
   fclose(fp);
@@ -1112,7 +1107,7 @@ static void dump_text_seg(bool kernel_also) {
     format_insts(&ss, TEXT_BOT, text_top);
   }
 
-  FILE *fp;
+  FILE* fp;
   fp = fopen("text.asm", "w");
   fprintf(fp, "%s", ss_to_string(&ss));
   fclose(fp);

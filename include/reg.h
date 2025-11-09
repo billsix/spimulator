@@ -63,7 +63,7 @@ extern mem_addr PC, nPC;
 
 #define REG_GP 28
 
-extern char *int_reg_names[];
+extern char* int_reg_names[];
 
 /* Coprocessor registers: */
 
@@ -150,31 +150,35 @@ extern reg_word CCR[4][32], CPR[4][32];
 #define FGR_LENGTH 32
 #define FPR_LENGTH 16
 
-extern double *FPR; /* Dynamically allocate so overlay */
-extern float *FGR;  /* is possible */
-extern int *FWR;    /* is possible */
+extern double* FPR; /* Dynamically allocate so overlay */
+extern float* FGR;  /* is possible */
+extern int* FWR;    /* is possible */
 
 #define FPR_S(REGNO) (FGR[REGNO])
 
-#define FPR_D(REGNO)                                                   \
-  (((REGNO)&0x1) ? (run_error("Odd FP double register number\n"), 0.0) \
-                 : FPR[(REGNO) / 2])
+#define FPR_D(REGNO)                                                     \
+  (((REGNO) & 0x1) ? (run_error("Odd FP double register number\n"), 0.0) \
+                   : FPR[(REGNO) / 2])
 
 #define FPR_W(REGNO) (FWR[REGNO])
 
-#define SET_FPR_S(REGNO, VALUE) \
-  { FGR[REGNO] = (float)(VALUE); }
+#define SET_FPR_S(REGNO, VALUE)  \
+  {                              \
+    FGR[REGNO] = (float)(VALUE); \
+  }
 
 #define SET_FPR_D(REGNO, VALUE)                     \
   {                                                 \
-    if ((REGNO)&0x1)                                \
+    if ((REGNO) & 0x1)                              \
       run_error("Odd FP double register number\n"); \
     else                                            \
       FPR[(REGNO) / 2] = (double)(VALUE);           \
   }
 
-#define SET_FPR_W(REGNO, VALUE) \
-  { FWR[REGNO] = (int32)(VALUE); }
+#define SET_FPR_W(REGNO, VALUE)  \
+  {                              \
+    FWR[REGNO] = (int32)(VALUE); \
+  }
 
 /* Floating point control registers: */
 
@@ -198,7 +202,7 @@ extern int *FWR;    /* is possible */
 #define CC0_bit 23
 #define CC1_bit 25
 #define CC_mask(n) \
-  ((((n) == 0) || ((n) > 7)) ? (1 << CC0_bit) : (1 << (CC1_bit + (n)-1)))
+  ((((n) == 0) || ((n) > 7)) ? (1 << CC0_bit) : (1 << (CC1_bit + (n) - 1)))
 #define FCC(n) (((FCSR & CC_mask(n)) == 0) ? 0 : 1)
 #define SET_FCC(n, v)    \
   if ((v) == 0) {        \

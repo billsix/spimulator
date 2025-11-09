@@ -51,7 +51,7 @@ typedef int int32;
 typedef unsigned int uint32;
 typedef union {
   int i;
-  void *p;
+  void* p;
 } intptr_union;
 
 #define streq(s1, s2) !strcmp(s1, s2)
@@ -61,7 +61,7 @@ typedef union {
 #define ROUND_DOWN(V, B) (((int)V) & ~(B - 1))
 
 /* Sign-extend an int16 to an int32 */
-#define SIGN_EX(X) (((X)&0x8000) ? ((X) | 0xffff0000) : (X))
+#define SIGN_EX(X) (((X) & 0x8000) ? ((X) | 0xffff0000) : (X))
 
 #ifdef MIN /* Some systems define these in system includes */
 #undef MIN
@@ -75,17 +75,17 @@ typedef union {
 /* Useful and pervasive declarations: */
 
 #ifdef NEED_MEM_FUNCTIONS
-#define memcpy(T, F, S) bcopy((void *)F, (void *)T, S)
+#define memcpy(T, F, S) bcopy((void*)F, (void*)T, S)
 #define memclr(B, S) bzero(B, S)
 #define memcmp(S1, S2, N) bcmp(S1, S2, N)
 #else
 #include <memory.h>
-#define memclr(B, S) memset((void *)B, 0, S)
+#define memclr(B, S) memset((void*)B, 0, S)
 #endif
 
 #include <stdlib.h>
 #include <string.h>
-#define QSORT_FUNC int (*)(const void *, const void *)
+#define QSORT_FUNC int (*)(const void*, const void*)
 
 #define K 1024
 
@@ -206,19 +206,19 @@ typedef uint32 /*@alt int @*/ mem_addr;
 
 typedef union {
   int i;
-  FILE *f;
+  FILE* f;
 } port;
 
 /* Exported functions (from spim.c or xspim.c): */
 
 int console_input_available();
-void error(char *fmt, ...);
-void fatal_error(char *fmt, ...);
+void error(char* fmt, ...);
+void fatal_error(char* fmt, ...);
 char get_console_char();
 void put_console_char(char c);
-void read_input(char *str, int n);
-void run_error(char *fmt, ...);
-void write_output(port, char *fmt, ...);
+void read_input(char* str, int n);
+void run_error(char* fmt, ...);
+void write_output(port, char* fmt, ...);
 
 /* Exported variables: */
 
@@ -227,7 +227,7 @@ extern bool accept_pseudo_insts;   /* => parse pseudo instructions  */
 extern bool delayed_branches;      /* => simulate delayed branches */
 extern bool delayed_loads;         /* => simulate delayed loads */
 extern bool quiet;                 /* => no warning messages */
-extern char *exception_file_name;  /* File containing exception handler */
+extern char* exception_file_name;  /* File containing exception handler */
 extern bool force_break;           /* => stop interpreter loop  */
 extern bool parser_error_occurred; /* => parse resulted in error */
 extern int spim_return_value;      /* Value returned when spim exits */

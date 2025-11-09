@@ -35,9 +35,9 @@
 
 void fix_current_label_address(mem_addr new_addr);
 int imm_op_to_op(int opcode);
-void initialize_parser(char *file_name);
+void initialize_parser(char* file_name);
 int op_to_imm_op(int opcode);
-void yyerror(char *s);
+void yyerror(char* s);
 int yyparse();
 
 /* Exported Variables: */

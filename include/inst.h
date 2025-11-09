@@ -36,7 +36,7 @@
 
 typedef struct immexpr {
   int offset;         /* Offset from symbol */
-  struct lab *symbol; /* Symbolic label */
+  struct lab* symbol; /* Symbolic label */
   short bits;         /* > 0 => 31..16, < 0 => 15..0 */
   bool pc_relative;   /* => offset from label in code */
 } imm_expr;
@@ -46,7 +46,7 @@ typedef struct immexpr {
 
 typedef struct addrexpr {
   unsigned char reg_no; /* Register number */
-  imm_expr *imm;        /* The immediate part */
+  imm_expr* imm;        /* The immediate part */
 } addr_expr;
 
 /* Representation of an instruction. Store the instruction fields in an
@@ -77,8 +77,8 @@ typedef struct inst_s {
   } r_t;
 
   int32 encoding;
-  imm_expr *expr;
-  char *source_line;
+  imm_expr* expr;
+  char* source_line;
 } instruction;
 
 #define OPCODE(INST) (INST)->opcode
@@ -133,10 +133,10 @@ typedef struct inst_s {
 #define SET_ENCODING(INST, VAL) (INST)->encoding = (int32)(VAL)
 
 #define EXPR(INST) (INST)->expr
-#define SET_EXPR(INST, VAL) (INST)->expr = (imm_expr *)(VAL)
+#define SET_EXPR(INST, VAL) (INST)->expr = (imm_expr*)(VAL)
 
 #define SOURCE(INST) (INST)->source_line
-#define SET_SOURCE(INST, VAL) (INST)->source_line = (char *)(VAL)
+#define SET_SOURCE(INST, VAL) (INST)->source_line = (char*)(VAL)
 
 #define COND_UN 0x1
 #define COND_EQ 0x2
@@ -210,47 +210,47 @@ extern int exception_occurred;
 
 /* Exported functions: */
 
-imm_expr *addr_expr_imm(addr_expr *expr);
-int addr_expr_reg(addr_expr *expr);
+imm_expr* addr_expr_imm(addr_expr* expr);
+int addr_expr_reg(addr_expr* expr);
 void align_text(int alignment);
-imm_expr *const_imm_expr(int32 value);
-imm_expr *copy_imm_expr(imm_expr *old_expr);
-instruction *copy_inst(instruction *inst);
+imm_expr* const_imm_expr(int32 value);
+imm_expr* copy_imm_expr(imm_expr* old_expr);
+instruction* copy_inst(instruction* inst);
 mem_addr current_text_pc();
 void enable_text_alignment();
-int32 eval_imm_expr(imm_expr *expr);
-void format_an_inst(str_stream *ss, instruction *inst, mem_addr addr);
-void free_inst(instruction *inst);
-void i_type_inst(int opcode, int rt, int rs, imm_expr *expr);
-void i_type_inst_free(int opcode, int rt, int rs, imm_expr *expr);
+int32 eval_imm_expr(imm_expr* expr);
+void format_an_inst(str_stream* ss, instruction* inst, mem_addr addr);
+void free_inst(instruction* inst);
+void i_type_inst(int opcode, int rt, int rs, imm_expr* expr);
+void i_type_inst_free(int opcode, int rt, int rs, imm_expr* expr);
 void increment_text_pc(int delta);
-imm_expr *incr_expr_offset(imm_expr *expr, int32 value);
+imm_expr* incr_expr_offset(imm_expr* expr, int32 value);
 void initialize_inst_tables();
-instruction *inst_decode(int32 value);
-int32 inst_encode(instruction *inst);
+instruction* inst_decode(int32 value);
+int32 inst_encode(instruction* inst);
 bool inst_is_breakpoint(mem_addr addr);
-void j_type_inst(int opcode, imm_expr *target);
+void j_type_inst(int opcode, imm_expr* target);
 void k_text_begins_at_point(mem_addr addr);
-imm_expr *lower_bits_of_expr(imm_expr *old_expr);
-addr_expr *make_addr_expr(int offs, char *sym, int reg_no);
-imm_expr *make_imm_expr(int offs, char *sym, bool is_pc_relative);
+imm_expr* lower_bits_of_expr(imm_expr* old_expr);
+addr_expr* make_addr_expr(int offs, char* sym, int reg_no);
+imm_expr* make_imm_expr(int offs, char* sym, bool is_pc_relative);
 bool opcode_is_branch(int opcode);
 bool opcode_is_nullified_branch(int opcode);
 bool opcode_is_true_branch(int opcode);
 bool opcode_is_jump(int opcode);
 bool opcode_is_load_store(int opcode);
 void print_inst(mem_addr addr);
-char *inst_to_string(mem_addr addr);
+char* inst_to_string(mem_addr addr);
 void r_co_type_inst(int opcode, int fd, int fs, int ft);
 void r_cond_type_inst(int opcode, int fs, int ft, int cc);
 void r_sh_type_inst(int opcode, int rd, int rt, int shamt);
 void r_type_inst(int opcode, int rd, int rs, int rt);
 void raise_exception(int excode);
-instruction *set_breakpoint(mem_addr addr);
+instruction* set_breakpoint(mem_addr addr);
 void set_text_alignment(int alignment);
-void store_instruction(instruction *inst);
-void test_assembly(instruction *inst);
+void store_instruction(instruction* inst);
+void test_assembly(instruction* inst);
 void text_begins_at_point(mem_addr addr);
-imm_expr *upper_bits_of_expr(imm_expr *old_expr);
+imm_expr* upper_bits_of_expr(imm_expr* old_expr);
 void user_kernel_text_segment(bool to_kernel);
-bool is_zero_imm(imm_expr *expr);
+bool is_zero_imm(imm_expr* expr);

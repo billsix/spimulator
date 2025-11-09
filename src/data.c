@@ -147,8 +147,8 @@ void increment_data_pc(int delta) {
 
 /* Process a .extern NAME SIZE directive. */
 
-void extern_directive(char *name, int size) {
-  label *sym = make_label_global(name);
+void extern_directive(char* name, int size) {
+  label* sym = make_label_global(name);
 
   if (!bare_machine && !sym->gp_flag  // Not already a global symbol
       && size > 0 && size <= SMALL_DATA_SEG_MAX_SIZE &&
@@ -161,10 +161,10 @@ void extern_directive(char *name, int size) {
 
 /* Process a .lcomm NAME SIZE directive. */
 
-void lcomm_directive(char *name, int size) {
+void lcomm_directive(char* name, int size) {
   if (!bare_machine && size > 0 && size <= SMALL_DATA_SEG_MAX_SIZE &&
       next_gp_item_addr + size < gp_midpoint + 32 * K) {
-    label *sym = record_label(name, next_gp_item_addr, 1);
+    label* sym = record_label(name, next_gp_item_addr, 1);
     sym->gp_flag = 1;
 
     next_gp_item_addr += size;
@@ -180,7 +180,7 @@ void lcomm_directive(char *name, int size) {
 
 /* Process a .ascii STRING or .asciiz STRING directive. */
 
-void store_string(char *string, int length, bool null_terminate) {
+void store_string(char* string, int length, bool null_terminate) {
   for (; length > 0; string++, length--) {
     store_byte(*string);
   }
@@ -232,29 +232,29 @@ void store_word(int value) {
 
 /* Process a .double EXPR directive. */
 
-void store_double(double *value) {
+void store_double(double* value) {
   if ((DATA_PC & 0x7) != 0) {
-    store_word(*((mem_word *)value));
-    store_word(*(((mem_word *)value) + 1));
+    store_word(*((mem_word*)value));
+    store_word(*(((mem_word*)value) + 1));
   } else {
-    set_mem_word(DATA_PC, *((mem_word *)value));
+    set_mem_word(DATA_PC, *((mem_word*)value));
     increment_data_pc(BYTES_PER_WORD);
-    set_mem_word(DATA_PC, *(((mem_word *)value) + 1));
+    set_mem_word(DATA_PC, *(((mem_word*)value) + 1));
     increment_data_pc(BYTES_PER_WORD);
   }
 }
 
 /* Process a .float EXPR directive. */
 
-void store_float(double *value) {
+void store_float(double* value) {
   float val = (float)*value;
-  float *vp = &val;
+  float* vp = &val;
 
   if ((DATA_PC & 0x3) != 0) {
-    store_half(*(mem_word *)vp & 0xffff);
-    store_half((*(mem_word *)vp >> 16) & 0xffff);
+    store_half(*(mem_word*)vp & 0xffff);
+    store_half((*(mem_word*)vp >> 16) & 0xffff);
   } else {
-    set_mem_word(DATA_PC, *((mem_word *)vp));
+    set_mem_word(DATA_PC, *((mem_word*)vp));
     increment_data_pc(BYTES_PER_WORD);
   }
 }

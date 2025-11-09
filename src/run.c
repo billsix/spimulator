@@ -85,7 +85,7 @@ void CALLBACK timer_completion_routine(LPVOID lpArgToCompletionRoutine,
 #endif
 static void unsigned_multiply(reg_word v1, reg_word v2);
 
-#define SIGN_BIT(X) ((X)&0x80000000)
+#define SIGN_BIT(X) ((X) & 0x80000000)
 
 #define ARITH_OVFL(RESULT, OP1, OP2) \
   (SIGN_BIT(OP1) == SIGN_BIT(OP2) && SIGN_BIT(OP1) != SIGN_BIT(RESULT))
@@ -127,7 +127,7 @@ static int running_in_delay_slot = 0;
       running_in_delay_slot = 0;                 \
     }                                            \
     /* -4 since PC is bumped after this inst */  \
-    PC = (TARGET)-BYTES_PER_WORD;                \
+    PC = (TARGET) - BYTES_PER_WORD;              \
   }
 
 /* If the delayed_load flag is false, the result from a load is available
@@ -137,8 +137,7 @@ static int running_in_delay_slot = 0;
    destination, as the instruction following the load can itself be a load
    instruction. */
 
-#define LOAD_INST(DEST_A, LD, MASK) \
-  { LOAD_INST_BASE(DEST_A, (LD & (MASK))) }
+#define LOAD_INST(DEST_A, LD, MASK) {LOAD_INST_BASE(DEST_A, (LD & (MASK)))}
 
 #define LOAD_INST_BASE(DEST_A, VALUE) \
   {                                   \
@@ -167,7 +166,7 @@ static int running_in_delay_slot = 0;
    execution can continue. */
 
 bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
-  instruction *inst;
+  instruction* inst;
   static reg_word *delayed_load_addr1 = NULL, delayed_load_value1;
   static reg_word *delayed_load_addr2 = NULL, delayed_load_value2;
   int step, step_size, next_step;
@@ -243,7 +242,6 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
                   inst_to_string(PC));
         return false;
       }
-
 
 #ifdef TEST_ASM
       test_assembly(inst);
@@ -1255,21 +1253,21 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           if ((addr & 0x3) != 0)
             RAISE_EXCEPTION(ExcCode_AdEL, CP0_BadVAddr = addr);
 
-          LOAD_INST((reg_word *)&FPR_S(FT(inst)), read_mem_word(addr),
+          LOAD_INST((reg_word*)&FPR_S(FT(inst)), read_mem_word(addr),
                     0xffffffff);
-          LOAD_INST((reg_word *)&FPR_S(FT(inst) + 1),
+          LOAD_INST((reg_word*)&FPR_S(FT(inst) + 1),
                     read_mem_word(addr + sizeof(mem_word)), 0xffffffff);
           break;
         }
 
         case Y_LWC1_OP:
-          LOAD_INST((reg_word *)&FPR_S(FT(inst)),
+          LOAD_INST((reg_word*)&FPR_S(FT(inst)),
                     read_mem_word(R[BASE(inst)] + IOFFSET(inst)), 0xffffffff);
           break;
 
         case Y_MFC1_OP: {
           float val = FPR_S(FS(inst));
-          reg_word *vp = (reg_word *)&val;
+          reg_word* vp = (reg_word*)&val;
 
           R[RT(inst)] = *vp; /* Fool coercion */
           break;
@@ -1341,7 +1339,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
         case Y_MTC1_OP: {
           reg_word word = R[RT(inst)];
-          float *wp = (float *)&word;
+          float* wp = (float*)&word;
 
           SET_FPR_S(FS(inst), *wp); /* fool coercion */
           break;
@@ -1379,7 +1377,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
         case Y_SDC1_OP: {
           double val = FPR_D(RT(inst));
-          reg_word *vp = (reg_word *)&val;
+          reg_word* vp = (reg_word*)&val;
           mem_addr addr = R[BASE(inst)] + IOFFSET(inst);
           if ((addr & 0x3) != 0)
             RAISE_EXCEPTION(ExcCode_AdEL, CP0_BadVAddr = addr);
@@ -1407,7 +1405,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
         case Y_SWC1_OP: {
           float val = FPR_S(RT(inst));
-          reg_word *vp = (reg_word *)&val;
+          reg_word* vp = (reg_word*)&val;
 
           set_mem_word(R[BASE(inst)] + IOFFSET(inst), *vp);
           break;
@@ -1437,12 +1435,11 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
       if (display) print_inst(PC);
 
-
       if (exception_occurred) {
         handle_exception();
       }
     } /* End: for (step = 0; ... */
-  }   /* End: for ( ; steps_to_run > 0 ... */
+  } /* End: for ( ; steps_to_run > 0 ... */
 
   /* Executed enought steps, return, but are able to continue. */
   return true;

@@ -40,7 +40,7 @@ typedef int32 /*@alt unsigned int @*/ mem_word;
 
 /* The text segment and boundaries. */
 
-extern instruction **text_seg;
+extern instruction** text_seg;
 
 extern bool text_modified; /* => text segment was written */
 
@@ -54,15 +54,15 @@ extern mem_addr text_top;
 
 /* The data segment and boundaries. */
 
-extern mem_word *data_seg;
+extern mem_word* data_seg;
 
 extern bool data_modified; /* => a data segment was written */
 
-extern short *data_seg_h; /* Points to same vector as DATA_SEG */
+extern short* data_seg_h; /* Points to same vector as DATA_SEG */
 
 #define BYTE_TYPE signed char
 
-extern BYTE_TYPE *data_seg_b; /* Ditto */
+extern BYTE_TYPE* data_seg_b; /* Ditto */
 
 #define DATA_BOT ((mem_addr)0x10000000)
 
@@ -72,11 +72,11 @@ extern mem_addr gp_midpoint; /* Middle of $gp area */
 
 /* The stack segment and boundaries. */
 
-extern mem_word *stack_seg;
+extern mem_word* stack_seg;
 
-extern short *stack_seg_h; /* Points to same vector as STACK_SEG */
+extern short* stack_seg_h; /* Points to same vector as STACK_SEG */
 
-extern BYTE_TYPE *stack_seg_b; /* Ditto */
+extern BYTE_TYPE* stack_seg_b; /* Ditto */
 
 extern mem_addr stack_bot;
 
@@ -86,7 +86,7 @@ extern mem_addr stack_bot;
 
 /* The kernel text segment and boundaries. */
 
-extern instruction **k_text_seg;
+extern instruction** k_text_seg;
 
 #define K_TEXT_BOT ((mem_addr)0x80000000)
 
@@ -94,11 +94,11 @@ extern mem_addr k_text_top;
 
 /* Kernel data segment and boundaries. */
 
-extern mem_word *k_data_seg;
+extern mem_word* k_data_seg;
 
-extern short *k_data_seg_h;
+extern short* k_data_seg_h;
 
-extern BYTE_TYPE *k_data_seg_b;
+extern BYTE_TYPE* k_data_seg_b;
 
 #define K_DATA_BOT ((mem_addr)0x90000000)
 
@@ -135,13 +135,13 @@ void expand_stack(int addl_bytes);
 void make_memory(int text_size, int data_size, int data_limit, int stack_size,
                  int stack_limit, int k_text_size, int k_data_size,
                  int k_data_limit);
-void *mem_reference(mem_addr addr);
+void* mem_reference(mem_addr addr);
 void print_mem(mem_addr addr);
-instruction *read_mem_inst(mem_addr addr);
+instruction* read_mem_inst(mem_addr addr);
 reg_word read_mem_byte(mem_addr addr);
 reg_word read_mem_half(mem_addr addr);
 reg_word read_mem_word(mem_addr addr);
-void set_mem_inst(mem_addr addr, instruction *inst);
+void set_mem_inst(mem_addr addr, instruction* inst);
 void set_mem_byte(mem_addr addr, reg_word value);
 void set_mem_half(mem_addr addr, reg_word value);
 void set_mem_word(mem_addr addr, reg_word value);

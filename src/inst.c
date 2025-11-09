@@ -50,20 +50,20 @@
 
 /* Local functions: */
 
-static int compare_pair_value(name_val_val *p1, name_val_val *p2);
-static void format_imm_expr(str_stream *ss, imm_expr *expr, int base_reg);
-static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr *expr,
+static int compare_pair_value(name_val_val* p1, name_val_val* p2);
+static void format_imm_expr(str_stream* ss, imm_expr* expr, int base_reg);
+static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
                                   int value_known, int32 value);
-static void inst_cmp(instruction *inst1, instruction *inst2);
-static instruction *make_r_type_inst(int opcode, int rd, int rs, int rt);
-static instruction *mk_i_inst(int32 value, int opcode, int rs, int rt,
+static void inst_cmp(instruction* inst1, instruction* inst2);
+static instruction* make_r_type_inst(int opcode, int rd, int rs, int rt);
+static instruction* mk_i_inst(int32 value, int opcode, int rs, int rt,
                               int offset);
-static instruction *mk_j_inst(int32 value, int opcode, int target);
-static instruction *mk_r_inst(int32 value, int opcode, int rs, int rt, int rd,
+static instruction* mk_j_inst(int32 value, int opcode, int target);
+static instruction* mk_r_inst(int32 value, int opcode, int rs, int rt, int rd,
                               int shamt);
-static instruction *mk_co_r_inst(int32 value, int opcode, int fd, int fs,
+static instruction* mk_co_r_inst(int32 value, int opcode, int fd, int fs,
                                  int ft);
-static void produce_immediate(imm_expr *expr, int rt, int value_known,
+static void produce_immediate(imm_expr* expr, int rt, int value_known,
                               int32 value);
 static void sort_a_opcode_table();
 static void sort_i_opcode_table();
@@ -77,7 +77,7 @@ static bool in_kernel = 0;
 
 /* Instruction used as breakpoint by SPIM: */
 
-static instruction *break_inst = NULL;
+static instruction* break_inst = NULL;
 
 /* Locations for next instruction in user and kernel text segments */
 
@@ -161,7 +161,7 @@ void user_kernel_text_segment(bool to_kernel) { in_kernel = to_kernel; }
 
 /* Store an INSTRUCTION in memory at the next location. */
 
-void store_instruction(instruction *inst) {
+void store_instruction(instruction* inst) {
   if (data_dir) {
     store_word(inst_encode(inst));
     free_inst(inst);
@@ -179,7 +179,7 @@ void store_instruction(instruction *inst) {
   }
 }
 
-void i_type_inst_free(int opcode, int rt, int rs, imm_expr *expr) {
+void i_type_inst_free(int opcode, int rt, int rs, imm_expr* expr) {
   i_type_inst(opcode, rt, rs, expr);
   free(expr);
 }
@@ -190,8 +190,8 @@ void i_type_inst_free(int opcode, int rt, int rs, imm_expr *expr) {
    machine, we resolve symbolic address, but they better produce values
    that fit into instruction's immediate field. */
 
-void i_type_inst(int opcode, int rt, int rs, imm_expr *expr) {
-  instruction *inst = (instruction *)zmalloc(sizeof(instruction));
+void i_type_inst(int opcode, int rt, int rs, imm_expr* expr) {
+  instruction* inst = (instruction*)zmalloc(sizeof(instruction));
 
   SET_OPCODE(inst, opcode);
   SET_RS(inst, rs);
@@ -238,7 +238,7 @@ void i_type_inst(int opcode, int rt, int rs, imm_expr *expr) {
 /* The immediate value for an instruction will (or may) not fit in 16 bits.
    Build the value from its piece with separate instructions. */
 
-static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr *expr,
+static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
                                   int value_known, int32 value) {
   if (opcode_is_load_store(opcode)) {
     int32 offset;
@@ -309,7 +309,7 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr *expr,
   }
 }
 
-static void produce_immediate(imm_expr *expr, int rt, int value_known,
+static void produce_immediate(imm_expr* expr, int rt, int value_known,
                               int32 value) {
   if (value_known && (value & 0xffff) == 0) {
     i_type_inst_free(Y_LUI_OP, rt, 0, upper_bits_of_expr(expr));
@@ -325,8 +325,8 @@ static void produce_immediate(imm_expr *expr, int rt, int value_known,
    fields. NB, even the immediate value may not fit in the field, this
    routine will not produce more than one instruction. */
 
-void j_type_inst(int opcode, imm_expr *target) {
-  instruction *inst = (instruction *)zmalloc(sizeof(instruction));
+void j_type_inst(int opcode, imm_expr* target) {
+  instruction* inst = (instruction*)zmalloc(sizeof(instruction));
 
   SET_OPCODE(inst, opcode);
   target->offset = 0; /* Not PC relative */
@@ -342,8 +342,8 @@ void j_type_inst(int opcode, imm_expr *target) {
 /* Return a register-type instruction with the given OPCODE, RD, RS, and RT
    fields. */
 
-static instruction *make_r_type_inst(int opcode, int rd, int rs, int rt) {
-  instruction *inst = (instruction *)zmalloc(sizeof(instruction));
+static instruction* make_r_type_inst(int opcode, int rd, int rs, int rt) {
+  instruction* inst = (instruction*)zmalloc(sizeof(instruction));
 
   SET_OPCODE(inst, opcode);
   SET_RS(inst, rs);
@@ -364,7 +364,7 @@ void r_type_inst(int opcode, int rd, int rs, int rt) {
    fields. */
 
 void r_co_type_inst(int opcode, int fd, int fs, int ft) {
-  instruction *inst = make_r_type_inst(opcode, fs, 0, ft);
+  instruction* inst = make_r_type_inst(opcode, fs, 0, ft);
   SET_FD(inst, fd);
   store_instruction(inst);
 }
@@ -373,7 +373,7 @@ void r_co_type_inst(int opcode, int fd, int fs, int ft) {
    SHAMT fields.*/
 
 void r_sh_type_inst(int opcode, int rd, int rt, int shamt) {
-  instruction *inst = make_r_type_inst(opcode, rd, 0, rt);
+  instruction* inst = make_r_type_inst(opcode, rd, 0, rt);
   SET_SHAMT(inst, shamt & 0x1f);
   store_instruction(inst);
 }
@@ -382,7 +382,7 @@ void r_sh_type_inst(int opcode, int rd, int rt, int shamt) {
    FS, FT, and CC fields.*/
 
 void r_cond_type_inst(int opcode, int fs, int ft, int cc) {
-  instruction *inst = make_r_type_inst(opcode, fs, 0, ft);
+  instruction* inst = make_r_type_inst(opcode, fs, 0, ft);
   SET_FD(inst, cc << 2);
   switch (opcode) {
     case Y_C_EQ_D_OP:
@@ -486,8 +486,8 @@ void r_cond_type_inst(int opcode, int fs, int ft, int cc) {
 
 /* Make and return a deep copy of INST. */
 
-instruction *copy_inst(instruction *inst) {
-  instruction *new_inst = (instruction *)xmalloc(sizeof(instruction));
+instruction* copy_inst(instruction* inst) {
+  instruction* new_inst = (instruction*)xmalloc(sizeof(instruction));
 
   *new_inst = *inst;
   /*memcpy ((void*)new_inst, (void*)inst , sizeof (instruction));*/
@@ -495,7 +495,7 @@ instruction *copy_inst(instruction *inst) {
   return (new_inst);
 }
 
-void free_inst(instruction *inst) {
+void free_inst(instruction* inst) {
   if (inst != break_inst)
   /* Don't free the breakpoint insructions since we only have one. */
   {
@@ -536,7 +536,7 @@ static void sort_name_table() {
 /* Compare the VALUE1 field of two NAME_VAL_VAL entries in the format
    required by qsort. */
 
-static int compare_pair_value(name_val_val *p1, name_val_val *p2) {
+static int compare_pair_value(name_val_val* p1, name_val_val* p2) {
   if (p1->value1 < p2->value1)
     return (-1);
   else if (p1->value1 > p2->value1)
@@ -548,14 +548,14 @@ static int compare_pair_value(name_val_val *p1, name_val_val *p2) {
 /* Print the instruction stored at the memory ADDRESS. */
 
 void print_inst(mem_addr addr) {
-  char *inst_str = inst_to_string(addr);
+  char* inst_str = inst_to_string(addr);
   write_output(message_out, "%s", inst_str);
   free(inst_str);
 }
 
-char *inst_to_string(mem_addr addr) {
+char* inst_to_string(mem_addr addr) {
   str_stream ss;
-  instruction *inst;
+  instruction* inst;
 
   exception_occurred = 0;
   inst = read_mem_inst(addr);
@@ -570,8 +570,8 @@ char *inst_to_string(mem_addr addr) {
   return ss_to_string(&ss);
 }
 
-void format_an_inst(str_stream *ss, instruction *inst, mem_addr addr) {
-  name_val_val *entry;
+void format_an_inst(str_stream* ss, instruction* inst, mem_addr addr) {
+  name_val_val* entry;
   int line_start = ss_length(ss);
 
   if (addr != 0 && inst_is_breakpoint(addr)) {
@@ -870,8 +870,8 @@ bool inst_is_breakpoint(mem_addr addr) {
 /* Set a breakpoint at ADDR and return the old instruction.  If the
    breakpoint cannot be set, return NULL. */
 
-instruction *set_breakpoint(mem_addr addr) {
-  instruction *old_inst;
+instruction* set_breakpoint(mem_addr addr) {
+  instruction* old_inst;
 
   if (break_inst == NULL) break_inst = make_r_type_inst(Y_BREAK_OP, 1, 0, 0);
 
@@ -891,8 +891,8 @@ instruction *set_breakpoint(mem_addr addr) {
 
 /* Make and return a new immediate expression */
 
-imm_expr *make_imm_expr(int offs, char *sym, bool is_pc_relative) {
-  imm_expr *expr = (imm_expr *)xmalloc(sizeof(imm_expr));
+imm_expr* make_imm_expr(int offs, char* sym, bool is_pc_relative) {
+  imm_expr* expr = (imm_expr*)xmalloc(sizeof(imm_expr));
 
   expr->offset = offs;
   expr->bits = 0;
@@ -906,8 +906,8 @@ imm_expr *make_imm_expr(int offs, char *sym, bool is_pc_relative) {
 
 /* Return a shallow copy of the EXPRESSION. */
 
-imm_expr *copy_imm_expr(imm_expr *old_expr) {
-  imm_expr *expr = (imm_expr *)xmalloc(sizeof(imm_expr));
+imm_expr* copy_imm_expr(imm_expr* old_expr) {
+  imm_expr* expr = (imm_expr*)xmalloc(sizeof(imm_expr));
 
   *expr = *old_expr;
   /*memcpy ((void*)expr, (void*)old_expr, sizeof (imm_expr));*/
@@ -917,8 +917,8 @@ imm_expr *copy_imm_expr(imm_expr *old_expr) {
 /* Return a shallow copy of an EXPRESSION that only uses the upper
    sixteen bits of the expression's value. */
 
-imm_expr *upper_bits_of_expr(imm_expr *old_expr) {
-  imm_expr *expr = copy_imm_expr(old_expr);
+imm_expr* upper_bits_of_expr(imm_expr* old_expr) {
+  imm_expr* expr = copy_imm_expr(old_expr);
 
   expr->bits = 1;
   return (expr);
@@ -927,8 +927,8 @@ imm_expr *upper_bits_of_expr(imm_expr *old_expr) {
 /* Return a shallow copy of the EXPRESSION that only uses the lower
    sixteen bits of the expression's value. */
 
-imm_expr *lower_bits_of_expr(imm_expr *old_expr) {
-  imm_expr *expr = copy_imm_expr(old_expr);
+imm_expr* lower_bits_of_expr(imm_expr* old_expr) {
+  imm_expr* expr = copy_imm_expr(old_expr);
 
   expr->bits = -1;
   return (expr);
@@ -936,15 +936,15 @@ imm_expr *lower_bits_of_expr(imm_expr *old_expr) {
 
 /* Return an instruction expression for a constant VALUE. */
 
-imm_expr *const_imm_expr(int32 value) {
+imm_expr* const_imm_expr(int32 value) {
   return (make_imm_expr(value, NULL, false));
 }
 
 /* Return a shallow copy of the EXPRESSION with the offset field
    incremented by the given amount. */
 
-imm_expr *incr_expr_offset(imm_expr *expr, int32 value) {
-  imm_expr *new_expr = copy_imm_expr(expr);
+imm_expr* incr_expr_offset(imm_expr* expr, int32 value) {
+  imm_expr* new_expr = copy_imm_expr(expr);
 
   new_expr->offset += value;
   return (new_expr);
@@ -952,7 +952,7 @@ imm_expr *incr_expr_offset(imm_expr *expr, int32 value) {
 
 /* Return the value of the EXPRESSION. */
 
-int32 eval_imm_expr(imm_expr *expr) {
+int32 eval_imm_expr(imm_expr* expr) {
   int32 value;
 
   if (expr->symbol == NULL)
@@ -973,7 +973,7 @@ int32 eval_imm_expr(imm_expr *expr) {
 
 /* Print the EXPRESSION. */
 
-static void format_imm_expr(str_stream *ss, imm_expr *expr, int base_reg) {
+static void format_imm_expr(str_stream* ss, imm_expr* expr, int base_reg) {
   if (expr->symbol != NULL) {
     ss_printf(ss, "%s", expr->symbol->name);
   }
@@ -995,16 +995,16 @@ static void format_imm_expr(str_stream *ss, imm_expr *expr, int base_reg) {
 
 /* Return true if the EXPRESSION is a constant 0. */
 
-bool is_zero_imm(imm_expr *expr) {
+bool is_zero_imm(imm_expr* expr) {
   return (expr->offset == 0 && expr->symbol == NULL);
 }
 
 /* Return an address expression of the form SYMBOL +/- IOFFSET (REGISTER).
    Any of the three parts may be omitted. */
 
-addr_expr *make_addr_expr(int offs, char *sym, int reg_no) {
-  addr_expr *expr = (addr_expr *)xmalloc(sizeof(addr_expr));
-  label *lab;
+addr_expr* make_addr_expr(int offs, char* sym, int reg_no) {
+  addr_expr* expr = (addr_expr*)xmalloc(sizeof(addr_expr));
+  label* lab;
 
   if (reg_no == 0 && sym != NULL && (lab = lookup_label(sym))->gp_flag) {
     expr->reg_no = REG_GP;
@@ -1016,9 +1016,9 @@ addr_expr *make_addr_expr(int offs, char *sym, int reg_no) {
   return (expr);
 }
 
-imm_expr *addr_expr_imm(addr_expr *expr) { return (expr->imm); }
+imm_expr* addr_expr_imm(addr_expr* expr) { return (expr->imm); }
 
-int addr_expr_reg(addr_expr *expr) { return (expr->reg_no); }
+int addr_expr_reg(addr_expr* expr) { return (expr->reg_no); }
 
 /* Map between a SPIM instruction and the binary representation of the
    instruction. */
@@ -1042,11 +1042,11 @@ static void sort_i_opcode_table() {
         sizeof(name_val_val), (QSORT_FUNC)compare_pair_value);
 }
 
-#define REGS(R, O) (((R)&0x1f) << O)
+#define REGS(R, O) (((R) & 0x1f) << O)
 
-int32 inst_encode(instruction *inst) {
+int32 inst_encode(instruction* inst) {
   int32 a_opcode = 0;
-  name_val_val *entry;
+  name_val_val* entry;
 
   if (inst == NULL) return (0);
 
@@ -1165,9 +1165,9 @@ static void sort_a_opcode_table() {
         sizeof(name_val_val), (QSORT_FUNC)compare_pair_value);
 }
 
-instruction *inst_decode(int32 val) {
+instruction* inst_decode(int32 val) {
   int32 a_opcode = val & 0xfc000000;
-  name_val_val *entry;
+  name_val_val* entry;
   int32 i_opcode;
 
   /* Field classes: (opcode is continued in other part of instruction): */
@@ -1254,7 +1254,7 @@ instruction *inst_decode(int32 val) {
       return (mk_r_inst(val, i_opcode, 0, BIN_RT(val), BIN_FS(val), 0));
 
     case FP_CMP_TYPE_INST: {
-      instruction *inst =
+      instruction* inst =
           mk_r_inst(val, i_opcode, BIN_FS(val), BIN_FT(val), BIN_FD(val), 0);
       SET_COND(inst, val & 0xf);
       return (inst);
@@ -1283,9 +1283,9 @@ instruction *inst_decode(int32 val) {
   }
 }
 
-static instruction *mk_r_inst(int32 val, int opcode, int rs, int rt, int rd,
+static instruction* mk_r_inst(int32 val, int opcode, int rs, int rt, int rd,
                               int shamt) {
-  instruction *inst = (instruction *)zmalloc(sizeof(instruction));
+  instruction* inst = (instruction*)zmalloc(sizeof(instruction));
 
   SET_OPCODE(inst, opcode);
   SET_RS(inst, rs);
@@ -1297,9 +1297,9 @@ static instruction *mk_r_inst(int32 val, int opcode, int rs, int rt, int rd,
   return (inst);
 }
 
-static instruction *mk_co_r_inst(int32 val, int opcode, int fs, int ft,
+static instruction* mk_co_r_inst(int32 val, int opcode, int fs, int ft,
                                  int fd) {
-  instruction *inst = (instruction *)zmalloc(sizeof(instruction));
+  instruction* inst = (instruction*)zmalloc(sizeof(instruction));
 
   SET_OPCODE(inst, opcode);
   SET_FS(inst, fs);
@@ -1310,9 +1310,9 @@ static instruction *mk_co_r_inst(int32 val, int opcode, int fs, int ft,
   return (inst);
 }
 
-static instruction *mk_i_inst(int32 val, int opcode, int rs, int rt,
+static instruction* mk_i_inst(int32 val, int opcode, int rs, int rt,
                               int offset) {
-  instruction *inst = (instruction *)zmalloc(sizeof(instruction));
+  instruction* inst = (instruction*)zmalloc(sizeof(instruction));
 
   SET_OPCODE(inst, opcode);
   SET_RS(inst, rs);
@@ -1323,8 +1323,8 @@ static instruction *mk_i_inst(int32 val, int opcode, int rs, int rt,
   return (inst);
 }
 
-static instruction *mk_j_inst(int32 val, int opcode, int target) {
-  instruction *inst = (instruction *)zmalloc(sizeof(instruction));
+static instruction* mk_j_inst(int32 val, int opcode, int target) {
+  instruction* inst = (instruction*)zmalloc(sizeof(instruction));
 
   SET_OPCODE(inst, opcode);
   SET_TARGET(inst, target);
@@ -1335,14 +1335,14 @@ static instruction *mk_j_inst(int32 val, int opcode, int target) {
 
 /* Code to test encode/decode of instructions. */
 
-void test_assembly(instruction *inst) {
-  instruction *new_inst = inst_decode(inst_encode(inst));
+void test_assembly(instruction* inst) {
+  instruction* new_inst = inst_decode(inst_encode(inst));
 
   inst_cmp(inst, new_inst);
   free_inst(new_inst);
 }
 
-static void inst_cmp(instruction *inst1, instruction *inst2) {
+static void inst_cmp(instruction* inst1, instruction* inst2) {
   static str_stream ss;
 
   ss_clear(&ss);
