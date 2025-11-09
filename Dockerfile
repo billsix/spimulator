@@ -1,5 +1,8 @@
 FROM registry.fedoraproject.org/fedora:43
 
+
+COPY entrypoint/dotfiles/ /root/
+
 RUN sed -i -e "s@tsflags=nodocs@#tsflags=nodocs@g" /etc/dnf/dnf.conf && \
     echo "keepcache=True" >> /etc/dnf/dnf.conf && \
     dnf upgrade -y && \
@@ -11,14 +14,19 @@ RUN sed -i -e "s@tsflags=nodocs@#tsflags=nodocs@g" /etc/dnf/dnf.conf && \
                    g++ \
                    gcc \
                    gdb \
+                   git \
                    lldb \
                    meson \
                    ninja \
                    nano \
+                   pkgconfig \
                    rlwrap \
                    tmux \
+                   valgrind \
                    which && \
-    echo 'set debuginfod enabled off' > /root/.gdbinit
+    echo 'set debuginfod enabled off' > /root/.gdbinit && \
+    emacs --batch --load /root/.emacs.d/install-melpa-packages.el
+
 
 COPY helloworld.s meson.build /spimulator/
 COPY src/ /spimulator/src
@@ -27,9 +35,11 @@ COPY tests/ /spimulator/tests
 
 # build from source
 RUN cd /spimulator/ && \
-    meson setup builddir && \
-    meson compile -C builddir && \
-    meson install -C builddir
+    CC=clang CXX=clang++ meson setup builddir --buildtype=debug -Dwarning_level=3 && \
+    meson configure builddir -Dcpp_args="-Wall" && \
+    meson compile -C builddir  && \
+    meson install -C builddir && \
+    ln -s builddir/compile_commands.json
 
 # execute tests, fail building the image if any tests fail
 RUN  cd /spimulator/tests ; \
