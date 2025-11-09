@@ -49,3 +49,11 @@ RUN  cd /spimulator/tests ; \
 
 
 COPY .clang-format /pgu/
+
+RUN echo "exit() {" >> ~/.bashrc && \
+    echo "    echo "Formatting on shell exit"" >> ~/.bashrc && \
+    echo "    format.sh" >> ~/.bashrc && \
+    echo "    lint.sh" >> ~/.bashrc && \
+    echo "    builtin exit "$@"" >> ~/.bashrc && \
+    echo "}" >> ~/.bashrc && \
+    echo "PS1='\[\e[36m\]┌─(\t) \[\e[32m\]\u@\h:\w\n\[\e[36m\]└─λ \[\e[0m\]'" >> ~/.bashrc

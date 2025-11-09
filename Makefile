@@ -4,6 +4,7 @@ CONTAINER_CMD = podman
 CONTAINER_NAME = spimulator
 FILES_TO_MOUNT = -v ./entrypoint/shell.sh:/usr/local/bin/shell.sh:Z \
                  -v ./entrypoint/format.sh:/usr/local/bin/format.sh:Z \
+                 -v ./entrypoint/lint.sh:/usr/local/bin/lint.sh:Z \
                  -v ./entrypoint/dotfiles/.tmux.conf:/root/.tmux.conf:Z
 
 PACKAGE_CACHE_ROOT = ~/.cache/packagecache/fedora/43

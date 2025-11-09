@@ -161,8 +161,9 @@ int main(int argc, char **argv) {
   spim_return_value = 0;
 
   /* Input comes directly (not through stdio): */
-  console_in.i = 0;
+     console_in.i = 0;
   mapped_io = false;
+
 
   // write_startup_message ();
 
