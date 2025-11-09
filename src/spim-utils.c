@@ -56,7 +56,7 @@
 
 static mem_addr copy_int_to_stack(int n);
 static mem_addr copy_str_to_stack(char* s);
-static void delete_all_breakpoints();
+static void delete_all_breakpoints(void);
 
 int exception_occurred;
 
@@ -131,7 +131,7 @@ void initialize_world(char* exception_file_names, bool print_message) {
   delete_all_breakpoints();
 }
 
-void write_startup_message() {
+void write_startup_message(void) {
   write_output(message_out, "SPIM %s\n", SPIM_VERSION);
   write_output(message_out, "Copyright 1990-2023 by James Larus.\n");
   write_output(message_out, "All Rights Reserved.\n");
@@ -140,7 +140,7 @@ void write_startup_message() {
                "See the file README for a full copyright notice.\n");
 }
 
-void initialize_registers() {
+void initialize_registers(void) {
   memclr(FPR, FPR_LENGTH * sizeof(double));
   FGR = (float*)FPR;
   FWR = (int*)FPR;
@@ -188,7 +188,7 @@ bool read_assembly_file(char* name) {
   }
 }
 
-mem_addr starting_address() {
+mem_addr starting_address(void) {
   return (find_symbol_address(DEFAULT_RUN_LOCATION));
 }
 
@@ -369,7 +369,7 @@ void delete_breakpoint(mem_addr addr) {
   if (!deleted_one) error("No breakpoint to delete at 0x%08x\n", addr);
 }
 
-static void delete_all_breakpoints() {
+static void delete_all_breakpoints(void) {
   bkpt *b, *n;
 
   for (b = bkpts, n = NULL; b != NULL; b = n) {
@@ -381,7 +381,7 @@ static void delete_all_breakpoints() {
 
 /* List all breakpoints. */
 
-void list_breakpoints() {
+void list_breakpoints(void) {
   bkpt* b;
 
   if (bkpts)

@@ -520,7 +520,7 @@ static int trans_buffer_full_timer = 0;
 /* Check if input is available and output is possible.  If so, update the
    memory-mapped control registers and buffers. */
 
-void check_memory_mapped_IO() {
+void check_memory_mapped_IO(void) {
   if (recv_buffer_full_timer > 0) {
     /* Do not check for more input until this interval expires. */
     recv_buffer_full_timer -= 1;

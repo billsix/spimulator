@@ -69,7 +69,7 @@ static label* label_hash_table[LABEL_HASH_TABLE_SIZE];
 
 /* Initialize the symbol table by removing and freeing old entries. */
 
-void initialize_symbol_table() {
+void initialize_symbol_table(void) {
   int i;
 
   for (i = 0; i < LABEL_HASH_TABLE_SIZE; i++) {
@@ -369,7 +369,7 @@ mem_addr find_symbol_address(char* symbol) {
 
 /* Print all symbols in the table. */
 
-void print_symbols() {
+void print_symbols(void) {
   int i;
   label* l;
 
@@ -381,7 +381,7 @@ void print_symbols() {
 
 /* Print all undefined symbols in the table. */
 
-void print_undefined_symbols() {
+void print_undefined_symbols(void) {
   int i;
   label* l;
 
@@ -394,7 +394,7 @@ void print_undefined_symbols() {
    table, seperated by a newline character.  Return NULL if no symbols
    are undefined. */
 
-char* undefined_symbol_string() {
+char* undefined_symbol_string(void) {
   int buffer_length = 128;
   int string_length = 0;
   char* buffer = (char*)malloc(buffer_length);

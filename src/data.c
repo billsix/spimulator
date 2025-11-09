@@ -68,7 +68,7 @@ static bool enable_data_auto_alignment =
 
 void user_kernel_data_segment(bool to_kernel) { in_kernel = to_kernel; }
 
-void end_of_assembly_file() {
+void end_of_assembly_file(void) {
   in_kernel = false;
   enable_data_auto_alignment = true;
 }
@@ -115,7 +115,7 @@ void set_data_alignment(int alignment) {
   if (enable_data_auto_alignment) align_data(alignment);
 }
 
-void enable_data_alignment() { enable_data_auto_alignment = true; }
+void enable_data_alignment(void) { enable_data_auto_alignment = true; }
 
 /* Set the location (in user or kernel data space) for the next datum. */
 
@@ -128,7 +128,7 @@ void set_data_pc(mem_addr addr) {
 
 /* Return the address at which the next datum will be stored.  */
 
-mem_addr current_data_pc() { return (DATA_PC); }
+mem_addr current_data_pc(void) { return (DATA_PC); }
 
 /* Bump the address at which the next data will be stored by DELTA
    bytes. */

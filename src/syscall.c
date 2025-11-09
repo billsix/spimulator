@@ -100,7 +100,7 @@ void windowsParameterHandlingControl(int flag) {
 /* Decides which syscall to execute or simulate.  Returns zero upon
    exit syscall and non-zero to continue execution. */
 
-int do_syscall() {
+int do_syscall(void) {
 #ifdef _WIN32
   windowsParameterHandlingControl(0);
 #endif
@@ -240,7 +240,7 @@ int do_syscall() {
   return (1);
 }
 
-void handle_exception() {
+void handle_exception(void) {
   if (!quiet && CP0_ExCode != ExcCode_Int)
     error("Exception occurred at PC=0x%08x\n", CP0_EPC);
 

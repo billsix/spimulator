@@ -34,10 +34,10 @@
 /* Exported functions: */
 
 void align_data(int alignment);
-mem_addr current_data_pc();
+mem_addr current_data_pc(void);
 void data_begins_at_point(mem_addr addr);
-void enable_data_alignment();
-void end_of_assembly_file();
+void enable_data_alignment(void);
+void end_of_assembly_file(void);
 void extern_directive(char* name, int size);
 void increment_data_pc(int value);
 void k_data_begins_at_point(mem_addr addr);

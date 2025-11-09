@@ -91,20 +91,20 @@
 
 /* Internal functions: */
 
-static void console_to_program();
-static void console_to_spim();
-static void control_c_seen(int /*arg*/);
-static void flush_to_newline();
-static int get_opt_int();
+static void console_to_program(void);
+static void console_to_spim(void);
+static void control_c_seen(int arg);
+static void flush_to_newline(void);
+static int get_opt_int(void);
 static bool parse_spim_command(bool redo);
 static void print_reg(int reg_no);
 static int print_fp_reg(int reg_no);
 static int print_reg_from_string(char* reg);
 static void print_all_regs(int hex_flag);
-static int read_assembly_command();
+static int read_assembly_command(void);
 static int str_prefix(char* s1, char* s2, int min_match);
-static void top_level();
-static int read_token();
+static void top_level(void);
+static int read_token(void);
 static bool write_assembled_code(char* program_name);
 static void dump_data_seg(bool kernel_also);
 static void dump_text_seg(bool kernel_also);
@@ -318,7 +318,7 @@ int main(int argc, char** argv) {
 
 /* Top-level read-eval-print loop for SPIM. */
 
-static void top_level() {
+static void top_level(void) {
   bool redo = false; /* => reexecute last command */
 
   (void)signal(SIGINT, control_c_seen);
@@ -335,7 +335,8 @@ static void top_level() {
   }
 }
 
-static void control_c_seen(int /*arg*/) {
+static void control_c_seen(int arg) {
+  (void)arg;  // this line is to suppress compiler warnings
   console_to_spim();
   write_output(message_out, "\nExecution interrupted\n");
   longjmp(spim_top_level_env, 1);
@@ -670,7 +671,7 @@ static bool parse_spim_command(bool redo) {
 /* Read a SPIM command with the scanner and return its ennuemerated
    value. */
 
-static int read_assembly_command() {
+static int read_assembly_command(void) {
   int token = read_token();
 
   if (token == Y_NL) /* Blank line means redo */
@@ -730,7 +731,7 @@ static int str_prefix(char* s1, char* s2, int min_match) {
    line doesn't contain an integer, return 0.  In either case, flush the
    rest of the line, including the newline. */
 
-static int get_opt_int() {
+static int get_opt_int(void) {
   int token;
 
   if ((token = read_token()) == Y_INT) {
@@ -746,7 +747,7 @@ static int get_opt_int() {
 
 /* Flush the rest of the input line up to and including the next newline. */
 
-static void flush_to_newline() { while (read_token() != Y_NL); }
+static void flush_to_newline(void) { while (read_token() != Y_NL); }
 
 /* Print register number N. */
 
@@ -980,7 +981,7 @@ void read_input(char* str, int str_size) {
 
 /* Give the console to the program for IO. */
 
-static void console_to_program() {
+static void console_to_program(void) {
   if (mapped_io && !console_state_saved) {
 #ifdef NEED_TERMIOS
     int flags;
@@ -1014,7 +1015,7 @@ static void console_to_program() {
 
 /* Return the console to SPIM. */
 
-static void console_to_spim() {
+static void console_to_spim(void) {
 #ifndef WIN32
   if (mapped_io && console_state_saved)
 #ifdef NEED_TERMIOS
@@ -1026,7 +1027,7 @@ static void console_to_spim() {
 #endif
 }
 
-int console_input_available() {
+int console_input_available(void) {
   fd_set fdset;
   struct timeval timeout;
 
@@ -1040,7 +1041,7 @@ int console_input_available() {
     return (0);
 }
 
-char get_console_char() {
+char get_console_char(void) {
   char buf;
 
   read((int)console_in.i, &buf, 1);
@@ -1055,7 +1056,7 @@ void put_console_char(char c) {
   fflush(console_out.f);
 }
 
-static int read_token() {
+static int read_token(void) {
   int token = yylex();
 
   if (token == 0) /* End of file */

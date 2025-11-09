@@ -2,4 +2,4 @@
 
 cd /spimulator
 
-run-clang-tidy .
+run-clang-tidy . -fix

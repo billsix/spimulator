@@ -35,12 +35,12 @@
 
 void initialize_scanner(FILE* in_file);
 void push_scanner(FILE* in_file);
-void pop_scanner();
-char* erroneous_line();
-void scanner_start_line();
+void pop_scanner(void);
+char* erroneous_line(void);
+void scanner_start_line(void);
 int register_name_to_number(char* name);
-char* source_line();
-int yylex();
+char* source_line(void);
+int yylex(void);
 
 /* Exported Variables: */
 

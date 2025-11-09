@@ -74,10 +74,10 @@ bool force_break =
 
 /* Local functions: */
 
-static void bump_CP0_timer();
+static void bump_CP0_timer(void);
 static void set_fpu_cc(int cond, int cc, int less, int equal, int unordered);
 static void signed_multiply(reg_word v1, reg_word v2);
-static void start_CP0_timer();
+static void start_CP0_timer(void);
 #ifdef _WIN32
 void CALLBACK timer_completion_routine(LPVOID lpArgToCompletionRoutine,
                                        DWORD dwTimerLowValue,
@@ -1459,14 +1459,14 @@ void CALLBACK timer_completion_routine(LPVOID lpArgToCompletionRoutine,
 /* Increment CP0 Count register and test if it matches the Compare
    register. If so, cause an interrupt. */
 
-static void bump_CP0_timer() {
+static void bump_CP0_timer(void) {
   CP0_Count += 1;
   if (CP0_Count == CP0_Compare) {
     RAISE_INTERRUPT(7);
   }
 }
 
-static void start_CP0_timer() {
+static void start_CP0_timer(void) {
 #ifdef _WIN32
   HANDLE timer = CreateWaitableTimer(NULL, TRUE, TEXT("SPIMTimer"));
   if (NULL == timer) {

@@ -128,7 +128,7 @@ extern mem_addr k_data_top;
 
 /* Exported functions: */
 
-void check_memory_mapped_IO();
+void check_memory_mapped_IO(void);
 void expand_data(int addl_bytes);
 void expand_k_data(int addl_bytes);
 void expand_stack(int addl_bytes);

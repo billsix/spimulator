@@ -357,13 +357,13 @@ push_scanner (FILE *in_file)
 }
 
 void
-pop_scanner ()
+pop_scanner (void)
 {
   yypop_buffer_state ();
 }
 
 void
-scanner_start_line ()
+scanner_start_line (void)
 {
   current_line = NULL;
   line_returned = 0;
@@ -383,7 +383,7 @@ scanner_start_line ()
    wouldn't be necessary, except that bison does not allow
    the parser to use EOF (= 0) as a non-terminal */
 
-int yywrap()
+int yywrap(void)
 {
 	if (eof_returned)
 		return (1);
@@ -551,7 +551,7 @@ copy_str (char *str, int chop)
    stream to the begining of the next line. */
 
 char*
-erroneous_line ()
+erroneous_line (void)
 {
   int prefix_length = yytext - current_line;
   int i, c;
@@ -693,7 +693,7 @@ register_name_to_number (char *name)
    line. */
 
 char *
-source_line ()
+source_line (void)
 {
   if (line_returned)
     return (NULL);

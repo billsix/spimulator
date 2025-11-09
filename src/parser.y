@@ -490,18 +490,18 @@ static imm_expr *branch_offset (int n_inst);
 static int cc_to_rt (int cc, int nd, int tf);
 static void check_imm_range (imm_expr*, int32, int32);
 static void check_uimm_range (imm_expr*, uint32, uint32);
-static void clear_labels ();
+static void clear_labels (void);
 static label_list *cons_label (label *head, label_list *tail);
 static void div_inst (int op, int rd, int rs, int rt, int const_divisor);
-static void mips32_r2_inst ();
+static void mips32_r2_inst (void);
 static void mult_inst (int op, int rd, int rs, int rt);
-static void nop_inst ();
+static void nop_inst (void);
 static void set_eq_inst (int op, int rd, int rs, int rt);
 static void set_ge_inst (int op, int rd, int rs, int rt);
 static void set_gt_inst (int op, int rd, int rs, int rt);
 static void set_le_inst (int op, int rd, int rs, int rt);
 static void store_word_data (int value);
-static void trap_inst ();
+static void trap_inst (void);
 static void yywarn (char*);
 
 
@@ -2703,7 +2703,7 @@ cons_label (label *head, label_list *tail)
 
 
 static void
-clear_labels ()
+clear_labels (void)
 {
   label_list *n;
 
@@ -2762,14 +2762,14 @@ imm_op_to_op (int opcode)
 
 
 static void
-nop_inst ()
+nop_inst (void)
 {
   r_type_inst (Y_SLL_OP, 0, 0, 0); /* = 0 */
 }
 
 
 static void
-trap_inst ()
+trap_inst (void)
 {
   r_type_inst (Y_BREAK_OP, 0, 0, 0);
 }
@@ -2965,7 +2965,7 @@ yywarn (char *s)
 
 
 static void
-mips32_r2_inst ()
+mips32_r2_inst (void)
 {
 	yyerror ("Warning: MIPS32 Rev 2 instruction is not implemented. Instruction ignored.");
 }

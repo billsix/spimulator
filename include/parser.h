@@ -38,7 +38,7 @@ int imm_op_to_op(int opcode);
 void initialize_parser(char* file_name);
 int op_to_imm_op(int opcode);
 void yyerror(char* s);
-int yyparse();
+int yyparse(void);
 
 /* Exported Variables: */
 

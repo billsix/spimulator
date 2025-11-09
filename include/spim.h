@@ -211,10 +211,10 @@ typedef union {
 
 /* Exported functions (from spim.c or xspim.c): */
 
-int console_input_available();
+int console_input_available(void);
 void error(char* fmt, ...);
 void fatal_error(char* fmt, ...);
-char get_console_char();
+char get_console_char(void);
 void put_console_char(char c);
 void read_input(char* str, int n);
 void run_error(char* fmt, ...);

@@ -48,19 +48,19 @@ void format_data_segs(str_stream* ss);
 void format_insts(str_stream* ss, mem_addr from, mem_addr to);
 void format_mem(str_stream* ss, mem_addr from, mem_addr to);
 void format_registers(str_stream* ss, int print_gpr_hex, int print_fpr_hex);
-void initialize_registers();
+void initialize_registers(void);
 void initialize_stack(const char* command_line);
 void initialize_run_stack(int argc, char** argv);
 void initialize_world(char* exception_file_names, bool print_message);
-void list_breakpoints();
+void list_breakpoints(void);
 name_val_val* map_int_to_name_val_val(name_val_val tbl[], int tbl_len, int num);
 name_val_val* map_string_to_name_val_val(name_val_val tbl[], int tbl_len,
                                          char* id);
 bool read_assembly_file(char* name);
 bool run_program(mem_addr pc, int steps, bool display, bool cont_bkpt,
                  bool* continuable);
-mem_addr starting_address();
+mem_addr starting_address(void);
 char* str_copy(char* str);
-void write_startup_message();
+void write_startup_message(void);
 void* xmalloc(int);
 void* zmalloc(int);

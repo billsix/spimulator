@@ -65,9 +65,9 @@ static instruction* mk_co_r_inst(int32 value, int opcode, int fd, int fs,
                                  int ft);
 static void produce_immediate(imm_expr* expr, int rt, int value_known,
                               int32 value);
-static void sort_a_opcode_table();
-static void sort_i_opcode_table();
-static void sort_name_table();
+static void sort_a_opcode_table(void);
+static void sort_i_opcode_table(void);
+static void sort_name_table(void);
 
 /* Local variables: */
 
@@ -126,7 +126,7 @@ void set_text_alignment(int alignment) {
   if (enable_text_auto_alignment) align_text(alignment);
 }
 
-void enable_text_alignment() { enable_text_auto_alignment = true; }
+void enable_text_alignment(void) { enable_text_auto_alignment = true; }
 
 /* Set the location (in user or kernel text space) for the next instruction. */
 
@@ -139,7 +139,7 @@ void set_text_pc(mem_addr addr) {
 
 /* Return address for next instruction, in appropriate text segment. */
 
-mem_addr current_text_pc() { return (INST_PC); }
+mem_addr current_text_pc(void) { return (INST_PC); }
 
 /* Increment the current text segement PC. */
 
@@ -512,7 +512,7 @@ void free_inst(instruction* inst) {
 
 /* Sort all instruction table before first use. */
 
-void initialize_inst_tables() {
+void initialize_inst_tables(void) {
   sort_name_table();
   sort_i_opcode_table();
   sort_a_opcode_table();
@@ -528,7 +528,7 @@ static name_val_val name_tbl[] = {
 
 /* Sort the opcode table on their key (the opcode value). */
 
-static void sort_name_table() {
+static void sort_name_table(void) {
   qsort(name_tbl, sizeof(name_tbl) / sizeof(name_val_val), sizeof(name_val_val),
         (QSORT_FUNC)compare_pair_value);
 }
@@ -1037,7 +1037,7 @@ static name_val_val i_opcode_tbl[] = {
 
 /* Sort the opcode table on their key (the interal opcode value). */
 
-static void sort_i_opcode_table() {
+static void sort_i_opcode_table(void) {
   qsort(i_opcode_tbl, sizeof(i_opcode_tbl) / sizeof(name_val_val),
         sizeof(name_val_val), (QSORT_FUNC)compare_pair_value);
 }
@@ -1160,7 +1160,7 @@ static name_val_val a_opcode_tbl[] = {
 
 /* Sort the opcode table on their key (the interal opcode value). */
 
-static void sort_a_opcode_table() {
+static void sort_a_opcode_table(void) {
   qsort(a_opcode_tbl, sizeof(a_opcode_tbl) / sizeof(name_val_val),
         sizeof(name_val_val), (QSORT_FUNC)compare_pair_value);
 }
