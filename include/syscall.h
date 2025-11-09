@@ -31,6 +31,9 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef SYSCALL_H
+#define SYSCALL_H
+
 /* Exported functions. */
 
 int do_syscall(void);
@@ -59,3 +62,5 @@ void handle_exception(void);
 #define CLOSE_SYSCALL 16
 
 #define EXIT2_SYSCALL 17
+
+#endif

@@ -31,6 +31,13 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef MEM_H
+#define MEM_H
+
+#include "spim.h"
+#include "inst.h"
+#include "reg.h"
+
 /* A note on directions:  "Bottom" of memory is the direction of
    decreasing addresses.  "Top" is the direction of increasing addresses.*/
 
@@ -145,3 +152,5 @@ void set_mem_inst(mem_addr addr, instruction* inst);
 void set_mem_byte(mem_addr addr, reg_word value);
 void set_mem_half(mem_addr addr, reg_word value);
 void set_mem_word(mem_addr addr, reg_word value);
+
+#endif

@@ -33,4 +33,11 @@
 
 /* Exported functions: */
 
+#ifndef RUN_H
+#define RUN_H
+
+#include "spim.h"
+
 bool run_spim(mem_addr initial_PC, int steps, bool display);
+
+#endif

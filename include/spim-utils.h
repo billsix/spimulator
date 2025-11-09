@@ -31,6 +31,12 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef SPIM_UTILS_H
+#define SPIM_UTILS_H
+
+#include "spim.h"
+#include "string-stream.h"
+
 /* Triple containing a string and two integers.	 Used in tables
    mapping from a name to values. */
 
@@ -64,3 +70,5 @@ char* str_copy(char* str);
 void write_startup_message(void);
 void* xmalloc(int);
 void* zmalloc(int);
+
+#endif

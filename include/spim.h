@@ -31,6 +31,11 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef SPIM_H
+#define SPIM_H
+
+#include <stdbool.h>
+
 #ifndef NULL
 #define NULL 0
 #endif
@@ -242,3 +247,5 @@ extern mem_addr initial_stack_limit;
 extern int initial_k_text_size;
 extern int initial_k_data_size;
 extern mem_addr initial_k_data_limit;
+
+#endif

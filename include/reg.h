@@ -31,8 +31,14 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
-typedef int32 /*@alt unsigned int @*/ reg_word;
-typedef uint32 u_reg_word;
+#ifndef REG_H
+#define REG_H
+
+#include <stdint.h>
+#include "spim.h"
+
+typedef int32_t /*@alt unsigned int @*/ reg_word;
+typedef uint32_t u_reg_word;
 
 /* General purpose registers: */
 
@@ -230,3 +236,5 @@ extern int* FWR;    /* is possible */
 #define FCSR_Flag_O 0x00000010
 #define FCSR_Flag_U 0x00000008
 #define FCSR_Flag_I 0x00000004
+
+#endif

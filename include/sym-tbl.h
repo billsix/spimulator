@@ -31,6 +31,12 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef SYM_TBL_H
+#define SYM_TBL_H
+
+#include "spim.h"
+#include "inst.h"
+
 typedef struct lab_use {
   instruction* inst; /* NULL => Data, not code */
   mem_addr addr;
@@ -68,3 +74,5 @@ void record_inst_uses_symbol(instruction* inst, label* sym);
 char* undefined_symbol_string(void);
 void resolve_a_label(label* sym, instruction* inst);
 void resolve_label_uses(label* sym);
+
+#endif

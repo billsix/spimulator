@@ -31,6 +31,11 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef DATA_H
+#define DATA_H
+
+#include "spim.h"
+
 /* Exported functions: */
 
 void align_data(int alignment);
@@ -52,3 +57,5 @@ void store_half(int value);
 void store_string(char* string, int length, bool null_terminate);
 void store_word(int value);
 void user_kernel_data_segment(bool to_kernel);
+
+#endif

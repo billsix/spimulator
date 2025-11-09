@@ -32,6 +32,9 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef OP_H
+#define OP_H
+
 /* Type of each entry: */
 
 #define ASM_DIR 0
@@ -528,3 +531,5 @@ OP("wsbh", Y_WSBH_OP, R2td_TYPE_INST, 0x7c0000a0)     /* MIPS32 Rev 2 */
 
 OP("xor", Y_XOR_OP, R3_TYPE_INST, 0x00000026)
 OP("xori", Y_XORI_OP, I2_TYPE_INST, 0x38000000)
+
+#endif

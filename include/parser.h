@@ -31,6 +31,11 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef PARSER_H
+#define PARSER_H
+
+#include "spim.h"
+
 /* Exported functions: */
 
 void fix_current_label_address(mem_addr new_addr);
@@ -47,3 +52,5 @@ extern bool data_dir; /* => item in data segment */
 extern bool text_dir; /* => item in text segment */
 
 extern bool parse_error_occurred; /* => parse resulted in error */
+
+#endif

@@ -31,6 +31,11 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef SCANNER_H
+#define SCANNER_H
+
+#include "spim.h"
+
 /* Exported functions (besides yylex): */
 
 void initialize_scanner(FILE* in_file);
@@ -56,3 +61,5 @@ typedef intptr_union yylval_t;
 extern YYSTYPE yylval; /* Value of token from YYLEX */
 
 extern int line_no; /* Line number in input file*/
+
+#endif
