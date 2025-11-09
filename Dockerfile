@@ -2,6 +2,10 @@ FROM registry.fedoraproject.org/fedora:43
 
 
 COPY entrypoint/dotfiles/ /root/
+COPY entrypoint/buildDebug.sh /usr/local/bin
+COPY entrypoint/format.sh /usr/local/bin
+COPY entrypoint/lint.sh /usr/local/bin
+COPY entrypoint/shell.sh /usr/local/bin
 
 RUN sed -i -e "s@tsflags=nodocs@#tsflags=nodocs@g" /etc/dnf/dnf.conf && \
     echo "keepcache=True" >> /etc/dnf/dnf.conf && \
@@ -48,7 +52,7 @@ RUN  cd /spimulator/tests ; \
      spimulator -ef ../src/exceptions.s -file tt.le.s  >& test.out ; tail -n 1 test.out | grep -q "^Passed all tests$" || exit 1;
 
 
-COPY .clang-format /pgu/
+COPY .clang-format /spimulator/
 
 RUN echo "exit() {" >> ~/.bashrc && \
     echo "    echo "Formatting on shell exit"" >> ~/.bashrc && \
