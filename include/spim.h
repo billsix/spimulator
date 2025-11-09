@@ -213,7 +213,7 @@ typedef union {
 
 int console_input_available(void);
 void error(char* fmt, ...);
-void fatal_error(char* fmt, ...);
+_Noreturn void fatal_error(char* fmt, ...);
 char get_console_char(void);
 void put_console_char(char c);
 void read_input(char* str, int n);
