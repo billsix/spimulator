@@ -112,18 +112,17 @@ static void dump_text_seg(bool kernel_also);
 /* Exported Variables: */
 
 /* Not local, but not export so all files don't need setjmp.h */
-jmp_buf spim_top_level_env; /* For ^C */
+static jmp_buf spim_top_level_env; /* For ^C */
 
 bool bare_machine;        /* => simulate bare machine */
 bool delayed_branches;    /* => simulate delayed branches */
 bool delayed_loads;       /* => simulate delayed loads */
 bool accept_pseudo_insts; /* => parse pseudo instructions  */
 bool quiet;               /* => no warning messages */
-bool assemble;            /* => assemble, disassemble to file and exit */
+static bool assemble;     /* => assemble, disassemble to file and exit */
 char* exception_file_name = DEFAULT_EXCEPTION_HANDLER;
 port message_out, console_out, console_in;
-bool mapped_io; /* => activate memory-mapped IO */
-int pipe_out;
+bool mapped_io;        /* => activate memory-mapped IO */
 int spim_return_value; /* Value returned when spim exits */
 
 /* Local variables: */
@@ -219,17 +218,17 @@ int main(int argc, char** argv) {
     } else if (streq(argv[i], "-sdata") || streq(argv[i], "-sd")) {
       initial_data_size = atoi(argv[++i]);
     } else if (streq(argv[i], "-ldata") || streq(argv[i], "-ld")) {
-      initial_data_limit = atoi(argv[++i]);
+      initial_data_limit = (mem_addr)atoi(argv[++i]);
     } else if (streq(argv[i], "-sstack") || streq(argv[i], "-ss")) {
       initial_stack_size = atoi(argv[++i]);
     } else if (streq(argv[i], "-lstack") || streq(argv[i], "-ls")) {
-      initial_stack_limit = atoi(argv[++i]);
+      initial_stack_limit = (mem_addr)atoi(argv[++i]);
     } else if (streq(argv[i], "-sktext") || streq(argv[i], "-skt")) {
       initial_k_text_size = atoi(argv[++i]);
     } else if (streq(argv[i], "-skdata") || streq(argv[i], "-skd")) {
       initial_k_data_size = atoi(argv[++i]);
     } else if (streq(argv[i], "-lkdata") || streq(argv[i], "-lkd")) {
-      initial_k_data_limit = atoi(argv[++i]);
+      initial_k_data_limit = (mem_addr)atoi(argv[++i]);
     } else if (((streq(argv[i], "-file") || streq(argv[i], "-f")) &&
                 (i + 1 < argc))
                /* Assume this argument is a program's file name and everything
@@ -318,7 +317,7 @@ int main(int argc, char** argv) {
 
 /* Top-level read-eval-print loop for SPIM. */
 
-static void top_level(void) {
+_Noreturn static void top_level(void) {
   bool redo = false; /* => reexecute last command */
 
   (void)signal(SIGINT, control_c_seen);
@@ -335,7 +334,7 @@ static void top_level(void) {
   }
 }
 
-static void control_c_seen(int arg) {
+_Noreturn static void control_c_seen(int arg) {
   (void)arg;  // this line is to suppress compiler warnings
   console_to_spim();
   write_output(message_out, "\nExecution interrupted\n");
@@ -398,7 +397,7 @@ static bool parse_spim_command(bool redo) {
       static mem_addr addr;
       bool continuable;
 
-      addr = (redo ? addr : get_opt_int());
+      addr = (redo ? addr : ((mem_addr)get_opt_int()));
       if (addr == 0) addr = starting_address();
 
       initialize_run_stack(program_argc, program_argv);
@@ -474,16 +473,16 @@ static bool parse_spim_command(bool redo) {
           loc += 4;
         else
           loc = yylval.i;
-        print_mem(loc);
+        print_mem((mem_addr)loc);
       } else if (token == Y_ID) {
         if (!print_reg_from_string((char*)yylval.p)) {
           if (redo)
             loc += 4;
           else
-            loc = find_symbol_address((char*)yylval.p);
+            loc = (int)find_symbol_address((char*)yylval.p);
 
           if (loc != 0)
-            print_mem(loc);
+            print_mem((mem_addr)loc);
           else
             error("Unknown label: %s\n", yylval.p);
         }
@@ -816,7 +815,7 @@ static bool write_assembled_code(char* program_name) {
   FILE* fp = NULL;
   {
     char* filename = NULL;
-    const int filename_len = strlen(program_name) + 5;
+    const unsigned long filename_len = strlen(program_name) + 5;
     filename = (char*)xmalloc(filename_len);
     strlcpy(filename, program_name, filename_len);
     strlcat(filename, ".out", filename_len);
@@ -898,7 +897,7 @@ void fatal_error(char* fmt, ...) {
 
 /* Print an error message and return to top level. */
 
-void run_error(char* fmt, ...) {
+_Noreturn void run_error(char* fmt, ...) {
   va_list args;
 
   va_start(args, fmt);
@@ -1084,10 +1083,11 @@ static void dump_data_seg(bool kernel_also) {
     format_mem(&ss, DATA_BOT, data_top);
   }
 
-  FILE* fp;
-  fp = fopen("data.asm", "w");
-  fprintf(fp, "%s", ss_to_string(&ss));
-  fclose(fp);
+  {
+    FILE* fp = fopen("data.asm", "w");
+    fprintf(fp, "%s", ss_to_string(&ss));
+    fclose(fp);
+  }
 }
 
 /*
