@@ -1,3 +1,4 @@
+
 /* SPIM S20 MIPS simulator.
    Code to build assembly instructions and resolve symbolic labels.
 

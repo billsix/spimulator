@@ -498,7 +498,10 @@ unsigned long strtoul(const char* str, char** eptr, int base) {
 #endif
 
 char* str_copy(char* str) {
-  return (strcpy((char*)xmalloc((int)strlen(str) + 1), str));
+  const int len_to_copy = (int)strlen(str) + 1;
+  char* const new_str = (char*)xmalloc(len_to_copy);
+  strlcpy(new_str, str, len_to_copy);
+  return new_str;
 }
 
 void* xmalloc(int size) {

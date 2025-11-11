@@ -814,29 +814,29 @@ static bool write_assembled_code(char* program_name) {
   }
 
   FILE* fp = NULL;
-  char* filename = NULL;
+  {
+    char* filename = NULL;
+    const int filename_len = strlen(program_name) + 5;
+    filename = (char*)xmalloc(filename_len);
+    strlcpy(filename, program_name, filename_len);
+    strlcat(filename, ".out", filename_len);
 
-  mem_addr addr;
-  mem_addr dump_start;
-  mem_addr dump_end;
-
-  filename = (char*)xmalloc(strlen(program_name) + 5);
-  strcpy(filename, program_name);
-  strcat(filename, ".out");
-
-  fp = fopen(filename, "wt");
-  if (fp == NULL) {
-    perror(filename);
-    return (true);
+    fp = fopen(filename, "wt");
+    if (fp == NULL) {
+      perror(filename);
+      free(filename);
+      return (true);
+    }
+    free(filename);
   }
 
   /* dump text segment */
   user_kernel_text_segment(false);
-  dump_start = find_symbol_address(END_OF_TRAP_HANDLER_SYMBOL);
-  dump_end = current_text_pc();
+  mem_addr dump_start = find_symbol_address(END_OF_TRAP_HANDLER_SYMBOL);
+  mem_addr dump_end = current_text_pc();
 
   (void)fprintf(fp, ".text # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
-  for (addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
+  for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
     int32 code = inst_encode(read_mem_inst(addr));
     (void)fprintf(fp, "0x%x%s", code,
                   addr != (dump_end - BYTES_PER_WORD) ? ", " : "");
@@ -854,7 +854,7 @@ static bool write_assembled_code(char* program_name) {
 
   if (dump_end > dump_start) {
     (void)fprintf(fp, ".data # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
-    for (addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
+    for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
       int32 code = read_mem_word(addr);
       (void)fprintf(fp, "0x%x%s", code,
                     addr != (dump_end - BYTES_PER_WORD) ? ", " : "");

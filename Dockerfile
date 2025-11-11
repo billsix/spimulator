@@ -53,6 +53,7 @@ RUN  cd /spimulator/tests ; \
 
 
 COPY .clang-format /spimulator/
+COPY .clang-tidy /spimulator/
 
 RUN echo "exit() {" >> ~/.bashrc && \
     echo "    echo "Formatting on shell exit"" >> ~/.bashrc && \

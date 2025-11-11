@@ -1,0 +1,1 @@
+Checks: '-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,-clang-diagnostic-zero-length-array,-cppcoreguidelines-const'

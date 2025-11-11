@@ -1,7 +1,10 @@
 project('spimulator', 'c',
   version: '1.0',
-  default_options: ['c_std=gnu11']
+  default_options: ['c_std=gnu23']
 )
+
+add_project_arguments('-Wno-zero-length-array', language: 'c')
+
 
 # Find flex and bison
 flex = find_program('flex', required: true)
@@ -13,8 +16,6 @@ if host_machine.system() == 'windows'
   add_project_arguments('-std=c++98', language: 'cpp')
 endif
 
-# Add compile definitions
-add_project_arguments('-DIMGUI_IMPL_OPENGL_LOADER_GL3W=1', language: 'c')
 
 # Configure config.h
 conf_data = configuration_data()
