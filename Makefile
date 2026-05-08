@@ -1,5 +1,8 @@
 .DEFAULT_GOAL := shell
 
+USE_EMACS ?= 1
+
+
 CONTAINER_CMD = podman
 CONTAINER_NAME = spimulator
 FILES_TO_MOUNT = -v .:/spimulator/:Z \
@@ -14,6 +17,14 @@ DNF_CACHE_TO_MOUNT = -v $(PACKAGE_CACHE_ROOT)/var/cache/libdnf5:/var/cache/libdn
 	             -v $(PACKAGE_CACHE_ROOT)/var/lib/dnf:/var/lib/dnf:Z
 
 
+ifeq ($(USE_EMACS), 1)
+  ELPA_MOUNT= -v $(CURDIR)/entrypoint/dotfiles/.emacs.d/elpa:/root/.emacs.d/elpa:U,z
+else
+  ELPA_MOUNT=
+endif
+
+
+
 .PHONY: all
 all: shell ## Build the image and get a shell in it
 
@@ -25,7 +36,9 @@ image: ## Build podman image to run the examples
 	# build the container
 	$(CONTAINER_CMD) build \
                          -t $(CONTAINER_NAME) \
+                         --build-arg USE_EMACS=$(USE_EMACS) \
                          $(DNF_CACHE_TO_MOUNT) \
+                         $(ELPA_MOUNT) \
                          .
 
 
@@ -35,6 +48,7 @@ shell: format ## Get Shell into a ephermeral container made from the image
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \
 		$(CONTAINER_NAME) \
+                         $(ELPA_MOUNT) \
 		/usr/local/bin/shell.sh
 
 

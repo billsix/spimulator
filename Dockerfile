@@ -1,4 +1,6 @@
-FROM registry.fedoraproject.org/fedora:43
+FROM registry.fedoraproject.org/fedora:44
+
+ARG USE_EMACS=0
 
 
 COPY entrypoint/dotfiles/ /root/
@@ -7,13 +9,15 @@ COPY entrypoint/format.sh /usr/local/bin
 COPY entrypoint/lint.sh /usr/local/bin
 COPY entrypoint/shell.sh /usr/local/bin
 
+
+
+
 RUN sed -i -e "s@tsflags=nodocs@#tsflags=nodocs@g" /etc/dnf/dnf.conf && \
     echo "keepcache=True" >> /etc/dnf/dnf.conf && \
     dnf upgrade -y && \
     dnf install -y bison \
                    clang \
                    clang-tools-extra \
-                   emacs \
                    flex \
                    g++ \
                    gcc \
@@ -28,9 +32,15 @@ RUN sed -i -e "s@tsflags=nodocs@#tsflags=nodocs@g" /etc/dnf/dnf.conf && \
                    tmux \
                    valgrind \
                    which && \
-    echo 'set debuginfod enabled off' > /root/.gdbinit && \
-    emacs --batch --load /root/.emacs.d/install-melpa-packages.el
-
+    echo 'set debuginfod enabled off' > /root/.gdbinit ; \
+    if [ "$USE_EMACS" = "1" ]; then \
+      dnf install -y \
+                  emacs \
+                  emacs-gtk+x11 \
+                  emacs-pgtk \
+                  python3-lsp-server && \
+      emacs --batch --load /root/.emacs.d/install-melpa-packages.el; \
+    fi ;
 
 COPY helloworld.s meson.build /spimulator/
 COPY src/ /spimulator/src
