@@ -22,16 +22,6 @@
   (interactive)
   (kill-new (sha1 (buffer-substring (region-beginning) (region-end)))))
 
-(use-package eglot
-  :ensure t
-  :defer t
-  :hook ((c-mode c++-mode) . eglot-ensure))
-
-(use-package eglot
-  :ensure t
-  :defer t
-  :hook (emacs-lisp-mode . eglot-ensure))
-
 (global-company-mode)
 (setq company-idle-delay 0)
 (setq company-minimum-prefix-length 1)
