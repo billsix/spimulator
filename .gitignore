@@ -1,0 +1,11 @@
+# Build products
+builddir/
+compile_commands.json
+
+# Emacs lockfiles & autosaves
+*~
+\#*\#
+.\#*
+
+# Local debug captures
+foo.txt

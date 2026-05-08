@@ -32,8 +32,14 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef OP_H
-#define OP_H
+/* op.h is intentionally an X-macro: it must be re-includable so a single
+   translation unit can build several different tables (name_tbl,
+   i_opcode_tbl, a_opcode_tbl) by redefining OP() each time. The type-macro
+   definitions below are guarded so they don't redefine on subsequent
+   includes; the OP() list itself is left outside the guard. */
+
+#ifndef OP_H_TYPES
+#define OP_H_TYPES
 
 /* Type of each entry: */
 
@@ -68,6 +74,8 @@
 
 #define J_TYPE_INST 40
 #define NOARG_TYPE_INST 42
+
+#endif /* OP_H_TYPES */
 
 /* Information on each keyword token that can be read by spim.	Must be
    sorted in alphabetical order. */
@@ -531,5 +539,3 @@ OP("wsbh", Y_WSBH_OP, R2td_TYPE_INST, 0x7c0000a0)     /* MIPS32 Rev 2 */
 
 OP("xor", Y_XOR_OP, R3_TYPE_INST, 0x00000026)
 OP("xori", Y_XORI_OP, I2_TYPE_INST, 0x38000000)
-
-#endif

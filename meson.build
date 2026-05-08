@@ -53,7 +53,8 @@ source_files = files(
   'src/sym-tbl.c',
   'src/syscall.c',
   'src/display-utils.c',
-  'src/string-stream.c'
+  'src/string-stream.c',
+  'src/explain.c'
 )
 
 # Add generated sources

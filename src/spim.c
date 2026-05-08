@@ -88,6 +88,7 @@
 #include "scanner.h"
 #include "parser_yacc.h"
 #include "data.h"
+#include "explain.h"
 
 /* Internal functions: */
 
@@ -206,6 +207,10 @@ int main(int argc, char** argv) {
       quiet = true;
     } else if (streq(argv[i], "-noquiet") || streq(argv[i], "-nq")) {
       quiet = false;
+    } else if (streq(argv[i], "-explain") || streq(argv[i], "-x")) {
+      explain_mode = true;
+    } else if (streq(argv[i], "-noexplain") || streq(argv[i], "-nx")) {
+      explain_mode = false;
     } else if (streq(argv[i], "-trap") || streq(argv[i], "-t")) {
       load_exception_handler = true;
     } else if (streq(argv[i], "-notrap") || streq(argv[i], "-nt")) {
@@ -270,6 +275,8 @@ int main(int argc, char** argv) {
 	-exception_file <file>	Specify exception handler in place of default\n\
 	-quiet			Do not print warnings\n\
 	-noquiet		Print warnings (default)\n\
+	-explain		Narrate every instruction (teaching mode)\n\
+	-noexplain		Disable teaching mode (default)\n\
 	-mapped_io		Enable memory-mapped IO\n\
 	-nomapped_io		Do not enable memory-mapped IO (default)\n\
 	-file <file> <args>	Assembly code file and arguments to program\n\
@@ -455,6 +462,10 @@ static bool parse_spim_command(bool redo) {
     case PRINT_CMD: {
       int token = (redo ? prev_token : read_token());
       static int loc;
+      /* Set true if we've already consumed Y_NL while parsing a base+offset
+       * suffix, so the trailing flush_to_newline doesn't gobble the next
+       * command's tokens. */
+      bool consumed_nl = false;
 
       if (token == Y_REG) {
         if (redo)
@@ -469,11 +480,33 @@ static bool parse_spim_command(bool redo) {
           loc = yylval.i;
         print_fp_reg(loc);
       } else if (token == Y_INT) {
-        if (redo)
+        if (redo) {
           loc += 4;
-        else
-          loc = yylval.i;
-        print_mem((mem_addr)loc);
+          print_mem((mem_addr)loc);
+        } else {
+          int int_val = yylval.i;
+          /* Peek for the N($reg) base+offset form so students can inspect
+           * memory using the same syntax they wrote in load/store ops. */
+          int next = read_token();
+          if (next == '(') {
+            int reg_tok = read_token();
+            int reg = (reg_tok == Y_REG) ? yylval.i : -1;
+            int close = (reg_tok == Y_REG) ? read_token() : 0;
+            if (reg_tok == Y_NL || close == Y_NL) consumed_nl = true;
+            if (reg < 0 || close != ')') {
+              error("expected $reg) after '(' in print N($reg) form\n");
+            } else {
+              loc = R[reg] + int_val;
+              print_mem((mem_addr)loc);
+            }
+          } else {
+            /* Not the base+offset form — treat int_val as an absolute
+             * address (the standard form). */
+            loc = int_val;
+            print_mem((mem_addr)loc);
+            if (next == Y_NL) consumed_nl = true;
+          }
+        }
       } else if (token == Y_ID) {
         if (!print_reg_from_string((char*)yylval.p)) {
           if (redo)
@@ -488,7 +521,7 @@ static bool parse_spim_command(bool redo) {
         }
       } else
         error("Print what?\n");
-      if (!redo) flush_to_newline();
+      if (!redo && !consumed_nl) flush_to_newline();
       prev_cmd = PRINT_CMD;
       prev_token = token;
       return (0);

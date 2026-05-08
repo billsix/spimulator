@@ -236,6 +236,7 @@ void initialize_inst_tables(void);
 instruction* inst_decode(int32 value);
 int32 inst_encode(instruction* inst);
 bool inst_is_breakpoint(mem_addr addr);
+const char* inst_op_name(instruction* inst);
 void j_type_inst(int opcode, imm_expr* target);
 void k_text_begins_at_point(mem_addr addr);
 imm_expr* lower_bits_of_expr(imm_expr* old_expr);

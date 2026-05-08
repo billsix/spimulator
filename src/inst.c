@@ -554,6 +554,16 @@ void print_inst(mem_addr addr) {
   free(inst_str);
 }
 
+/* Return the canonical mnemonic for inst (e.g. "addu", "ori", "j"), or
+   "<unknown>" if OPCODE(inst) isn't in name_tbl. The returned pointer is
+   owned by the static name_tbl and must not be freed. */
+const char* inst_op_name(instruction* inst) {
+  if (inst == NULL) return "<null>";
+  name_val_val* entry = map_int_to_name_val_val(
+      name_tbl, sizeof(name_tbl) / sizeof(name_val_val), OPCODE(inst));
+  return entry ? entry->name : "<unknown>";
+}
+
 char* inst_to_string(mem_addr addr) {
   str_stream ss;
   instruction* inst;
@@ -603,67 +613,81 @@ void format_an_inst(str_stream* ss, instruction* inst, mem_addr addr) {
       break;
 
     case B1_TYPE_INST:
-      ss_printf(ss, " $%d %d", RS(inst), IDISP(inst));
+      ss_printf(ss, " $%s %d", int_reg_names[RS(inst)], IDISP(inst));
       break;
 
     case I1s_TYPE_INST:
-      ss_printf(ss, " $%d, %d", RS(inst), IMM(inst));
+      ss_printf(ss, " $%s, %d", int_reg_names[RS(inst)], IMM(inst));
       break;
 
     case I1t_TYPE_INST:
-      ss_printf(ss, " $%d, %d", RT(inst), IMM(inst));
+      ss_printf(ss, " $%s, %d", int_reg_names[RT(inst)], IMM(inst));
       break;
 
     case I2_TYPE_INST:
-      ss_printf(ss, " $%d, $%d, %d", RT(inst), RS(inst), IMM(inst));
+      ss_printf(ss, " $%s, $%s, %d", int_reg_names[RT(inst)],
+                int_reg_names[RS(inst)], IMM(inst));
       break;
 
     case B2_TYPE_INST:
-      ss_printf(ss, " $%d, $%d, %d", RS(inst), RT(inst), IDISP(inst));
+      ss_printf(ss, " $%s, $%s, %d", int_reg_names[RS(inst)],
+                int_reg_names[RT(inst)], IDISP(inst));
       break;
 
     case I2a_TYPE_INST:
-      ss_printf(ss, " $%d, %d($%d)", RT(inst), IMM(inst), BASE(inst));
+      ss_printf(ss, " $%s, %d($%s)", int_reg_names[RT(inst)], IMM(inst),
+                int_reg_names[BASE(inst)]);
       break;
 
     case R1s_TYPE_INST:
-      ss_printf(ss, " $%d", RS(inst));
+      ss_printf(ss, " $%s", int_reg_names[RS(inst)]);
       break;
 
     case R1d_TYPE_INST:
-      ss_printf(ss, " $%d", RD(inst));
+      ss_printf(ss, " $%s", int_reg_names[RD(inst)]);
       break;
 
     case R2td_TYPE_INST:
-      ss_printf(ss, " $%d, $%d", RT(inst), RD(inst));
+      ss_printf(ss, " $%s, $%s", int_reg_names[RT(inst)],
+                int_reg_names[RD(inst)]);
       break;
 
     case R2st_TYPE_INST:
-      ss_printf(ss, " $%d, $%d", RS(inst), RT(inst));
+      ss_printf(ss, " $%s, $%s", int_reg_names[RS(inst)],
+                int_reg_names[RT(inst)]);
       break;
 
     case R2ds_TYPE_INST:
-      ss_printf(ss, " $%d, $%d", RD(inst), RS(inst));
+      ss_printf(ss, " $%s, $%s", int_reg_names[RD(inst)],
+                int_reg_names[RS(inst)]);
       break;
 
     case R2sh_TYPE_INST:
-      if (ENCODING(inst) == 0) {
+      /* nop is canonically sll $0, $0, 0. ENCODING() is unreliable here
+       * (the assembler doesn't populate it for source-assembled instructions,
+       * so it's always 0 and would falsely make every shift print as nop).
+       * Check the actual fields instead. */
+      if (RD(inst) == 0 && RT(inst) == 0 && SHAMT(inst) == 0) {
         ss_erase(ss, 3); /* zap sll */
         ss_printf(ss, "nop");
       } else
-        ss_printf(ss, " $%d, $%d, %d", RD(inst), RT(inst), SHAMT(inst));
+        ss_printf(ss, " $%s, $%s, %d", int_reg_names[RD(inst)],
+                  int_reg_names[RT(inst)], SHAMT(inst));
       break;
 
     case R3_TYPE_INST:
-      ss_printf(ss, " $%d, $%d, $%d", RD(inst), RS(inst), RT(inst));
+      ss_printf(ss, " $%s, $%s, $%s", int_reg_names[RD(inst)],
+                int_reg_names[RS(inst)], int_reg_names[RT(inst)]);
       break;
 
     case R3sh_TYPE_INST:
-      ss_printf(ss, " $%d, $%d, $%d", RD(inst), RT(inst), RS(inst));
+      ss_printf(ss, " $%s, $%s, $%s", int_reg_names[RD(inst)],
+                int_reg_names[RT(inst)], int_reg_names[RS(inst)]);
       break;
 
     case FP_I2a_TYPE_INST:
-      ss_printf(ss, " $f%d, %d($%d)", FT(inst), IMM(inst), BASE(inst));
+      ss_printf(ss, " $f%d, %d($%s)", FT(inst), IMM(inst),
+                int_reg_names[BASE(inst)]);
       break;
 
     case FP_R2ds_TYPE_INST:
@@ -671,7 +695,7 @@ void format_an_inst(str_stream* ss, instruction* inst, mem_addr addr) {
       break;
 
     case FP_R2ts_TYPE_INST:
-      ss_printf(ss, " $%d, $f%d", RT(inst), FS(inst));
+      ss_printf(ss, " $%s, $f%d", int_reg_names[RT(inst)], FS(inst));
       break;
 
     case FP_CMP_TYPE_INST:
@@ -686,7 +710,8 @@ void format_an_inst(str_stream* ss, instruction* inst, mem_addr addr) {
       break;
 
     case MOVC_TYPE_INST:
-      ss_printf(ss, " $%d, $%d, %d", RD(inst), RS(inst), RT(inst) >> 2);
+      ss_printf(ss, " $%s, $%s, %d", int_reg_names[RD(inst)],
+                int_reg_names[RS(inst)], RT(inst) >> 2);
       break;
 
     case FP_MOVC_TYPE_INST:
@@ -990,7 +1015,8 @@ static void format_imm_expr(str_stream* ss, imm_expr* expr, int base_reg) {
       (expr->offset > 10 || expr->offset < -10)) {
     if (expr->offset == 0 && base_reg != 0) ss_printf(ss, "+0");
 
-    if (expr->offset != 0 || base_reg != 0) ss_printf(ss, "($%d)", base_reg);
+    if (expr->offset != 0 || base_reg != 0)
+      ss_printf(ss, "($%s)", int_reg_names[base_reg]);
   }
 }
 

@@ -63,6 +63,7 @@
 #include "parser_yacc.h"
 #include "syscall.h"
 #include "run.h"
+#include "explain.h"
 
 bool force_break =
     false; /* For the execution env. to force an execution break */
@@ -248,6 +249,8 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 #endif
 
       DO_DELAYED_UPDATE();
+
+      explain_before(inst, PC);
 
       switch (OPCODE(inst)) {
         case Y_ADD_OP: {
@@ -1432,6 +1435,8 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
       /* After instruction executes: */
       PC += BYTES_PER_WORD;
+
+      explain_after(inst);
 
       if (display) print_inst(PC);
 
