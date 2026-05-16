@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "spim.h"
@@ -20,12 +21,177 @@
 #include "parser_yacc.h"
 #include "explain.h"
 
-bool explain_mode = false;
+int explain_level = 0;
 
-/* Snapshot of architectural state at explain_before() time. */
+/* Snapshot of architectural state at explain_before() time. The narration
+   itself runs from explain_after() (so every line reads in past tense by
+   the time the user sees it), which means input-side reads come from
+   snap_R / snap_HI / snap_LO / snap_PC and result-side reads come from
+   the live R / HI / LO / PC. Stores also need a pre-execute memory
+   snapshot, since by the time explain_after runs the write has happened
+   and peek_word would return the new value. */
 static reg_word snap_R[R_LENGTH];
 static reg_word snap_HI, snap_LO;
 static mem_addr snap_PC;
+static bool snap_has_mem;
+static mem_addr snap_mem_addr;
+static reg_word snap_mem_val;
+
+/* Per-instruction "did the template name this write?" tracking. The
+   fallback block at the end of explain_after prints any register that
+   changed but isn't here as a "Side effect:" line — protects against
+   template/op mismatch and surfaces unexpected mutations. Reset at
+   each explain_after entry. */
+static bool touched_reg[R_LENGTH];
+static bool touched_hi, touched_lo;
+
+/* Once-per-session flag: explain_after emits a short labeled legend
+   the first time it runs, explaining what each piece of the upcoming
+   "Stepped" header line means. Spares the novice from having to infer
+   the header's layout, and avoids cluttering every subsequent step. */
+static bool legend_emitted = false;
+
+/* Forward declarations needed by explain_print_step_header, which is
+   defined below but called from explain_after (and from run.c, via the
+   public extern in explain.h). */
+static void hr(void);
+
+static void emit_legend(void) {
+  write_output(
+      message_out,
+      "\n"
+      "══════════════════════════════════════════════════════════\n"
+      "About the output\n"
+      "══════════════════════════════════════════════════════════\n"
+      "\n"
+      "Every step begins with a header like:\n"
+      "\n"
+      "    Stepped at PC = 0x00400128:\n"
+      "        memory[0x00400128] = 0x214affff   →   addi $t2, $t2, -1\n"
+      "        source line 118: addi $t2, $t2, -1\n"
+      "\n"
+      "What each part means:\n"
+      "\n"
+      "  PC = 0xADDR\n"
+      "        The program counter — the address in memory of the\n"
+      "        instruction that just executed.\n"
+      "\n"
+      "  memory[0xADDR] = 0xWORD\n"
+      "        The 32-bit machine code stored at that address. This\n"
+      "        is what the CPU's decoder reads.\n"
+      "\n"
+      "  →  real-instruction\n"
+      "        The disassembled form — what the CPU actually ran,\n"
+      "        with registers shown in ABI names ($t2, $sp, $a0)\n"
+      "        rather than register numbers.\n"
+      "\n"
+      "  source line N: ...\n"
+      "        The line from your assembly file the assembler read\n"
+      "        for this instruction. If it doesn't match the real\n"
+      "        instruction on the line above, you wrote a pseudo-\n"
+      "        instruction (e.g. `la $t7, dst` expands to `lui` +\n"
+      "        `ori` — the source line appears once but two real\n"
+      "        instructions get narrated).\n"
+      "\n"
+      "(This header is shown once per session. Higher `-explain`\n"
+      "levels add per-instruction narration after the header.)\n");
+}
+
+/* Emit one step's header (legend on first call, then a horizontal
+   separator, "Stepped at PC = X:", labeled machine-view line, optional
+   source line). Public — called both from explain_after (for the
+   labeled lead-in to the per-instruction narration) and from the
+   default step display in run.c so the no-explain step output has the
+   same shape. Level-independent. */
+void explain_print_step_header(mem_addr pc, instruction* inst) {
+  if (!legend_emitted) {
+    emit_legend();
+    legend_emitted = true;
+  }
+
+  write_output(message_out, "\n");
+  hr();
+  write_output(message_out, "Stepped at PC = 0x%08x:\n", pc);
+
+  /* Disassembled form. inst_to_string returns one of:
+       "[0xADDR]\t0xENC  DISASSEMBLY              ; LINE: SOURCE"
+       "[0xADDR]\t0xENC  DISASSEMBLY"
+     Split at the `;` so we can emit the source line under its own
+     label, which makes pseudo-op divergence (source != real) visually
+     obvious. */
+  char* dis = inst_to_string(pc);
+  size_t dn = strlen(dis);
+  while (dn > 0 &&
+         (dis[dn - 1] == '\n' || dis[dn - 1] == ' ' || dis[dn - 1] == '\t'))
+    dis[--dn] = '\0';
+
+  char* p = strchr(dis, '\t');
+  if (p)
+    p++;
+  else
+    p = dis;
+  char* semi = strchr(p, ';');
+  char* source_part = NULL;
+  if (semi) {
+    char* end = semi;
+    while (end > p && (end[-1] == ' ' || end[-1] == '\t')) end--;
+    *end = '\0';
+    source_part = semi + 1;
+    while (*source_part == ' ') source_part++;
+  }
+  /* p now starts with "0xENCODING  DISASSEMBLY". Strip the encoding
+     (10 chars: "0x" + 8 hex) so we can label it explicitly. */
+  char* dasm = p;
+  if (strlen(p) >= 10 && p[0] == '0' && p[1] == 'x') {
+    dasm = p + 10;
+    while (*dasm == ' ' || *dasm == '\t') dasm++;
+  }
+
+  uint32 enc = (uint32)inst_encode(inst);
+  write_output(message_out, "    memory[0x%08x] = 0x%08x   →   %s\n", pc, enc,
+               dasm);
+  if (source_part && *source_part) {
+    write_output(message_out, "    source line %s\n", source_part);
+  }
+  free(dis);
+}
+
+/* ------------ Tab-completion suggestions ------------
+ *
+ * Each call to explain_before clears this list. Each "Try it yourself"
+ * line emitted by a template adds its bare command (no trailing comment)
+ * to the list. spim.c queries explain_suggestion_count / explain_suggestion
+ * from its libedit completion callback so a student can recall a hint
+ * with Tab.
+ *
+ * Lifetime: strings are strdup'd at add time and freed by
+ * explain_clear_suggestions. Storage is a fixed-cap array — 16 is a
+ * comfortable ceiling (templates emit at most 3-4 hints).
+ */
+#define MAX_SUGGESTIONS 16
+static char* suggestions[MAX_SUGGESTIONS];
+static size_t n_suggestions;
+
+void explain_clear_suggestions(void) {
+  for (size_t i = 0; i < n_suggestions; i++) {
+    free(suggestions[i]);
+    suggestions[i] = NULL;
+  }
+  n_suggestions = 0;
+}
+
+static void add_suggestion(const char* cmd) {
+  if (n_suggestions >= MAX_SUGGESTIONS) return;
+  char* copy = strdup(cmd);
+  if (copy != NULL) suggestions[n_suggestions++] = copy;
+}
+
+size_t explain_suggestion_count(void) { return n_suggestions; }
+
+const char* explain_suggestion(size_t i) {
+  if (i >= n_suggestions) return NULL;
+  return suggestions[i];
+}
 
 /* ------------ pseudo-op narration ------------
  *
@@ -266,13 +432,15 @@ static reg_word peek_byte(mem_addr addr) {
 
 static void hr(void) {
   write_output(message_out,
-               "----------------------------------------------------------\n");
+               "──────────────────────────────────────────────────────────\n");
 }
 
+/* Input-side reads: always from snap_R, since templates run after the
+   dispatch and R[] now holds post-execute values. */
 static void say_input_reg(int r) {
   if (r == 0) return; /* $zero is always 0; saying so is noise */
   write_output(message_out, "    $%s = 0x%08x  (decimal %d)\n",
-               int_reg_names[r], R[r], R[r]);
+               int_reg_names[r], snap_R[r], snap_R[r]);
 }
 
 static void say_input_imm(int imm_signed) {
@@ -280,18 +448,52 @@ static void say_input_imm(int imm_signed) {
                imm_signed & 0xffff);
 }
 
-static void say_will_write_reg(int r) {
-  write_output(message_out, "  Will write:\n");
-  write_output(message_out, "    $%s  (currently 0x%08x)\n", int_reg_names[r],
-               R[r]);
+/* Result-side: print "$X: before -> after (decimal N)" using the
+   snapshot for the before value and the live register for the after.
+   Marks the register as touched so the side-effect fallback doesn't
+   duplicate it. */
+static void say_wrote_reg(int r) {
+  if (r == 0) return; /* writes to $zero are discarded; nothing to show */
+  write_output(message_out, "    $%s:  0x%08x  →  0x%08x   (decimal %d)\n",
+               int_reg_names[r], snap_R[r], R[r], R[r]);
+  touched_reg[r] = true;
+}
+
+static void say_wrote_hi(void) {
+  write_output(message_out, "    HI:   0x%08x  →  0x%08x\n", snap_HI, HI);
+  touched_hi = true;
+}
+static void say_wrote_lo(void) {
+  write_output(message_out, "    LO:   0x%08x  →  0x%08x\n", snap_LO, LO);
+  touched_lo = true;
+}
+
+/* For stores: print "0x<addr>: prior -> current". width selects the
+   masking applied to both ends so byte/halfword stores display
+   sensibly. Only valid when snap_has_mem is true. */
+static void say_wrote_mem(int width) {
+  if (!snap_has_mem) return;
+  uint32 mask = (width == 1) ? 0xff : (width == 2) ? 0xffff : 0xffffffffu;
+  reg_word now;
+  if (width == 1)
+    now = peek_byte(snap_mem_addr) & 0xff;
+  else if (width == 2)
+    now = peek_half(snap_mem_addr) & 0xffff;
+  else
+    now = peek_word(snap_mem_addr);
+  write_output(message_out, "  Wrote to memory:\n");
+  write_output(message_out, "    0x%08x:  0x%08x  →  0x%08x\n", snap_mem_addr,
+               ((uint32)snap_mem_val) & mask, ((uint32)now) & mask);
 }
 
 /* Emit "Try it yourself" lines for up to four registers. Pass 0 (=$zero) to
-   skip a slot; duplicates are skipped automatically. */
+   skip a slot; duplicates are skipped automatically. Each emitted line is
+   also added to the tab-completion suggestions list. */
 static void say_try_regs(int a, int b, int c, int d) {
   int regs[4] = {a, b, c, d};
   write_output(message_out, "  Try it yourself:\n");
   bool any = false;
+  char cmd[64];
   for (int i = 0; i < 4; i++) {
     int r = regs[i];
     if (r == 0) continue;
@@ -299,12 +501,23 @@ static void say_try_regs(int a, int b, int c, int d) {
     for (int j = 0; j < i; j++)
       if (regs[j] == r) dup = true;
     if (dup) continue;
-    write_output(message_out, "    print $%s\n", int_reg_names[r]);
+    snprintf(cmd, sizeof cmd, "print $%s", int_reg_names[r]);
+    write_output(message_out, "    %s\n", cmd);
+    add_suggestion(cmd);
     any = true;
   }
   if (!any) {
     write_output(message_out, "    print_all_regs   # show every register\n");
+    add_suggestion("print_all_regs");
   }
+}
+
+/* One-off "Try it yourself" line for hints that aren't a bare $reg —
+   memory addresses, base+offset forms, etc. Writes the line aligned with
+   a trailing # comment, and adds the bare cmd to suggestions. */
+static void say_try(const char* cmd, const char* why) {
+  write_output(message_out, "    %-22s # %s\n", cmd, why);
+  add_suggestion(cmd);
 }
 
 /* ------------ per-opcode templates ------------
@@ -353,260 +566,289 @@ static void subst_field_regs(char* dst, size_t cap, const char* src, int rs,
   dst[i] = '\0';
 }
 
-static void tpl_r3_arith(instruction* inst, const char* op_label,
+static void tpl_r3_arith(int level, instruction* inst, const char* op_label,
                          const char* op_text) {
   int rs = RS(inst), rt = RT(inst), rd = RD(inst);
   char buf[512];
   subst_field_regs(buf, sizeof(buf), op_text, rs, rt, rd);
-  write_output(message_out, "  What it does:\n");
-  write_output(message_out, "    %s — %s. Result is placed in $%s.\n", op_label,
-               buf, int_reg_names[rd]);
-  write_output(message_out, "  Inputs read:\n");
-  if (rs == 0 && rt == 0)
-    write_output(message_out, "    (both source registers are $zero)\n");
-  say_input_reg(rs);
-  say_input_reg(rt);
-  say_will_write_reg(rd);
-  say_try_regs(rs, rt, rd, 0);
+  write_output(message_out, "  What it did:\n");
+  write_output(message_out, "    %s — %s; the result was placed in $%s.\n",
+               op_label, buf, int_reg_names[rd]);
+  if (level >= 2) {
+    write_output(message_out, "  Inputs (before this step):\n");
+    if (rs == 0 && rt == 0)
+      write_output(message_out, "    (both source registers are $zero)\n");
+    say_input_reg(rs);
+    say_input_reg(rt);
+    write_output(message_out, "  Wrote:\n");
+    say_wrote_reg(rd);
+    say_try_regs(rs, rt, rd, 0);
+  }
 }
 
-static void tpl_i2_arith(instruction* inst, const char* op_label,
+static void tpl_i2_arith(int level, instruction* inst, const char* op_label,
                          const char* op_text) {
   int rs = RS(inst), rt = RT(inst);
   short imm = (short)IMM(inst);
   char buf[512];
   /* For I-type, "$rt" in the op_text refers to the source field; the
      destination is also rt architecturally but we always describe it
-     by its concrete name in the surrounding "Result is placed in" line.
+     by its concrete name in the surrounding "result was placed in" line.
      We map $rs and $rt to their concrete names; $rd is unused. */
   subst_field_regs(buf, sizeof(buf), op_text, rs, rt, -1);
-  write_output(message_out, "  What it does:\n");
-  write_output(message_out, "    %s — %s. Result is placed in $%s.\n", op_label,
-               buf, int_reg_names[rt]);
-  write_output(message_out, "  Inputs read:\n");
-  say_input_reg(rs);
-  say_input_imm(imm);
-  say_will_write_reg(rt);
-  say_try_regs(rs, rt, 0, 0);
+  write_output(message_out, "  What it did:\n");
+  write_output(message_out, "    %s — %s; the result was placed in $%s.\n",
+               op_label, buf, int_reg_names[rt]);
+  if (level >= 2) {
+    write_output(message_out, "  Inputs (before this step):\n");
+    say_input_reg(rs);
+    say_input_imm(imm);
+    write_output(message_out, "  Wrote:\n");
+    say_wrote_reg(rt);
+    say_try_regs(rs, rt, 0, 0);
+  }
 }
 
-static void tpl_shift(instruction* inst, const char* op_label,
+static void tpl_shift(int level, instruction* inst, const char* op_label,
                       const char* op_text) {
   int rt = RT(inst), rd = RD(inst), sh = SHAMT(inst);
   char buf[512];
   subst_field_regs(buf, sizeof(buf), op_text, -1, rt, rd);
-  write_output(message_out, "  What it does:\n");
+  write_output(message_out, "  What it did:\n");
   write_output(message_out,
-               "    %s — %s by %d bit%s. Result is placed in $%s.\n", op_label,
-               buf, sh, sh == 1 ? "" : "s", int_reg_names[rd]);
-  write_output(message_out, "  Inputs read:\n");
-  say_input_reg(rt);
-  write_output(message_out, "    shift amount = %d\n", sh);
-  say_will_write_reg(rd);
-  say_try_regs(rt, rd, 0, 0);
+               "    %s — %s by %d bit%s; the result was placed in $%s.\n",
+               op_label, buf, sh, sh == 1 ? "" : "s", int_reg_names[rd]);
+  if (level >= 2) {
+    write_output(message_out, "  Inputs (before this step):\n");
+    say_input_reg(rt);
+    write_output(message_out, "    shift amount = %d\n", sh);
+    write_output(message_out, "  Wrote:\n");
+    say_wrote_reg(rd);
+    say_try_regs(rt, rd, 0, 0);
+  }
 }
 
-static void tpl_load(instruction* inst, const char* op_label,
+static void tpl_load(int level, instruction* inst, const char* op_label,
                      const char* op_text, int width) {
   int rt = RT(inst), base = BASE(inst);
   short off = (short)IOFFSET(inst);
-  mem_addr ea = (mem_addr)(R[base] + off);
-  write_output(message_out, "  What it does:\n");
+  /* Effective address uses snapshot base — the value the instruction
+     actually used. If this load's rt happens to equal base (rare but
+     legal), the post-execute R[base] is the loaded value, not the
+     pre-execute base. */
+  mem_addr ea = (mem_addr)(snap_R[base] + off);
+  write_output(message_out, "  What it did:\n");
   write_output(message_out,
-               "    %s — %s from memory at the effective address, "
-               "and place the result in $%s.\n",
+               "    %s — read %s from memory at the effective address; "
+               "placed the result in $%s.\n",
                op_label, op_text, int_reg_names[rt]);
   write_output(message_out,
                "    Effective address = $%s + %d  =  0x%08x + %d  =  0x%08x.\n",
-               int_reg_names[base], off, R[base], off, ea);
-  write_output(message_out, "  Inputs read:\n");
-  say_input_reg(base);
-  if (off != 0)
-    write_output(message_out, "    offset = %d  (0x%04x)\n", off, off & 0xffff);
-  reg_word cur = 0;
-  if (width == 1)
-    cur = peek_byte(ea) & 0xff;
-  else if (width == 2)
-    cur = peek_half(ea) & 0xffff;
-  else
-    cur = peek_word(ea);
-  write_output(message_out, "    memory at 0x%08x currently = 0x%08x\n", ea,
-               (uint32)cur);
-  say_will_write_reg(rt);
-  say_try_regs(base, rt, 0, 0);
-  write_output(message_out, "    print 0x%08x          # inspect that memory\n",
-               ea);
-  write_output(message_out,
-               "    print %d($%s)          # same memory, using the N($reg) "
-               "form you wrote\n",
-               off, int_reg_names[base]);
+               int_reg_names[base], off, snap_R[base], off, ea);
+  if (level >= 2) {
+    write_output(message_out, "  Inputs (before this step):\n");
+    say_input_reg(base);
+    if (off != 0)
+      write_output(message_out, "    offset = %d  (0x%04x)\n", off,
+                   off & 0xffff);
+    /* Loads don't modify memory, so peek_word post-execute returns the
+       same value the instruction read. */
+    reg_word cur = 0;
+    if (width == 1)
+      cur = peek_byte(ea) & 0xff;
+    else if (width == 2)
+      cur = peek_half(ea) & 0xffff;
+    else
+      cur = peek_word(ea);
+    write_output(message_out, "    memory at 0x%08x = 0x%08x\n", ea,
+                 (uint32)cur);
+    write_output(message_out, "  Wrote:\n");
+    say_wrote_reg(rt);
+    say_try_regs(base, rt, 0, 0);
+    char buf2[64];
+    snprintf(buf2, sizeof buf2, "print 0x%08x", ea);
+    say_try(buf2, "inspect that memory");
+    snprintf(buf2, sizeof buf2, "print %d($%s)", off, int_reg_names[base]);
+    say_try(buf2, "same memory, using the N($reg) form you wrote");
+  }
 }
 
-static void tpl_store(instruction* inst, const char* op_label,
+static void tpl_store(int level, instruction* inst, const char* op_label,
                       const char* op_text, int width) {
   int rt = RT(inst), base = BASE(inst);
   short off = (short)IOFFSET(inst);
-  mem_addr ea = (mem_addr)(R[base] + off);
-  write_output(message_out, "  What it does:\n");
+  mem_addr ea = (mem_addr)(snap_R[base] + off);
+  write_output(message_out, "  What it did:\n");
   write_output(message_out,
-               "    %s — %s of $%s into memory at the effective address.\n",
+               "    %s — wrote %s from $%s into memory at the effective "
+               "address.\n",
                op_label, op_text, int_reg_names[rt]);
   write_output(message_out,
                "    Effective address = $%s + %d  =  0x%08x + %d  =  0x%08x.\n",
-               int_reg_names[base], off, R[base], off, ea);
-  write_output(message_out, "  Inputs read:\n");
-  say_input_reg(base);
-  say_input_reg(rt);
-  if (off != 0)
-    write_output(message_out, "    offset = %d  (0x%04x)\n", off, off & 0xffff);
-  reg_word cur = 0;
-  if (width == 1)
-    cur = peek_byte(ea) & 0xff;
-  else if (width == 2)
-    cur = peek_half(ea) & 0xffff;
-  else
-    cur = peek_word(ea);
-  write_output(message_out, "  Will write to memory:\n");
-  write_output(message_out, "    0x%08x  (currently 0x%08x)\n", ea,
-               (uint32)cur);
-  say_try_regs(base, rt, 0, 0);
-  write_output(message_out, "    print 0x%08x          # inspect that memory\n",
-               ea);
-  write_output(message_out,
-               "    print %d($%s)          # same memory, using the N($reg) "
-               "form you wrote\n",
-               off, int_reg_names[base]);
+               int_reg_names[base], off, snap_R[base], off, ea);
+  if (level >= 2) {
+    write_output(message_out, "  Inputs (before this step):\n");
+    say_input_reg(base);
+    say_input_reg(rt);
+    if (off != 0)
+      write_output(message_out, "    offset = %d  (0x%04x)\n", off,
+                   off & 0xffff);
+    say_wrote_mem(width);
+    say_try_regs(base, rt, 0, 0);
+    char buf2[64];
+    snprintf(buf2, sizeof buf2, "print 0x%08x", ea);
+    say_try(buf2, "inspect that memory");
+    snprintf(buf2, sizeof buf2, "print %d($%s)", off, int_reg_names[base]);
+    say_try(buf2, "same memory, using the N($reg) form you wrote");
+  }
 }
 
-static void tpl_branch_2reg(instruction* inst, const char* op_label,
+static void tpl_branch_2reg(int level, instruction* inst, const char* op_label,
                             const char* op_symbol, bool taken) {
   int rs = RS(inst), rt = RT(inst);
-  mem_addr target = PC + 4 + IDISP(inst);
-  mem_addr fallthrough = PC + 4;
-  write_output(message_out, "  What it does:\n");
-  write_output(message_out, "    %s — branch to 0x%08x if ($%s %s $%s).\n",
-               op_label, target, int_reg_names[rs], op_symbol,
-               int_reg_names[rt]);
-  write_output(message_out, "  Inputs read:\n");
-  say_input_reg(rs);
-  say_input_reg(rt);
-  write_output(message_out, "    branch target = 0x%08x\n", target);
+  /* Target is computed from the instruction's own PC (snap_PC) plus 4 +
+     displacement. Live PC has already advanced past this instruction. */
+  mem_addr target = snap_PC + 4 + IDISP(inst);
+  write_output(message_out, "  What it did:\n");
+  write_output(message_out,
+               "    %s — would transfer to 0x%08x if ($%s %s $%s).\n", op_label,
+               target, int_reg_names[rs], op_symbol, int_reg_names[rt]);
   write_output(message_out, "  Comparison:\n");
-  write_output(message_out, "    %d %s %d  →  %s  →  branch %s\n", R[rs],
-               op_symbol, R[rt], taken ? "true" : "false",
-               taken ? "WILL be taken" : "will NOT be taken");
-  write_output(message_out, "    PC will become 0x%08x\n",
-               taken ? target : fallthrough);
-  say_try_regs(rs, rt, 0, 0);
+  write_output(message_out, "    %d %s %d  →  %s  →  branch was %s\n",
+               snap_R[rs], op_symbol, snap_R[rt], taken ? "true" : "false",
+               taken ? "taken" : "NOT taken");
+  if (level >= 2) {
+    write_output(message_out, "  Inputs (before this step):\n");
+    say_input_reg(rs);
+    say_input_reg(rt);
+    write_output(message_out, "    branch target = 0x%08x\n", target);
+    say_try_regs(rs, rt, 0, 0);
+  }
 }
 
-static void tpl_branch_1reg(instruction* inst, const char* op_label,
+static void tpl_branch_1reg(int level, instruction* inst, const char* op_label,
                             const char* op_symbol, bool taken) {
   int rs = RS(inst);
-  mem_addr target = PC + 4 + IDISP(inst);
-  mem_addr fallthrough = PC + 4;
-  write_output(message_out, "  What it does:\n");
-  write_output(message_out, "    %s — branch to 0x%08x if ($%s %s 0).\n",
-               op_label, target, int_reg_names[rs], op_symbol);
-  write_output(message_out, "  Inputs read:\n");
-  say_input_reg(rs);
-  write_output(message_out, "    branch target = 0x%08x\n", target);
+  mem_addr target = snap_PC + 4 + IDISP(inst);
+  write_output(message_out, "  What it did:\n");
+  write_output(message_out,
+               "    %s — would transfer to 0x%08x if ($%s %s 0).\n", op_label,
+               target, int_reg_names[rs], op_symbol);
   write_output(message_out, "  Comparison:\n");
-  write_output(message_out, "    %d %s 0  →  %s  →  branch %s\n", R[rs],
-               op_symbol, taken ? "true" : "false",
-               taken ? "WILL be taken" : "will NOT be taken");
-  write_output(message_out, "    PC will become 0x%08x\n",
-               taken ? target : fallthrough);
-  say_try_regs(rs, 0, 0, 0);
+  write_output(message_out, "    %d %s 0  →  %s  →  branch was %s\n",
+               snap_R[rs], op_symbol, taken ? "true" : "false",
+               taken ? "taken" : "NOT taken");
+  if (level >= 2) {
+    write_output(message_out, "  Inputs (before this step):\n");
+    say_input_reg(rs);
+    write_output(message_out, "    branch target = 0x%08x\n", target);
+    say_try_regs(rs, 0, 0, 0);
+  }
 }
 
 /* ------------ syscall, the special case ------------ */
 
-static void explain_syscall(void) {
-  reg_word v0 = R[REG_V0];
-  write_output(message_out, "  What it does:\n");
+static void explain_syscall(int level) {
+  /* Call number is the pre-execute $v0. syscall 5 (read_int) overwrites
+     $v0 with the read integer, so post-execute R[REG_V0] would be wrong. */
+  reg_word v0 = snap_R[REG_V0];
+  write_output(message_out, "  What it did:\n");
   write_output(message_out,
-               "    System call. The call number lives in $v0; arguments\n"
-               "    live in $a0..$a3 (and $f12 for floats).\n");
+               "    System call. The call number was in $v0; arguments\n"
+               "    were in $a0..$a3 (and $f12 for floats).\n");
   switch (v0) {
     case 1:
       write_output(message_out,
-                   "    $v0 = 1  →  print_int: print the integer in $a0.\n");
-      write_output(message_out, "  Inputs read:\n");
-      write_output(message_out, "    $v0 = 1\n");
-      say_input_reg(REG_A0);
+                   "    $v0 = 1  →  print_int: printed the integer in $a0.\n");
       write_output(message_out, "  Output:\n");
-      write_output(message_out, "    Writes the integer to the console.\n");
-      say_try_regs(REG_V0, REG_A0, 0, 0);
+      write_output(message_out, "    Wrote the integer to the console.\n");
+      if (level >= 2) {
+        write_output(message_out, "  Inputs (before this step):\n");
+        write_output(message_out, "    $v0 = 1\n");
+        say_input_reg(REG_A0);
+        say_try_regs(REG_V0, REG_A0, 0, 0);
+      }
       break;
     case 4: {
-      mem_addr a0 = (mem_addr)R[REG_A0];
+      mem_addr a0 = (mem_addr)snap_R[REG_A0];
       write_output(message_out,
-                   "    $v0 = 4  →  print_string: print the null-terminated\n"
-                   "    string whose address is in $a0.\n");
-      write_output(message_out, "  Inputs read:\n");
-      write_output(message_out, "    $v0 = 4\n");
-      write_output(message_out, "    $a0 = 0x%08x  (address of the string)\n",
-                   a0);
+                   "    $v0 = 4  →  print_string: printed the null-terminated\n"
+                   "    string whose address was in $a0.\n");
       write_output(message_out, "  Output:\n");
-      write_output(message_out, "    Writes the string to the console.\n");
-      say_try_regs(REG_V0, REG_A0, 0, 0);
-      write_output(message_out,
-                   "    print 0x%08x          # inspect string memory\n", a0);
+      write_output(message_out, "    Wrote the string to the console.\n");
+      if (level >= 2) {
+        write_output(message_out, "  Inputs (before this step):\n");
+        write_output(message_out, "    $v0 = 4\n");
+        write_output(message_out, "    $a0 = 0x%08x  (address of the string)\n",
+                     a0);
+        say_try_regs(REG_V0, REG_A0, 0, 0);
+        char buf2[64];
+        snprintf(buf2, sizeof buf2, "print 0x%08x", a0);
+        say_try(buf2, "inspect string memory");
+      }
       break;
     }
     case 5:
       write_output(
           message_out,
           "    $v0 = 5  →  read_int: read an integer from the console\n"
-          "    and return it in $v0.\n");
-      write_output(message_out, "  Inputs read:\n");
-      write_output(message_out, "    $v0 = 5\n");
-      write_output(message_out, "  Will write:\n");
-      write_output(message_out,
-                   "    $v0  (will hold the integer that was read)\n");
-      say_try_regs(REG_V0, 0, 0, 0);
+          "    and returned it in $v0.\n");
+      if (level >= 2) {
+        write_output(message_out, "  Inputs (before this step):\n");
+        write_output(message_out, "    $v0 = 5\n");
+        write_output(message_out, "  Wrote:\n");
+        say_wrote_reg(REG_V0);
+        say_try_regs(REG_V0, 0, 0, 0);
+      }
       break;
     case 8: {
-      mem_addr a0 = (mem_addr)R[REG_A0];
+      mem_addr a0 = (mem_addr)snap_R[REG_A0];
       write_output(
           message_out,
           "    $v0 = 8  →  read_string: read a string into the buffer\n"
           "    at $a0, up to $a1 bytes.\n");
-      write_output(message_out, "  Inputs read:\n");
-      write_output(message_out, "    $v0 = 8\n");
-      write_output(message_out, "    $a0 = 0x%08x  (buffer address)\n", a0);
-      say_input_reg(REG_A1);
-      write_output(message_out, "  Will write:\n");
-      write_output(message_out, "    memory at 0x%08x .. 0x%08x\n", a0,
-                   a0 + R[REG_A1] - 1);
-      say_try_regs(REG_V0, REG_A0, REG_A1, 0);
+      if (level >= 2) {
+        write_output(message_out, "  Inputs (before this step):\n");
+        write_output(message_out, "    $v0 = 8\n");
+        write_output(message_out, "    $a0 = 0x%08x  (buffer address)\n", a0);
+        say_input_reg(REG_A1);
+        write_output(message_out, "  Wrote to memory:\n");
+        write_output(message_out, "    0x%08x .. 0x%08x\n", a0,
+                     a0 + snap_R[REG_A1] - 1);
+        say_try_regs(REG_V0, REG_A0, REG_A1, 0);
+      }
       break;
     }
     case 10:
-      write_output(message_out, "    $v0 = 10 →  exit: halt the program.\n");
-      write_output(message_out, "  Inputs read:\n");
-      write_output(message_out, "    $v0 = 10\n");
-      say_try_regs(REG_V0, 0, 0, 0);
+      write_output(message_out, "    $v0 = 10 →  exit: halted the program.\n");
+      if (level >= 2) {
+        write_output(message_out, "  Inputs (before this step):\n");
+        write_output(message_out, "    $v0 = 10\n");
+        say_try_regs(REG_V0, 0, 0, 0);
+      }
       break;
     case 11:
       write_output(message_out,
-                   "    $v0 = 11 →  print_char: print the byte in $a0 as a "
+                   "    $v0 = 11 →  print_char: printed the byte in $a0 as a "
                    "character.\n");
-      write_output(message_out, "  Inputs read:\n");
-      write_output(message_out, "    $v0 = 11\n");
-      say_input_reg(REG_A0);
       write_output(message_out, "  Output:\n");
-      write_output(message_out, "    Writes one character to the console.\n");
-      say_try_regs(REG_V0, REG_A0, 0, 0);
+      write_output(message_out, "    Wrote one character to the console.\n");
+      if (level >= 2) {
+        write_output(message_out, "  Inputs (before this step):\n");
+        write_output(message_out, "    $v0 = 11\n");
+        say_input_reg(REG_A0);
+        say_try_regs(REG_V0, REG_A0, 0, 0);
+      }
       break;
     default:
       write_output(
           message_out,
           "    $v0 = %d (no detailed explanation for this syscall yet).\n", v0);
-      write_output(message_out, "  Inputs read:\n");
-      say_input_reg(REG_V0);
-      say_try_regs(REG_V0, REG_A0, REG_A1, 0);
+      if (level >= 2) {
+        write_output(message_out, "  Inputs (before this step):\n");
+        say_input_reg(REG_V0);
+        say_try_regs(REG_V0, REG_A0, REG_A1, 0);
+      }
       break;
   }
 }
@@ -660,9 +902,9 @@ static void render_r_layout(uint32 enc, const char* mnemonic) {
   write_output(message_out,
                "  Bit layout (R-type, encoding 0x%08x):\n"
                "     31    26 25  21 20  16 15  11 10   6 5     0\n"
-               "    +--------+-------+-------+-------+-------+--------+\n"
-               "    | %s | %s | %s | %s | %s | %s |\n"
-               "    +--------+-------+-------+-------+-------+--------+\n"
+               "    ┌────────┬───────┬───────┬───────┬───────┬────────┐\n"
+               "    │ %s │ %s │ %s │ %s │ %s │ %s │\n"
+               "    └────────┴───────┴───────┴───────┴───────┴────────┘\n"
                "      opcode    rs      rt      rd     shamt    funct\n"
                "       = %-2d   = $%-4s = $%-4s = $%-4s   = %-2d    = 0x%02x\n"
                "    -> opcode=0x%02x (%s) tells the CPU to look at funct;\n"
@@ -687,9 +929,9 @@ static void render_i_layout(uint32 enc, const char* mnemonic) {
   write_output(message_out,
                "  Bit layout (I-type, encoding 0x%08x):\n"
                "     31    26 25  21 20  16 15                 0\n"
-               "    +--------+-------+-------+------------------+\n"
-               "    | %s | %s | %s | %s |\n"
-               "    +--------+-------+-------+------------------+\n"
+               "    ┌────────┬───────┬───────┬──────────────────┐\n"
+               "    │ %s │ %s │ %s │ %s │\n"
+               "    └────────┴───────┴───────┴──────────────────┘\n"
                "      opcode    rs      rt        immediate (16-bit)\n"
                "      = 0x%02x  = $%-4s = $%-4s   = %d  (signed) / 0x%04x\n"
                "    -> opcode=0x%02x selects the `%s` instruction.\n",
@@ -707,9 +949,9 @@ static void render_j_layout(uint32 enc, const char* mnemonic) {
   write_output(message_out,
                "  Bit layout (J-type, encoding 0x%08x):\n"
                "     31    26 25                          0\n"
-               "    +--------+----------------------------+\n"
-               "    | %s | %s |\n"
-               "    +--------+----------------------------+\n"
+               "    ┌────────┬────────────────────────────┐\n"
+               "    │ %s │ %s │\n"
+               "    └────────┴────────────────────────────┘\n"
                "      opcode         target (26-bit word index)\n"
                "      = 0x%02x  = 0x%07x  ->  jump addr = (PC[31:28] | "
                "target<<2) = 0x%08x\n"
@@ -736,143 +978,748 @@ static void explain_bit_layout(instruction* inst) {
     render_i_layout(enc, mnemonic);
 }
 
+/* ------------ L4: progressive decoding walkthrough ------------
+ *
+ * At L4 the single L3 bit-layout box is replaced by a sequence of
+ * frames — the same box redrawn step by step as the CPU's
+ * hierarchical decoder resolves the word. Undecoded fields show
+ * a "?" placeholder inside the box; once a field is read, its
+ * bits and label appear.
+ */
+
+/* Pre-formatted "unknown" placeholders, sized to match each field's
+   display width inside the box (one centered "?"). */
+#define UK5 "  ?  "
+#define UK6 "  ?   "
+#define UK16 "       ?        "
+#define UK26 "            ?             "
+
+/* SPECIAL-group: opcode == 0x00, funct selects the actual op. Table
+   filled out for the integer ops spimulator's existing templates
+   cover; entries not listed return NULL (rendered as "?"). */
+static const char* special_funct_to_name[64] = {
+    [0x00] = "sll",  [0x02] = "srl",   [0x03] = "sra",     [0x04] = "sllv",
+    [0x06] = "srlv", [0x07] = "srav",  [0x08] = "jr",      [0x09] = "jalr",
+    [0x0a] = "movz", [0x0b] = "movn",  [0x0c] = "syscall", [0x0d] = "break",
+    [0x10] = "mfhi", [0x11] = "mthi",  [0x12] = "mflo",    [0x13] = "mtlo",
+    [0x18] = "mult", [0x19] = "multu", [0x1a] = "div",     [0x1b] = "divu",
+    [0x20] = "add",  [0x21] = "addu",  [0x22] = "sub",     [0x23] = "subu",
+    [0x24] = "and",  [0x25] = "or",    [0x26] = "xor",     [0x27] = "nor",
+    [0x2a] = "slt",  [0x2b] = "sltu",
+};
+
+/* REGIMM-group: opcode == 0x01, rt selects the actual op. */
+static const char* regimm_rt_to_name[32] = {
+    [0x00] = "bltz",
+    [0x01] = "bgez",
+    [0x10] = "bltzal",
+    [0x11] = "bgezal",
+};
+
+static void render_r_decode_step(uint32 enc, int step, const char* mnemonic,
+                                 const char* group_name) {
+  uint32 op = (enc >> 26) & 0x3f;
+  uint32 rs = (enc >> 21) & 0x1f;
+  uint32 rt = (enc >> 16) & 0x1f;
+  uint32 rd = (enc >> 11) & 0x1f;
+  uint32 shamt = (enc >> 6) & 0x1f;
+  uint32 funct = enc & 0x3f;
+
+  char b_op[7], b_rs[6], b_rt[6], b_rd[6], b_sh[6], b_fn[7];
+  write_bits(b_op, enc, 31, 26);
+  write_bits(b_rs, enc, 25, 21);
+  write_bits(b_rt, enc, 20, 16);
+  write_bits(b_rd, enc, 15, 11);
+  write_bits(b_sh, enc, 10, 6);
+  write_bits(b_fn, enc, 5, 0);
+
+  const char* fld_rs = (step >= 3) ? b_rs : UK5;
+  const char* fld_rt = (step >= 3) ? b_rt : UK5;
+  const char* fld_rd = (step >= 3) ? b_rd : UK5;
+  const char* fld_sh = (step >= 3) ? b_sh : UK5;
+  const char* fld_fn = (step >= 2) ? b_fn : UK6;
+
+  switch (step) {
+    case 1:
+      write_output(message_out, "  Step 1 — start with the opcode.\n");
+      break;
+    case 2:
+      write_output(message_out, "  Step 2 — read funct (bits [5:0]).\n");
+      break;
+    case 3:
+      write_output(message_out,
+                   "  Step 3 — read the remaining R-type fields.\n");
+      break;
+  }
+
+  write_output(message_out,
+               "  ┌────────┬───────┬───────┬───────┬───────┬────────┐\n"
+               "  │ %s │ %s │ %s │ %s │ %s │ %s │\n"
+               "  └────────┴───────┴───────┴───────┴───────┴────────┘\n",
+               b_op, fld_rs, fld_rt, fld_rd, fld_sh, fld_fn);
+  write_output(message_out, "   opcode    %-7s %-7s %-7s %-7s %s\n",
+               (step >= 3) ? "rs" : "?", (step >= 3) ? "rt" : "?",
+               (step >= 3) ? "rd" : "?", (step >= 3) ? "shamt" : "?",
+               (step >= 2) ? "funct" : "?");
+
+  if (step == 1) {
+    write_output(message_out, "   = 0x%02x\n", op);
+  } else if (step == 2) {
+    write_output(message_out,
+                 "   = 0x%02x                                       "
+                 "= 0x%02x\n",
+                 op, funct);
+  } else {
+    bool shamt_used = mnemonic && (strcmp(mnemonic, "sll") == 0 ||
+                                   strcmp(mnemonic, "srl") == 0 ||
+                                   strcmp(mnemonic, "sra") == 0);
+    write_output(message_out,
+                 "   = 0x%02x    = $%-5s = $%-5s = $%-5s = %-5d = 0x%02x\n", op,
+                 int_reg_names[rs], int_reg_names[rt], int_reg_names[rd], shamt,
+                 funct);
+    if (!shamt_used) {
+      write_output(message_out,
+                   "                                     "
+                   "(unused for %s)\n",
+                   mnemonic ? mnemonic : "this op");
+    }
+  }
+
+  if (step == 1) {
+    write_output(message_out,
+                 "  Opcode 0x%02x is the %s group. The CPU can't decide "
+                 "the\n"
+                 "  operation from the opcode alone — read the funct field "
+                 "next.\n",
+                 op, group_name);
+  } else if (step == 2) {
+    const char* fname =
+        (op == 0x00 && funct < 64 && special_funct_to_name[funct])
+            ? special_funct_to_name[funct]
+            : (mnemonic ? mnemonic : "?");
+    write_output(message_out,
+                 "  In the %s table, funct=0x%02x is `%s`. Now we know\n"
+                 "  this is R-type %s, so the remaining fields are rs, rt, "
+                 "rd,\n"
+                 "  shamt — read them in turn.\n",
+                 group_name, funct, fname, fname);
+  }
+}
+
+static void render_i_decode_step(uint32 enc, int step, const char* mnemonic) {
+  uint32 op = (enc >> 26) & 0x3f;
+  uint32 rs = (enc >> 21) & 0x1f;
+  uint32 rt = (enc >> 16) & 0x1f;
+  int16_t imm_s = (int16_t)(enc & 0xffff);
+  uint16_t imm_u = (uint16_t)(enc & 0xffff);
+
+  char b_op[7], b_rs[6], b_rt[6], b_im[17];
+  write_bits(b_op, enc, 31, 26);
+  write_bits(b_rs, enc, 25, 21);
+  write_bits(b_rt, enc, 20, 16);
+  write_bits(b_im, enc, 15, 0);
+
+  const char* fld_rs = (step >= 2) ? b_rs : UK5;
+  const char* fld_rt = (step >= 2) ? b_rt : UK5;
+  const char* fld_im = (step >= 2) ? b_im : UK16;
+
+  switch (step) {
+    case 1:
+      write_output(message_out, "  Step 1 — start with the opcode.\n");
+      break;
+    case 2:
+      write_output(message_out,
+                   "  Step 2 — read the remaining I-type fields.\n");
+      break;
+  }
+
+  write_output(message_out,
+               "  ┌────────┬───────┬───────┬──────────────────┐\n"
+               "  │ %s │ %s │ %s │ %s │\n"
+               "  └────────┴───────┴───────┴──────────────────┘\n",
+               b_op, fld_rs, fld_rt, fld_im);
+  write_output(message_out, "   opcode    %-7s %-7s %s\n",
+               (step >= 2) ? "rs" : "?", (step >= 2) ? "rt" : "?",
+               (step >= 2) ? "imm (16-bit, signed)" : "?");
+
+  if (step == 1) {
+    write_output(message_out, "   = 0x%02x\n", op);
+  } else {
+    write_output(message_out, "   = 0x%02x    = $%-5s = $%-5s = %d  (0x%04x)\n",
+                 op, int_reg_names[rs], int_reg_names[rt], (int)imm_s, imm_u);
+  }
+
+  if (step == 1) {
+    write_output(message_out,
+                 "  Opcode 0x%02x in the primary table is `%s`. This is an\n"
+                 "  I-type instruction; the rest of the word is rs, rt, "
+                 "and\n"
+                 "  a 16-bit signed immediate.\n",
+                 op, mnemonic ? mnemonic : "?");
+  }
+}
+
+static void render_j_decode_step(uint32 enc, int step, const char* mnemonic) {
+  uint32 op = (enc >> 26) & 0x3f;
+  uint32 target = enc & 0x03ffffff;
+
+  char b_op[7], b_tg[27];
+  write_bits(b_op, enc, 31, 26);
+  write_bits(b_tg, enc, 25, 0);
+
+  const char* fld_tg = (step >= 2) ? b_tg : UK26;
+
+  switch (step) {
+    case 1:
+      write_output(message_out, "  Step 1 — start with the opcode.\n");
+      break;
+    case 2:
+      write_output(message_out, "  Step 2 — read the target field.\n");
+      break;
+  }
+
+  write_output(message_out,
+               "  ┌────────┬────────────────────────────┐\n"
+               "  │ %s │ %s │\n"
+               "  └────────┴────────────────────────────┘\n",
+               b_op, fld_tg);
+  write_output(message_out, "   opcode    %s\n",
+               (step >= 2) ? "target (26-bit word index)" : "?");
+
+  if (step == 1) {
+    write_output(message_out, "   = 0x%02x\n", op);
+  } else {
+    write_output(message_out,
+                 "   = 0x%02x    = 0x%07x\n"
+                 "             -> actual address = (PC[31:28] | target<<2)\n"
+                 "                                = 0x%08x\n",
+                 op, target, (snap_PC & 0xf0000000u) | (target << 2));
+  }
+
+  if (step == 1) {
+    write_output(message_out,
+                 "  Opcode 0x%02x in the primary table is `%s`. J-type —\n"
+                 "  one big target field below.\n",
+                 op, mnemonic ? mnemonic : "?");
+  }
+}
+
+static void render_regimm_decode_step(uint32 enc, int step,
+                                      const char* mnemonic) {
+  uint32 op = (enc >> 26) & 0x3f;
+  uint32 rs = (enc >> 21) & 0x1f;
+  uint32 rt = (enc >> 16) & 0x1f;
+  int16_t imm_s = (int16_t)(enc & 0xffff);
+
+  char b_op[7], b_rs[6], b_rt[6], b_im[17];
+  write_bits(b_op, enc, 31, 26);
+  write_bits(b_rs, enc, 25, 21);
+  write_bits(b_rt, enc, 20, 16);
+  write_bits(b_im, enc, 15, 0);
+
+  const char* fld_rs = (step >= 3) ? b_rs : UK5;
+  const char* fld_rt = (step >= 2) ? b_rt : UK5;
+  const char* fld_im = (step >= 3) ? b_im : UK16;
+
+  const char* rtname = (rt < 32 && regimm_rt_to_name[rt])
+                           ? regimm_rt_to_name[rt]
+                           : (mnemonic ? mnemonic : "?");
+
+  switch (step) {
+    case 1:
+      write_output(message_out, "  Step 1 — start with the opcode.\n");
+      break;
+    case 2:
+      write_output(message_out,
+                   "  Step 2 — read rt-as-selector (bits [20:16]).\n");
+      break;
+    case 3:
+      write_output(message_out, "  Step 3 — read the rs and offset fields.\n");
+      break;
+  }
+
+  write_output(message_out,
+               "  ┌────────┬───────┬───────┬──────────────────┐\n"
+               "  │ %s │ %s │ %s │ %s │\n"
+               "  └────────┴───────┴───────┴──────────────────┘\n",
+               b_op, fld_rs, fld_rt, fld_im);
+  write_output(message_out, "   opcode    %-7s %-7s %s\n",
+               (step >= 3) ? "rs" : "?", (step >= 2) ? "rt-sel" : "?",
+               (step >= 3) ? "offset (signed)" : "?");
+
+  if (step == 1) {
+    write_output(message_out, "   = 0x%02x\n", op);
+  } else if (step == 2) {
+    write_output(message_out, "   = 0x%02x            = %s\n", op, rtname);
+  } else {
+    write_output(
+        message_out,
+        "   = 0x%02x    = $%-5s = %-6s = %d  (target = PC+4 + (offset<<2))\n",
+        op, int_reg_names[rs], rtname, (int)imm_s);
+  }
+
+  if (step == 1) {
+    write_output(message_out,
+                 "  Opcode 0x%02x is the REGIMM group. Like SPECIAL, but the\n"
+                 "  selector is in the rt field — not funct. Read rt next.\n",
+                 op);
+  } else if (step == 2) {
+    write_output(message_out,
+                 "  In the REGIMM table, rt=0x%02x is `%s`. This is I-type\n"
+                 "  with a register tested against zero and a 16-bit branch\n"
+                 "  displacement.\n",
+                 rt, rtname);
+  }
+}
+
+static void explain_decoding_steps(instruction* inst) {
+  if (inst == NULL) return;
+  uint32 enc = (uint32)inst_encode(inst);
+  if (enc == 0) return; /* true nop — skip */
+
+  const char* mnemonic = inst_op_name(inst);
+  int op = (enc >> 26) & 0x3f;
+
+  write_output(message_out, "  Decoding 0x%08x step by step:\n\n", enc);
+
+  if (op == 0x00 || op == 0x1c || op == 0x1f) {
+    const char* group = (op == 0x00)   ? "SPECIAL"
+                        : (op == 0x1c) ? "SPECIAL2"
+                                       : "SPECIAL3";
+    for (int s = 1; s <= 3; s++) {
+      if (s > 1) write_output(message_out, "\n");
+      render_r_decode_step(enc, s, mnemonic, group);
+    }
+  } else if (op == 0x01) {
+    for (int s = 1; s <= 3; s++) {
+      if (s > 1) write_output(message_out, "\n");
+      render_regimm_decode_step(enc, s, mnemonic);
+    }
+  } else if (op == 0x02 || op == 0x03) {
+    for (int s = 1; s <= 2; s++) {
+      if (s > 1) write_output(message_out, "\n");
+      render_j_decode_step(enc, s, mnemonic);
+    }
+  } else {
+    for (int s = 1; s <= 2; s++) {
+      if (s > 1) write_output(message_out, "\n");
+      render_i_decode_step(enc, s, mnemonic);
+    }
+  }
+}
+
 /* ------------ main entrypoints ------------ */
 
+/* explain_before runs immediately before the dispatch switch in run_spim.
+   It captures everything the post-execute narration will need to read —
+   nothing is printed here, so by the time the (spim) prompt comes back,
+   every visible line describes something that has already happened. */
 void explain_before(instruction* inst, mem_addr addr) {
-  if (!explain_mode) return;
+  if (explain_level == 0) return;
 
-  /* Snapshot for the after-diff. */
+  /* Tab-completion suggestions are per-instruction; clear before any
+     template populates new ones. (At L1 nothing gets added, so the list
+     remains empty — by design.) */
+  explain_clear_suggestions();
+
+  /* Snapshot of architectural state for the post-execute templates. */
   memcpy(snap_R, R, sizeof(snap_R));
   snap_HI = HI;
   snap_LO = LO;
   snap_PC = addr;
 
-  write_output(message_out, "\n");
-  hr();
-  write_output(message_out, "About to execute at 0x%08x:\n", addr);
-
-  /* Disassembled form. inst_to_string already appends "; <source line>" as a
-     trailing comment when the instruction has a source_line, so we don't need
-     to print it separately. */
-  char* dis = inst_to_string(addr);
-  write_output(message_out, "    %s", dis);
-  size_t n = strlen(dis);
-  if (n == 0 || dis[n - 1] != '\n') write_output(message_out, "\n");
-  free(dis);
-
-  /* ASCII bit-field diagram for the 32-bit encoding. */
-  explain_bit_layout(inst);
-
-  /* Pseudo-op header / continuation hint.
-   *
-   * Two paths:
-   *   (a) Current instruction has a SOURCE line. Try to match it against a
-   *       pseudo-op mnemonic. If matched, describe the pseudo-op and mark a
-   *       continuation pending if it may expand to multiple real insts. If
-   *       not matched, clear any prior pending state (we've moved to a new
-   *       source line).
-   *   (b) Current instruction has no SOURCE line. If we have a pending
-   *       multi-instruction pseudo-op from a prior call, emit a continuation
-   *       hint and leave the pending state in place (more continuations may
-   *       follow).
-   */
-  if (accept_pseudo_insts && SOURCE(inst) != NULL) {
-    const struct pseudo_info* p = find_pseudo_in_source(SOURCE(inst));
-    if (p != NULL) {
-      write_output(message_out,
-                   "  Pseudo-instruction `%s` (as written in source):\n"
-                   "    %s\n"
-                   "  The line below is the %s real instruction the assembler "
-                   "emitted.\n",
-                   p->name, p->what_it_means,
-                   p->may_be_multi ? "first" : "single");
-      pending_pseudo_name = p->name;
-      pending_pseudo_multi = p->may_be_multi;
-    } else {
-      pending_pseudo_name = NULL;
-      pending_pseudo_multi = false;
+  /* For stores, also snapshot the memory word that's about to be
+     overwritten. By the time explain_after runs, the write has happened
+     and peek_word would return the new value. */
+  snap_has_mem = false;
+  switch (OPCODE(inst)) {
+    case Y_SW_OP:
+    case Y_SH_OP:
+    case Y_SB_OP: {
+      int base = BASE(inst);
+      short off = (short)IOFFSET(inst);
+      snap_mem_addr = (mem_addr)(R[base] + off);
+      snap_mem_val = peek_word(snap_mem_addr);
+      snap_has_mem = true;
+      break;
     }
-  } else if (pending_pseudo_name != NULL && pending_pseudo_multi) {
-    write_output(message_out,
-                 "  (continuation of the `%s` pseudo-op expansion above —\n"
-                 "   same source line, next real instruction emitted)\n",
-                 pending_pseudo_name);
   }
-  write_output(message_out, "\n");
+}
 
+/* ------------ Category preamble (L2+) ------------
+ *
+ * Before each per-opcode narration, emit a short classification
+ * preamble: which of the five main MIPS instruction categories this
+ * op belongs to (Arithmetic, Logical, Data transfer, Conditional
+ * branch, Unconditional jump — plus a sixth "System / coprocessor"
+ * catch-all), and which mnemonic-suffix modifiers apply (`u`, `i`,
+ * `v`, `al`, `w`, `h`, `b`). Naming and grouping follow Patterson &
+ * Hennessy *Computer Organization and Design*, 4th edition, Green
+ * Sheet.
+ *
+ * First-time-per-session each category and modifier gets the full
+ * description; subsequent encounters just name it. State persists
+ * across instructions; not reset on reinitialize (the categories
+ * don't change, so re-explaining them would be noise).
+ */
+
+typedef enum {
+  CAT_ARITHMETIC,
+  CAT_LOGICAL,
+  CAT_DATA_TRANSFER,
+  CAT_COND_BRANCH,
+  CAT_UNCOND_JUMP,
+  CAT_SYSTEM,
+  CAT_COUNT
+} inst_category;
+
+typedef enum {
+  MOD_U_UNSIGNED_ARITH, /* `u` on arith: no overflow trap */
+  MOD_U_ZERO_EXTEND,    /* `u` on narrow load: zero-extend not sign */
+  MOD_I_IMMEDIATE,      /* `i` suffix: 16-bit constant in instruction */
+  MOD_V_VARIABLE_SHIFT, /* `v` suffix: shift count from a register */
+  MOD_AL_AND_LINK,      /* `al` suffix: write $ra (subroutine call) */
+  MOD_W_WORD,           /* word-width memory access (32 bits) */
+  MOD_H_HALFWORD,       /* halfword-width memory access (16 bits) */
+  MOD_B_BYTE,           /* byte-width memory access (8 bits) */
+  MOD_COUNT
+} inst_modifier;
+
+static const char* category_names[CAT_COUNT] = {
+    [CAT_ARITHMETIC] = "Arithmetic",
+    [CAT_LOGICAL] = "Logical",
+    [CAT_DATA_TRANSFER] = "Data transfer",
+    [CAT_COND_BRANCH] = "Conditional branch",
+    [CAT_UNCOND_JUMP] = "Unconditional jump",
+    [CAT_SYSTEM] = "System / coprocessor",
+};
+
+static const char* category_descriptions[CAT_COUNT] = {
+    [CAT_ARITHMETIC] =
+        "Integer math on registers. Includes add/sub/mul/div and\n"
+        "    their immediate variants. (COD §2.2.)",
+    [CAT_LOGICAL] =
+        "Bitwise operations (AND, OR, XOR, NOR) and shifts (left,\n"
+        "    right-logical, right-arithmetic). (COD §2.6.)",
+    [CAT_DATA_TRANSFER] =
+        "Move data between registers and memory. MIPS is a load/store\n"
+        "    architecture — math never operates on memory directly.\n"
+        "    Includes `lui` for constructing 32-bit constants and\n"
+        "    addresses. (COD §2.3 and §2.9.)",
+    [CAT_COND_BRANCH] =
+        "Test a condition; if true, transfer PC to a labeled target.\n"
+        "    Also includes the set-less-than family (slt/slti) used to\n"
+        "    build compound comparisons. (COD §2.7.)",
+    [CAT_UNCOND_JUMP] =
+        "Transfer PC unconditionally — no condition test. Includes\n"
+        "    direct jumps, register-indirect jumps, and the and-link\n"
+        "    variants used for subroutine calls. (COD §2.8.)",
+    [CAT_SYSTEM] =
+        "Operating-system services and miscellaneous control. The\n"
+        "    `syscall` instruction in particular dispatches on $v0.",
+};
+
+static const char* modifier_letters[MOD_COUNT] = {
+    [MOD_U_UNSIGNED_ARITH] = "`u`", [MOD_U_ZERO_EXTEND] = "`u`",
+    [MOD_I_IMMEDIATE] = "`i`",      [MOD_V_VARIABLE_SHIFT] = "`v`",
+    [MOD_AL_AND_LINK] = "`al`",     [MOD_W_WORD] = "`w`",
+    [MOD_H_HALFWORD] = "`h`",       [MOD_B_BYTE] = "`b`",
+};
+
+static const char* modifier_descriptions[MOD_COUNT] = {
+    [MOD_U_UNSIGNED_ARITH] =
+        "unsigned: no trap on overflow. The plain (no-`u`) form\n"
+        "          traps on overflow; the `u` form silently wraps.\n"
+        "          Note: `u` means different things in different\n"
+        "          contexts — see the load modifiers.",
+    [MOD_U_ZERO_EXTEND] =
+        "unsigned: zero-extend the loaded value to 32 bits. The\n"
+        "          plain (no-`u`) load sign-extends instead. Affects\n"
+        "          how `lbu`/`lhu` interpret the high bit of the\n"
+        "          byte/halfword they read.",
+    [MOD_I_IMMEDIATE] =
+        "immediate form: one operand is a 16-bit constant baked\n"
+        "          into the instruction word, not a register. Lets\n"
+        "          small constants be supplied without a separate\n"
+        "          load.",
+    [MOD_V_VARIABLE_SHIFT] =
+        "variable shift: the shift count comes from a register\n"
+        "          (rs), not the 5-bit `shamt` field. Allows the\n"
+        "          count to be computed at runtime.",
+    [MOD_AL_AND_LINK] =
+        "and link: save the return address (PC+4, or PC+8 with\n"
+        "          delayed branches) into $ra. Turns the\n"
+        "          branch/jump into a subroutine call.",
+    [MOD_W_WORD] = "word width: 32 bits (full register width).",
+    [MOD_H_HALFWORD] = "halfword width: 16 bits.",
+    [MOD_B_BYTE] = "byte width: 8 bits.",
+};
+
+static const char* modifier_short[MOD_COUNT] = {
+    [MOD_U_UNSIGNED_ARITH] = "unsigned (no overflow trap)",
+    [MOD_U_ZERO_EXTEND] = "unsigned (zero-extend on load)",
+    [MOD_I_IMMEDIATE] = "immediate (16-bit constant)",
+    [MOD_V_VARIABLE_SHIFT] = "variable shift count (from register)",
+    [MOD_AL_AND_LINK] = "and link (writes $ra)",
+    [MOD_W_WORD] = "word (32-bit)",
+    [MOD_H_HALFWORD] = "halfword (16-bit)",
+    [MOD_B_BYTE] = "byte (8-bit)",
+};
+
+static bool category_seen[CAT_COUNT];
+static bool modifier_seen[MOD_COUNT];
+
+static void lookup_classification(int op, inst_category* cat,
+                                  inst_modifier mods[3], int* n_mods) {
+  *n_mods = 0;
+  *cat = CAT_COUNT; /* default = unknown */
+  switch (op) {
+    /* Arithmetic */
+    case Y_ADD_OP:
+    case Y_SUB_OP:
+    case Y_MUL_OP:
+    case Y_MULT_OP:
+    case Y_DIV_OP:
+    case Y_MFHI_OP:
+    case Y_MFLO_OP:
+      *cat = CAT_ARITHMETIC;
+      break;
+    case Y_ADDU_OP:
+    case Y_SUBU_OP:
+    case Y_MULTU_OP:
+    case Y_DIVU_OP:
+      *cat = CAT_ARITHMETIC;
+      mods[(*n_mods)++] = MOD_U_UNSIGNED_ARITH;
+      break;
+    case Y_ADDI_OP:
+      *cat = CAT_ARITHMETIC;
+      mods[(*n_mods)++] = MOD_I_IMMEDIATE;
+      break;
+    case Y_ADDIU_OP:
+      *cat = CAT_ARITHMETIC;
+      mods[(*n_mods)++] = MOD_I_IMMEDIATE;
+      mods[(*n_mods)++] = MOD_U_UNSIGNED_ARITH;
+      break;
+
+    /* Logical */
+    case Y_AND_OP:
+    case Y_OR_OP:
+    case Y_XOR_OP:
+    case Y_NOR_OP:
+    case Y_SLL_OP:
+    case Y_SRL_OP:
+    case Y_SRA_OP:
+      *cat = CAT_LOGICAL;
+      break;
+    case Y_ANDI_OP:
+    case Y_ORI_OP:
+    case Y_XORI_OP:
+      *cat = CAT_LOGICAL;
+      mods[(*n_mods)++] = MOD_I_IMMEDIATE;
+      break;
+    case Y_SLLV_OP:
+    case Y_SRLV_OP:
+    case Y_SRAV_OP:
+      *cat = CAT_LOGICAL;
+      mods[(*n_mods)++] = MOD_V_VARIABLE_SHIFT;
+      break;
+
+    /* Data transfer */
+    case Y_LW_OP:
+      *cat = CAT_DATA_TRANSFER;
+      mods[(*n_mods)++] = MOD_W_WORD;
+      break;
+    case Y_LH_OP:
+      *cat = CAT_DATA_TRANSFER;
+      mods[(*n_mods)++] = MOD_H_HALFWORD;
+      break;
+    case Y_LHU_OP:
+      *cat = CAT_DATA_TRANSFER;
+      mods[(*n_mods)++] = MOD_H_HALFWORD;
+      mods[(*n_mods)++] = MOD_U_ZERO_EXTEND;
+      break;
+    case Y_LB_OP:
+      *cat = CAT_DATA_TRANSFER;
+      mods[(*n_mods)++] = MOD_B_BYTE;
+      break;
+    case Y_LBU_OP:
+      *cat = CAT_DATA_TRANSFER;
+      mods[(*n_mods)++] = MOD_B_BYTE;
+      mods[(*n_mods)++] = MOD_U_ZERO_EXTEND;
+      break;
+    case Y_SW_OP:
+      *cat = CAT_DATA_TRANSFER;
+      mods[(*n_mods)++] = MOD_W_WORD;
+      break;
+    case Y_SH_OP:
+      *cat = CAT_DATA_TRANSFER;
+      mods[(*n_mods)++] = MOD_H_HALFWORD;
+      break;
+    case Y_SB_OP:
+      *cat = CAT_DATA_TRANSFER;
+      mods[(*n_mods)++] = MOD_B_BYTE;
+      break;
+    case Y_LUI_OP:
+      *cat = CAT_DATA_TRANSFER;
+      break;
+
+    /* Conditional branch */
+    case Y_BEQ_OP:
+    case Y_BNE_OP:
+    case Y_BGEZ_OP:
+    case Y_BGTZ_OP:
+    case Y_BLEZ_OP:
+    case Y_BLTZ_OP:
+    case Y_SLT_OP:
+      *cat = CAT_COND_BRANCH;
+      break;
+    case Y_SLTU_OP:
+      *cat = CAT_COND_BRANCH;
+      mods[(*n_mods)++] = MOD_U_UNSIGNED_ARITH;
+      break;
+    case Y_SLTI_OP:
+      *cat = CAT_COND_BRANCH;
+      mods[(*n_mods)++] = MOD_I_IMMEDIATE;
+      break;
+    case Y_SLTIU_OP:
+      *cat = CAT_COND_BRANCH;
+      mods[(*n_mods)++] = MOD_I_IMMEDIATE;
+      mods[(*n_mods)++] = MOD_U_UNSIGNED_ARITH;
+      break;
+    case Y_BGEZAL_OP:
+    case Y_BLTZAL_OP:
+      *cat = CAT_COND_BRANCH;
+      mods[(*n_mods)++] = MOD_AL_AND_LINK;
+      break;
+
+    /* Unconditional jump */
+    case Y_J_OP:
+    case Y_JR_OP:
+      *cat = CAT_UNCOND_JUMP;
+      break;
+    case Y_JAL_OP:
+    case Y_JALR_OP:
+      *cat = CAT_UNCOND_JUMP;
+      mods[(*n_mods)++] = MOD_AL_AND_LINK;
+      break;
+
+    /* System */
+    case Y_SYSCALL_OP:
+      *cat = CAT_SYSTEM;
+      break;
+  }
+}
+
+static void emit_category_preamble(instruction* inst) {
+  inst_category cat;
+  inst_modifier mods[3];
+  int n_mods;
+  lookup_classification(OPCODE(inst), &cat, mods, &n_mods);
+
+  if (cat == CAT_COUNT) return; /* unknown opcode; skip preamble */
+
+  write_output(message_out, "  Category: %s\n", category_names[cat]);
+  if (!category_seen[cat]) {
+    write_output(message_out, "    %s\n", category_descriptions[cat]);
+    category_seen[cat] = true;
+  }
+
+  if (n_mods > 0) {
+    const char* mnemonic = inst_op_name(inst);
+    write_output(message_out, "  Modifiers in `%s`:\n", mnemonic);
+    for (int i = 0; i < n_mods; i++) {
+      inst_modifier m = mods[i];
+      if (!modifier_seen[m]) {
+        write_output(message_out, "    %s — %s\n", modifier_letters[m],
+                     modifier_descriptions[m]);
+        modifier_seen[m] = true;
+      } else {
+        write_output(message_out, "    %s — %s\n", modifier_letters[m],
+                     modifier_short[m]);
+      }
+    }
+  }
+}
+
+/* render_dispatch: walks the opcode switch and emits each template's
+   per-opcode "What it did / Inputs / Wrote / Try it yourself" content.
+   Called from explain_after only. Reads inputs from snap_R[], outputs
+   from live R[]. */
+static void render_dispatch(int level, instruction* inst) {
   switch (OPCODE(inst)) {
     /* Arithmetic, R-type */
     case Y_ADD_OP:
-      tpl_r3_arith(inst, "Add",
-                   "compute $rs + $rt as a signed sum; trap on overflow");
+      tpl_r3_arith(level, inst, "Add",
+                   "computed $rs + $rt as a signed sum; trapped on overflow");
       break;
     case Y_ADDU_OP:
-      tpl_r3_arith(inst, "Add Unsigned",
-                   "compute $rs + $rt with no overflow trap");
+      tpl_r3_arith(level, inst, "Add Unsigned",
+                   "computed $rs + $rt with no overflow trap");
       break;
     case Y_SUB_OP:
       tpl_r3_arith(
-          inst, "Subtract",
-          "compute $rs - $rt as a signed difference; trap on overflow");
+          level, inst, "Subtract",
+          "computed $rs - $rt as a signed difference; trapped on overflow");
       break;
     case Y_SUBU_OP:
-      tpl_r3_arith(inst, "Subtract Unsigned",
-                   "compute $rs - $rt with no overflow trap");
+      tpl_r3_arith(level, inst, "Subtract Unsigned",
+                   "computed $rs - $rt with no overflow trap");
       break;
     case Y_AND_OP:
-      tpl_r3_arith(inst, "Bitwise AND",
-                   "compute the bitwise AND of $rs and $rt");
+      tpl_r3_arith(level, inst, "Bitwise AND",
+                   "computed the bitwise AND of $rs and $rt");
       break;
     case Y_OR_OP:
-      tpl_r3_arith(inst, "Bitwise OR", "compute the bitwise OR of $rs and $rt");
+      tpl_r3_arith(level, inst, "Bitwise OR",
+                   "computed the bitwise OR of $rs and $rt");
       break;
     case Y_XOR_OP:
-      tpl_r3_arith(inst, "Bitwise XOR",
-                   "compute the bitwise XOR of $rs and $rt");
+      tpl_r3_arith(level, inst, "Bitwise XOR",
+                   "computed the bitwise XOR of $rs and $rt");
       break;
     case Y_NOR_OP:
-      tpl_r3_arith(inst, "Bitwise NOR", "compute NOT($rs OR $rt)");
+      tpl_r3_arith(level, inst, "Bitwise NOR", "computed NOT($rs OR $rt)");
       break;
     case Y_SLT_OP:
-      tpl_r3_arith(inst, "Set on Less Than (signed)",
+      tpl_r3_arith(level, inst, "Set on Less Than (signed)",
                    "set the destination to 1 if $rs < $rt (signed), else 0");
       break;
     case Y_SLTU_OP:
-      tpl_r3_arith(inst, "Set on Less Than (unsigned)",
+      tpl_r3_arith(level, inst, "Set on Less Than (unsigned)",
                    "set the destination to 1 if $rs < $rt (unsigned), else 0");
       break;
     case Y_MUL_OP:
-      tpl_r3_arith(inst, "Multiply (MIPS32)",
-                   "compute the low 32 bits of $rs * $rt");
+      tpl_r3_arith(level, inst, "Multiply (MIPS32)",
+                   "computed the low 32 bits of $rs * $rt");
       break;
 
     /* Arithmetic, I-type */
     case Y_ADDI_OP:
-      tpl_i2_arith(inst, "Add Immediate",
-                   "compute $rs + immediate; trap on overflow");
+      tpl_i2_arith(level, inst, "Add Immediate",
+                   "computed $rs + immediate; trapped on overflow");
       break;
     case Y_ADDIU_OP:
-      tpl_i2_arith(inst, "Add Immediate Unsigned",
-                   "compute $rs + sign-extended immediate, no overflow trap");
+      tpl_i2_arith(level, inst, "Add Immediate Unsigned",
+                   "computed $rs + sign-extended immediate, no overflow trap");
       break;
     case Y_ANDI_OP:
-      tpl_i2_arith(inst, "AND Immediate",
-                   "compute $rs AND zero-extended immediate");
+      tpl_i2_arith(level, inst, "AND Immediate",
+                   "computed $rs AND zero-extended immediate");
       break;
     case Y_ORI_OP:
-      tpl_i2_arith(inst, "OR Immediate",
-                   "compute $rs OR zero-extended immediate");
+      tpl_i2_arith(level, inst, "OR Immediate",
+                   "computed $rs OR zero-extended immediate");
       break;
     case Y_XORI_OP:
-      tpl_i2_arith(inst, "XOR Immediate",
-                   "compute $rs XOR zero-extended immediate");
+      tpl_i2_arith(level, inst, "XOR Immediate",
+                   "computed $rs XOR zero-extended immediate");
       break;
     case Y_SLTI_OP:
-      tpl_i2_arith(inst, "Set Less Than Immediate (signed)",
+      tpl_i2_arith(level, inst, "Set Less Than Immediate (signed)",
                    "set destination to 1 if $rs < imm (signed)");
       break;
     case Y_SLTIU_OP:
-      tpl_i2_arith(inst, "Set Less Than Immediate (unsigned)",
+      tpl_i2_arith(level, inst, "Set Less Than Immediate (unsigned)",
                    "set destination to 1 if $rs < imm (unsigned)");
       break;
 
@@ -880,22 +1727,21 @@ void explain_before(instruction* inst, mem_addr addr) {
     case Y_LUI_OP: {
       int rt = RT(inst);
       short imm = (short)IMM(inst);
-      uint32 result = ((uint32)(imm & 0xffff)) << 16;
-      write_output(message_out, "  What it does:\n");
+      write_output(message_out, "  What it did:\n");
       write_output(message_out,
-                   "    Load Upper Immediate — place the 16-bit immediate "
+                   "    Load Upper Immediate — placed the 16-bit immediate "
                    "into the\n"
-                   "    upper 16 bits of $%s, zero the lower 16. Often paired "
-                   "with\n"
+                   "    upper 16 bits of $%s, zeroing the lower 16. Often "
+                   "paired with\n"
                    "    `ori` to construct a full 32-bit constant.\n",
                    int_reg_names[rt]);
-      write_output(message_out, "  Inputs read:\n");
-      say_input_imm(imm);
-      write_output(message_out,
-                   "    will become 0x%08x (immediate << 16) in $%s.\n", result,
-                   int_reg_names[rt]);
-      say_will_write_reg(rt);
-      say_try_regs(rt, 0, 0, 0);
+      if (level >= 2) {
+        write_output(message_out, "  Inputs (before this step):\n");
+        say_input_imm(imm);
+        write_output(message_out, "  Wrote:\n");
+        say_wrote_reg(rt);
+        say_try_regs(rt, 0, 0, 0);
+      }
       break;
     }
 
@@ -903,256 +1749,275 @@ void explain_before(instruction* inst, mem_addr addr) {
     case Y_SLL_OP:
       if (RD(inst) == 0 && RT(inst) == 0 && SHAMT(inst) == 0) {
         /* nop = sll $0, $0, 0 */
-        write_output(message_out, "  What it does:\n");
+        write_output(message_out, "  What it did:\n");
         write_output(message_out,
-                     "    No Operation. The processor takes one cycle and "
-                     "does nothing.\n"
+                     "    No Operation. The processor took one cycle and "
+                     "did nothing.\n"
                      "    (Encoded as `sll $0, $0, 0` — a shift of $zero "
                      "with no destination.)\n");
-        write_output(message_out, "  Inputs read:\n    (none)\n");
-        write_output(message_out, "  Will write:\n    (no register changes)\n");
-        say_try_regs(0, 0, 0, 0);
+        if (level >= 2) {
+          write_output(message_out,
+                       "  Inputs (before this step):\n    (none)\n");
+          write_output(message_out, "  Wrote:\n    (no register changes)\n");
+          say_try_regs(0, 0, 0, 0);
+        }
       } else {
-        tpl_shift(inst, "Shift Left Logical", "shift $rt left, filling with 0");
+        tpl_shift(level, inst, "Shift Left Logical",
+                  "shifted $rt left, filling with 0");
       }
       break;
     case Y_SRL_OP:
-      tpl_shift(inst, "Shift Right Logical", "shift $rt right, filling with 0");
+      tpl_shift(level, inst, "Shift Right Logical",
+                "shifted $rt right, filling with 0");
       break;
     case Y_SRA_OP:
-      tpl_shift(inst, "Shift Right Arithmetic",
-                "shift $rt right, filling with the sign bit");
+      tpl_shift(level, inst, "Shift Right Arithmetic",
+                "shifted $rt right, filling with the sign bit");
       break;
 
     /* Loads */
     case Y_LW_OP:
-      tpl_load(inst, "Load Word", "read a 32-bit word", 4);
+      tpl_load(level, inst, "Load Word", "a 32-bit word", 4);
       break;
     case Y_LB_OP:
-      tpl_load(inst, "Load Byte (signed)", "read one byte and sign-extend it",
-               1);
+      tpl_load(level, inst, "Load Byte (signed)", "one byte, sign-extended", 1);
       break;
     case Y_LBU_OP:
-      tpl_load(inst, "Load Byte Unsigned", "read one byte and zero-extend it",
-               1);
+      tpl_load(level, inst, "Load Byte Unsigned", "one byte, zero-extended", 1);
       break;
     case Y_LH_OP:
-      tpl_load(inst, "Load Halfword (signed)",
-               "read 16 bits and sign-extend them", 2);
+      tpl_load(level, inst, "Load Halfword (signed)", "16 bits, sign-extended",
+               2);
       break;
     case Y_LHU_OP:
-      tpl_load(inst, "Load Halfword Unsigned",
-               "read 16 bits and zero-extend them", 2);
+      tpl_load(level, inst, "Load Halfword Unsigned", "16 bits, zero-extended",
+               2);
       break;
 
     /* Stores */
     case Y_SW_OP:
-      tpl_store(inst, "Store Word", "write the 32-bit value", 4);
+      tpl_store(level, inst, "Store Word", "the 32-bit value", 4);
       break;
     case Y_SB_OP:
-      tpl_store(inst, "Store Byte", "write the low 8 bits", 1);
+      tpl_store(level, inst, "Store Byte", "the low 8 bits", 1);
       break;
     case Y_SH_OP:
-      tpl_store(inst, "Store Halfword", "write the low 16 bits", 2);
+      tpl_store(level, inst, "Store Halfword", "the low 16 bits", 2);
       break;
 
-    /* Branches */
+    /* Branches. The comparison value is read from snap_R[] since by the
+       time the template runs, an instruction like `beq $t0, $t0, ...`
+       has already executed (though it would not have modified rs/rt
+       anyway). */
     case Y_BEQ_OP:
-      tpl_branch_2reg(inst, "Branch if Equal",
-                      "==", R[RS(inst)] == R[RT(inst)]);
+      tpl_branch_2reg(level, inst, "Branch if Equal",
+                      "==", snap_R[RS(inst)] == snap_R[RT(inst)]);
       break;
     case Y_BNE_OP:
-      tpl_branch_2reg(inst, "Branch if Not Equal",
-                      "!=", R[RS(inst)] != R[RT(inst)]);
+      tpl_branch_2reg(level, inst, "Branch if Not Equal",
+                      "!=", snap_R[RS(inst)] != snap_R[RT(inst)]);
       break;
     case Y_BGEZ_OP:
-      tpl_branch_1reg(inst, "Branch if Greater or Equal Zero",
-                      ">=", (reg_word)R[RS(inst)] >= 0);
+      tpl_branch_1reg(level, inst, "Branch if Greater or Equal Zero",
+                      ">=", (reg_word)snap_R[RS(inst)] >= 0);
       break;
     case Y_BGTZ_OP:
-      tpl_branch_1reg(inst, "Branch if Greater Than Zero", ">",
-                      (reg_word)R[RS(inst)] > 0);
+      tpl_branch_1reg(level, inst, "Branch if Greater Than Zero", ">",
+                      (reg_word)snap_R[RS(inst)] > 0);
       break;
     case Y_BLEZ_OP:
-      tpl_branch_1reg(inst, "Branch if Less or Equal Zero",
-                      "<=", (reg_word)R[RS(inst)] <= 0);
+      tpl_branch_1reg(level, inst, "Branch if Less or Equal Zero",
+                      "<=", (reg_word)snap_R[RS(inst)] <= 0);
       break;
     case Y_BLTZ_OP:
-      tpl_branch_1reg(inst, "Branch if Less Than Zero", "<",
-                      (reg_word)R[RS(inst)] < 0);
+      tpl_branch_1reg(level, inst, "Branch if Less Than Zero", "<",
+                      (reg_word)snap_R[RS(inst)] < 0);
       break;
 
-    /* Jumps */
+    /* Jumps. PC change is captured by the side-effect fallback at the
+       end of explain_after, so per-jump templates don't repeat it. */
     case Y_J_OP: {
       mem_addr target = TARGET(inst) << 2;
-      write_output(message_out, "  What it does:\n");
-      write_output(message_out, "    Jump unconditionally to 0x%08x.\n",
+      write_output(message_out, "  What it did:\n");
+      write_output(message_out, "    Jumped unconditionally to 0x%08x.\n",
                    target);
-      write_output(message_out, "  Inputs read:\n    (none)\n");
-      write_output(message_out, "  Will write:\n");
-      write_output(message_out, "    PC  (currently 0x%08x  ->  0x%08x)\n", PC,
-                   target);
-      say_try_regs(0, 0, 0, 0);
+      if (level >= 2) {
+        write_output(message_out, "  Inputs (before this step):\n    (none)\n");
+        say_try_regs(0, 0, 0, 0);
+      }
       break;
     }
     case Y_JAL_OP: {
       mem_addr target = TARGET(inst) << 2;
-      mem_addr link = PC + (delayed_branches ? 8 : 4);
-      write_output(message_out, "  What it does:\n");
+      write_output(message_out, "  What it did:\n");
       write_output(message_out,
-                   "    Jump and Link — save 0x%08x (%s) into $ra, then "
-                   "jump to 0x%08x.\n",
-                   link,
-                   delayed_branches ? "PC+8, skipping the delay slot"
-                                    : "PC+4, the next instruction",
+                   "    Jump and Link — saved the return address into "
+                   "$ra,\n    then jumped to 0x%08x.\n",
                    target);
       write_output(message_out,
                    "    (Standard subroutine call: $ra holds "
                    "the return address.)\n");
-      write_output(message_out, "  Inputs read:\n    (none)\n");
-      write_output(message_out, "  Will write:\n");
-      write_output(message_out,
-                   "    $ra (currently 0x%08x)  →  0x%08x  (return address)\n",
-                   R[31], link);
-      write_output(message_out, "    PC  (currently 0x%08x)  →  0x%08x\n", PC,
-                   target);
-      say_try_regs(31, 0, 0, 0);
+      if (level >= 2) {
+        write_output(message_out, "  Inputs (before this step):\n    (none)\n");
+        write_output(message_out, "  Wrote:\n");
+        say_wrote_reg(31);
+        say_try_regs(31, 0, 0, 0);
+      }
       break;
     }
     case Y_JR_OP: {
       int rs = RS(inst);
-      write_output(message_out, "  What it does:\n");
+      write_output(message_out, "  What it did:\n");
       write_output(message_out,
-                   "    Jump Register — jump to the address held in $%s.\n"
-                   "    (Used to return from a subroutine when $rs == $ra.)\n",
-                   int_reg_names[rs]);
-      write_output(message_out, "  Inputs read:\n");
-      say_input_reg(rs);
-      write_output(message_out, "  Will write:\n");
-      write_output(message_out, "    PC  (currently 0x%08x)  →  0x%08x\n", PC,
-                   (mem_addr)R[rs]);
-      say_try_regs(rs, 0, 0, 0);
+                   "    Jump Register — jumped to the address held in $%s.\n"
+                   "    (Used to return from a subroutine when $rs == $ra.)\n"
+                   "    Destination = 0x%08x.\n",
+                   int_reg_names[rs], (mem_addr)snap_R[rs]);
+      if (level >= 2) {
+        write_output(message_out, "  Inputs (before this step):\n");
+        say_input_reg(rs);
+        say_try_regs(rs, 0, 0, 0);
+      }
       break;
     }
     case Y_JALR_OP: {
       int rd = RD(inst), rs = RS(inst);
-      mem_addr link = PC + (delayed_branches ? 8 : 4);
-      write_output(message_out, "  What it does:\n");
+      write_output(message_out, "  What it did:\n");
       write_output(message_out,
-                   "    Jump and Link Register — save 0x%08x (%s) into "
-                   "$%s,\n    then jump to the address in $%s.\n",
-                   link,
-                   delayed_branches ? "PC+8, skipping the delay slot"
-                                    : "PC+4, the next instruction",
-                   int_reg_names[rd], int_reg_names[rs]);
-      write_output(message_out, "  Inputs read:\n");
-      say_input_reg(rs);
-      write_output(message_out, "  Will write:\n");
-      write_output(message_out, "    $%s  →  0x%08x\n", int_reg_names[rd],
-                   link);
-      write_output(message_out, "    PC   →  0x%08x\n", (mem_addr)R[rs]);
-      say_try_regs(rs, rd, 0, 0);
+                   "    Jump and Link Register — saved the return address "
+                   "into $%s,\n    then jumped to the address in $%s "
+                   "(0x%08x).\n",
+                   int_reg_names[rd], int_reg_names[rs], (mem_addr)snap_R[rs]);
+      if (level >= 2) {
+        write_output(message_out, "  Inputs (before this step):\n");
+        say_input_reg(rs);
+        write_output(message_out, "  Wrote:\n");
+        say_wrote_reg(rd);
+        say_try_regs(rs, rd, 0, 0);
+      }
       break;
     }
 
     /* HI / LO */
     case Y_MFHI_OP: {
       int rd = RD(inst);
-      write_output(message_out, "  What it does:\n");
+      write_output(message_out, "  What it did:\n");
       write_output(message_out,
-                   "    Move From HI — copy the special HI register into $%s.\n"
+                   "    Move From HI — copied the special HI register into "
+                   "$%s.\n"
                    "    HI holds the high half of a multiplication, or the "
                    "remainder of a division.\n",
                    int_reg_names[rd]);
-      write_output(message_out, "  Inputs read:\n");
-      write_output(message_out, "    HI = 0x%08x\n", HI);
-      say_will_write_reg(rd);
-      say_try_regs(rd, 0, 0, 0);
+      if (level >= 2) {
+        write_output(message_out, "  Inputs (before this step):\n");
+        write_output(message_out, "    HI = 0x%08x\n", snap_HI);
+        write_output(message_out, "  Wrote:\n");
+        say_wrote_reg(rd);
+        say_try_regs(rd, 0, 0, 0);
+      }
       break;
     }
     case Y_MFLO_OP: {
       int rd = RD(inst);
-      write_output(message_out, "  What it does:\n");
+      write_output(message_out, "  What it did:\n");
       write_output(message_out,
-                   "    Move From LO — copy the special LO register into $%s.\n"
+                   "    Move From LO — copied the special LO register into "
+                   "$%s.\n"
                    "    LO holds the low half of a multiplication, or the "
                    "quotient of a division.\n",
                    int_reg_names[rd]);
-      write_output(message_out, "  Inputs read:\n");
-      write_output(message_out, "    LO = 0x%08x\n", LO);
-      say_will_write_reg(rd);
-      say_try_regs(rd, 0, 0, 0);
+      if (level >= 2) {
+        write_output(message_out, "  Inputs (before this step):\n");
+        write_output(message_out, "    LO = 0x%08x\n", snap_LO);
+        write_output(message_out, "  Wrote:\n");
+        say_wrote_reg(rd);
+        say_try_regs(rd, 0, 0, 0);
+      }
       break;
     }
     case Y_MULT_OP: {
       int rs = RS(inst), rt = RT(inst);
-      write_output(message_out, "  What it does:\n");
+      write_output(message_out, "  What it did:\n");
       write_output(message_out,
-                   "    Multiply (signed) — compute $%s * $%s as a 64-bit "
+                   "    Multiply (signed) — computed $%s * $%s as a 64-bit "
                    "result.\n"
-                   "    The high 32 bits go to HI; the low 32 bits go to LO.\n"
+                   "    The high 32 bits went to HI; the low 32 bits went to "
+                   "LO.\n"
                    "    Use mfhi / mflo to retrieve them.\n",
                    int_reg_names[rs], int_reg_names[rt]);
-      write_output(message_out, "  Inputs read:\n");
-      say_input_reg(rs);
-      say_input_reg(rt);
-      write_output(message_out, "  Will write:\n");
-      write_output(message_out, "    HI, LO\n");
-      say_try_regs(rs, rt, 0, 0);
+      if (level >= 2) {
+        write_output(message_out, "  Inputs (before this step):\n");
+        say_input_reg(rs);
+        say_input_reg(rt);
+        write_output(message_out, "  Wrote:\n");
+        say_wrote_hi();
+        say_wrote_lo();
+        say_try_regs(rs, rt, 0, 0);
+      }
       break;
     }
     case Y_DIV_OP: {
       int rs = RS(inst), rt = RT(inst);
-      write_output(message_out, "  What it does:\n");
+      write_output(message_out, "  What it did:\n");
       write_output(message_out,
-                   "    Divide (signed) — compute $%s / $%s.\n"
-                   "    Quotient goes to LO; remainder goes to HI.\n",
+                   "    Divide (signed) — computed $%s / $%s.\n"
+                   "    Quotient went to LO; remainder went to HI.\n",
                    int_reg_names[rs], int_reg_names[rt]);
-      write_output(message_out, "  Inputs read:\n");
-      say_input_reg(rs);
-      say_input_reg(rt);
-      write_output(message_out, "  Will write:\n");
-      write_output(message_out, "    HI (remainder), LO (quotient)\n");
-      say_try_regs(rs, rt, 0, 0);
+      if (level >= 2) {
+        write_output(message_out, "  Inputs (before this step):\n");
+        say_input_reg(rs);
+        say_input_reg(rt);
+        write_output(message_out, "  Wrote:\n");
+        say_wrote_hi();
+        say_wrote_lo();
+        say_try_regs(rs, rt, 0, 0);
+      }
       break;
     }
     case Y_MULTU_OP: {
       int rs = RS(inst), rt = RT(inst);
-      write_output(message_out, "  What it does:\n");
+      write_output(message_out, "  What it did:\n");
       write_output(message_out,
-                   "    Multiply Unsigned — compute $%s * $%s as a 64-bit "
+                   "    Multiply Unsigned — computed $%s * $%s as a 64-bit "
                    "unsigned result.\n"
-                   "    The high 32 bits go to HI; the low 32 bits go to LO.\n"
+                   "    The high 32 bits went to HI; the low 32 bits went to "
+                   "LO.\n"
                    "    Use mfhi / mflo to retrieve them. No overflow trap.\n",
                    int_reg_names[rs], int_reg_names[rt]);
-      write_output(message_out, "  Inputs read:\n");
-      say_input_reg(rs);
-      say_input_reg(rt);
-      write_output(message_out, "  Will write:\n");
-      write_output(message_out, "    HI, LO\n");
-      say_try_regs(rs, rt, 0, 0);
+      if (level >= 2) {
+        write_output(message_out, "  Inputs (before this step):\n");
+        say_input_reg(rs);
+        say_input_reg(rt);
+        write_output(message_out, "  Wrote:\n");
+        say_wrote_hi();
+        say_wrote_lo();
+        say_try_regs(rs, rt, 0, 0);
+      }
       break;
     }
     case Y_DIVU_OP: {
       int rs = RS(inst), rt = RT(inst);
-      write_output(message_out, "  What it does:\n");
+      write_output(message_out, "  What it did:\n");
       write_output(message_out,
-                   "    Divide Unsigned — compute $%s / $%s, treating both "
+                   "    Divide Unsigned — computed $%s / $%s, treating both "
                    "operands as unsigned.\n"
-                   "    Quotient goes to LO; remainder goes to HI.\n",
+                   "    Quotient went to LO; remainder went to HI.\n",
                    int_reg_names[rs], int_reg_names[rt]);
-      write_output(message_out, "  Inputs read:\n");
-      say_input_reg(rs);
-      say_input_reg(rt);
-      write_output(message_out, "  Will write:\n");
-      write_output(message_out, "    HI (remainder), LO (quotient)\n");
-      say_try_regs(rs, rt, 0, 0);
+      if (level >= 2) {
+        write_output(message_out, "  Inputs (before this step):\n");
+        say_input_reg(rs);
+        say_input_reg(rt);
+        write_output(message_out, "  Wrote:\n");
+        say_wrote_hi();
+        say_wrote_lo();
+        say_try_regs(rs, rt, 0, 0);
+      }
       break;
     }
 
     /* Syscall */
     case Y_SYSCALL_OP:
-      explain_syscall();
+      explain_syscall(level);
       break;
 
     default:
@@ -1165,53 +2030,133 @@ void explain_before(instruction* inst, mem_addr addr) {
   write_output(message_out, "\n");
 }
 
+/* explain_after runs immediately after the dispatch switch (and PC
+   advance) in run_spim. This is where the narration actually emits —
+   by the time the user sees it, everything described has already
+   happened, so we can use past tense throughout. */
 void explain_after(instruction* inst) {
-  if (!explain_mode) return;
+  if (explain_level == 0) return;
+  int level = explain_level;
 
-  /* If this was a load, force-print the destination register even when
-   * the loaded value happens to equal the prior contents — otherwise the
-   * student sees "(no register changes)" after a load that did execute,
-   * which is pedagogically misleading. */
-  int load_rt = -1;
-  switch (OPCODE(inst)) {
-    case Y_LW_OP:
-    case Y_LB_OP:
-    case Y_LBU_OP:
-    case Y_LH_OP:
-    case Y_LHU_OP:
-      load_rt = RT(inst);
-      break;
-  }
+  /* Reset the "touched by template" tracking so the side-effect
+     fallback below knows what's already been named. */
+  memset(touched_reg, 0, sizeof touched_reg);
+  touched_hi = false;
+  touched_lo = false;
 
-  write_output(message_out, "After execution:\n");
+  explain_print_step_header(snap_PC, inst);
 
-  bool any = false;
-  bool printed_load_rt = false;
-  for (int i = 1; i < R_LENGTH; i++) {
-    if (R[i] != snap_R[i]) {
-      write_output(message_out, "    $%s:  0x%08x  ->  0x%08x   (decimal %d)\n",
-                   int_reg_names[i], snap_R[i], R[i], R[i]);
-      any = true;
-      if (i == load_rt) printed_load_rt = true;
+  /* L3 shows a single bit-field diagram; L4 expands that into the
+     CPU's hierarchical decoding sequence (multiple frames, same shape,
+     fields filling in progressively). The L4 final frame equals the
+     L3 box, so we don't show both. */
+  if (level == 3)
+    explain_bit_layout(inst);
+  else if (level >= 4)
+    explain_decoding_steps(inst);
+
+  /* Pseudo-op header / continuation hint.
+   *
+   * Two paths:
+   *   (a) Current instruction has a SOURCE line — try to match it
+   *       against a pseudo-op mnemonic and emit a header.
+   *   (b) No SOURCE line, but the previous step matched a may-be-multi
+   *       pseudo-op — emit a continuation hint. */
+  if (accept_pseudo_insts && SOURCE(inst) != NULL) {
+    const struct pseudo_info* p = find_pseudo_in_source(SOURCE(inst));
+    if (p != NULL) {
+      write_output(message_out,
+                   "  Pseudo-instruction `%s` (as written in source):\n"
+                   "    %s\n"
+                   "  This was the %s real instruction the assembler "
+                   "emitted for it.\n",
+                   p->name, p->what_it_means,
+                   p->may_be_multi ? "first" : "single");
+      pending_pseudo_name = p->name;
+      pending_pseudo_multi = p->may_be_multi;
+    } else {
+      pending_pseudo_name = NULL;
+      pending_pseudo_multi = false;
     }
-  }
-  if (load_rt > 0 && !printed_load_rt) {
+  } else if (pending_pseudo_name != NULL && pending_pseudo_multi) {
     write_output(message_out,
-                 "    $%s:  0x%08x  (loaded from memory; same value "
-                 "as before — load still happened)\n",
-                 int_reg_names[load_rt], R[load_rt]);
-    any = true;
+                 "  (continuation of the `%s` pseudo-op expansion above —\n"
+                 "   same source line, this was the next real instruction "
+                 "emitted)\n",
+                 pending_pseudo_name);
   }
-  if (HI != snap_HI) {
-    write_output(message_out, "    HI:   0x%08x  ->  0x%08x\n", snap_HI, HI);
-    any = true;
+  write_output(message_out, "\n");
+
+  /* Everything below — per-opcode "What it did", Inputs/Wrote blocks,
+     Try-it-yourself hints, PC delta, side-effect fallback — is L2+
+     content. At L1 the labeled header above is the whole story (same
+     four data items as the default compact one-liner, just relayed
+     out). */
+  if (level >= 2) {
+    /* Category + modifiers preamble (first-time-per-session gets the
+       full description, subsequent times get the short form). */
+    emit_category_preamble(inst);
+
+    /* Per-opcode narration. */
+    render_dispatch(level, inst);
+
+    /* Load destination annotation: if a load completed but its
+       destination register value didn't change (loaded the same value
+       already there), the say_wrote_reg line shows "0xV → 0xV" which
+       is technically true but easy to misread as "nothing happened."
+       Annotate explicitly. */
+    switch (OPCODE(inst)) {
+      case Y_LW_OP:
+      case Y_LB_OP:
+      case Y_LBU_OP:
+      case Y_LH_OP:
+      case Y_LHU_OP: {
+        int rt = RT(inst);
+        if (rt != 0 && snap_R[rt] == R[rt]) {
+          write_output(message_out,
+                       "    (the load did happen — the memory value matched "
+                       "the prior register value)\n");
+        }
+        break;
+      }
+    }
+
+    /* Side-effect fallback: anything that changed but wasn't named by
+       the template. Captures unexpected mutations (e.g. exception
+       paths, templates that don't yet cover all of an op's writes). */
+    bool header_done = false;
+    for (int i = 1; i < R_LENGTH; i++) {
+      if (R[i] != snap_R[i] && !touched_reg[i]) {
+        if (!header_done) {
+          write_output(message_out,
+                       "  Side effects (changed but not named above):\n");
+          header_done = true;
+        }
+        write_output(message_out,
+                     "    $%s:  0x%08x  →  0x%08x   (decimal %d)\n",
+                     int_reg_names[i], snap_R[i], R[i], R[i]);
+      }
+    }
+    if (HI != snap_HI && !touched_hi) {
+      if (!header_done) {
+        write_output(message_out,
+                     "  Side effects (changed but not named above):\n");
+        header_done = true;
+      }
+      write_output(message_out, "    HI:  0x%08x  →  0x%08x\n", snap_HI, HI);
+    }
+    if (LO != snap_LO && !touched_lo) {
+      if (!header_done) {
+        write_output(message_out,
+                     "  Side effects (changed but not named above):\n");
+        header_done = true;
+      }
+      write_output(message_out, "    LO:  0x%08x  →  0x%08x\n", snap_LO, LO);
+    }
+
+    /* PC always advances; print it last. */
+    write_output(message_out, "  PC:  0x%08x  →  0x%08x\n", snap_PC, PC);
   }
-  if (LO != snap_LO) {
-    write_output(message_out, "    LO:   0x%08x  ->  0x%08x\n", snap_LO, LO);
-    any = true;
-  }
-  write_output(message_out, "    PC:   0x%08x  ->  0x%08x\n", snap_PC, PC);
-  if (!any) write_output(message_out, "    (no register changes)\n");
 
   write_output(message_out, "\n");
 }

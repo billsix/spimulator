@@ -75,4 +75,10 @@ char* undefined_symbol_string(void);
 void resolve_a_label(label* sym, instruction* inst);
 void resolve_label_uses(label* sym);
 
+/* Iterate over every currently-defined symbol in the table, invoking
+   `cb` with each one and the caller-supplied `ctx`. Order is undefined
+   (hash-bucket order). Used by the REPL's tab-completion to enumerate
+   labels for the `breakpoint` / `delete` commands. */
+void for_each_label(void (*cb)(const label* l, void* ctx), void* ctx);
+
 #endif

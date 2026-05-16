@@ -379,6 +379,16 @@ void print_symbols(void) {
                    l->global_flag ? "g\t" : "\t", l->name, l->addr);
 }
 
+/* Iterate over every currently-defined symbol in the table. */
+
+void for_each_label(void (*cb)(const label* l, void* ctx), void* ctx) {
+  int i;
+  label* l;
+  for (i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
+    for (l = label_hash_table[i]; l != NULL; l = l->next)
+      if (SYMBOL_IS_DEFINED(l)) cb(l, ctx);
+}
+
 /* Print all undefined symbols in the table. */
 
 void print_undefined_symbols(void) {

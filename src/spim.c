@@ -90,6 +90,204 @@
 #include "data.h"
 #include "explain.h"
 
+#ifdef HAVE_LIBEDIT
+#include <editline/readline.h>
+#include <stdlib.h>
+#include <string.h>
+static char history_path[1024] = {0};
+static void save_history_at_exit(void) {
+  if (history_path[0] != '\0') write_history(history_path);
+}
+
+/* Tab-completion at the (spim) prompt.
+ *
+ * Two completion sources, dispatched by where the cursor is when the
+ * student presses Tab:
+ *   - Cursor at column 0  -> REPL command names (load, breakpoint, ...)
+ *   - Cursor past column 0 -> "Try it yourself" suggestions cached by
+ *                              explain.c for the most recent instruction
+ *
+ * spim_commands must stay in sync with read_assembly_command()'s
+ * str_prefix table further below. Alphabetical order so the listing
+ * libedit prints on Tab-Tab reads cleanly. */
+static const char* spim_commands[] = {
+    "breakpoint", "continue", "delete",         "dump",
+    "dumpnative", "exit",     "help",           "list",
+    "load",       "print",    "print_all_regs", "print_symbols",
+    "quit",       "read",     "reinitialize",   "run",
+    "step",       NULL};
+
+static char* command_generator(const char* text, int state) {
+  static size_t idx;
+  static size_t text_len;
+  if (state == 0) {
+    idx = 0;
+    text_len = strlen(text);
+  }
+  while (spim_commands[idx] != NULL) {
+    const char* s = spim_commands[idx++];
+    if (strncmp(s, text, text_len) == 0) return strdup(s);
+  }
+  return NULL;
+}
+
+static char* suggestion_generator(const char* text, int state) {
+  static size_t idx;
+  static size_t text_len;
+  if (state == 0) {
+    idx = 0;
+    text_len = strlen(text);
+  }
+  size_t n = explain_suggestion_count();
+  while (idx < n) {
+    const char* s = explain_suggestion(idx++);
+    if (s == NULL) continue;
+    /* Suggestions are stored as full commands ("print $a0"). When the
+       student has already typed `print ` and hits Tab, libedit passes
+       us just `$a0` (or the prefix thereof) as `text`. Strip a leading
+       space-separated word from the candidate before the prefix check
+       so the operand portion still matches. Degrades gracefully if
+       there's no space: tail == s, prefix check runs on the whole. */
+    const char* tail = s;
+    const char* space = strchr(s, ' ');
+    if (space != NULL) tail = space + 1;
+    if (strncmp(tail, text, text_len) == 0) return strdup(tail);
+  }
+  return NULL;
+}
+
+/* Helper used by line_is_file_command / line_is_label_command. True if
+   the current line starts with any of the given command names followed
+   by whitespace. */
+static bool line_starts_with_cmd(const char* const* cmds) {
+  const char* line = rl_line_buffer;
+  if (line == NULL) return false;
+  while (*line == ' ' || *line == '\t') line++;
+  for (size_t i = 0; cmds[i] != NULL; i++) {
+    size_t len = strlen(cmds[i]);
+    if (strncmp(line, cmds[i], len) == 0 &&
+        (line[len] == ' ' || line[len] == '\t')) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/* True if the current line begins with a file-taking REPL command
+   followed by whitespace — those are the prompts where the student
+   expects libedit's default filename completion to kick in. */
+static bool line_is_file_command(void) {
+  static const char* cmds[] = {"load", "read", "dump", "dumpnative", NULL};
+  return line_starts_with_cmd(cmds);
+}
+
+/* True if the current line begins with a REPL command whose argument
+   is a label/address — `breakpoint` and `delete` accept either a hex
+   address (Y_INT) or a symbol name (Y_ID); tab-completion offers the
+   symbol names defined in the loaded program. */
+static bool line_is_label_command(void) {
+  static const char* cmds[] = {"breakpoint", "delete", NULL};
+  return line_starts_with_cmd(cmds);
+}
+
+/* Snapshot of label names taken on each Tab. The pointers point into
+   the symbol table's own storage (label->name), so we don't strdup —
+   but we re-collect on every state==0 call in case the symbol table
+   changed (e.g. after `reinit` + `load`). */
+static const char** label_names_cache = NULL;
+static size_t label_names_cache_n = 0;
+static size_t label_names_cache_cap = 0;
+
+static void label_collect_cb(const label* l, void* ctx) {
+  (void)ctx;
+  if (l == NULL || l->name == NULL) return;
+  if (label_names_cache_n >= label_names_cache_cap) {
+    size_t new_cap =
+        label_names_cache_cap == 0 ? 32 : label_names_cache_cap * 2;
+    const char** new_arr =
+        realloc(label_names_cache, new_cap * sizeof(*label_names_cache));
+    if (new_arr == NULL) return;
+    label_names_cache = new_arr;
+    label_names_cache_cap = new_cap;
+  }
+  label_names_cache[label_names_cache_n++] = l->name;
+}
+
+static char* label_generator(const char* text, int state) {
+  static size_t idx;
+  static size_t text_len;
+  if (state == 0) {
+    label_names_cache_n = 0;
+    for_each_label(label_collect_cb, NULL);
+    idx = 0;
+    text_len = strlen(text);
+  }
+  while (idx < label_names_cache_n) {
+    const char* s = label_names_cache[idx++];
+    if (strncmp(s, text, text_len) == 0) return strdup(s);
+  }
+  return NULL;
+}
+
+static char** spim_completion(const char* text, int start, int end) {
+  (void)end;
+  /* Reset append-character to the default (space) per call — we'll
+     override below for the quoted-filename case so the closing `"` is
+     auto-inserted on a unique match. */
+  rl_completion_append_character = ' ';
+
+  if (start == 0) {
+    /* First word of the line: REPL command names. */
+    rl_attempted_completion_over = 1;
+    return rl_completion_matches(text, command_generator);
+  }
+  if (line_is_file_command()) {
+    /* `load `, `read `, `dump `, `dumpnative ` — filename completion.
+       libedit doesn't auto-fall-back to filename completion when we
+       return NULL the way GNU readline does, so we drive
+       rl_filename_completion_function explicitly. Two cases: */
+    rl_attempted_completion_over = 1;
+    if (text[0] == '"') {
+      /* Quoted form (`load "...`). Strip the leading `"` before passing
+         to the filename completer, then prepend it back to each match
+         so libedit's insertion-into-line still aligns with `text`. The
+         closing `"` is appended on a unique match via
+         rl_completion_append_character. */
+      char** m =
+          rl_completion_matches(text + 1, rl_filename_completion_function);
+      if (m != NULL) {
+        for (int i = 0; m[i] != NULL; i++) {
+          size_t l = strlen(m[i]);
+          char* re = malloc(l + 2);
+          if (re == NULL) continue;
+          re[0] = '"';
+          memcpy(re + 1, m[i], l + 1);
+          free(m[i]);
+          m[i] = re;
+        }
+      }
+      rl_completion_append_character = '"';
+      return m;
+    }
+    /* Unquoted form (`load tt.s` style). The simulator's parser
+       requires quotes around the filename, but offering the names
+       still helps the student see what's available — they can wrap
+       it in quotes themselves. */
+    return rl_completion_matches(text, rl_filename_completion_function);
+  }
+  if (line_is_label_command()) {
+    /* `breakpoint ` / `delete ` — argument is a label or hex address.
+       Offer label completion from the loaded program's symbol table. */
+    rl_attempted_completion_over = 1;
+    return rl_completion_matches(text, label_generator);
+  }
+  /* Past the first word, not a file/label command: offer the cached
+     "Try it yourself" suggestions from the most recent instruction. */
+  rl_attempted_completion_over = 1;
+  return rl_completion_matches(text, suggestion_generator);
+}
+#endif
+
 /* Internal functions: */
 
 static void console_to_program(void);
@@ -207,10 +405,29 @@ int main(int argc, char** argv) {
       quiet = true;
     } else if (streq(argv[i], "-noquiet") || streq(argv[i], "-nq")) {
       quiet = false;
-    } else if (streq(argv[i], "-explain") || streq(argv[i], "-x")) {
-      explain_mode = true;
     } else if (streq(argv[i], "-noexplain") || streq(argv[i], "-nx")) {
-      explain_mode = false;
+      explain_level = 0;
+    } else if (strncmp(argv[i], "-explain=", 9) == 0 ||
+               strncmp(argv[i], "-x=", 3) == 0) {
+      /* -explain=N / -x=N form. N must be a single digit 0..4. */
+      const char* v = strchr(argv[i], '=') + 1;
+      if (v[0] >= '0' && v[0] <= '4' && v[1] == '\0') {
+        explain_level = v[0] - '0';
+      } else {
+        fprintf(stderr, "spimulator: %s requires a level in 0..4\n", argv[i]);
+        print_usage_msg = 1;
+      }
+    } else if (streq(argv[i], "-explain") || streq(argv[i], "-x")) {
+      /* Bare -explain / -x defaults to level 3 (full output — the
+         historical -explain behavior). An optional next arg can set
+         a different level: `-explain 2` shows L2 detail. */
+      if (i + 1 < argc && argv[i + 1][0] >= '0' && argv[i + 1][0] <= '4' &&
+          argv[i + 1][1] == '\0') {
+        explain_level = argv[i + 1][0] - '0';
+        i++;
+      } else {
+        explain_level = 3;
+      }
     } else if (streq(argv[i], "-trap") || streq(argv[i], "-t")) {
       load_exception_handler = true;
     } else if (streq(argv[i], "-notrap") || streq(argv[i], "-nt")) {
@@ -275,7 +492,11 @@ int main(int argc, char** argv) {
 	-exception_file <file>	Specify exception handler in place of default\n\
 	-quiet			Do not print warnings\n\
 	-noquiet		Print warnings (default)\n\
-	-explain		Narrate every instruction (teaching mode)\n\
+	-explain [N]		Narrate every instruction (teaching mode).\n\
+				Level N selects detail: 1 = semantic, 2 = + interactive,\n\
+				3 = + bit-layout (default when N omitted; historical behavior),\n\
+				4 = + progressive decoder walkthrough.\n\
+				Also accepts -explain=N. Short form: -x.\n\
 	-noexplain		Disable teaching mode (default)\n\
 	-mapped_io		Enable memory-mapped IO\n\
 	-nomapped_io		Do not enable memory-mapped IO (default)\n\
@@ -330,12 +551,121 @@ _Noreturn static void top_level(void) {
   (void)signal(SIGINT, control_c_seen);
   initialize_scanner(stdin);
   initialize_parser("<standard input>");
+
+#ifdef HAVE_LIBEDIT
+  /* Persistent REPL history at ~/.spimulator_history, the same idiom gdb,
+     sqlite3, and python use. atexit() catches EXIT_CMD's exit(0) too. */
+  using_history();
+  const char* home = getenv("HOME");
+  if (home != NULL) {
+    snprintf(history_path, sizeof(history_path), "%s/.spimulator_history",
+             home);
+    read_history(history_path);
+    atexit(save_history_at_exit);
+  }
+
+  /* Tab completion: dispatch to commands / suggestions based on cursor
+     column. Trim the word-break set to whitespace only — the libedit
+     defaults include `$` (among other punctuation), which would split
+     `print $a0` so the cursor word is just the empty string after the
+     `$`. That makes Tab on "print $" append the common prefix "$" to an
+     empty word, producing "print $$" instead of offering the register
+     names. Both variables matter: rl_completer_word_break_characters is
+     what the completer consults, but libedit also falls back to / mixes
+     with rl_basic_word_break_characters in some code paths. Override
+     both to whitespace-only. */
+  rl_attempted_completion_function = spim_completion;
+  rl_completer_word_break_characters = (char*)" \t\n";
+  rl_basic_word_break_characters = " \t\n";
+
+  /* Per-iteration scratch — declared outside so the setjmp landing pad can
+     unwind them if a SIGINT longjmps us out of parse_spim_command mid-line. */
+  char* repl_line = NULL;
+  char* repl_buf = NULL;
+  FILE* repl_fp = NULL;
+  bool scanner_pushed = false;
+#endif
+
   while (1) {
+#ifdef HAVE_LIBEDIT
+    if (setjmp(spim_top_level_env)) {
+      /* Returned via control_c_seen longjmp. Unwind any in-flight
+         scanner state so the flex buffer stack doesn't grow each Ctrl-C. */
+      if (scanner_pushed) {
+        pop_scanner();
+        scanner_pushed = false;
+      }
+      if (repl_fp) {
+        fclose(repl_fp);
+        repl_fp = NULL;
+      }
+      free(repl_buf);
+      repl_buf = NULL;
+      free(repl_line);
+      repl_line = NULL;
+      redo = false;
+      fflush(stdout);
+      fflush(stderr);
+      continue;
+    }
+
+    if (!redo) {
+      repl_line = readline("(spim) ");
+      if (repl_line == NULL) {
+        /* Ctrl-D / EOF — exit cleanly. atexit handler writes history. */
+        write_output(message_out, "\n");
+        console_to_spim();
+        exit(0);
+      }
+      if (*repl_line != '\0') add_history(repl_line);
+
+      /* Append '\n' so flex sees Y_NL exactly once per command, matching
+         the stdin path. Wrap the buffer in a FILE* via fmemopen and reuse
+         the existing push_scanner mechanism — flex sees a normal input
+         source, parse_spim_command is unaware of libedit. */
+      size_t len = strlen(repl_line);
+      repl_buf = malloc(len + 2);
+      if (repl_buf == NULL) {
+        free(repl_line);
+        repl_line = NULL;
+        continue;
+      }
+      memcpy(repl_buf, repl_line, len);
+      repl_buf[len] = '\n';
+      repl_buf[len + 1] = '\0';
+      repl_fp = fmemopen(repl_buf, len + 1, "r");
+      if (repl_fp == NULL) {
+        free(repl_buf);
+        repl_buf = NULL;
+        free(repl_line);
+        repl_line = NULL;
+        continue;
+      }
+      push_scanner(repl_fp);
+      scanner_pushed = true;
+    }
+
+    redo = parse_spim_command(redo);
+
+    if (scanner_pushed) {
+      pop_scanner();
+      scanner_pushed = false;
+    }
+    if (repl_fp) {
+      fclose(repl_fp);
+      repl_fp = NULL;
+    }
+    free(repl_buf);
+    repl_buf = NULL;
+    free(repl_line);
+    repl_line = NULL;
+#else
     if (!redo) write_output(message_out, "(spim) ");
     if (!setjmp(spim_top_level_env))
       redo = parse_spim_command(redo);
     else
       redo = false;
+#endif
     fflush(stdout);
     fflush(stderr);
   }
@@ -549,6 +879,9 @@ static bool parse_spim_command(bool redo) {
                        !quiet);
       initialize_run_stack(program_argc, program_argv);
       write_startup_message();
+      /* Drop stale Tab-completion suggestions from the prior program — the
+         memory addresses they reference don't survive the reinit. */
+      explain_clear_suggestions();
       prev_cmd = NOP_CMD;
       return (0);
 

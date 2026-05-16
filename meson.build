@@ -10,6 +10,14 @@ add_project_arguments('-Wno-zero-length-array', language: 'c')
 flex = find_program('flex', required: true)
 bison = find_program('bison', required: true)
 
+# BSD-licensed line-editing library. Auto by default; gate with
+# -Dline_editing=disabled to skip on platforms where it isn't packaged
+# (e.g. Windows), or -Dline_editing=enabled to fail hard if missing.
+libedit_dep = dependency('libedit', required: get_option('line_editing'))
+if libedit_dep.found()
+  add_project_arguments('-DHAVE_LIBEDIT=1', language: 'c')
+endif
+
 # Platform-specific configuration
 if host_machine.system() == 'windows'
   add_project_arguments('-x', 'c++', language: 'c')
@@ -80,7 +88,7 @@ endif
 spimulator_exe = executable('spimulator',
   spim_source_files,
   include_directories: inc,
-  dependencies: link_libraries,
+  dependencies: link_libraries + [libedit_dep],
   install: true
 )
 
@@ -88,3 +96,7 @@ spimulator_exe = executable('spimulator',
 install_data('src/exceptions.s',
   install_dir: get_option('datadir') / 'spimulator'
 )
+
+# Install the man page. Meson uses the filename's trailing digit as the
+# section number, so Documentation/spim.1 installs to share/man/man1/spim.1.
+install_man('Documentation/spim.1')

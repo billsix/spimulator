@@ -61,6 +61,49 @@ Print a message when an exception occurs.  This is the default.
 .IP \fB-noquiet\fP 10
 Do not print a message at exceptions.
 
+.IP "\fB-explain\fP [\fIN\fP]" 10
+Enable teaching mode. Before each instruction executes, \fIspim\fP prints a
+plain-English narration of what the instruction does; after it executes,
+\fIspim\fP prints a diff of what changed. The optional level \fIN\fP selects
+how much detail is shown:
+.RS
+.IP "\fBLevel 1\fP \(em semantic" 14
+What the instruction does in one sentence, plus the after-step register/PC
+diff. Pseudo-op headers still appear so multi-instruction expansions are
+clearly attributed to their source line. Best for a student who is just
+learning what each opcode means.
+.IP "\fBLevel 2\fP \(em + interactive" 14
+Adds explicit \fIInputs read\fP and \fIWill write\fP blocks with the current
+register values, \fITry it yourself\fP hints showing the \fIprint\fP commands
+that inspect the relevant state, syscall string-buffer dumps, and stack-frame
+intent hints (e.g. saving \fI$ra\fP across a call). Best for a student
+learning to drive the simulator and reason about register state.
+.IP "\fBLevel 3\fP \(em + bit-layout" 14
+Adds the 32-bit instruction's bit-field diagram (opcode / rs / rt / rd /
+shamt / funct for R-type, opcode / rs / rt / immediate for I-type, opcode /
+target for J-type) and a mnemonic-decoding annotation that explains which
+bit pattern selected this instruction. Best for a student learning the
+machine encoding alongside the semantics (Patterson & Hennessy
+\(sc 2.5 territory).
+.IP "\fBLevel 4\fP \(em + decoder walkthrough" 14
+Replaces the L3 single bit-field diagram with a step-by-step decoder
+walkthrough: the same box is redrawn 2\(en3 times, with one more field
+filled in each frame, mirroring the CPU's hierarchical decoding
+(opcode \(-> sub-table selector \(-> remaining fields). Best for a
+student learning how the decoder itself works \(em the dependency
+between fields, why SPECIAL/REGIMM/J-type/I-type have different shapes,
+and how the secondary lookup tables are consulted. The final frame is
+identical to the L3 box, so no information is lost relative to L3.
+.RE
+.IP "" 10
+With no argument, \fB-explain\fP defaults to level 3 (the historical full
+output). The level may also be given with an equals sign: \fB-explain=2\fP.
+Short form: \fB-x\fP (\fB-x 1\fP, \fB-x=2\fP, etc.). To turn teaching mode
+off again on the command line, use \fB-noexplain\fP.
+
+.IP \fB-noexplain\fP 10
+Disable teaching mode. This is the default.
+
 .IP \fB-mapped_io\fP 10
 Enable the memory-mapped IO facility.  Programs that use SPIM syscalls to read from the terminal
 \fBcannot\fP also use memory-mapped IO.

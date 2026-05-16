@@ -23,12 +23,12 @@ RUN sed -i -e "s@tsflags=nodocs@#tsflags=nodocs@g" /etc/dnf/dnf.conf && \
                    gcc \
                    gdb \
                    git \
+                   libedit-devel \
                    lldb \
                    meson \
                    ninja \
                    nano \
                    pkgconfig \
-                   rlwrap \
                    tmux \
                    valgrind \
                    which && \
@@ -42,14 +42,15 @@ RUN sed -i -e "s@tsflags=nodocs@#tsflags=nodocs@g" /etc/dnf/dnf.conf && \
       emacs --batch --load /root/.emacs.d/install-melpa-packages.el; \
     fi ;
 
-COPY helloworld.s meson.build /spimulator/
+COPY helloworld.s meson.build meson_options.txt /spimulator/
 COPY src/ /spimulator/src
 COPY include/ /spimulator/include
 COPY tests/ /spimulator/tests
+COPY Documentation/ /spimulator/Documentation
 
 # build from source
 RUN cd /spimulator/ && \
-    CC=clang CXX=clang++ meson setup builddir --buildtype=debug -Dwarning_level=3 && \
+    CC=clang CXX=clang++ meson setup builddir --buildtype=debug -Dwarning_level=3 -Dline_editing=enabled && \
     meson configure builddir -Dcpp_args="-Wall" && \
     meson compile -C builddir  && \
     meson install -C builddir && \

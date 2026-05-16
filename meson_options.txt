@@ -1,0 +1,4 @@
+option('line_editing',
+       type: 'feature',
+       value: 'auto',
+       description: 'Use libedit for REPL line editing and persistent history. BSD-licensed; does not affect spimulator\'s BSD license.')
