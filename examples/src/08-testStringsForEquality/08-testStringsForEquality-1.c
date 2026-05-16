@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2024 William Emerison Six
+// Copyright (c) 2021-2026 William Emerison Six
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -17,49 +17,41 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-//
 
-/* Purpose */
-// Test strings for equality and print out the results on stdout
+/* PURPOSE: Test strings for equality and print the results on
+ *          stdout.
+ *
+ * NOTE: str_eq returns 0 when the strings are equal and 1 when
+ *       they differ — intentionally the inverse of what the name
+ *       suggests, matching the book demo this came from.
+ */
 
-#include <inttypes.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
+#include "io.h"
 
-#include "operatingsystemfunctions.h"
-
-/*
-* Compare
-  two strings for equality.
-* Return 'false' if they are.
-*/
-bool str_eq(const char *s1, const char *s2) {
+int str_eq(const char *s1, const char *s2) {
   while (*s1 == *s2) {
-    /*
-     * At end of string return 0.
-     */
-    if (*s1 == 0) return false;
+    /* end of both strings reached together => equal */
+    if (*s1 == 0) return 0;
     s1++;
     s2++;
   }
-  /* Difference detected! */
-  return true;
+  /* mismatch */
+  return 1;
 }
 
-int main(int argc, char *argv[]) {
-  char *str1 = "str1";
-  char *str2 = "str2";
-  char *str3 = "str1";
+__attribute__((noreturn)) void _start(void) {
+  const char *str1 = "str1";
+  const char *str2 = "str2";
+  const char *str3 = "str1";
 
-  operating_system_print_string("str1 compared to str2 is ");
-  operating_system_print_int(str_eq(str1, str2));
-  operating_system_print_string("\n");
-  operating_system_print_string("str1 compared to str3 is ");
-  operating_system_print_int(str_eq(str1, str3));
-  operating_system_print_string("\n");
-  operating_system_print_string("str2 compared to str3 is ");
-  operating_system_print_int(str_eq(str2, str3));
-  operating_system_print_string("\n");
-  return 0;
+  print_string("str1 compared to str2 is ");
+  print_int(str_eq(str1, str2));
+  print_string("\n");
+  print_string("str1 compared to str3 is ");
+  print_int(str_eq(str1, str3));
+  print_string("\n");
+  print_string("str2 compared to str3 is ");
+  print_int(str_eq(str2, str3));
+  print_string("\n");
+  os_exit(0);
 }

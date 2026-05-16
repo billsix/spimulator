@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2024 William Emerison Six
+// Copyright (c) 2021-2026 William Emerison Six
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -17,26 +17,25 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-//
 
-/* Purpose */
-// Print out all charaters.  Ascii are 0-127
+/* PURPOSE: Walk the full range of `char` and print each value as
+ *          a signed integer, one per line.  On platforms where
+ *          char is signed (Linux/x86_64) the range is -128..127.
+ *          <limits.h> is a freestanding-safe header.
+ */
 
-#include <inttypes.h>
 #include <limits.h>
-#include <stdlib.h>
 
-#include "operatingsystemfunctions.h"
+#include "io.h"
 
-int main(int argc, char *argv[]) {
+__attribute__((noreturn)) void _start(void) {
   char c = CHAR_MIN;
-  operating_system_print_int(c);
-  operating_system_print_string("\n");
+  print_int(c);
+  print_string("\n");
   do {
     c = c + 1;
-    operating_system_print_int(c);
-    operating_system_print_string("\n");
+    print_int(c);
+    print_string("\n");
   } while (c != CHAR_MAX);
-
-  exit(EXIT_SUCCESS);
+  os_exit(0);
 }

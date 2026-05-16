@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2024 William Emerison Six
+// Copyright (c) 2021-2026 William Emerison Six
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -17,30 +17,25 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-//
 
-/* Purpose */
-// Read from std in until EOF (Ctrl-D on Linux)
-// Print out number of command and periods
+/* PURPOSE: Read from stdin until EOF (Ctrl-D on Linux).  Print
+ *          the number of commas and periods seen.
+ */
 
-#include <inttypes.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "io.h"
 
-#include "operatingsystemfunctions.h"
-
-int main(int argc, char *argv[]) {
-  int32_t comma_count = 0;
-  int32_t period_count = 0;
-  char this_char = operating_system_read_char();
-  while (this_char != EOF) {
+__attribute__((noreturn)) void _start(void) {
+  int comma_count = 0;
+  int period_count = 0;
+  int this_char = read_char();
+  while (this_char != -1) {
     if (this_char == '.') period_count = period_count + 1;
     if (this_char == ',') comma_count = comma_count + 1;
-    this_char = operating_system_read_char();
+    this_char = read_char();
   }
-  operating_system_print_int(comma_count);
-  operating_system_print_string(" commas, ");
-  operating_system_print_int(period_count);
-  operating_system_print_string(" stops\n");
-  exit(EXIT_SUCCESS);
+  print_int(comma_count);
+  print_string(" commas, ");
+  print_int(period_count);
+  print_string(" stops\n");
+  os_exit(0);
 }

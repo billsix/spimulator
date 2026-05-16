@@ -1,5 +1,5 @@
 ..
-   Copyright (c) 2025 William Emerison Six
+   Copyright (c) 2025-2026 William Emerison Six
 
    Permission is hereby granted, free of charge, to any person obtaining a copy
    of this software and associated documentation files (the "Software"), to deal
@@ -19,13 +19,13 @@
    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
    SOFTWARE.
 
-Demo 01
-=======
+Demo 01 — hello world
+=====================
 
-Print out the numbers 1 through 10, each on their own line
+Print ``hello world`` to standard output and exit.
 
-Purpose
-^^^^^^^
+Includes
+^^^^^^^^
 
 .. literalinclude:: ../../src/01-helloworld/01-helloworld-1.c
    :language: c
@@ -35,17 +35,12 @@ Purpose
    :lineno-match:
    :caption: src/01-helloworld/01-helloworld-1.c
 
+Entry point
+^^^^^^^^^^^
 
-
-.. literalinclude:: ../../src/01-helloworld/01-helloworld-1.c
-   :language: c
-   :start-after: doc-region-begin os functions
-   :end-before: doc-region-end os functions
-   :linenos:
-   :lineno-match:
-   :caption: src/01-helloworld/01-helloworld-1.c
-
-
+The program defines its own ``_start`` — no ``main``, no C library.
+``print_string`` resolves down to one ``os_write`` syscall; ``os_exit``
+is the kernel exit.
 
 .. literalinclude:: ../../src/01-helloworld/01-helloworld-1.c
    :language: c

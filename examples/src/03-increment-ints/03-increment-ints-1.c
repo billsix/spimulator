@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2024 William Emerison Six
+// Copyright (c) 2021-2026 William Emerison Six
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -17,29 +17,24 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-//
 
-// Purpose
+/* PURPOSE: Define a couple of ints.  Increment them.  Compute
+ *          addition of various integers.  Print out the results.
+ *          Demonstrates pre- vs. post-increment.
+ */
 
-/* Define a couple of ints.  Increment them.  Compute addition of various
- * integers. */
-/* Print out the results */
+#include "io.h"
 
-#include <inttypes.h>
-#include <stdlib.h>
-
-#include "operatingsystemfunctions.h"
-
-int main(int argc, char *argv[]) {
-  int32_t a, b;
+__attribute__((noreturn)) void _start(void) {
+  int a, b;
   a = b = 5;
-  operating_system_print_int(++a + 5);
-  operating_system_print_string("\n");
-  operating_system_print_int(a);
-  operating_system_print_string("\n");
-  operating_system_print_int(b++ + 5);
-  operating_system_print_string("\n");
-  operating_system_print_int(b);
-  operating_system_print_string("\n");
-  exit(EXIT_SUCCESS);
+  print_int(++a + 5);
+  print_string("\n");
+  print_int(a);
+  print_string("\n");
+  print_int(b++ + 5);
+  print_string("\n");
+  print_int(b);
+  print_string("\n");
+  os_exit(0);
 }

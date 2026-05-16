@@ -1,27 +1,15 @@
-EXAMPLE_DIR=$(pwd)
+#!/usr/bin/env bash
+# Build all demos in a freestanding (-nostdlib) configuration via os.h.
+#
+# No musl, no libc — each demo defines its own _start and reaches the
+# kernel through inline-asm syscalls.  Plain clang or gcc on the host
+# toolchain is enough.
 
-# build MUSL
+set -euo pipefail
 
-cd deps/musl/
-mkdir build
-mkdir buildInstall
-
-MUSL_DIR=$(pwd)
-
-cd build
-CFLAGS="-g -O0" ../configure --disable-shared --prefix=$MUSL_DIR/buildInstall/ && make && make install
-export PATH=$MUSL_DIR/buildInstall/bin:$PATH
-
-cd $EXAMPLE_DIR
-
-
-
-mkdir build
-mkdir buildInstall
+mkdir -p build buildInstall
 cd build
 
-export CC="musl-gcc -static "
-
-cmake -DCMAKE_INSTALL_PREFIX=../buildInstall  -DCMAKE_BUILD_TYPE=Debug ../
-cmake --build  . --target all
-cmake --build  . --target install
+cmake -DCMAKE_INSTALL_PREFIX=../buildInstall -DCMAKE_BUILD_TYPE=Debug ../
+cmake --build . --target all
+cmake --build . --target install

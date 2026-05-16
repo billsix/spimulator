@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2024 William Emerison Six
+// Copyright (c) 2021-2026 William Emerison Six
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -17,29 +17,25 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-//
 
-/* Purpose */
+/* PURPOSE: Get a character from the user, print out the value.
+ *          Terminate when the character 'a' is read in, or on
+ *          end-of-file (Ctrl-D).
+ */
 
-/* Get a character from the user, print out the value. */
-/* Terminate when the character 'a' is read in */
+#include "io.h"
 
-#include <inttypes.h>
-#include <stdlib.h>
-
-#include "operatingsystemfunctions.h"
-
-int main(int argc, char *argv[]) {
-  char ch = operating_system_read_char();
-  while (ch != 'a') {
+__attribute__((noreturn)) void _start(void) {
+  int ch = read_char();
+  while (ch != 'a' && ch != -1) {
     if (ch != '\n') {
-      operating_system_print_string("ch was ");
-      operating_system_print_char(ch);
-      operating_system_print_string(", value ");
-      operating_system_print_int(ch);
-      operating_system_print_string("\n");
+      print_string("ch was ");
+      print_char((char)ch);
+      print_string(", value ");
+      print_int(ch);
+      print_string("\n");
     }
-    ch = operating_system_read_char();
+    ch = read_char();
   }
-  exit(EXIT_SUCCESS);
+  os_exit(0);
 }

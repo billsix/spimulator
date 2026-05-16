@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2024 William Emerison Six
+// Copyright (c) 2021-2026 William Emerison Six
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -17,28 +17,24 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-//
 
-/* Purpose */
-//
-//
+/* PURPOSE: Call a subroutine y = m*x + b twice and print each
+ *          result on its own line.
+ */
 
-#include <inttypes.h>
-#include <stdlib.h>
+#include "io.h"
 
-#include "operatingsystemfunctions.h"
-
-int32_t mxPlusB(int32_t m, int32_t x, int32_t b) {
-  int32_t result = m * x + b;
+int mxPlusB(int m, int x, int b) {
+  int result = m * x + b;
   return result;
 }
 
-int main(int32_t argc, char *argv[]) {
-  int32_t result1 = mxPlusB(1, 2, 3);
-  operating_system_print_int(result1);
-  operating_system_print_string("\n");
-  int32_t result2 = mxPlusB(4, 5, 6);
-  operating_system_print_int(result2);
-  operating_system_print_string("\n");
-  exit(EXIT_SUCCESS);
+__attribute__((noreturn)) void _start(void) {
+  int result1 = mxPlusB(1, 2, 3);
+  print_int(result1);
+  print_string("\n");
+  int result2 = mxPlusB(4, 5, 6);
+  print_int(result2);
+  print_string("\n");
+  os_exit(0);
 }

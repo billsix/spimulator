@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2024 William Emerison Six
+// Copyright (c) 2021-2026 William Emerison Six
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -17,26 +17,23 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-//
 
-/* Purpose: */
-/* Print out the numbers 1 through 10, each on their own line */
+/* PURPOSE: Print out the numbers 1 through 10, each on their
+ *          own line.  (The loop actually emits 0 through 10.)
+ */
 
-#include <inttypes.h>
-#include <stdlib.h>
+#include "io.h"
 
-#include "operatingsystemfunctions.h"
-
-int main(int argc, char *argv[]) {
+__attribute__((noreturn)) void _start(void) {
   /* initialise */
-  int32_t i = 0;
+  int i = 0;
   /* check */
   while (i <= 10) {
-    operating_system_print_int(i);
-    operating_system_print_string("\n");
+    print_int(i);
+    print_string("\n");
 
     /* update */
     i++;
   }
-  exit(EXIT_SUCCESS);
+  os_exit(0);
 }
