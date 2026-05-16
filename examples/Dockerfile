@@ -1,13 +1,16 @@
-FROM docker.io/debian:trixie
+FROM registry.fedoraproject.org/fedora:44
 
-RUN apt update && apt upgrade -y && \
-    apt install    -y texlive \
-                      texlive-latex-extra \
-                      python3-sphinx-rtd-theme \
-                      fonts-mathjax \
-                      libjs-mathjax \
-                      make \
-                      aspell-en
+RUN sed -i -e "s@tsflags=nodocs@#tsflags=nodocs@g" /etc/dnf/dnf.conf && \
+    echo "keepcache=True" >> /etc/dnf/dnf.conf && \
+    dnf upgrade -y && \
+    dnf install -y aspell \
+                   aspell-en \
+                   git \
+                   make \
+                   python3-sphinx \
+                   python3-sphinx_rtd_theme \
+                   texlive \
+                   texlive-collection-latexextra
 
 COPY ./book /book/
 COPY ./src /src/

@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
-# Build all demos in a freestanding (-nostdlib) configuration via os.h.
-#
-# No musl, no libc — each demo defines its own _start and reaches the
-# kernel through inline-asm syscalls.  Plain clang or gcc on the host
-# toolchain is enough.
+# Build all demos via meson, mirroring how /spimulator builds.
+# Each demo is freestanding (-nostdlib) and reaches the kernel
+# through the inline-asm syscall wrappers in os.h.
 
 set -euo pipefail
+cd "$(dirname "$0")"
 
-mkdir -p build buildInstall
-cd build
+if [ -d builddir ]; then
+    meson setup --reconfigure builddir --buildtype=debug
+else
+    meson setup builddir --buildtype=debug
+fi
 
-cmake -DCMAKE_INSTALL_PREFIX=../buildInstall -DCMAKE_BUILD_TYPE=Debug ../
-cmake --build . --target all
-cmake --build . --target install
+meson compile -C builddir
+
+# For IDE tooling — clangd, vscode, etc. — surface the
+# compile-commands at the project root.
+ln -sf builddir/compile_commands.json compile_commands.json

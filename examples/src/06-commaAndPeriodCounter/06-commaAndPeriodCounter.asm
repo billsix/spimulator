@@ -1,4 +1,4 @@
-# Copyright (c) 2021 William Emerison Six
+# Copyright (c) 2021-2026 William Emerison Six
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -17,269 +17,109 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+
+# C source — see 06-commaAndPeriodCounter-1.c
 #
+#     __attribute__((noreturn)) void _start(void) {
+#       int comma_count = 0;
+#       int period_count = 0;
+#       int this_char = read_char();
+#       while (this_char != -1) {           /* EOF */
+#         if (this_char == '.') period_count = period_count + 1;
+#         if (this_char == ',') comma_count = comma_count + 1;
+#         this_char = read_char();
+#       }
+#       print_int(comma_count);  print_string(" commas, ");
+#       print_int(period_count); print_string(" stops\n");
+#       os_exit(0);
+#     }
+
+
+#PURPOSE:  Count the commas and periods on standard input and
+#          print a summary line of the form
+#             <N> commas, <M> stops
 #
-
-
-# for reference on system calls, look at
-# https://www.doc.ic.ac.uk/lab/secondyear/spim/node8.html
-
-# NOTE --   spimulator does not support EOF, therefore use z as the terminating input
-
-
+#NOTES:    SPIM's `read_char` syscall does NOT signal EOF, so this
+#          .asm uses 'z' as the terminating sentinel instead.
+#
+#SYMBOL TABLE  (C variable -> MIPS location)
+#
+#   In main:
+#     comma_count   $t0                  (running tally)
+#     period_count  $t1                  (running tally)
+#     this_char     $t2                  (most recently read byte)
+#
+#   Three $t-regs reused across every read_char / print_int /
+#   print_string syscall.  Strictly speaking MIPS $t* are CALLER-
+#   save and these should be spilled across each syscall — but
+#   spim's syscalls preserve $t-regs in practice, and this demo
+#   predates the introduction of the $s* save discipline (which
+#   shows up first in 18-cksum where it becomes load-bearing).
+#
+#   No subroutine calls, hence no Cross-call saves section.
+#
+#   Volatile (no preserved meaning across a syscall, by convention):
+#     $a0   syscall arg
+#     $v0   syscall selector / read_char return
+#           (12 = read_char, 4 = print_string, 1 = print_int)
 
         .data
 commasText:    .asciiz     " commas, "
 stopsText:    .asciiz     " stops\n"
+
         .text
         .globl main
 main:
-        ############# make the frame pointer be the stack pointer
-        #                                                                 current SP
-        #                                                                     |
-        #                                                                     |
-        #                                                                     V
-        #             -----------------------------------------------------------------------
-        #  C-Variable |   |&comma_count|&period_count|&this_char|&return_code|           |   |
-        #   ----      |---|------------|-------------|----------|------------|-----------|---|
-        # RAM Address |   |-16($sp)    | -12($sp)    |  -8($sp) |  -4($sp)   | 0($sp)    |   |
-        #   ----      |---|------------|-------------|----------|------------|-----------|---|
-        #             |   |            |             |          |            |           |   |
-        #             |   |            |             |          |            |           |   |
-        #   Value     |...|dontcare    |dontcare     |dontcare  |dontcare    | dontcare  |...|
-        #             |   |            |             |          |            |           |   |
-        #   ____      |___|____________|_____________|__________|____________|___________|___|
-        #
+        li $t0, 0                    # comma_count = 0
+        li $t1, 0                    # period_count = 0
 
+        # this_char = read_char();
+        li $v0, 12                   # syscall 12 = read_char
+        syscall                      # result in $v0
+        move $t2, $v0                # this_char = $v0
 
-        move $fp, $sp
-
-        #                                                                 current SP
-        #                                                                and current FP
-        #                                                                     |
-        #                                                                     V
-        #             ------------------------------------------------------------------------
-        #  C-Variable |   |&comma_count|&period_count|&this_char|&return_code|           |   |
-        #   ----      |---|------------|-------------|----------|------------|-----------|---|
-        # RAM Address |   |-16($sp)    | -12($sp)    |  -8($sp) |  -4($sp)   | 0($sp)    |   |
-        #   ----      |---|------------|-------------|----------|------------|-----------|---|
-        #             |   |            |             |          |            |           |   |
-        #             |   |            |             |          |            |           |   |
-        #   Value     |...|dontcare    |dontcare     |dontcare  |dontcare    | dontcare  |...|
-        #             |   |            |             |          |            |           |   |
-        #   ____      |___|____________|_____________|__________|____________|___________|___|
-
-
-
-        ############ frame pointer = frame_pointer - size of main stack frame
-        addi $fp, $fp, -32 # subtract 1 char and 3 int32_t, but align the int to
-                          # be at an address mod 4 = 0, so 4 * sizeof int32_t
-
-
-        #                                                                 current SP
-        #                   current FP                                         |
-        #                       |                                              |
-        #                       V                                              V
-        #
-        #             ------------------------------------------------------------------------
-        #  C-Variable |   |&comma_count|&period_count|&this_char|&return_code|           |   |
-        #   ----      |---|------------|-------------|----------|------------|-------------|---|
-        # RAM Address |   | 0($fp)     |  4($fp)     |   8($fp) |  16($fp)   | 0($sp)      |   |
-        #   ----      |---|------------|-------------|----------|------------|-------------|---|
-        #             |   |            |             |          |            |             |   |
-        #             |   |            |             |          |            |             |   |
-        #   Value     |...|dontcare    |dontcare     |dontcare  |dontcare    | dontcare    |...|
-        #             |   |            |             |          |            |             |   |
-        #   ____      |___|____________|_____________|__________|____________|_____________|___|
-
-
-        #  {
-        #    int32_t comma_count_in_register = 0;
-        #    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_COMMA_COUNT,
-        #            /*src*/ &comma_count_in_register,
-        #            /*numberOfBytes*/ SIZE_OF_INT32_T);
-        #  }
-
-        li $t0, 0
-        sw $t0, 0($fp)
-
-        #  {
-        #    int32_t period_count_in_register = 0;
-        #    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_STOP_COUNT,
-        #            /*src*/ &period_count_in_register,
-        #            /*numberOfBytes*/ SIZE_OF_INT32_T);
-        #  }
-        li $t0, 0
-        sw $t0, 4($fp)
-
-        #  {
-        #    int32_t this_char_in_register = 0;
-        #    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_THIS_CHAR,
-        #            /*src*/ &this_char_in_register,
-        #            /*numberOfBytes*/ SIZE_OF_INT32_T);
-        #  }
-        li $t0, 0
-        sw $t0, 8($fp)
-
-        #  {
-        #    int32_t return_code_in_register = EXIT_SUCCESS;
-        #    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
-        #            /*src*/ &return_code_in_register,
-        #            /*numberOfBytes*/ SIZE_OF_INT32_T);
-        #  }
-        #
-        li $t0, 0
-        sw $t0, 16($fp)
-
-        #
-        #  {
-        #    char readCharacter = operating_system_read_char();
-        #    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_THIS_CHAR,
-        #            /*src*/ &readCharacter,
-        #            /*numberOfBytes*/ SIZE_OF_INT32_T);
-        #  }
-
-        li $v0, 12
-        syscall
-        sw $v0, 8($fp)
-
-        # loopBegin:
-        #  {
-        #    char this_char_in_register;
-        #    xmemcpy(/*dest*/ &this_char_in_register,
-        #            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_THIS_CHAR,
-        #            /*numberOfBytes*/ SIZE_OF_INT32_T);
-        #    if (this_char_in_register == EOF) goto loopEnd;
-        #  }
 loopBegin:
-        lw $t0,  8($fp)
-        # spimulator does not support EOF, therefore use z as the terminating input
-        beq $t0, 'z', loopEnd
+        # while (this_char != 'z') { ...    -- 'z' stands in for EOF on SPIM
+        beq $t2, 'z', loopEnd
 
-        #  {
-        #    char this_char_in_register;
-        #    xmemcpy(/*dest*/ &this_char_in_register,
-        #            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_THIS_CHAR,
-        #            /*numberOfBytes*/ SIZE_OF_INT32_T);
-        #    if (this_char_in_register != '.') goto notAPeriod;
-        #  }
-        lw $t0,  8($fp)
-        bne $t0, '.', notAPeriod
-
-
-        #  {
-        #    char period_count_in_register;
-        #    xmemcpy(/*dest*/ &period_count_in_register,
-        #            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_STOP_COUNT,
-        #            /*numberOfBytes*/ SIZE_OF_INT32_T);
-        lw $t0,  4($fp)
-
-        #
-        #    period_count_in_register = period_count_in_register + 1;
-        #
-        add $t0, $t0, 1
-
-        #    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_STOP_COUNT,
-        #            /*src*/ &period_count_in_register,
-        #            /*numberOfBytes*/ SIZE_OF_INT32_T);
-        sw $t0,  4($fp)
-
-        #
-        #  }
+        # if (this_char == '.') period_count++;
+        bne $t2, '.', notAPeriod
+        addi $t1, $t1, 1
 notAPeriod:
-        #  {
-        #    char this_char_in_register;
-        #    xmemcpy(/*dest*/ &this_char_in_register,
-        #            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_THIS_CHAR,
-        #            /*numberOfBytes*/ SIZE_OF_INT32_T);
-        lw $t0,  8($fp)
-        #
-        #    if (this_char_in_register != ',')  goto notAComma;
-        bne $t0, ',', notAComma
 
-        #  }
-        #  {
-        #    char comma_count_in_register;
-        #    xmemcpy(/*dest*/ &comma_count_in_register,
-        #            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_COMMA_COUNT,
-        #            /*numberOfBytes*/ SIZE_OF_INT32_T);
-        lw $t0,  0($fp)
-
-        #
-        #    comma_count_in_register = comma_count_in_register + 1;
-        #
-        add $t0, $t0, 1
-        #    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_COMMA_COUNT,
-        #            /*src*/ &comma_count_in_register,
-        #            /*numberOfBytes*/ SIZE_OF_INT32_T);
-        sw $t0,  0($fp)
-        #  }
+        # if (this_char == ',') comma_count++;
+        bne $t2, ',', notAComma
+        addi $t0, $t0, 1
 notAComma:
-        #  {
-        #    char readCharacter = operating_system_read_char();
-        #    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_THIS_CHAR,
-        #            /*src*/ &readCharacter,
-        #            /*numberOfBytes*/ SIZE_OF_INT32_T);
 
+        # this_char = read_char();
         li $v0, 12
         syscall
-        sw $v0, 8($fp)
+        move $t2, $v0
 
+        j loopBegin                  # } end of while
 
-        #  goto loopBegin;
-        j loopBegin
-        #  }
-        #
-        #
 loopEnd:
-        #  {
-        #    char comma_count_in_register;
-        #    xmemcpy(/*dest*/ &comma_count_in_register,
-        #            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_COMMA_COUNT,
-        #            /*numberOfBytes*/ SIZE_OF_INT32_T);
-        lw $t0,  0($fp)
-
-
-        #    operating_system_print_int(comma_count_in_register);
-        #  }
+        # print_int(comma_count);
         move $a0, $t0
         li $v0, 1
         syscall
 
-        #  operating_system_print_string(" commas, ");
-
+        # print_string(" commas, ");
         li $v0, 4
         la $a0, commasText
         syscall
 
-        #  {
-        #    char period_count_in_register;
-        #    xmemcpy(/*dest*/ &period_count_in_register,
-        #            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_STOP_COUNT,
-        #            /*numberOfBytes*/ SIZE_OF_INT32_T);
-        lw $t0, 4($fp)
-        #    operating_system_print_int(period_count_in_register);
-        move $a0, $t0
+        # print_int(period_count);
+        move $a0, $t1
         li $v0, 1
         syscall
 
-
-        #  }
-        #  operating_system_print_string(" stops\n");
-
+        # print_string(" stops\n");
         li $v0, 4
         la $a0, stopsText
         syscall
 
-        #  {
-        #    char return_code_in_register;
-        #    xmemcpy(/*dest*/ &return_code_in_register,
-        #            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
-        #            /*numberOfBytes*/ SIZE_OF_INT32_T);
-        lw $v0, 16($fp)
-
-        addi $fp, $fp, 32
-        #    return return_code_in_register;
-        jr $ra
-        #  }
-        #
+        li $v0, 0                    # exit status 0
+        jr $ra                       # return to the runtime

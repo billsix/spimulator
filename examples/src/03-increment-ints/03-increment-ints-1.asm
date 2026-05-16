@@ -1,4 +1,4 @@
-# Copyright (c) 2021 William Emerison Six
+# Copyright (c) 2021-2026 William Emerison Six
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -17,104 +17,90 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-#
-#
 
 
-# for reference on system calls, look at
-# https://www.doc.ic.ac.uk/lab/secondyear/spim/node8.html
+# C source — see 03-increment-ints-1.c
+#
+#     __attribute__((noreturn)) void _start(void) {
+#       int a, b;
+#       a = b = 5;
+#       print_int(++a + 5);    print_string("\n");   // pre-increment
+#       print_int(a);          print_string("\n");
+#       print_int(b++ + 5);    print_string("\n");   // post-increment
+#       print_int(b);          print_string("\n");
+#       os_exit(0);
+#     }
+
+
+#PURPOSE:  Demonstrate pre- and post-increment of integer variables.
+#          Two locals `a` and `b` both start at 5.  Prints
+#          ++a + 5, then a, then b++ + 5, then b — each on its own
+#          line.
+#
+#VARIABLES:
+#   $t0   the variable `a`  (kept in this register for the whole
+#           program — no stack frame needed)
+#   $t1   the variable `b`
+#   $t2   scratch for (a + 5) or (b + 5) while we set up the print
+#   $a0   syscall argument
+#   $v0   syscall selector (1 = print_int, 4 = print_string)
 
         .data
 nl:    .asciiz     "\n"
+
         .text
         .globl main
 main:
-        ############# make the frame pointer be the stack pointer
+        li $t0, 5                    # a = 5
+        li $t1, 5                    # b = 5
 
-        move $fp, $sp
-
-        ############ frame pointer = frame_pointer - size of main stack frame
-        addi $fp, $fp, -12 # subtract 3 int32_t
-
-
-        ############ set a
-        li $t0, 5
-        sw $t0, 0($fp)
-
-        ############ set b
-        li $t0, 5
-        sw $t0, 4($fp)
-
-
-        ############ set return value
-        li $t0, 0
-        sw $t0, 8($fp)
-
-        ############ ++a
-        lw $t0, 0($fp)
+        # ++a   — write back BEFORE the value is used
         addiu $t0, $t0, 1
-        sw $t0, 0($fp)
 
-
-        ############ a + 5
-        lw $t0, 0($fp)
-        addiu $t1, $t0, 5
-
-
-        ############ print a + 5
-        move $a0, $t1
-        li $v0, 1
+        # print_int(a + 5);    -- with the *new* a, so this prints 11
+        addiu $t2, $t0, 5            # $t2 = a + 5
+        move $a0, $t2
+        li $v0, 1                    # syscall 1 = print_int
         syscall
 
-        ############ print a character for newline
-        li $v0, 4
+        # print_string("\n");
+        li $v0, 4                    # syscall 4 = print_string
         la $a0, nl
         syscall
 
-
-        ############ print a
-        lw $t0, 0($fp)
+        # print_int(a);              -- prints 6
         move $a0, $t0
         li $v0, 1
         syscall
 
-        ############ print a character for newline
+        # print_string("\n");
         li $v0, 4
         la $a0, nl
         syscall
 
-        ############ b + 5
-        lw $t0, 4($fp)
-        addiu $t1, $t0, 5
+        # print_int(b + 5);          -- uses the *old* b, so prints 10
+        addiu $t2, $t1, 5            # $t2 = b + 5
+        move $a0, $t2
+        li $v0, 1
+        syscall
 
-        ############ print b + 5
+        # print_string("\n");
+        li $v0, 4
+        la $a0, nl
+        syscall
+
+        # b++                         -- write back AFTER the previous use
+        addiu $t1, $t1, 1
+
+        # print_int(b);              -- prints 6
         move $a0, $t1
         li $v0, 1
         syscall
 
-        ############ print a character for newline
+        # print_string("\n");
         li $v0, 4
         la $a0, nl
         syscall
 
-        ############ b++
-        lw $t0, 4($fp)
-        addiu $t0, $t0, 1
-        sw $t0, 4($fp)
-
-        ############ print b
-        lw $t0, 4($fp)
-        move $a0, $t0
-        li $v0, 1
-        syscall
-
-        ############ print a character for newline
-        li $v0, 4
-        la $a0, nl
-        syscall
-
-        ############ restore frame pointer
-        addi $fp, $fp, 12
-        ############ return the return code
-        lw $v0, 8($fp)
-        jr $ra
+        li $v0, 0                    # exit status 0
+        jr $ra                       # return to the runtime

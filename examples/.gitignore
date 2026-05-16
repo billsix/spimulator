@@ -1,0 +1,17 @@
+# Build artifacts
+builddir/
+compile_commands.json
+
+# Sphinx book outputs
+output/
+book/build/
+book/version.txt
+
+# Editor leftovers
+*~
+\#*\#
+.\#*
+.DS_Store
+
+# Local debug captures (matching /spimulator's convention)
+foo.txt

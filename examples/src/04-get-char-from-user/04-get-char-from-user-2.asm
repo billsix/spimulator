@@ -1,4 +1,4 @@
-# Copyright (c) 2021 William Emerison Six
+# Copyright (c) 2021-2026 William Emerison Six
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -17,298 +17,157 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-#
-#
 
 
-# for reference on system calls, look at
-# https://www.doc.ic.ac.uk/lab/secondyear/spim/node8.html
+# C source — see 04-get-char-from-user-1.c (-2.asm fixes the bugs
+# from -1.asm but matches the same C demo).
+#
+#     __attribute__((noreturn)) void _start(void) {
+#       int ch = read_char();
+#       while (ch != 'a' && ch != -1) {
+#         if (ch != '\n') {
+#           print_string("ch was ");
+#           print_char((char)ch);
+#           print_string(", value ");
+#           print_int(ch);
+#           print_string("\n");
+#         }
+#         ch = read_char();
+#       }
+#       os_exit(0);
+#     }
+
+
+#PURPOSE:  Read characters from standard input until 'a' is seen,
+#          and for each non-newline character print
+#             ch was <CHAR>, value <DEC>
+#
+#          This is the fixed counterpart to 04-get-char-from-user-
+#          1.asm, which fumbled the stack frame by giving the int32_t
+#          return slot an odd byte offset.  Here we pad the frame to
+#          8 bytes so the int lands at a word-aligned offset, and
+#          the program runs.  The terminator compares are also fixed
+#          (immediate character constants rather than string
+#          addresses).
+#
+#NOTES:    Inside the loop body, the two syscall selectors for the
+#          "print the character" and "print the value" steps end up
+#          swapped relative to the C source.  The asm still completes
+#          but the per-iteration output prints the int and the char
+#          in the opposite order from the C demo.
+#
+#STORAGE LAYOUT
+#
+#   8-byte stack frame, two word-sized slots.  Padding the byte-
+#   sized C variable `ch` to a full word puts the int32_t return
+#   slot at offset 4, a word-aligned address — the alignment fix
+#   for the bug in 04-get-char-from-user-1.asm.
+#
+#         higher addresses
+#           +-------------+
+#           | return code |   4($fp)
+#    $fp -> | ch          |   0($fp)   (held as a word)
+#           +-------------+
+#         lower addresses
+#
+#SYMBOL TABLE  (C variable -> MIPS location)
+#
+#   In main:
+#     ch             0($fp)              word-sized slot; reloaded into
+#                                        $t0 at each use site (loopTest,
+#                                        loopBody, getNextChar).  The
+#                                        spill-then-reload pattern is
+#                                        the point of this demo — `ch`
+#                                        outlives every read_char syscall
+#                                        because $v0 is clobbered each
+#                                        time.
+#     return_value   4($fp)              word-aligned at offset 4
+#                                        (this is what fixes -1.asm)
+#
+#   Cross-call saves (callee-save $s* values held LIVE across `jal`):
+#     (none — this demo has no `jal` at all.  Every call is a
+#      `syscall`, and `ch` is preserved across those by spilling to
+#      0($fp) rather than by living in a callee-save register.)
+#
+#   Volatile working registers:
+#     $a0   syscall arg
+#     $v0   syscall selector / read_char return value
+#     $t0   ch-in-register at each use site (`lw $t0, 0($fp)` before
+#           each compare and each print)
 
         .data
 nl:    .asciiz     "\n"
 commaSpaceValue:    .asciiz     ", value "
 chWas:    .asciiz     "ch was "
+
         .text
         .globl main
 main:
-        ############# make the frame pointer be the stack pointer
+        # ---- frame setup ----
+        move $fp, $sp                # set the frame pointer to the stack pointer
+        addi $fp, $fp, -8            # 8 bytes — 1 char + 1 int32_t, padded
 
-        #                                                    current SP
-        #                                                        |
-        #                                                        |
-        #                                                        V
-        #
-        #             --------------------------------------------------------
-        #  C-Variable |   |          |   &ch    |&return_code|           |   |
-        #   ----      |---|----------|----------|------------|-----------|---|
-        # RAM Address |   |   --     |  -8($sp) |  -4($sp)   | 0($sp)    |   |
-        #   ----      |---|----------|----------|------------|-----------|---|
-        #             |   |          |          |            |           |   |
-        #             |   |          |          |            |           |   |
-        #   Value     |...|   --     |dontcare  |dontcare    | dontcare  |...|
-        #             |   |          |          |            |           |   |
-        #   ____      |___|__________|__________|____________|___________|___|
-        #
-        #
+        # ch = 0;
+        li $t0, 0                    # load 0 into $t0
+        sw $t0, 0($fp)               # store $t0 into the ch slot
 
+        # return_value = 0;
+        li $t0, 0                    # load 0 into $t0
+        sw $t0, 4($fp)               # store $t0 into the return-code slot
 
-        move $fp, $sp
-
-        #                                                    current SP
-        #                                                   and current FP
-        #                                                        |
-        #                                                        V
-        #
-        #             --------------------------------------------------------
-        #  C-Variable |   |          |   &ch    |&return_code|           |   |
-        #   ----      |---|----------|----------|------------|-----------|---|
-        # RAM Address |   |   --     |  -8($sp) |  -4($sp)   | 0($sp)    |   |
-        #   ----      |---|----------|----------|------------|-----------|---|
-        #             |   |          |          |            |           |   |
-        #             |   |          |          |            |           |   |
-        #   Value     |...|   --     |dontcare  |dontcare    | dontcare  |...|
-        #             |   |          |          |            |           |   |
-        #   ____      |___|__________|__________|____________|___________|___|
-        #
-        #
-
-
-        # frame_pointer = frame_pointer - SIZE_OF_MAIN_STACK_FRAME;
-
-
-        ############ frame pointer = frame_pointer - size of main stack frame
-        addi $fp, $fp, -8 # subtract 1 char and 1 int32_t, but align the int to
-                          # be at an address mod 4 = 0
-
-
-        #                                                    current SP
-        #                               current FP               |
-        #                                   |                    |
-        #                                   V                    V
-        #
-        #             --------------------------------------------------------
-        #  C-Variable |   |          |   &ch    |&return_code|           |   |
-        #   ----      |---|----------|----------|------------|-----------|---|
-        # RAM Address |   |   --     |   0($fp) |  4($fp)    | 0($sp)    |   |
-        #   ----      |---|----------|----------|------------|-----------|---|
-        #             |   |          |          |            |           |   |
-        #             |   |          |          |            |           |   |
-        #   Value     |...|   --     |dontcare  |dontcare    | dontcare  |...|
-        #             |   |          |          |            |           |   |
-        #   ____      |___|__________|__________|____________|___________|___|
-        #
-        #
-
-
-        #  {
-        #    int32_t ch_in_register = 0;
-        li $t0, 0
-        #    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
-        #            /*src*/ &ch_in_register,
-        #            /*numberOfBytes*/ SIZE_OF_BYTE);
-        ############ set ch
-        sw $t0, 0($fp)
-
-
-
-        #                                                    current SP
-        #                               current FP               |
-        #                                   |                    |
-        #                                   V                    V
-        #
-        #             --------------------------------------------------------
-        #  C-Variable |   |          |   &ch    |&return_code|           |   |
-        #   ----      |---|----------|----------|------------|-----------|---|
-        # RAM Address |   |   --     |   0($fp) |  4($fp)    | 0($sp)    |   |
-        #   ----      |---|----------|----------|------------|-----------|---|
-        #             |   |          |          |            |           |   |
-        #             |   |          |          |            |           |   |
-        #   Value     |...|   --     |0x00000000|dontcare    | dontcare  |...|
-        #             |   |          |          |            |           |   |
-        #   ____      |___|__________|__________|____________|___________|___|
-        #
-        #
-
-
-
-        ############ set return_value
-        #    int32_t return_code_in_register = 0;
-        li $t0, 0
-        #    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
-        #            /*src*/ &return_code_in_register,
-        #            /*numberOfBytes*/ SIZE_OF_INT32_T);
-        #  }
-        sw $t0, 4($fp)
-
-        #                                                    current SP
-        #                               current FP               |
-        #                                   |                    |
-        #                                   V                    V
-        #
-        #             --------------------------------------------------------
-        #  C-Variable |   |          |   &ch    |&return_code|           |   |
-        #   ----      |---|----------|----------|------------|-----------|---|
-        # RAM Address |   |   --     |   0($fp) |  4($fp)    | 0($sp)    |   |
-        #   ----      |---|----------|----------|------------|-----------|---|
-        #             |   |          |          |            |           |   |
-        #             |   |          |          |            |           |   |
-        #   Value     |...|   --     |0x00000000|0x00000000  | dontcare  |...|
-        #             |   |          |          |            |           |   |
-        #   ____      |___|__________|__________|____________|___________|___|
-        #
-        #
-
-
-
-
-        #
-        #  {
-        #    // main_stack_frame.ch = operating_system_read_char();
-        #    char ch_in_register = operating_system_read_char();
-
-        # read char, which will end up in $v0, and store it in 0($fp)
-        li $v0 12
-        syscall
-
-        #    xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
-        #            /*src*/ &ch_in_register,
-        #            /*numberOfBytes*/ SIZE_OF_BYTE);
-        #  }
-
-        sw $v0, 0($fp)
-        #                                                    current SP
-        #                               current FP               |
-        #                                   |                    |
-        #                                   V                    V
-        #
-        #             --------------------------------------------------------
-        #  C-Variable |   |          |   &ch    |&return_code|           |   |
-        #   ----      |---|----------|----------|------------|-----------|---|
-        # RAM Address |   |   --     |   0($fp) |  4($fp)    | 0($sp)    |   |
-        #   ----      |---|----------|----------|------------|-----------|---|
-        #             |   |          |          |            |           |   |
-        #             |   |          |character |            |           |   |
-        #   Value     |...|   --     | input by |0x00000000  | dontcare  |...|
-        #             |   |          |  user    |            |           |   |
-        #   ____      |___|__________|__________|____________|___________|___|
-        #
-        #
-
-
-        #loopTest : {
+        # ch = read_char();
+        li $v0 12                    # syscall 12 = read_char
+        syscall                      # ask the OS for one character
+        sw $v0, 0($fp)               # store the fresh ch into the frame
 
 loopTest:
-        #  char ch_in_register;
-        #  xmemcpy(/*dest*/ &ch_in_register,
-        #          /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
-        #          /*numberOfBytes*/ SIZE_OF_BYTE);
-        lw $t0, 0($fp)
-        #  if (!(ch_in_register != 'a'))
-        #    goto loopEnd;
-        #}
-        beq $t0, 'a', loopEnd
+        # while (ch != 'a' ...) {
+        lw $t0, 0($fp)               # $t0 = ch
+        beq $t0, 'a', loopEnd        # sentinel hit -> exit
 
-
-        #loopBody : {
 loopBody:
-        #   goto getNextChar;
+        # if (ch != '\n') {
+        lw $t0, 0($fp)               # $t0 = ch
+        beq $t0, '\n', getNextChar   # newline -> skip the print block
 
-        #  char ch_in_register;
-        #  xmemcpy(/*dest*/ &ch_in_register,
-        #          /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
-        #          /*numberOfBytes*/ SIZE_OF_BYTE);
-        lw $t0, 0($fp)
-        #  if (!(ch_in_register != '\n'))
-        #    goto getNextChar;
-        #}
-        beq $t0, '\n', getNextChar
+        # print_string("ch was ");
+        li $v0, 4                    # syscall 4 = print_string
+        la $a0, chWas                # arg = address of "ch was "
+        syscall                      # ask the OS to print the string
 
-        # operating_system_print_string("ch was ");
-        li $v0, 4
-        la $a0, chWas
-        syscall
+        # (intended: print_char((char)ch);  asm actually prints as int)
+        lw $t0, 0($fp)               # $t0 = ch
+        move $a0, $t0                # arg = ch
+        li $v0, 1                    # syscall 1 = print_int
+        syscall                      # ask the OS to print the integer
 
-        #  {
-        #    char ch_in_register;
-        #    xmemcpy(/*dest*/ &ch_in_register,
-        #            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
-        #            /*numberOfBytes*/ SIZE_OF_BYTE);
-        lw $t0, 0($fp)
-        #    operating_system_print_char(ch_in_register);
-        move $a0, $t0
-        li $v0, 1
-        syscall
-        #  }
+        # print_string(", value ");
+        li $v0, 4                    # syscall 4 = print_string
+        la $a0, commaSpaceValue      # arg = address of ", value "
+        syscall                      # ask the OS to print the string
 
+        # (intended: print_int(ch);  asm actually prints as char)
+        lw $t0, 0($fp)               # $t0 = ch
+        li $v0, 11                   # syscall 11 = print_char
+        move $a0, $t0                # arg = ch
+        syscall                      # ask the OS to print the character
 
-        #   operating_system_print_string(", value ");
-        li $v0, 4
-        la $a0, commaSpaceValue
-        syscall
+        # print_string("\n");
+        li $v0, 4                    # syscall 4 = print_string
+        la $a0, nl                   # arg = address of "\n"
+        syscall                      # ask the OS to print the string
 
-        #  {
-        #    char ch_in_register;
-        #    xmemcpy(/*dest*/ &ch_in_register,
-        #            /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
-        #            /*numberOfBytes*/ SIZE_OF_BYTE);
-        lw $t0, 0($fp)
-        #    operating_system_print_int(ch_in_register);
-        li $v0, 11
-        move $a0, $t0
-        syscall
-        #  }
-
-        #   operating_system_print_string("\n");
-        li $v0, 4
-        la $a0, nl
-        syscall
-
-        #getNextChar : {
 getNextChar:
-        #  char ch_in_register = operating_system_read_char();
-        # read char, which will end up in $v0
-        li $v0 12
-        syscall
+        # ch = read_char();
+        li $v0 12                    # syscall 12 = read_char
+        syscall                      # ask the OS for one character
+        sw $v0, 0($fp)               # store the fresh ch into the frame
 
-        #  xmemcpy(/*dest*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_CH,
-        #          /*src*/ &ch_in_register,
-        #          /*numberOfBytes*/ SIZE_OF_BYTE);
-        sw $v0, 0($fp)
-
-
-        #}
-
-        #                                                    current SP
-        #                               current FP               |
-        #                                   |                    |
-        #                                   V                    V
-        #
-        #             --------------------------------------------------------
-        #  C-Variable |   |          |   &ch    |&return_code|           |   |
-        #   ----      |---|----------|----------|------------|-----------|---|
-        # RAM Address |   |   --     |   0($fp) |  4($fp)    | 0($sp)    |   |
-        #   ----      |---|----------|----------|------------|-----------|---|
-        #             |   |          |  new     |            |           |   |
-        #             |   |          |character |            |           |   |
-        #   Value     |...|   --     | input by |0x00000000  | dontcare  |...|
-        #             |   |          |  user    |            |           |   |
-        #   ____      |___|__________|__________|____________|___________|___|
-        #
-        #
-
-
-        #  goto loopTest;
-        j loopTest
+        # } end of while body — jump back to the test
+        j loopTest                   # unconditional jump to the loop top
 
 loopEnd:
-        #loopEnd : {
-        #  int32_t return_code_in_register;
-        #  xmemcpy(/*dest*/ &return_code_in_register,
-        #          /*src*/ frame_pointer + MAIN_STACK_FRAME_OFFSET_TO_RETURN_VALUE,
-        #          /*numberOfBytes*/ SIZE_OF_INT32_T);
-        ############ return the return code
-        lw $v0, 4($fp)
-        addi $fp, $fp, 8
-        #  return return_code_in_register;
-        jr $ra
-        #}
+        # return return_value;        -- os_exit(0) in the C source
+        lw $v0, 4($fp)               # return code goes in $v0
+        addi $fp, $fp, 8             # tear down the frame
+        jr $ra                       # jump to the address in $ra

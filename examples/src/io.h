@@ -22,9 +22,11 @@
 
 int count_chars(const char *s);
 void integer2string(int value, char *buffer);
+int parse_int(const char *s);
 
 void print_string(const char *s);
 void print_int(int value);
+void print_uint(unsigned int value);
 void print_char(char c);
 
 /* Returns 0..255 for a byte read on STDIN, or -1 on EOF/error. */
