@@ -57,10 +57,16 @@ RUN cd /spimulator/ && \
     ln -s builddir/compile_commands.json
 
 # execute tests, fail building the image if any tests fail
+# (spimulator has been installed via `meson install` above, so the
+# default exception-handler path resolves and we don't need `-ef ...`
+# on every line — tt.bare.s is the one exception since it runs in
+# bare mode with `-noexception`.)
 RUN  cd /spimulator/tests ; \
-     spimulator -delayed_branches -delayed_loads -noexception -file tt.bare.s >& test.out; tail -n 1 test.out | grep -q "^Passed all tests$" || exit 1; \
-     spimulator -ef ../src/exceptions.s -file tt.core.s < tt.in >& test.out; tail -n 1 test.out | grep -q "^Passed all tests$" || exit 1; \
-     spimulator -ef ../src/exceptions.s -file tt.le.s  >& test.out ; tail -n 1 test.out | grep -q "^Passed all tests$" || exit 1;
+     spimulator -delayed_branches -delayed_loads -noexception -f tt.bare.s >& test.out; tail -n 1 test.out | grep -q "^Passed all tests$" || exit 1; \
+     spimulator -f tt.core.s < tt.in >& test.out; tail -n 1 test.out | grep -q "^Passed all tests$" || exit 1; \
+     spimulator -f tt.le.s >& test.out ; tail -n 1 test.out | grep -q "^Passed all tests$" || exit 1; \
+     spimulator -f tt.argv.s alpha beta gamma >& test.out ; tail -n 1 test.out | grep -q "^Passed all tests$" || exit 1; \
+     printf 'read "tt.args-cmd.s"\nargs zebra\nrun\nargs amber\nrun\nquit\n' | spimulator >& test.out ; grep -q "argv1=z" test.out && grep -q "argv1=a" test.out || exit 1;
 
 
 COPY .clang-format /spimulator/

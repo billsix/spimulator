@@ -111,11 +111,11 @@ static void save_history_at_exit(void) {
  * str_prefix table further below. Alphabetical order so the listing
  * libedit prints on Tab-Tab reads cleanly. */
 static const char* spim_commands[] = {
-    "breakpoint", "continue", "delete",         "dump",
-    "dumpnative", "exit",     "help",           "list",
-    "load",       "print",    "print_all_regs", "print_symbols",
-    "quit",       "read",     "reinitialize",   "run",
-    "step",       NULL};
+    "args",       "breakpoint", "continue",       "delete",
+    "dump",       "dumpnative", "exit",           "help",
+    "list",       "load",       "print",          "print_all_regs",
+    "print_symbols", "quit",    "read",           "reinitialize",
+    "run",        "step",       NULL};
 
 static char* command_generator(const char* text, int state) {
   static size_t idx;
@@ -456,18 +456,25 @@ int main(int argc, char** argv) {
                /* Assume this argument is a program's file name and everything
                   following are arguments to the program */
                || (argv[i][0] != '-')) {
+      /* Without this guard, every program arg after the .asm filename
+         re-enters this branch (via the `|| (argv[i][0] != '-')`
+         disjunct) and overwrites program_argc/argv to a progressively
+         smaller slice — leaving the runtime with argc=1 and
+         argv=["<last>"].  See tasks/argv-command-line-handling.md. */
+      if (assembly_file_loaded) continue;
+
       int program_i = (argv[i][0] == '-') ? (i + 1) : i;
       program_argc = argc - program_i;
       program_argv = &argv[program_i];
 
-      if (!assembly_file_loaded) /* Only load one file */
-      {
-        initialize_world(load_exception_handler ? exception_file_name : NULL,
-                         !quiet);
-        initialize_run_stack(program_argc, program_argv);
-        assembly_file_loaded = read_assembly_file(argv[program_i]);
-      }
-      i = program_i;
+      initialize_world(load_exception_handler ? exception_file_name : NULL,
+                       !quiet);
+      initialize_run_stack(program_argc, program_argv);
+      assembly_file_loaded = read_assembly_file(argv[program_i]);
+
+      /* Remaining tokens belong to the program (they're now in
+         program_argv).  Don't let them keep matching spim flags. */
+      break;
     } else if (streq(argv[i], "-assemble")) {
       assemble = true;
     } else if (streq(argv[i], "-dump")) {
@@ -699,7 +706,8 @@ enum {
   DELETE_BKPT_CMD,
   LIST_BKPT_CMD,
   DUMPNATIVE_TEXT_CMD,
-  DUMP_TEXT_CMD
+  DUMP_TEXT_CMD,
+  ARGS_CMD
 };
 
 /* Parse a SPIM command from the currently open file and execute it.
@@ -897,6 +905,61 @@ static bool parse_spim_command(bool redo) {
       prev_cmd = NOP_CMD;
       return (0);
 
+    case ARGS_CMD: {
+      /* gdb-style `set args`: replace the args the *next* `run` (or
+         reinitialize) will pass to the program.  argv[0] is preserved
+         as whatever the command-line gave us, so demos that print
+         their own program name still work. */
+      static char** owned_argv = NULL;
+      static char** owned_strs = NULL;
+      static int    owned_strs_len = 0;
+
+      /* Stash argv[0] before freeing the prior vector — program_argv
+         may point into the prior owned_argv. */
+      char* argv0 = (program_argv != NULL && program_argc >= 1)
+                        ? program_argv[0]
+                        : (char*)"<repl>";
+
+      if (owned_strs != NULL) {
+        for (int i = 0; i < owned_strs_len; i++) free(owned_strs[i]);
+        free(owned_strs);
+        owned_strs = NULL;
+        owned_strs_len = 0;
+      }
+      free(owned_argv);
+      owned_argv = NULL;
+
+      int t;
+      int cap = 0;
+      while ((t = read_token()) != Y_NL && t != 0) {
+        char* s = NULL;
+        if (t == Y_STR || t == Y_ID) {
+          s = strdup((char*)yylval.p);
+        } else if (t == Y_INT) {
+          char buf[32];
+          snprintf(buf, sizeof(buf), "%d", yylval.i);
+          s = strdup(buf);
+        } else {
+          continue;
+        }
+        if (owned_strs_len + 1 > cap) {
+          cap = cap == 0 ? 4 : cap * 2;
+          owned_strs = realloc(owned_strs, cap * sizeof(char*));
+        }
+        owned_strs[owned_strs_len++] = s;
+      }
+
+      owned_argv = malloc((owned_strs_len + 1) * sizeof(char*));
+      owned_argv[0] = argv0;
+      for (int i = 0; i < owned_strs_len; i++)
+        owned_argv[1 + i] = owned_strs[i];
+      program_argc = 1 + owned_strs_len;
+      program_argv = owned_argv;
+
+      prev_cmd = ARGS_CMD;
+      return (0);
+    }
+
     case HELP_CMD:
       if (!redo) flush_to_newline();
       write_output(message_out, "\nSPIM is a MIPS32 simulator.\n");
@@ -909,6 +972,12 @@ static bool parse_spim_command(bool redo) {
       write_output(message_out, "load \"FILE\" -- Same as read\n");
       write_output(message_out,
                    "run <ADDR> -- Start the program at (optional) ADDRESS\n");
+      write_output(message_out,
+                   "args <ARG ...> -- Set the args the next `run` will pass "
+                   "to the program;\n"
+                   "                  argv[0] stays as the loaded program "
+                   "path.  `args`\n"
+                   "                  with no operands clears the args.\n");
       write_output(
           message_out,
           "step <N> -- Step the program for N instructions (default 1)\n");
@@ -1055,6 +1124,8 @@ static int read_assembly_command(void) {
     return (PRINT_ALL_REGS_CMD);
   else if (str_prefix((char*)yylval.p, "run", 2))
     return (RUN_CMD);
+  else if (str_prefix((char*)yylval.p, "args", 2))
+    return (ARGS_CMD);
   else if (str_prefix((char*)yylval.p, "read", 2))
     return (READ_CMD);
   else if (str_prefix((char*)yylval.p, "load", 2))
