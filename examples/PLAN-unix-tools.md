@@ -295,13 +295,13 @@ parsing.
 **Phase C — broader rollout** (priority order, after B lands):
 
 - `cat <file>` — `os_open(argv[1])` + the existing block-I/O
-  loop from 16-cat.  **DONE — 23-cat-file.**
+  loop from 16-cat.  **DONE — 16-cat.**
 - `gcd a b` — two-arg numeric, Euclidean.  **DONE — 21-gcd.**
 - `head -n N <file>` — combines atoi for `-n` with file open.
-  **DONE — 24-head-file** (the richest argv demo: combines `-n`
+  **DONE — 11-head** (the richest argv demo: combines `-n`
   flag-check via str_eq, atoi on `N`, and open on the filename).
 - `tee <file ...>` — multiple output fds + stdin read loop.
-  **DONE — 25-tee** (variable argc, fd-array, per-block fan-out
+  **DONE — 23-tee** (variable argc, fd-array, per-block fan-out
   write, capped at MAX_OUT=8 files).
 - `fizzbuzz N`, `fibonacci N`, etc. — `PLAN-cs-demos.md`
   entries whose hardcoded N becomes more natural via argv.

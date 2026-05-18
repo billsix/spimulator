@@ -19,37 +19,55 @@
 // SOFTWARE.
 
 /* PURPOSE: A simplified port of `sbase/expand` — replace every
- *          tab on stdin with as many spaces as needed to reach
- *          the next 8-column boundary.  Hard-coded 8 because spim
- *          doesn't expose argv; real `expand` takes `-t N`.
+ *          tab in the input with as many spaces as needed to
+ *          reach the next 8-column boundary.  Tab width is
+ *          hard-coded; real `expand` takes `-t N`.
  *
- *          The loop maintains a `col` counter (the current column,
- *          starting at 0 after each newline) and emits a variable
- *          number of bytes per input byte.  That state-across-the-
- *          stream pattern is what's new here.
+ *          Real-Unix-style argv handling:
+ *              expand            -> stdin
+ *              expand -          -> stdin
+ *              expand FILE       -> reads FILE
  */
 
 #include "io.h"
+#include "crt0.h"
 
 #define TAB_WIDTH 8
 
-__attribute__((noreturn)) void _start(void) {
+int my_main(int argc, char **argv) {
+  int fd = STDIN;
+
+  if (argc > 2) {
+    print_string("usage: expand [FILE|-]\n");
+    return 1;
+  }
+  if (argc == 2 && !(argv[1][0] == '-' && argv[1][1] == 0)) {
+    fd = (int)os_open(argv[1], OS_O_RDONLY, 0);
+    if (fd < 0) {
+      print_string("expand: cannot open ");
+      print_string(argv[1]);
+      print_char('\n');
+      return 1;
+    }
+  }
+
   int col = 0;
-  int ch = read_char();
-  while (ch != -1) {
-    if (ch == '\t') {
+  char c;
+  while (os_read(fd, &c, 1) > 0) {
+    if (c == '\t') {
       int spaces = TAB_WIDTH - (col % TAB_WIDTH);
       for (int i = 0; i < spaces; i++)
         print_char(' ');
       col = col + spaces;
-    } else if (ch == '\n') {
+    } else if (c == '\n') {
       print_char('\n');
       col = 0;
     } else {
-      print_char((char)ch);
+      print_char(c);
       col = col + 1;
     }
-    ch = read_char();
   }
-  os_exit(0);
+
+  if (fd != STDIN) os_close(fd);
+  return 0;
 }

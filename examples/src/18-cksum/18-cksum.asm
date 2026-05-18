@@ -21,86 +21,43 @@
 
 # C source — see 18-cksum.c
 #
-#     __attribute__((noreturn)) void _start(void) {
-#       static unsigned char buf[4096];
-#       unsigned int ck = 0;
-#       unsigned int len = 0;
-#       long n;
-#       while ((n = os_read(STDIN, buf, sizeof(buf))) > 0) {
-#         for (long i = 0; i < n; i++)
-#           ck = (ck << 8) ^ crctab[(ck >> 24) ^ buf[i]];
-#         len += n;
-#       }
-#       unsigned int i = len;
-#       while (i != 0) {
-#         ck = (ck << 8) ^ crctab[(ck >> 24) ^ (i & 0xff)];
-#         i >>= 8;
-#       }
-#       ck = ~ck;
-#       print_uint(ck);  print_char(' ');  print_uint(len);  print_char('\n');
-#       os_exit(0);
+#     int my_main(int argc, char **argv) {
+#       int fd = STDIN;
+#       const char *filename = NULL;
+#       if (argc > 2) usage;
+#       if (argc == 2 && argv[1] != "-") { filename = argv[1];
+#                                           fd = open(filename); }
+#       /* ... CRC over read(fd, buf, 4096) chunks ... */
+#       print_uint(ck); print_char(' '); print_uint(len);
+#       if (filename) { print_char(' '); print_string(filename); }
+#       print_char('\n');
+#       if (fd != STDIN) close(fd);
+#       return 0;
 #     }
 
 
-#PURPOSE:  Compute the POSIX CRC32 checksum of stdin and print
-#          "<crc> <byte_count>".  First demo with bitwise ops
-#          (shifts + XOR), an indexed lookup table in .data, and
-#          per-byte algorithmic work beyond what 06/12 do.
-#
-#NOTES:    SPIM's print_int syscall is signed (`%d`), so we can't
-#          use it for the CRC — values above 2^31 would render as
-#          negative.  Instead we hand-format the digits into a
-#          small buffer with a divu loop, then print the buffer
-#          via syscall 4 (print_string).  See print_uint at the
-#          bottom of this file.
-#
+#PURPOSE:  cksum with real-Unix argv handling.  Stdin mode
+#          prints "<crc> <bytes>"; file mode prints
+#          "<crc> <bytes> <filename>" (matches `cksum FILE`).
+
+
 #SYMBOL TABLE  (C variable -> MIPS location)
 #
 #   In main:
-#     ck            $t0                  (running CRC, treated as unsigned 32-bit)
-#     len           $t1                  (byte count, accumulated across reads)
-#     buf           `buf` (.data)        (4 KiB scratch read buffer)
-#     ptr           $t2                  (cursor into buf during byte_loop)
-#     end           $t3                  (one-past-last byte of current read)
-#     i             $t4                  (also used for the per-byte input in
-#                                         byte_loop; reused for the len-fold
-#                                         loop's iteration variable)
-#     idx           $t5                  ((ck>>24)^byte; 0..255 table index)
-#     &crctab[idx]  $t6                  (computed address into the .data table)
-#     crctab[idx]   $t7                  (the loaded 32-bit table word)
-#     ck << 8       $t8                  (intermediate shift result)
-#     crctab        `crctab` (.data)     (256 .word entries; the CRC32 poly table)
+#     fd            $s4                  (STDIN=0 or opened fd)
+#     filename ptr  $s5                  (0 if stdin, else argv[1])
+#     ck            $t0                  (running CRC)
+#     len           $t1                  (byte count)
+#     buf           `buf` (.data)        (4 KiB read buffer)
+#     crctab        `crctab` (.data)     (256 .word polynomial table)
 #
-#   In print_uint subroutine:
-#     n             $t9                  (remaining int, divided down to 0)
-#     base          $t3                  (constant 10)
-#     ptr           $t2                  (write cursor into digitsBuf)
-#     digit         $t0                  (one remainder, 0..9)
-#     digitsBuf     `digitsBuf` (.data)  (16-byte scratch for ASCII digits)
-#
-#   Cross-call saves (callee-save $s* values held LIVE across `jal`):
-#     $s0   <- runtime's $ra      (held across BOTH `jal print_uint` calls;
-#                                  restored before the final `jr $ra`)
-#
-#     CALLER-SAVE caveat (worth naming explicitly): `ck` lives in
-#     $t0 and `len` lives in $t1.  MIPS convention says $t* are
-#     CALLER-save — main SHOULD spill them around each `jal
-#     print_uint`.  This demo instead asks print_uint to be
-#     conservative: print_uint's prologue comment promises not to
-#     touch $t1, and its own uses of $t0 don't matter because
-#     main reads `ck` (via `move $a0, $t0`) BEFORE the first jal
-#     and never reads it again.  `len` IS needed after the first
-#     jal print_uint (we pass it as the second `jal print_uint`'s
-#     arg), which is the load-bearing reason print_uint must not
-#     touch $t1.  See the "Trashes:" comment at the top of
-#     print_uint.
-#
-#   Volatile working registers:
-#     $a0, $a1, $a2  syscall args / function args
-#     $v0            syscall selector / read return / function arg
-#                    (14 = read, 4 = print_string, 11 = print_char)
+#   $s0 holds runtime's $ra across BOTH `jal print_uint` calls.
+#   print_uint promises not to touch $t1 (so `len` survives the
+#   first jal) — see the NOTE at the top of print_uint below.
 
         .data
+usageMsg:   .asciiz "usage: cksum [FILE|-]\n"
+errMsg:     .asciiz "cksum: cannot open "
 buf:    .space 4096                  # 4 KiB read buffer
 space:  .asciiz " "
 newline:    .asciiz "\n"
@@ -143,126 +100,169 @@ crctab:
         .text
         .globl main
 main:
-        # Save $ra in a callee-save register so the `jal print_uint`
-        # calls below don't clobber the runtime's return address.
-        # ($ra is set by the `jal main` in exceptions.s.)
         move $s0, $ra
+        li $s4, 0                    # fd = STDIN
+        move $s5, $0                 # filename = NULL
 
+        # argc dispatch
+        li $t0, 1
+        beq $a0, $t0, start_crc
+        li $t0, 2
+        bgt $a0, $t0, usage
+
+        # argc == 2
+        lw $t1, 4($a1)               # argv[1]
+        lb $t0, 0($t1)
+        bne $t0, '-', do_open
+        lb $t0, 1($t1)
+        beq $t0, $0, start_crc       # exactly "-" -> stdin
+
+do_open:
+        move $s5, $t1                # filename = argv[1]
+        move $a0, $t1
+        li $v0, 13
+        li $a1, 0
+        li $a2, 0
+        syscall
+        bltz $v0, open_failed
+        move $s4, $v0
+
+start_crc:
         # ck = 0; len = 0;
         li $t0, 0
         li $t1, 0
 
 read_loop:
-        # n = read(STDIN, buf, 4096);
-        li $v0, 14                   # syscall 14 = read
-        li $a0, 0                    # fd = 0
+        # n = read(fd, buf, 4096)
+        li $v0, 14
+        move $a0, $s4
         la $a1, buf
         li $a2, 4096
-        syscall                      # $v0 = bytes read
+        syscall
 
-        blez $v0, after_read         # 0 = EOF, <0 = error
+        blez $v0, after_read
 
-        # Set up pointers for the inner per-byte loop.
-        la $t2, buf                  # ptr = &buf[0]
-        add $t3, $t2, $v0            # end = ptr + n
-        add $t1, $t1, $v0            # len += n
+        la $t2, buf
+        add $t3, $t2, $v0
+        add $t1, $t1, $v0
 
 byte_loop:
-        beq $t2, $t3, read_loop      # ptr == end -> next chunk
-        lbu $t4, ($t2)               # byte = *ptr (unsigned 8-bit load)
-        # idx = (ck >> 24) ^ byte
+        beq $t2, $t3, read_loop
+        lbu $t4, ($t2)
         srl $t5, $t0, 24
         xor $t5, $t5, $t4
-        # ck = (ck << 8) ^ crctab[idx]
-        sll $t6, $t5, 2              # idx * 4 (word-size offset)
-        la $t7, crctab
-        add $t6, $t7, $t6            # &crctab[idx]
-        lw $t7, ($t6)
-        sll $t8, $t0, 8
-        xor $t0, $t8, $t7
-        addi $t2, $t2, 1             # ptr++
-        j byte_loop
-
-after_read:
-        # --- fold len into ck, one byte at a time ---
-        # while (i != 0) { ck = (ck<<8) ^ crctab[(ck>>24) ^ (i&0xff)]; i >>= 8; }
-        # We re-use $t4 for i (since $t4 was the per-byte input above).
-        move $t4, $t1                # i = len
-
-fold_loop:
-        beq $t4, $0, after_fold
-        andi $t5, $t4, 0xff          # i & 0xff
-        srl $t6, $t0, 24
-        xor $t5, $t6, $t5            # idx = (ck>>24) ^ (i&0xff)
         sll $t6, $t5, 2
         la $t7, crctab
         add $t6, $t7, $t6
         lw $t7, ($t6)
         sll $t8, $t0, 8
         xor $t0, $t8, $t7
-        srl $t4, $t4, 8              # i >>= 8
+        addi $t2, $t2, 1
+        j byte_loop
+
+after_read:
+        # fold len into ck
+        move $t4, $t1
+
+fold_loop:
+        beq $t4, $0, after_fold
+        andi $t5, $t4, 0xff
+        srl $t6, $t0, 24
+        xor $t5, $t6, $t5
+        sll $t6, $t5, 2
+        la $t7, crctab
+        add $t6, $t7, $t6
+        lw $t7, ($t6)
+        sll $t8, $t0, 8
+        xor $t0, $t8, $t7
+        srl $t4, $t4, 8
         j fold_loop
 
 after_fold:
-        # ck = ~ck
-        nor $t0, $t0, $0
+        # close fd if not STDIN
+        beqz $s4, do_print
+        li $v0, 16
+        move $a0, $s4
+        syscall
 
-        # print_uint(ck);
+do_print:
+        nor $t0, $t0, $0              # ck = ~ck
+
+        # print_uint(ck)
         move $a0, $t0
         jal print_uint
 
-        # print_char(' ');
+        # print_char(' ')
         li $v0, 4
         la $a0, space
         syscall
 
-        # print_uint(len);
+        # print_uint(len)
         move $a0, $t1
         jal print_uint
 
-        # print_char('\n');
+        # if (filename) print_char(' '); print_string(filename);
+        beqz $s5, no_filename
+        li $v0, 4
+        la $a0, space
+        syscall
+        li $v0, 4
+        move $a0, $s5
+        syscall
+no_filename:
+
+        # print_char('\n')
         li $v0, 4
         la $a0, newline
         syscall
 
-        # Restore $ra and return to the runtime.
         move $ra, $s0
-        li $v0, 0                    # (spim ignores this; see REFERENCE-encodings.md)
         jr $ra
+
+open_failed:
+        li $v0, 4
+        la $a0, errMsg
+        syscall
+        li $v0, 4
+        move $a0, $t1                # argv[1]
+        syscall
+        li $v0, 4
+        la $a0, newline
+        syscall
+        li $a0, 1
+        li $v0, 17
+        syscall
+
+usage:
+        li $v0, 4
+        la $a0, usageMsg
+        syscall
+        li $a0, 1
+        li $v0, 17
+        syscall
 
 
 # ---------- print_uint subroutine -----------------------------------
-# Writes an unsigned 32-bit decimal to stdout via syscall 4.
-# Input:  $a0 = unsigned value
-# Trashes: $t0, $t2, $t3, $t9, $a0, $v0
-#
-# Deliberately avoids $t1 because main uses $t1 to hold `len`
-# across both print_uint calls.  $t* registers are caller-save in
-# the MIPS convention, so strictly speaking main *should* save
-# $t1 around the call — but for this demo it's simpler to make
-# print_uint promise not to touch it.
+# Same as before: hand-format an unsigned 32-bit value into a
+# decimal string and print via syscall 4.  Avoids $t1 so main's
+# `len` survives the first call.
 print_uint:
-        la $t0, digitsBuf            # base of the buffer
-        addi $t9, $t0, 16            # one-past-the-end
-        sb $0, ($t9)                 # NUL just past the buffer
-        move $t9, $a0                # value (we'll consume it in the loop)
-        addi $t2, $t0, 15            # ptr = &digitsBuf[15] (rightmost slot)
+        la $t0, digitsBuf
+        addi $t9, $t0, 16
+        sb $0, ($t9)
+        move $t9, $a0
+        addi $t2, $t0, 15
         li $t3, 10
-
-digit_loop:
-        divu $t9, $t3                # quotient -> LO, remainder -> HI
-        mfhi $t0                     # remainder
-        mflo $t9                     # quotient (new value)
-        addi $t0, $t0, 48            # '0' + remainder
+pu_loop:
+        divu $t9, $t3
+        mfhi $t0
+        mflo $t9
+        addi $t0, $t0, 48
         sb $t0, ($t2)
-        beq $t9, $0, digit_done
+        beq $t9, $0, pu_done
         addi $t2, $t2, -1
-        j digit_loop
-
-digit_done:
-        # $t2 now points at the first digit we wrote (the most
-        # significant).  Print from there as a null-terminated
-        # string.
+        j pu_loop
+pu_done:
         move $a0, $t2
         li $v0, 4
         syscall

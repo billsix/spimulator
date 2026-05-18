@@ -290,16 +290,16 @@ freestanding C only has the `io.h` include + `_start`).
 Each is called out in the relevant .asm's `#NOTES` block.  Do NOT
 silently fix them.
 
-- `26-get-char-from-user-1.asm` — frame at `0..4($fp)` is not
+- `24-get-char-from-user-1.asm` — frame at `0..4($fp)` is not
   word-aligned for the int32_t (THE alignment lesson); also
   compares against `la $t0, a` (string *address*) instead of the
   byte `'a'`; also reads `8($fp)` past the 5-byte frame.  `-2.asm`
   fixes the alignment.
-- `26-get-char-from-user-2.asm` — inside the loop body the two
+- `24-get-char-from-user-2.asm` — inside the loop body the two
   syscall selectors for "print the char" and "print the int" are
   swapped relative to the C source.  Program still completes; the
   per-iteration output is in the opposite order.
-- `32-subrountines-1.asm`, `33-testStringsForEquality-1.asm` —
+- `42-subrountines-1.asm`, `43-testStringsForEquality-1.asm` —
   `lw $v0, N($fp)` at the end reads past the frame after teardown.
   SPIM surfaces 0 here.
 
@@ -310,7 +310,7 @@ silently fix them.
 2. Skim `PLAN-asm-comments.md` (the "Status" line at top tells
    you whether the asm-side work is still done).
 3. Skim `PLAN-unix-tools.md` for the next batch of work.
-4. Read one .asm file end-to-end (e.g. `src/30-print-out-ascii/05-
+4. Read one .asm file end-to-end (e.g. `src/40-print-out-ascii/05-
    print-out-ascii-1.asm`) to see the current layered comment
    style in action — especially L5 prefix conventions.
 5. Once spimulator has been installed (`meson install -C

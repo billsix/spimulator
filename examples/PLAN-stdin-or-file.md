@@ -1,143 +1,101 @@
 # Plan: stdin-or-file fallback for the Unix filter demos
 
-## Goal
+## Status — landed 2026-05-18
 
-Make the Unix-filter demos behave like the real Unix tools they
-port: read from `argv[1]` if a filename was given, otherwise
-fall back to stdin.
+Implemented with the **real-Unix argv-with-dash convention**.
+Six filter demos now accept either stdin (bare or via the
+explicit `-` arg) or a named filename; two previously
+file-only demos were deleted as redundant; the curriculum
+renumbered to fill the gap.
+
+### Convention used
 
 ```sh
-wc < file       # stdin path
-wc file         # opens file directly
-wc              # blocks on stdin if no arg
+demo                    # reads stdin
+demo -                  # reads stdin (explicit '-')
+demo FILE               # opens FILE and reads it
+demo anything-else      # usage error
 ```
 
-Today each demo is **either** stdin-only **or** filename-via-
-argv, never both.  Real `wc` is one program that does both;
-ours are two programs that each do half.
+(Plus 11-head's optional `-n N` flag before the filename.)
 
-This plan is deferred — written down so we don't forget.
-Picked up when the curriculum wants to upgrade from "either
-shape, taught separately" to "both shapes, one demo."
+`13-tr` and `14-rot13` stay as pure stdin filters because real
+`tr` is a pure stdin filter — it never accepts file args.
 
-## Affected demos
+`17-nologin` stays with its hardcoded `/etc/nologin.txt` path
+— the demo's lesson is the open/close pattern, not argv
+parsing.
 
-Currently the curriculum has these stdin-only filters that
-would naturally take a filename:
+### Demos upgraded
 
-- `wc` (currently stdin-only)
-- `head` (currently stdin-only; `head-file` exists as a
-  separate demo but it doesn't fall back to stdin)
-- `cat` (currently stdin-only; `cat-file` exists as a separate
-  demo but it doesn't fall back to stdin)
-- `rev` (currently stdin-only)
-- `tr` (currently stdin-only)
-- `expand` (currently stdin-only)
-- `rot13` (currently stdin-only)
+- **`10-wc`** — stdin or file.  C and asm both rewritten
+  around `my_main(argc, argv)` + `crt0.h` and a single
+  `os_read(fd, &c, 1)` byte loop.
+- **`11-head`** — accepts the full `head [-n N] [FILE|-]`
+  shape with str_eq + atoi.  Subsumes the old `head-file`.
+- **`12-rev`** — stdin or file; line buffer unchanged.
+- **`15-expand`** — stdin or file; column counter unchanged.
+- **`16-cat`** — stdin or file; block I/O unchanged.
+  Subsumes the old `cat-file`.
+- **`18-cksum`** — stdin or file; prints filename column
+  in file mode (`<crc> <bytes> <filename>`), matching real
+  `cksum`.
 
-And these filename-only demos that would naturally fall back
-to stdin:
+### Demos deleted
 
-- `cat-file` (currently fails if no argv[1])
-- `head-file` (currently fails if no `-n N FILE`)
+- `23-cat-file` (subsumed by 16-cat).
+- `24-head-file` (subsumed by 11-head).
 
-## Implementation sketch
+### Renumbering
 
-The C-side change is ~6 lines per demo:
+The deletes left slots 23 and 24 empty.  Demos 25-33 shifted
+down by 2 to fill them:
 
-```c
-int fd = STDIN;
-if (argc > 1) {
-  fd = (int)os_open(argv[1], OS_O_RDONLY, 0);
-  if (fd < 0) {
-    print_string("foo: cannot open ");
-    print_string(argv[1]);
-    print_char('\n');
-    return 1;
-  }
-}
-/* … existing read loop, but reading from `fd` instead of STDIN … */
-if (fd != STDIN) os_close(fd);
-```
+| Was | Now |
+|---|---|
+| 25-tee | 23-tee |
+| 26-get-char-from-user | 24-get-char-from-user |
+| 27-fibonacci | 25-fibonacci |
+| 28-hanoi | 26-hanoi |
+| 29-queens | 27-queens |
+| 30-print-out-ascii | 40-print-out-ascii (extras) |
+| 31-commaAndPeriodCounter | 41-commaAndPeriodCounter (extras) |
+| 32-subrountines | 42-subrountines (extras) |
+| 33-testStringsForEquality | 43-testStringsForEquality (extras) |
 
-The asm-side change is ~10 instructions:
+Total: 31 directories on disk (27 main-path + 4 extras),
+verified building clean as 32 meson targets (31 demo
+executables + io_lib).
 
-```
-        # fd = STDIN
-        li $s3, 0                    # fd starts at stdin
-        # if (argc > 1)
-        li $t0, 1
-        ble $a0, $t0, no_arg
-        # fd = open(argv[1], 0, 0)
-        lw $a0, 4($a1)
-        li $v0, 13
-        li $a1, 0
-        li $a2, 0
-        syscall
-        bltz $v0, open_err
-        move $s3, $v0
-no_arg:
-        # ... existing read loop, but with fd = $s3 ...
-```
+### Verified modes
 
-Plus a `close` at exit time if we opened anything.
+For each upgraded demo: bare stdin, explicit `-`, FILE, and
+usage error all produce identical output between the C
+binary and spim on the asm.  `18-cksum`'s output was
+cross-checked against the system `cksum` and matches
+byte-for-byte.
 
-## Pedagogical value
+## Out of scope / deferred
 
-Adding stdin-fallback to the filter demos teaches one specific
-generalisation: **STDIN is just fd 0; any open file gives you
-another fd; the rest of the program doesn't care which**.
-That's a load-bearing concept in Unix-tool design and the
-curriculum doesn't currently demonstrate it explicitly.  Today
-the curriculum implicitly suggests "stdin demos use syscall
-14 with `$a0=0`; file demos use syscall 13 first and then
-syscall 14 with the returned fd."  The stdin-or-file unification
-makes those the SAME demo with a conditional setup.
+- **The `-` convention as a generic stdin sentinel.**  Done.
+- **Multi-file support** (`cat file1 file2 file3`, `cksum *`).
+  Real Unix tools take multiple file args; ours don't.  Adds
+  a per-file outer loop + per-file formatting.  Punted.
+- **`tr` and `rot13` learning to take a file.**  Real `tr`
+  doesn't take files — we matched that behaviour.  Could be
+  reconsidered if the curriculum needs a "byte-transform that
+  also takes a file" demo.
+- **`-` as a filename argument in 23-tee.**  `tee`'s argv is
+  output files, not input.  No change.
 
-## Design decisions to make before starting
+## Related plans
 
-- **Modify existing demos in place** or **add new
-  "wc-or-file" companions**?  My lean: modify in place.  The
-  existing demos already exist for the right reasons; making
-  them more faithful to the real Unix tools makes them
-  better, not worse.  Existing curriculum chapters that wanted
-  to show "the simplest stdin filter" still work — they just
-  skip the file path in the explanation.
-- **What happens to `23-cat-file` and `24-head-file`?**  Under
-  the "modify in place" plan, the `-file` suffixed demos
-  become redundant with the upgraded base demos.  We could:
-    - merge them (each upgraded base demo IS the file-capable
-      version)
-    - keep both (the `-file` demo as a "look how this single-
-      purpose tool ports" preview before showing the unified
-      version)
-  Decide based on the eventual book chapter structure.
-- **What happens to `17-nologin`?**  It hardcodes a path
-  (`/etc/nologin.txt`).  Could either keep that hardcoded path
-  (the demo's lesson is "open + close" not "argv parsing")
-  or generalise to take argv.  My lean: keep hardcoded — the
-  demo is short and focused; generalising would dilute the
-  open/close lesson.
-
-## Out of scope
-
-- Adding stdout-redirection support (the demos already
-  inherit that from the shell since they `os_write(STDOUT,
-  ...)` unconditionally).
-- The `-` convention for "stdin as a filename" (treats `-` as
-  STDIN).  Some real Unix tools do this; nice to have, not
-  load-bearing.
-- Adding multi-file support (`wc file1 file2 file3`).  That's
-  a bigger change — needs a per-file loop wrapping the read
-  loop, plus per-file output formatting.  Out of scope for v1.
-
-## Relationship to other plans
-
-- `PLAN-cs-demos.md` — orthogonal.
-- `PLAN-curriculum-order.md` — affects which demos appear in
-  Part 3 and Part 5.  If we merge the `-file` demos into
-  their base counterparts, Part 5 shrinks by 2-3 demos and
-  some Part 3 demos grow slightly.  Worth re-balancing
-  Part 3 and Part 5 after this plan lands.
-- `PLAN-unix-tools.md` — this is the natural "Phase D"
-  follow-up to Phase 1-3 (stdin) and Phase C (argv+file).
+- `PLAN-curriculum-order.md` — Part 3 / 4 / 5 labels carried
+  through this change; "Files" (Part 4) now contains demos
+  that accept argv-with-dash, which is conceptually a Part 5
+  shape.  The reading order narrative still works because
+  argv arrives gradually starting at Part 3 (filter demos)
+  rather than abruptly at Part 5.  Worth a one-sentence
+  acknowledgement in the plan doc.
+- `READING-ORDER.md` — updated.  The old "stdin-or-file gap"
+  warning section is gone.

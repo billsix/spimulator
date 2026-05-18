@@ -155,13 +155,13 @@ proposed below for review.
 
 ### Tier 1 — strong value (apply, with full table and frame diagram)
 
-- **26-get-char-from-user-1.asm**, **-2.asm** — frame + the
+- **24-get-char-from-user-1.asm**, **-2.asm** — frame + the
   intentional alignment bug.  The bug becomes visible the moment
   you see "user_input: 1($fp)" in the table.
-- **32-subrountines-1.asm**, **-2.asm** — the canonical
+- **42-subrountines-1.asm**, **-2.asm** — the canonical
   calling-convention demo.  -1 is the longhand version (every
   call-block slot named); -2 is the register-passing variant.
-- **33-testStringsForEquality-1.asm** — frame + str_eq +
+- **43-testStringsForEquality-1.asm** — frame + str_eq +
   intentional read-past-frame bug.
 
 ### Tier 2 — high value (apply, full table, no frame diagram)
@@ -174,16 +174,16 @@ proposed below for review.
 - **21-gcd.asm** — two atois back-to-back; the "park argv in
   $s2 while calling atoi" dance is subtle and benefits from
   being named.
-- **24-head-file.asm** — three function-call flows (str_eq,
+- **11-head.asm** — three function-call flows (str_eq,
   atoi, open) and the most argv state of any demo.
-- **25-tee.asm** — fd array in `.data` + variable argc +
+- **23-tee.asm** — fd array in `.data` + variable argc +
   per-block fan-out.  The fd-array entry is the first "named
   composite" in the table.
 
 ### Tier 3 — moderate value (apply, smaller table)
 
-- **30-print-out-ascii.asm** — single-counter loop in $s.
-- **31-commaAndPeriodCounter.asm** — two $s counters + byte
+- **40-print-out-ascii.asm** — single-counter loop in $s.
+- **41-commaAndPeriodCounter.asm** — two $s counters + byte
   loop.
 - **10-wc.asm** — same shape as 06 with one more counter.
 - **11-head.asm** — counter + early termination.
@@ -192,7 +192,7 @@ proposed below for review.
   pattern.
 - **15-expand.asm** — column-tracking state machine.
 - **19-echo.asm** — argv walk preview (no atoi yet).
-- **23-cat-file.asm** — small extension of 15 with argv.
+- **16-cat.asm** — small extension of 15 with argv.
 
 ### Tier 4 — skip (trivial / one variable / no payoff)
 
@@ -245,7 +245,7 @@ the table format ends up working well on the similar-shape
 #     $v0   syscall selector / return value
 ```
 
-### 32-subrountines-1.asm (Tier 1)
+### 42-subrountines-1.asm (Tier 1)
 
 ```
 #STORAGE LAYOUT
@@ -324,12 +324,12 @@ order (highest pedagogical lift first, so format issues surface
 early):
 
 1. **20-factorial.asm** — full Tier-2 table; sets the template.
-2. **32-subrountines-1.asm**, **-2.asm** — full Tier-1 with
+2. **42-subrountines-1.asm**, **-2.asm** — full Tier-1 with
    frame diagram; stresses the format on the canonical demo.
-3. **33-testStringsForEquality-1.asm**, **26-get-char-from-user-1.asm**,
+3. **43-testStringsForEquality-1.asm**, **24-get-char-from-user-1.asm**,
    **-2.asm** — remaining Tier 1.
-4. **18-cksum.asm**, **21-gcd.asm**, **24-head-file.asm**,
-   **25-tee.asm** — remaining Tier 2.
+4. **18-cksum.asm**, **21-gcd.asm**, **11-head.asm**,
+   **23-tee.asm** — remaining Tier 2.
 5. **Tier 3 batch** — 05, 06, 12, 13, 14, 15, 17, 19, 21.
 
 After step 1, pause for format review — it's much cheaper to

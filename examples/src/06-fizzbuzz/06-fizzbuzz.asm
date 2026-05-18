@@ -21,82 +21,87 @@
 
 # C source — see 06-fizzbuzz.c
 #
-#     for (int i = 1; i <= 100; i++) {
-#       if (i % 15 == 0)      print_string("FizzBuzz");
-#       else if (i % 3 == 0)  print_string("Fizz");
-#       else if (i % 5 == 0)  print_string("Buzz");
-#       else                  print_int(i);
-#       print_char('\n');
+#     int my_main(int argc, char **argv) {
+#       int n = (argc == 2) ? parse_int(argv[1]) : 100;
+#       for (int i = 1; i <= n; i++) {
+#         if (i % 15 == 0) print_string("FizzBuzz");
+#         ...
+#       }
+#       return 0;
 #     }
+#
+# Invocations:
+#   spimulator -f 06-fizzbuzz.asm             # 1..100 (default)
+#   spimulator -f 06-fizzbuzz.asm 30          # 1..30
 
 
-#PURPOSE:  FizzBuzz, 1..100.  First demo from PLAN-cs-demos.md.
-#          Introduces three things at once:
-#            - modulo via `div` + `mfhi`  (the high/lo product
-#              registers are also where divu/div leave the
-#              remainder/quotient)
-#            - multi-way branching via a fall-through cascade of
-#              conditional branches (the C `if/else if` chain)
-#            - mixed-format output: either print_string for a
-#              fizz/buzz word, or print_int for the number
+#PURPOSE:  FizzBuzz with upper bound from argv.  Default N=100.
+#          Three things going on at once:
+#            - modulo via `div` + `mfhi`
+#            - multi-way branching cascade
+#            - mixed-format output (string OR int per line)
 #
-#NOTES:    The 15-check comes FIRST.  Putting it last (checking
-#          for "both 3 and 5 divide i" after the 3- and 5-checks)
-#          would print "Fizz" or "Buzz" for the FizzBuzz lines
-#          and miss the combined case entirely.  Order matters.
-#
-#          `div $t0, $t1` puts the quotient in `lo` (mflo) and
-#          the remainder in `hi` (mfhi).  We only want the
-#          remainder, so each test reads only `mfhi`.
+#NOTES:    The 15-check comes FIRST so the FizzBuzz lines hit
+#          BEFORE the 3-only check would match them.
 
 
 #SYMBOL TABLE  (C variable -> MIPS location)
 #
 #   In main:
-#     i             $t0                  (1..100 loop counter)
-#     i % {15,3,5}  $t1                  (divisor going in, then
-#                                          remainder after `mfhi`;
-#                                          reused per-test before each
-#                                          fresh div)
-#     fizzMsg, buzzMsg, fizzBuzzMsg, nlMsg
-#                   `.data` strings      (printed via syscall 4)
+#     argc          $a0 at entry only
+#     argv          $a1 at entry only
+#     n             $s1                  (upper bound from argv, or 100)
+#     i             $t0                  (loop counter, 1..n)
+#     i % {15,3,5}  $t1                  (divisor going in, remainder
+#                                          after mfhi)
 #
-#   No subroutine calls; no Cross-call saves section.  Two
-#   $t-regs reused across every syscall per the spim-preserves-$t
-#   convention (same shape as 06/12/13/17).
+#   In atoi (same as 20-factorial / 21-gcd):
+#     standard.
 #
-#   Volatile (no preserved meaning across a syscall, by convention):
-#     $a0   syscall arg
-#     $v0   syscall selector (1 = print_int, 4 = print_string)
+#   Cross-call saves: $s0 ← runtime's $ra; $s1 ← n (held across
+#   `jal atoi` and through the body).
 
         .data
 fizzMsg:        .asciiz "Fizz"
 buzzMsg:        .asciiz "Buzz"
 fizzBuzzMsg:    .asciiz "FizzBuzz"
 nlMsg:          .asciiz "\n"
+usageMsg:       .asciiz "usage: fizzbuzz [N]\n"
 
         .text
         .globl main
 main:
+        move $s0, $ra
+        li $s1, 100                  # n = 100 (default)
+
+        # argc dispatch
+        li $t0, 1
+        beq $a0, $t0, run            # argc == 1 -> default
+        li $t0, 2
+        bne $a0, $t0, usage          # argc != 2 -> usage
+
+        # parse argv[1] as N
+        lw $a0, 4($a1)
+        jal atoi
+        move $s1, $v0
+
+run:
         li $t0, 1                    # i = 1
 
 loop:
-        # while (i <= 100)
-        li $t1, 100
-        bgt $t0, $t1, done
+        bgt $t0, $s1, done
 
-        # if (i % 15 == 0) -> FizzBuzz
+        # if (i % 15 == 0)
         li $t1, 15
-        div $t0, $t1                 # lo = i / 15, hi = i % 15
-        mfhi $t1                     # $t1 = i % 15
+        div $t0, $t1
+        mfhi $t1
         bnez $t1, try3
         la $a0, fizzBuzzMsg
-        li $v0, 4                    # 4 = print_string
+        li $v0, 4
         syscall
         j newline
 
 try3:
-        # else if (i % 3 == 0) -> Fizz
         li $t1, 3
         div $t0, $t1
         mfhi $t1
@@ -107,7 +112,6 @@ try3:
         j newline
 
 try5:
-        # else if (i % 5 == 0) -> Buzz
         li $t1, 5
         div $t0, $t1
         mfhi $t1
@@ -118,22 +122,52 @@ try5:
         j newline
 
 printNum:
-        # else -> print_int(i)
         move $a0, $t0
-        li $v0, 1                    # 1 = print_int
+        li $v0, 1
         syscall
 
 newline:
-        # print_char('\n')   -- via print_string of nlMsg, since
-        # 11 = print_char would also work but we already have the
-        # string handy and the cost is identical.
         la $a0, nlMsg
         li $v0, 4
         syscall
 
-        addi $t0, $t0, 1             # i++
+        addi $t0, $t0, 1
         j loop
 
 done:
+        move $ra, $s0
+        jr $ra
+
+usage:
+        li $v0, 4
+        la $a0, usageMsg
+        syscall
+        li $a0, 1
+        li $v0, 17                   # exit2(1)
+        syscall
+
+
+# ---------- atoi subroutine -----------------------------------------
+# Standard atoi pattern, same as 20-factorial.
+atoi:
         li $v0, 0
+        li $t1, 1
+        lb $t0, ($a0)
+        bne $t0, '-', atoi_loop
+        li $t1, -1
+        addi $a0, $a0, 1
+atoi_loop:
+        lb $t0, ($a0)
+        blt $t0, '0', atoi_done
+        bgt $t0, '9', atoi_done
+        addi $t0, $t0, -48
+        li $t2, 10
+        mult $v0, $t2
+        mflo $v0
+        add $v0, $v0, $t0
+        addi $a0, $a0, 1
+        j atoi_loop
+atoi_done:
+        mult $v0, $t1
+        mflo $v0
         jr $ra

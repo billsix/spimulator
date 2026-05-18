@@ -18,19 +18,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-/* PURPOSE: A port of `sbase/rev` — reverse each line of stdin.
+/* PURPOSE: A port of `sbase/rev` — reverse each line of input.
  *
- *          Reads a line into a buffer, walks the buffer backwards
- *          while writing each byte, then emits the trailing
- *          newline.  Repeats per line until EOF.
+ *          Real-Unix-style argv handling:
+ *              rev            -> stdin
+ *              rev -          -> stdin
+ *              rev FILE       -> reads FILE
  *
- *          The buffer is a fixed 256 bytes; lines longer than that
+ *          Buffer is a fixed 256 bytes; lines longer than that
  *          have the excess silently dropped.  Real `rev` grows
- *          the buffer with `realloc` — beyond what this lesson is
- *          about.
+ *          the buffer with `realloc` — beyond what this lesson
+ *          is about.
  */
 
 #include "io.h"
+#include "crt0.h"
 
 #define BUFSIZE 256
 
@@ -42,20 +44,36 @@ static void flush_reversed(int len) {
   print_char('\n');
 }
 
-__attribute__((noreturn)) void _start(void) {
+int my_main(int argc, char **argv) {
+  int fd = STDIN;
+
+  if (argc > 2) {
+    print_string("usage: rev [FILE|-]\n");
+    return 1;
+  }
+  if (argc == 2 && !(argv[1][0] == '-' && argv[1][1] == 0)) {
+    fd = (int)os_open(argv[1], OS_O_RDONLY, 0);
+    if (fd < 0) {
+      print_string("rev: cannot open ");
+      print_string(argv[1]);
+      print_char('\n');
+      return 1;
+    }
+  }
+
   int len = 0;
-  int ch = read_char();
-  while (ch != -1) {
-    if (ch == '\n') {
+  char c;
+  while (os_read(fd, &c, 1) > 0) {
+    if (c == '\n') {
       flush_reversed(len);
       len = 0;
     } else if (len < BUFSIZE) {
-      buf[len] = (char)ch;
+      buf[len] = c;
       len = len + 1;
     }
-    /* else: line too long, drop char */
-    ch = read_char();
   }
-  if (len > 0) flush_reversed(len);   /* trailing line without \n */
-  os_exit(0);
+  if (len > 0) flush_reversed(len);
+
+  if (fd != STDIN) os_close(fd);
+  return 0;
 }

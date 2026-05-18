@@ -19,29 +19,52 @@
 // SOFTWARE.
 
 /* PURPOSE: A port of `sbase/wc -cl` — count bytes and lines on
- *          standard input, then print:
+ *          the input, then print:
  *
  *              <bytes> bytes, <lines> lines
  *
- *          Same shape as 31-commaAndPeriodCounter (a read loop
- *          with two counters), now with the labels of a real
- *          Unix utility.
+ *          Real-Unix-style argv handling:
+ *              wc            -> reads stdin
+ *              wc -          -> reads stdin (explicit '-')
+ *              wc FILE       -> opens FILE and reads it
+ *              wc anything-else -> usage error
  */
 
 #include "io.h"
+#include "crt0.h"   /* provides _start; calls my_main(argc, argv) */
 
-__attribute__((noreturn)) void _start(void) {
+int my_main(int argc, char **argv) {
+  int fd = STDIN;
+
+  if (argc > 2) {
+    print_string("usage: wc [FILE|-]\n");
+    return 1;
+  }
+
+  if (argc == 2 && !(argv[1][0] == '-' && argv[1][1] == 0)) {
+    fd = (int)os_open(argv[1], OS_O_RDONLY, 0);
+    if (fd < 0) {
+      print_string("wc: cannot open ");
+      print_string(argv[1]);
+      print_char('\n');
+      return 1;
+    }
+  }
+  /* Otherwise fd stays at STDIN (both `wc` and `wc -`). */
+
   int byte_count = 0;
   int line_count = 0;
-  int ch = read_char();
-  while (ch != -1) {                   /* -1 = EOF */
-    byte_count = byte_count + 1;
-    if (ch == '\n') line_count = line_count + 1;
-    ch = read_char();
+  char c;
+  while (os_read(fd, &c, 1) > 0) {
+    byte_count++;
+    if (c == '\n') line_count++;
   }
+
   print_int(byte_count);
   print_string(" bytes, ");
   print_int(line_count);
   print_string(" lines\n");
-  os_exit(0);
+
+  if (fd != STDIN) os_close(fd);
+  return 0;
 }

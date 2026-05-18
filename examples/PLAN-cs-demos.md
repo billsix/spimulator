@@ -74,7 +74,7 @@ while (b != 0) { unsigned int t = a % b; a = b; b = t; }
 print_uint(a);
 ```
 
-### 21. Fibonacci (BOTH variants in one demo) — **DONE as `27-fibonacci`**
+### 21. Fibonacci (BOTH variants in one demo) — **DONE as `25-fibonacci`**
 
 **What's new:** the same algorithm two ways — iterative (5
 instructions in a loop) vs recursive (the call tree fans out
@@ -205,7 +205,7 @@ while ((ch = read_char()) != -1) {
 }
 ```
 
-### 25. Towers of Hanoi — **DONE as `28-hanoi`**
+### 25. Towers of Hanoi — **DONE as `26-hanoi`**
 
 **What's new:** recursion that PRODUCES output (move sequences),
 not just a value.  Three lines of pseudocode that look magic
@@ -301,7 +301,7 @@ for (int i = 2; i <= 100; i++)
 print_char('\n');
 ```
 
-### 28. 8 Queens — **DONE as `29-queens`**
+### 28. 8 Queens — **DONE as `27-queens`**
 
 **What's new:** backtracking — the "try, check, recurse on
 success, undo on failure" pattern.  The deepest algorithmic

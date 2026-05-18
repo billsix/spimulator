@@ -18,53 +18,37 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-/* PURPOSE: Bubble sort a hardcoded 10-element int array in
- *          place.  Print the array before and after so the
- *          before/after comparison is one diff:
+/* PURPOSE: Read decimal integers from stdin (one per line, or
+ *          whitespace-separated), bubble sort them in place, and
+ *          print the sorted result one per line.
  *
- *              before: 9 4 1 7 6 2 8 3 5 0
- *              after:  0 1 2 3 4 5 6 7 8 9
+ *          Same shape as `sort -n` for small inputs.  Pipe in
+ *          numbers, get sorted numbers out:
  *
- *          Fourth demo from PLAN-cs-demos.md.  Introduces three
- *          new ideas on the asm side:
+ *              $ printf "9\n4\n1\n7\n" | ./bubble-sort
+ *              1
+ *              4
+ *              7
+ *              9
  *
- *             - **nested loops** — first demo with a `for`
- *               inside another `for`.  Each loop carries its own
- *               index in its own register.
- *             - **in-place mutation of a `.word`-initialised
- *               .data array** — earlier demos wrote into
- *               `.space`-allocated scratch buffers (12-rev's
- *               line buffer, 25-tee's fd array); this demo
- *               mutates a fully-initialised `.data` array.
- *               The `.word` directive's job is to lay the
- *               initial state down; nothing about the directive
- *               makes the result read-only.
- *             - **swap via a temp register** — `int t = a[j];
- *               a[j] = a[j+1]; a[j+1] = t;` becomes a load,
- *               another load, then two stores in the opposite
- *               direction.  The temp lives in a $t-reg between
- *               the two loads.
+ *          New on the asm side: **reading integers from stdin
+ *          with EOF detection** — uses spim's syscall 5
+ *          (read_int) with the `$a3` EOF flag.  First demo to
+ *          use that syscall.  See
+ *          `/spimulator/tasks/eof-signaling.md` for the EOF
+ *          protocol.
  *
- *          Algorithm: naive O(N²).  The lesson here is the asm,
- *          not the algorithm — bubble sort is the simplest
- *          comparison sort to write out by hand, and that's why
- *          it shows up in textbooks despite being slow.  When
- *          students later want to compare sort algorithms by
- *          instruction count, they can replace this demo's
- *          inner with insertion / selection / quicksort and
- *          spim's `-explain` will count the instructions for
- *          them.
- *
- *          Invocation:
- *              spimulator -f 07-bubble-sort.asm
- *              ./07-bubble-sort-1                      # on Linux
+ *          Naive O(N²) sort — the lesson is the asm, not the
+ *          algorithm.  Capped at 256 input ints; larger inputs
+ *          truncate.
  */
 
 #include "io.h"
+#include "crt0.h"
 
-#define N 10
+#define MAX_N 256
 
-static int data[N] = {9, 4, 1, 7, 6, 2, 8, 3, 5, 0};
+static int data[MAX_N];
 
 static void bubble_sort(int *a, int n) {
   for (int i = 0; i < n - 1; i++) {
@@ -78,19 +62,24 @@ static void bubble_sort(int *a, int n) {
   }
 }
 
-static void print_array(int *a, int n) {
-  for (int i = 0; i < n; i++) {
-    print_int(a[i]);
-    print_char(' ');
+int my_main(int argc, char **argv) {
+  (void)argv;
+  if (argc != 1) {
+    print_string("usage: bubble-sort   (reads ints from stdin)\n");
+    return 1;
   }
-  print_char('\n');
-}
 
-__attribute__((noreturn)) void _start(void) {
-  print_string("before: ");
-  print_array(data, N);
-  bubble_sort(data, N);
-  print_string("after:  ");
-  print_array(data, N);
-  os_exit(0);
+  int n = 0;
+  int value;
+  while (n < MAX_N && read_int_from_stdin(&value) == 0) {
+    data[n++] = value;
+  }
+
+  bubble_sort(data, n);
+
+  for (int i = 0; i < n; i++) {
+    print_int(data[i]);
+    print_char('\n');
+  }
+  return 0;
 }

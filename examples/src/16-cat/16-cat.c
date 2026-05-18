@@ -18,29 +18,45 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-/* PURPOSE: A port of suckless `sbase/cat` — copy standard input
- *          to standard output, until EOF.  The fundamental Unix
- *          "filter" shape: read a block, write it, repeat.
+/* PURPOSE: A port of `sbase/cat` — concatenate input to stdout.
  *
- *          This is the FIRST demo to do block-at-a-time I/O.
- *          Previous demos (04, 06) read one byte at a time with
- *          read_char (syscall 12); here we use os_read with a
- *          large buffer (syscall 14 in spim) and write the whole
- *          block at once with os_write (syscall 15 in spim).
+ *          Real-Unix-style argv handling:
+ *              cat            -> reads stdin
+ *              cat -          -> reads stdin (explicit '-')
+ *              cat FILE       -> opens FILE and reads it
  *
- *          Block I/O is what every real Unix filter does — moving
- *          bytes one at a time would be 4096× more syscalls per
- *          page of input.
+ *          Block-at-a-time I/O via `os_read` / `os_write` —
+ *          moving bytes one at a time would be 4096× more
+ *          syscalls per page of input.
  */
 
 #include "io.h"
+#include "crt0.h"
 
 #define BUFSIZE 4096
 
-__attribute__((noreturn)) void _start(void) {
+int my_main(int argc, char **argv) {
+  int fd = STDIN;
+
+  if (argc > 2) {
+    print_string("usage: cat [FILE|-]\n");
+    return 1;
+  }
+  if (argc == 2 && !(argv[1][0] == '-' && argv[1][1] == 0)) {
+    fd = (int)os_open(argv[1], OS_O_RDONLY, 0);
+    if (fd < 0) {
+      print_string("cat: cannot open ");
+      print_string(argv[1]);
+      print_char('\n');
+      return 1;
+    }
+  }
+
   static char buf[BUFSIZE];
   long n;
-  while ((n = os_read(STDIN, buf, sizeof(buf))) > 0)
+  while ((n = os_read(fd, buf, sizeof(buf))) > 0)
     os_write(STDOUT, buf, n);
-  os_exit(n < 0 ? 1 : 0);
+
+  if (fd != STDIN) os_close(fd);
+  return n < 0 ? 1 : 0;
 }

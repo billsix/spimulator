@@ -19,19 +19,19 @@
 // SOFTWARE.
 
 /* PURPOSE: The classic FizzBuzz interview problem.  For i in
- *          1..100: print "FizzBuzz" if i is divisible by both 3
+ *          1..N: print "FizzBuzz" if i is divisible by both 3
  *          and 5, "Fizz" if only by 3, "Buzz" if only by 5,
  *          otherwise the number itself.  One result per line.
  *
- *          First demo from PLAN-cs-demos.md.  No argv, no stdin —
- *          a pure compute-and-print exercise that exercises:
+ *          Invocation:
+ *              fizzbuzz            -> 1..100 (default)
+ *              fizzbuzz N          -> 1..N
  *
- *             - modulo as an algorithm primitive (becomes
- *               `div`/`mfhi` on MIPS)
- *             - multi-way branching (an if/else-if chain in C
- *               becomes a cascade of conditional branches in asm)
- *             - mixed-format output: a string OR an int on each
- *               line, decided at run time
+ *          Exercises:
+ *             - modulo as an algorithm primitive (`div`/`mfhi`)
+ *             - multi-way branching (if/else-if chain → conditional
+ *               branch cascade in asm)
+ *             - mixed-format output (string OR int per line)
  *
  *          The "is divisible by 15" test comes first; checking
  *          15 short-circuits the 3-and-5 case (only one
@@ -39,9 +39,18 @@
  */
 
 #include "io.h"
+#include "crt0.h"
 
-__attribute__((noreturn)) void _start(void) {
-  for (int i = 1; i <= 100; i++) {
+int my_main(int argc, char **argv) {
+  int n = 100;
+  if (argc == 2) {
+    n = parse_int(argv[1]);
+  } else if (argc > 2) {
+    print_string("usage: fizzbuzz [N]\n");
+    return 1;
+  }
+
+  for (int i = 1; i <= n; i++) {
     if (i % 15 == 0)
       print_string("FizzBuzz");
     else if (i % 3 == 0)
@@ -52,5 +61,5 @@ __attribute__((noreturn)) void _start(void) {
       print_int(i);
     print_char('\n');
   }
-  os_exit(0);
+  return 0;
 }

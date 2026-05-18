@@ -18,30 +18,76 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-/* PURPOSE: A simplified port of `sbase/head -n 10` — copy the
- *          first 10 lines of stdin to stdout, then stop.
+/* PURPOSE: A port of `sbase/head` — copy the first N lines of
+ *          the input to stdout, then stop.
  *
- *          N is hardcoded to 10 because spim doesn't expose argv;
- *          a real `head` reads `-n N` off the command line.  The
- *          interesting lesson is early termination of an I/O
- *          loop — we don't need to drain the rest of stdin once
- *          we've seen enough newlines.
+ *          Real-Unix-style argv handling:
+ *              head                -> stdin, N=10
+ *              head -              -> stdin, N=10
+ *              head FILE           -> file, N=10
+ *              head -n N           -> stdin, N from arg
+ *              head -n N -         -> stdin, N from arg
+ *              head -n N FILE      -> file, N from arg
+ *              anything else       -> usage error
+ *
+ *          Subsumes the old `head-file` demo entirely.
  */
 
 #include "io.h"
+#include "crt0.h"
 
-#define N 10
+#define DEFAULT_N 10
 
-__attribute__((noreturn)) void _start(void) {
-  int line_count = 0;
-  int ch = read_char();
-  while (ch != -1) {
-    print_char((char)ch);
-    if (ch == '\n') {
-      line_count = line_count + 1;
-      if (line_count == N) break;
-    }
-    ch = read_char();
+static int str_eq(const char *a, const char *b) {
+  while (*a == *b) {
+    if (*a == 0) return 1;
+    a++;
+    b++;
   }
-  os_exit(0);
+  return 0;
+}
+
+static int is_dash(const char *s) {
+  return s[0] == '-' && s[1] == 0;
+}
+
+int my_main(int argc, char **argv) {
+  int fd = STDIN;
+  int n = DEFAULT_N;
+  const char *file_arg = 0;
+
+  /* Parse argv.  The shape is:  [-n N] [FILE|-] */
+  if (argc == 1) {
+    /* head : stdin, N=10 */
+  } else if (argc == 2) {
+    file_arg = argv[1];                /* "-" or filename */
+  } else if (argc == 3 && str_eq(argv[1], "-n")) {
+    n = parse_int(argv[2]);            /* head -n N : stdin */
+  } else if (argc == 4 && str_eq(argv[1], "-n")) {
+    n = parse_int(argv[2]);
+    file_arg = argv[3];                /* head -n N FILE|- */
+  } else {
+    print_string("usage: head [-n N] [FILE|-]\n");
+    return 1;
+  }
+
+  if (file_arg && !is_dash(file_arg)) {
+    fd = (int)os_open(file_arg, OS_O_RDONLY, 0);
+    if (fd < 0) {
+      print_string("head: cannot open ");
+      print_string(file_arg);
+      print_char('\n');
+      return 1;
+    }
+  }
+
+  int line_count = 0;
+  char c;
+  while (line_count < n && os_read(fd, &c, 1) > 0) {
+    print_char(c);
+    if (c == '\n') line_count++;
+  }
+
+  if (fd != STDIN) os_close(fd);
+  return 0;
 }

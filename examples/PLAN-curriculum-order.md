@@ -64,7 +64,7 @@ mechanism-as-vehicle.  The new framing drops those.
 These exist on disk (renumbered as `30-…` through `33-…`),
 but they aren't part of the main reading path 01-29:
 
-### `32-subrountines` (was `07-subrountines`)
+### `42-subrountines` (was `07-subrountines`)
 
 `int mxPlusB(int m, int x, int b)` — the longhand and the
 idiomatic versions of the stack-based subroutine calling
@@ -75,33 +75,33 @@ about `m*x+b`.  The subroutine calling convention is taught
 instead via demos whose subroutines do something the student
 already cares about:
 
-- `atoi` (used in 20-factorial, 21-gcd, 24-head-file,
-  27-fibonacci, 28-hanoi) — parses an integer from a string.
-- `str_eq` (used in 24-head-file) — compares two strings.
+- `atoi` (used in 20-factorial, 21-gcd, 11-head,
+  25-fibonacci, 26-hanoi) — parses an integer from a string.
+- `str_eq` (used in 11-head) — compares two strings.
 - `print_uint` (used in 18-cksum, 20-factorial) — prints an
   unsigned 32-bit integer.
 
 Each of those is a subroutine **that does something the
 student would recognise as useful**.  mxPlusB is not.
 
-The 07 demos are preserved as `/examples/src/32-subrountines/`
+The 07 demos are preserved as `/examples/src/42-subrountines/`
 for the curious reader; an appendix page could explain "this
 is how subroutine linkage used to be spelled out before the
 jal/jr $ra convention," and a student who wants the deep dive
 can find it there.
 
-### `33-testStringsForEquality-1.asm`
+### `43-testStringsForEquality-1.asm`
 
 `int str_eq(const char *s1, const char *s2)` with `str1`,
 `str2`, `str3` hardcoded.  Same audience problem: the
 algorithm is non-trivial but the *content* is "compare these
 three meaningless strings I made up."
 
-**Why dropped:** string comparison is taught in 24-head-file's
+**Why dropped:** string comparison is taught in 11-head's
 `str_eq` subroutine, where the comparison serves a recognisable
 purpose (parsing the `-n` flag of a head-like utility).
 
-### `31-commaAndPeriodCounter.asm`
+### `41-commaAndPeriodCounter.asm`
 
 Counts commas and periods on stdin.  Functional task but
 "counting commas" isn't recognisable as anything.
@@ -115,7 +115,7 @@ utility every student has seen.
 These stay in the main path but as short asides rather than
 chapter centerpieces:
 
-- **30-print-out-ascii.asm** — walks -128 to 127 printing each.
+- **40-print-out-ascii.asm** — walks -128 to 127 printing each.
   Useful for sign-extension intuition (`lb` and signed
   comparison) but the demo itself isn't compelling.  Best as
   a one-page sidebar within Part 2 or Part 3.
@@ -194,12 +194,12 @@ inputs.  Introduces the crt0.h shim, `parse_int`, and the
 22. `22-binary-search` — `.word` array, two search variants
     (linear + binary), `print_idx_or_nf` helper.  Target from
     argv.
-23. `23-cat-file` — argv + open.  Replaces 17-nologin's
+23. `16-cat` — argv + open.  Replaces 17-nologin's
     hardcoded path with `argv[1]`.
-24. `24-head-file` — three flows in one demo: `str_eq` for the
+24. `11-head` — three flows in one demo: `str_eq` for the
     `-n` flag, `atoi` for `N`, `open` for the filename.
     Richest argv demo.
-25. `25-tee` — variable argc, fd array in `.data`, fan-out
+25. `23-tee` — variable argc, fd array in `.data`, fan-out
     write.  No `jal` at all but the most state-heavy demo
     (every local lives in `$s*` because every syscall is a
     clobber boundary).
@@ -211,15 +211,15 @@ saves; this part introduces the per-call stack frame for
 state that can't live in `$s*` (because each recursive
 invocation would overwrite the same register).
 
-26. `26-get-char-from-user-1` — intentional misaligned frame.
+26. `24-get-char-from-user-1` — intentional misaligned frame.
     The bug.
-27. `26-get-char-from-user-2` — the fix.  Demonstrates word-
+27. `24-get-char-from-user-2` — the fix.  Demonstrates word-
     aligned frame layout.
-28. `27-fibonacci` — first per-call stack frame.  Iter vs rec
+28. `25-fibonacci` — first per-call stack frame.  Iter vs rec
     in one demo, so the contrast is one diff away.
-29. `28-hanoi` — per-call frame with FOUR saved args.
+29. `26-hanoi` — per-call frame with FOUR saved args.
     Recursion with non-trivial output as a side effect.
-30. `29-queens` — backtracking.  Per-call frame holds the
+30. `27-queens` — backtracking.  Per-call frame holds the
     `col` loop counter, which has to be stack-resident
     because each recursive call has its own.
 

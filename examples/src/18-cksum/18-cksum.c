@@ -19,30 +19,25 @@
 // SOFTWARE.
 
 /* PURPOSE: A simplified port of `sbase/cksum` — compute the
- *          POSIX CRC32 checksum of standard input and print
+ *          POSIX CRC32 checksum of the input and print
  *
- *              <crc> <byte_count>
+ *              <crc> <byte_count>            (stdin)
+ *              <crc> <byte_count> <filename> (file mode)
  *
- *          The CRC algorithm is the same one POSIX cksum uses
- *          (polynomial 0x04c11db7, with the byte count folded
- *          into the final crc before complementing).  Verifiable
- *          against system `cksum`: `echo hello | cksum`.
+ *          matching real `cksum`'s output format.  Real-Unix-
+ *          style argv handling:
  *
- *          New concepts this demo brings in:
+ *              cksum            -> reads stdin, no filename column
+ *              cksum -          -> reads stdin, no filename column
+ *              cksum FILE       -> reads FILE, prints FILE as a column
  *
- *          - **A 256-entry lookup table in .data.**  Indexed by
- *            one byte of (ck>>24)^input.  Demonstrates how a
- *            mid-sized constant table lives in the same
- *            data-section idiom as a string literal.
- *          - **Bit shifts and XOR.**  CRC32 polynomial division
- *            looks like `ck = (ck << 8) ^ tab[(ck>>24) ^ byte]`.
- *            No previous demo has touched bitwise ops at all.
- *          - **Unsigned 32-bit output.**  CRC values routinely
- *            exceed INT_MAX, so we use the new `print_uint`
- *            helper instead of `print_int`.
+ *          Verifiable against system `cksum`:
+ *              echo hello | cksum
+ *              cksum /etc/motd
  */
 
 #include "io.h"
+#include "crt0.h"
 
 #define BUFSIZE 4096
 
@@ -81,14 +76,30 @@ static const unsigned int crctab[256] = {
     0xafb010b1, 0xab710d06, 0xa6322bdf, 0xa2f33668, 0xbcb4666d, 0xb8757bda, 0xb5365d03, 0xb1f740b4,
 };
 
-__attribute__((noreturn)) void _start(void) {
+int my_main(int argc, char **argv) {
+  int fd = STDIN;
+  const char *filename = 0;
+
+  if (argc > 2) {
+    print_string("usage: cksum [FILE|-]\n");
+    return 1;
+  }
+  if (argc == 2 && !(argv[1][0] == '-' && argv[1][1] == 0)) {
+    filename = argv[1];
+    fd = (int)os_open(filename, OS_O_RDONLY, 0);
+    if (fd < 0) {
+      print_string("cksum: cannot open ");
+      print_string(filename);
+      print_char('\n');
+      return 1;
+    }
+  }
+
   static unsigned char buf[BUFSIZE];
   unsigned int ck = 0;
   unsigned int len = 0;
-
-  /* Read loop — accumulate CRC over every byte. */
   long n;
-  while ((n = os_read(STDIN, buf, sizeof(buf))) > 0) {
+  while ((n = os_read(fd, buf, sizeof(buf))) > 0) {
     for (long i = 0; i < n; i++)
       ck = (ck << 8) ^ crctab[(ck >> 24) ^ buf[i]];
     len = len + (unsigned int)n;
@@ -100,14 +111,19 @@ __attribute__((noreturn)) void _start(void) {
     ck = (ck << 8) ^ crctab[(ck >> 24) ^ (i & 0xff)];
     i = i >> 8;
   }
-
   ck = ~ck;
 
-  /* Print "<crc> <byte_count>\n". */
+  /* "<crc> <byte_count>" always; "<crc> <byte_count> <filename>"
+   * if reading from a named file (real cksum's convention). */
   print_uint(ck);
   print_char(' ');
   print_uint(len);
+  if (filename) {
+    print_char(' ');
+    print_string(filename);
+  }
   print_char('\n');
 
-  os_exit(0);
+  if (fd != STDIN) os_close(fd);
+  return 0;
 }

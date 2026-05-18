@@ -18,71 +18,66 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-/* PURPOSE: Sieve of Eratosthenes — find all primes up to 100
+/* PURPOSE: Sieve of Eratosthenes — find all primes up to N
  *          and print them on a single line.
  *
- *              2 3 5 7 11 13 17 19 23 29 31 37 41 43 47 53 59
- *              61 67 71 73 79 83 89 97
- *
- *          (25 primes; output here line-wrapped for the
- *          comment, but actually one space-separated line.)
- *
- *          Eighth demo from PLAN-cs-demos.md.  The "240 BC
- *          algorithm" is still the best teaching demo for the
- *          idea of `.data` as **working memory** rather than as
- *          constants:
- *
- *             - We allocate a 101-byte flag array (sieve[0..100]).
- *             - For each i from 2 upward, if sieve[i] is still
- *               zero (i.e. i is prime), mark every multiple of
- *               i starting from i*i as composite.
- *             - Walk the array one more time and print every
- *               cell whose flag is still zero.
- *
- *          The outer loop stops at i*i > 100 because any
- *          composite below 101 must have a prime factor at most
- *          √100 = 10; once we've sieved with all primes up to
- *          10, no remaining unmarked cell can be composite.
- *
- *          The inner marking loop starts at i*i (not 2*i)
- *          because any smaller multiple of i was already
- *          marked by a smaller prime.
- *
- *          New on the asm side: **byte-granularity array access
- *          via `lb`/`sb`** (vs `lw`/`sw` for the 32-bit demos).
- *          The stride drops from 4 to 1 — for `i`'th element,
- *          the address is just `base + i`, no `sll by 2` needed.
- *
  *          Invocation:
- *              spimulator -f 09-sieve.asm
- *              ./09-sieve-1                            # on Linux
+ *              sieve            -> up to 100 (default)
+ *              sieve N          -> up to N
+ *
+ *          Demonstrates **dynamic memory allocation via brk**:
+ *          we need a flag byte for each integer in 0..N, and N
+ *          is determined at runtime.  Static allocation would
+ *          either waste space (oversize the array) or cap N
+ *          unnecessarily.
+ *
+ *          On Linux, `brk()` (or `sbrk`) grows the program's
+ *          data segment.  The new pages are zero-filled by the
+ *          kernel, which is exactly what the sieve needs
+ *          ("no number is yet marked composite").
+ *
+ *          On the asm side: syscall 9 (sbrk).  Adds the
+ *          requested byte count to the data segment top and
+ *          returns the PREVIOUS top in $v0 — that's the base
+ *          address of the newly-allocated region.
  */
 
 #include "io.h"
+#include "crt0.h"
 
-#define LIMIT 100
+#define DEFAULT_LIMIT 100
 
-/* 101 bytes; static globals are zero-initialised in C, so
- * the initial state is "no number is yet marked composite."
- * The asm port uses `.space 101` for the same effect (BSS). */
-static unsigned char sieve[LIMIT + 1];
+int my_main(int argc, char **argv) {
+  int limit = DEFAULT_LIMIT;
+  if (argc == 2) {
+    limit = parse_int(argv[1]);
+    if (limit < 2) {
+      print_string("usage: sieve [N]   (N >= 2)\n");
+      return 1;
+    }
+  } else if (argc > 2) {
+    print_string("usage: sieve [N]\n");
+    return 1;
+  }
 
-__attribute__((noreturn)) void _start(void) {
-  /* Mark composites. */
-  for (int i = 2; i * i <= LIMIT; i++) {
+  /* Allocate LIMIT+1 bytes via brk.  The kernel zero-fills new
+   * pages, so the flags start at "no number is yet composite". */
+  unsigned char *sieve = (unsigned char *)os_brk(0);
+  os_brk(sieve + limit + 1);
+
+  for (int i = 2; i * i <= limit; i++) {
     if (!sieve[i]) {
-      for (int j = i * i; j <= LIMIT; j += i) {
+      for (int j = i * i; j <= limit; j += i) {
         sieve[j] = 1;
       }
     }
   }
-  /* Print survivors. */
-  for (int i = 2; i <= LIMIT; i++) {
+  for (int i = 2; i <= limit; i++) {
     if (!sieve[i]) {
       print_int(i);
       print_char(' ');
     }
   }
   print_char('\n');
-  os_exit(0);
+  return 0;
 }

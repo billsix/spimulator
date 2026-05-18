@@ -18,65 +18,53 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-/* PURPOSE: Print the first 10 rows of Pascal's triangle.
- *
- *              1
- *              1 1
- *              1 2 1
- *              1 3 3 1
- *              1 4 6 4 1
- *              1 5 10 10 5 1
- *              1 6 15 20 15 6 1
- *              1 7 21 35 35 21 7 1
- *              1 8 28 56 70 56 28 8 1
- *              1 9 36 84 126 126 84 36 9 1
- *
- *          Seventh demo from PLAN-cs-demos.md.  No subroutines,
- *          no recursion, no argv — just three nested loops over
- *          a single 11-cell working array in .data.
- *
- *          The key trick is **in-place row update walking
- *          right-to-left**.  Each row[j] of the next row equals
- *          (current row[j] + current row[j-1]).  If you update
- *          left-to-right, you overwrite row[j-1] BEFORE the next
- *          iteration reads it.  Walking right-to-left, the
- *          values you're about to write don't depend on values
- *          you've already written, so the same array doubles as
- *          input and output for each generation.
- *
- *          The asm port leans into this: `.word` array, address
- *          arithmetic with `&row[j-1]` reached via `-4($t1)`
- *          after you've computed `&row[j]` — same offset trick
- *          as 07-bubble-sort's `4($t4)`, but going the other
- *          direction.
+/* PURPOSE: Print the first N rows of Pascal's triangle.
+ *          Default N=10.
  *
  *          Invocation:
- *              spimulator -f 08-pascals-triangle.asm
- *              ./08-pascals-triangle-1                  # on Linux
+ *              pascals-triangle            -> 10 rows
+ *              pascals-triangle N          -> N rows (capped at 34)
+ *
+ *          The key trick is **in-place row update walking
+ *          right-to-left**: each row[j] of the next row equals
+ *          (current row[j] + current row[j-1]).  Walking right-
+ *          to-left, the values you write don't depend on values
+ *          you've already written.
+ *
+ *          Overflow: row 34 is the last that fits in int32_t
+ *          (the middle entry of row 35 already overflows).  We
+ *          cap N at 34.
  */
 
 #include "io.h"
+#include "crt0.h"
 
-#define ROWS 10
+#define MAX_ROWS 34
+#define DEFAULT_ROWS 10
 
-/* 11 cells: one more than ROWS so the last row's rightmost
- * value has somewhere to land.  Initial state is [1, 0, 0, ...,
- * 0] — every row starts with a leading 1.  The right-to-left
- * update propagates that 1 outward each iteration. */
-static int row[ROWS + 1] = {1};
+/* MAX_ROWS+1 cells so the last row's rightmost value lands. */
+static int row[MAX_ROWS + 1] = {1};
 
-__attribute__((noreturn)) void _start(void) {
-  for (int n = 0; n < ROWS; n++) {
-    /* In-place right-to-left update.  Skipped on the n=0 iter
-     * since the loop condition j > 0 fails immediately. */
+int my_main(int argc, char **argv) {
+  int rows = DEFAULT_ROWS;
+  if (argc == 2) {
+    rows = parse_int(argv[1]);
+    if (rows < 1 || rows > MAX_ROWS) {
+      print_string("usage: pascals-triangle [N]   (1 <= N <= 34)\n");
+      return 1;
+    }
+  } else if (argc > 2) {
+    print_string("usage: pascals-triangle [N]\n");
+    return 1;
+  }
+
+  for (int n = 0; n < rows; n++) {
     for (int j = n; j > 0; j--) row[j] += row[j - 1];
-
-    /* Print this row: row[0..n], space-separated, newline at end. */
     for (int j = 0; j <= n; j++) {
       print_int(row[j]);
       print_char(' ');
     }
     print_char('\n');
   }
-  os_exit(0);
+  return 0;
 }

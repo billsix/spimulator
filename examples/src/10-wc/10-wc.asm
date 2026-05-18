@@ -21,95 +21,165 @@
 
 # C source — see 10-wc.c
 #
-#     __attribute__((noreturn)) void _start(void) {
+#     int my_main(int argc, char **argv) {
+#       int fd = STDIN;
+#       if (argc > 2) usage;
+#       if (argc == 2 && argv[1] != "-") fd = open(argv[1]);
 #       int byte_count = 0, line_count = 0;
-#       int ch = read_char();
-#       while (ch != -1) {
+#       char c;
+#       while (read(fd, &c, 1) > 0) {
 #         byte_count++;
-#         if (ch == '\n') line_count++;
-#         ch = read_char();
+#         if (c == '\n') line_count++;
 #       }
-#       print_int(byte_count);  print_string(" bytes, ");
-#       print_int(line_count);  print_string(" lines\n");
-#       os_exit(0);
+#       print_int(byte_count); print_string(" bytes, ");
+#       print_int(line_count); print_string(" lines\n");
+#       if (fd != STDIN) close(fd);
+#       return 0;
 #     }
+#
+# Invocations:
+#   spimulator -f 10-wc.asm             # reads stdin
+#   spimulator -f 10-wc.asm -           # reads stdin (explicit "-")
+#   spimulator -f 10-wc.asm /etc/motd   # reads the file
 
 
-#PURPOSE:  Count bytes and lines on stdin, print a summary.
-#          Same shape as 31-commaAndPeriodCounter, generalised to a
-#          real Unix utility.
+#PURPOSE:  wc -cl with real-Unix argv handling.  No file arg (or
+#          explicit "-") -> stdin.  Filename arg -> open and read.
 #
-#NOTES:    `read_char` (syscall 12) returns -1 at EOF, matching
-#          `getchar()` in C.  We branch on `bltz $t2, done`.  No
-#          sentinel character is needed.
-#
+#NOTES:    Switched from syscall 12 (read_char, stdin-fixed) to
+#          syscall 14 (read fd into buffer) so the same loop body
+#          works for both stdin and a file fd.  Loop reads 1 byte
+#          at a time; a real wc would block-buffer for speed, but
+#          the byte loop matches the demo's pedagogical shape.
+
+
 #SYMBOL TABLE  (C variable -> MIPS location)
 #
 #   In main:
-#     byte_count    $t0                  (running tally)
-#     line_count    $t1                  (running tally, bumped on '\n')
-#     ch            $t2                  (most recently read byte)
+#     fd            $s1                  (0 = STDIN, else open's return)
+#     argv[1]       $s4                  (saved address for error message)
+#     byte_count    $s2                  (running tally)
+#     line_count    $s3                  (running tally)
+#     c (one byte)  `oneByte` (.data)    (1-byte read landing pad)
 #
-#   Same shape as 31-commaAndPeriodCounter — three $t-regs reused
-#   across every syscall, relying on spim's preserve-$t behavior
-#   rather than the formal MIPS caller-save convention.
+#   Cross-call saves (callee-save $s* values held LIVE across syscalls):
+#     $s0   <- runtime's $ra
+#     $s1   <- fd (held across every syscall in the loop)
+#     $s2   <- byte_count
+#     $s3   <- line_count
+#     $s4   <- argv[1] address (only meaningful in the file path)
 #
-#   No subroutine calls, hence no Cross-call saves section.
-#
-#   Volatile (no preserved meaning across a syscall, by convention):
-#     $a0   syscall arg
-#     $v0   syscall selector / read_char return
-#           (12 = read_char, 4 = print_string, 1 = print_int)
+#   Volatile:
+#     $a0..$a2  syscall args
+#     $v0       syscall selector / return value
 
         .data
-bytesText:    .asciiz     " bytes, "
-linesText:    .asciiz     " lines\n"
+usageMsg:   .asciiz "usage: wc [FILE|-]\n"
+errMsg:     .asciiz "wc: cannot open "
+nlMsg:      .asciiz "\n"
+bytesText:  .asciiz " bytes, "
+linesText:  .asciiz " lines\n"
+oneByte:    .space 1
 
         .text
         .globl main
 main:
-        li $t0, 0                    # byte_count = 0
-        li $t1, 0                    # line_count = 0
+        move $s0, $ra
+        li $s1, 0                    # fd = STDIN (default)
+        move $s4, $0                 # no argv[1] yet
 
-        # ch = read_char();
-        li $v0, 12
+        # argc dispatch
+        li $t0, 1
+        beq $a0, $t0, read_setup     # argc == 1 -> stdin
+        li $t0, 2
+        bgt $a0, $t0, usage          # argc > 2 -> usage
+
+        # argc == 2: inspect argv[1]
+        lw $s4, 4($a1)               # save argv[1] address
+        lb $t0, 0($s4)
+        bne $t0, '-', do_open        # doesn't start with '-' -> filename
+        lb $t0, 1($s4)
+        beq $t0, $0, read_setup      # argv[1] is exactly "-" -> stdin
+
+do_open:
+        # fd = open(argv[1], O_RDONLY, 0)
+        move $a0, $s4
+        li $v0, 13                   # 13 = open
+        li $a1, 0                    # O_RDONLY
+        li $a2, 0                    # mode (ignored)
         syscall
-        move $t2, $v0
+        bltz $v0, open_failed
+        move $s1, $v0                # save fd
 
-loop:
-        bltz $t2, done               # read_char returned -1 -> EOF
+read_setup:
+        li $s2, 0                    # byte_count = 0
+        li $s3, 0                    # line_count = 0
 
-        addi $t0, $t0, 1             # byte_count++
-        bne $t2, '\n', not_newline
-        addi $t1, $t1, 1             # line_count++
-not_newline:
-
-        # ch = read_char();
-        li $v0, 12
+read_loop:
+        # n = read(fd, &oneByte, 1)
+        li $v0, 14                   # 14 = read
+        move $a0, $s1                # fd
+        la $a1, oneByte
+        li $a2, 1
         syscall
-        move $t2, $v0
-        j loop
+        blez $v0, read_done          # 0 = EOF, <0 = error
 
-done:
-        # print_int(byte_count);
-        move $a0, $t0
+        addi $s2, $s2, 1             # byte_count++
+        lb $t0, oneByte
+        bne $t0, '\n', read_loop
+        addi $s3, $s3, 1             # line_count++
+        j read_loop
+
+read_done:
+        # close fd if it's not STDIN
+        beqz $s1, print_results
+        li $v0, 16                   # 16 = close
+        move $a0, $s1
+        syscall
+
+print_results:
+        # print_int(byte_count)
+        move $a0, $s2
         li $v0, 1
         syscall
 
-        # print_string(" bytes, ");
+        # print_string(" bytes, ")
         li $v0, 4
         la $a0, bytesText
         syscall
 
-        # print_int(line_count);
-        move $a0, $t1
+        # print_int(line_count)
+        move $a0, $s3
         li $v0, 1
         syscall
 
-        # print_string(" lines\n");
+        # print_string(" lines\n")
         li $v0, 4
         la $a0, linesText
         syscall
 
-        li $v0, 0
+        move $ra, $s0
         jr $ra
+
+open_failed:
+        # print "wc: cannot open <argv[1]>\n"
+        li $v0, 4
+        la $a0, errMsg
+        syscall
+        move $a0, $s4
+        li $v0, 4
+        syscall
+        li $v0, 4
+        la $a0, nlMsg
+        syscall
+        li $a0, 1
+        li $v0, 17                   # exit2(1)
+        syscall
+
+usage:
+        li $v0, 4
+        la $a0, usageMsg
+        syscall
+        li $a0, 1
+        li $v0, 17                   # exit2(1)
+        syscall

@@ -2,8 +2,8 @@
 
 ## Goal
 
-The six argv-using C demos (19-echo, 20-factorial, 23-cat-file,
-21-gcd, 24-head-file, 25-tee) each carry an inline `_start` shim
+The six argv-using C demos (19-echo, 20-factorial, 16-cat,
+21-gcd, 11-head, 23-tee) each carry an inline `_start` shim
 that pulls `argc` / `argv` off the kernel-supplied stack and
 calls `my_main(int, char **)`.  Today every one of those is
 **x86_64-only** — the `#else` branch is a hard `#error`.
@@ -294,10 +294,10 @@ The six demos that today carry the inline x86_64-only shim:
 |------|--------|
 | 19-echo       | `19-echo/19-echo.c` |
 | 20-factorial  | `20-factorial/20-factorial.c` |
-| 23-cat-file   | `23-cat-file/23-cat-file.c` |
+| 16-cat   | `16-cat/16-cat.c` |
 | 21-gcd        | `21-gcd/21-gcd.c` |
-| 24-head-file  | `24-head-file/24-head-file.c` |
-| 25-tee        | `25-tee/25-tee.c` |
+| 11-head  | `11-head/11-head.c` |
+| 23-tee        | `23-tee/23-tee.c` |
 
 Plus going forward, every new argv demo (PLAN-cs-demos.md
 entries like `fizzbuzz N`, future `head -n N <file>` variants,
@@ -388,8 +388,8 @@ increase (~150 MB).
 4. Cross-compile 19-echo for arm32 + aarch64; run under qemu-user
    with the same args; verify output.
 5. Roll the `#include "crt0.h"` substitution across the remaining
-   five demos (20-factorial, 23-cat-file, 21-gcd, 24-head-file,
-   25-tee).
+   five demos (20-factorial, 16-cat, 21-gcd, 11-head,
+   23-tee).
 6. Smoke-test each on x86_64 + qemu-arm + qemu-aarch64.
 7. (Optional) add a meson test target that runs steps 4 and 6 on
    every demo.

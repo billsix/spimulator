@@ -32,4 +32,11 @@ void print_char(char c);
 /* Returns 0..255 for a byte read on STDIN, or -1 on EOF/error. */
 int read_char(void);
 
+/* Read a decimal integer from STDIN.  Skips leading whitespace,
+ * accepts optional leading sign.  On success, writes the parsed
+ * value into *out and returns 0.  Returns -1 on EOF before any
+ * digit is seen.  Matches the spim asm-side `read_int` (syscall
+ * 5) which sets $a3 on EOF — same API shape. */
+int read_int_from_stdin(int *out);
+
 #endif /* IO_H */

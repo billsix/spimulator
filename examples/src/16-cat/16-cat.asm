@@ -21,64 +21,110 @@
 
 # C source — see 16-cat.c
 #
-#     __attribute__((noreturn)) void _start(void) {
-#       static char buf[4096];
+#     int my_main(int argc, char **argv) {
+#       int fd = STDIN;
+#       if (argc > 2) usage;
+#       if (argc == 2 && argv[1] != "-") fd = open(argv[1]);
+#       char buf[4096];
 #       long n;
-#       while ((n = os_read(STDIN, buf, sizeof(buf))) > 0)
-#         os_write(STDOUT, buf, n);
-#       os_exit(n < 0 ? 1 : 0);
+#       while ((n = read(fd, buf, 4096)) > 0) write(STDOUT, buf, n);
+#       if (fd != STDIN) close(fd);
+#       return n < 0 ? 1 : 0;
 #     }
 
 
-#PURPOSE:  Copy stdin → stdout in 4 KiB chunks.  First demo with
-#          block I/O via the read (14) and write (15) syscalls.
-#          Unlike read_char (12), these take a buffer + length and
-#          return the actual bytes transferred — and they signal
-#          EOF as a return value of 0, so no sentinel character is
-#          needed.
+#PURPOSE:  cat with real-Unix argv handling.  Block-at-a-time
+#          I/O via syscalls 14/15.  Subsumes the old "cat-file"
+#          variant.
+
+
+#SYMBOL TABLE  (C variable -> MIPS location)
 #
-#VARIABLES:
-#   $t0   bytes-read count, saved between read and write
-#   $a0   syscall arg 1: fd
-#   $a1   syscall arg 2: buffer address
-#   $a2   syscall arg 3: length
-#   $v0   syscall selector / return value
-#           (14 = read, 15 = write; both take fd in $a0,
-#            buffer in $a1, length in $a2; return bytes-actually-
-#            transferred in $v0)
+#   In main:
+#     fd            $s1                  (STDIN=0 or opened fd)
+#     argv[1]       $s4                  (for error message)
+#     n             $s2                  (bytes-read from each chunk)
+#     buf           `buf` (.data)        (4 KiB scratch)
 
         .data
-buf:    .space 4096                  # 4 KiB scratch buffer
+usageMsg:   .asciiz "usage: cat [FILE|-]\n"
+errMsg:     .asciiz "cat: cannot open "
+nlMsg:      .asciiz "\n"
+buf:        .space 4096
 
         .text
         .globl main
 main:
-loop:
-        # n = read(STDIN, buf, 4096);
-        li $v0, 14                   # syscall 14 = read
-        li $a0, 0                    # fd = 0 (stdin)
-        la $a1, buf                  # arg = address of buf
-        li $a2, 4096                 # arg = max bytes
-        syscall                      # $v0 = bytes actually read
+        move $s0, $ra
+        li $s1, 0                    # fd = STDIN
+        move $s4, $0
 
-        blez $v0, end                # n <= 0 -> exit loop
-        move $t0, $v0                # stash n before $v0 gets reused
+        li $t0, 1
+        beq $a0, $t0, read_loop
+        li $t0, 2
+        bgt $a0, $t0, usage
 
-        # write(STDOUT, buf, n);
-        li $v0, 15                   # syscall 15 = write
-        li $a0, 1                    # fd = 1 (stdout)
-        la $a1, buf                  # arg = address of buf (same)
-        move $a2, $t0                # arg = bytes-actually-read
+        lw $s4, 4($a1)
+        lb $t0, 0($s4)
+        bne $t0, '-', do_open
+        lb $t0, 1($s4)
+        beq $t0, $0, read_loop
+
+do_open:
+        move $a0, $s4
+        li $v0, 13
+        li $a1, 0
+        li $a2, 0
+        syscall
+        bltz $v0, open_failed
+        move $s1, $v0
+
+read_loop:
+        # n = read(fd, buf, 4096)
+        li $v0, 14
+        move $a0, $s1
+        la $a1, buf
+        li $a2, 4096
+        syscall
+        blez $v0, close_and_exit
+        move $s2, $v0
+
+        # write(STDOUT, buf, n)
+        li $v0, 15
+        li $a0, 1
+        la $a1, buf
+        move $a2, $s2
         syscall
 
-        j loop                       # next chunk
+        j read_loop
 
-end:
-        # $v0 is the failing-read return: 0 = EOF (clean), <0 = error.
-        bltz $v0, error              # error -> exit 1
-        li $v0, 0                    # EOF -> exit 0
+close_and_exit:
+        beqz $s1, exit_ok
+        li $v0, 16
+        move $a0, $s1
+        syscall
+exit_ok:
+        move $ra, $s0
         jr $ra
 
-error:
-        li $v0, 1
-        jr $ra
+open_failed:
+        li $v0, 4
+        la $a0, errMsg
+        syscall
+        move $a0, $s4
+        li $v0, 4
+        syscall
+        li $v0, 4
+        la $a0, nlMsg
+        syscall
+        li $a0, 1
+        li $v0, 17
+        syscall
+
+usage:
+        li $v0, 4
+        la $a0, usageMsg
+        syscall
+        li $a0, 1
+        li $v0, 17
+        syscall
