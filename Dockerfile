@@ -66,7 +66,9 @@ RUN  cd /spimulator/tests ; \
      spimulator -f tt.core.s < tt.in >& test.out; tail -n 1 test.out | grep -q "^Passed all tests$" || exit 1; \
      spimulator -f tt.le.s >& test.out ; tail -n 1 test.out | grep -q "^Passed all tests$" || exit 1; \
      spimulator -f tt.argv.s alpha beta gamma >& test.out ; tail -n 1 test.out | grep -q "^Passed all tests$" || exit 1; \
-     printf 'read "tt.args-cmd.s"\nargs zebra\nrun\nargs amber\nrun\nquit\n' | spimulator >& test.out ; grep -q "argv1=z" test.out && grep -q "argv1=a" test.out || exit 1;
+     printf 'read "tt.args-cmd.s"\nargs zebra\nrun\nargs amber\nrun\nquit\n' | spimulator >& test.out ; grep -q "argv1=z" test.out && grep -q "argv1=a" test.out || exit 1; \
+     echo -n "abc" | spimulator -f tt.read_char_eof.s >& test.out ; tail -n 1 test.out | grep -q "^Passed all tests$" || exit 1; \
+     printf '5\n7\n' | spimulator -f tt.read_int_eof.s >& test.out ; tail -n 1 test.out | grep -q "^Passed all tests$" || exit 1;
 
 
 COPY .clang-format /spimulator/

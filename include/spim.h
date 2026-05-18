@@ -221,7 +221,7 @@ void error(char* fmt, ...);
 _Noreturn void fatal_error(char* fmt, ...);
 char get_console_char(void);
 void put_console_char(char c);
-void read_input(char* str, int n);
+int read_input(char* str, int n);   /* Returns bytes read (0 on EOF). */
 void run_error(char* fmt, ...);
 void write_output(port, char* fmt, ...);
 

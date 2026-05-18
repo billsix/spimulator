@@ -132,8 +132,9 @@ int do_syscall(void) {
     case READ_INT_SYSCALL: {
       static char str[256];
 
-      read_input(str, 256);
+      int n = read_input(str, 256);
       R[REG_RES] = atol(str);
+      R[REG_A3] = (n == 0) ? 1 : 0; /* EOF flag: 0 = success, 1 = EOF */
       break;
     }
 
@@ -154,7 +155,8 @@ int do_syscall(void) {
     }
 
     case READ_STRING_SYSCALL: {
-      read_input((char*)mem_reference(R[REG_A0]), R[REG_A1]);
+      int n = read_input((char*)mem_reference(R[REG_A0]), R[REG_A1]);
+      R[REG_A3] = (n == 0) ? 1 : 0; /* EOF flag */
       data_modified = true;
       break;
     }
@@ -174,9 +176,14 @@ int do_syscall(void) {
     case READ_CHARACTER_SYSCALL: {
       static char str[2];
 
-      read_input(str, 2);
-      if (*str == '\0') *str = '\n'; /* makes xspim = spim */
-      R[REG_RES] = (long)str[0];
+      int n = read_input(str, 2);
+      if (n == 0) {
+        R[REG_RES] = -1; /* EOF -- matches getchar()'s convention */
+      } else {
+        /* Treat the byte as unsigned (0..255) so bytes >= 0x80 don't
+           alias with the -1 EOF sentinel via sign extension. */
+        R[REG_RES] = (long)(unsigned char)str[0];
+      }
       break;
     }
 

@@ -1385,11 +1385,18 @@ void write_output(port fp, char* fmt, ...) {
   if (restore_console_to_program) console_to_program();
 }
 
-/* Simulate the semantics of fgets (not gets) on Unix file. */
+/* Simulate the semantics of fgets (not gets) on Unix file.
+ *
+ * Returns the number of bytes consumed from the host input (NOT
+ * including the NUL terminator written into `str`).  A return of
+ * 0 means the host's read(2) signaled EOF before any byte was
+ * read — callers use this to set $a3 / return -1 to user code.
+ */
 
-void read_input(char* str, int str_size) {
+int read_input(char* str, int str_size) {
   char* ptr;
   int restore_console_to_program = 0;
+  int count = 0;
 
   if (console_state_saved) {
     restore_console_to_program = 1;
@@ -1406,6 +1413,7 @@ void read_input(char* str, int str_size) {
 
     *ptr++ = buf[0];
     str_size -= 1;
+    count += 1;
 
     if (buf[0] == '\n') break;
   }
@@ -1413,6 +1421,7 @@ void read_input(char* str, int str_size) {
   if (0 < str_size) *ptr = '\0'; /* Null terminate input */
 
   if (restore_console_to_program) console_to_program();
+  return count;
 }
 
 /* Give the console to the program for IO. */
