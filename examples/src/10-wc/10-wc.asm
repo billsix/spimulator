@@ -39,9 +39,9 @@
 #          Same shape as 31-commaAndPeriodCounter, generalised to a
 #          real Unix utility.
 #
-#NOTES:    SPIM's `read_char` syscall does NOT signal EOF, so this
-#          .asm uses 'z' as the terminating sentinel.  In real Unix
-#          (and the C version) we use Ctrl-D / pipe-close.
+#NOTES:    `read_char` (syscall 12) returns -1 at EOF, matching
+#          `getchar()` in C.  We branch on `bltz $t2, done`.  No
+#          sentinel character is needed.
 #
 #SYMBOL TABLE  (C variable -> MIPS location)
 #
@@ -77,7 +77,7 @@ main:
         move $t2, $v0
 
 loop:
-        beq $t2, 'z', done           # sentinel exit (no EOF in spim read_char)
+        bltz $t2, done               # read_char returned -1 -> EOF
 
         addi $t0, $t0, 1             # byte_count++
         bne $t2, '\n', not_newline

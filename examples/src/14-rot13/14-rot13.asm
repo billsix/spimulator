@@ -39,10 +39,8 @@
 #          byte-stream shape as 13-tr; the new idea is the
 #          modulo-26 step that handles the wraparound.
 #
-#NOTES:    The sentinel is `~` (matching 13-tr / 15-expand) since
-#          spim's read_char doesn't signal EOF and we need a way
-#          to tell the program "stop reading."  `~` is not in
-#          either case range, so it never gets transformed.
+#NOTES:    `read_char` returns -1 at EOF.  The loop branches on
+#          `bltz $t0, done` — no sentinel character is needed.
 #
 #          ROT13 is self-inverse.  Piping the same text through
 #          the program twice gets the original back -- a free
@@ -85,7 +83,7 @@ loop:
         syscall
         move $t0, $v0
 
-        beq $t0, '~', done           # sentinel exit
+        bltz $t0, done               # -1 -> EOF
 
         # if (ch >= 'a' && ch <= 'z')
         blt $t0, 'a', try_upper

@@ -48,10 +48,8 @@
 #          number of output bytes for each input byte (one for
 #          ordinary chars, 1-8 for tabs, 1 for newline + reset).
 #
-#NOTES:    SPIM's read_char has no EOF; this .asm uses '~' as the
-#          terminating sentinel.  '~' is rarely a meaningful byte
-#          in human-readable text, and it isn't a tab or newline
-#          so it doesn't collide with the special cases.
+#NOTES:    `read_char` returns -1 at EOF.  The loop branches on
+#          `bltz $t1, done` — no sentinel character is needed.
 #
 #SYMBOL TABLE  (C variable -> MIPS location)
 #
@@ -83,7 +81,7 @@ loop:
         syscall
         move $t1, $v0
 
-        beq $t1, '~', done           # sentinel exit
+        bltz $t1, done               # -1 -> EOF
         beq $t1, '\t', is_tab
         beq $t1, '\n', is_newline
 

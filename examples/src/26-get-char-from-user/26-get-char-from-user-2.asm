@@ -24,7 +24,7 @@
 #
 #     __attribute__((noreturn)) void _start(void) {
 #       int ch = read_char();
-#       while (ch != 'a' && ch != -1) {
+#       while (ch != -1) {
 #         if (ch != '\n') {
 #           print_string("ch was ");
 #           print_char((char)ch);
@@ -38,17 +38,18 @@
 #     }
 
 
-#PURPOSE:  Read characters from standard input until 'a' is seen,
-#          and for each non-newline character print
+#PURPOSE:  Read characters from standard input until EOF and for
+#          each non-newline character print
 #             ch was <CHAR>, value <DEC>
 #
 #          This is the fixed counterpart to 26-get-char-from-user-
 #          1.asm, which fumbled the stack frame by giving the int32_t
 #          return slot an odd byte offset.  Here we pad the frame to
 #          8 bytes so the int lands at a word-aligned offset, and
-#          the program runs.  The terminator compares are also fixed
-#          (immediate character constants rather than string
-#          addresses).
+#          the program runs.  The newline-skip compare is also
+#          fixed: an immediate character constant (`'\n'`) rather
+#          than an address-of-string load (which is what -1.asm got
+#          wrong as Bug #2).
 #
 #NOTES:    Inside the loop body, the two syscall selectors for the
 #          "print the character" and "print the value" steps end up
@@ -121,9 +122,9 @@ main:
         sw $v0, 0($fp)               # store the fresh ch into the frame
 
 loopTest:
-        # while (ch != 'a' ...) {
+        # while (ch != -1) {           -- -1 is the EOF signal
         lw $t0, 0($fp)               # $t0 = ch
-        beq $t0, 'a', loopEnd        # sentinel hit -> exit
+        bltz $t0, loopEnd            # EOF (Ctrl-D / pipe close) -> exit
 
 loopBody:
         # if (ch != '\n') {

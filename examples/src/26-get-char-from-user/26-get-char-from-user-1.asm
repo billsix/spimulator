@@ -23,7 +23,7 @@
 #
 #     __attribute__((noreturn)) void _start(void) {
 #       int ch = read_char();
-#       while (ch != 'a' && ch != -1) {
+#       while (ch != -1) {
 #         if (ch != '\n') {
 #           print_string("ch was ");
 #           print_char((char)ch);
@@ -37,10 +37,11 @@
 #     }
 
 
-#PURPOSE:  Read characters from standard input and, for each one
-#          that is not 'a' and not a newline, print
+#PURPOSE:  Read characters from standard input until EOF and, for
+#          each one that is not a newline, print
 #             ch was <CHAR>, value <DEC>
-#          The loop stops when 'a' is read.
+#          The loop stops when read_char returns -1 (Ctrl-D in an
+#          interactive terminal; pipe close when stdin is piped).
 #
 #          This is also the FIRST demo in the series that puts
 #          data on the stack — demos 01 through 03 kept their
@@ -50,7 +51,7 @@
 #          seems like the natural place to keep them.
 #
 #          The frame size we picked below is intentionally WRONG.
-#          Walking through why -1 fails is the lesson; 04-get-char-
+#          Walking through why -1 fails is the lesson; 26-get-char-
 #          from-user-2.asm pads to 8 bytes so the int lands at a
 #          word-aligned offset, and works.
 #
@@ -59,11 +60,11 @@
 #          32-bit `sw`/`lw` to land on multiples-of-4 addresses, so
 #          SPIM raises an alignment fault here.
 #
-#          Bug #2 (independent of the alignment story): the compares
-#          against the sentinel characters load the *address* of the
-#          string "a" (and "\n"), not the character value 'a' (or
-#          '\n').  As a result the loop never recognises its
-#          terminators even if the alignment bug is masked.
+#          Bug #2 (independent of the alignment story): the '\n'
+#          compare loads the *address* of the string "\n" rather
+#          than the character value '\n'.  As a result the loop's
+#          newline-skip never fires; each newline gets formatted
+#          with the rest of the input.
 #
 #STORAGE LAYOUT  (intentionally broken — see NOTES above)
 #
@@ -99,12 +100,11 @@
 #     $a0   syscall arg
 #     $v0   syscall selector / read_char return (and the transient
 #           home of `ch` between read and use)
-#     $t0   scratch.  Also where `la $t0, a` deposits the .data
-#           ADDRESS that the broken sentinel compare uses in place
-#           of the character byte — Bug #2 in NOTES.
+#     $t0   scratch.  Also where `la $t0, nl` deposits the .data
+#           ADDRESS that the broken newline-skip compare uses in
+#           place of the character byte — Bug #2 in NOTES.
 
         .data
-a:    .asciiz     "a"
 nl:    .asciiz     "\n"
 commaSpaceValue:    .asciiz     ", value "
 chWas:    .asciiz     "ch was "
@@ -135,12 +135,12 @@ main:
         syscall                      # ask the OS for one character
 
 loopTest:
-        # while (ch != 'a' && ch != EOF) {
-        # BUG: this loads &"a" (an address in .data), not the byte 'a'.
-        la $t0, a                    # $t0 = ADDRESS of the string "a"
-        beq $v0, $t0, loopEnd        # branch if $v0 == $t0 (never fires)
+        # while (ch != -1) {           -- -1 is the EOF signal
+        bltz $v0, loopEnd            # branch if ch < 0  (== -1 = EOF)
 
-        # if (ch != '\n') { ... }     -- same bug here: address of "\n"
+        # if (ch != '\n') { ... }     -- BUG: this loads &"\n" (an
+        #                                address in .data), not the
+        #                                byte '\n'.  Bug #2 in NOTES.
         la $t0, nl                   # $t0 = ADDRESS of the string "\n"
         beq $v0, $t0, getNextChar    # branch over the print block
 

@@ -39,12 +39,13 @@
 
 
 #PURPOSE:  Reverse each line of stdin.  A 256-byte line buffer
-#          accumulates bytes until '\n' (or sentinel 'z'); then we
-#          walk the buffer backwards, write each byte, write '\n',
-#          and reset.
+#          accumulates bytes until '\n'; then we walk the buffer
+#          backwards, write each byte, write '\n', and reset.
 #
-#NOTES:    SPIM's read_char doesn't signal EOF; we use 'z'.  Lines
-#          longer than 256 bytes have the excess silently dropped.
+#NOTES:    `read_char` returns -1 at EOF.  If the input ends mid-
+#          line, we still flush whatever's in the buffer
+#          (`flush_tail`).  Lines longer than 256 bytes have the
+#          excess silently dropped.
 #
 #SYMBOL TABLE  (C variable -> MIPS location)
 #
@@ -83,7 +84,7 @@ read_loop:
         syscall
         move $t1, $v0
 
-        beq $t1, 'z', flush_tail     # sentinel — flush any partial line
+        bltz $t1, flush_tail         # -1 -> EOF; flush any partial line
 
         beq $t1, '\n', flush_line    # newline — reverse and emit
 
@@ -118,7 +119,7 @@ after_back:
         j read_loop
 
 flush_tail:
-        # Same backward walk for any leftover bytes when sentinel
+        # Same backward walk for any leftover bytes when EOF
         # arrives mid-line.  If len == 0, the loop falls through.
         addi $t3, $t0, -1
 tail_loop:

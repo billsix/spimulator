@@ -49,10 +49,11 @@
  *          encryption" — encoding and decoding are the same
  *          operation.)
  *
- *          Spim caveat: spim's read_char syscall doesn't signal
- *          EOF, so 14-rot13.asm terminates on '~' (matching the
- *          13-tr / 15-expand convention).  The C version here
- *          terminates on real EOF (read_char returns -1).
+ *          Both the C and asm versions terminate on real EOF —
+ *          `read_char` returns -1 in both directions
+ *          (`os_read returning 0` on the C side; spim's
+ *          syscall 12 returning -1 on the asm side).  No
+ *          sentinel character is needed.
  */
 
 #include "io.h"

@@ -39,11 +39,11 @@
 
 
 #PURPOSE:  Echo the first 10 lines of stdin to stdout, then stop.
-#          N is hardcoded — argv plumbing isn't available in spim.
+#          N is hardcoded — for an argv-driven head see 24-head-file.
 #
-#NOTES:    SPIM's `read_char` syscall doesn't signal EOF, so we
-#          also accept 'z' as a terminator.  In real Unix the EOF
-#          (n <= 0 from os_read) is the only stop signal.
+#NOTES:    `read_char` returns -1 at EOF.  The loop has two exit
+#          conditions: input ran out (`bltz $t1, done`) or we hit
+#          N=10 newlines.
 #
 #SYMBOL TABLE  (C variable -> MIPS location)
 #
@@ -70,7 +70,7 @@ loop:
         syscall
         move $t1, $v0
 
-        beq $t1, 'z', done           # sentinel exit
+        bltz $t1, done               # -1 -> EOF
 
         # print_char(ch);
         move $a0, $t1

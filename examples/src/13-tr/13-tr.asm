@@ -38,11 +38,8 @@
 #          read a byte, check whether it falls in a range, optionally
 #          mutate it, write it.
 #
-#NOTES:    SPIM's read_char syscall has no EOF, so this .asm uses
-#          '~' (ASCII 126) as the terminating sentinel.  'z' was
-#          used in earlier demos but would interfere here — 'z' is
-#          inside the a..z range we transform.  '~' sits just past
-#          'z' in the table and never gets touched by the upcase.
+#NOTES:    `read_char` returns -1 at EOF.  The loop branches on
+#          `bltz $t0, done` — no sentinel character is needed.
 #
 #VARIABLES:
 #   $t0   current char
@@ -59,7 +56,7 @@ loop:
         syscall
         move $t0, $v0
 
-        beq $t0, '~', done           # sentinel exit
+        bltz $t0, done               # -1 -> EOF
 
         # if (ch < 'a') goto write;          // skip lower bound
         blt $t0, 'a', write

@@ -40,8 +40,9 @@
 #          print a summary line of the form
 #             <N> commas, <M> stops
 #
-#NOTES:    SPIM's `read_char` syscall does NOT signal EOF, so this
-#          .asm uses 'z' as the terminating sentinel instead.
+#NOTES:    `read_char` returns -1 at EOF; the loop branches on
+#          `bltz $t2, loopEnd`.  (This demo's only purpose vs
+#          10-wc is the comma/period counts; same byte-loop shape.)
 #
 #SYMBOL TABLE  (C variable -> MIPS location)
 #
@@ -80,8 +81,8 @@ main:
         move $t2, $v0                # this_char = $v0
 
 loopBegin:
-        # while (this_char != 'z') { ...    -- 'z' stands in for EOF on SPIM
-        beq $t2, 'z', loopEnd
+        # while (this_char != -1) { ...    -- -1 is the EOF signal
+        bltz $t2, loopEnd
 
         # if (this_char == '.') period_count++;
         bne $t2, '.', notAPeriod

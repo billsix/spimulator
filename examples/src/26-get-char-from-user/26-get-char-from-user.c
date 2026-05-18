@@ -19,15 +19,15 @@
 // SOFTWARE.
 
 /* PURPOSE: Get a character from the user, print out the value.
- *          Terminate when the character 'a' is read in, or on
- *          end-of-file (Ctrl-D).
+ *          Terminate on EOF (Ctrl-D in an interactive terminal,
+ *          or pipe close when stdin is piped in).
  */
 
 #include "io.h"
 
 __attribute__((noreturn)) void _start(void) {
   int ch = read_char();
-  while (ch != 'a' && ch != -1) {
+  while (ch != -1) {
     if (ch != '\n') {
       print_string("ch was ");
       print_char((char)ch);

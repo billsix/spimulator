@@ -74,7 +74,8 @@ concept on territory you walk in confident about.
 ## Part 3 — Unix filters: stdin byte loops (6 demos)
 
 Recognisable command-line tools.  Simple stdin → stdout
-transforms; spim uses `~` as a stand-in for EOF.
+transforms.  Spim's `read_char` returns -1 at EOF, matching
+C's `getchar()`; each demo branches on `bltz`.
 
 10. **`10-wc`** — multi-counter byte loop.
 11. **`11-head`** — early termination.
