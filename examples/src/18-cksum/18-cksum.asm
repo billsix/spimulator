@@ -19,7 +19,7 @@
 # SOFTWARE.
 
 
-# C source — see 18-cksum-1.c
+# C source — see 18-cksum.c
 #
 #     __attribute__((noreturn)) void _start(void) {
 #       static unsigned char buf[4096];

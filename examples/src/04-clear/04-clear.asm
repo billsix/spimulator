@@ -19,36 +19,44 @@
 # SOFTWARE.
 
 
-# C source — see 01-helloworld.c
+# C source — see 04-clear.c
 #
 #     __attribute__((noreturn)) void _start(void) {
-#       print_string("hello world\n");
+#       print_string("\033[2J\033[H");
 #       os_exit(0);
 #     }
 #
-# In SPIM there is no separate _start — the simulator calls `main`
-# directly, so we use `main` as the entry point.  $v0 at return time
-# is taken as main's exit status, which stands in for os_exit's arg.
+# Same shape as 01-helloworld: write a fixed string, exit zero.
+# The interesting thing is what the bytes ARE — control codes the
+# terminal interprets rather than displayable characters.
+#
+#   \033   = 0x1b = ESC
+#   [2J    = "erase entire screen"
+#   \033[H = "move the cursor to row 1, column 1"
+#
+# Octal `\033` rather than hex `\x1b` because spim's `.asciiz`
+# recognises octal escapes and `\X` (uppercase), but NOT the
+# lowercase `\x` form most C code uses.
 
 
-#PURPOSE:  Print "hello world" to standard output and exit zero.
+#PURPOSE:  Clear the terminal and home the cursor.  Suckless
+#          `ubase/clear` in 6 instructions.
 #
 #VARIABLES:
 #   $a0       syscall argument register
 #   $v0       syscall selector; also main's return value
-#               (syscall 4 = print_string;
-#                see https://www.doc.ic.ac.uk/lab/secondyear/spim/node8.html)
+#               (syscall 4 = print_string)
 
         .data
-helloworld:
-        .asciiz     "hello world\n"
+clearString:
+        .asciiz     "\033[2J\033[H"
 
         .text
         .globl main
 main:
         li $v0, 4                    # syscall 4 = print_string
-        la $a0, helloworld           # arg = address of "hello world\n"
-        syscall                      # ask the OS to print the string
+        la $a0, clearString          # arg = address of the escape sequence
+        syscall                      # ask the OS to print it
 
         li $v0, 0                    # exit status 0
         jr $ra                       # return to the runtime

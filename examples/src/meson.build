@@ -39,40 +39,51 @@ io_lib = static_library('examples_io',
 inc = include_directories('.')
 
 # One executable per demo.  Pairs are [target_name, source_path].
+# Demos are numbered in engagement-first reading order
+# (see ../READING-ORDER.md).  Parts 1-6 = entries 01-29.
+# Entries 30-33 are extras kept on disk but not in the
+# main reading order.
 demos = [
-  ['01-helloworld-1',             '01-helloworld/01-helloworld-1.c'],
-  ['02-print1through10-1',        '02-print1through10/02-print1through10-1.c'],
-  ['03-increment-ints-1',         '03-increment-ints/03-increment-ints-1.c'],
-  ['04-get-char-from-user-1',     '04-get-char-from-user/04-get-char-from-user-1.c'],
-  ['05-print-out-ascii-1',        '05-print-out-ascii/05-print-out-ascii-1.c'],
-  ['06-commaAndPeriodCounter-1',  '06-commaAndPeriodCounter/06-commaAndPeriodCounter-1.c'],
-  ['07-subrountines-1',           '07-subrountines/07-subrountines-1.c'],
-  ['08-testStringsForEquality-1', '08-testStringsForEquality/08-testStringsForEquality-1.c'],
-  ['09-clear-1',                  '09-clear/09-clear-1.c'],
-  ['10-yes-1',                    '10-yes/10-yes-1.c'],
-  ['11-cat-1',                    '11-cat/11-cat-1.c'],
-  ['12-wc-1',                     '12-wc/12-wc-1.c'],
-  ['13-head-1',                   '13-head/13-head-1.c'],
-  ['14-rev-1',                    '14-rev/14-rev-1.c'],
-  ['15-nologin-1',                '15-nologin/15-nologin-1.c'],
-  ['16-tr-1',                     '16-tr/16-tr-1.c'],
-  ['17-expand-1',                 '17-expand/17-expand-1.c'],
-  ['18-cksum-1',                  '18-cksum/18-cksum-1.c'],
-  ['19-echo-1',                   '19-echo/19-echo-1.c'],
-  ['20-factorial-1',              '20-factorial/20-factorial-1.c'],
-  ['21-cat-file-1',               '21-cat-file/21-cat-file-1.c'],
-  ['22-gcd-1',                    '22-gcd/22-gcd-1.c'],
-  ['23-head-file-1',              '23-head-file/23-head-file-1.c'],
-  ['24-tee-1',                    '24-tee/24-tee-1.c'],
-  ['25-fizzbuzz-1',               '25-fizzbuzz/25-fizzbuzz-1.c'],
-  ['26-fibonacci-1',              '26-fibonacci/26-fibonacci-1.c'],
-  ['27-binary-search-1',          '27-binary-search/27-binary-search-1.c'],
-  ['28-bubble-sort-1',            '28-bubble-sort/28-bubble-sort-1.c'],
-  ['29-rot13-1',                  '29-rot13/29-rot13-1.c'],
-  ['30-hanoi-1',                  '30-hanoi/30-hanoi-1.c'],
-  ['31-pascals-triangle-1',       '31-pascals-triangle/31-pascals-triangle-1.c'],
-  ['32-sieve-1',                  '32-sieve/32-sieve-1.c'],
-  ['33-queens-1',                 '33-queens/33-queens-1.c'],
+  # ---- Part 1: first contact ----
+  ['01-helloworld',             '01-helloworld/01-helloworld.c'],
+  ['02-print1through10',        '02-print1through10/02-print1through10.c'],
+  ['03-increment-ints',         '03-increment-ints/03-increment-ints.c'],
+  ['04-clear',                  '04-clear/04-clear.c'],
+  ['05-yes',                    '05-yes/05-yes.c'],
+  # ---- Part 2: algorithms you already know (no argv) ----
+  ['06-fizzbuzz',               '06-fizzbuzz/06-fizzbuzz.c'],
+  ['07-bubble-sort',            '07-bubble-sort/07-bubble-sort.c'],
+  ['08-pascals-triangle',       '08-pascals-triangle/08-pascals-triangle.c'],
+  ['09-sieve',                  '09-sieve/09-sieve.c'],
+  # ---- Part 3: stdin byte loops ----
+  ['10-wc',                     '10-wc/10-wc.c'],
+  ['11-head',                   '11-head/11-head.c'],
+  ['12-rev',                    '12-rev/12-rev.c'],
+  ['13-tr',                     '13-tr/13-tr.c'],
+  ['14-rot13',                  '14-rot13/14-rot13.c'],
+  ['15-expand',                 '15-expand/15-expand.c'],
+  # ---- Part 4: files ----
+  ['16-cat',                    '16-cat/16-cat.c'],
+  ['17-nologin',                '17-nologin/17-nologin.c'],
+  ['18-cksum',                  '18-cksum/18-cksum.c'],
+  # ---- Part 5: argv ----
+  ['19-echo',                   '19-echo/19-echo.c'],
+  ['20-factorial',              '20-factorial/20-factorial.c'],
+  ['21-gcd',                    '21-gcd/21-gcd.c'],
+  ['22-binary-search',          '22-binary-search/22-binary-search.c'],
+  ['23-cat-file',               '23-cat-file/23-cat-file.c'],
+  ['24-head-file',              '24-head-file/24-head-file.c'],
+  ['25-tee',                    '25-tee/25-tee.c'],
+  # ---- Part 6: stack frames and recursion ----
+  ['26-get-char-from-user',     '26-get-char-from-user/26-get-char-from-user.c'],
+  ['27-fibonacci',              '27-fibonacci/27-fibonacci.c'],
+  ['28-hanoi',                  '28-hanoi/28-hanoi.c'],
+  ['29-queens',                 '29-queens/29-queens.c'],
+  # ---- Extras (not in main reading order) ----
+  ['30-print-out-ascii',        '30-print-out-ascii/30-print-out-ascii.c'],
+  ['31-commaAndPeriodCounter',  '31-commaAndPeriodCounter/31-commaAndPeriodCounter.c'],
+  ['32-subrountines',           '32-subrountines/32-subrountines.c'],
+  ['33-testStringsForEquality', '33-testStringsForEquality/33-testStringsForEquality.c'],
 ]
 
 foreach demo : demos

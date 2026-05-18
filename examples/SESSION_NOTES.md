@@ -129,30 +129,30 @@ Three landed in the same window:
 **Phases 1, 2, and 3 of `PLAN-unix-tools.md`** — nine new demos
 appended after 08:
 
-- **09-clear** (`ubase/clear`): write ANSI ESC `[2J [H`.  Octal
+- **04-clear** (`ubase/clear`): write ANSI ESC `[2J [H`.  Octal
   `\033` used in both .c and .asm because spim's `.asciiz`
   accepts `\X` (uppercase) and `\NNN` but NOT lowercase `\x`.
-- **10-yes** (`sbase/yes`): infinite `print_string("y\n")`.  spim
+- **05-yes** (`sbase/yes`): infinite `print_string("y\n")`.  spim
   asm sets `$v0=4, $a0=&str` ONCE outside the loop; inner body
   is just `syscall; j forever`.
-- **11-cat** (stdin only): first demo with block I/O (syscalls
+- **16-cat** (stdin only): first demo with block I/O (syscalls
   14/15 in spim, `os_read`/`os_write` in C).  EOF via return
   value, no sentinel needed.
-- **12-wc**: byte + line counters, same shape as 06 with one
+- **10-wc**: byte + line counters, same shape as 06 with one
   extra counter.  spim still uses 'z' as sentinel because
   syscall 12 (read_char) has no EOF.
-- **13-head**: hardcoded N=10, early loop exit at the 10th
+- **11-head**: hardcoded N=10, early loop exit at the 10th
   newline.
-- **14-rev**: 256-byte fixed line buffer, reverse and emit on
+- **12-rev**: 256-byte fixed line buffer, reverse and emit on
   '\n'.  Uses `$t9` as scratch (NOT `$at` — see gotchas).
-- **15-nologin**: open + read/write loop + close.  First demo
+- **17-nologin**: open + read/write loop + close.  First demo
   that needs a non-zero exit status, which forced us to
   discover the second gotcha below.
-- **16-tr** (`sbase/tr 'a-z' 'A-Z'`): byte-level conditional
+- **13-tr** (`sbase/tr 'a-z' 'A-Z'`): byte-level conditional
   transformation, hardcoded mapping.  Sentinel changed from
   `z` (used by 06/12/13/14) to `~` because `z` collides with
   the a..z upcase range.  Same reasoning applied to 17.
-- **17-expand** (`sbase/expand`): tabs → spaces with a `col`
+- **15-expand** (`sbase/expand`): tabs → spaces with a `col`
   counter maintained across the stream.  Hardcoded tab width
   of 8.  Variable number of output bytes per input byte —
   the new pattern this demo introduces.
@@ -183,7 +183,7 @@ demos linked with musl-gcc; the freestanding pgu-style C uses
    `li $v0, 10; syscall` after main returns, and syscall 10's
    handler ignores `$v0` and sets exit status to 0.  To exit
    non-zero, issue syscall **17** (exit2) yourself with the
-   status in `$a0`.  15-nologin's `#NOTES` block has the
+   status in `$a0`.  17-nologin's `#NOTES` block has the
    pattern.
 
 ## Where we are (end of 2026-05-17)
@@ -290,16 +290,16 @@ freestanding C only has the `io.h` include + `_start`).
 Each is called out in the relevant .asm's `#NOTES` block.  Do NOT
 silently fix them.
 
-- `04-get-char-from-user-1.asm` — frame at `0..4($fp)` is not
+- `26-get-char-from-user-1.asm` — frame at `0..4($fp)` is not
   word-aligned for the int32_t (THE alignment lesson); also
   compares against `la $t0, a` (string *address*) instead of the
   byte `'a'`; also reads `8($fp)` past the 5-byte frame.  `-2.asm`
   fixes the alignment.
-- `04-get-char-from-user-2.asm` — inside the loop body the two
+- `26-get-char-from-user-2.asm` — inside the loop body the two
   syscall selectors for "print the char" and "print the int" are
   swapped relative to the C source.  Program still completes; the
   per-iteration output is in the opposite order.
-- `07-subrountines-1.asm`, `08-testStringsForEquality-1.asm` —
+- `32-subrountines-1.asm`, `33-testStringsForEquality-1.asm` —
   `lw $v0, N($fp)` at the end reads past the frame after teardown.
   SPIM surfaces 0 here.
 
@@ -310,7 +310,7 @@ silently fix them.
 2. Skim `PLAN-asm-comments.md` (the "Status" line at top tells
    you whether the asm-side work is still done).
 3. Skim `PLAN-unix-tools.md` for the next batch of work.
-4. Read one .asm file end-to-end (e.g. `src/05-print-out-ascii/05-
+4. Read one .asm file end-to-end (e.g. `src/30-print-out-ascii/05-
    print-out-ascii-1.asm`) to see the current layered comment
    style in action — especially L5 prefix conventions.
 5. Once spimulator has been installed (`meson install -C

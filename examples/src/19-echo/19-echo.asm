@@ -19,7 +19,7 @@
 # SOFTWARE.
 
 
-# C source — see 19-echo-1.c
+# C source — see 19-echo.c
 #
 #     int my_main(int argc, char **argv) {
 #       for (int i = 1; i < argc; i++) {
@@ -60,7 +60,7 @@
 #                                  for actual jal survival.)
 #
 #     argc / argv / i are also held in $s* registers even though
-#     this demo has no `jal`.  In a longer demo (e.g. 22-gcd) the
+#     this demo has no `jal`.  In a longer demo (e.g. 21-gcd) the
 #     same $s-parking actually does load-bearing work; here it's
 #     pre-emptive consistency.
 #

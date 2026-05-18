@@ -295,13 +295,13 @@ parsing.
 **Phase C — broader rollout** (priority order, after B lands):
 
 - `cat <file>` — `os_open(argv[1])` + the existing block-I/O
-  loop from 11-cat.  **DONE — 21-cat-file.**
-- `gcd a b` — two-arg numeric, Euclidean.  **DONE — 22-gcd.**
+  loop from 16-cat.  **DONE — 23-cat-file.**
+- `gcd a b` — two-arg numeric, Euclidean.  **DONE — 21-gcd.**
 - `head -n N <file>` — combines atoi for `-n` with file open.
-  **DONE — 23-head-file** (the richest argv demo: combines `-n`
+  **DONE — 24-head-file** (the richest argv demo: combines `-n`
   flag-check via str_eq, atoi on `N`, and open on the filename).
 - `tee <file ...>` — multiple output fds + stdin read loop.
-  **DONE — 24-tee** (variable argc, fd-array, per-block fan-out
+  **DONE — 25-tee** (variable argc, fd-array, per-block fan-out
   write, capped at MAX_OUT=8 files).
 - `fizzbuzz N`, `fibonacci N`, etc. — `PLAN-cs-demos.md`
   entries whose hardcoded N becomes more natural via argv.
@@ -344,7 +344,7 @@ Candidate next Phase-5 demos (all stdin-only, no argv blocker):
 - `tail -n N`: ring-buffer the last N lines, print on EOF.
   Hardcode N=10.  Introduces the ring-buffer pattern.
 - `od`: dump stdin in some fixed format (octal/hex/c-style).
-  Column-tracking like 17-expand, but with numeric formatting.
+  Column-tracking like 15-expand, but with numeric formatting.
 - A hash demo (`md5sum`/`sha256sum`): heavy on the algorithm
   side, but worth one for symmetry with cksum.  Big
   lookup-free implementation.

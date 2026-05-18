@@ -19,7 +19,7 @@
 # SOFTWARE.
 
 
-# C source — see 03-increment-ints-1.c
+# C source — see 03-increment-ints.c
 #
 #     __attribute__((noreturn)) void _start(void) {
 #       int a, b;

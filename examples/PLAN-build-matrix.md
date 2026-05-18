@@ -55,7 +55,7 @@ Materializing the .s matrix at image build time:
 
 Soft prerequisite: [`PLAN-multiarch-shim.md`](PLAN-multiarch-shim.md)
 needs to land first for the six argv-using demos (19-echo,
-20-factorial, 21-cat-file, 22-gcd, 23-head-file, 24-tee).
+20-factorial, 23-cat-file, 21-gcd, 24-head-file, 25-tee).
 Those carry an inline `_start` shim that's currently gated as
 `#error` on non-x86_64.  Without the shim plan applied, the
 preprocessor halts on the unsupported `#elif` branch and
@@ -115,7 +115,7 @@ asm-out/
 │   ├── 01-helloworld-1.s
 │   ├── 02-print1through10-1.s
 │   ├── ...
-│   ├── 24-tee-1.s
+│   ├── 25-tee-1.s
 │   ├── count-chars.s
 │   ├── integer-to-string.s
 │   └── ... (io-lib sources)

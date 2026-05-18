@@ -4,10 +4,16 @@
 
 Produce a recommended **reading order** for the demos under
 `src/`, optimised for a specific student profile (described
-below).  Per the existing project decision, this is a reading
-order — not a filesystem rename.  Filesystem numbering stays
-where it is; this plan produces a doc / book chapter ordering
-based on the audience model.
+below).
+
+**Status — applied to the filesystem.**  The first version of
+this plan said "this is a reading order, not a filesystem
+rename, per the existing project decision."  That decision was
+reversed: the demos have now been renumbered on disk to match
+the order below.  Directory numbering IS the reading order;
+no separate book-chapter ordering is needed.  Entries 30-33
+exist on disk but are not on the main reading path (see
+"Extras" below).
 
 ## Audience model
 
@@ -55,11 +61,10 @@ mechanism-as-vehicle.  The new framing drops those.
 
 ## What gets dropped from the main path
 
-These exist on disk and stay there (the existing project
-decision: directory order ≠ pedagogical order), but they
-don't appear in the reading order:
+These exist on disk (renumbered as `30-…` through `33-…`),
+but they aren't part of the main reading path 01-29:
 
-### `07-subrountines-1.asm` and `07-subrountines-2.asm`
+### `32-subrountines` (was `07-subrountines`)
 
 `int mxPlusB(int m, int x, int b)` — the longhand and the
 idiomatic versions of the stack-based subroutine calling
@@ -70,39 +75,39 @@ about `m*x+b`.  The subroutine calling convention is taught
 instead via demos whose subroutines do something the student
 already cares about:
 
-- `atoi` (used in 20-factorial, 22-gcd, 23-head-file,
-  26-fibonacci, 30-hanoi) — parses an integer from a string.
-- `str_eq` (used in 23-head-file) — compares two strings.
+- `atoi` (used in 20-factorial, 21-gcd, 24-head-file,
+  27-fibonacci, 28-hanoi) — parses an integer from a string.
+- `str_eq` (used in 24-head-file) — compares two strings.
 - `print_uint` (used in 18-cksum, 20-factorial) — prints an
   unsigned 32-bit integer.
 
 Each of those is a subroutine **that does something the
 student would recognise as useful**.  mxPlusB is not.
 
-The 07 demos are preserved as `/examples/src/07-subrountines/`
+The 07 demos are preserved as `/examples/src/32-subrountines/`
 for the curious reader; an appendix page could explain "this
 is how subroutine linkage used to be spelled out before the
 jal/jr $ra convention," and a student who wants the deep dive
 can find it there.
 
-### `08-testStringsForEquality-1.asm`
+### `33-testStringsForEquality-1.asm`
 
 `int str_eq(const char *s1, const char *s2)` with `str1`,
 `str2`, `str3` hardcoded.  Same audience problem: the
 algorithm is non-trivial but the *content* is "compare these
 three meaningless strings I made up."
 
-**Why dropped:** string comparison is taught in 23-head-file's
+**Why dropped:** string comparison is taught in 24-head-file's
 `str_eq` subroutine, where the comparison serves a recognisable
 purpose (parsing the `-n` flag of a head-like utility).
 
-### `06-commaAndPeriodCounter.asm`
+### `31-commaAndPeriodCounter.asm`
 
 Counts commas and periods on stdin.  Functional task but
 "counting commas" isn't recognisable as anything.
 
 **Why dropped:** the same shape (multi-counter byte loop) is
-covered by 12-wc, which counts bytes and lines — the real Unix
+covered by 10-wc, which counts bytes and lines — the real Unix
 utility every student has seen.
 
 ## What gets demoted to sidebar
@@ -110,13 +115,13 @@ utility every student has seen.
 These stay in the main path but as short asides rather than
 chapter centerpieces:
 
-- **05-print-out-ascii.asm** — walks -128 to 127 printing each.
+- **30-print-out-ascii.asm** — walks -128 to 127 printing each.
   Useful for sign-extension intuition (`lb` and signed
   comparison) but the demo itself isn't compelling.  Best as
   a one-page sidebar within Part 2 or Part 3.
-- **16-tr.asm** — uppercases stdin.  The pattern (byte-
-  conditional transform) is the same as 29-rot13 but simpler.
-  Best as a one-page warmup right before 29-rot13.
+- **13-tr.asm** — uppercases stdin.  The pattern (byte-
+  conditional transform) is the same as 14-rot13 but simpler.
+  Best as a one-page warmup right before 14-rot13.
 
 ## The reading order — six parts
 
@@ -127,9 +132,9 @@ Minimum syntax to read asm at all.  Quick, mostly self-evident.
 1. `01-helloworld` — the simplest possible program; one syscall.
 2. `02-print1through10` — `li`, `addi`, a branch loop.
 3. `03-increment-ints` — multiple `$t-regs`, integer ops.
-4. `09-clear` — ANSI escape bytes; immediate visual reward
+4. `04-clear` — ANSI escape bytes; immediate visual reward
    ("oh, I made the terminal do something").
-5. `10-yes` — the tightest possible loop; you've used `yes`
+5. `05-yes` — the tightest possible loop; you've used `yes`
    in a shell, here's what it looks like.
 
 ### Part 2: Algorithms you already know — no argv yet (4 demos)
@@ -137,34 +142,34 @@ Minimum syntax to read asm at all.  Quick, mostly self-evident.
 Familiar algorithms in asm.  Each one introduces a new MIPS
 concept on territory the student walks in confident about.
 
-6. `25-fizzbuzz` — modulo, multi-way branching.  The student
+6. `06-fizzbuzz` — modulo, multi-way branching.  The student
    wrote this in their first Java week; here it is in asm.
-7. `28-bubble-sort` — nested loops, `.word` array, in-place
+7. `07-bubble-sort` — nested loops, `.word` array, in-place
    mutation, the swap-via-temp pattern.
-8. `31-pascals-triangle` — in-place right-to-left array update.
-9. `32-sieve` — `.space` for working memory, byte-granularity
+8. `08-pascals-triangle` — in-place right-to-left array update.
+9. `09-sieve` — `.space` for working memory, byte-granularity
    `lb`/`sb`, the "240 BC algorithm" framing.
 
 ### Part 3: Unix filters — stdin byte loops (6 demos)
 
 Recognisable tools, simple stdin → stdout transforms.
 
-10. `12-wc` — byte and line counters.
-11. `13-head` — early termination of the input loop.
-12. `14-rev` — line buffering + walk-the-buffer-backwards.
-13. `16-tr` (sidebar) — uppercase byte transform.
-14. `29-rot13` — byte transform with wraparound; the modulo
+10. `10-wc` — byte and line counters.
+11. `11-head` — early termination of the input loop.
+12. `12-rev` — line buffering + walk-the-buffer-backwards.
+13. `13-tr` (sidebar) — uppercase byte transform.
+14. `14-rot13` — byte transform with wraparound; the modulo
     arithmetic is the new asm idea.  Self-inverse property
     gives an immediate sanity check.
-15. `17-expand` — stream-state counter for tab expansion.
+15. `15-expand` — stream-state counter for tab expansion.
 
 ### Part 4: Files (3 demos)
 
 File descriptors and block I/O — still no argv.
 
-16. `11-cat` — block I/O via syscall 14/15.  Same shape as
-    `12-wc` but moving 4 KiB at a time.
-17. `15-nologin` — first `open`/`close`.  Reads
+16. `16-cat` — block I/O via syscall 14/15.  Same shape as
+    `10-wc` but moving 4 KiB at a time.
+17. `17-nologin` — first `open`/`close`.  Reads
     `/etc/nologin.txt` and falls back to a default message.
 18. `18-cksum` — the heaviest demo before argv.  Combines a
     256-entry `.data` lookup table, bitwise ops, a private
@@ -183,18 +188,18 @@ inputs.  Introduces the crt0.h shim, `parse_int`, and the
 20. `20-factorial` — argv + `atoi` as a private subroutine.
     First demo with a meaningful "save $ra in $s0 across jal"
     pattern.
-21. `22-gcd` — two atois back-to-back; the "park argv in $s2"
+21. `21-gcd` — two atois back-to-back; the "park argv in $s2"
     trick.  Familiar algorithm, makes the $s* discipline feel
     earned rather than ceremonial.
-22. `27-binary-search` — `.word` array, two search variants
+22. `22-binary-search` — `.word` array, two search variants
     (linear + binary), `print_idx_or_nf` helper.  Target from
     argv.
-23. `21-cat-file` — argv + open.  Replaces 15-nologin's
+23. `23-cat-file` — argv + open.  Replaces 17-nologin's
     hardcoded path with `argv[1]`.
-24. `23-head-file` — three flows in one demo: `str_eq` for the
+24. `24-head-file` — three flows in one demo: `str_eq` for the
     `-n` flag, `atoi` for `N`, `open` for the filename.
     Richest argv demo.
-25. `24-tee` — variable argc, fd array in `.data`, fan-out
+25. `25-tee` — variable argc, fd array in `.data`, fan-out
     write.  No `jal` at all but the most state-heavy demo
     (every local lives in `$s*` because every syscall is a
     clobber boundary).
@@ -206,15 +211,15 @@ saves; this part introduces the per-call stack frame for
 state that can't live in `$s*` (because each recursive
 invocation would overwrite the same register).
 
-26. `04-get-char-from-user-1` — intentional misaligned frame.
+26. `26-get-char-from-user-1` — intentional misaligned frame.
     The bug.
-27. `04-get-char-from-user-2` — the fix.  Demonstrates word-
+27. `26-get-char-from-user-2` — the fix.  Demonstrates word-
     aligned frame layout.
-28. `26-fibonacci` — first per-call stack frame.  Iter vs rec
+28. `27-fibonacci` — first per-call stack frame.  Iter vs rec
     in one demo, so the contrast is one diff away.
-29. `30-hanoi` — per-call frame with FOUR saved args.
+29. `28-hanoi` — per-call frame with FOUR saved args.
     Recursion with non-trivial output as a side effect.
-30. `33-queens` — backtracking.  Per-call frame holds the
+30. `29-queens` — backtracking.  Per-call frame holds the
     `col` loop counter, which has to be stack-resident
     because each recursive call has its own.
 

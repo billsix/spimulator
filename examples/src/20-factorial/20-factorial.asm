@@ -19,7 +19,7 @@
 # SOFTWARE.
 
 
-# C source — see 20-factorial-1.c
+# C source — see 20-factorial.c
 #
 #     int my_main(int argc, char **argv) {
 #       if (argc != 2) { print_string("usage: factorial N\n"); return 1; }
@@ -75,7 +75,7 @@
 #
 #     n ($s1) and result ($s2) are also in callee-save registers,
 #     but neither needs to span a `jal` in this demo — they're in $s*
-#     by convention rather than necessity.  The next demo (22-gcd)
+#     by convention rather than necessity.  The next demo (21-gcd)
 #     does need that survival, e.g. holding A across `jal atoi` while
 #     parsing B.
 #
@@ -136,7 +136,7 @@ usage:
         la $a0, usageMsg
         syscall
         # Real exit-1 needs syscall 17 (jr $ra exits 0 in spim — see
-        # 15-nologin's NOTES for the reasoning).
+        # 17-nologin's NOTES for the reasoning).
         li $a0, 1
         li $v0, 17
         syscall

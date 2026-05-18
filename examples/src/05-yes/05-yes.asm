@@ -19,36 +19,41 @@
 # SOFTWARE.
 
 
-# C source — see 01-helloworld.c
+# C source — see 05-yes.c
 #
 #     __attribute__((noreturn)) void _start(void) {
-#       print_string("hello world\n");
-#       os_exit(0);
+#       for (;;)
+#         print_string("y\n");
 #     }
 #
-# In SPIM there is no separate _start — the simulator calls `main`
-# directly, so we use `main` as the entry point.  $v0 at return time
-# is taken as main's exit status, which stands in for os_exit's arg.
+# Suckless `sbase/yes` in three real instructions plus a load of
+# constants done once.  The print_string syscall reads $v0 and $a0
+# but doesn't write to them, so we can set both ONCE outside the
+# loop and just `syscall; j loop` inside.
 
 
-#PURPOSE:  Print "hello world" to standard output and exit zero.
+#PURPOSE:  Print "y\n" forever.  The tightest possible Unix-utility
+#          loop — the inner body is just `syscall` and `j`.
+#
+#NOTES:    Runs forever.  On a real Unix system, `yes | head -3`
+#          terminates via SIGPIPE when the reader closes its end of
+#          the pipe; spimulator has no SIGPIPE so the program only
+#          stops on Ctrl+C inside the simulator.
 #
 #VARIABLES:
-#   $a0       syscall argument register
-#   $v0       syscall selector; also main's return value
-#               (syscall 4 = print_string;
-#                see https://www.doc.ic.ac.uk/lab/secondyear/spim/node8.html)
+#   $a0       syscall argument register (pinned at &yesString)
+#   $v0       syscall selector (pinned at 4 = print_string)
 
         .data
-helloworld:
-        .asciiz     "hello world\n"
+yesString:
+        .asciiz     "y\n"
 
         .text
         .globl main
 main:
-        li $v0, 4                    # syscall 4 = print_string
-        la $a0, helloworld           # arg = address of "hello world\n"
-        syscall                      # ask the OS to print the string
+        li $v0, 4                    # syscall 4 = print_string (set ONCE)
+        la $a0, yesString            # arg = address of "y\n"  (set ONCE)
 
-        li $v0, 0                    # exit status 0
-        jr $ra                       # return to the runtime
+forever:
+        syscall                      # print "y\n"
+        j forever                    # ... and again

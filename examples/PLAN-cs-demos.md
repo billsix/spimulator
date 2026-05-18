@@ -15,20 +15,23 @@ Hanoi, sort algorithms) but not assembly.  Each demo lands a
 familiar algorithm in a new light — the asm shows what really
 happens.
 
-These would slot in as demos 25–34, in the order below
-(easier → harder, each building on the previous).  Each is a
-sketch; numbers and details may shift when ported.
+These are listed below in the original (easier → harder)
+order they were conceived in.  Each is a sketch; numbers and
+details have shifted since then.
 
-> **Numbering note:** the section headers below still say
-> "Demo 19" etc. from when this plan was written.  Phase C of
-> `PLAN-unix-tools.md` consumed slots 19–24, so the actual
-> filesystem slot is **section number + 6**.  Fizzbuzz lands
-> at `25-fizzbuzz`, GCD (already done as part of Phase C) was
-> `22-gcd`, Fibonacci will be `26-fibonacci`, and so on.
+> **Numbering note:**  the section headers below preserve the
+> "Demo 19" etc. labels from when this plan was first written.
+> Those labels no longer correspond to filesystem slots — the
+> engagement-first renumbering (see
+> `PLAN-curriculum-order.md`) put the demos in different
+> filesystem positions.  Each entry below shows its current
+> filesystem slot in the **DONE as `NN-name`** annotation.
+> Headings stay frozen so the conceptual sequence in this
+> plan stays comparable to its history.
 
 ## Demos in recommended order
 
-### 19. Fizzbuzz (1 → 100) — **DONE as `25-fizzbuzz`**
+### 19. Fizzbuzz (1 → 100) — **DONE as `06-fizzbuzz`**
 
 **What's new pedagogically:** modulo as an algorithm primitive
 (`div`/`mfhi`), multi-way branching, output formatting.
@@ -55,7 +58,7 @@ for (int i = 1; i <= 100; i++) {
 }
 ```
 
-### 20. GCD (Euclidean) — **DONE as `22-gcd`** (during Phase C)
+### 20. GCD (Euclidean) — **DONE as `21-gcd`** (during Phase C)
 
 **What's new:** tight integer loop with modulo, the "two
 variables dance" pattern.
@@ -71,7 +74,7 @@ while (b != 0) { unsigned int t = a % b; a = b; b = t; }
 print_uint(a);
 ```
 
-### 21. Fibonacci (BOTH variants in one demo) — **DONE as `26-fibonacci`**
+### 21. Fibonacci (BOTH variants in one demo) — **DONE as `27-fibonacci`**
 
 **What's new:** the same algorithm two ways — iterative (5
 instructions in a loop) vs recursive (the call tree fans out
@@ -106,7 +109,7 @@ int fib_rec(int n) {
 }
 ```
 
-### 22. Binary search — **DONE as `27-binary-search`**
+### 22. Binary search — **DONE as `22-binary-search`**
 
 **What's new:** array element access (`addr + i*4`), divide-and-
 conquer (`mid = (lo+hi)/2` is `srl` by 1), termination on `lo > hi`.
@@ -140,7 +143,7 @@ while (lo <= hi) {
 }
 ```
 
-### 23. Bubble sort — **DONE as `28-bubble-sort`**
+### 23. Bubble sort — **DONE as `07-bubble-sort`**
 
 **What's new:** nested loops, in-place mutation, swap (which
 needs a temp register).  Array element access via `lw`/`sw` at
@@ -169,14 +172,14 @@ for (int i = 0; i < 10; i++) { print_int(a[i]); print_char(' '); }
 print_char('\n');
 ```
 
-### 24. Caesar cipher / ROT13 — **DONE as `29-rot13`**
+### 24. Caesar cipher / ROT13 — **DONE as `14-rot13`**
 
 **What's new:** modular arithmetic on bytes ("wrap around" past
-'z' back to 'a').  Same byte-stream shape as 16-tr, but the
+'z' back to 'a').  Same byte-stream shape as 13-tr, but the
 transformation is non-trivial: shift by 13 then test for wrap.
 
 **spim notes:** stdin → stdout filter.  Use `~` sentinel like
-16-tr/17-expand.  ROT13 is self-inverse, so running the program
+13-tr/15-expand.  ROT13 is self-inverse, so running the program
 twice gives back the input.
 
 **Landed:** stdin → stdout filter, `~` sentinel.  `(ch - base
@@ -202,7 +205,7 @@ while ((ch = read_char()) != -1) {
 }
 ```
 
-### 25. Towers of Hanoi — **DONE as `30-hanoi`**
+### 25. Towers of Hanoi — **DONE as `28-hanoi`**
 
 **What's new:** recursion that PRODUCES output (move sequences),
 not just a value.  Three lines of pseudocode that look magic
@@ -235,12 +238,12 @@ void hanoi(int n, char src, char dst, char tmp) {
 }
 ```
 
-### 26. Pascal's triangle (10 rows) — **DONE as `31-pascals-triangle`**
+### 26. Pascal's triangle (10 rows) — **DONE as `08-pascals-triangle`**
 
 **What's new:** in-place array update for each row (the new row
 overwrites the old), formatted output with variable spacing.
 Combines an algorithmic core (binomial coefficients) with the
-print-formatting from 17-expand.
+print-formatting from 15-expand.
 
 **spim notes:** working array of 11 ints in `.data`; build each
 row in place by walking right-to-left so old values aren't
@@ -250,7 +253,7 @@ clobbered before they're consumed.
 0`.  Outer loop `n=0..9`; inner update loop walks `j=n..1`
 right-to-left; print loop walks `j=0..n` left-to-right.
 The asm reads `row[j-1]` as `-4($t1)` after computing
-`&row[j]` — the inverse offset trick from 28-bubble-sort's
+`&row[j]` — the inverse offset trick from 07-bubble-sort's
 `4($t4)`.  Hardcoded 10 rows (no argv); the algorithm is the
 lesson here, not the parameter.  Verified byte-for-byte
 between C and spim.
@@ -266,7 +269,7 @@ for (int n = 0; n < 10; n++) {
 }
 ```
 
-### 27. Sieve of Eratosthenes (primes up to 100) — **DONE as `32-sieve`**
+### 27. Sieve of Eratosthenes (primes up to 100) — **DONE as `09-sieve`**
 
 **What's new:** the `.data` section as working memory (rather
 than as constants).  Allocate a 100-byte flag array with
@@ -298,7 +301,7 @@ for (int i = 2; i <= 100; i++)
 print_char('\n');
 ```
 
-### 28. 8 Queens — **DONE as `33-queens`**
+### 28. 8 Queens — **DONE as `29-queens`**
 
 **What's new:** backtracking — the "try, check, recurse on
 success, undo on failure" pattern.  The deepest algorithmic
