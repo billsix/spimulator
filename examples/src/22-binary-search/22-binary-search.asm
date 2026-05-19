@@ -102,6 +102,7 @@ after_read:
         jal print_idx_or_nf
 
         move $ra, $s0
+        li $v0, 0                    # exit status: __start passes this through syscall 17
         jr $ra
 
 usage:

@@ -154,6 +154,7 @@ after_tail:
         syscall
 exit_ok:
         move $ra, $s0
+        li $v0, 0                    # exit status: __start passes this through syscall 17
         jr $ra
 
 open_failed:

@@ -16,13 +16,13 @@ usageMsg:   .asciiz "usage: od [FILE|-]\n"
 errMsg:     .asciiz "od: cannot open "
 nlMsg:      .asciiz "\n"
 spc:        .asciiz " "
-esc_0:      .asciiz "  \\0"
-esc_b:      .asciiz "  \\b"
-esc_t:      .asciiz "  \\t"
-esc_n:      .asciiz "  \\n"
-esc_v:      .asciiz "  \\v"
-esc_f:      .asciiz "  \\f"
-esc_r:      .asciiz "  \\r"
+esc_0:      .asciiz "  \1340"
+esc_b:      .asciiz "  \134b"
+esc_t:      .asciiz "  \134t"
+esc_n:      .asciiz "  \134n"
+esc_v:      .asciiz "  \134v"
+esc_f:      .asciiz "  \134f"
+esc_r:      .asciiz "  \134r"
 offBuf:     .space 8                # 7-digit octal + NUL
 oneByte:    .space 1
 
@@ -104,6 +104,7 @@ close_and_exit:
         syscall
 exit_ok:
         move $ra, $s0
+        li $v0, 0                    # exit status: __start passes this through syscall 17
         jr $ra
 
 open_failed:

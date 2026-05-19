@@ -6,8 +6,10 @@ high-level language (Java, Python, etc).
 
 **Directory numbering matches this order.**  The 27 demos in
 Parts 1-6 below correspond directly to `src/01-…` through
-`src/27-…`.  Entries 28-31 exist on disk but are not part of
-the main reading order (see "Extras" at the bottom).
+`src/27-…`.  Part 7 (Unix toolchest, slots 28-39) is a wider
+practice set you can dip into in any order after Part 6.
+Entries 40-43 exist on disk but are not part of the main
+reading order (see "Extras" at the bottom).
 
 See [`PLAN-curriculum-order.md`](PLAN-curriculum-order.md) for
 the rationale.
@@ -134,6 +136,39 @@ each recursive invocation would overwrite the same register.
     loop counter is stack-resident because each recursive
     call has its own.  Default N=8 (92 solutions); cap N=12.
 
+## Part 7 — Unix toolchest (12 demos)
+
+A wider practice set, inspired by sbase/ubase.  Read any of
+these after Part 6 in any order — none introduces a brand-new
+register-class concept, but each takes a real Unix tool's job
+and forces you to think about a specific asm pattern.
+
+28. **`28-seq M N`** — two atois, signed-aware ascending or
+    descending walk.  Print-uint vs. print-int distinction.
+29. **`29-touch FILE`** — `os_open` with `O_CREAT|O_WRONLY`;
+    the demo whose body is essentially just the syscall.
+30. **`30-factor N`** — trial division up to √N (well, up to
+    `i*i <= n`); print_uint sequence with space-separated
+    output.
+31. **`31-cp SRC DST`** — two fds open simultaneously
+    (read + write); block-loop copy via syscall 14/15.
+32. **`32-uniq`** — adjacent-duplicate filter; needs a
+    persistent "previous line" buffer in `.data`.
+33. **`33-nl`** — per-line counter; print_uint + tab + line.
+34. **`34-cut -c N-M`** — column extractor; `-c` flag parse
+    + the substring offsets into each line.
+35. **`35-od -c`** — 16-byte rows with leading 7-digit octal
+    offset; per-byte printable/escape/octal dispatch.
+36. **`36-tac`** — **incremental sbrk** for an unbounded
+    input buffer; reverse-walk on the saved bytes.  The
+    curriculum's first taste of "grow the heap as you go".
+37. **`37-tail -n N`** — ring buffer of the last N lines;
+    end-relative output.
+38. **`38-comm A B`** — two files open for reading
+    simultaneously; line-by-line merge.
+39. **`39-base64`** — bit-twiddling across three-byte input
+    triples to produce four 6-bit indices; column wrap.
+
 ---
 
 ## Extras (not in the main reading order)
@@ -190,3 +225,12 @@ Where each MIPS idea first lands in this order:
 | per-call stack frame for recursion | 25-fibonacci |
 | per-call frame with multiple args | 26-hanoi |
 | backtracking | 27-queens |
+| signed print_int vs unsigned print_uint | 28-seq |
+| open with O_CREAT | 29-touch |
+| two fds open simultaneously | 31-cp |
+| persistent "previous" buffer in `.data` | 32-uniq |
+| flag parsing + ranged extract | 34-cut |
+| row-oriented output + per-byte dispatch | 35-od |
+| incremental sbrk for unbounded buffer | 36-tac |
+| ring buffer over a stream | 37-tail |
+| bit-pack across input bytes | 39-base64 |

@@ -225,6 +225,7 @@ main:
         syscall
 
         move $ra, $s0
+        li $v0, 0                    # exit status: __start passes this through syscall 17
         jr $ra
 
 usage:

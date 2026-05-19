@@ -160,6 +160,7 @@ close_and_exit:
         syscall
 exit_ok:
         move $ra, $s0
+        li $v0, 0                    # exit status: __start passes this through syscall 17
         jr $ra
 
 open_failed:
@@ -187,14 +188,17 @@ usage:
 
 # ---------- emit_char(c in $a0) ----------
 # Prints c.  If out_col reaches 76, prints '\n' and resets.
+#
+# IMPORTANT: must NOT touch $t0/$t1/$t2 — main keeps b0/b1/b2
+# in those across the four emit_char calls per group.  Use $t8
+# and $t9 as the only scratch here.
 emit_char:
-        # save c
-        move $t9, $a0
+        move $t9, $a0                # save c
         li $v0, 11
         syscall
         addi $s5, $s5, 1
-        li $t0, 76
-        bne $s5, $t0, ec_done
+        li $t8, 76
+        bne $s5, $t8, ec_done
         li $a0, '\n'
         li $v0, 11
         syscall

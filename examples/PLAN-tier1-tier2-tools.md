@@ -1,41 +1,49 @@
 # Plan: add Tier 1 + Tier 2 Unix-tool demos
 
-## Status — DEFERRED, in-flight at "phase 1 done"
+## Status — landed (2026-05-19)
 
-Bill asked to pause this plan in favor of
-[`PLAN-remove-hardcodes.md`](PLAN-remove-hardcodes.md).
-**Pick this back up after that plan lands.**
+All 12 demos shipped, paired C + asm, slot 28-39.  Each
+demo's spim output was smoke-tested against the C build and,
+where applicable, against the system Unix tool (`factor`,
+`od -c`, `base64`, `comm`).
 
-What's landed already:
+Notable defects found and resolved during smoke-testing:
 
-- Slot 28-31 has been freed for Part 7: the previous extras
-  (28-print-out-ascii, 29-commaAndPeriodCounter,
-  30-subrountines, 31-testStringsForEquality) have been
-  renumbered to 40-43.
-- Cross-references in `.c` / `.asm` / `.md` files were
-  swept.
-- `meson.build` updated.  Build verifies clean (32 targets).
+- **35-od** depended on `\134` octal escape in `.asciiz`,
+  which surfaced a real spim bug (scanner.l's `copy_str`
+  shifted the first octal digit by 3 instead of 6 bits, so
+  `\134` decoded to `$` instead of `\`).  See
+  [`/spimulator/tasks/octal-escape-fix.md`](../../spimulator/tasks/octal-escape-fix.md);
+  fixed in scanner.l line 493 and guarded by
+  `tests/tt.octal_escape.s`.
+- **39-base64** had an emit_char subroutine that clobbered
+  `$t0`, while the caller held `b0` in `$t0` across the
+  four emit_char calls per triple.  Moved scratch to `$t8`,
+  added a header comment naming the constraint.
 
-Remaining 12 demos to write (28-39):
+What landed:
 
-| Slot | Demo | Difficulty | Asm size estimate |
-|---|---|---|---|
-| 28 | `seq M N` | tiny | ~30 instr |
-| 29 | `touch FILE` | tiny | ~25 instr |
-| 30 | `factor N` | small | ~50 instr |
-| 31 | `cp SRC DST` | small | ~70 instr |
-| 32 | `uniq` | small | ~80 instr |
-| 33 | `nl` | small-medium | ~90 instr |
-| 34 | `cut -c N-M` | medium | ~100 instr |
-| 35 | `od -c` | medium | ~120 instr |
-| 36 | `tac` (sbrk) | medium | ~110 instr |
-| 37 | `tail -n N` | medium | ~120 instr |
-| 38 | `comm A B` | medium | ~140 instr |
-| 39 | `base64` (encode) | medium | ~100 instr |
+- Slot 28-31 freed for Part 7 (previous extras renumbered
+  to 40-43).  Cross-refs swept across .c/.asm/.md.
+- All 12 demos at `src/<slot>-<name>/<slot>-<name>.{c,asm}`
+  plus meson.build entries.
+- `READING-ORDER.md` has a new Part 7 section and concept
+  table additions.
 
-When resuming: pick up at slot 28-seq.  The plan body
-below is unchanged; the per-demo asm-pattern briefs are
-ready to consult.
+| Slot | Demo | Status |
+|---|---|---|
+| 28 | `seq M N` | landed |
+| 29 | `touch FILE` | landed |
+| 30 | `factor N` | landed |
+| 31 | `cp SRC DST` | landed |
+| 32 | `uniq` | landed |
+| 33 | `nl` | landed |
+| 34 | `cut -c N-M` | landed |
+| 35 | `od -c` | landed (after spim octal fix) |
+| 36 | `tac` (sbrk) | landed |
+| 37 | `tail -n N` | landed |
+| 38 | `comm A B` | landed |
+| 39 | `base64` (encode) | landed (after `$t0` clobber fix) |
 
 ---
 
