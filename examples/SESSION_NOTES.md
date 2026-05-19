@@ -169,10 +169,12 @@ and ChangeLog 2026-05-19 entry.
    wishlist; pick from when more demos are wanted.
 
 **/spimulator open tasks (memory says: surface, don't auto-begin;
-only ANTLR Phase 0 is pre-authorized):**
+only the parser-migration Phase 0 is pre-authorized):**
 
-- `tasks/antlr-migration.md` Phase 0 — written-inventory study of
-  flex+bison, no parser change.  **Pre-authorized.**
+- `tasks/handwritten-parser-migration.md` Phase 0 — written
+  inventory of flex+bison, no parser change.  **Pre-authorized.**
+  (Was originally `antlr-migration.md`; rewritten 2026-05-19
+  to target hand-written recursive descent in pure C instead.)
 - `tasks/program-listing-at-start.md` — full pre-execution listing.
 - `tasks/software-alu.md` — bit-level ALU per H&P.
 - `tasks/repl-args-command.md` — gdb-style `args` REPL command.
