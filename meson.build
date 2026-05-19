@@ -6,10 +6,6 @@ project('spimulator', 'c',
 add_project_arguments('-Wno-zero-length-array', language: 'c')
 
 
-# Find flex and bison
-flex = find_program('flex', required: true)
-bison = find_program('bison', required: true)
-
 # BSD-licensed line-editing library. Auto by default; gate with
 # -Dline_editing=disabled to skip on platforms where it isn't packaged
 # (e.g. Windows), or -Dline_editing=enabled to fail hard if missing.
@@ -36,22 +32,10 @@ configure_file(
   configuration: conf_data
 )
 
-# Generate lexer from flex (output to src/)
-lex_gen = custom_target('lex',
-  input: 'src/scanner.l',
-  output: 'lex.yy.c',
-  command: [flex, '-o', '@OUTPUT@', '@INPUT@']
-)
-
-# Generate parser from bison
-# Note: We'll generate both .c and .h files
-parser_gen = custom_target('parser',
-  input: 'src/parser.y',
-  output: ['parser_yacc.c', 'parser_yacc.h'],
-  command: [bison, '-d', '@INPUT@', '-o', '@OUTPUT0@']
-)
-
-# Source files (without the generated ones)
+# Source files.  The hand-written parser became the sole parser in
+# Phase 5 of the parser migration (2026-05-19); flex+bison and their
+# `find_program` calls + custom_target rules were removed at the
+# same time.  See tasks/handwritten-parser-migration.md.
 source_files = files(
   'src/spim-utils.c',
   'src/run.c',
@@ -62,11 +46,13 @@ source_files = files(
   'src/syscall.c',
   'src/display-utils.c',
   'src/string-stream.c',
-  'src/explain.c'
+  'src/explain.c',
+  'src/hp_scanner.c',
+  'src/hp_parser.c',
+  'src/hp_pseudo_op.c'
 )
 
-# Add generated sources
-spim_source_files = source_files + files('src/spim.c') + lex_gen + parser_gen
+spim_source_files = source_files + files('src/spim.c')
 
 # Include directories
 # Note: meson.current_build_dir() allows accessing generated files

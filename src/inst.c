@@ -46,7 +46,7 @@
 #include "sym-tbl.h"
 #include "parser.h"
 #include "scanner.h"
-#include "parser_yacc.h"
+#include "tokens.h"
 #include "data.h"
 
 /* Local functions: */

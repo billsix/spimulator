@@ -60,7 +60,7 @@
 #include "reg.h"
 #include "mem.h"
 #include "sym-tbl.h"
-#include "parser_yacc.h"
+#include "tokens.h"
 #include "syscall.h"
 #include "run.h"
 #include "explain.h"

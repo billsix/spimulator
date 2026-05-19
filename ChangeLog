@@ -1,5 +1,140 @@
 2026-05-19  Bill Six  <billsix@gmail.com>
 
+	* src/scanner.l, src/parser.y: deleted (Phase 5).
+	* include/tokens.h: new, replaces the bison-generated
+	  parser_yacc.h; defines all Y_* tokens via op.h's X-macro
+	  pattern plus 8 explicit structural tokens (Y_EOF, Y_NL,
+	  Y_INT, Y_ID, Y_REG, Y_FP_REG, Y_STR, Y_FP).
+	* include/parser.h: trimmed to the surface the runtime still
+	  needs (yyerror, imm_op_to_op, fix_current_label_address,
+	  data_dir/text_dir/parse_error* globals).  initialize_parser
+	  and yyparse went away with bison.
+	* include/scanner.h: dropped flex-only yylex / push_scanner /
+	  pop_scanner declarations; the surviving runtime-facing
+	  helpers (initialize_scanner, scanner_start_line,
+	  erroneous_line, source_line, register_name_to_number) are
+	  now satisfied by src/hp_scanner.c.
+	* src/hp_scanner.c: relocate the runtime globals (line_no,
+	  yylval, only_id) and the register_tbl + register_name_to_
+	  number lookup that lived in scanner.l.  Add flex-name
+	  compatibility wrappers (yylex returning 0 for Y_EOF;
+	  push_scanner / pop_scanner with an 8-deep snapshot stack;
+	  initialize_scanner / initialize_parser shims) so spim.c's
+	  REPL command tokenizer keeps working unchanged.  Add
+	  erroneous_line / source_line / scanner_start_line public
+	  aliases for the existing hp_* internals.
+	* src/hp_parser.c: relocate data_dir / text_dir definitions.
+	  Promote hp_fix_line_labels to fix_current_label_address
+	  (public), so data.c / inst.c's natural alignment-fix-up
+	  flow operates on the hand parser's label state directly.
+	  Add a yyparse() shim that calls hp_parse_file() for the
+	  REPL's ASM_CMD path.  Expose hp_input_file_name via
+	  hp_input_file_name_get / hp_set_input_file_name so
+	  hp_pseudo_op.c's yyerror funnel can format messages.
+	* src/hp_pseudo_op.c: take ownership of parse_error_occurred
+	  / parse_errors_seen / yyerror / yywarn / imm_op_to_op
+	  (canonical-named definitions, used by runtime call sites
+	  in sym-tbl.c and inst.c).
+	* src/spim.c: strip the `-parser=` flag, parser_kind enum,
+	  and the help-text lines describing them.  Add forward
+	  externs for the hand-parser-supplied yylex / yyparse /
+	  push_scanner / pop_scanner / initialize_scanner /
+	  initialize_parser names that the REPL command tokenizer
+	  still calls.
+	* src/spim-utils.c: drop use_hand_parser / saved_use_hand
+	  branching from read_assembly_file and the exception-file
+	  loader.  The hand parser is the sole parser.  Exception
+	  handler (src/exceptions.s) is loaded through the same
+	  hp_initialize_parser + hp_parse_file path as user code.
+	* meson.build: drop the flex / bison `find_program` calls
+	  and the two `custom_target` rules that generated
+	  lex.yy.c and parser_yacc.{c,h}.
+	* Dockerfile: drop `flex` and `bison` from the `dnf install`
+	  list.
+	* tests/parity-harness.sh: deleted — there is no second
+	  parser to compare against any more.
+	Phase 5 of the hand-written-parser migration: bison and
+	flex removed.  Spim is now a pure-C build with no parser
+	generator dependencies.  The hand-written recursive-descent
+	parser is the only path.
+
+	Two pre-Phase-5 hand-parser gaps fixed because exceptions.s
+	tripped both:
+
+	  - hp_sync_to_nl() was over-consuming the trailing newline,
+	    leaving parse_line's outer newline check to mis-fire
+	    "Extra tokens after instruction" on whatever followed
+	    an ignored directive like `.set noat`.  Now stops AT
+	    the newline; parse_line consumes it.
+	  - parse_i2() rejected the 2-operand shorthand for
+	    BINARY_LOGICALI_OPS — `ori $k0, 0x1` (= ori $k0, $k0,
+	    0x1).  Mirrors parser.y:991-994.  Used heavily by
+	    exception handlers.
+
+	Tested:
+	  - Dockerfile smoke set (bare/core/le/argv/args-cmd/
+	    read_int_eof) passes.
+	  - tt.dir, tt.octal_escape, tt.return_value (exit 42),
+	    tt.unaligned (exit 132 = 128+4), tt.stderr_split (ok on
+	    stdout), tt.missing_main (exit 1), tt.parse_error (exit
+	    2) all behave as expected.
+	  - /examples curriculum spot-checks (01-helloworld,
+	    06-fizzbuzz, 18-cksum, 19-echo, 20-factorial,
+	    22-binary-search) produce identical output to the
+	    bison-era baseline.
+
+2026-05-19  Bill Six  <billsix@gmail.com>
+
+	* include/hp_parser.h, include/hp_pseudo_op.h:
+	* src/hp_scanner.c, src/hp_parser.c, src/hp_pseudo_op.c:
+	* src/spim.c (parser_kind, main): default-flipped flag parser
+	* src/spim-utils.c (read_assembly_file, use_hand_parser):
+	* tests/parity-harness.sh:
+	* tasks/handwritten-parser-migration.md,
+	  tasks/scanner-parser-inventory.md,
+	  tasks/handwritten-parser-design.md:
+	Phases 0-4 of the hand-written-parser migration land.  flex
+	+ bison continue to coexist behind `-parser=bison`; the
+	hand-written recursive-descent parser becomes the default.
+
+	The hand parser covers every construct used by the
+	/examples curriculum (44 / 44 demos parity-clean, byte-
+	identical assembled output against bison).  10 / 19
+	spim regression tests in tests/tt.*.s also pass; the
+	remaining 9 use FP / coproc / TLB / unaligned-load
+	constructs not yet ported (filed for future Phase 3
+	cleanup; users fall back with `-parser=bison`).
+
+	Bugs found and fixed during the migration:
+	  - Branch operand order (i_type_inst_free takes rt/rs not
+	    rs/rt; SRC2 is the rt slot).
+	  - Cached-lookahead violation of bison's only_id global —
+	    the per-token flag leaked past the token it was
+	    intended to affect.  Replaced with a self-clearing
+	    hp_scanner_force_identifier() that recognizes the
+	    cached state.
+	  - PC-relative branch displacement: parser.y's LABEL
+	    production sets pc_relative=true on the imm_expr
+	    (overlooked because no grep showed it); without this,
+	    branches encode as absolute offsets and resolve_a_label
+	    silently does the wrong thing.
+	  - Label fix-up across line boundaries: bison's CMD: TERM
+	    production does NOT clear_labels, so a bare `crctab:`
+	    line leaves this_line_labels non-empty for the next
+	    line's directive to retroactively align via
+	    fix_current_label_address.  Reproduced in
+	    hp_this_line_labels.
+	  - data.c's enable_data_auto_alignment static is
+	    unreadable from outside; tracked our own hp_auto_align
+	    mirror so `.align 0` correctly disables subsequent
+	    auto-alignment.
+
+	Phase 5 (drop bison entirely) is deferred; bison remains in
+	the build as the fallback parser.  See
+	tasks/handwritten-parser-migration.md for the full status.
+
+2026-05-19  Bill Six  <billsix@gmail.com>
+
 	* src/spim.c (main):
 	* src/exceptions.s (__start):
 	* src/parser.y (yyerror):

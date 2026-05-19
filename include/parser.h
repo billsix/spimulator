@@ -36,14 +36,15 @@
 
 #include "spim.h"
 
-/* Exported functions: */
+/* Exported functions (all implemented by the hand-written parser
+   in src/hp_parser.c and src/hp_pseudo_op.c since Phase 5 dropped
+   the flex+bison front-end).  The yyerror name is retained because
+   sym-tbl.c calls it for "Label is defined for the second time" and
+   keeping the name made the cutover one-line. */
 
 void fix_current_label_address(mem_addr new_addr);
 int imm_op_to_op(int opcode);
-void initialize_parser(char* file_name);
-int op_to_imm_op(int opcode);
 void yyerror(char* s);
-int yyparse(void);
 
 /* Exported Variables: */
 

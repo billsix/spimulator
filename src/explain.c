@@ -18,7 +18,7 @@
 #include "reg.h"
 #include "mem.h"
 #include "sym-tbl.h"
-#include "parser_yacc.h"
+#include "tokens.h"
 #include "explain.h"
 
 int explain_level = 0;

@@ -42,7 +42,7 @@
 #include "data.h"
 #include "parser.h"
 #include "sym-tbl.h"
-#include "parser_yacc.h"
+#include "tokens.h"
 
 /* Local functions: */
 

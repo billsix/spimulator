@@ -86,7 +86,7 @@
 #include "parser.h"
 #include "sym-tbl.h"
 #include "scanner.h"
-#include "parser_yacc.h"
+#include "tokens.h"
 #include "data.h"
 #include "explain.h"
 
@@ -297,6 +297,17 @@ static void flush_to_newline(void);
 static int get_opt_int(void);
 static bool parse_spim_command(bool redo);
 static void print_reg(int reg_no);
+
+/* Hand-written scanner / parser surface used by the REPL.  These
+   names used to come from the flex/bison-generated headers (which
+   Phase 5 removed); now they're defined in src/hp_scanner.c and
+   src/hp_parser.c. */
+extern int yylex(void);
+extern int yyparse(void);
+extern void push_scanner(FILE* in_file);
+extern void pop_scanner(void);
+extern void initialize_scanner(FILE* in_file);
+extern void initialize_parser(char* file_name);
 static int print_fp_reg(int reg_no);
 static int print_reg_from_string(char* reg);
 static void print_all_regs(int hex_flag);

@@ -36,16 +36,15 @@
 
 #include "spim.h"
 
-/* Exported functions (besides yylex): */
+/* Exported functions.  yylex() and the flex push/pop scanner
+   primitives went away with Phase 5 of the parser migration; the
+   hand-written scanner exports its own surface in include/hp_parser.h. */
 
 void initialize_scanner(FILE* in_file);
-void push_scanner(FILE* in_file);
-void pop_scanner(void);
 char* erroneous_line(void);
 void scanner_start_line(void);
 int register_name_to_number(char* name);
 char* source_line(void);
-int yylex(void);
 
 /* Exported Variables: */
 
