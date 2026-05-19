@@ -160,6 +160,7 @@ typedef struct inst_s {
 /* Raise an exception! */
 
 extern int exception_occurred;
+extern int first_bad_exception;
 
 #define RAISE_EXCEPTION(EXCODE, MISC) \
   {                                   \

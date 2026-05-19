@@ -53,4 +53,6 @@ extern bool text_dir; /* => item in text segment */
 
 extern bool parse_error_occurred; /* => parse resulted in error */
 
+extern int parse_errors_seen; /* cumulative parser errors across the file */
+
 #endif

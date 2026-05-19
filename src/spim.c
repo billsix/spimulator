@@ -345,10 +345,11 @@ static bool dump_all_segments = false;
 int main(int argc, char** argv) {
   int i;
   bool assembly_file_loaded = false;
+  bool assembly_file_attempted = false; /* -file was given (even if load failed) */
   int print_usage_msg = 0;
 
   console_out.f = stdout;
-  message_out.f = stdout;
+  message_out.f = stderr;
 
   bare_machine = false;
   delayed_branches = false;
@@ -357,6 +358,7 @@ int main(int argc, char** argv) {
   quiet = false;
   assemble = false;
   spim_return_value = 0;
+  first_bad_exception = -1;
 
   /* Input comes directly (not through stdio): */
   console_in.i = 0;
@@ -470,6 +472,7 @@ int main(int argc, char** argv) {
       initialize_world(load_exception_handler ? exception_file_name : NULL,
                        !quiet);
       initialize_run_stack(program_argc, program_argv);
+      assembly_file_attempted = true;
       assembly_file_loaded = read_assembly_file(argv[program_i]);
 
       /* Remaining tokens belong to the program (they're now in
@@ -514,12 +517,26 @@ int main(int argc, char** argv) {
   }
 
   if (!assembly_file_loaded) {
+    /* -file was given but the file couldn't be opened: don't fall through to
+       the REPL — a non-interactive pipeline would hang on stdin.  Exit with a
+       non-zero shell status so a Makefile/CI can detect the failure. */
+    if (assembly_file_attempted) {
+      return spim_return_value != 0 ? spim_return_value : 2;
+    }
+
     initialize_world(load_exception_handler ? exception_file_name : NULL,
                      !quiet);
     initialize_run_stack(program_argc, program_argv);
     top_level();
   } else /* assembly_file_loaded */
   {
+    /* If the assembler reported any error during parse, the program is not in
+       a runnable state — refuse to run it and exit non-zero so the shell can
+       tell that the build failed. */
+    if (parse_errors_seen > 0) {
+      return spim_return_value != 0 ? spim_return_value : 2;
+    }
+
     if (assemble) {
       return write_assembled_code(program_argv[0]);
     } else if (dump_user_segments) {
@@ -539,11 +556,25 @@ int main(int argc, char** argv) {
           write_output(message_out, undefs);
           write_output(message_out, "\n");
           free(undefs);
+          /* Linker-equivalent failure.  Skip the run; jumping into undefined
+             memory would just emit a runtime-error message and exit 0. */
+          console_to_spim();
+          return spim_return_value != 0 ? spim_return_value : 1;
         }
         run_program(find_symbol_address(DEFAULT_RUN_LOCATION),
                     DEFAULT_RUN_STEPS, false, false, &continuable);
       }
       console_to_spim();
+
+      /* If any runtime fault fired (address/bus/alignment/overflow/etc.) and
+         the program didn't otherwise set its own exit status via exit2, lift
+         the fault into a shell-visible non-zero exit code.  Convention:
+         128 + ExcCode, mirroring the shell's "128 + signum" form for
+         processes killed by a signal.  An explicit exit2(N) where N != 0
+         takes precedence — the program said what it meant. */
+      if (first_bad_exception != -1 && spim_return_value == 0) {
+        spim_return_value = 128 + first_bad_exception;
+      }
     }
   }
 

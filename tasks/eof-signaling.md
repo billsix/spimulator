@@ -334,7 +334,7 @@ A + B applied to spim source:
   period-counter switched from sentinel-character (`z` /
   `~`) to `bltz $tN, done` EOF detection.  Sentinel
   prose dropped from `#NOTES` blocks.
-- 26-get-char-from-user-2.asm also gained an EOF check
+- 24-get-char-from-user-2.asm also gained an EOF check
   (`bltz $t0, loopEnd`) alongside its original 'a'
   terminator, so piped input that doesn't contain 'a'
   exits cleanly rather than spinning on -1.
@@ -373,7 +373,7 @@ A + B applied to spim source:
 - **What about EOF detection for syscall 14 (read on
   arbitrary fd)?**  That syscall already returns the byte
   count in `$v0`, and `0` is the standard POSIX EOF signal.
-  Existing demos (16-cat, 18-cksum, 23-cat-file, etc.) check
+  Existing demos (16-cat, 18-cksum, 16-cat, etc.) check
   `blez $v0, done` and work correctly.  No change needed.
 
 ## Out of scope

@@ -60,6 +60,14 @@ static void delete_all_breakpoints(void);
 
 int exception_occurred;
 
+/* Records the ExcCode of the first non-syscall, non-breakpoint, non-interrupt
+   exception seen during a run of the user program.  Set by raise_exception()
+   in run.c; read by main() after run_program() returns to derive a non-zero
+   shell exit status.  Stays at -1 if no such exception fired.
+   This is distinct from exception_occurred, which is per-step transient and
+   gets reset before every run_spim() call. */
+int first_bad_exception = -1;
+
 int initial_text_size = TEXT_SIZE;
 
 int initial_data_size = DATA_SIZE;
@@ -178,6 +186,7 @@ bool read_assembly_file(char* name) {
   } else {
     initialize_scanner(file);
     initialize_parser(name);
+    parse_errors_seen = 0;
 
     while (!yyparse());
 

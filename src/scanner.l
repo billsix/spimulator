@@ -490,7 +490,7 @@ copy_str (char *str, int chop)
 	case '3':
 	  {
 	    char c2 = *(str + 2), c3 = *(str + 3);
-	    int b = (*(str + 1) - '0') << 3;
+	    int b = (*(str + 1) - '0') << 6;
 
 	    if ('0' <= c2 && c2 <= '7')
 	      b += (c2 - '0') << 3;

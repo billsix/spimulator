@@ -483,6 +483,14 @@ bool text_dir;                  /* => item in text segment */
 
 bool parse_error_occurred;      /* => parse resulted in error */
 
+int parse_errors_seen;          /* cumulative parser-error count across the
+				   whole input file.  Unlike parse_error_occurred,
+				   which is reset at the start of each LINE for
+				   per-line label-flush decisions, this is monotonic
+				   for the lifetime of read_assembly_file().  Used by
+				   main() to set a non-zero shell exit status when
+				   any parse error fired. */
+
 
 /* Local functions: */
 
@@ -2952,6 +2960,7 @@ void
 yyerror (char *s)
 {
   parse_error_occurred = true;
+  parse_errors_seen += 1;
   clear_labels ();
   yywarn (s);
 }

@@ -1595,6 +1595,18 @@ void raise_exception(int excode) {
        && !(CP0_Status & CP0_Status_EXL))) {
     /* Ignore interrupt exception when interrupts disabled.  */
     exception_occurred = 1;
+    /* Record the FIRST "bad" exception — anything other than a normal-flow
+       interrupt (0), syscall (8), or breakpoint (9).  Used by main() to
+       set a non-zero shell exit status when the user program took a fault.
+       Only the first wins because spim's default handler advances past the
+       faulting instruction and continues; without the latch, a misbehaving
+       loop would overwrite the status repeatedly. */
+    if (first_bad_exception == -1 &&
+        excode != ExcCode_Int &&
+        excode != ExcCode_Sys &&
+        excode != ExcCode_Bp) {
+      first_bad_exception = excode;
+    }
     if (running_in_delay_slot) {
       /* In delay slot */
       if ((CP0_Status & CP0_Status_EXL) == 0) {

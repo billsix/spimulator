@@ -188,8 +188,9 @@ __start:
 	jal main
 	nop
 
-	li $v0 10
-	syscall			# syscall 10 (exit)
+	move $a0 $v0		# carry main's return value through as exit status
+	li $v0 17		# syscall 17 (exit2): status in $a0
+	syscall
 
 	.globl __eoth
 __eoth:

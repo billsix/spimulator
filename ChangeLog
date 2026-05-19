@@ -1,3 +1,72 @@
+2026-05-19  Bill Six  <billsix@gmail.com>
+
+	* src/spim.c (main):
+	* src/exceptions.s (__start):
+	* src/parser.y (yyerror):
+	* src/run.c (raise_exception):
+	* src/spim-utils.c (read_assembly_file):
+	* include/parser.h, include/inst.h:
+	* tests/tt.stderr_split.s, tt.return_value.s,
+	  tt.parse_error.s, tt.missing_main.s, tt.unaligned.s:
+	* tasks/unix-process-conformance.md:
+	Make `spimulator -f foo.asm` behave as a regular Unix
+	process so it can be used in pipelines, with `$?`, and in
+	CI/Makefiles.  Four distinct fixes:
+
+	  (1) message_out now defaults to stderr, not stdout.  The
+	      "Loaded: …" banner and "The following symbols are
+	      undefined" notice no longer pollute the data stream.
+	  (2) __start now passes main's $v0 through as the exit
+	      status (via syscall 17 instead of syscall 10), so
+	      `return N` from main becomes shell `$?`.
+	  (3) Parser errors, missing files, and undefined symbols
+	      set a non-zero exit code (2, 2, and 1 respectively)
+	      via a new `parse_errors_seen` counter.  spim no longer
+	      drops into the REPL when -file was supplied but the
+	      file couldn't be loaded.
+	  (4) Runtime exceptions (alignment fault, address error,
+	      arithmetic overflow, etc.) now lift into a shell-
+	      visible non-zero exit code: 128 + ExcCode, mirroring
+	      the shell's 128 + signum convention for signal-
+	      killed processes.  A new `first_bad_exception` latch
+	      in raise_exception() records the first non-syscall,
+	      non-breakpoint, non-interrupt exception.  Explicit
+	      exit2(N != 0) takes precedence.
+
+	Motivation: support a possible rewrite of "Programming from
+	the Ground Up" targeting MIPS-on-spim.  PGU's first chapter
+	teaches `$?` inspection; that arc only works if spim is a
+	well-behaved process.
+
+	Consequence to be addressed in a follow-up: /examples demos
+	that `jr $ra` from main without first setting $v0 = 0 now
+	inherit whatever value happened to be in $v0 (typically the
+	syscall number of the last operation).  Several demos exit
+	non-zero as a result.  Right behavior, curriculum sweep
+	pending.
+
+	* src/scanner.l (copy_str):
+	Fix octal-escape decoding in .asciiz strings.  The high
+	octal digit was shifted by 3 bits instead of 6, so a
+	three-digit octal escape `\abc` decoded to (a+b)*8+c
+	rather than a*64+b*8+c.  In particular `\134` (intended
+	backslash, 0x5C) produced 0x24 ('$') instead.
+
+	The bug was inert until /examples/src/35-od (od -c demo)
+	tried to print a literal backslash; copy_str does not
+	support `\\` either, so `\134` was the only path
+	available, and it was silently wrong.
+
+	* tests/tt.octal_escape.s:
+	New regression test.  Decodes `\134`, `\044`, `\120` and
+	verifies the resulting bytes are 0x5C, 0x24, 0x50.
+
+	* tasks/octal-escape-fix.md:
+	Bug writeup, with the diff-level explanation, the
+	surfacing context, and a note that `scan_escape` (for
+	`'\X'` char literals) still does not support octal at
+	all — left untouched because no demo needs it.
+
 2023-08-04  James Larus  <larus@Jim-Macbook-Max.local>
 
       * Release:  9.1.24
