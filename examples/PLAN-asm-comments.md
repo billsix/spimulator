@@ -103,6 +103,24 @@ register 30; we always write `$fp` because that's what the source
 says.  Same for `$r0` → `$0`.  The numbered aliases live in
 `REFERENCE-encodings.md` and nowhere else.
 
+### The "set `$v0` before `jr $ra`" lesson lives in 00-exit
+
+After the spim Unix-process-conformance fixes (2026-05-19),
+the value in `$v0` at every `jr $ra` from main becomes the
+shell's `$?`.  Every syscall along the way clobbers `$v0`
+with its syscall number, so the discipline for a main that
+returns via `jr $ra` is to insert `li $v0, 0` (or whatever
+status) on the line above.
+
+The canonical explanation of this — including the syscall
+mechanism, the syscall-17 form, and the equivalence with
+`jr $ra`+`li $v0, N` — lives in **the header comment block of
+`00-exit/00-exit.asm`**.  All other demos can assume the
+reader has seen it.  When introducing a new demo, do NOT
+repeat the lesson; just write the `li $v0, 0` line before the
+final `jr $ra` (or use `syscall 17` directly with a status in
+`$a0`).
+
 ## Per-file state
 
 All 17 .asm files carry the same four layers (L1+L2+L3+L4).

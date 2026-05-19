@@ -45,6 +45,8 @@ inc = include_directories('.')
 # Entries 30-33 are extras kept on disk but not in the
 # main reading order.
 demos = [
+  # ---- Part 0: the smallest possible program ----
+  ['00-exit',                   '00-exit/00-exit.c'],
   # ---- Part 1: first contact ----
   ['01-helloworld',             '01-helloworld/01-helloworld.c'],
   ['02-print1through10',        '02-print1through10/02-print1through10.c'],

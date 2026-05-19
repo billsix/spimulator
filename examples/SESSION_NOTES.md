@@ -46,14 +46,43 @@ Verified post-sweep that the only non-zero exits are intentional:
 The C side already returns correctly via `crt0.h` propagating
 `my_main`'s return value through `exit`.
 
-### Open: pedagogy for "set $v0 before returning"
+### Two new plan docs written this evening (not started)
 
-The new behavior is more Unix-like but adds an asm-side
-discipline that wasn't required before: every `jr $ra` from
-main must be preceded by `li $v0, N` if you want exit N.  The
-sweep above silenced the symptom; a teaching block in
-PLAN-asm-comments.md (or somewhere) should make this an
-explicit lesson.  Not yet drafted.
+- [`PLAN-asm-listings.md`](PLAN-asm-listings.md) — keep
+  compiler-generated `.s` on disk for every C demo so students
+  can study the native translation alongside the hand-written
+  asm.  Recommendation: Option A (`-save-temps=obj`), a
+  one-line meson change.  Bill's request.
+- [`PLAN-container-cross-env.md`](PLAN-container-cross-env.md)
+  — bake clang + lld + qemu-user-static into `/examples/Dockerfile`
+  so the multiarch shim is verifiable in-container.
+  Recommendation: Option A (clang+lld, no GNU cross gcc),
+  ~150 MB.  Unblocks the multiarch-shim verification step and
+  later PLAN-build-matrix.  Bill's request.
+
+### Multiarch shim — status check
+
+The shim itself (`src/crt0.h`) is fully written for x86_64,
+i386, arm, aarch64, mips, and rolled out across 30+ argv-using
+demos.  Only the x86_64 branch is exercised today.  Verifying
+the other four needs the container cross-env above; until that
+lands, the non-x86_64 branches are "written, plausible, not yet
+run."
+
+### Demo 00 — the canonical "set status, exit" lesson (landed)
+
+Added `src/00-exit/00-exit.{c,asm}` as Part 0 of the curriculum.
+This is the PGU exit.s pattern retargeted to MIPS+spim — the
+smallest possible program (no output, just a status code) — and
+serves as the canonical reference for the syscall mechanism and
+the `$v0`-before-`jr $ra` discipline introduced by the
+Unix-process fixes.
+
+The .asm header is the teaching block; PLAN-asm-comments.md got
+a "this lesson lives at 00-exit" pointer so future demos can
+assume the reader has seen it and avoid restating.  meson.build,
+READING-ORDER.md (new Part 0 section + 2 concept-table rows)
+updated.
 
 ---
 

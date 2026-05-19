@@ -4,12 +4,13 @@ The recommended order to read the demos for someone learning
 MIPS assembly who already knows the algorithms from a
 high-level language (Java, Python, etc).
 
-**Directory numbering matches this order.**  The 27 demos in
-Parts 1-6 below correspond directly to `src/01-…` through
-`src/27-…`.  Part 7 (Unix toolchest, slots 28-39) is a wider
-practice set you can dip into in any order after Part 6.
-Entries 40-43 exist on disk but are not part of the main
-reading order (see "Extras" at the bottom).
+**Directory numbering matches this order.**  Demo 00 is the
+single-demo Part 0; the 27 demos in Parts 1-6 below correspond
+directly to `src/01-…` through `src/27-…`.  Part 7 (Unix
+toolchest, slots 28-39) is a wider practice set you can dip
+into in any order after Part 6.  Entries 40-43 exist on disk
+but are not part of the main reading order (see "Extras" at
+the bottom).
 
 See [`PLAN-curriculum-order.md`](PLAN-curriculum-order.md) for
 the rationale.
@@ -56,11 +57,24 @@ argument — real `tr` doesn't either.
 
 ---
 
+## Part 0 — The smallest possible program (1 demo)
+
+0. **`00-exit`** — set a status code, exit, observe it via
+   `echo $?`.  The whole syscall mechanism on its smallest
+   working example: `$v0` holds the syscall number, `$a0..$a3`
+   hold arguments, `syscall` transfers control to the kernel.
+   Reads as a direct port of Programming from the Ground Up's
+   first program, retargeted to MIPS + spim.  Also serves as
+   the canonical reference for "why every other demo sets
+   `$v0` before its final `jr $ra`" — see the demo's header
+   comment block.
+
 ## Part 1 — First contact (5 demos)
 
 The minimum syntax to read any of the rest.
 
-1. **`01-helloworld`** — the simplest possible program; one syscall.
+1. **`01-helloworld`** — the simplest possible program that
+   produces output; one print + one exit.
 2. **`02-print1through10`** — `li`, `addi`, a branch loop.
 3. **`03-increment-ints`** — multiple `$t`-regs, integer ops.
 4. **`04-clear`** — ANSI escape bytes; immediate visual reward.
@@ -198,6 +212,8 @@ Where each MIPS idea first lands in this order:
 
 | MIPS concept | First demo |
 |---|---|
+| `syscall` mechanism + `$v0`/`$a0..$a3` convention | 00-exit |
+| exit status + `$?` | 00-exit |
 | `.asciiz`, syscall 4 | 01 |
 | `li`, `addi`, branches | 02 |
 | ANSI escape bytes | 04-clear |
