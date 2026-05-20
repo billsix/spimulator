@@ -1,0 +1,178 @@
+===================
+helloworld
+===================
+
+        .data
+hello:  .asciiz "hello world\n"
+
+        .text
+        .globl main
+main:
+        li $v0, 4
+        la $a0, hello
+        syscall
+        li $v0, 10
+        syscall
+
+---
+
+(source_file
+  (directive)
+  (label_def
+    name: (identifier))
+  (directive
+    (string))
+  (directive)
+  (directive
+    (identifier))
+  (label_def
+    name: (identifier))
+  (instruction
+    op: (opcode)
+    (register)
+    (integer))
+  (instruction
+    op: (opcode)
+    (register)
+    (identifier))
+  (instruction
+    op: (opcode))
+  (instruction
+    op: (opcode)
+    (register)
+    (integer))
+  (instruction
+    op: (opcode)))
+
+===================
+r-type instructions
+===================
+
+        .text
+main:
+        add  $t0, $t1, $t2
+        addu $t0, $t1, 5
+        sub  $t0, 5
+
+---
+
+(source_file
+  (directive)
+  (label_def
+    name: (identifier))
+  (instruction
+    op: (opcode)
+    rd: (register)
+    rs: (register)
+    rt: (register))
+  (instruction
+    op: (opcode)
+    rd: (register)
+    rs: (register)
+    rt: (integer))
+  (instruction
+    op: (opcode)
+    rd: (register)
+    imm: (integer)))
+
+===================
+load/store address forms
+===================
+
+        .text
+main:
+        lw $t0, 0($sp)
+        sw $a0, 4($sp)
+        lw $t1, label
+        lw $t2, 8($sp)
+
+---
+
+(source_file
+  (directive)
+  (label_def
+    name: (identifier))
+  (instruction
+    op: (opcode)
+    rt: (register)
+    addr: (address
+      (integer)
+      (register)))
+  (instruction
+    op: (opcode)
+    rt: (register)
+    addr: (address
+      (integer)
+      (register)))
+  (instruction
+    op: (opcode)
+    rt: (register)
+    addr: (address
+      (identifier)))
+  (instruction
+    op: (opcode)
+    rt: (register)
+    addr: (address
+      (integer)
+      (register))))
+
+===================
+branches and jumps
+===================
+
+        .text
+main:
+        beq $t0, $t1, end
+        j   end
+        jal target
+end:
+        jr  $ra
+
+---
+
+(source_file
+  (directive)
+  (label_def
+    name: (identifier))
+  (instruction
+    op: (opcode)
+    rs: (register)
+    rt: (register)
+    label: (label_ref
+      (identifier)))
+  (instruction
+    op: (opcode)
+    target: (label_ref
+      (identifier)))
+  (instruction
+    op: (opcode)
+    target: (label_ref
+      (identifier)))
+  (label_def
+    name: (identifier))
+  (instruction
+    op: (opcode)
+    rs: (register)))
+
+===================
+comments and blank lines
+===================
+
+# Top-level comment
+
+        .text
+main:
+        # Indented comment
+        nop          # trailing comment
+
+---
+
+(source_file
+  (comment)
+  (directive)
+  (label_def
+    name: (identifier))
+  (comment)
+  (instruction
+    op: (opcode))
+  (comment))

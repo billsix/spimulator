@@ -1,0 +1,19 @@
+# tree-sitter generates large parser tables; some projects commit
+# them, some regenerate.  We commit grammar.js + scripts/ as the
+# source of truth; the generated parser.c is regenerated on demand
+# via `make generate`.
+src/parser.c
+src/grammar.json
+src/node-types.json
+src/tree_sitter/
+
+# Node module deps (devDependency for tree-sitter-cli).
+node_modules/
+package-lock.json
+
+# tree-sitter binding artifacts.
+build/
+bindings/
+*.so
+*.dylib
+*.dll

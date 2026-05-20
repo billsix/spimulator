@@ -1,0 +1,37 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/config.schema.json",
+  "grammars": [
+    {
+      "name": "mips_spim",
+      "camelcase": "MipsSpim",
+      "title": "MIPS (spim flavour)",
+      "scope": "source.mips",
+      "path": ".",
+      "file-types": ["s", "asm", "mips"],
+      "highlights": "queries/highlights.scm"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "BSD-3-Clause",
+    "description": "Tree-sitter grammar for MIPS assembly in the spim dialect",
+    "authors": [
+      {
+        "name": "Bill Six",
+        "email": "billsix@gmail.com"
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/billsix/spimulator"
+    }
+  },
+  "bindings": {
+    "c": true,
+    "go": false,
+    "node": true,
+    "python": false,
+    "rust": false,
+    "swift": false,
+    "zig": false
+  }
+}

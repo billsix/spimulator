@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := shell
 
 USE_EMACS ?= 1
-
+BUILD_TREE_SITTER ?= 1
 
 CONTAINER_CMD = podman
 CONTAINER_NAME = spimulator
@@ -37,6 +37,7 @@ image: ## Build podman image to run the examples
 	$(CONTAINER_CMD) build \
                          -t $(CONTAINER_NAME) \
                          --build-arg USE_EMACS=$(USE_EMACS) \
+                         --build-arg BUILD_TREE_SITTER=$(BUILD_TREE_SITTER) \
                          $(DNF_CACHE_TO_MOUNT) \
                          $(ELPA_MOUNT) \
                          .

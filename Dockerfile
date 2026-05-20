@@ -2,6 +2,11 @@ FROM registry.fedoraproject.org/fedora:44
 
 ARG USE_EMACS=0
 
+# Build the editor-integration tree-sitter grammar?  Adds Node.js +
+# tree-sitter-cli (~90 MB) to the image but doesn't change spim itself.
+# Off by default since most spim users don't need it.
+ARG BUILD_TREE_SITTER=0
+
 # Build + install locations.  Override at build time with
 # `--build-arg SPIM_BUILD_DIR=...` or `--build-arg SPIM_PREFIX=...`.
 # `ENV` (not `ARG`) so subsequent RUN layers see them via $VAR
@@ -70,6 +75,27 @@ RUN cd ${SPIM_SRC_DIR} && \
 # build if any test fails.  The full inventory is enumerated in
 # meson.build under `regression_tests`; driven by tests/run-test.sh.
 RUN meson test -C ${SPIM_BUILD_DIR} --print-errorlogs
+
+# Optional: build and test the editor-integration tree-sitter grammar.
+# Gated by --build-arg BUILD_TREE_SITTER=1 because Node + tree-sitter-cli
+# add ~90 MB and aren't needed to build spim itself.
+#
+# When BUILD_TREE_SITTER=1 AND USE_EMACS=1, the grammar is additionally
+# compiled to a shared library and dropped into Emacs's tree-sitter
+# load path, so M-x mips-spim-ts-mode (auto-bound to .s/.asm/.mips)
+# just works inside the container.
+COPY tree-sitter/ ${SPIM_SRC_DIR}/tree-sitter
+RUN if [ "$BUILD_TREE_SITTER" = "1" ]; then \
+      dnf install -y nodejs npm && \
+      cd ${SPIM_SRC_DIR}/tree-sitter && \
+      npm install && \
+      make && \
+      if [ "$USE_EMACS" = "1" ]; then \
+        mkdir -p /root/.emacs.d/tree-sitter && \
+        cc -O2 -fPIC -shared -I src src/parser.c \
+           -o /root/.emacs.d/tree-sitter/libtree-sitter-mips_spim.so ; \
+      fi ; \
+    fi
 
 
 COPY .clang-format ${SPIM_SRC_DIR}/

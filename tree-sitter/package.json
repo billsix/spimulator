@@ -1,0 +1,29 @@
+{
+  "name": "tree-sitter-mips-spim",
+  "version": "0.1.0",
+  "description": "Tree-sitter grammar for MIPS assembly, spim flavour",
+  "main": "bindings/node",
+  "keywords": [
+    "parser",
+    "tree-sitter",
+    "mips",
+    "spim",
+    "assembly"
+  ],
+  "author": "Bill Six <billsix@gmail.com>",
+  "license": "BSD-3-Clause",
+  "devDependencies": {
+    "tree-sitter-cli": "^0.25.0"
+  },
+  "tree-sitter": [
+    {
+      "scope": "source.mips",
+      "file-types": [
+        "s",
+        "asm",
+        "mips"
+      ],
+      "highlights": "queries/highlights.scm"
+    }
+  ]
+}

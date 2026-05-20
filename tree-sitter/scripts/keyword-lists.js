@@ -1,0 +1,32 @@
+/* Generated from spim include/op.h via
+ * scripts/build-keyword-lists.py — do not edit by hand. */
+
+module.exports = {
+  ASM_DIR: [".alias", ".align", ".ascii", ".asciiz", ".asm0", ".bgnb", ".byte", ".comm", ".data", ".double", ".end", ".endb", ".endr", ".ent", ".err", ".extern", ".file", ".float", ".fmask", ".frame", ".globl", ".half", ".kdata", ".ktext", ".lab", ".lcomm", ".livereg", ".loc", ".mask", ".noalias", ".option", ".rdata", ".repeat", ".sdata", ".set", ".space", ".struct", ".text", ".verstamp", ".vreg", ".word"],
+  B1: ["bgez", "bgezal", "bgezall", "bgezl", "bgtz", "bgtzl", "blez", "blezl", "bltz", "bltzal", "bltzall", "bltzl"],
+  B2: ["beq", "beql", "bne", "bnel"],
+  BC: ["bc1f", "bc1fl", "bc1t", "bc1tl", "bc2f", "bc2fl", "bc2t", "bc2tl"],
+  FP_CMP: ["c.eq.d", "c.eq.ps", "c.eq.s", "c.f.d", "c.f.ps", "c.f.s", "c.le.d", "c.le.ps", "c.le.s", "c.lt.d", "c.lt.ps", "c.lt.s", "c.nge.d", "c.nge.ps", "c.nge.s", "c.ngl.d", "c.ngl.ps", "c.ngl.s", "c.ngle.d", "c.ngle.ps", "c.ngle.s", "c.ngt.d", "c.ngt.ps", "c.ngt.s", "c.ole.d", "c.ole.ps", "c.ole.s", "c.olt.d", "c.olt.ps", "c.olt.s", "c.seq.d", "c.seq.ps", "c.seq.s", "c.sf.d", "c.sf.ps", "c.sf.s", "c.ueq.d", "c.ueq.ps", "c.ueq.s", "c.ule.d", "c.ule.ps", "c.ule.s", "c.ult.d", "c.ult.ps", "c.ult.s", "c.un.d", "c.un.ps", "c.un.s"],
+  FP_I2a: ["ldc1", "lwc1", "sdc1", "swc1"],
+  FP_MOVC: ["movf.d", "movf.ps", "movf.s", "movn.d", "movn.ps", "movn.s", "movt.d", "movt.ps", "movt.s", "movz.d", "movz.ps", "movz.s"],
+  FP_R2ds: ["abs.d", "abs.ps", "abs.s", "ceil.l.d", "ceil.l.s", "ceil.w.d", "ceil.w.s", "cvt.d.l", "cvt.d.s", "cvt.d.w", "cvt.l.d", "cvt.l.s", "cvt.ps.s", "cvt.s.d", "cvt.s.l", "cvt.s.pl", "cvt.s.pu", "cvt.s.w", "cvt.w.d", "cvt.w.s", "ext", "floor.l.d", "floor.l.s", "floor.w.d", "floor.w.s", "ins", "mov.d", "mov.ps", "mov.s", "neg.d", "neg.ps", "neg.s", "recip.d", "recip.s", "round.l.d", "round.l.s", "round.w.d", "round.w.s", "rsqrt.d", "rsqrt.s", "sqrt.d", "sqrt.s", "trunc.l.d", "trunc.l.s", "trunc.w.d", "trunc.w.s"],
+  FP_R2ts: ["cfc0", "cfc1", "cfc2", "ctc0", "ctc1", "ctc2", "mfc1", "mfhc1", "mtc1", "mthc1"],
+  FP_R3: ["add.d", "add.ps", "add.s", "div.d", "div.s", "ldxc1", "luxc1", "lwxc1", "mul.d", "mul.ps", "mul.s", "pll.ps", "plu.ps", "pul.ps", "puu.ps", "sdxc1", "sub.d", "sub.ps", "sub.s", "suxc1", "swxc1"],
+  FP_R4: ["alnv.ps", "madd.d", "madd.ps", "madd.s", "msub.d", "msub.ps", "msub.s", "nmadd.d", "nmadd.ps", "nmadd.s", "nmsub.d", "nmsub.ps", "nmsub.s"],
+  I1s: ["teqi", "tgei", "tgeiu", "tlti", "tltiu", "tnei"],
+  I1t: ["di", "ei", "lui"],
+  I2: ["addi", "addiu", "andi", "cache", "ori", "pref", "slti", "sltiu", "synci", "xori"],
+  I2a: ["lb", "lbu", "ldc2", "lh", "lhu", "ll", "lw", "lwc2", "lwl", "lwr", "sb", "sc", "sdc2", "sh", "sw", "swc2", "swl", "swr"],
+  J: ["cop2", "j", "jal"],
+  MOVC: ["movf", "movt"],
+  NOARG: ["break", "deret", "ehb", "eret", "rfe", "sdbbp", "sync", "syscall", "tlbp", "tlbr", "tlbwi", "tlbwr"],
+  PSEUDO: ["abs", "b", "bal", "beqz", "bge", "bgeu", "bgt", "bgtu", "ble", "bleu", "blt", "bltu", "bnez", "l.d", "l.s", "la", "ld", "li", "li.d", "li.s", "mfc1.d", "move", "mtc1.d", "mulo", "mulou", "neg", "negu", "nop", "not", "rem", "remu", "rol", "ror", "s.d", "s.s", "sd", "seq", "sge", "sgeu", "sgt", "sgtu", "sle", "sleu", "sne", "ulh", "ulhu", "ulw", "ush", "usw"],
+  R1d: ["mfhi", "mflo"],
+  R1s: ["jr", "jr.hb", "mthi", "mtlo"],
+  R2ds: ["jalr", "jalr.hb"],
+  R2sh: ["rotr", "rotrv", "sll", "sra", "srl", "ssnop"],
+  R2st: ["div", "divu", "madd", "maddu", "msub", "msubu", "mult", "multu", "prefx", "teq", "tge", "tgeu", "tlt", "tltu", "tne"],
+  R2td: ["mfc0", "mfc2", "mfhc2", "mtc0", "mtc2", "mthc2", "rdpgpr", "seb", "seh", "wrpgpr", "wsbh"],
+  R3: ["add", "addu", "and", "clo", "clz", "movn", "movz", "mul", "nor", "or", "rdhwr", "slt", "sltu", "sub", "subu", "xor"],
+  R3sh: ["sllv", "srav", "srlv"],
+};

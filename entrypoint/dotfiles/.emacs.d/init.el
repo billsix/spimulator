@@ -3,6 +3,12 @@
 (load-file "~/.emacs.d/helm.el")
 (load-file "~/.emacs.d/preferences.el")
 
+;; Tree-sitter MIPS-spim mode.  Loads if the grammar shared library
+;; is present (built via spimulator's Dockerfile when --build-arg
+;; BUILD_TREE_SITTER=1 is set).  Degrades silently if not.
+(add-to-list 'treesit-extra-load-path "~/.emacs.d/tree-sitter/")
+(load-file "~/.emacs.d/mips-spim-ts-mode.el")
+
 ;; theme
 (load-theme 'modus-vivendi t)
 ;(load-theme 'material t)
