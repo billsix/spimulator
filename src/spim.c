@@ -3,7 +3,6 @@
    SPDX-License-Identifier: BSD-3-Clause
    See LICENSE in the project root for full text. */
 
-
 #include "config.h"
 
 #ifndef WIN32
@@ -63,11 +62,11 @@ static void save_history_at_exit(void) {
  * str_prefix table further below. Alphabetical order so the listing
  * libedit prints on Tab-Tab reads cleanly. */
 static const char* spim_commands[] = {
-    "args",       "breakpoint", "continue",       "delete",
-    "dump",       "dumpnative", "exit",           "help",
-    "list",       "load",       "print",          "print_all_regs",
-    "print_symbols", "quit",    "read",           "reinitialize",
-    "run",        "step",       nullptr};
+    "args",          "breakpoint", "continue", "delete",
+    "dump",          "dumpnative", "exit",     "help",
+    "list",          "load",       "print",    "print_all_regs",
+    "print_symbols", "quit",       "read",     "reinitialize",
+    "run",           "step",       nullptr};
 
 static char* command_generator(const char* text, int state) {
   static size_t idx;
@@ -302,7 +301,8 @@ static bool dump_all_segments = false;
 int main(int argc, char** argv) {
   int i;
   bool assembly_file_loaded = false;
-  bool assembly_file_attempted = false; /* -file was given (even if load failed) */
+  bool assembly_file_attempted =
+      false; /* -file was given (even if load failed) */
   int print_usage_msg = 0;
 
   console_out.f = stdout;
@@ -898,7 +898,7 @@ static bool parse_spim_command(bool redo) {
          their own program name still work. */
       static char** owned_argv = nullptr;
       static char** owned_strs = nullptr;
-      static int    owned_strs_len = 0;
+      static int owned_strs_len = 0;
 
       /* Stash argv[0] before freeing the prior vector — program_argv
          may point into the prior owned_argv. */

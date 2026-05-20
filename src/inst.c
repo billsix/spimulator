@@ -4,7 +4,6 @@
    SPDX-License-Identifier: BSD-3-Clause
    See LICENSE in the project root for full text. */
 
-
 #include <stdio.h>
 #include <string.h>
 
@@ -173,17 +172,17 @@ void i_type_inst(int opcode, int rt, int rs, imm_expr* expr) {
     /* Evaluate the instruction's expression. */
     int32 value = eval_imm_expr(expr);
 
-    if (!bare_machine &&
-        (((opcode == TOK_ADDI_OP || opcode == TOK_ADDIU_OP || opcode == TOK_SLTI_OP ||
-           opcode == TOK_SLTIU_OP || opcode == TOK_TEQI_OP || opcode == TOK_TGEI_OP ||
-           opcode == TOK_TGEIU_OP || opcode == TOK_TLTI_OP ||
-           opcode == TOK_TLTIU_OP || opcode == TOK_TNEI_OP ||
-           (opcode_is_load_store(opcode) && expr->bits == 0))
-              // Sign-extended immediate values:
-              ? ((value & 0xffff8000) != 0 &&
-                 (value & 0xffff8000) != 0xffff8000)
-              // Not sign-extended:
-              : (value & 0xffff0000) != 0))) {
+    if (!bare_machine && (((opcode == TOK_ADDI_OP || opcode == TOK_ADDIU_OP ||
+                            opcode == TOK_SLTI_OP || opcode == TOK_SLTIU_OP ||
+                            opcode == TOK_TEQI_OP || opcode == TOK_TGEI_OP ||
+                            opcode == TOK_TGEIU_OP || opcode == TOK_TLTI_OP ||
+                            opcode == TOK_TLTIU_OP || opcode == TOK_TNEI_OP ||
+                            (opcode_is_load_store(opcode) && expr->bits == 0))
+                               // Sign-extended immediate values:
+                               ? ((value & 0xffff8000) != 0 &&
+                                  (value & 0xffff8000) != 0xffff8000)
+                               // Not sign-extended:
+                               : (value & 0xffff0000) != 0))) {
       // Non-immediate value
       free_inst(inst);
       i_type_inst_full_word(opcode, rt, rs, expr, 1, value);
@@ -218,7 +217,8 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
     if (expr->symbol != nullptr && expr->symbol->gp_flag && rs == 0 &&
         (int32)IMM_MIN <= (offset = expr->symbol->addr + expr->offset) &&
         offset <= (int32)IMM_MAX) {
-      i_type_inst_free(opcode, rt, REG_GP, make_imm_expr(offset, nullptr, false));
+      i_type_inst_free(opcode, rt, REG_GP,
+                       make_imm_expr(offset, nullptr, false));
     } else if (value_known) {
       int low, high;
 
@@ -265,12 +265,12 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
     if (expr->symbol != nullptr && expr->symbol->gp_flag && rs == 0 &&
         (int32)IMM_MIN <= (offset = expr->symbol->addr + expr->offset) &&
         offset <= (int32)IMM_MAX) {
-      i_type_inst_free((opcode == TOK_LUI_OP ? TOK_ADDIU_OP : opcode), rt, REG_GP,
-                       make_imm_expr(offset, nullptr, false));
+      i_type_inst_free((opcode == TOK_LUI_OP ? TOK_ADDIU_OP : opcode), rt,
+                       REG_GP, make_imm_expr(offset, nullptr, false));
     } else {
       /* Use $at */
-      if ((opcode == TOK_ORI_OP || opcode == TOK_ADDI_OP || opcode == TOK_ADDIU_OP ||
-           opcode == TOK_LUI_OP) &&
+      if ((opcode == TOK_ORI_OP || opcode == TOK_ADDI_OP ||
+           opcode == TOK_ADDIU_OP || opcode == TOK_LUI_OP) &&
           rs == 0) {
         produce_immediate(expr, rt, value_known, value);
       } else {
@@ -859,7 +859,8 @@ bool opcode_is_load_store(int opcode) {
 /* Return true if a breakpoint is set at ADDR. */
 
 bool inst_is_breakpoint(mem_addr addr) {
-  if (break_inst == nullptr) break_inst = make_r_type_inst(TOK_BREAK_OP, 1, 0, 0);
+  if (break_inst == nullptr)
+    break_inst = make_r_type_inst(TOK_BREAK_OP, 1, 0, 0);
 
   return (mem_read_inst(addr) == break_inst);
 }
@@ -870,7 +871,8 @@ bool inst_is_breakpoint(mem_addr addr) {
 instruction* set_breakpoint(mem_addr addr) {
   instruction* old_inst;
 
-  if (break_inst == nullptr) break_inst = make_r_type_inst(TOK_BREAK_OP, 1, 0, 0);
+  if (break_inst == nullptr)
+    break_inst = make_r_type_inst(TOK_BREAK_OP, 1, 0, 0);
 
   exception_occurred = 0;
   old_inst = mem_read_inst(addr);
@@ -1188,7 +1190,8 @@ instruction* inst_decode(int32 val) {
 
   entry = map_int_to_name_val_val(
       a_opcode_tbl, sizeof(a_opcode_tbl) / sizeof(name_val_val), a_opcode);
-  if (entry == nullptr) return (mk_r_inst(val, 0, 0, 0, 0, 0)); /* Invalid inst */
+  if (entry == nullptr)
+    return (mk_r_inst(val, 0, 0, 0, 0, 0)); /* Invalid inst */
 
   i_opcode = entry->value2;
 

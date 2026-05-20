@@ -3,7 +3,6 @@
    SPDX-License-Identifier: BSD-3-Clause
    See LICENSE in the project root for full text. */
 
-
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>

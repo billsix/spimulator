@@ -28,13 +28,13 @@ extern void scanner_force_identifier(void);
 
 /* ------- runtime-visible globals --------------------------- */
 
-bool data_dir = false;            /* => item in data segment */
-bool text_dir = true;             /* => item in text segment */
+bool data_dir = false; /* => item in data segment */
+bool text_dir = true;  /* => item in text segment */
 /* parse_error_occurred / parse_errors_seen live in pseudo_op.c
    alongside the parse_error funnel that sets them; declared extern
    here for the parse_line tail. */
 extern bool parse_error_occurred;
-extern int  parse_errors_seen;
+extern int parse_errors_seen;
 
 /* Source file name, used by parse_error / parse_warn for messages.  Exposed
    via the accessor below so pseudo_op.c can read it without
@@ -101,8 +101,8 @@ void fix_current_label_address(mem_addr new_addr) {
 static void parse_error_at(const char* msg) {
   parse_error_occurred = true;
   parse_errors_seen += 1;
-  error("spim: (parser) %s on line %d of file %s\n",
-        msg, line_no, input_file_name ? input_file_name : "(stdin)");
+  error("spim: (parser) %s on line %d of file %s\n", msg, line_no,
+        input_file_name ? input_file_name : "(stdin)");
 }
 
 /* Skip tokens up to (but NOT past) the next newline.  parse_line's
@@ -182,7 +182,7 @@ static int parse_abs_addr(void) {
    record a data-uses-symbol entry for later resolution. */
 extern void record_data_uses_symbol(mem_addr location, label* sym);
 
-static int parse_expr(void);  /* forward */
+static int parse_expr(void); /* forward */
 static int parse_factor(void) {
   if (scanner_peek() == TOK_INT) {
     scanner_advance();
@@ -218,8 +218,10 @@ static int parse_term(void) {
   while (scanner_peek() == '*' || scanner_peek() == '/') {
     int op = scanner_advance();
     int r = parse_factor();
-    if (op == '*') v *= r;
-    else v = (r == 0) ? 0 : v / r;
+    if (op == '*')
+      v *= r;
+    else
+      v = (r == 0) ? 0 : v / r;
   }
   return v;
 }
@@ -230,8 +232,10 @@ static int parse_expr(void) {
   while (scanner_peek() == '+' || scanner_peek() == '-') {
     int op = scanner_advance();
     int r = parse_term();
-    if (op == '+') v += r;
-    else          v -= r;
+    if (op == '+')
+      v += r;
+    else
+      v -= r;
   }
   return v;
 }
@@ -339,7 +343,7 @@ static addr_expr* parse_address(void) {
     int imm = parse_abs_addr();
     if (scanner_peek() == '+' && scanner_peek2() == TOK_ID) {
       /* ABS_ADDR '+' ID */
-      scanner_advance();  /* + */
+      scanner_advance(); /* + */
       scanner_force_identifier();
       scanner_advance();
       char* sym = (char*)scan_value.p;
@@ -413,13 +417,14 @@ static void parse_r3(int op) {
   int rd = parse_register();
   if (op == TOK_CLO_OP || op == TOK_CLZ_OP) {
     /* COUNT_LEADING_OPS DEST SRC1 — RT must equal RD.
-      */
+     */
     int rs = parse_register();
     r_type_inst(op, rd, rs, rd);
     return;
   }
   if (op == TOK_MUL_OP) {
-    /* MULT_OPS3 DEST SRC1 (SRC2|IMM).  3-reg or 3-with-imm. Imm form uses $at + ori. */
+    /* MULT_OPS3 DEST SRC1 (SRC2|IMM).  3-reg or 3-with-imm. Imm form uses $at +
+     * ori. */
     int rs = parse_register();
     if (scanner_peek() == TOK_REG) {
       int rt = parse_register();
@@ -437,8 +442,8 @@ static void parse_r3(int op) {
     if (scanner_peek() != TOK_REG) {
       imm_expr* imm = parse_imm32();
       int val = eval_imm_expr(imm);
-      i_type_inst(op == TOK_SUB_OP ? TOK_ADDI_OP : TOK_ADDIU_OP,
-                  rd, rd, make_imm_expr(-val, nullptr, false));
+      i_type_inst(op == TOK_SUB_OP ? TOK_ADDI_OP : TOK_ADDIU_OP, rd, rd,
+                  make_imm_expr(-val, nullptr, false));
       free(imm);
       return;
     }
@@ -449,8 +454,8 @@ static void parse_r3(int op) {
     } else {
       imm_expr* imm = parse_imm32();
       int val = eval_imm_expr(imm);
-      i_type_inst(op == TOK_SUB_OP ? TOK_ADDI_OP : TOK_ADDIU_OP,
-                  rd, rs, make_imm_expr(-val, nullptr, false));
+      i_type_inst(op == TOK_SUB_OP ? TOK_ADDI_OP : TOK_ADDIU_OP, rd, rs,
+                  make_imm_expr(-val, nullptr, false));
       free(imm);
     }
     return;
@@ -488,7 +493,7 @@ static void parse_r2sh(int op) {
     return;
   }
   int rd = parse_register();
-  int rs = parse_register();  /* this is rt in MIPS shift encoding */
+  int rs = parse_register(); /* this is rt in MIPS shift encoding */
   if (scanner_peek() != TOK_INT) {
     parse_error_at("Expected integer shift amount");
     return;
@@ -506,8 +511,8 @@ static void parse_r1s(int op) {
 
 /* I2_TYPE_INST: <op> DEST, SRC1, IMM16
    Also accepts the 2-operand shorthand `<op> DEST, IMM16` for
-   andi/ori/xori where the missing SRC1 defaults to DEST — exception handlers use
-   `ori $k0, 0x1`. */
+   andi/ori/xori where the missing SRC1 defaults to DEST — exception handlers
+   use `ori $k0, 0x1`. */
 static void parse_i2(int op) {
   int rt = parse_register();
   int rs;
@@ -559,7 +564,7 @@ static void parse_b2(int op) {
     /* Immediate form */
     imm_expr* imm = parse_imm32();
     imm_expr* target = parse_label();
-    extern bool is_zero_imm(imm_expr* expr);
+    extern bool is_zero_imm(imm_expr * expr);
     if (is_zero_imm(imm)) {
       /* Special case: comparing against literal 0 → use $0 directly */
       i_type_inst(op, src1, 0, target);
@@ -588,7 +593,7 @@ static void parse_b1(int op) {
 static void parse_j(int op) {
   if (scanner_peek() == TOK_REG) {
     /* J_OPS SRC1  or  J_OPS DEST SRC1 — register-indirect jump.
-      */
+     */
     int r1 = parse_register();
     if (scanner_peek() == TOK_REG) {
       /* DEST SRC1 form */
@@ -636,9 +641,10 @@ static void parse_noarg(int op) {
 
 static void parse_dir_data(bool kernel) {
   user_kernel_data_segment(kernel);
-  data_dir = true; text_dir = false;
+  data_dir = true;
+  text_dir = false;
   enable_data_alignment();
-  auto_align = true;   /* mirror data.c's enable_data_auto_alignment */
+  auto_align = true; /* mirror data.c's enable_data_auto_alignment */
   if (scanner_peek() == TOK_INT) {
     scanner_advance();
     set_data_pc(scan_value.i);
@@ -647,7 +653,8 @@ static void parse_dir_data(bool kernel) {
 
 static void parse_dir_text(bool kernel) {
   user_kernel_text_segment(kernel);
-  data_dir = false; text_dir = true;
+  data_dir = false;
+  text_dir = true;
   if (scanner_peek() == TOK_INT) {
     scanner_advance();
     set_text_pc(scan_value.i);
@@ -667,14 +674,19 @@ static void parse_dir_globl(void) {
 
 static void parse_dir_align(void) {
   int v = parse_expression();
-  if (v == 0) auto_align = false;   /* mirror data.c's flag */
-  if (text_dir) align_text(v);
-  else          align_data(v);
+  if (v == 0) auto_align = false; /* mirror data.c's flag */
+  if (text_dir)
+    align_text(v);
+  else
+    align_data(v);
 }
 
 static void parse_dir_extern(void) {
   scanner_force_identifier();
-  if (scanner_peek() != TOK_ID) { parse_error_at("Expected ID"); return; }
+  if (scanner_peek() != TOK_ID) {
+    parse_error_at("Expected ID");
+    return;
+  }
   scanner_advance();
   char* sym = (char*)scan_value.p;
   int sz = parse_expression();
@@ -688,7 +700,10 @@ static void parse_dir_extern(void) {
 
 static void parse_dir_comm(void) {
   scanner_force_identifier();
-  if (scanner_peek() != TOK_ID) { parse_error_at("Expected ID"); return; }
+  if (scanner_peek() != TOK_ID) {
+    parse_error_at("Expected ID");
+    return;
+  }
   scanner_advance();
   char* sym = (char*)scan_value.p;
   int sz = parse_expression();
@@ -702,7 +717,10 @@ static void parse_dir_comm(void) {
 
 static void parse_dir_space(void) {
   int v = parse_expression();
-  if (text_dir) { parse_error_at("Can't put data in text segment"); return; }
+  if (text_dir) {
+    parse_error_at("Can't put data in text segment");
+    return;
+  }
   increment_data_pc(v);
 }
 
@@ -719,8 +737,9 @@ static void parse_expr_list(void) {
 
 /* Pre-fix any labels currently on this_line_labels to the
    address they'll occupy AFTER `set_data_alignment(N)` aligns
-   the data PC.  `align_data` calls `fix_current_label_address` to align `this_line_labels`; we maintain our own and pre-fix here.
-   Respects the same auto-align gate that data.c uses. */
+   the data PC.  `align_data` calls `fix_current_label_address` to align
+   `this_line_labels`; we maintain our own and pre-fix here. Respects the same
+   auto-align gate that data.c uses. */
 static void align_labels_to(int alignment) {
   if (!data_dir || !auto_align || this_line_labels == nullptr) return;
   mem_addr cur = current_data_pc();
@@ -756,19 +775,22 @@ static void parse_dir_double(void) {
   parse_fp_expr_list();
 }
 
-static void parse_dir_word(void)  {
+static void parse_dir_word(void) {
   align_labels_to(2);
   store_op = store_word;
   if (data_dir) set_data_alignment(2);
   parse_expr_list();
 }
-static void parse_dir_half(void)  {
+static void parse_dir_half(void) {
   align_labels_to(1);
   store_op = store_half;
   if (data_dir) set_data_alignment(1);
   parse_expr_list();
 }
-static void parse_dir_byte(void)  { store_op = store_byte; parse_expr_list(); }
+static void parse_dir_byte(void) {
+  store_op = store_byte;
+  parse_expr_list();
+}
 
 /* STR_LST: emit each string via store_string */
 static void parse_string_list(void) {
@@ -790,15 +812,24 @@ static void parse_string_list(void) {
   }
 }
 
-static void parse_dir_ascii(void)  { null_term = false; parse_string_list(); }
-static void parse_dir_asciiz(void) { null_term = true;  parse_string_list(); }
+static void parse_dir_ascii(void) {
+  null_term = false;
+  parse_string_list();
+}
+static void parse_dir_asciiz(void) {
+  null_term = true;
+  parse_string_list();
+}
 
 /* ---------------- top-level dispatch ---------------- */
 
 /* Look up an opcode's TYPE field (from op.h's X-macro).  We
    rebuild a small table here keyed on opcode-token value. */
 
-typedef struct { int op; int type; } op_type_entry;
+typedef struct {
+  int op;
+  int type;
+} op_type_entry;
 
 static op_type_entry op_type_table[] = {
 #define OP(NAME, OPCODE, TYPE, R_OPCODE) {OPCODE, TYPE},
@@ -898,7 +929,8 @@ static void parse_pseudo(int op) {
     case TOK_SGEU_POP:
     case TOK_SEQ_POP:
     case TOK_SNE_POP: {
-      /* SET_*_POPS: DEST SRC1 (SRC2|IMM32).. IMM form uses $at + ori when imm != 0. */
+      /* SET_*_POPS: DEST SRC1 (SRC2|IMM32).. IMM form uses $at + ori when imm
+       * != 0. */
       int rd = parse_register();
       int rs = parse_register();
       int rt;
@@ -917,13 +949,21 @@ static void parse_pseudo(int op) {
       }
       switch (op) {
         case TOK_SLE_POP:
-        case TOK_SLEU_POP: set_le_inst(op, rd, rs, rt); break;
+        case TOK_SLEU_POP:
+          set_le_inst(op, rd, rs, rt);
+          break;
         case TOK_SGT_POP:
-        case TOK_SGTU_POP: set_gt_inst(op, rd, rs, rt); break;
+        case TOK_SGTU_POP:
+          set_gt_inst(op, rd, rs, rt);
+          break;
         case TOK_SGE_POP:
-        case TOK_SGEU_POP: set_ge_inst(op, rd, rs, rt); break;
+        case TOK_SGEU_POP:
+          set_ge_inst(op, rd, rs, rt);
+          break;
         case TOK_SEQ_POP:
-        case TOK_SNE_POP: set_eq_inst(op, rd, rs, rt); break;
+        case TOK_SNE_POP:
+          set_eq_inst(op, rd, rs, rt);
+          break;
       }
       break;
     }
@@ -947,7 +987,7 @@ static void parse_pseudo(int op) {
     case TOK_REM_POP:
     case TOK_REMU_POP: {
       /* rem/remu — DIV_POPS pseudo, 3-operand form only.
-        */
+       */
       int rd = parse_register();
       int rs = parse_register();
       if (scanner_peek() == TOK_REG) {
@@ -955,7 +995,7 @@ static void parse_pseudo(int op) {
         div_inst(op, rd, rs, rt, 0);
       } else {
         imm_expr* imm = parse_imm32();
-        extern bool is_zero_imm(imm_expr* expr);
+        extern bool is_zero_imm(imm_expr * expr);
         if (is_zero_imm(imm)) {
           parse_error_at("Divide by zero");
         } else {
@@ -975,7 +1015,7 @@ static void parse_pseudo(int op) {
         mult_inst(op, rd, rs, rt);
       } else {
         imm_expr* imm = parse_imm32();
-        extern bool is_zero_imm(imm_expr* expr);
+        extern bool is_zero_imm(imm_expr * expr);
         if (is_zero_imm(imm)) {
           /* Optimize: n * 0 == 0 */
           i_type_inst_free(TOK_ORI_OP, rd, 0, imm);
@@ -988,22 +1028,26 @@ static void parse_pseudo(int op) {
     }
     case TOK_MFC1_D_POP: {
       /* mfc1.d REG COP_REG  →  two mfc1 instructions
-*/
+       */
       int reg = parse_register();
       int copreg;
-      if (scanner_peek() == TOK_FP_REG) copreg = parse_fp_register();
-      else copreg = parse_register();
+      if (scanner_peek() == TOK_FP_REG)
+        copreg = parse_fp_register();
+      else
+        copreg = parse_register();
       r_co_type_inst(TOK_MFC1_OP, 0, copreg, reg);
       r_co_type_inst(TOK_MFC1_OP, 0, copreg + 1, reg + 1);
       break;
     }
     case TOK_MTC1_D_POP: {
       /* mtc1.d REG COP_REG  →  two mtc1 instructions
-*/
+       */
       int reg = parse_register();
       int copreg;
-      if (scanner_peek() == TOK_FP_REG) copreg = parse_fp_register();
-      else copreg = parse_register();
+      if (scanner_peek() == TOK_FP_REG)
+        copreg = parse_fp_register();
+      else
+        copreg = parse_register();
       r_co_type_inst(TOK_MTC1_OP, 0, copreg, reg);
       r_co_type_inst(TOK_MTC1_OP, 0, copreg + 1, reg + 1);
       break;
@@ -1026,7 +1070,7 @@ static void parse_pseudo(int op) {
     }
     case TOK_LI_S_POP: {
       /* li.s F_DEST <TOK_FP>  →  single-precision const via one mtc1
-*/
+       */
       int fd = parse_fp_register();
       if (scanner_peek() != TOK_FP) {
         parse_error_at("Expected FP literal");
@@ -1299,17 +1343,39 @@ static void parse_asm_code(void) {
   int type = find_op_type(op);
 
   switch (type) {
-    case NOARG_TYPE_INST: parse_noarg(op); break;
-    case R3_TYPE_INST:    parse_r3(op);    break;
-    case R2sh_TYPE_INST:  parse_r2sh(op);  break;
-    case R1s_TYPE_INST:   parse_r1s(op);   break;
-    case I2_TYPE_INST:    parse_i2(op);    break;
-    case I1t_TYPE_INST:   parse_i1t(op);   break;
-    case I2a_TYPE_INST:   parse_i2a(op);   break;
-    case B2_TYPE_INST:    parse_b2(op);    break;
-    case B1_TYPE_INST:    parse_b1(op);    break;
-    case J_TYPE_INST:     parse_j(op);     break;
-    case PSEUDO_OP:       parse_pseudo(op); break;
+    case NOARG_TYPE_INST:
+      parse_noarg(op);
+      break;
+    case R3_TYPE_INST:
+      parse_r3(op);
+      break;
+    case R2sh_TYPE_INST:
+      parse_r2sh(op);
+      break;
+    case R1s_TYPE_INST:
+      parse_r1s(op);
+      break;
+    case I2_TYPE_INST:
+      parse_i2(op);
+      break;
+    case I1t_TYPE_INST:
+      parse_i1t(op);
+      break;
+    case I2a_TYPE_INST:
+      parse_i2a(op);
+      break;
+    case B2_TYPE_INST:
+      parse_b2(op);
+      break;
+    case B1_TYPE_INST:
+      parse_b1(op);
+      break;
+    case J_TYPE_INST:
+      parse_j(op);
+      break;
+    case PSEUDO_OP:
+      parse_pseudo(op);
+      break;
     case R2td_TYPE_INST: {
       /* mfc0/mtc0/etc.: <op> REG COP_REG.  COP_REG accepts
          TOK_REG or TOK_FP_REG. */
@@ -1337,17 +1403,17 @@ static void parse_asm_code(void) {
          Dispatch by operand count: count registers after the
          first one. */
       int r1 = parse_register();
-      if (scanner_peek() != TOK_REG && scanner_peek() != TOK_INT
-          && scanner_peek() != TOK_ID) {
+      if (scanner_peek() != TOK_REG && scanner_peek() != TOK_INT &&
+          scanner_peek() != TOK_ID) {
         /* Not enough operands?  Fall back to plain 2-form
            anyway — produces a syntax error if anything's wrong. */
         parse_error_at("Expected operand for div/mult");
         break;
       }
-      if (op == TOK_TEQ_OP || op == TOK_TGE_OP || op == TOK_TGEU_OP
-          || op == TOK_TLT_OP || op == TOK_TLTU_OP || op == TOK_TNE_OP) {
+      if (op == TOK_TEQ_OP || op == TOK_TGE_OP || op == TOK_TGEU_OP ||
+          op == TOK_TLT_OP || op == TOK_TLTU_OP || op == TOK_TNE_OP) {
         /* BINARY_TRAP_OPS: <op> SRC1 SRC2 → r_type_inst(op, 0, r1, r2)
- */
+         */
         int r2 = parse_register();
         r_type_inst(op, 0, r1, r2);
       } else if (op == TOK_DIV_OP || op == TOK_DIVU_OP) {
@@ -1362,7 +1428,7 @@ static void parse_asm_code(void) {
           div_inst(op, r1, r2, r3, 0);
         } else {
           imm_expr* imm = parse_imm32();
-          extern bool is_zero_imm(imm_expr* expr);
+          extern bool is_zero_imm(imm_expr * expr);
           if (is_zero_imm(imm)) {
             parse_error_at("Divide by zero");
           } else {
@@ -1382,7 +1448,7 @@ static void parse_asm_code(void) {
     }
     case R1d_TYPE_INST: {
       /* One-destination-register R-type: mfhi/mflo.  See
-         */
+       */
       int rd = parse_register();
       r_type_inst(op, rd, 0, 0);
       break;
@@ -1398,7 +1464,8 @@ static void parse_asm_code(void) {
         int rt = parse_register();
         r_type_inst(op, rd, rt, rs);
       } else {
-        /* DEST SRC1 TOK_INT → r_sh_type_inst(op_to_imm_op(op), DEST, SRC1, shamt) */
+        /* DEST SRC1 TOK_INT → r_sh_type_inst(op_to_imm_op(op), DEST, SRC1,
+         * shamt) */
         if (scanner_peek() != TOK_INT) {
           parse_error_at("Expected register or integer shift");
           break;
@@ -1465,7 +1532,7 @@ static void parse_asm_code(void) {
     }
     case FP_R3_TYPE_INST: {
       /* FP_BINARY_OPS: <op> F_DEST F_SRC1 F_SRC2.
-         */
+       */
       int fd = parse_fp_register();
       int fs = parse_fp_register();
       int ft = parse_fp_register();
@@ -1511,7 +1578,7 @@ static void parse_asm_code(void) {
     }
     case FP_I2a_TYPE_INST: {
       /* lwc1 / ldc1 / lwc2 etc.: <op> F_REG ADDRESS.
-         */
+       */
       int fr = parse_fp_register();
       addr_expr* addr = parse_address();
       i_type_inst(op, fr, addr_expr_reg(addr), addr_expr_imm(addr));
@@ -1542,23 +1609,57 @@ static void parse_asm_code(void) {
 
 static void parse_directive(int dir_tok) {
   switch (dir_tok) {
-    case TOK_DATA_DIR:     parse_dir_data(false); break;
-    case TOK_K_DATA_DIR:   parse_dir_data(true);  break;
-    case TOK_TEXT_DIR:     parse_dir_text(false); break;
-    case TOK_K_TEXT_DIR:   parse_dir_text(true);  break;
-    case TOK_GLOBAL_DIR:   parse_dir_globl();     break;
-    case TOK_WORD_DIR:     parse_dir_word();      break;
-    case TOK_HALF_DIR:     parse_dir_half();      break;
-    case TOK_BYTE_DIR:     parse_dir_byte();      break;
-    case TOK_ASCII_DIR:    parse_dir_ascii();     break;
-    case TOK_ASCIIZ_DIR:   parse_dir_asciiz();    break;
-    case TOK_FLOAT_DIR:    parse_dir_float();     break;
-    case TOK_DOUBLE_DIR:   parse_dir_double();    break;
-    case TOK_SPACE_DIR:    parse_dir_space();     break;
-    case TOK_ALIGN_DIR:    parse_dir_align();     break;
-    case TOK_COMM_DIR:     parse_dir_comm();      break;
-    case TOK_EXTERN_DIR:   parse_dir_extern();    break;
-    case TOK_ERR_DIR:      parse_error_at(".err directive"); break;
+    case TOK_DATA_DIR:
+      parse_dir_data(false);
+      break;
+    case TOK_K_DATA_DIR:
+      parse_dir_data(true);
+      break;
+    case TOK_TEXT_DIR:
+      parse_dir_text(false);
+      break;
+    case TOK_K_TEXT_DIR:
+      parse_dir_text(true);
+      break;
+    case TOK_GLOBAL_DIR:
+      parse_dir_globl();
+      break;
+    case TOK_WORD_DIR:
+      parse_dir_word();
+      break;
+    case TOK_HALF_DIR:
+      parse_dir_half();
+      break;
+    case TOK_BYTE_DIR:
+      parse_dir_byte();
+      break;
+    case TOK_ASCII_DIR:
+      parse_dir_ascii();
+      break;
+    case TOK_ASCIIZ_DIR:
+      parse_dir_asciiz();
+      break;
+    case TOK_FLOAT_DIR:
+      parse_dir_float();
+      break;
+    case TOK_DOUBLE_DIR:
+      parse_dir_double();
+      break;
+    case TOK_SPACE_DIR:
+      parse_dir_space();
+      break;
+    case TOK_ALIGN_DIR:
+      parse_dir_align();
+      break;
+    case TOK_COMM_DIR:
+      parse_dir_comm();
+      break;
+    case TOK_EXTERN_DIR:
+      parse_dir_extern();
+      break;
+    case TOK_ERR_DIR:
+      parse_error_at(".err directive");
+      break;
     /* Metadata directives — swallow the rest of the line. */
     case TOK_FILE_DIR:
     case TOK_LOC_DIR:
@@ -1599,14 +1700,13 @@ static void parse_opt_label(void) {
      classified at the peek site, so the flag would
      incorrectly affect a LATER token (e.g., misclassifying
      `buf: .word 42`'s `.word` as TOK_ID). */
-  scanner_advance();  /* consume TOK_ID */
+  scanner_advance(); /* consume TOK_ID */
   char* sym = (char*)scan_value.p;
-  int sep = scanner_advance();  /* ':' or '=' */
+  int sep = scanner_advance(); /* ':' or '=' */
 
   if (sep == ':') {
-    label* l = record_label(sym,
-                            text_dir ? current_text_pc() : current_data_pc(),
-                            0);
+    label* l =
+        record_label(sym, text_dir ? current_text_pc() : current_data_pc(), 0);
     /* Cons onto this_line_labels — DO NOT resolve uses
        immediately.  If a subsequent .word (etc.) on the next
        line bumps the data PC for alignment, fix_current_label_address
@@ -1635,23 +1735,28 @@ static void parse_line(void) {
   }
 
   /* Look ahead for optional label */
-  if (scanner_peek() == TOK_ID
-      && (scanner_peek2() == ':' || scanner_peek2() == '=')) {
+  if (scanner_peek() == TOK_ID &&
+      (scanner_peek2() == ':' || scanner_peek2() == '=')) {
     parse_opt_label();
   }
 
   /* Then maybe directive or instruction */
   int t = scanner_peek();
-  if (t == TOK_NL) { scanner_advance(); return; }
-  if (t == TOK_EOF) { return; }
+  if (t == TOK_NL) {
+    scanner_advance();
+    return;
+  }
+  if (t == TOK_EOF) {
+    return;
+  }
 
   if (is_directive(t)) {
     int dt = scanner_advance();
     parse_directive(dt);
-    clear_labels();   /* clear labels after the directive */
+    clear_labels(); /* clear labels after the directive */
   } else {
     parse_asm_code();
-    clear_labels();   /* clear labels after the instruction */
+    clear_labels(); /* clear labels after the instruction */
   }
 
   /* Expect newline or EOF */
@@ -1687,4 +1792,3 @@ int parse_file(void) {
   clear_labels();
   return parse_errors_seen;
 }
-

@@ -319,10 +319,40 @@ change behavior.
 
 ---
 
-## Tier F — structural refactors (weeks each, medium-high risk)
+## Tier F — structural refactors (CONSIDERED, NOT PURSUED 2026-05-20)
 
-These are bigger swings.  Each is independently justifiable; none
-is urgent.
+After Tiers A-E landed, evaluated F1/F2/F3 against the
+post-cleanup state of the codebase and decided not to pursue.
+The rationale:
+
+- **F1 (context structs)** was motivated by "testable: you can
+  instantiate two parsers in one process for parity testing."
+  The parity-testing use case died with bison in Phase 5;
+  there's only one parser now and spim runs one file at a
+  time.  Threading a `parser_state*` through every internal
+  function in parser.c adds a parameter to ~30 function
+  signatures and ~200 internal call sites for zero behavioural
+  or testing benefit.
+
+- **F2 (opaque memory)** was the same shape — ~150 call sites
+  changed to add a `memory*` parameter that the
+  single-instance simulator never uses.
+
+- **F3 (split run.c)** would force dispatch through a function-
+  pointer table or chained sub-switches.  The current monolith
+  fits the domain (one CPU's instruction decoder); splitting
+  would obscure rather than clarify.
+
+- **F4** the plan already recommended skipping.
+
+Tier F items remain plausible if the codebase grows in ways
+that change the calculus (e.g. embedding spim as a library, or
+running multiple parsers concurrently for some teaching
+visualisation).  Until then, the cost-benefit doesn't work.
+
+Original Tier F text preserved below in case the calculus changes.
+
+### Original F1-F4 (preserved)
 
 ### F1. Bundle file-statics into context structs
 

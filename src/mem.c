@@ -3,7 +3,6 @@
    SPDX-License-Identifier: BSD-3-Clause
    See LICENSE in the project root for full text. */
 
-
 #include "spim.h"
 #include "string-stream.h"
 #include "spim-utils.h"

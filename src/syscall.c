@@ -4,7 +4,6 @@
    SPDX-License-Identifier: BSD-3-Clause
    See LICENSE in the project root for full text. */
 
-
 #ifndef _WIN32
 #include <unistd.h>
 #endif

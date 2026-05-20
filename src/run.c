@@ -3,7 +3,6 @@
    SPDX-License-Identifier: BSD-3-Clause
    See LICENSE in the project root for full text. */
 
-
 #ifdef mips
 #define _IEEE 1
 #include <nan.h>
@@ -124,12 +123,12 @@ static int running_in_delay_slot = 0;
 #define DO_DELAYED_UPDATE()                      \
   if (delayed_loads) {                           \
     /* Check for delayed updates */              \
-    if (delayed_load_addr2 != nullptr) {            \
+    if (delayed_load_addr2 != nullptr) {         \
       *delayed_load_addr2 = delayed_load_value2; \
     }                                            \
     delayed_load_addr2 = delayed_load_addr1;     \
     delayed_load_value2 = delayed_load_value1;   \
-    delayed_load_addr1 = nullptr;                   \
+    delayed_load_addr1 = nullptr;                \
   }
 
 /* Run the program stored in memory, starting at address PC for
@@ -1572,10 +1571,8 @@ void raise_exception(int excode) {
        Only the first wins because spim's default handler advances past the
        faulting instruction and continues; without the latch, a misbehaving
        loop would overwrite the status repeatedly. */
-    if (first_bad_exception == -1 &&
-        excode != ExcCode_Int &&
-        excode != ExcCode_Sys &&
-        excode != ExcCode_Bp) {
+    if (first_bad_exception == -1 && excode != ExcCode_Int &&
+        excode != ExcCode_Sys && excode != ExcCode_Bp) {
       first_bad_exception = excode;
     }
     if (running_in_delay_slot) {

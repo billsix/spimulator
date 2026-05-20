@@ -11,34 +11,34 @@
 #include <stdlib.h>
 
 #include "spim.h"
-#include "spim-utils.h"     /* name_val_val, str_copy, xmalloc */
-#include "reg.h"            /* R_LENGTH */
-#include "sym-tbl.h"        /* label_is_defined */
-#include "scanner.h"        /* scan_value, line_no */
-#include "tokens.h"    /* TOK_* token values */
+#include "spim-utils.h" /* name_val_val, str_copy, xmalloc */
+#include "reg.h"        /* R_LENGTH */
+#include "sym-tbl.h"    /* label_is_defined */
+#include "scanner.h"    /* scan_value, line_no */
+#include "tokens.h"     /* TOK_* token values */
 
 /* Runtime-visible globals. */
-int          line_no    = 1;
+int line_no = 1;
 scan_value_t scan_value = {0};
 
 /* Register-name → register-number lookup.  Public because inst.c and
    explain.c also call register_name_to_number, independent of the
    scanner's internal keyword table. */
 static name_val_val register_tbl[] = {
-    {"a0", 4, 0},   {"a1", 5, 0},   {"a2", 6, 0},   {"a3", 7, 0},
-    {"at", 1, 0},   {"fp", 30, 0},  {"gp", 28, 0},  {"k0", 26, 0},
-    {"k1", 27, 0},  {"kt0", 26, 0}, {"kt1", 27, 0}, {"ra", 31, 0},
-    {"s0", 16, 0},  {"s1", 17, 0},  {"s2", 18, 0},  {"s3", 19, 0},
-    {"s4", 20, 0},  {"s5", 21, 0},  {"s6", 22, 0},  {"s7", 23, 0},
-    {"s8", 30, 0},  {"sp", 29, 0},  {"t0", 8, 0},   {"t1", 9, 0},
-    {"t2", 10, 0},  {"t3", 11, 0},  {"t4", 12, 0},  {"t5", 13, 0},
-    {"t6", 14, 0},  {"t7", 15, 0},  {"t8", 24, 0},  {"t9", 25, 0},
-    {"v0", 2, 0},   {"v1", 3, 0},   {"zero", 0, 0}};
+    {"a0", 4, 0},  {"a1", 5, 0},   {"a2", 6, 0},   {"a3", 7, 0},
+    {"at", 1, 0},  {"fp", 30, 0},  {"gp", 28, 0},  {"k0", 26, 0},
+    {"k1", 27, 0}, {"kt0", 26, 0}, {"kt1", 27, 0}, {"ra", 31, 0},
+    {"s0", 16, 0}, {"s1", 17, 0},  {"s2", 18, 0},  {"s3", 19, 0},
+    {"s4", 20, 0}, {"s5", 21, 0},  {"s6", 22, 0},  {"s7", 23, 0},
+    {"s8", 30, 0}, {"sp", 29, 0},  {"t0", 8, 0},   {"t1", 9, 0},
+    {"t2", 10, 0}, {"t3", 11, 0},  {"t4", 12, 0},  {"t5", 13, 0},
+    {"t6", 14, 0}, {"t7", 15, 0},  {"t8", 24, 0},  {"t9", 25, 0},
+    {"v0", 2, 0},  {"v1", 3, 0},   {"zero", 0, 0}};
 
 int register_name_to_number(char* name) {
   int c1 = *name, c2 = *(name + 1);
-  if ('0' <= c1 && c1 <= '9'
-      && (c2 == '\0' || (('0' <= c2 && c2 <= '9') && *(name + 2) == '\0'))) {
+  if ('0' <= c1 && c1 <= '9' &&
+      (c2 == '\0' || (('0' <= c2 && c2 <= '9') && *(name + 2) == '\0'))) {
     return atoi(name);
   } else if (c1 == 'f' && c2 >= '0' && c2 <= '9') {
     return atoi(name + 1);
@@ -59,10 +59,8 @@ static name_val_val keyword_tbl[] = {
 };
 
 static int check_keyword(char* id, int allow_pseudo_ops) {
-  name_val_val* entry =
-    map_string_to_name_val_val(keyword_tbl,
-                               sizeof(keyword_tbl) / sizeof(name_val_val),
-                               id);
+  name_val_val* entry = map_string_to_name_val_val(
+      keyword_tbl, sizeof(keyword_tbl) / sizeof(name_val_val), id);
   if (entry == nullptr) return 0;
   if (!allow_pseudo_ops && entry->value2 == PSEUDO_OP) return 0;
   return entry->value1;
@@ -77,26 +75,26 @@ static int check_keyword(char* id, int allow_pseudo_ops) {
 #define LINE_BUF_MAX 4096
 
 static FILE* input_file = nullptr;
-static char  line_buf[LINE_BUF_MAX];
-static int   line_pos = 0;
-static int   line_len = 0;
-static bool  at_eof   = false;
+static char line_buf[LINE_BUF_MAX];
+static int line_pos = 0;
+static int line_len = 0;
+static bool at_eof = false;
 
 /* The text recorded as "current_line" for erroneous_line() —
    a snapshot of the line being parsed when the FIRST token of
    that line was returned.  Reset by scanner_start_line(). */
-static char  current_line_buf[LINE_BUF_MAX];
-static int   current_line_no_saved = 0;
-static bool  current_line_saved = false;
+static char current_line_buf[LINE_BUF_MAX];
+static int current_line_no_saved = 0;
+static bool current_line_saved = false;
 
 /* --- lookahead buffer ------------------------------------- */
 /* Three-slot token cache for peek / peek2 / advance.  See the
    "Token lifecycle" section of the design doc. */
 
 typedef struct {
-  int      type;
+  int type;
   scan_value_t val;
-  bool     present;
+  bool present;
 } scan_token;
 
 static scan_token tok_buf[3];
@@ -118,13 +116,9 @@ void scanner_init(FILE* in) {
   tok_buf[0].present = tok_buf[1].present = tok_buf[2].present = false;
 }
 
-void scanner_start_line(void) {
-  current_line_saved = false;
-}
+void scanner_start_line(void) { current_line_saved = false; }
 
-void scanner_force_identifier(void) {
-  force_id_next = true;
-}
+void scanner_force_identifier(void) { force_id_next = true; }
 
 /* --- low-level character access --------------------------- */
 
@@ -215,7 +209,10 @@ static int scan_fp(int sign, int end_pos, scan_token* out) {
   buf[len] = '\0';
   /* Normalize separator */
   for (int i = 0; i < len; i++) {
-    if (buf[i] == ',' || buf[i] == '\'') { buf[i] = '.'; break; }
+    if (buf[i] == ',' || buf[i] == '\'') {
+      buf[i] = '.';
+      break;
+    }
   }
   scratch = sign * atof(buf);
   line_pos = end_pos;
@@ -231,12 +228,12 @@ static int scan_fp(int sign, int end_pos, scan_token* out) {
 static int scan_int(int sign, scan_token* out) {
   int value = 0;
   if (peek_char() == '0' && (peek_char2() == 'x' || peek_char2() == 'X')) {
-    next_char(); next_char();  /* consume "0x" */
+    next_char();
+    next_char(); /* consume "0x" */
     while (isxdigit(peek_char())) {
       int c = next_char();
-      value = (value << 4)
-            | (c <= '9' ? c - '0'
-               : (c <= 'F' ? c - 'A' + 10 : c - 'a' + 10));
+      value = (value << 4) |
+              (c <= '9' ? c - '0' : (c <= 'F' ? c - 'A' + 10 : c - 'a' + 10));
     }
   } else {
     while (isdigit(peek_char())) {
@@ -255,24 +252,40 @@ static int scan_escape_char(const char** pp) {
   char first = **pp;
   (*pp)++;
   switch (first) {
-    case 'a': return '\a';
-    case 'b': return '\b';
-    case 'f': return '\f';
-    case 'n': return '\n';
-    case 'r': return '\r';
-    case 't': return '\t';
-    case '\\': return '\\';
-    case '"': return '"';
-    case '\'': return '\'';
-    case 'X': case 'x': {
+    case 'a':
+      return '\a';
+    case 'b':
+      return '\b';
+    case 'f':
+      return '\f';
+    case 'n':
+      return '\n';
+    case 'r':
+      return '\r';
+    case 't':
+      return '\t';
+    case '\\':
+      return '\\';
+    case '"':
+      return '"';
+    case '\'':
+      return '\'';
+    case 'X':
+    case 'x': {
       int hi = **pp, lo = *(*pp + 1);
       int v = 0;
-      if (isxdigit(hi)) v = (hi <= '9' ? hi - '0'
-                             : (hi <= 'F' ? hi - 'A' + 10 : hi - 'a' + 10)) << 4;
-      else { error("Bad character in \\X construct in char literal\n"); }
-      if (isxdigit(lo)) v |= (lo <= '9' ? lo - '0'
-                              : (lo <= 'F' ? lo - 'A' + 10 : lo - 'a' + 10));
-      else { error("Bad character in \\X construct in char literal\n"); }
+      if (isxdigit(hi))
+        v = (hi <= '9' ? hi - '0' : (hi <= 'F' ? hi - 'A' + 10 : hi - 'a' + 10))
+            << 4;
+      else {
+        error("Bad character in \\X construct in char literal\n");
+      }
+      if (isxdigit(lo))
+        v |= (lo <= '9' ? lo - '0'
+                        : (lo <= 'F' ? lo - 'A' + 10 : lo - 'a' + 10));
+      else {
+        error("Bad character in \\X construct in char literal\n");
+      }
       *pp += 2;
       return v;
     }
@@ -290,39 +303,75 @@ static char* decode_string(const char* src, int len) {
   const char* s = src;
   const char* end = src + len;
   while (s < end) {
-    if (*s != '\\') { *d++ = *s++; continue; }
+    if (*s != '\\') {
+      *d++ = *s++;
+      continue;
+    }
     /* Backslash sequence */
-    if (s + 1 >= end) { *d++ = *s++; continue; }
+    if (s + 1 >= end) {
+      *d++ = *s++;
+      continue;
+    }
     char n = *(s + 1);
     switch (n) {
-      case 'n':  *d++ = '\n'; s += 2; break;
-      case 't':  *d++ = '\t'; s += 2; break;
-      case '"':  *d++ = '"';  s += 2; break;
-      case '0': case '1': case '2': case '3': {
+      case 'n':
+        *d++ = '\n';
+        s += 2;
+        break;
+      case 't':
+        *d++ = '\t';
+        s += 2;
+        break;
+      case '"':
+        *d++ = '"';
+        s += 2;
+        break;
+      case '0':
+      case '1':
+      case '2':
+      case '3': {
         /* Three-digit octal escape \NNN.  First digit shifts 6 bits,
            not 3 — a long-standing spim bug fixed 2026-05-19. */
-        if (s + 3 >= end) { *d++ = *s++; break; }
+        if (s + 3 >= end) {
+          *d++ = *s++;
+          break;
+        }
         int c2 = *(s + 2), c3 = *(s + 3);
         int b = (n - '0') << 6;
-        if (c2 >= '0' && c2 <= '7') b += (c2 - '0') << 3;
-        else { error("Bad character in \\ooo construct in string\n"); }
-        if (c3 >= '0' && c3 <= '7') b += c3 - '0';
-        else { error("Bad character in \\ooo construct in string\n"); }
+        if (c2 >= '0' && c2 <= '7')
+          b += (c2 - '0') << 3;
+        else {
+          error("Bad character in \\ooo construct in string\n");
+        }
+        if (c3 >= '0' && c3 <= '7')
+          b += c3 - '0';
+        else {
+          error("Bad character in \\ooo construct in string\n");
+        }
         *d++ = (char)b;
         s += 4;
         break;
       }
       case 'X': {
-        if (s + 3 >= end) { *d++ = *s++; break; }
+        if (s + 3 >= end) {
+          *d++ = *s++;
+          break;
+        }
         int c2 = *(s + 2), c3 = *(s + 3);
         int b = 0;
-        if (isxdigit(c2)) b = (c2 <= '9' ? c2 - '0'
-                               : (c2 <= 'F' ? c2 - 'A' + 10 : c2 - 'a' + 10));
-        else { error("Bad character in \\X construct in string\n"); }
+        if (isxdigit(c2))
+          b = (c2 <= '9' ? c2 - '0'
+                         : (c2 <= 'F' ? c2 - 'A' + 10 : c2 - 'a' + 10));
+        else {
+          error("Bad character in \\X construct in string\n");
+        }
         b <<= 4;
-        if (isxdigit(c3)) b |= (c3 <= '9' ? c3 - '0'
-                                : (c3 <= 'F' ? c3 - 'A' + 10 : c3 - 'a' + 10));
-        else { error("Bad character in \\X construct in string\n"); }
+        if (isxdigit(c3))
+          b |= (c3 <= '9' ? c3 - '0'
+                          : (c3 <= 'F' ? c3 - 'A' + 10 : c3 - 'a' + 10));
+        else {
+          error("Bad character in \\X construct in string\n");
+        }
         *d++ = (char)b;
         s += 4;
         break;
@@ -342,8 +391,7 @@ static char* decode_string(const char* src, int len) {
 static int scan_identifier(scan_token* out, bool force_id) {
   /* Capture the identifier text. */
   int start = line_pos;
-  while (peek_char() == '_' || peek_char() == '.'
-         || isalnum(peek_char())) {
+  while (peek_char() == '_' || peek_char() == '.' || isalnum(peek_char())) {
     next_char();
   }
   int end = line_pos;
@@ -356,8 +404,7 @@ static int scan_identifier(scan_token* out, bool force_id) {
 
   /* Keyword lookup (unless force_id). */
   if (!force_id) {
-    int token = check_keyword(id_buf,
-                                 !bare_machine && accept_pseudo_insts);
+    int token = check_keyword(id_buf, !bare_machine && accept_pseudo_insts);
     if (token != 0) {
       out->type = token;
       out->val.i = token;
@@ -385,10 +432,10 @@ static int scan_identifier(scan_token* out, bool force_id) {
 /* Scan a $register reference. */
 static int scan_register(scan_token* out) {
   int start;
-  next_char();  /* skip the $ */
+  next_char(); /* skip the $ */
   start = line_pos;
-  while (peek_char() == '_' || peek_char() == '.' || peek_char() == '$'
-         || isalnum(peek_char())) {
+  while (peek_char() == '_' || peek_char() == '.' || peek_char() == '$' ||
+         isalnum(peek_char())) {
     next_char();
   }
   int end = line_pos;
@@ -432,19 +479,19 @@ static int scan_register(scan_token* out) {
 /* Scan a string literal "...".  Returns TOK_STR; scan_value.p is a
    heap-allocated decoded copy. */
 static int scan_string(scan_token* out) {
-  next_char();  /* skip opening " */
+  next_char(); /* skip opening " */
   int start = line_pos;
   /* Find closing quote, respecting \" escapes. */
   while (peek_char() != 0 && peek_char() != '"') {
     if (peek_char() == '\\' && peek_char2() != 0) {
-      next_char();  /* the backslash */
-      next_char();  /* the escaped char */
+      next_char(); /* the backslash */
+      next_char(); /* the escaped char */
     } else {
       next_char();
     }
   }
   int end = line_pos;
-  if (peek_char() == '"') next_char();  /* skip closing " */
+  if (peek_char() == '"') next_char(); /* skip closing " */
 
   out->type = TOK_STR;
   out->val.p = (void*)decode_string(line_buf + start, end - start);
@@ -455,10 +502,10 @@ static int scan_string(scan_token* out) {
 /* Scan a char literal '...'.  Returns TOK_INT with the character
    value in scan_value.i. */
 static int scan_char(scan_token* out) {
-  next_char();  /* skip opening ' */
+  next_char(); /* skip opening ' */
   int v;
   if (peek_char() == '\\') {
-    next_char();  /* skip backslash */
+    next_char(); /* skip backslash */
     /* scan_escape_char wants a pointer that advances; we'll
        use a small staging area. */
     const char* p = &line_buf[line_pos];
@@ -469,7 +516,7 @@ static int scan_char(scan_token* out) {
   } else {
     v = next_char();
   }
-  if (peek_char() == '\'') next_char();  /* skip closing ' */
+  if (peek_char() == '\'') next_char(); /* skip closing ' */
   out->type = TOK_INT;
   out->val.i = v;
   out->present = true;
@@ -530,109 +577,109 @@ static void scan_one_token(scan_token* out) {
   }
 
 have_char: {
-    int c = peek_char();
+  int c = peek_char();
 
-    /* Newline: returns TOK_NL.  After we consume it, the line is
-       complete; line_no has already advanced (by fgets reading
-       the next chunk later).  Increment line_no here so it
-       reflects the line of the NEXT token. */
-    if (c == '\n') {
-      next_char();
-      line_no += 1;
-      out->type = TOK_NL;
-      out->val.i = 0;
-      out->present = true;
-      return;
-    }
-
-    /* Semicolon also delimits a "line" for grammar purposes. */
-    if (c == ';') {
-      next_char();
-      out->type = TOK_NL;
-      out->val.i = 0;
-      out->present = true;
-      return;
-    }
-
-    /* From here, we have a real token char.  Snapshot the
-       source line for erroneous_line() if we haven't yet. */
-    maybe_snapshot_line();
-
-    /* Negative integer or FP? */
-    if (c == '-' && isdigit(peek_char2())) {
-      next_char();  /* consume the '-' */
-      int fp_end = scan_fp_check();
-      if (fp_end > line_pos) {
-        scan_fp(-1, fp_end, out);
-        return;
-      }
-      scan_int(-1, out);
-      return;
-    }
-
-    /* Positive number — could be int or FP. */
-    if (isdigit(c)) {
-      int fp_end = scan_fp_check();
-      if (fp_end > line_pos) {
-        scan_fp(1, fp_end, out);
-        return;
-      }
-      scan_int(1, out);
-      return;
-    }
-
-    /* Identifier or keyword? */
-    if (c == '_' || c == '.' || isalpha(c)) {
-      scan_identifier(out, force_id);
-      return;
-    }
-
-    /* Register? */
-    if (c == '$') {
-      scan_register(out);
-      return;
-    }
-
-    /* String literal? */
-    if (c == '"') {
-      scan_string(out);
-      return;
-    }
-
-    /* Char literal? */
-    if (c == '\'') {
-      scan_char(out);
-      return;
-    }
-
-    /* `?` returns TOK_ID for the REPL. */
-    if (c == '?') {
-      next_char();
-      static char q[2] = "?";
-      out->type = TOK_ID;
-      out->val.p = (void*)str_copy(q);
-      out->present = true;
-      return;
-    }
-
-    /* Plain punctuation tokens. */
-    if (c == '*' || c == '/' || c == ':' || c == '(' || c == ')'
-        || c == '+' || c == '-' || c == '>' || c == '=') {
-      next_char();
-      out->type = c;
-      out->val.i = c;
-      out->present = true;
-      return;
-    }
-
-    /* Unknown character. */
+  /* Newline: returns TOK_NL.  After we consume it, the line is
+     complete; line_no has already advanced (by fgets reading
+     the next chunk later).  Increment line_no here so it
+     reflects the line of the NEXT token. */
+  if (c == '\n') {
     next_char();
-    error("Unknown character in source: '%c' (0x%02x)\n", c, c);
-    out->type = TOK_NL;  /* recover by treating as line terminator */
+    line_no += 1;
+    out->type = TOK_NL;
     out->val.i = 0;
     out->present = true;
     return;
   }
+
+  /* Semicolon also delimits a "line" for grammar purposes. */
+  if (c == ';') {
+    next_char();
+    out->type = TOK_NL;
+    out->val.i = 0;
+    out->present = true;
+    return;
+  }
+
+  /* From here, we have a real token char.  Snapshot the
+     source line for erroneous_line() if we haven't yet. */
+  maybe_snapshot_line();
+
+  /* Negative integer or FP? */
+  if (c == '-' && isdigit(peek_char2())) {
+    next_char(); /* consume the '-' */
+    int fp_end = scan_fp_check();
+    if (fp_end > line_pos) {
+      scan_fp(-1, fp_end, out);
+      return;
+    }
+    scan_int(-1, out);
+    return;
+  }
+
+  /* Positive number — could be int or FP. */
+  if (isdigit(c)) {
+    int fp_end = scan_fp_check();
+    if (fp_end > line_pos) {
+      scan_fp(1, fp_end, out);
+      return;
+    }
+    scan_int(1, out);
+    return;
+  }
+
+  /* Identifier or keyword? */
+  if (c == '_' || c == '.' || isalpha(c)) {
+    scan_identifier(out, force_id);
+    return;
+  }
+
+  /* Register? */
+  if (c == '$') {
+    scan_register(out);
+    return;
+  }
+
+  /* String literal? */
+  if (c == '"') {
+    scan_string(out);
+    return;
+  }
+
+  /* Char literal? */
+  if (c == '\'') {
+    scan_char(out);
+    return;
+  }
+
+  /* `?` returns TOK_ID for the REPL. */
+  if (c == '?') {
+    next_char();
+    static char q[2] = "?";
+    out->type = TOK_ID;
+    out->val.p = (void*)str_copy(q);
+    out->present = true;
+    return;
+  }
+
+  /* Plain punctuation tokens. */
+  if (c == '*' || c == '/' || c == ':' || c == '(' || c == ')' || c == '+' ||
+      c == '-' || c == '>' || c == '=') {
+    next_char();
+    out->type = c;
+    out->val.i = c;
+    out->present = true;
+    return;
+  }
+
+  /* Unknown character. */
+  next_char();
+  error("Unknown character in source: '%c' (0x%02x)\n", c, c);
+  out->type = TOK_NL; /* recover by treating as line terminator */
+  out->val.i = 0;
+  out->present = true;
+  return;
+}
 }
 
 /* --- token-buffer machinery ------------------------------- */
@@ -663,7 +710,12 @@ int scanner_advance(void) {
      Callers like spim.c's flush_to_newline rely on scan_value.p
      surviving a TOK_NL read after a TOK_STR. */
   switch (t) {
-    case TOK_INT: case TOK_ID: case TOK_REG: case TOK_FP_REG: case TOK_STR: case TOK_FP:
+    case TOK_INT:
+    case TOK_ID:
+    case TOK_REG:
+    case TOK_FP_REG:
+    case TOK_STR:
+    case TOK_FP:
       scan_value = tok_buf[0].val;
       break;
     default:
@@ -676,9 +728,7 @@ int scanner_advance(void) {
   return t;
 }
 
-int scanner_next(void) {
-  return scanner_advance();
-}
+int scanner_next(void) { return scanner_advance(); }
 
 /* --- nested-input scanner stack ---------------------------- *
  *
@@ -686,19 +736,18 @@ int scanner_next(void) {
  * and pushes it; parse_spim_command consumes tokens; then pops.
  */
 
-
 #define SCANNER_STACK_DEPTH 8
 typedef struct {
-  FILE*  input_file;
-  char   line_buf[LINE_BUF_MAX];
-  int    line_pos;
-  int    line_len;
-  bool   at_eof;
-  int    line_no;
-  char   current_line_buf[LINE_BUF_MAX];
-  int    current_line_no_saved;
-  bool   current_line_saved;
-  bool   force_id_next;
+  FILE* input_file;
+  char line_buf[LINE_BUF_MAX];
+  int line_pos;
+  int line_len;
+  bool at_eof;
+  int line_no;
+  char current_line_buf[LINE_BUF_MAX];
+  int current_line_no_saved;
+  bool current_line_saved;
+  bool force_id_next;
   scan_token tok_buf[3];
 } scanner_snapshot;
 
@@ -715,12 +764,12 @@ void scanner_push_source(FILE* in_file) {
   memcpy(s->line_buf, line_buf, sizeof(line_buf));
   s->line_pos = line_pos;
   s->line_len = line_len;
-  s->at_eof   = at_eof;
-  s->line_no  = line_no;
+  s->at_eof = at_eof;
+  s->line_no = line_no;
   memcpy(s->current_line_buf, current_line_buf, sizeof(current_line_buf));
   s->current_line_no_saved = current_line_no_saved;
-  s->current_line_saved    = current_line_saved;
-  s->force_id_next         = force_id_next;
+  s->current_line_saved = current_line_saved;
+  s->force_id_next = force_id_next;
   memcpy(s->tok_buf, tok_buf, sizeof(tok_buf));
 
   scanner_init(in_file);
@@ -738,12 +787,12 @@ void scanner_pop_source(void) {
   memcpy(line_buf, s->line_buf, sizeof(line_buf));
   line_pos = s->line_pos;
   line_len = s->line_len;
-  at_eof   = s->at_eof;
-  line_no  = s->line_no;
+  at_eof = s->at_eof;
+  line_no = s->line_no;
   memcpy(current_line_buf, s->current_line_buf, sizeof(current_line_buf));
   current_line_no_saved = s->current_line_no_saved;
-  current_line_saved    = s->current_line_saved;
-  force_id_next         = s->force_id_next;
+  current_line_saved = s->current_line_saved;
+  force_id_next = s->force_id_next;
   memcpy(tok_buf, s->tok_buf, sizeof(tok_buf));
 }
 

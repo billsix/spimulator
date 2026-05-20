@@ -20,7 +20,7 @@
 
 typedef int int32;
 typedef unsigned int uint32;
-static_assert(sizeof(int32)  == 4, "int32 must be 32 bits");
+static_assert(sizeof(int32) == 4, "int32 must be 32 bits");
 static_assert(sizeof(uint32) == 4, "uint32 must be 32 bits");
 
 typedef union {
@@ -194,20 +194,20 @@ void error(char* fmt, ...);
 _Noreturn void fatal_error(char* fmt, ...);
 char get_console_char(void);
 void put_console_char(char c);
-int read_input(char* str, int n);   /* Returns bytes read (0 on EOF). */
+int read_input(char* str, int n); /* Returns bytes read (0 on EOF). */
 void run_error(char* fmt, ...);
 void write_output(port, char* fmt, ...);
 
 /* Exported variables: */
 
-extern bool bare_machine;          /* => simulate bare machine */
-extern bool accept_pseudo_insts;   /* => parse pseudo instructions  */
-extern bool delayed_branches;      /* => simulate delayed branches */
-extern bool delayed_loads;         /* => simulate delayed loads */
-extern bool quiet;                 /* => no warning messages */
-extern char* exception_file_name;  /* File containing exception handler */
-extern bool force_break;           /* => stop interpreter loop  */
-extern int spim_return_value;      /* Value returned when spim exits */
+extern bool bare_machine;         /* => simulate bare machine */
+extern bool accept_pseudo_insts;  /* => parse pseudo instructions  */
+extern bool delayed_branches;     /* => simulate delayed branches */
+extern bool delayed_loads;        /* => simulate delayed loads */
+extern bool quiet;                /* => no warning messages */
+extern char* exception_file_name; /* File containing exception handler */
+extern bool force_break;          /* => stop interpreter loop  */
+extern int spim_return_value;     /* Value returned when spim exits */
 /* Actual type of structure pointed to depends on X/terminal interface */
 extern port message_out, console_out, console_in;
 extern bool mapped_io; /* => activate memory-mapped IO */

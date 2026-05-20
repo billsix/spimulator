@@ -3,7 +3,6 @@
    SPDX-License-Identifier: BSD-3-Clause
    See LICENSE in the project root for full text. */
 
-
 #include "spim.h"
 #include "string-stream.h"
 #include "spim-utils.h"
@@ -196,7 +195,8 @@ void resolve_label_uses(label* sym) {
 
   for (use = sym->uses; use != nullptr; use = next_use) {
     resolve_a_label_sub(sym, use->inst, use->addr);
-    if (use->inst != nullptr && use->addr >= DATA_BOT && use->addr < stack_bot) {
+    if (use->inst != nullptr && use->addr >= DATA_BOT &&
+        use->addr < stack_bot) {
       mem_write_word(use->addr, inst_encode(use->inst));
       free_inst(use->inst);
     }
@@ -222,7 +222,8 @@ static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc) {
     if (EXPR(inst)->pc_relative)
       EXPR(inst)->offset = 0 - pc; /* Instruction may have moved */
 
-    if (EXPR(inst)->symbol == nullptr || SYMBOL_IS_DEFINED(EXPR(inst)->symbol)) {
+    if (EXPR(inst)->symbol == nullptr ||
+        SYMBOL_IS_DEFINED(EXPR(inst)->symbol)) {
       int32 value;
       int32 field_mask;
 
