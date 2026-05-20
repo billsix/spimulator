@@ -1,35 +1,7 @@
 /* SPIM S20 MIPS simulator.
    Description of a SPIM S20 instruction.
-
-   Copyright (c) 1990-2020, James R. Larus.
-   All rights reserved.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-   Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-   Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-   Neither the name of the James R. Larus nor the names of its contributors may
-   be used to endorse or promote products derived from this software without
-   specific prior written permission.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-   POSSIBILITY OF SUCH DAMAGE.
-*/
+   SPDX-License-Identifier: BSD-3-Clause
+   See LICENSE in the project root for full text. */
 
 /* Represenation of the expression that produce a value for an instruction's
    immediate field.  Immediates have the form: label +/- offset. */
@@ -37,7 +9,6 @@
 #ifndef INST_H
 #define INST_H
 
-#include <stdbool.h>
 #include "spim.h"
 #include "string-stream.h"
 
@@ -222,16 +193,13 @@ imm_expr* addr_expr_imm(addr_expr* expr);
 int addr_expr_reg(addr_expr* expr);
 void align_text(int alignment);
 imm_expr* const_imm_expr(int32 value);
-imm_expr* copy_imm_expr(imm_expr* old_expr);
 instruction* copy_inst(instruction* inst);
 mem_addr current_text_pc(void);
-void enable_text_alignment(void);
 int32 eval_imm_expr(imm_expr* expr);
 void format_an_inst(str_stream* ss, instruction* inst, mem_addr addr);
 void free_inst(instruction* inst);
 void i_type_inst(int opcode, int rt, int rs, imm_expr* expr);
 void i_type_inst_free(int opcode, int rt, int rs, imm_expr* expr);
-void increment_text_pc(int delta);
 imm_expr* incr_expr_offset(imm_expr* expr, int32 value);
 void initialize_inst_tables(void);
 instruction* inst_decode(int32 value);
@@ -240,7 +208,6 @@ bool inst_is_breakpoint(mem_addr addr);
 const char* inst_op_name(instruction* inst);
 void j_type_inst(int opcode, imm_expr* target);
 void k_text_begins_at_point(mem_addr addr);
-imm_expr* lower_bits_of_expr(imm_expr* old_expr);
 addr_expr* make_addr_expr(int offs, char* sym, int reg_no);
 imm_expr* make_imm_expr(int offs, char* sym, bool is_pc_relative);
 bool opcode_is_branch(int opcode);
@@ -256,11 +223,8 @@ void r_sh_type_inst(int opcode, int rd, int rt, int shamt);
 void r_type_inst(int opcode, int rd, int rs, int rt);
 void raise_exception(int excode);
 instruction* set_breakpoint(mem_addr addr);
-void set_text_alignment(int alignment);
-void store_instruction(instruction* inst);
 void test_assembly(instruction* inst);
 void text_begins_at_point(mem_addr addr);
-imm_expr* upper_bits_of_expr(imm_expr* old_expr);
 void user_kernel_text_segment(bool to_kernel);
 bool is_zero_imm(imm_expr* expr);
 

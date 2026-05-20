@@ -5,7 +5,6 @@
    BSD 3-Clause.
 */
 
-#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -40,7 +39,7 @@ extern int  parse_errors_seen;
 /* Source file name, used by parse_error / parse_warn for messages.  Exposed
    via the accessor below so pseudo_op.c can read it without
    needing the static directly. */
-static char* input_file_name = NULL;
+static char* input_file_name = nullptr;
 char* input_file_name_get(void) { return input_file_name; }
 void set_input_file_name(char* name) { input_file_name = name; }
 
@@ -61,7 +60,7 @@ typedef struct label_cell {
   struct label_cell* next;
 } label_cell;
 
-static label_cell* this_line_labels = NULL;
+static label_cell* this_line_labels = nullptr;
 
 /* Mirror of data.c's `enable_data_auto_alignment` static.
    Cleared by `.align 0`, set by `.data` / `.kdata`. */
@@ -76,7 +75,7 @@ static void cons_label(label* l) {
 
 /* Resolve and free. */
 static void clear_labels(void) {
-  while (this_line_labels != NULL) {
+  while (this_line_labels != nullptr) {
     label_cell* next = this_line_labels->next;
     resolve_label_uses(this_line_labels->lab);
     free(this_line_labels);
@@ -90,50 +89,12 @@ static void clear_labels(void) {
    alignment, so any labels recorded on the current line follow
    the PC to its aligned position. */
 void fix_current_label_address(mem_addr new_addr) {
-  for (label_cell* c = this_line_labels; c != NULL; c = c->next) {
+  for (label_cell* c = this_line_labels; c != nullptr; c = c->next) {
     c->lab->addr = new_addr;
   }
 }
 /* Internal call sites kept under the old name to minimise churn. */
 #define fix_current_label_address fix_current_label_address
-
-/* External spim runtime functions */
-extern void r_type_inst(int opcode, int rd, int rs, int rt);
-extern void r_sh_type_inst(int opcode, int rd, int rt, int shamt);
-extern void r_co_type_inst(int opcode, int rd, int rs, int rt);
-extern void r_cond_type_inst(int opcode, int rs, int rt, int cc);
-extern void i_type_inst(int opcode, int rt, int rs, imm_expr* expr);
-extern void i_type_inst_free(int opcode, int rt, int rs, imm_expr* expr);
-extern void j_type_inst(int opcode, imm_expr* target);
-extern void store_word(int);
-extern void store_half(int);
-extern void store_byte(int);
-extern void store_double(double*);
-extern void store_float(double*);
-extern void store_string(char* string, int length, bool null_terminate);
-extern void increment_data_pc(int);
-extern void increment_text_pc(int);
-extern void align_data(int);
-extern void align_text(int);
-extern void set_data_alignment(int);
-extern void enable_data_alignment(void);
-extern void user_kernel_data_segment(bool kernel);
-extern void user_kernel_text_segment(bool kernel);
-extern void set_data_pc(mem_addr);
-extern void set_text_pc(mem_addr);
-extern mem_addr current_data_pc(void);
-extern mem_addr current_text_pc(void);
-extern imm_expr* make_imm_expr(int offset, char* symbol, bool branch_relative);
-extern imm_expr* const_imm_expr(int value);
-extern imm_expr* incr_expr_offset(imm_expr* expr, int delta);
-extern addr_expr* make_addr_expr(int offset, char* symbol, int reg);
-extern int addr_expr_reg(addr_expr* expr);
-extern imm_expr* addr_expr_imm(addr_expr* expr);
-extern label* make_label_global(char* name);
-extern label* record_label(char* name, mem_addr addr, int locality);
-extern label* lookup_label(char* name);
-extern void resolve_label_uses(label* sym);
-extern void flush_local_labels(int issue_undef_warning);
 
 /* ---------------- error helpers ---------------- */
 
@@ -316,15 +277,15 @@ static imm_expr* parse_imm32(void) {
     expect('>', "Expected '>'");
     if (scanner_peek() != TOK_INT) {
       parse_error_at("Expected integer after '>>'");
-      return make_imm_expr(0, NULL, false);
+      return make_imm_expr(0, nullptr, false);
     }
     scanner_advance();
     int sh = scan_value.i;
-    return make_imm_expr(v >> sh, NULL, false);
+    return make_imm_expr(v >> sh, nullptr, false);
   }
   /* ABS_ADDR */
   int v = parse_abs_addr();
-  return make_imm_expr(v, NULL, false);
+  return make_imm_expr(v, nullptr, false);
 }
 
 /* IMM16, UIMM16 — IMM32 plus range check */
@@ -340,11 +301,6 @@ static imm_expr* parse_uimm16(void) {
   return e;
 }
 
-/* BR_IMM32 — like IMM32 but with the force-identifier flag toggled */
-static imm_expr* parse_br_imm32(void) {
-  return parse_imm32();  /* scanner_force_identifier already set inside */
-}
-
 /* LABEL — like ID but produces a PC-relative imm_expr suitable
    for a branch target.  Matches exactly:
    the initial offset is `-current_text_pc()`, which gets
@@ -354,7 +310,7 @@ static imm_expr* parse_br_imm32(void) {
 static imm_expr* parse_label(void) {
   if (scanner_peek() != TOK_ID) {
     parse_error_at("Expected label");
-    return make_imm_expr(0, NULL, true);
+    return make_imm_expr(0, nullptr, true);
   }
   scanner_advance();
   char* sym = (char*)scan_value.p;
@@ -375,7 +331,7 @@ static addr_expr* parse_address(void) {
     scanner_advance();
     int reg = parse_register();
     expect(')', "Expected ')' after register");
-    return make_addr_expr(0, NULL, reg);
+    return make_addr_expr(0, nullptr, reg);
   }
 
   /* ABS_ADDR [ '(' REGISTER ')' ] */
@@ -394,9 +350,9 @@ static addr_expr* parse_address(void) {
       scanner_advance();
       int reg = parse_register();
       expect(')', "Expected ')'");
-      return make_addr_expr(imm, NULL, reg);
+      return make_addr_expr(imm, nullptr, reg);
     }
-    return make_addr_expr(imm, NULL, 0);
+    return make_addr_expr(imm, nullptr, 0);
   }
 
   /* TOK_ID [ '+' ABS_ADDR | '-' ABS_ADDR ] [ '(' REGISTER ')' ] */
@@ -423,7 +379,7 @@ static addr_expr* parse_address(void) {
   }
 
   parse_error_at("Expected address");
-  return make_addr_expr(0, NULL, 0);
+  return make_addr_expr(0, nullptr, 0);
 }
 
 /* ---------------- instruction parsers ---------------- */
@@ -482,7 +438,7 @@ static void parse_r3(int op) {
       imm_expr* imm = parse_imm32();
       int val = eval_imm_expr(imm);
       i_type_inst(op == TOK_SUB_OP ? TOK_ADDI_OP : TOK_ADDIU_OP,
-                  rd, rd, make_imm_expr(-val, NULL, false));
+                  rd, rd, make_imm_expr(-val, nullptr, false));
       free(imm);
       return;
     }
@@ -494,7 +450,7 @@ static void parse_r3(int op) {
       imm_expr* imm = parse_imm32();
       int val = eval_imm_expr(imm);
       i_type_inst(op == TOK_SUB_OP ? TOK_ADDI_OP : TOK_ADDIU_OP,
-                  rd, rs, make_imm_expr(-val, NULL, false));
+                  rd, rs, make_imm_expr(-val, nullptr, false));
       free(imm);
     }
     return;
@@ -766,7 +722,7 @@ static void parse_expr_list(void) {
    the data PC.  `align_data` calls `fix_current_label_address` to align `this_line_labels`; we maintain our own and pre-fix here.
    Respects the same auto-align gate that data.c uses. */
 static void align_labels_to(int alignment) {
-  if (!data_dir || !auto_align || this_line_labels == NULL) return;
+  if (!data_dir || !auto_align || this_line_labels == nullptr) return;
   mem_addr cur = current_data_pc();
   mem_addr aligned = (cur + (1u << alignment) - 1) & (~0u << alignment);
   fix_current_label_address(aligned);

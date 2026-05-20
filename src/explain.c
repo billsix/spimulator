@@ -6,7 +6,6 @@
    honors the simulator's console redirection. */
 
 #include <ctype.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -131,7 +130,7 @@ void explain_print_step_header(mem_addr pc, instruction* inst) {
   else
     p = dis;
   char* semi = strchr(p, ';');
-  char* source_part = NULL;
+  char* source_part = nullptr;
   if (semi) {
     char* end = semi;
     while (end > p && (end[-1] == ' ' || end[-1] == '\t')) end--;
@@ -164,7 +163,7 @@ void explain_print_step_header(mem_addr pc, instruction* inst) {
  * from its libedit completion callback so a student can recall a hint
  * with Tab.
  *
- * Lifetime: strings are strdup'd at add time and freed by
+ * Lifetime: strings are str_copy'd at add time and freed by
  * explain_clear_suggestions. Storage is a fixed-cap array — 16 is a
  * comfortable ceiling (templates emit at most 3-4 hints).
  */
@@ -175,21 +174,21 @@ static size_t n_suggestions;
 void explain_clear_suggestions(void) {
   for (size_t i = 0; i < n_suggestions; i++) {
     free(suggestions[i]);
-    suggestions[i] = NULL;
+    suggestions[i] = nullptr;
   }
   n_suggestions = 0;
 }
 
 static void add_suggestion(const char* cmd) {
   if (n_suggestions >= MAX_SUGGESTIONS) return;
-  char* copy = strdup(cmd);
-  if (copy != NULL) suggestions[n_suggestions++] = copy;
+  char* copy = str_copy(cmd);
+  if (copy != nullptr) suggestions[n_suggestions++] = copy;
 }
 
 size_t explain_suggestion_count(void) { return n_suggestions; }
 
 const char* explain_suggestion(size_t i) {
-  if (i >= n_suggestions) return NULL;
+  if (i >= n_suggestions) return nullptr;
   return suggestions[i];
 }
 
@@ -362,13 +361,13 @@ static const struct pseudo_info pseudo_ops[] = {
      "Unaligned Store Word — write 32 bits at a possibly-unaligned address.\n"
      "    Expands to `swl` + `swr`.",
      true},
-    {NULL, NULL, false},
+    {nullptr, nullptr, false},
 };
 
 /* Continuation state. Set when a pseudo-op's first real instruction is
  * narrated; consulted on the next instruction to decide whether to emit a
  * "(continuation of `X` expansion above)" hint. */
-static const char* pending_pseudo_name = NULL;
+static const char* pending_pseudo_name = nullptr;
 static bool pending_pseudo_multi = false;
 
 /* Walk past the "NNN: " line-number prefix that source_line() prepends. */
@@ -382,11 +381,11 @@ static const char* skip_source_prefix(const char* s) {
 
 /* Match s against a pseudo-op mnemonic, requiring the mnemonic to be followed
  * by end-of-token (whitespace, comment, end of string). Returns the entry or
- * NULL. */
+ * nullptr. */
 static const struct pseudo_info* find_pseudo_in_source(const char* src) {
-  if (!src) return NULL;
+  if (!src) return nullptr;
   const char* s = skip_source_prefix(src);
-  for (int i = 0; pseudo_ops[i].name != NULL; i++) {
+  for (int i = 0; pseudo_ops[i].name != nullptr; i++) {
     size_t n = strlen(pseudo_ops[i].name);
     if (strncmp(s, pseudo_ops[i].name, n) != 0) continue;
     char after = s[n];
@@ -394,7 +393,7 @@ static const struct pseudo_info* find_pseudo_in_source(const char* src) {
         after == '#')
       return &pseudo_ops[i];
   }
-  return NULL;
+  return nullptr;
 }
 
 /* read_mem_* will raise a real CPU exception on bad addresses (e.g. an
@@ -404,7 +403,7 @@ static const struct pseudo_info* find_pseudo_in_source(const char* src) {
 static reg_word peek_word(mem_addr addr) {
   int se = exception_occurred;
   reg_word sbv = CP0_BadVAddr;
-  reg_word v = read_mem_word(addr);
+  reg_word v = mem_read_word(addr);
   exception_occurred = se;
   CP0_BadVAddr = sbv;
   return v;
@@ -413,7 +412,7 @@ static reg_word peek_word(mem_addr addr) {
 static reg_word peek_half(mem_addr addr) {
   int se = exception_occurred;
   reg_word sbv = CP0_BadVAddr;
-  reg_word v = read_mem_half(addr);
+  reg_word v = mem_read_half(addr);
   exception_occurred = se;
   CP0_BadVAddr = sbv;
   return v;
@@ -422,7 +421,7 @@ static reg_word peek_half(mem_addr addr) {
 static reg_word peek_byte(mem_addr addr) {
   int se = exception_occurred;
   reg_word sbv = CP0_BadVAddr;
-  reg_word v = read_mem_byte(addr);
+  reg_word v = mem_read_byte(addr);
   exception_occurred = se;
   CP0_BadVAddr = sbv;
   return v;
@@ -961,7 +960,7 @@ static void render_j_layout(uint32 enc, const char* mnemonic) {
 }
 
 static void explain_bit_layout(instruction* inst) {
-  if (inst == NULL) return;
+  if (inst == nullptr) return;
   uint32 enc = (uint32)inst_encode(inst);
   /* nop (sll $0,$0,0) genuinely encodes to 0x00000000. Skip the diagram
      since "all zeros" carries no pedagogical signal of its own; the
@@ -996,7 +995,7 @@ static void explain_bit_layout(instruction* inst) {
 
 /* SPECIAL-group: opcode == 0x00, funct selects the actual op. Table
    filled out for the integer ops spimulator's existing templates
-   cover; entries not listed return NULL (rendered as "?"). */
+   cover; entries not listed return nullptr (rendered as "?"). */
 static const char* special_funct_to_name[64] = {
     [0x00] = "sll",  [0x02] = "srl",   [0x03] = "sra",     [0x04] = "sllv",
     [0x06] = "srlv", [0x07] = "srav",  [0x08] = "jr",      [0x09] = "jalr",
@@ -1273,7 +1272,7 @@ static void render_regimm_decode_step(uint32 enc, int step,
 }
 
 static void explain_decoding_steps(instruction* inst) {
-  if (inst == NULL) return;
+  if (inst == nullptr) return;
   uint32 enc = (uint32)inst_encode(inst);
   if (enc == 0) return; /* true nop — skip */
 
@@ -2062,9 +2061,9 @@ void explain_after(instruction* inst) {
    *       against a pseudo-op mnemonic and emit a header.
    *   (b) No SOURCE line, but the previous step matched a may-be-multi
    *       pseudo-op — emit a continuation hint. */
-  if (accept_pseudo_insts && SOURCE(inst) != NULL) {
+  if (accept_pseudo_insts && SOURCE(inst) != nullptr) {
     const struct pseudo_info* p = find_pseudo_in_source(SOURCE(inst));
-    if (p != NULL) {
+    if (p != nullptr) {
       write_output(message_out,
                    "  Pseudo-instruction `%s` (as written in source):\n"
                    "    %s\n"
@@ -2075,10 +2074,10 @@ void explain_after(instruction* inst) {
       pending_pseudo_name = p->name;
       pending_pseudo_multi = p->may_be_multi;
     } else {
-      pending_pseudo_name = NULL;
+      pending_pseudo_name = nullptr;
       pending_pseudo_multi = false;
     }
-  } else if (pending_pseudo_name != NULL && pending_pseudo_multi) {
+  } else if (pending_pseudo_name != nullptr && pending_pseudo_multi) {
     write_output(message_out,
                  "  (continuation of the `%s` pseudo-op expansion above —\n"
                  "   same source line, this was the next real instruction "

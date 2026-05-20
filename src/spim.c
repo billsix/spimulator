@@ -1,37 +1,8 @@
 /* SPIM S20 MIPS simulator.
    Terminal interface for SPIM simulator.
+   SPDX-License-Identifier: BSD-3-Clause
+   See LICENSE in the project root for full text. */
 
-   Copyright (c) 1990-2022, James R. Larus.
-   All rights reserved.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-   Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-   Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-   Neither the name of the James R. Larus nor the names of its contributors may
-   be used to endorse or promote products derived from this software without
-   specific prior written permission.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-   POSSIBILITY OF SUCH DAMAGE.
-*/
-
-#include <stdbool.h>
 
 #include "config.h"
 
@@ -49,30 +20,11 @@
 #include <io.h>
 #endif
 
-#ifdef RS
-/* This is problem on HP Snakes, which define RS in syscall.h */
-#undef RS
-#endif
-
 #include <sys/types.h>
 #ifndef WIN32
 #include <sys/select.h>
-#endif
-
-#ifdef _AIX
-#ifndef NBBY
-#define NBBY 8
-#endif
-#endif
-
-#ifndef WIN32
 #include <sys/time.h>
-#ifdef NEED_TERMIOS
-#include <sys/ioctl.h>
-#include <sgtty.h>
-#else
 #include <termios.h>
-#endif
 #endif
 
 #include <stdarg.h>
@@ -115,7 +67,7 @@ static const char* spim_commands[] = {
     "dump",       "dumpnative", "exit",           "help",
     "list",       "load",       "print",          "print_all_regs",
     "print_symbols", "quit",    "read",           "reinitialize",
-    "run",        "step",       NULL};
+    "run",        "step",       nullptr};
 
 static char* command_generator(const char* text, int state) {
   static size_t idx;
@@ -124,11 +76,11 @@ static char* command_generator(const char* text, int state) {
     idx = 0;
     text_len = strlen(text);
   }
-  while (spim_commands[idx] != NULL) {
+  while (spim_commands[idx] != nullptr) {
     const char* s = spim_commands[idx++];
-    if (strncmp(s, text, text_len) == 0) return strdup(s);
+    if (strncmp(s, text, text_len) == 0) return str_copy(s);
   }
-  return NULL;
+  return nullptr;
 }
 
 static char* suggestion_generator(const char* text, int state) {
@@ -141,7 +93,7 @@ static char* suggestion_generator(const char* text, int state) {
   size_t n = explain_suggestion_count();
   while (idx < n) {
     const char* s = explain_suggestion(idx++);
-    if (s == NULL) continue;
+    if (s == nullptr) continue;
     /* Suggestions are stored as full commands ("print $a0"). When the
        student has already typed `print ` and hits Tab, libedit passes
        us just `$a0` (or the prefix thereof) as `text`. Strip a leading
@@ -150,10 +102,10 @@ static char* suggestion_generator(const char* text, int state) {
        there's no space: tail == s, prefix check runs on the whole. */
     const char* tail = s;
     const char* space = strchr(s, ' ');
-    if (space != NULL) tail = space + 1;
-    if (strncmp(tail, text, text_len) == 0) return strdup(tail);
+    if (space != nullptr) tail = space + 1;
+    if (strncmp(tail, text, text_len) == 0) return str_copy(tail);
   }
-  return NULL;
+  return nullptr;
 }
 
 /* Helper used by line_is_file_command / line_is_label_command. True if
@@ -161,9 +113,9 @@ static char* suggestion_generator(const char* text, int state) {
    by whitespace. */
 static bool line_starts_with_cmd(const char* const* cmds) {
   const char* line = rl_line_buffer;
-  if (line == NULL) return false;
+  if (line == nullptr) return false;
   while (*line == ' ' || *line == '\t') line++;
-  for (size_t i = 0; cmds[i] != NULL; i++) {
+  for (size_t i = 0; cmds[i] != nullptr; i++) {
     size_t len = strlen(cmds[i]);
     if (strncmp(line, cmds[i], len) == 0 &&
         (line[len] == ' ' || line[len] == '\t')) {
@@ -177,7 +129,7 @@ static bool line_starts_with_cmd(const char* const* cmds) {
    followed by whitespace — those are the prompts where the student
    expects libedit's default filename completion to kick in. */
 static bool line_is_file_command(void) {
-  static const char* cmds[] = {"load", "read", "dump", "dumpnative", NULL};
+  static const char* cmds[] = {"load", "read", "dump", "dumpnative", nullptr};
   return line_starts_with_cmd(cmds);
 }
 
@@ -186,27 +138,27 @@ static bool line_is_file_command(void) {
    address (TOK_INT) or a symbol name (TOK_ID); tab-completion offers the
    symbol names defined in the loaded program. */
 static bool line_is_label_command(void) {
-  static const char* cmds[] = {"breakpoint", "delete", NULL};
+  static const char* cmds[] = {"breakpoint", "delete", nullptr};
   return line_starts_with_cmd(cmds);
 }
 
 /* Snapshot of label names taken on each Tab. The pointers point into
-   the symbol table's own storage (label->name), so we don't strdup —
+   the symbol table's own storage (label->name), so we don't str_copy —
    but we re-collect on every state==0 call in case the symbol table
    changed (e.g. after `reinit` + `load`). */
-static const char** label_names_cache = NULL;
+static const char** label_names_cache = nullptr;
 static size_t label_names_cache_n = 0;
 static size_t label_names_cache_cap = 0;
 
 static void label_collect_cb(const label* l, void* ctx) {
   (void)ctx;
-  if (l == NULL || l->name == NULL) return;
+  if (l == nullptr || l->name == nullptr) return;
   if (label_names_cache_n >= label_names_cache_cap) {
     size_t new_cap =
         label_names_cache_cap == 0 ? 32 : label_names_cache_cap * 2;
     const char** new_arr =
         realloc(label_names_cache, new_cap * sizeof(*label_names_cache));
-    if (new_arr == NULL) return;
+    if (new_arr == nullptr) return;
     label_names_cache = new_arr;
     label_names_cache_cap = new_cap;
   }
@@ -218,15 +170,15 @@ static char* label_generator(const char* text, int state) {
   static size_t text_len;
   if (state == 0) {
     label_names_cache_n = 0;
-    for_each_label(label_collect_cb, NULL);
+    for_each_label(label_collect_cb, nullptr);
     idx = 0;
     text_len = strlen(text);
   }
   while (idx < label_names_cache_n) {
     const char* s = label_names_cache[idx++];
-    if (strncmp(s, text, text_len) == 0) return strdup(s);
+    if (strncmp(s, text, text_len) == 0) return str_copy(s);
   }
-  return NULL;
+  return nullptr;
 }
 
 static char** spim_completion(const char* text, int start, int end) {
@@ -244,7 +196,7 @@ static char** spim_completion(const char* text, int start, int end) {
   if (line_is_file_command()) {
     /* `load `, `read `, `dump `, `dumpnative ` — filename completion.
        libedit doesn't auto-fall-back to filename completion when we
-       return NULL the way GNU readline does, so we drive
+       return nullptr the way GNU readline does, so we drive
        rl_filename_completion_function explicitly. Two cases: */
     rl_attempted_completion_over = 1;
     if (text[0] == '"') {
@@ -255,11 +207,11 @@ static char** spim_completion(const char* text, int start, int end) {
          rl_completion_append_character. */
       char** m =
           rl_completion_matches(text + 1, rl_filename_completion_function);
-      if (m != NULL) {
-        for (int i = 0; m[i] != NULL; i++) {
+      if (m != nullptr) {
+        for (int i = 0; m[i] != nullptr; i++) {
           size_t l = strlen(m[i]);
           char* re = malloc(l + 2);
-          if (re == NULL) continue;
+          if (re == nullptr) continue;
           re[0] = '"';
           memcpy(re + 1, m[i], l + 1);
           free(m[i]);
@@ -340,11 +292,7 @@ static bool load_exception_handler = true;
 static int console_state_saved;
 
 #ifndef WIN32
-#ifdef NEED_TERMIOS
-static struct sgttyb saved_console_state;
-#else
 static struct termios saved_console_state;
-#endif
 #endif
 static int program_argc;
 static char** program_argv;
@@ -373,9 +321,7 @@ int main(int argc, char** argv) {
   console_in.i = 0;
   mapped_io = false;
 
-  // write_startup_message ();
-
-  if (getenv("SPIM_EXCEPTION_HANDLER") != NULL)
+  if (getenv("SPIM_EXCEPTION_HANDLER") != nullptr)
     exception_file_name = getenv("SPIM_EXCEPTION_HANDLER");
 
   for (i = 1; i < argc; i++) {
@@ -478,7 +424,7 @@ int main(int argc, char** argv) {
       program_argc = argc - program_i;
       program_argv = &argv[program_i];
 
-      initialize_world(load_exception_handler ? exception_file_name : NULL,
+      initialize_world(load_exception_handler ? exception_file_name : nullptr,
                        !quiet);
       initialize_run_stack(program_argc, program_argv);
       assembly_file_attempted = true;
@@ -533,7 +479,7 @@ int main(int argc, char** argv) {
       return spim_return_value != 0 ? spim_return_value : 2;
     }
 
-    initialize_world(load_exception_handler ? exception_file_name : NULL,
+    initialize_world(load_exception_handler ? exception_file_name : nullptr,
                      !quiet);
     initialize_run_stack(program_argc, program_argv);
     top_level();
@@ -560,7 +506,7 @@ int main(int argc, char** argv) {
       initialize_run_stack(program_argc, program_argv);
       if (!setjmp(spim_top_level_env)) {
         char* undefs = undefined_symbol_string();
-        if (undefs != NULL) {
+        if (undefs != nullptr) {
           write_output(message_out, "The following symbols are undefined:\n");
           write_output(message_out, undefs);
           write_output(message_out, "\n");
@@ -604,7 +550,7 @@ _Noreturn static void top_level(void) {
      sqlite3, and python use. atexit() catches EXIT_CMD's exit(0) too. */
   using_history();
   const char* home = getenv("HOME");
-  if (home != NULL) {
+  if (home != nullptr) {
     snprintf(history_path, sizeof(history_path), "%s/.spimulator_history",
              home);
     read_history(history_path);
@@ -627,9 +573,9 @@ _Noreturn static void top_level(void) {
 
   /* Per-iteration scratch — declared outside so the setjmp landing pad can
      unwind them if a SIGINT longjmps us out of parse_spim_command mid-line. */
-  char* repl_line = NULL;
-  char* repl_buf = NULL;
-  FILE* repl_fp = NULL;
+  char* repl_line = nullptr;
+  char* repl_buf = nullptr;
+  FILE* repl_fp = nullptr;
   bool scanner_pushed = false;
 #endif
 
@@ -644,12 +590,12 @@ _Noreturn static void top_level(void) {
       }
       if (repl_fp) {
         fclose(repl_fp);
-        repl_fp = NULL;
+        repl_fp = nullptr;
       }
       free(repl_buf);
-      repl_buf = NULL;
+      repl_buf = nullptr;
       free(repl_line);
-      repl_line = NULL;
+      repl_line = nullptr;
       redo = false;
       fflush(stdout);
       fflush(stderr);
@@ -658,7 +604,7 @@ _Noreturn static void top_level(void) {
 
     if (!redo) {
       repl_line = readline("(spim) ");
-      if (repl_line == NULL) {
+      if (repl_line == nullptr) {
         /* Ctrl-D / EOF — exit cleanly. atexit handler writes history. */
         write_output(message_out, "\n");
         console_to_spim();
@@ -672,20 +618,20 @@ _Noreturn static void top_level(void) {
          source, parse_spim_command is unaware of libedit. */
       size_t len = strlen(repl_line);
       repl_buf = malloc(len + 2);
-      if (repl_buf == NULL) {
+      if (repl_buf == nullptr) {
         free(repl_line);
-        repl_line = NULL;
+        repl_line = nullptr;
         continue;
       }
       memcpy(repl_buf, repl_line, len);
       repl_buf[len] = '\n';
       repl_buf[len + 1] = '\0';
       repl_fp = fmemopen(repl_buf, len + 1, "r");
-      if (repl_fp == NULL) {
+      if (repl_fp == nullptr) {
         free(repl_buf);
-        repl_buf = NULL;
+        repl_buf = nullptr;
         free(repl_line);
-        repl_line = NULL;
+        repl_line = nullptr;
         continue;
       }
       scanner_push_source(repl_fp);
@@ -700,12 +646,12 @@ _Noreturn static void top_level(void) {
     }
     if (repl_fp) {
       fclose(repl_fp);
-      repl_fp = NULL;
+      repl_fp = nullptr;
     }
     free(repl_buf);
-    repl_buf = NULL;
+    repl_buf = nullptr;
     free(repl_line);
-    repl_line = NULL;
+    repl_line = nullptr;
 #else
     if (!redo) write_output(message_out, "(spim) ");
     if (!setjmp(spim_top_level_env))
@@ -770,7 +716,7 @@ static bool parse_spim_command(bool redo) {
 
       if (!redo) flush_to_newline();
       if (token == TOK_STR) {
-        read_assembly_file((char*)scan_value.p);
+        (void)read_assembly_file((char*)scan_value.p);
         scanner_pop_source();
       } else
         error("Must supply a filename to read\n");
@@ -789,7 +735,7 @@ static bool parse_spim_command(bool redo) {
       console_to_program();
       if (addr != 0) {
         char* undefs = undefined_symbol_string();
-        if (undefs != NULL) {
+        if (undefs != nullptr) {
           write_output(message_out, "The following symbols are undefined:\n");
           write_output(message_out, undefs);
           write_output(message_out, "\n");
@@ -923,7 +869,7 @@ static bool parse_spim_command(bool redo) {
 
     case REINITIALIZE_CMD:
       flush_to_newline();
-      initialize_world(load_exception_handler ? exception_file_name : NULL,
+      initialize_world(load_exception_handler ? exception_file_name : nullptr,
                        !quiet);
       initialize_run_stack(program_argc, program_argv);
       write_startup_message();
@@ -934,7 +880,7 @@ static bool parse_spim_command(bool redo) {
       return (0);
 
     case ASM_CMD:
-      parse_file();
+      (void)parse_file();
       prev_cmd = ASM_CMD;
       return (0);
 
@@ -950,35 +896,35 @@ static bool parse_spim_command(bool redo) {
          reinitialize) will pass to the program.  argv[0] is preserved
          as whatever the command-line gave us, so demos that print
          their own program name still work. */
-      static char** owned_argv = NULL;
-      static char** owned_strs = NULL;
+      static char** owned_argv = nullptr;
+      static char** owned_strs = nullptr;
       static int    owned_strs_len = 0;
 
       /* Stash argv[0] before freeing the prior vector — program_argv
          may point into the prior owned_argv. */
-      char* argv0 = (program_argv != NULL && program_argc >= 1)
+      char* argv0 = (program_argv != nullptr && program_argc >= 1)
                         ? program_argv[0]
                         : (char*)"<repl>";
 
-      if (owned_strs != NULL) {
+      if (owned_strs != nullptr) {
         for (int i = 0; i < owned_strs_len; i++) free(owned_strs[i]);
         free(owned_strs);
-        owned_strs = NULL;
+        owned_strs = nullptr;
         owned_strs_len = 0;
       }
       free(owned_argv);
-      owned_argv = NULL;
+      owned_argv = nullptr;
 
       int t;
       int cap = 0;
       while ((t = read_token()) != TOK_NL && t != 0) {
-        char* s = NULL;
+        char* s = nullptr;
         if (t == TOK_STR || t == TOK_ID) {
-          s = strdup((char*)scan_value.p);
+          s = str_copy((char*)scan_value.p);
         } else if (t == TOK_INT) {
           char buf[32];
           snprintf(buf, sizeof(buf), "%d", scan_value.i);
-          s = strdup(buf);
+          s = str_copy(buf);
         } else {
           continue;
         }
@@ -1090,8 +1036,8 @@ static bool parse_spim_command(bool redo) {
     case DUMP_TEXT_CMD: {
       int token = (redo ? prev_token : read_token());
 
-      FILE* fp = NULL;
-      char* filename = NULL;
+      FILE* fp = nullptr;
+      char* filename = nullptr;
 
       int words = 0;
       mem_addr addr;
@@ -1109,7 +1055,7 @@ static bool parse_spim_command(bool redo) {
       }
 
       fp = fopen(filename, "wbt");
-      if (fp == NULL) {
+      if (fp == nullptr) {
         perror(filename);
         return (0);
       }
@@ -1119,7 +1065,7 @@ static bool parse_spim_command(bool redo) {
       dump_end = current_text_pc();
 
       for (addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
-        int32 code = inst_encode(read_mem_inst(addr));
+        int32 code = inst_encode(mem_read_inst(addr));
         if (cmd == DUMP_TEXT_CMD)
           code = (int32)htonl(
               (unsigned long)code); /* dump in network byte order */
@@ -1289,16 +1235,16 @@ static bool write_assembled_code(char* program_name) {
     return (parse_error_occurred);
   }
 
-  FILE* fp = NULL;
+  FILE* fp = nullptr;
   {
-    char* filename = NULL;
+    char* filename = nullptr;
     const unsigned long filename_len = strlen(program_name) + 5;
     filename = (char*)xmalloc(filename_len);
     strlcpy(filename, program_name, filename_len);
     strlcat(filename, ".out", filename_len);
 
     fp = fopen(filename, "wt");
-    if (fp == NULL) {
+    if (fp == nullptr) {
       perror(filename);
       free(filename);
       return (true);
@@ -1313,7 +1259,7 @@ static bool write_assembled_code(char* program_name) {
 
   (void)fprintf(fp, ".text # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
   for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
-    int32 code = inst_encode(read_mem_inst(addr));
+    int32 code = inst_encode(mem_read_inst(addr));
     (void)fprintf(fp, "0x%x%s", code,
                   addr != (dump_end - BYTES_PER_WORD) ? ", " : "");
   }
@@ -1331,7 +1277,7 @@ static bool write_assembled_code(char* program_name) {
   if (dump_end > dump_start) {
     (void)fprintf(fp, ".data # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
     for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
-      int32 code = read_mem_word(addr);
+      int32 code = mem_read_word(addr);
       (void)fprintf(fp, "0x%x%s", code,
                     addr != (dump_end - BYTES_PER_WORD) ? ", " : "");
     }
@@ -1468,14 +1414,6 @@ int read_input(char* str, int str_size) {
 
 static void console_to_program(void) {
   if (mapped_io && !console_state_saved) {
-#ifdef NEED_TERMIOS
-    int flags;
-    ioctl((int)console_in.i, TIOCGETP, (char*)&saved_console_state);
-    flags = saved_console_state.sg_flags;
-    saved_console_state.sg_flags = (flags | RAW) & ~(CRMOD | ECHO);
-    ioctl((int)console_in.i, TIOCSETP, (char*)&saved_console_state);
-    saved_console_state.sg_flags = flags;
-#else
     struct termios params;
 
     tcgetattr(console_in.i, &saved_console_state);
@@ -1493,7 +1431,6 @@ static void console_to_program(void) {
     params.c_cc[VTIME] = 1;
 
     tcsetattr(console_in.i, TCSANOW, &params);
-#endif
     console_state_saved = 1;
   }
 }
@@ -1503,11 +1440,7 @@ static void console_to_program(void) {
 static void console_to_spim(void) {
 #ifndef WIN32
   if (mapped_io && console_state_saved)
-#ifdef NEED_TERMIOS
-    ioctl((int)console_in.i, TIOCSETP, (char*)&saved_console_state);
-#else
     tcsetattr(console_in.i, TCSANOW, &saved_console_state);
-#endif
   console_state_saved = 0;
 #endif
 }
@@ -1521,7 +1454,7 @@ int console_input_available(void) {
     timeout.tv_usec = 0;
     FD_ZERO(&fdset);
     FD_SET((int)console_in.i, &fdset);
-    return (select(sizeof(fdset) * 8, &fdset, NULL, NULL, &timeout));
+    return (select(sizeof(fdset) * 8, &fdset, nullptr, nullptr, &timeout));
   } else
     return (0);
 }

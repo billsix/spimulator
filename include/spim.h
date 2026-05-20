@@ -1,44 +1,10 @@
 /* SPIM S20 MIPS simulator.
    Definitions for the SPIM S20.
-
-   Copyright (c) 1990-2010, James R. Larus.
-   All rights reserved.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-   Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-   Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-   Neither the name of the James R. Larus nor the names of its contributors may
-   be used to endorse or promote products derived from this software without
-   specific prior written permission.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-   POSSIBILITY OF SUCH DAMAGE.
-*/
+   SPDX-License-Identifier: BSD-3-Clause
+   See LICENSE in the project root for full text. */
 
 #ifndef SPIM_H
 #define SPIM_H
-
-#include <stdbool.h>
-
-#ifndef NULL
-#define NULL 0
-#endif
 
 /* This declaration must match the endianness of the machine SPIM is running on.
    You CANNOT set SPIM to simulate a different endianness than the machine that
@@ -49,11 +15,14 @@
 #define SPIM_LITTLENDIAN
 #endif
 
-/* Type declarations for portability.  They work for DEC's Alpha (64 bits)
-   and 32 bit machines */
+/* Type declarations.  spim simulates a 32-bit MIPS, so these must be
+   exactly 32 bits wide regardless of host word size. */
 
 typedef int int32;
 typedef unsigned int uint32;
+static_assert(sizeof(int32)  == 4, "int32 must be 32 bits");
+static_assert(sizeof(uint32) == 4, "uint32 must be 32 bits");
+
 typedef union {
   int i;
   void* p;
@@ -65,8 +34,12 @@ typedef union {
 #define ROUND_UP(V, B) (((int)V + (B - 1)) & ~(B - 1))
 #define ROUND_DOWN(V, B) (((int)V) & ~(B - 1))
 
-/* Sign-extend an int16 to an int32 */
-#define SIGN_EX(X) (((X) & 0x8000) ? ((X) | 0xffff0000) : (X))
+/* Sign-extend an int16 to an int32.  Both ?: branches kept in
+   unsigned-int territory so -Wsign-compare doesn't trip on the
+   mixed signedness; the final cast back to int32 carries the
+   sign-extended value. */
+#define SIGN_EX(X) \
+  ((int32)(((X) & 0x8000) ? ((uint32)(X) | 0xffff0000u) : (uint32)(X)))
 
 #ifdef MIN /* Some systems define these in system includes */
 #undef MIN
@@ -234,7 +207,6 @@ extern bool delayed_loads;         /* => simulate delayed loads */
 extern bool quiet;                 /* => no warning messages */
 extern char* exception_file_name;  /* File containing exception handler */
 extern bool force_break;           /* => stop interpreter loop  */
-extern bool parser_error_occurred; /* => parse resulted in error */
 extern int spim_return_value;      /* Value returned when spim exits */
 /* Actual type of structure pointed to depends on X/terminal interface */
 extern port message_out, console_out, console_in;

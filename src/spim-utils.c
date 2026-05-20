@@ -1,37 +1,8 @@
 /* SPIM S20 MIPS simulator.
    Misc. routines for SPIM.
+   SPDX-License-Identifier: BSD-3-Clause
+   See LICENSE in the project root for full text. */
 
-   Copyright (c) 1990-2020, James R. Larus.
-   All rights reserved.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-   Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-   Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-   Neither the name of the James R. Larus nor the names of its contributors may
-   be used to endorse or promote products derived from this software without
-   specific prior written permission.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-   POSSIBILITY OF SUCH DAMAGE.
-*/
-
-#include <stdbool.h>
 
 #include <stdio.h>
 #include <ctype.h>
@@ -47,7 +18,6 @@
 #include "reg.h"
 #include "mem.h"
 #include "scanner.h"
-#include "parser.h"
 #include "parser.h"
 #include "tokens.h"
 #include "run.h"
@@ -89,7 +59,7 @@ mem_addr initial_k_data_limit = K_DATA_LIMIT;
 
 void initialize_world(char* exception_file_names, bool print_message) {
   /* Allocate the floating point registers */
-  if (FGR == NULL) FPR = (double*)xmalloc(FPR_LENGTH * sizeof(double));
+  if (FGR == nullptr) FPR = (double*)xmalloc(FPR_LENGTH * sizeof(double));
   /* Allocate the memory */
   make_memory(initial_text_size, initial_data_size, initial_data_limit,
               initial_stack_size, initial_stack_limit, initial_k_text_size,
@@ -102,7 +72,7 @@ void initialize_world(char* exception_file_names, bool print_message) {
   data_begins_at_point(DATA_BOT);
   text_begins_at_point(TEXT_BOT);
 
-  if (exception_file_names != NULL) {
+  if (exception_file_names != nullptr) {
     bool old_bare = bare_machine;
     bool old_accept = accept_pseudo_insts;
     char* filename;
@@ -114,11 +84,11 @@ void initialize_world(char* exception_file_names, bool print_message) {
 
     /* strtok modifies the string, so we must back up the string prior to use.
      */
-    if ((files = strdup(exception_file_names)) == NULL)
+    if ((files = str_copy(exception_file_names)) == nullptr)
       fatal_error("Insufficient memory to complete.\n");
 
-    for (filename = strtok(files, ";"); filename != NULL;
-         filename = strtok(NULL, ";")) {
+    for (filename = strtok(files, ";"); filename != nullptr;
+         filename = strtok(nullptr, ";")) {
       if (!read_assembly_file(filename))
         fatal_error("Cannot read exception handler: %s\n", filename);
 
@@ -182,7 +152,7 @@ void initialize_registers(void) {
 bool read_assembly_file(char* name) {
   FILE* file = fopen(name, "rt");
 
-  if (file == NULL) {
+  if (file == nullptr) {
     error("Cannot open file: `%s'\n", name);
     return false;
   } else {
@@ -252,7 +222,7 @@ void initialize_run_stack(int argc, char** argv) {
 
   /* Put strings on stack: */
   /* env: */
-  for (p = environ; *p != NULL; p++) addrs[j++] = copy_str_to_stack(*p);
+  for (p = environ; *p != nullptr; p++) addrs[j++] = copy_str_to_stack(*p);
   env_j = j;
 
   /* argv; */
@@ -274,13 +244,13 @@ void initialize_run_stack(int argc, char** argv) {
 
   /* argc: */
   R[REG_A0] = argc;
-  set_mem_word(R[REG_SP], argc); /* Leave argc on stack */
+  mem_write_word(R[REG_SP], argc); /* Leave argc on stack */
 }
 
 static mem_addr copy_str_to_stack(char* s) {
   int i = (int)strlen(s);
   while (i >= 0) {
-    set_mem_byte(R[REG_SP], s[i]);
+    mem_write_byte(R[REG_SP], s[i]);
     R[REG_SP] -= 1;
     i -= 1;
   }
@@ -288,7 +258,7 @@ static mem_addr copy_str_to_stack(char* s) {
 }
 
 static mem_addr copy_int_to_stack(int n) {
-  set_mem_word(R[REG_SP], n);
+  mem_write_word(R[REG_SP], n);
   R[REG_SP] -= BYTES_PER_WORD;
   return ((mem_addr)R[REG_SP] + BYTES_PER_WORD);
 }
@@ -331,7 +301,7 @@ typedef struct bkptrec {
   struct bkptrec* next;
 } bkpt;
 
-static bkpt* bkpts = NULL;
+static bkpt* bkpts = nullptr;
 
 /* Set a breakpoint at memory location ADDR. */
 
@@ -341,7 +311,7 @@ void add_breakpoint(mem_addr addr) {
   rec->next = bkpts;
   rec->addr = addr;
 
-  if ((rec->inst = set_breakpoint(addr)) != NULL)
+  if ((rec->inst = set_breakpoint(addr)) != nullptr)
     bkpts = rec;
   else {
     if (exception_occurred)
@@ -358,12 +328,12 @@ void delete_breakpoint(mem_addr addr) {
   bkpt *p, *b;
   int deleted_one = 0;
 
-  for (p = NULL, b = bkpts; b != NULL;)
+  for (p = nullptr, b = bkpts; b != nullptr;)
     if (b->addr == addr) {
       bkpt* n;
 
-      set_mem_inst(addr, b->inst);
-      if (p == NULL)
+      mem_write_inst(addr, b->inst);
+      if (p == nullptr)
         bkpts = b->next;
       else
         p->next = b->next;
@@ -379,11 +349,11 @@ void delete_breakpoint(mem_addr addr) {
 static void delete_all_breakpoints(void) {
   bkpt *b, *n;
 
-  for (b = bkpts, n = NULL; b != NULL; b = n) {
+  for (b = bkpts, n = nullptr; b != nullptr; b = n) {
     n = b->next;
     free(b);
   }
-  bkpts = NULL;
+  bkpts = nullptr;
 }
 
 /* List all breakpoints. */
@@ -392,7 +362,7 @@ void list_breakpoints(void) {
   bkpt* b;
 
   if (bkpts)
-    for (b = bkpts; b != NULL; b = b->next)
+    for (b = bkpts; b != nullptr; b = b->next)
       write_output(message_out, "Breakpoint at 0x%08x\n", b->addr);
   else
     write_output(message_out, "No breakpoints set\n");
@@ -402,7 +372,7 @@ void list_breakpoints(void) {
 
 /* Return the entry in the linear TABLE of length LENGTH with key STRING.
    TABLE must be sorted on the key field.
-   Return NULL if no such entry exists. */
+   Return nullptr if no such entry exists. */
 
 name_val_val* map_string_to_name_val_val(name_val_val tbl[], int tbl_len,
                                          char* id) {
@@ -426,12 +396,12 @@ name_val_val* map_string_to_name_val_val(name_val_val tbl[], int tbl_len,
       hi = mid - 1;
   }
 
-  return NULL;
+  return nullptr;
 }
 
 /* Return the entry in the linear TABLE of length LENGTH with VALUE1 field NUM.
    TABLE must be sorted on the VALUE1 field.
-   Return NULL if no such entry exists. */
+   Return nullptr if no such entry exists. */
 
 name_val_val* map_int_to_name_val_val(name_val_val tbl[], int tbl_len,
                                       int num) {
@@ -449,7 +419,7 @@ name_val_val* map_int_to_name_val_val(name_val_val tbl[], int tbl_len,
       hi = mid - 1;
   }
 
-  return NULL;
+  return nullptr;
 }
 
 #ifdef NEED_VSPRINTF
@@ -504,7 +474,7 @@ unsigned long strtoul(const char* str, char** eptr, int base) {
 }
 #endif
 
-char* str_copy(char* str) {
+char* str_copy(const char* str) {
   const int len_to_copy = (int)strlen(str) + 1;
   char* const new_str = (char*)xmalloc(len_to_copy);
   strlcpy(new_str, str, len_to_copy);

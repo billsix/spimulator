@@ -1,37 +1,8 @@
 /* SPIM S20 MIPS simulator.
    Utilities for displaying machine contents.
+   SPDX-License-Identifier: BSD-3-Clause
+   See LICENSE in the project root for full text. */
 
-   Copyright (c) 1990-2020, James R. Larus.
-   All rights reserved.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-   Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-   Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-   Neither the name of the James R. Larus nor the names of its contributors may
-   be used to endorse or promote products derived from this software without
-   specific prior written permission.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-   POSSIBILITY OF SUCH DAMAGE.
-*/
-
-#include <stdbool.h>
 
 #include "spim.h"
 #include "string-stream.h"
@@ -175,8 +146,8 @@ void format_insts(str_stream* ss, mem_addr from, mem_addr to) {
   mem_addr i;
 
   for (i = from; i < to; i += 4) {
-    inst = read_mem_inst(i);
-    if (inst != NULL) {
+    inst = mem_read_inst(i);
+    if (inst != nullptr) {
       format_an_inst(ss, inst, i);
     }
   }
@@ -211,7 +182,7 @@ void format_mem(str_stream* ss, mem_addr from, mem_addr to) {
   for (; i < to;) {
     /* Count consecutive zero words */
     for (j = 0; (i + (uint32)j * BYTES_PER_WORD) < to; j += 1) {
-      val = read_mem_word(i + (uint32)j * BYTES_PER_WORD);
+      val = mem_read_word(i + (uint32)j * BYTES_PER_WORD);
       if (val != 0) {
         break;
       }
@@ -228,7 +199,7 @@ void format_mem(str_stream* ss, mem_addr from, mem_addr to) {
       /* Fewer than 4 zero words, print them on a single line: */
       ss_printf(ss, "[0x%08x]		      ", i);
       do {
-        val = read_mem_word(i);
+        val = mem_read_word(i);
         ss_printf(ss, "  0x%08x", (unsigned int)val);
         i += BYTES_PER_WORD;
       } while (i % BYTES_PER_LINE != 0);
@@ -246,7 +217,7 @@ static mem_addr format_partial_line(str_stream* ss, mem_addr addr) {
     ss_printf(ss, "[0x%08x]		      ", addr);
 
     for (; (addr % BYTES_PER_LINE) != 0; addr += BYTES_PER_WORD) {
-      mem_word val = read_mem_word(addr);
+      mem_word val = mem_read_word(addr);
       ss_printf(ss, "  0x%08x", (unsigned int)val);
     }
 

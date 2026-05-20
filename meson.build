@@ -1,9 +1,17 @@
 project('spimulator', 'c',
   version: '1.0',
-  default_options: ['c_std=gnu23']
+  default_options: ['c_std=gnu23', 'warning_level=3']
 )
 
-add_project_arguments('-Wno-zero-length-array', language: 'c')
+# -Wno-zero-length-array: spim uses flexible array members.
+# -Wunused-function: catches dead static fns like the late parse_br_imm32.
+# -Wshadow: prevents inner-scope rebinding bugs.
+add_project_arguments(
+  '-Wno-zero-length-array',
+  '-Wunused-function',
+  '-Wshadow',
+  language: 'c'
+)
 
 
 # BSD-licensed line-editing library. Auto by default; gate with
@@ -58,12 +66,10 @@ spim_source_files = source_files + files('src/spim.c')
 # Note: meson.current_build_dir() allows accessing generated files
 inc = include_directories('include')
 
-# Platform-specific libraries
+# Platform-specific libraries.  spim has no socket code, so Windows
+# only needs the standard runtime; Unix needs libm for the FP syscalls.
 if host_machine.system() == 'windows'
-  link_libraries = [
-    meson.get_compiler('c').find_library('wsock32'),
-    meson.get_compiler('c').find_library('ws2_32')
-  ]
+  link_libraries = []
 else
   link_libraries = [
     meson.get_compiler('c').find_library('m')
@@ -86,3 +92,31 @@ install_data('src/exceptions.s',
 # Install the man page. Meson uses the filename's trailing digit as the
 # section number, so Documentation/spim.1 installs to share/man/man1/spim.1.
 install_man('Documentation/spim.1')
+
+# --- Regression tests ----------------------------------------------------
+#
+# All driven by tests/run-test.sh, which encodes the per-test invocation
+# (some need stdin, some need argv, some check the exit code, some check
+# substring output).  Run with `meson test -C builddir`.
+
+test_driver = files('tests/run-test.sh')
+exception_file = meson.current_source_dir() / 'src' / 'exceptions.s'
+
+regression_tests = [
+  # Standard "Passed all tests" sentinel
+  'bare', 'core', 'le', 'dir', 'octal_escape', 'argv', 'read_int_eof',
+  # Custom criteria
+  'read_char_eof', 'args_cmd',
+  # Unix-process conformance (exit codes)
+  'return_value', 'unaligned', 'missing_main', 'parse_error', 'stderr_split',
+  # Exception-handler paths
+  'divide_by_zero',
+  # Teaching-mode golden output + parity sanity
+  'explain', 'explain_parity',
+]
+
+foreach name : regression_tests
+  test(name, test_driver,
+       args: [spimulator_exe.full_path(), exception_file, name],
+       suite: 'regression')
+endforeach

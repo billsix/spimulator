@@ -8,7 +8,6 @@
    BSD 3-Clause.
 */
 
-#include <stdbool.h>
 #include <stdio.h>
 
 #include "spim.h"
@@ -195,7 +194,7 @@ void set_eq_inst(int op, int rd, int rs, int rt) {
 }
 
 void check_imm_range(imm_expr* expr, int32 min, int32 max) {
-  if (expr->symbol == NULL || SYMBOL_IS_DEFINED(expr->symbol)) {
+  if (expr->symbol == nullptr || SYMBOL_IS_DEFINED(expr->symbol)) {
     /* If expression can be evaluated, compare against limits. */
     int32 value = eval_imm_expr(expr);
 
@@ -209,7 +208,7 @@ void check_imm_range(imm_expr* expr, int32 min, int32 max) {
 }
 
 void check_uimm_range(imm_expr* expr, uint32 min, uint32 max) {
-  if (expr->symbol == NULL || SYMBOL_IS_DEFINED(expr->symbol)) {
+  if (expr->symbol == nullptr || SYMBOL_IS_DEFINED(expr->symbol)) {
     uint32 value = (uint32)eval_imm_expr(expr);
 
     if (value < min || max < value) {

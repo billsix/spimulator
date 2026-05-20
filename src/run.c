@@ -1,37 +1,8 @@
 /* SPIM S20 MIPS simulator.
    Execute SPIM instructions.
+   SPDX-License-Identifier: BSD-3-Clause
+   See LICENSE in the project root for full text. */
 
-   Copyright (c) 1990-2020, James R. Larus.
-   All rights reserved.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-   Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-   Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-   Neither the name of the James R. Larus nor the names of its contributors may
-   be used to endorse or promote products derived from this software without
-   specific prior written permission.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-   POSSIBILITY OF SUCH DAMAGE.
-*/
-
-#include <stdbool.h>
 
 #ifdef mips
 #define _IEEE 1
@@ -153,12 +124,12 @@ static int running_in_delay_slot = 0;
 #define DO_DELAYED_UPDATE()                      \
   if (delayed_loads) {                           \
     /* Check for delayed updates */              \
-    if (delayed_load_addr2 != NULL) {            \
+    if (delayed_load_addr2 != nullptr) {            \
       *delayed_load_addr2 = delayed_load_value2; \
     }                                            \
     delayed_load_addr2 = delayed_load_addr1;     \
     delayed_load_value2 = delayed_load_value1;   \
-    delayed_load_addr1 = NULL;                   \
+    delayed_load_addr1 = nullptr;                   \
   }
 
 /* Run the program stored in memory, starting at address PC for
@@ -168,8 +139,8 @@ static int running_in_delay_slot = 0;
 
 bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
   instruction* inst;
-  static reg_word *delayed_load_addr1 = NULL, delayed_load_value1;
-  static reg_word *delayed_load_addr2 = NULL, delayed_load_value2;
+  static reg_word *delayed_load_addr1 = nullptr, delayed_load_value1;
+  static reg_word *delayed_load_addr2 = nullptr, delayed_load_value2;
   int step, step_size, next_step;
 
   PC = initial_PC;
@@ -228,16 +199,16 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 #endif
 
       exception_occurred = 0;
-      inst = read_mem_inst(PC);
+      inst = mem_read_inst(PC);
       if (exception_occurred) /* In reading instruction */
       {
         exception_occurred = 0;
         handle_exception();
         continue;
-      } else if (inst == NULL) {
+      } else if (inst == nullptr) {
         run_error("Attempt to execute non-instruction at 0x%08x\n", PC);
         return false;
-      } else if (EXPR(inst) != NULL && EXPR(inst)->symbol != NULL &&
+      } else if (EXPR(inst) != nullptr && EXPR(inst)->symbol != nullptr &&
                  EXPR(inst)->symbol->addr == 0) {
         run_error("Instruction references undefined symbol at 0x%08x\n  %s", PC,
                   inst_to_string(PC));
@@ -469,28 +440,28 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         } break;
 
         case TOK_LB_OP:
-          LOAD_INST(&R[RT(inst)], read_mem_byte(R[BASE(inst)] + IOFFSET(inst)),
+          LOAD_INST(&R[RT(inst)], mem_read_byte(R[BASE(inst)] + IOFFSET(inst)),
                     0xffffffff);
           break;
 
         case TOK_LBU_OP:
-          LOAD_INST(&R[RT(inst)], read_mem_byte(R[BASE(inst)] + IOFFSET(inst)),
+          LOAD_INST(&R[RT(inst)], mem_read_byte(R[BASE(inst)] + IOFFSET(inst)),
                     0xff);
           break;
 
         case TOK_LH_OP:
-          LOAD_INST(&R[RT(inst)], read_mem_half(R[BASE(inst)] + IOFFSET(inst)),
+          LOAD_INST(&R[RT(inst)], mem_read_half(R[BASE(inst)] + IOFFSET(inst)),
                     0xffffffff);
           break;
 
         case TOK_LHU_OP:
-          LOAD_INST(&R[RT(inst)], read_mem_half(R[BASE(inst)] + IOFFSET(inst)),
+          LOAD_INST(&R[RT(inst)], mem_read_half(R[BASE(inst)] + IOFFSET(inst)),
                     0xffff);
           break;
 
         case TOK_LL_OP:
           /* Uniprocess, so this instruction is just a load */
-          LOAD_INST(&R[RT(inst)], read_mem_word(R[BASE(inst)] + IOFFSET(inst)),
+          LOAD_INST(&R[RT(inst)], mem_read_word(R[BASE(inst)] + IOFFSET(inst)),
                     0xffffffff);
           break;
 
@@ -499,7 +470,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
 
         case TOK_LW_OP:
-          LOAD_INST(&R[RT(inst)], read_mem_word(R[BASE(inst)] + IOFFSET(inst)),
+          LOAD_INST(&R[RT(inst)], mem_read_word(R[BASE(inst)] + IOFFSET(inst)),
                     0xffffffff);
           break;
 
@@ -517,7 +488,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           int byte = addr & 0x3;
           reg_word reg_val = R[RT(inst)];
 
-          word = read_mem_word(addr & 0xfffffffc);
+          word = mem_read_word(addr & 0xfffffffc);
           if (!exception_occurred)
 #ifdef SPIM_BIGENDIAN
             switch (byte) {
@@ -565,7 +536,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           int byte = addr & 0x3;
           reg_word reg_val = R[RT(inst)];
 
-          word = read_mem_word(addr & 0xfffffffc);
+          word = mem_read_word(addr & 0xfffffffc);
           if (!exception_occurred)
 #ifdef SPIM_BIGENDIAN
             switch (byte) {
@@ -753,12 +724,12 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
 
         case TOK_SB_OP:
-          set_mem_byte(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
+          mem_write_byte(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
           break;
 
         case TOK_SC_OP:
           /* Uniprocessor, so instruction is just a store */
-          set_mem_word(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
+          mem_write_word(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
           break;
 
         case TOK_SDC2_OP:
@@ -766,7 +737,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
 
         case TOK_SH_OP:
-          set_mem_half(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
+          mem_write_half(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
           break;
 
         case TOK_SLL_OP: {
@@ -879,7 +850,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
 
         case TOK_SW_OP:
-          set_mem_word(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
+          mem_write_word(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
           break;
 
         case TOK_SWC2_OP:
@@ -892,7 +863,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           reg_word reg = R[RT(inst)];
           int byte = addr & 0x3;
 
-          data = read_mem_word(addr & 0xfffffffc);
+          data = mem_read_word(addr & 0xfffffffc);
 #ifdef SPIM_BIGENDIAN
           switch (byte) {
             case 0:
@@ -930,7 +901,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
               break;
           }
 #endif
-          set_mem_word(addr & 0xfffffffc, data);
+          mem_write_word(addr & 0xfffffffc, data);
           break;
         }
 
@@ -940,7 +911,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           reg_word reg = R[RT(inst)];
           int byte = addr & 0x3;
 
-          data = read_mem_word(addr & 0xfffffffc);
+          data = mem_read_word(addr & 0xfffffffc);
 #ifdef SPIM_BIGENDIAN
           switch (byte) {
             case 0:
@@ -978,7 +949,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
               break;
           }
 #endif
-          set_mem_word(addr & 0xfffffffc, data);
+          mem_write_word(addr & 0xfffffffc, data);
           break;
         }
 
@@ -1256,16 +1227,16 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           if ((addr & 0x3) != 0)
             RAISE_EXCEPTION(ExcCode_AdEL, CP0_BadVAddr = addr);
 
-          LOAD_INST((reg_word*)&FPR_S(FT(inst)), read_mem_word(addr),
+          LOAD_INST((reg_word*)&FPR_S(FT(inst)), mem_read_word(addr),
                     0xffffffff);
           LOAD_INST((reg_word*)&FPR_S(FT(inst) + 1),
-                    read_mem_word(addr + sizeof(mem_word)), 0xffffffff);
+                    mem_read_word(addr + sizeof(mem_word)), 0xffffffff);
           break;
         }
 
         case TOK_LWC1_OP:
           LOAD_INST((reg_word*)&FPR_S(FT(inst)),
-                    read_mem_word(R[BASE(inst)] + IOFFSET(inst)), 0xffffffff);
+                    mem_read_word(R[BASE(inst)] + IOFFSET(inst)), 0xffffffff);
           break;
 
         case TOK_MFC1_OP: {
@@ -1385,8 +1356,8 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           if ((addr & 0x3) != 0)
             RAISE_EXCEPTION(ExcCode_AdEL, CP0_BadVAddr = addr);
 
-          set_mem_word(addr, *vp);
-          set_mem_word(addr + sizeof(mem_word), *(vp + 1));
+          mem_write_word(addr, *vp);
+          mem_write_word(addr + sizeof(mem_word), *(vp + 1));
           break;
         }
 
@@ -1410,7 +1381,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           float val = FPR_S(RT(inst));
           reg_word* vp = (reg_word*)&val;
 
-          set_mem_word(R[BASE(inst)] + IOFFSET(inst), *vp);
+          mem_write_word(R[BASE(inst)] + IOFFSET(inst), *vp);
           break;
         }
 
@@ -1473,8 +1444,8 @@ static void bump_CP0_timer(void) {
 
 static void start_CP0_timer(void) {
 #ifdef _WIN32
-  HANDLE timer = CreateWaitableTimer(NULL, TRUE, TEXT("SPIMTimer"));
-  if (NULL == timer) {
+  HANDLE timer = CreateWaitableTimer(nullptr, TRUE, TEXT("SPIMTimer"));
+  if (nullptr == timer) {
     error("CreateWaitableTimer failed");
   } else {
     LARGE_INTEGER interval;
@@ -1508,7 +1479,7 @@ static void start_CP0_timer(void) {
       time.it_interval.tv_usec = 0;
       time.it_value.tv_sec = 0;
       time.it_value.tv_usec = TIMER_TICK_MS * 1000;
-      if (-1 == setitimer(ITIMER_REAL, &time, NULL)) {
+      if (-1 == setitimer(ITIMER_REAL, &time, nullptr)) {
         perror("setitmer failed");
       }
     }
