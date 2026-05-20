@@ -46,12 +46,6 @@ char* source_line(void);
 
 /* Exported Variables: */
 
-/* This flag tells the scanner to treat the next sequence of letters
-   etc as an identifier and not look it up as an opcode. It permits us
-   to use opcodes as symbols in most places. */
-
-extern int only_id;
-
 typedef intptr_union scan_value_t;
 extern scan_value_t scan_value;  /* Value of the last token returned by the scanner. */
 

@@ -15,16 +15,12 @@
 #include "spim-utils.h"     /* name_val_val, str_copy, xmalloc */
 #include "reg.h"            /* R_LENGTH */
 #include "sym-tbl.h"        /* label_is_defined */
-#include "scanner.h"        /* scan_value, line_no, only_id */
+#include "scanner.h"        /* scan_value, line_no */
 #include "tokens.h"    /* TOK_* token values */
 
 /* Runtime-visible globals. */
-int       line_no = 1;
-scan_value_t  scan_value  = {0};
-int       only_id = 0;  /* legacy flag retained for any caller that
-                           still inspects it; the scanner itself uses
-                           the self-clearing force_id_next state
-                           internally. */
+int          line_no    = 1;
+scan_value_t scan_value = {0};
 
 /* Register-name → register-number lookup.  Public because inst.c and
    explain.c also call register_name_to_number, independent of the

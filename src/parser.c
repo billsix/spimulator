@@ -275,7 +275,7 @@ static int parse_expr(void) {
   return v;
 }
 
-/* EXPRESSION: like EXPR but with the only_id flag */
+/* EXPRESSION: like EXPR but with the next-token force-identifier flag */
 static int parse_expression(void) {
   scanner_force_identifier();
   return parse_expr();
@@ -340,7 +340,7 @@ static imm_expr* parse_uimm16(void) {
   return e;
 }
 
-/* BR_IMM32 — like IMM32 but with only_id toggle */
+/* BR_IMM32 — like IMM32 but with the force-identifier flag toggled */
 static imm_expr* parse_br_imm32(void) {
   return parse_imm32();  /* scanner_force_identifier already set inside */
 }
