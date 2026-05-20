@@ -36,14 +36,22 @@
 
 #include "spim.h"
 
-/* Exported functions: */
+/* Exported functions. */
+
+#include <stdio.h>
+
+/* Parse the file currently bound to the scanner.  Returns the number
+   of parse errors encountered (0 on success).  Drives the scanner
+   until EOF.  Sets parse_errors_seen as a side effect. */
+int parse_file(void);
+
+/* Initialize scanner + parser state for a fresh assembly file.
+   Call before parse_file(). */
+void parser_init(FILE* in, char* file_name);
 
 void fix_current_label_address(mem_addr new_addr);
 int imm_op_to_op(int opcode);
-void initialize_parser(char* file_name);
-int op_to_imm_op(int opcode);
-void yyerror(char* s);
-int yyparse(void);
+void parse_error(char* s);
 
 /* Exported Variables: */
 

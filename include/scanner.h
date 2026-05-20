@@ -36,29 +36,18 @@
 
 #include "spim.h"
 
-/* Exported functions (besides yylex): */
+/* Exported functions. */
 
-void initialize_scanner(FILE* in_file);
-void push_scanner(FILE* in_file);
-void pop_scanner(void);
+void scanner_init(FILE* in_file);
 char* erroneous_line(void);
 void scanner_start_line(void);
 int register_name_to_number(char* name);
 char* source_line(void);
-int yylex(void);
 
 /* Exported Variables: */
 
-/* This flag tells the scanner to treat the next sequence of letters
-   etc as an identifier and not look it up as an opcode. It permits us
-   to use opcodes as symbols in most places.  However, because of the
-   LALR(1) lookahead, it does not work for labels. */
-
-extern int only_id;
-
-typedef intptr_union yylval_t;
-#define YYSTYPE yylval_t
-extern YYSTYPE yylval; /* Value of token from YYLEX */
+typedef intptr_union scan_value_t;
+extern scan_value_t scan_value;  /* Value of the last token returned by the scanner. */
 
 extern int line_no; /* Line number in input file*/
 

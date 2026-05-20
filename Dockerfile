@@ -15,10 +15,8 @@ COPY entrypoint/shell.sh /usr/local/bin
 RUN sed -i -e "s@tsflags=nodocs@#tsflags=nodocs@g" /etc/dnf/dnf.conf && \
     echo "keepcache=True" >> /etc/dnf/dnf.conf && \
     dnf upgrade -y && \
-    dnf install -y bison \
-                   clang \
+    dnf install -y clang \
                    clang-tools-extra \
-                   flex \
                    g++ \
                    gcc \
                    gdb \

@@ -48,7 +48,8 @@
 #include "mem.h"
 #include "scanner.h"
 #include "parser.h"
-#include "parser_yacc.h"
+#include "parser.h"
+#include "tokens.h"
 #include "run.h"
 #include "sym-tbl.h"
 
@@ -135,7 +136,7 @@ void initialize_world(char* exception_file_names, bool print_message) {
       (void)record_label("main", 0, 0);
     }
   }
-  initialize_scanner(stdin);
+  scanner_init(stdin);
   delete_all_breakpoints();
 }
 
@@ -174,8 +175,9 @@ void initialize_registers(void) {
   FCSR = 0x0;
 }
 
-/* Read file NAME, which should contain assembly code. Return true if
-   successful and false otherwise. */
+/* Read file NAME, which should contain assembly code.  Returns
+   true on a successful read (possibly with parse errors recorded
+   via parse_errors_seen), false if the file could not be opened. */
 
 bool read_assembly_file(char* name) {
   FILE* file = fopen(name, "rt");
@@ -184,12 +186,8 @@ bool read_assembly_file(char* name) {
     error("Cannot open file: `%s'\n", name);
     return false;
   } else {
-    initialize_scanner(file);
-    initialize_parser(name);
-    parse_errors_seen = 0;
-
-    while (!yyparse());
-
+    parser_init(file, name);
+    (void)parse_file();
     fclose(file);
     flush_local_labels(!parse_error_occurred);
     end_of_assembly_file();
