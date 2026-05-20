@@ -373,8 +373,6 @@ int main(int argc, char** argv) {
   console_in.i = 0;
   mapped_io = false;
 
-  // write_startup_message ();
-
   if (getenv("SPIM_EXCEPTION_HANDLER") != NULL)
     exception_file_name = getenv("SPIM_EXCEPTION_HANDLER");
 

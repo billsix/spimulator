@@ -9,3 +9,8 @@ compile_commands.json
 
 # Local debug captures
 foo.txt
+
+# stale install-prefix dir, ignore
+bldInstall/
+data.asm
+text.asm

@@ -97,44 +97,6 @@ void fix_current_label_address(mem_addr new_addr) {
 /* Internal call sites kept under the old name to minimise churn. */
 #define fix_current_label_address fix_current_label_address
 
-/* External spim runtime functions */
-extern void r_type_inst(int opcode, int rd, int rs, int rt);
-extern void r_sh_type_inst(int opcode, int rd, int rt, int shamt);
-extern void r_co_type_inst(int opcode, int rd, int rs, int rt);
-extern void r_cond_type_inst(int opcode, int rs, int rt, int cc);
-extern void i_type_inst(int opcode, int rt, int rs, imm_expr* expr);
-extern void i_type_inst_free(int opcode, int rt, int rs, imm_expr* expr);
-extern void j_type_inst(int opcode, imm_expr* target);
-extern void store_word(int);
-extern void store_half(int);
-extern void store_byte(int);
-extern void store_double(double*);
-extern void store_float(double*);
-extern void store_string(char* string, int length, bool null_terminate);
-extern void increment_data_pc(int);
-extern void increment_text_pc(int);
-extern void align_data(int);
-extern void align_text(int);
-extern void set_data_alignment(int);
-extern void enable_data_alignment(void);
-extern void user_kernel_data_segment(bool kernel);
-extern void user_kernel_text_segment(bool kernel);
-extern void set_data_pc(mem_addr);
-extern void set_text_pc(mem_addr);
-extern mem_addr current_data_pc(void);
-extern mem_addr current_text_pc(void);
-extern imm_expr* make_imm_expr(int offset, char* symbol, bool branch_relative);
-extern imm_expr* const_imm_expr(int value);
-extern imm_expr* incr_expr_offset(imm_expr* expr, int delta);
-extern addr_expr* make_addr_expr(int offset, char* symbol, int reg);
-extern int addr_expr_reg(addr_expr* expr);
-extern imm_expr* addr_expr_imm(addr_expr* expr);
-extern label* make_label_global(char* name);
-extern label* record_label(char* name, mem_addr addr, int locality);
-extern label* lookup_label(char* name);
-extern void resolve_label_uses(label* sym);
-extern void flush_local_labels(int issue_undef_warning);
-
 /* ---------------- error helpers ---------------- */
 
 static void parse_error_at(const char* msg) {
@@ -338,11 +300,6 @@ static imm_expr* parse_uimm16(void) {
   imm_expr* e = parse_imm32();
   check_uimm_range(e, UIMM_MIN, UIMM_MAX);
   return e;
-}
-
-/* BR_IMM32 — like IMM32 but with the force-identifier flag toggled */
-static imm_expr* parse_br_imm32(void) {
-  return parse_imm32();  /* scanner_force_identifier already set inside */
 }
 
 /* LABEL — like ID but produces a PC-relative imm_expr suitable

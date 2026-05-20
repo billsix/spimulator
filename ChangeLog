@@ -1,3 +1,39 @@
+2026-05-20  Bill Six  <billsix@gmail.com>
+
+	Post-Phase-5 naming cleanup (four tiers):
+
+	* Tier 3: stale `bison` / `parser.y` / `scanner.l` / `Phase N`
+	  / `coexist` comment references swept from src/hp_*.c and
+	  include/hp_*.h.
+	* Tier 2a: `hp_` prefix dropped throughout (~370 occurrences).
+	  Source files renamed: hp_scanner.c → scanner.c, hp_parser.c
+	  → parser.c, hp_pseudo_op.c → pseudo_op.c.  Header
+	  hp_parser.h merged into parser.h; hp_pseudo_op.h renamed
+	  to pseudo_op.h.  Three duplicate-symbol merges
+	  (hp_imm_op_to_op + imm_op_to_op, hp_initialize_parser +
+	  initialize_parser wrapper, hp_erroneous_line +
+	  erroneous_line wrapper).
+	* Tier 2b: flex/bison-era REPL names renamed.  yylex /
+	  yyparse wrappers deleted; spim.c's read_token() and
+	  ASM_CMD case call scanner_advance() / parse_file()
+	  directly.  yyerror → parse_error, yywarn → parse_warn,
+	  push_scanner / pop_scanner → scanner_push_source /
+	  scanner_pop_source, initialize_scanner / initialize_parser
+	  → scanner_init / parser_init.  Dead #define YYSTYPE
+	  macro removed from scanner.h.
+	* Tier 2c: 390 Y_* tokens renamed to TOK_* (Y_ADD_OP →
+	  TOK_ADD_OP, Y_EOF → TOK_EOF, etc.).  yylval → scan_value,
+	  yylval_t → scan_value_t.  1430 total substitutions across
+	  11 files.
+	* Tier 2d: dead only_id shim deleted from scanner.h /
+	  scanner.c.
+
+	Each tier passed the verification gate independently.  The
+	following 2026-05-19 entry describes the original Phase-5
+	work; its references to Y_* tokens and yyerror are
+	historically accurate but those names are now TOK_* and
+	parse_error respectively.
+
 2026-05-19  Bill Six  <billsix@gmail.com>
 
 	* src/scanner.l, src/parser.y: deleted (Phase 5).

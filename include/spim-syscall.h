@@ -1,3 +1,6 @@
+#ifndef SPIM_SYSCALL_H
+#define SPIM_SYSCALL_H
+
 /* SPIM S20 MIPS simulator.
    System calls implemented by simulator.
 
@@ -50,3 +53,5 @@
 #define CLOSE_SYSCALL 16
 
 #define EXIT2_SYSCALL 17
+
+#endif
