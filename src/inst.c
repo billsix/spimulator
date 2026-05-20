@@ -1,36 +1,8 @@
 
 /* SPIM S20 MIPS simulator.
    Code to build assembly instructions and resolve symbolic labels.
-
-   Copyright (c) 1990-2021, James R. Larus.
-   All rights reserved.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-   Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-   Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-   Neither the name of the James R. Larus nor the names of its contributors may
-   be used to endorse or promote products derived from this software without
-   specific prior written permission.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-   POSSIBILITY OF SUCH DAMAGE.
-*/
+   SPDX-License-Identifier: BSD-3-Clause
+   See LICENSE in the project root for full text. */
 
 #include <stdbool.h>
 
@@ -50,6 +22,12 @@
 #include "data.h"
 
 /* Local functions: */
+
+static imm_expr* copy_imm_expr(imm_expr* old_expr);
+static void increment_text_pc(int delta);
+static imm_expr* lower_bits_of_expr(imm_expr* old_expr);
+static void store_instruction(instruction* inst);
+static imm_expr* upper_bits_of_expr(imm_expr* old_expr);
 
 static int compare_pair_value(name_val_val* p1, name_val_val* p2);
 static void format_imm_expr(str_stream* ss, imm_expr* expr, int base_reg);
@@ -123,12 +101,6 @@ void align_text(int alignment) {
   }
 }
 
-void set_text_alignment(int alignment) {
-  if (enable_text_auto_alignment) align_text(alignment);
-}
-
-void enable_text_alignment(void) { enable_text_auto_alignment = true; }
-
 /* Set the location (in user or kernel text space) for the next instruction. */
 
 void set_text_pc(mem_addr addr) {
@@ -144,7 +116,7 @@ mem_addr current_text_pc(void) { return (INST_PC); }
 
 /* Increment the current text segement PC. */
 
-void increment_text_pc(int delta) {
+static void increment_text_pc(int delta) {
   if (in_kernel) {
     next_k_text_pc += delta;
     if (k_text_top <= next_k_text_pc)
@@ -162,7 +134,7 @@ void user_kernel_text_segment(bool to_kernel) { in_kernel = to_kernel; }
 
 /* Store an INSTRUCTION in memory at the next location. */
 
-void store_instruction(instruction* inst) {
+static void store_instruction(instruction* inst) {
   if (data_dir) {
     store_word(inst_encode(inst));
     free_inst(inst);
@@ -932,7 +904,7 @@ imm_expr* make_imm_expr(int offs, char* sym, bool is_pc_relative) {
 
 /* Return a shallow copy of the EXPRESSION. */
 
-imm_expr* copy_imm_expr(imm_expr* old_expr) {
+static imm_expr* copy_imm_expr(imm_expr* old_expr) {
   imm_expr* expr = (imm_expr*)xmalloc(sizeof(imm_expr));
 
   *expr = *old_expr;
@@ -943,7 +915,7 @@ imm_expr* copy_imm_expr(imm_expr* old_expr) {
 /* Return a shallow copy of an EXPRESSION that only uses the upper
    sixteen bits of the expression's value. */
 
-imm_expr* upper_bits_of_expr(imm_expr* old_expr) {
+static imm_expr* upper_bits_of_expr(imm_expr* old_expr) {
   imm_expr* expr = copy_imm_expr(old_expr);
 
   expr->bits = 1;
@@ -953,7 +925,7 @@ imm_expr* upper_bits_of_expr(imm_expr* old_expr) {
 /* Return a shallow copy of the EXPRESSION that only uses the lower
    sixteen bits of the expression's value. */
 
-imm_expr* lower_bits_of_expr(imm_expr* old_expr) {
+static imm_expr* lower_bits_of_expr(imm_expr* old_expr) {
   imm_expr* expr = copy_imm_expr(old_expr);
 
   expr->bits = -1;

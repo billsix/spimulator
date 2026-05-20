@@ -58,12 +58,10 @@ spim_source_files = source_files + files('src/spim.c')
 # Note: meson.current_build_dir() allows accessing generated files
 inc = include_directories('include')
 
-# Platform-specific libraries
+# Platform-specific libraries.  spim has no socket code, so Windows
+# only needs the standard runtime; Unix needs libm for the FP syscalls.
 if host_machine.system() == 'windows'
-  link_libraries = [
-    meson.get_compiler('c').find_library('wsock32'),
-    meson.get_compiler('c').find_library('ws2_32')
-  ]
+  link_libraries = []
 else
   link_libraries = [
     meson.get_compiler('c').find_library('m')

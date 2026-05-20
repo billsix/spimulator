@@ -1,35 +1,7 @@
 /* SPIM S20 MIPS simulator.
    Terminal interface for SPIM simulator.
-
-   Copyright (c) 1990-2022, James R. Larus.
-   All rights reserved.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-
-   Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-   Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-   Neither the name of the James R. Larus nor the names of its contributors may
-   be used to endorse or promote products derived from this software without
-   specific prior written permission.
-
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-   POSSIBILITY OF SUCH DAMAGE.
-*/
+   SPDX-License-Identifier: BSD-3-Clause
+   See LICENSE in the project root for full text. */
 
 #include <stdbool.h>
 
@@ -49,30 +21,11 @@
 #include <io.h>
 #endif
 
-#ifdef RS
-/* This is problem on HP Snakes, which define RS in syscall.h */
-#undef RS
-#endif
-
 #include <sys/types.h>
 #ifndef WIN32
 #include <sys/select.h>
-#endif
-
-#ifdef _AIX
-#ifndef NBBY
-#define NBBY 8
-#endif
-#endif
-
-#ifndef WIN32
 #include <sys/time.h>
-#ifdef NEED_TERMIOS
-#include <sys/ioctl.h>
-#include <sgtty.h>
-#else
 #include <termios.h>
-#endif
 #endif
 
 #include <stdarg.h>
@@ -340,11 +293,7 @@ static bool load_exception_handler = true;
 static int console_state_saved;
 
 #ifndef WIN32
-#ifdef NEED_TERMIOS
-static struct sgttyb saved_console_state;
-#else
 static struct termios saved_console_state;
-#endif
 #endif
 static int program_argc;
 static char** program_argv;
@@ -1466,14 +1415,6 @@ int read_input(char* str, int str_size) {
 
 static void console_to_program(void) {
   if (mapped_io && !console_state_saved) {
-#ifdef NEED_TERMIOS
-    int flags;
-    ioctl((int)console_in.i, TIOCGETP, (char*)&saved_console_state);
-    flags = saved_console_state.sg_flags;
-    saved_console_state.sg_flags = (flags | RAW) & ~(CRMOD | ECHO);
-    ioctl((int)console_in.i, TIOCSETP, (char*)&saved_console_state);
-    saved_console_state.sg_flags = flags;
-#else
     struct termios params;
 
     tcgetattr(console_in.i, &saved_console_state);
@@ -1491,7 +1432,6 @@ static void console_to_program(void) {
     params.c_cc[VTIME] = 1;
 
     tcsetattr(console_in.i, TCSANOW, &params);
-#endif
     console_state_saved = 1;
   }
 }
@@ -1501,11 +1441,7 @@ static void console_to_program(void) {
 static void console_to_spim(void) {
 #ifndef WIN32
   if (mapped_io && console_state_saved)
-#ifdef NEED_TERMIOS
-    ioctl((int)console_in.i, TIOCSETP, (char*)&saved_console_state);
-#else
     tcsetattr(console_in.i, TCSANOW, &saved_console_state);
-#endif
   console_state_saved = 0;
 #endif
 }
