@@ -3,7 +3,6 @@
    SPDX-License-Identifier: BSD-3-Clause
    See LICENSE in the project root for full text. */
 
-#include <stdbool.h>
 
 #include "spim.h"
 #include "string-stream.h"
@@ -29,7 +28,7 @@ static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc);
    At the end of a file, we flush the hash table of all non-global
    labels so they can't be seen in other files.	 */
 
-static label* local_labels = NULL; /* Labels local to current file. */
+static label* local_labels = nullptr; /* Labels local to current file. */
 
 #define HASHBITS 30
 
@@ -47,21 +46,21 @@ void initialize_symbol_table(void) {
   for (i = 0; i < LABEL_HASH_TABLE_SIZE; i++) {
     label *x, *n;
 
-    for (x = label_hash_table[i]; x != NULL; x = n) {
+    for (x = label_hash_table[i]; x != nullptr; x = n) {
       free(x->name);
       n = x->next;
       free(x);
     }
-    label_hash_table[i] = NULL;
+    label_hash_table[i] = nullptr;
   }
 
-  local_labels = NULL;
+  local_labels = nullptr;
 }
 
 /* Lookup for a label with the given NAME.  Set the SLOT_NO to be the hash
    table bucket that contains (or would contain) the label's record.  If the
    record is already in the table, set ENTRY to point to it.  Otherwise,
-   set ENTRY to be NULL. */
+   set ENTRY to be nullptr. */
 
 static void get_hash(char* name, int* slot_no, label** entry) {
   int hi;
@@ -86,10 +85,10 @@ static void get_hash(char* name, int* slot_no, label** entry) {
       *entry = lab; /* <-- return if found */
       return;
     }
-  *entry = NULL;
+  *entry = nullptr;
 }
 
-/* Lookup label with NAME.  Either return its symbol table entry or NULL
+/* Lookup label with NAME.  Either return its symbol table entry or nullptr
    if it is not in the table. */
 
 label* label_is_defined(char* name) {
@@ -110,7 +109,7 @@ label* lookup_label(char* name) {
 
   get_hash(name, &hi, &entry);
 
-  if (entry != NULL) return (entry);
+  if (entry != nullptr) return (entry);
 
   /* Not found, create one, add to chain */
   lab = (label*)xmalloc(sizeof(label));
@@ -119,7 +118,7 @@ label* lookup_label(char* name) {
   lab->global_flag = 0;
   lab->const_flag = 0;
   lab->gp_flag = 0;
-  lab->uses = NULL;
+  lab->uses = nullptr;
 
   lab->next = label_hash_table[hi];
   label_hash_table[hi] = lab;
@@ -182,7 +181,7 @@ void record_inst_uses_symbol(instruction* inst, label* sym) {
 void record_data_uses_symbol(mem_addr location, label* sym) {
   label_use* u = (label_use*)xmalloc(sizeof(label_use));
 
-  u->inst = NULL;
+  u->inst = nullptr;
   u->addr = location;
   u->next = sym->uses;
   sym->uses = u;
@@ -195,16 +194,16 @@ void resolve_label_uses(label* sym) {
   label_use* use;
   label_use* next_use;
 
-  for (use = sym->uses; use != NULL; use = next_use) {
+  for (use = sym->uses; use != nullptr; use = next_use) {
     resolve_a_label_sub(sym, use->inst, use->addr);
-    if (use->inst != NULL && use->addr >= DATA_BOT && use->addr < stack_bot) {
+    if (use->inst != nullptr && use->addr >= DATA_BOT && use->addr < stack_bot) {
       mem_write_word(use->addr, inst_encode(use->inst));
       free_inst(use->inst);
     }
     next_use = use->next;
     free(use);
   }
-  sym->uses = NULL;
+  sym->uses = nullptr;
 }
 
 /* Resolve the newly-defined label in INSTRUCTION. */
@@ -215,7 +214,7 @@ void resolve_a_label(label* sym, instruction* inst) {
 }
 
 static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc) {
-  if (inst == NULL) {
+  if (inst == nullptr) {
     /* Memory data: */
     mem_write_word(pc, sym->addr);
   } else {
@@ -223,7 +222,7 @@ static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc) {
     if (EXPR(inst)->pc_relative)
       EXPR(inst)->offset = 0 - pc; /* Instruction may have moved */
 
-    if (EXPR(inst)->symbol == NULL || SYMBOL_IS_DEFINED(EXPR(inst)->symbol)) {
+    if (EXPR(inst)->symbol == nullptr || SYMBOL_IS_DEFINED(EXPR(inst)->symbol)) {
       int32 value;
       int32 field_mask;
 
@@ -264,7 +263,7 @@ static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc) {
           prev_inst = mem_read_inst(pc - BYTES_PER_WORD);
           prev_prev_inst = mem_read_inst(pc - 2 * BYTES_PER_WORD);
 
-          if (prev_inst != NULL && OPCODE(prev_inst) == TOK_LUI_OP &&
+          if (prev_inst != nullptr && OPCODE(prev_inst) == TOK_LUI_OP &&
               EXPR(inst)->symbol == EXPR(prev_inst)->symbol &&
               IMM(prev_inst) == 0) {
             /* Check that previous instruction was LUI and it has no immediate,
@@ -273,7 +272,7 @@ static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc) {
           }
           /* There is an ADDU instruction before the LUI if the
              LW/SW instruction uses an index register: skip over the ADDU. */
-          else if (prev_prev_inst != NULL &&
+          else if (prev_prev_inst != nullptr &&
                    OPCODE(prev_prev_inst) == TOK_LUI_OP &&
                    EXPR(inst)->symbol == EXPR(prev_prev_inst)->symbol &&
                    IMM(prev_prev_inst) == 0) {
@@ -298,7 +297,7 @@ static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc) {
       SET_ENCODING(inst, inst_encode(inst));
     } else
       error("Resolving undefined symbol: %s\n",
-            (EXPR(inst)->symbol == NULL) ? "" : EXPR(inst)->symbol->name);
+            (EXPR(inst)->symbol == nullptr) ? "" : EXPR(inst)->symbol->name);
   }
 }
 
@@ -307,15 +306,15 @@ static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc) {
 void flush_local_labels(int issue_undef_warnings) {
   label* l;
 
-  for (l = local_labels; l != NULL; l = l->next_local) {
+  for (l = local_labels; l != nullptr; l = l->next_local) {
     int hi;
     label *entry, *lab, *p;
 
     get_hash(l->name, &hi, &entry);
 
-    for (lab = label_hash_table[hi], p = NULL; lab; p = lab, lab = lab->next)
+    for (lab = label_hash_table[hi], p = nullptr; lab; p = lab, lab = lab->next)
       if (lab == entry) {
-        if (p == NULL)
+        if (p == nullptr)
           label_hash_table[hi] = lab->next;
         else
           p->next = lab->next;
@@ -325,7 +324,7 @@ void flush_local_labels(int issue_undef_warnings) {
         break;
       }
   }
-  local_labels = NULL;
+  local_labels = nullptr;
 }
 
 /* Return the address of SYMBOL or 0 if it is undefined. */
@@ -333,7 +332,7 @@ void flush_local_labels(int issue_undef_warnings) {
 mem_addr find_symbol_address(char* symbol) {
   label* l = lookup_label(symbol);
 
-  if (l == NULL || l->addr == 0)
+  if (l == nullptr || l->addr == 0)
     return 0;
   else
     return (l->addr);
@@ -346,7 +345,7 @@ void print_symbols(void) {
   label* l;
 
   for (i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
-    for (l = label_hash_table[i]; l != NULL; l = l->next)
+    for (l = label_hash_table[i]; l != nullptr; l = l->next)
       write_output(message_out, "%s%s at 0x%08x\n",
                    l->global_flag ? "g\t" : "\t", l->name, l->addr);
 }
@@ -357,7 +356,7 @@ void for_each_label(void (*cb)(const label* l, void* ctx), void* ctx) {
   int i;
   label* l;
   for (i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
-    for (l = label_hash_table[i]; l != NULL; l = l->next)
+    for (l = label_hash_table[i]; l != nullptr; l = l->next)
       if (SYMBOL_IS_DEFINED(l)) cb(l, ctx);
 }
 
@@ -368,12 +367,12 @@ void print_undefined_symbols(void) {
   label* l;
 
   for (i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
-    for (l = label_hash_table[i]; l != NULL; l = l->next)
+    for (l = label_hash_table[i]; l != nullptr; l = l->next)
       if (l->addr == 0) write_output(message_out, "%s\n", l->name);
 }
 
 /* Return a string containing the names of all undefined symbols in the
-   table, seperated by a newline character.  Return NULL if no symbols
+   table, seperated by a newline character.  Return nullptr if no symbols
    are undefined. */
 
 char* undefined_symbol_string(void) {
@@ -385,7 +384,7 @@ char* undefined_symbol_string(void) {
   label* l;
 
   for (i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
-    for (l = label_hash_table[i]; l != NULL; l = l->next)
+    for (l = label_hash_table[i]; l != nullptr; l = l->next)
       if (l->addr == 0) {
         int name_length = (int)strlen(l->name);
         int after_length = string_length + name_length + 2;
@@ -404,6 +403,6 @@ char* undefined_symbol_string(void) {
     return (buffer);
   else {
     free(buffer);
-    return (NULL);
+    return (nullptr);
   };
 }

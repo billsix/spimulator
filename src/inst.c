@@ -4,7 +4,6 @@
    SPDX-License-Identifier: BSD-3-Clause
    See LICENSE in the project root for full text. */
 
-#include <stdbool.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -56,7 +55,7 @@ static bool in_kernel = 0;
 
 /* Instruction used as breakpoint by SPIM: */
 
-static instruction* break_inst = NULL;
+static instruction* break_inst = nullptr;
 
 /* Locations for next instruction in user and kernel text segments */
 
@@ -145,7 +144,7 @@ static void store_instruction(instruction* inst) {
       error("Invalid address (0x%08x) for instruction\n", INST_PC);
     else
       increment_text_pc(BYTES_PER_WORD);
-    if (inst != NULL) {
+    if (inst != nullptr) {
       SET_SOURCE(inst, source_line());
       if (ENCODING(inst) == 0) SET_ENCODING(inst, inst_encode(inst));
     }
@@ -170,7 +169,7 @@ void i_type_inst(int opcode, int rt, int rs, imm_expr* expr) {
   SET_RS(inst, rs);
   SET_RT(inst, rt);
   SET_EXPR(inst, copy_imm_expr(expr));
-  if (expr->symbol == NULL || SYMBOL_IS_DEFINED(expr->symbol)) {
+  if (expr->symbol == nullptr || SYMBOL_IS_DEFINED(expr->symbol)) {
     /* Evaluate the instruction's expression. */
     int32 value = eval_imm_expr(expr);
 
@@ -216,10 +215,10 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
   if (opcode_is_load_store(opcode)) {
     int32 offset;
 
-    if (expr->symbol != NULL && expr->symbol->gp_flag && rs == 0 &&
+    if (expr->symbol != nullptr && expr->symbol->gp_flag && rs == 0 &&
         (int32)IMM_MIN <= (offset = expr->symbol->addr + expr->offset) &&
         offset <= (int32)IMM_MAX) {
-      i_type_inst_free(opcode, rt, REG_GP, make_imm_expr(offset, NULL, false));
+      i_type_inst_free(opcode, rt, REG_GP, make_imm_expr(offset, nullptr, false));
     } else if (value_known) {
       int low, high;
 
@@ -263,11 +262,11 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
   {
     int offset;
 
-    if (expr->symbol != NULL && expr->symbol->gp_flag && rs == 0 &&
+    if (expr->symbol != nullptr && expr->symbol->gp_flag && rs == 0 &&
         (int32)IMM_MIN <= (offset = expr->symbol->addr + expr->offset) &&
         offset <= (int32)IMM_MAX) {
       i_type_inst_free((opcode == TOK_LUI_OP ? TOK_ADDIU_OP : opcode), rt, REG_GP,
-                       make_imm_expr(offset, NULL, false));
+                       make_imm_expr(offset, nullptr, false));
     } else {
       /* Use $at */
       if ((opcode == TOK_ORI_OP || opcode == TOK_ADDI_OP || opcode == TOK_ADDIU_OP ||
@@ -305,7 +304,7 @@ void j_type_inst(int opcode, imm_expr* target) {
   target->offset = 0; /* Not PC relative */
   target->pc_relative = false;
   SET_EXPR(inst, copy_imm_expr(target));
-  if (target->symbol == NULL || SYMBOL_IS_DEFINED(target->symbol))
+  if (target->symbol == nullptr || SYMBOL_IS_DEFINED(target->symbol))
     resolve_a_label(target->symbol, inst);
   else
     record_inst_uses_symbol(inst, target->symbol);
@@ -530,7 +529,7 @@ void print_inst(mem_addr addr) {
    "<unknown>" if OPCODE(inst) isn't in name_tbl. The returned pointer is
    owned by the static name_tbl and must not be freed. */
 const char* inst_op_name(instruction* inst) {
-  if (inst == NULL) return "<null>";
+  if (inst == nullptr) return "<null>";
   name_val_val* entry = map_int_to_name_val_val(
       name_tbl, sizeof(name_tbl) / sizeof(name_val_val), OPCODE(inst));
   return entry ? entry->name : "<unknown>";
@@ -566,14 +565,14 @@ void format_an_inst(str_stream* ss, instruction* inst, mem_addr addr) {
   }
 
   ss_printf(ss, "[0x%08x]\t", addr);
-  if (inst == NULL) {
+  if (inst == nullptr) {
     ss_printf(ss, "<none>\n");
     return;
   }
 
   entry = map_int_to_name_val_val(
       name_tbl, sizeof(name_tbl) / sizeof(name_val_val), OPCODE(inst));
-  if (entry == NULL) {
+  if (entry == nullptr) {
     ss_printf(ss, "<unknown instruction %d>\n", OPCODE(inst));
     return;
   }
@@ -701,7 +700,7 @@ void format_an_inst(str_stream* ss, instruction* inst, mem_addr addr) {
       fatal_error("Unknown instruction type in print_inst\n");
   }
 
-  if (EXPR(inst) != NULL && EXPR(inst)->symbol != NULL) {
+  if (EXPR(inst) != nullptr && EXPR(inst)->symbol != nullptr) {
     ss_printf(ss, " [");
     if (opcode_is_load_store(OPCODE(inst)))
       format_imm_expr(ss, EXPR(inst), BASE(inst));
@@ -710,7 +709,7 @@ void format_an_inst(str_stream* ss, instruction* inst, mem_addr addr) {
     ss_printf(ss, "]");
   }
 
-  if (SOURCE(inst) != NULL) {
+  if (SOURCE(inst) != nullptr) {
     /* Comment is source line text of current line. */
     int gap_length = 57 - (ss_length(ss) - line_start);
     for (; 0 < gap_length; gap_length -= 1) {
@@ -860,26 +859,26 @@ bool opcode_is_load_store(int opcode) {
 /* Return true if a breakpoint is set at ADDR. */
 
 bool inst_is_breakpoint(mem_addr addr) {
-  if (break_inst == NULL) break_inst = make_r_type_inst(TOK_BREAK_OP, 1, 0, 0);
+  if (break_inst == nullptr) break_inst = make_r_type_inst(TOK_BREAK_OP, 1, 0, 0);
 
   return (mem_read_inst(addr) == break_inst);
 }
 
 /* Set a breakpoint at ADDR and return the old instruction.  If the
-   breakpoint cannot be set, return NULL. */
+   breakpoint cannot be set, return nullptr. */
 
 instruction* set_breakpoint(mem_addr addr) {
   instruction* old_inst;
 
-  if (break_inst == NULL) break_inst = make_r_type_inst(TOK_BREAK_OP, 1, 0, 0);
+  if (break_inst == nullptr) break_inst = make_r_type_inst(TOK_BREAK_OP, 1, 0, 0);
 
   exception_occurred = 0;
   old_inst = mem_read_inst(addr);
-  if (old_inst == break_inst) return (NULL);
+  if (old_inst == break_inst) return (nullptr);
 
   mem_write_inst(addr, break_inst);
   if (exception_occurred)
-    return (NULL);
+    return (nullptr);
   else
     return (old_inst);
 }
@@ -895,10 +894,10 @@ imm_expr* make_imm_expr(int offs, char* sym, bool is_pc_relative) {
   expr->offset = offs;
   expr->bits = 0;
   expr->pc_relative = is_pc_relative;
-  if (sym != NULL)
+  if (sym != nullptr)
     expr->symbol = lookup_label(sym);
   else
-    expr->symbol = NULL;
+    expr->symbol = nullptr;
   return (expr);
 }
 
@@ -935,7 +934,7 @@ static imm_expr* lower_bits_of_expr(imm_expr* old_expr) {
 /* Return an instruction expression for a constant VALUE. */
 
 imm_expr* const_imm_expr(int32 value) {
-  return (make_imm_expr(value, NULL, false));
+  return (make_imm_expr(value, nullptr, false));
 }
 
 /* Return a shallow copy of the EXPRESSION with the offset field
@@ -953,7 +952,7 @@ imm_expr* incr_expr_offset(imm_expr* expr, int32 value) {
 int32 eval_imm_expr(imm_expr* expr) {
   int32 value;
 
-  if (expr->symbol == NULL)
+  if (expr->symbol == nullptr)
     value = expr->offset;
   else if (SYMBOL_IS_DEFINED(expr->symbol)) {
     value = expr->offset + expr->symbol->addr;
@@ -972,7 +971,7 @@ int32 eval_imm_expr(imm_expr* expr) {
 /* Print the EXPRESSION. */
 
 static void format_imm_expr(str_stream* ss, imm_expr* expr, int base_reg) {
-  if (expr->symbol != NULL) {
+  if (expr->symbol != nullptr) {
     ss_printf(ss, "%s", expr->symbol->name);
   }
 
@@ -983,7 +982,7 @@ static void format_imm_expr(str_stream* ss, imm_expr* expr, int base_reg) {
   else if (expr->offset > 10)
     ss_printf(ss, "+%d (0x%08x)", expr->offset, (unsigned int)expr->offset);
 
-  if (base_reg != -1 && expr->symbol != NULL &&
+  if (base_reg != -1 && expr->symbol != nullptr &&
       (expr->offset > 10 || expr->offset < -10)) {
     if (expr->offset == 0 && base_reg != 0) ss_printf(ss, "+0");
 
@@ -995,7 +994,7 @@ static void format_imm_expr(str_stream* ss, imm_expr* expr, int base_reg) {
 /* Return true if the EXPRESSION is a constant 0. */
 
 bool is_zero_imm(imm_expr* expr) {
-  return (expr->offset == 0 && expr->symbol == NULL);
+  return (expr->offset == 0 && expr->symbol == nullptr);
 }
 
 /* Return an address expression of the form SYMBOL +/- IOFFSET (REGISTER).
@@ -1005,9 +1004,9 @@ addr_expr* make_addr_expr(int offs, char* sym, int reg_no) {
   addr_expr* expr = (addr_expr*)xmalloc(sizeof(addr_expr));
   label* lab;
 
-  if (reg_no == 0 && sym != NULL && (lab = lookup_label(sym))->gp_flag) {
+  if (reg_no == 0 && sym != nullptr && (lab = lookup_label(sym))->gp_flag) {
     expr->reg_no = REG_GP;
-    expr->imm = make_imm_expr(offs + lab->addr - gp_midpoint, NULL, false);
+    expr->imm = make_imm_expr(offs + lab->addr - gp_midpoint, nullptr, false);
   } else {
     expr->reg_no = (unsigned char)reg_no;
     expr->imm = make_imm_expr(offs, (sym ? str_copy(sym) : sym), false);
@@ -1047,11 +1046,11 @@ int32 inst_encode(instruction* inst) {
   int32 a_opcode = 0;
   name_val_val* entry;
 
-  if (inst == NULL) return (0);
+  if (inst == nullptr) return (0);
 
   entry = map_int_to_name_val_val(
       i_opcode_tbl, sizeof(i_opcode_tbl) / sizeof(name_val_val), OPCODE(inst));
-  if (entry == NULL) return 0;
+  if (entry == nullptr) return 0;
 
   a_opcode = entry->value2;
   entry = map_int_to_name_val_val(
@@ -1189,7 +1188,7 @@ instruction* inst_decode(int32 val) {
 
   entry = map_int_to_name_val_val(
       a_opcode_tbl, sizeof(a_opcode_tbl) / sizeof(name_val_val), a_opcode);
-  if (entry == NULL) return (mk_r_inst(val, 0, 0, 0, 0, 0)); /* Invalid inst */
+  if (entry == nullptr) return (mk_r_inst(val, 0, 0, 0, 0, 0)); /* Invalid inst */
 
   i_opcode = entry->value2;
 
@@ -1292,7 +1291,7 @@ static instruction* mk_r_inst(int32 val, int opcode, int rs, int rt, int rd,
   SET_RD(inst, rd);
   SET_SHAMT(inst, shamt);
   SET_ENCODING(inst, val);
-  SET_EXPR(inst, NULL);
+  SET_EXPR(inst, nullptr);
   return (inst);
 }
 
@@ -1305,7 +1304,7 @@ static instruction* mk_co_r_inst(int32 val, int opcode, int fs, int ft,
   SET_FT(inst, ft);
   SET_FD(inst, fd);
   SET_ENCODING(inst, val);
-  SET_EXPR(inst, NULL);
+  SET_EXPR(inst, nullptr);
   return (inst);
 }
 
@@ -1318,7 +1317,7 @@ static instruction* mk_i_inst(int32 val, int opcode, int rs, int rt,
   SET_RT(inst, rt);
   SET_IOFFSET(inst, offset);
   SET_ENCODING(inst, val);
-  SET_EXPR(inst, NULL);
+  SET_EXPR(inst, nullptr);
   return (inst);
 }
 
@@ -1328,7 +1327,7 @@ static instruction* mk_j_inst(int32 val, int opcode, int target) {
   SET_OPCODE(inst, opcode);
   SET_TARGET(inst, target);
   SET_ENCODING(inst, val);
-  SET_EXPR(inst, NULL);
+  SET_EXPR(inst, nullptr);
   return (inst);
 }
 

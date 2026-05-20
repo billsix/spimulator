@@ -13,9 +13,11 @@
 /* A note on directions:  "Bottom" of memory is the direction of
    decreasing addresses.  "Top" is the direction of increasing addresses.*/
 
-/* Type of contents of a memory word. */
+/* Type of contents of a memory word — 32 bits on MIPS regardless of host. */
 
 typedef int32 /*@alt unsigned int @*/ mem_word;
+static_assert(sizeof(mem_word) == BYTES_PER_WORD,
+              "mem_word must be exactly one MIPS word wide");
 
 /* The text segment and boundaries. */
 

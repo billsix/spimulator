@@ -3,7 +3,6 @@
    SPDX-License-Identifier: BSD-3-Clause
    See LICENSE in the project root for full text. */
 
-#include <stdbool.h>
 
 #include <stdlib.h>
 #include <stdarg.h>
@@ -50,7 +49,7 @@ char* ss_to_string(str_stream* ss) {
     /* Not enough room to store output: increase buffer size and try again */
     ss->max_length = ss->max_length + 1;
     ss->buf = (char*)realloc(ss->buf, (size_t)ss->max_length);
-    if (NULL == ss->buf) fatal_error("realloc failed\n");
+    if (nullptr == ss->buf) fatal_error("realloc failed\n");
   }
   ss->buf[ss->empty_pos] = '\0'; /* Null terminate string */
   ss->empty_pos += 1;
@@ -80,7 +79,7 @@ void ss_printf(str_stream* ss, char* fmt, ...) {
     ss->max_length = 2 * ss->max_length;
     ss->buf = (char*)realloc(ss->buf, (size_t)ss->max_length);
     free_space = ss->max_length - ss->empty_pos;
-    if (NULL == ss->buf) fatal_error("realloc failed\n");
+    if (nullptr == ss->buf) fatal_error("realloc failed\n");
 
     va_end(args); /* Restart argument pointer */
     va_start(args, fmt);

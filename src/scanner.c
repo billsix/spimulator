@@ -6,7 +6,6 @@
 */
 
 #include <ctype.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -64,7 +63,7 @@ static int check_keyword(char* id, int allow_pseudo_ops) {
     map_string_to_name_val_val(keyword_tbl,
                                sizeof(keyword_tbl) / sizeof(name_val_val),
                                id);
-  if (entry == NULL) return 0;
+  if (entry == nullptr) return 0;
   if (!allow_pseudo_ops && entry->value2 == PSEUDO_OP) return 0;
   return entry->value1;
 }
@@ -77,7 +76,7 @@ static int check_keyword(char* id, int allow_pseudo_ops) {
 
 #define LINE_BUF_MAX 4096
 
-static FILE* input_file = NULL;
+static FILE* input_file = nullptr;
 static char  line_buf[LINE_BUF_MAX];
 static int   line_pos = 0;
 static int   line_len = 0;
@@ -134,7 +133,7 @@ void scanner_force_identifier(void) {
    (if present) so newline-tokenization sees it. */
 static void fill_line_buf(void) {
   if (at_eof) return;
-  if (fgets(line_buf, LINE_BUF_MAX, input_file) == NULL) {
+  if (fgets(line_buf, LINE_BUF_MAX, input_file) == nullptr) {
     at_eof = true;
     line_len = 0;
     line_pos = 0;
@@ -369,7 +368,7 @@ static int scan_identifier(scan_token* out, bool force_id) {
 
   /* Defined-constant label? */
   label* l = label_is_defined(id_buf);
-  if (l != NULL && l->const_flag) {
+  if (l != nullptr && l->const_flag) {
     out->type = TOK_INT;
     out->val.i = (int)l->addr;
     out->present = true;
@@ -419,7 +418,7 @@ static int scan_register(scan_token* out) {
 
   /* Fall back to identifier-or-constant-label behavior. */
   label* l = label_is_defined(reg_buf);
-  if (l != NULL && l->const_flag) {
+  if (l != nullptr && l->const_flag) {
     out->type = TOK_INT;
     out->val.i = (int)l->addr;
   } else {
@@ -763,7 +762,7 @@ char* erroneous_line(void) {
    line, prefixed with "NNN: " line number.  Used by inst.c to
    annotate assembled instructions with their originating source. */
 char* source_line(void) {
-  if (!current_line_saved) return NULL;
+  if (!current_line_saved) return nullptr;
   size_t len = strlen(current_line_buf);
   /* "NNN: " prefix — up to 10 digits + ": " + line + NUL */
   char* r = (char*)xmalloc((int)(len + 16));

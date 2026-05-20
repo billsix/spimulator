@@ -1,9 +1,17 @@
 project('spimulator', 'c',
   version: '1.0',
-  default_options: ['c_std=gnu23']
+  default_options: ['c_std=gnu23', 'warning_level=3']
 )
 
-add_project_arguments('-Wno-zero-length-array', language: 'c')
+# -Wno-zero-length-array: spim uses flexible array members.
+# -Wunused-function: catches dead static fns like the late parse_br_imm32.
+# -Wshadow: prevents inner-scope rebinding bugs.
+add_project_arguments(
+  '-Wno-zero-length-array',
+  '-Wunused-function',
+  '-Wshadow',
+  language: 'c'
+)
 
 
 # BSD-licensed line-editing library. Auto by default; gate with

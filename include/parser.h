@@ -15,7 +15,7 @@
 /* Parse the file currently bound to the scanner.  Returns the number
    of parse errors encountered (0 on success).  Drives the scanner
    until EOF.  Sets parse_errors_seen as a side effect. */
-int parse_file(void);
+[[nodiscard]] int parse_file(void);
 
 /* Initialize scanner + parser state for a fresh assembly file.
    Call before parse_file(). */

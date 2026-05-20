@@ -6,12 +6,6 @@
 #ifndef SPIM_H
 #define SPIM_H
 
-#include <stdbool.h>
-
-#ifndef NULL
-#define NULL 0
-#endif
-
 /* This declaration must match the endianness of the machine SPIM is running on.
    You CANNOT set SPIM to simulate a different endianness than the machine that
    executes it. Almost every processor (notably the x86) is little endian today.
@@ -21,11 +15,14 @@
 #define SPIM_LITTLENDIAN
 #endif
 
-/* Type declarations for portability.  They work for DEC's Alpha (64 bits)
-   and 32 bit machines */
+/* Type declarations.  spim simulates a 32-bit MIPS, so these must be
+   exactly 32 bits wide regardless of host word size. */
 
 typedef int int32;
 typedef unsigned int uint32;
+static_assert(sizeof(int32)  == 4, "int32 must be 32 bits");
+static_assert(sizeof(uint32) == 4, "uint32 must be 32 bits");
+
 typedef union {
   int i;
   void* p;
@@ -37,8 +34,12 @@ typedef union {
 #define ROUND_UP(V, B) (((int)V + (B - 1)) & ~(B - 1))
 #define ROUND_DOWN(V, B) (((int)V) & ~(B - 1))
 
-/* Sign-extend an int16 to an int32 */
-#define SIGN_EX(X) (((X) & 0x8000) ? ((X) | 0xffff0000) : (X))
+/* Sign-extend an int16 to an int32.  Both ?: branches kept in
+   unsigned-int territory so -Wsign-compare doesn't trip on the
+   mixed signedness; the final cast back to int32 carries the
+   sign-extended value. */
+#define SIGN_EX(X) \
+  ((int32)(((X) & 0x8000) ? ((uint32)(X) | 0xffff0000u) : (uint32)(X)))
 
 #ifdef MIN /* Some systems define these in system includes */
 #undef MIN

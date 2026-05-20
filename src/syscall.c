@@ -4,7 +4,6 @@
    SPDX-License-Identifier: BSD-3-Clause
    See LICENSE in the project root for full text. */
 
-#include <stdbool.h>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -45,7 +44,7 @@
 void myInvalidParameterHandler(const wchar_t* expression,
                                const wchar_t* function, const wchar_t* file,
                                unsigned int line, uintptr_t pReserved) {
-  if (function != NULL) {
+  if (function != nullptr) {
     run_error("Bad parameter to system call: %s\n", function);
   } else {
     run_error("Bad parameter to system call\n");

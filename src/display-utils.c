@@ -3,7 +3,6 @@
    SPDX-License-Identifier: BSD-3-Clause
    See LICENSE in the project root for full text. */
 
-#include <stdbool.h>
 
 #include "spim.h"
 #include "string-stream.h"
@@ -148,7 +147,7 @@ void format_insts(str_stream* ss, mem_addr from, mem_addr to) {
 
   for (i = from; i < to; i += 4) {
     inst = mem_read_inst(i);
-    if (inst != NULL) {
+    if (inst != nullptr) {
       format_an_inst(ss, inst, i);
     }
   }

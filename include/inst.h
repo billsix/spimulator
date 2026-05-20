@@ -9,7 +9,6 @@
 #ifndef INST_H
 #define INST_H
 
-#include <stdbool.h>
 #include "spim.h"
 #include "string-stream.h"
 

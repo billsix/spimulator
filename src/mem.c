@@ -3,7 +3,6 @@
    SPDX-License-Identifier: BSD-3-Clause
    See LICENSE in the project root for full text. */
 
-#include <stdbool.h>
 
 #include "spim.h"
 #include "string-stream.h"
@@ -93,7 +92,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   if (data_size <= 65536) data_size = 65536;
   data_size = ROUND_UP(data_size, BYTES_PER_WORD); /* Keep word aligned */
 
-  if (text_seg == NULL)
+  if (text_seg == nullptr)
     text_seg = (instruction**)xmalloc(BYTES_TO_INST(text_size));
   else {
     free_instructions(text_seg, (text_top - TEXT_BOT) / BYTES_PER_WORD);
@@ -103,7 +102,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   text_top = TEXT_BOT + text_size;
 
   data_size = ROUND_UP(data_size, BYTES_PER_WORD); /* Keep word aligned */
-  if (data_seg == NULL)
+  if (data_seg == nullptr)
     data_seg = (mem_word*)xmalloc(data_size);
   else
     data_seg = (mem_word*)realloc(data_seg, data_size);
@@ -114,7 +113,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   data_size_limit = data_limit;
 
   stack_size = ROUND_UP(stack_size, BYTES_PER_WORD); /* Keep word aligned */
-  if (stack_seg == NULL)
+  if (stack_seg == nullptr)
     stack_seg = (mem_word*)xmalloc(stack_size);
   else
     stack_seg = (mem_word*)realloc(stack_seg, stack_size);
@@ -124,7 +123,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   stack_bot = STACK_TOP - stack_size;
   stack_size_limit = stack_limit;
 
-  if (k_text_seg == NULL)
+  if (k_text_seg == nullptr)
     k_text_seg = (instruction**)xmalloc(BYTES_TO_INST(k_text_size));
   else {
     free_instructions(k_text_seg, (k_text_top - K_TEXT_BOT) / BYTES_PER_WORD);
@@ -134,7 +133,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   k_text_top = K_TEXT_BOT + k_text_size;
 
   k_data_size = ROUND_UP(k_data_size, BYTES_PER_WORD); /* Keep word aligned */
-  if (k_data_seg == NULL)
+  if (k_data_seg == nullptr)
     k_data_seg = (mem_word*)xmalloc(k_data_size);
   else
     k_data_seg = (mem_word*)realloc(k_data_seg, k_data_size);
@@ -169,7 +168,7 @@ void expand_data(int addl_bytes) {
     run_error("Use -ldata # with # > %d\n", new_size);
   }
   data_seg = (mem_word*)realloc(data_seg, new_size);
-  if (data_seg == NULL) fatal_error("realloc failed in expand_data\n");
+  if (data_seg == nullptr) fatal_error("realloc failed in expand_data\n");
 
   data_seg_b = (BYTE_TYPE*)data_seg;
   data_seg_h = (short*)data_seg;
@@ -226,7 +225,7 @@ void expand_k_data(int addl_bytes) {
         addl_bytes, new_size, new_size);
   }
   k_data_seg = (mem_word*)realloc(k_data_seg, new_size);
-  if (k_data_seg == NULL) fatal_error("realloc failed in expand_k_data\n");
+  if (k_data_seg == nullptr) fatal_error("realloc failed in expand_k_data\n");
 
   k_data_seg_b = (BYTE_TYPE*)k_data_seg;
   k_data_seg_h = (short*)k_data_seg;
@@ -253,7 +252,7 @@ void* mem_reference(mem_addr addr) {
     return addr - K_DATA_BOT + (char*)k_data_seg;
   else {
     run_error("Memory address out of bounds\n");
-    return NULL;
+    return nullptr;
   }
 }
 
@@ -384,7 +383,7 @@ static mem_word bad_mem_read(mem_addr addr, int mask) {
 
       case 0x3: {
         instruction* inst = text_seg[(addr - TEXT_BOT) >> 2];
-        if (inst == NULL)
+        if (inst == nullptr)
           return 0;
         else
           return (ENCODING(inst));
@@ -414,7 +413,7 @@ static void bad_mem_write(mem_addr addr, mem_word value, int mask) {
   if ((addr & mask) != 0) /* Unaligned address fault */
     RAISE_EXCEPTION(ExcCode_AdES, CP0_BadVAddr = addr)
   else if (addr >= TEXT_BOT && addr < text_top) {
-    if (text_seg[(addr - TEXT_BOT) >> 2] == NULL) {
+    if (text_seg[(addr - TEXT_BOT) >> 2] == nullptr) {
       /* No instruction at address. Only create instruction from
                full-word write. */
       tmp = (mask == 3) ? value : 0;

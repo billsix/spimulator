@@ -3,7 +3,6 @@
    SPDX-License-Identifier: BSD-3-Clause
    See LICENSE in the project root for full text. */
 
-#include <stdbool.h>
 
 #ifdef mips
 #define _IEEE 1
@@ -125,12 +124,12 @@ static int running_in_delay_slot = 0;
 #define DO_DELAYED_UPDATE()                      \
   if (delayed_loads) {                           \
     /* Check for delayed updates */              \
-    if (delayed_load_addr2 != NULL) {            \
+    if (delayed_load_addr2 != nullptr) {            \
       *delayed_load_addr2 = delayed_load_value2; \
     }                                            \
     delayed_load_addr2 = delayed_load_addr1;     \
     delayed_load_value2 = delayed_load_value1;   \
-    delayed_load_addr1 = NULL;                   \
+    delayed_load_addr1 = nullptr;                   \
   }
 
 /* Run the program stored in memory, starting at address PC for
@@ -140,8 +139,8 @@ static int running_in_delay_slot = 0;
 
 bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
   instruction* inst;
-  static reg_word *delayed_load_addr1 = NULL, delayed_load_value1;
-  static reg_word *delayed_load_addr2 = NULL, delayed_load_value2;
+  static reg_word *delayed_load_addr1 = nullptr, delayed_load_value1;
+  static reg_word *delayed_load_addr2 = nullptr, delayed_load_value2;
   int step, step_size, next_step;
 
   PC = initial_PC;
@@ -206,10 +205,10 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         exception_occurred = 0;
         handle_exception();
         continue;
-      } else if (inst == NULL) {
+      } else if (inst == nullptr) {
         run_error("Attempt to execute non-instruction at 0x%08x\n", PC);
         return false;
-      } else if (EXPR(inst) != NULL && EXPR(inst)->symbol != NULL &&
+      } else if (EXPR(inst) != nullptr && EXPR(inst)->symbol != nullptr &&
                  EXPR(inst)->symbol->addr == 0) {
         run_error("Instruction references undefined symbol at 0x%08x\n  %s", PC,
                   inst_to_string(PC));
@@ -1445,8 +1444,8 @@ static void bump_CP0_timer(void) {
 
 static void start_CP0_timer(void) {
 #ifdef _WIN32
-  HANDLE timer = CreateWaitableTimer(NULL, TRUE, TEXT("SPIMTimer"));
-  if (NULL == timer) {
+  HANDLE timer = CreateWaitableTimer(nullptr, TRUE, TEXT("SPIMTimer"));
+  if (nullptr == timer) {
     error("CreateWaitableTimer failed");
   } else {
     LARGE_INTEGER interval;
@@ -1480,7 +1479,7 @@ static void start_CP0_timer(void) {
       time.it_interval.tv_usec = 0;
       time.it_value.tv_sec = 0;
       time.it_value.tv_usec = TIMER_TICK_MS * 1000;
-      if (-1 == setitimer(ITIMER_REAL, &time, NULL)) {
+      if (-1 == setitimer(ITIMER_REAL, &time, nullptr)) {
         perror("setitmer failed");
       }
     }

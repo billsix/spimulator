@@ -3,7 +3,6 @@
 #ifndef EXPLAIN_H
 #define EXPLAIN_H
 
-#include <stdbool.h>
 #include "spim.h"
 #include "inst.h"
 

@@ -34,7 +34,7 @@ void list_breakpoints(void);
 name_val_val* map_int_to_name_val_val(name_val_val tbl[], int tbl_len, int num);
 name_val_val* map_string_to_name_val_val(name_val_val tbl[], int tbl_len,
                                          char* id);
-bool read_assembly_file(char* name);
+[[nodiscard]] bool read_assembly_file(char* name);
 bool run_program(mem_addr pc, int steps, bool display, bool cont_bkpt,
                  bool* continuable);
 mem_addr starting_address(void);

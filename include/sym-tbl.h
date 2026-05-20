@@ -10,7 +10,7 @@
 #include "inst.h"
 
 typedef struct lab_use {
-  instruction* inst; /* NULL => Data, not code */
+  instruction* inst; /* nullptr => Data, not code */
   mem_addr addr;
   struct lab_use* next;
 } label_use;
@@ -36,7 +36,7 @@ mem_addr find_symbol_address(char* symbol);
 void flush_local_labels(int issue_undef_warnings);
 void initialize_symbol_table(void);
 label* label_is_defined(char* name);
-label* lookup_label(char* name);
+[[nodiscard]] label* lookup_label(char* name);
 label* make_label_global(char* name);
 void print_symbols(void);
 void print_undefined_symbols(void);
