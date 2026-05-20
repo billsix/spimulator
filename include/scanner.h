@@ -38,7 +38,7 @@
 
 /* Exported functions. */
 
-void initialize_scanner(FILE* in_file);
+void scanner_init(FILE* in_file);
 char* erroneous_line(void);
 void scanner_start_line(void);
 int register_name_to_number(char* name);
@@ -48,14 +48,12 @@ char* source_line(void);
 
 /* This flag tells the scanner to treat the next sequence of letters
    etc as an identifier and not look it up as an opcode. It permits us
-   to use opcodes as symbols in most places.  However, because of the
-   LALR(1) lookahead, it does not work for labels. */
+   to use opcodes as symbols in most places. */
 
 extern int only_id;
 
 typedef intptr_union yylval_t;
-#define YYSTYPE yylval_t
-extern YYSTYPE yylval; /* Value of token from YYLEX */
+extern yylval_t yylval;  /* Value of the last token returned by the scanner. */
 
 extern int line_no; /* Line number in input file*/
 

@@ -29,23 +29,23 @@ bool parse_error_occurred = false;  /* set for one parse iteration */
 int  parse_errors_seen   = 0;       /* cumulative errors across the file */
 
 /* ------------------------------------------------------------------ *
- * Runtime error funnel.  sym-tbl.c calls yyerror() when it detects a
+ * Runtime error funnel.  sym-tbl.c calls parse_error() when it detects a
  * duplicate label; the runtime call site predates the parser
- * rewrite, so the name is kept.  yywarn() is the unconditional
- * warning channel that yyerror sits on top of.
+ * rewrite, so the name is kept.  parse_warn() is the unconditional
+ * warning channel that parse_error sits on top of.
  * ------------------------------------------------------------------ */
 
-void yywarn(char* s) {
+void parse_warn(char* s) {
   error("spim: (parser) %s on line %d of file %s\n%s",
         s, line_no,
         input_file_name_get() ? input_file_name_get() : "(input)",
         erroneous_line());
 }
 
-void yyerror(char* s) {
+void parse_error(char* s) {
   parse_error_occurred = true;
   parse_errors_seen += 1;
-  yywarn(s);
+  parse_warn(s);
 }
 
 /* ------------------------------------------------------------------ *

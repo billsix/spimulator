@@ -685,20 +685,12 @@ int scanner_next(void) {
   return scanner_advance();
 }
 
-/* --- compatibility wrappers for the REPL -------------------- *
+/* --- nested-input scanner stack ---------------------------- *
  *
- * spim.c's REPL command tokenizer uses the bison-era names yylex,
- * push_scanner, pop_scanner, initialize_scanner.  Thin wrappers
- * here keep that surface stable.
+ * spim.c's libedit REPL wraps each command line in a fmemopen FILE*
+ * and pushes it; parse_spim_command consumes tokens; then pops.
  */
 
-void initialize_scanner(FILE* in_file) {
-  scanner_init(in_file);
-}
-
-/* Scanner-state stack for nested input sources.  spim.c's
-   libedit REPL wraps each command line in a fmemopen FILE* and
-   pushes it; parse_spim_command consumes tokens; then pop. */
 
 #define SCANNER_STACK_DEPTH 8
 typedef struct {
@@ -718,9 +710,9 @@ typedef struct {
 static scanner_snapshot scanner_stack[SCANNER_STACK_DEPTH];
 static int scanner_stack_depth = 0;
 
-void push_scanner(FILE* in_file) {
+void scanner_push_source(FILE* in_file) {
   if (scanner_stack_depth >= SCANNER_STACK_DEPTH) {
-    fatal_error("push_scanner: nested scanner stack overflow\n");
+    fatal_error("scanner_push_source: nested scanner stack overflow\n");
     return;
   }
   scanner_snapshot* s = &scanner_stack[scanner_stack_depth++];
@@ -739,11 +731,11 @@ void push_scanner(FILE* in_file) {
   scanner_init(in_file);
 }
 
-void pop_scanner(void) {
+void scanner_pop_source(void) {
   if (scanner_stack_depth <= 0) {
     /* No saved state — silently no-op; spim.c's SIGINT unwind path
        can fire pop without a matching push if the signal lands
-       before push_scanner ran. */
+       before scanner_push_source ran. */
     return;
   }
   scanner_snapshot* s = &scanner_stack[--scanner_stack_depth];
@@ -758,15 +750,6 @@ void pop_scanner(void) {
   current_line_saved    = s->current_line_saved;
   force_id_next         = s->force_id_next;
   memcpy(tok_buf, s->tok_buf, sizeof(tok_buf));
-}
-
-/* Flex's yylex() returns the next token, but signals EOF with 0
-   (flex's convention) rather than Y_EOF.  spim.c's read_token()
-   relies on the 0-means-EOF contract — it calls exit(0) when
-   yylex returns 0.  Map Y_EOF to 0 to preserve that. */
-int yylex(void) {
-  int t = scanner_advance();
-  return (t == Y_EOF) ? 0 : t;
 }
 
 /* --- erroneous_line / source_line ------------------------- */

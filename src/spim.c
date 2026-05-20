@@ -300,11 +300,11 @@ static void print_reg(int reg_no);
 
 /* Scanner / parser surface used by the REPL.  Defined in
    src/scanner.c and src/parser.c. */
-extern int yylex(void);
-extern int yyparse(void);
-extern void push_scanner(FILE* in_file);
-extern void pop_scanner(void);
-extern void initialize_scanner(FILE* in_file);
+extern int scanner_advance(void);
+extern int parse_file(void);
+extern void scanner_push_source(FILE* in_file);
+extern void scanner_pop_source(void);
+extern void scanner_init(FILE* in_file);
 extern void set_input_file_name(char* file_name);
 static int print_fp_reg(int reg_no);
 static int print_reg_from_string(char* reg);
@@ -596,7 +596,7 @@ _Noreturn static void top_level(void) {
   bool redo = false; /* => reexecute last command */
 
   (void)signal(SIGINT, control_c_seen);
-  initialize_scanner(stdin);
+  scanner_init(stdin);
   set_input_file_name("<standard input>");
 
 #ifdef HAVE_LIBEDIT
@@ -639,7 +639,7 @@ _Noreturn static void top_level(void) {
       /* Returned via control_c_seen longjmp. Unwind any in-flight
          scanner state so the flex buffer stack doesn't grow each Ctrl-C. */
       if (scanner_pushed) {
-        pop_scanner();
+        scanner_pop_source();
         scanner_pushed = false;
       }
       if (repl_fp) {
@@ -668,7 +668,7 @@ _Noreturn static void top_level(void) {
 
       /* Append '\n' so flex sees Y_NL exactly once per command, matching
          the stdin path. Wrap the buffer in a FILE* via fmemopen and reuse
-         the existing push_scanner mechanism — flex sees a normal input
+         the existing scanner_push_source mechanism — flex sees a normal input
          source, parse_spim_command is unaware of libedit. */
       size_t len = strlen(repl_line);
       repl_buf = malloc(len + 2);
@@ -688,14 +688,14 @@ _Noreturn static void top_level(void) {
         repl_line = NULL;
         continue;
       }
-      push_scanner(repl_fp);
+      scanner_push_source(repl_fp);
       scanner_pushed = true;
     }
 
     redo = parse_spim_command(redo);
 
     if (scanner_pushed) {
-      pop_scanner();
+      scanner_pop_source();
       scanner_pushed = false;
     }
     if (repl_fp) {
@@ -771,7 +771,7 @@ static bool parse_spim_command(bool redo) {
       if (!redo) flush_to_newline();
       if (token == Y_STR) {
         read_assembly_file((char*)yylval.p);
-        pop_scanner();
+        scanner_pop_source();
       } else
         error("Must supply a filename to read\n");
       prev_cmd = READ_CMD;
@@ -934,7 +934,7 @@ static bool parse_spim_command(bool redo) {
       return (0);
 
     case ASM_CMD:
-      yyparse();
+      parse_file();
       prev_cmd = ASM_CMD;
       return (0);
 
@@ -1542,10 +1542,9 @@ void put_console_char(char c) {
 }
 
 static int read_token(void) {
-  int token = yylex();
+  int token = scanner_advance();
 
-  if (token == 0) /* End of file */
-  {
+  if (token == Y_EOF) {
     console_to_spim();
     exit(0);
   } else {

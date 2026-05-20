@@ -47,11 +47,11 @@ int parse_file(void);
 
 /* Initialize scanner + parser state for a fresh assembly file.
    Call before parse_file(). */
-void initialize_parser(FILE* in, char* file_name);
+void parser_init(FILE* in, char* file_name);
 
 void fix_current_label_address(mem_addr new_addr);
 int imm_op_to_op(int opcode);
-void yyerror(char* s);
+void parse_error(char* s);
 
 /* Exported Variables: */
 

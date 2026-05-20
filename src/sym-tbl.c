@@ -162,7 +162,7 @@ label* record_label(char* name, mem_addr address, int resolve_uses) {
 
   if (!l->gp_flag) {
     if (l->addr != 0) {
-      yyerror("Label is defined for the second time");
+      parse_error("Label is defined for the second time");
       return (l);
     }
     l->addr = address;

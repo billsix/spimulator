@@ -136,7 +136,7 @@ void initialize_world(char* exception_file_names, bool print_message) {
       (void)record_label("main", 0, 0);
     }
   }
-  initialize_scanner(stdin);
+  scanner_init(stdin);
   delete_all_breakpoints();
 }
 
@@ -186,7 +186,7 @@ bool read_assembly_file(char* name) {
     error("Cannot open file: `%s'\n", name);
     return false;
   } else {
-    initialize_parser(file, name);
+    parser_init(file, name);
     (void)parse_file();
     fclose(file);
     flush_local_labels(!parse_error_occurred);

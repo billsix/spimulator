@@ -32,12 +32,12 @@ extern void scanner_force_identifier(void);
 bool data_dir = false;            /* => item in data segment */
 bool text_dir = true;             /* => item in text segment */
 /* parse_error_occurred / parse_errors_seen live in pseudo_op.c
-   alongside the yyerror funnel that sets them; declared extern
+   alongside the parse_error funnel that sets them; declared extern
    here for the parse_line tail. */
 extern bool parse_error_occurred;
 extern int  parse_errors_seen;
 
-/* Source file name, used by yyerror / yywarn for messages.  Exposed
+/* Source file name, used by parse_error / parse_warn for messages.  Exposed
    via the accessor below so pseudo_op.c can read it without
    needing the static directly. */
 static char* input_file_name = NULL;
@@ -1711,7 +1711,7 @@ static void parse_line(void) {
 
 /* ---------------- public API ---------------- */
 
-void initialize_parser(FILE* in, char* file_name) {
+void parser_init(FILE* in, char* file_name) {
   scanner_init(in);
   input_file_name = file_name;
   parse_errors_seen = 0;
@@ -1732,9 +1732,3 @@ int parse_file(void) {
   return parse_errors_seen;
 }
 
-/* Compatibility wrapper for the REPL's ASM_CMD path. 
-   removed the generated yyparse(); spim.c's `case ASM_CMD: yyparse();`
-   now lands here. */
-int yyparse(void) {
-  return parse_file();
-}
