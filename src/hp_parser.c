@@ -1,31 +1,6 @@
 /* SPIM S20 MIPS simulator.
    Hand-written recursive-descent parser.
 
-   Replaces src/parser.y during Phases 2-4 of the parser
-   migration.  Selected at runtime by the `-parser=hand` flag.
-
-   Phase 2 pilot subset covers:
-     - LINE / label / directive / instruction dispatch
-     - R-type 3-reg arithmetic (add, addu, and, or, etc.)
-     - I-type 2-reg+imm (addi, addiu, andi, ori, etc.)
-     - Shifts (sll, sra, srl)
-     - Load/store with full ADDR (lb, lw, sb, sw, etc.)
-     - Branches (beq, bne, bgez, bltz)
-     - Jumps (j, jal)
-     - NULLARY (syscall, break)
-     - LUI
-     - Directives: .data, .text, .globl, .word, .byte,
-       .asciiz, .ascii, .space, .align, .extern, .kdata,
-       .ktext, .half, .float, .double, .comm
-
-   Out of pilot scope (Phase 3):
-     - Pseudo-ops: la, li, div, mulo, sle, seq, branch
-       pseudo-ops (beqz, bgt, ble, b), nop is supported via
-       hp_nop_inst since `nop` keyword expands to `sll $0,$0,0`.
-     - FP family.
-     - Coprocessor + TLB instructions.
-     - Trap family.
-
    Copyright (c) 2026, William Emerison Six.
    BSD 3-Clause.
 */
@@ -52,14 +27,13 @@ extern void hp_scanner_init(FILE* in);
 extern void hp_scanner_start_line(void);
 extern void hp_scanner_force_identifier(void);
 
-/* ------- runtime-visible globals (Phase 5 — sole owner) ----- */
+/* ------- runtime-visible globals --------------------------- */
 
 bool data_dir = false;            /* => item in data segment */
 bool text_dir = true;             /* => item in text segment */
 /* parse_error_occurred / parse_errors_seen live in hp_pseudo_op.c
-   so the yyerror funnel (also in hp_pseudo_op.c) sets them without
-   pulling hp_parser.o into translation units that only call
-   yyerror (sym-tbl.c). */
+   alongside the yyerror funnel that sets them; declared extern
+   here for the parse_line tail. */
 extern bool parse_error_occurred;
 extern int  parse_errors_seen;
 
@@ -77,13 +51,10 @@ static void (*hp_store_op)(int);
 static void (*hp_store_fp_op)(double*);
 
 /* Labels collected on the current line, flushed (resolved + freed)
-   at line end.  This mirrors parser.y's `this_line_labels` exactly:
-   the list persists across newlines until an ASM_CODE or
-   ASM_DIRECTIVE clears it, so that `set_data_alignment` (called
+   at line end.  The list persists across newlines until an ASM_CODE
+   or ASM_DIRECTIVE clears it, so that `set_data_alignment` (called
    from inside the directive) can retroactively update label
-   addresses via fix-up.  See parser.y CMD action.
-
-   Phase 5 cleanup will merge with parser.y's static. */
+   addresses via fix_current_label_address. */
 
 typedef struct hp_label_cell {
   label* lab;
@@ -93,7 +64,7 @@ typedef struct hp_label_cell {
 static hp_label_cell* hp_this_line_labels = NULL;
 
 /* Mirror of data.c's `enable_data_auto_alignment` static.
-   Cleared by `.align 0`, set by `.data`/`.kdata`. */
+   Cleared by `.align 0`, set by `.data` / `.kdata`. */
 static bool hp_auto_align = true;
 
 static void hp_cons_label(label* l) {
@@ -103,7 +74,7 @@ static void hp_cons_label(label* l) {
   hp_this_line_labels = c;
 }
 
-/* Resolve and free.  Mirrors parser.y's `clear_labels()`. */
+/* Resolve and free. */
 static void hp_clear_labels(void) {
   while (hp_this_line_labels != NULL) {
     hp_label_cell* next = hp_this_line_labels->next;
@@ -234,7 +205,7 @@ static int parse_abs_addr(void) {
     hp_scanner_advance();
     return v + yylval.i;
   }
-  /* Y_INT Y_INT (with the second negative) is bison's quirky
+  /* Y_INT Y_INT (with the second negative) is the historical
      subtraction handling — see scanner-parser-inventory Part 8F. */
   if (hp_scanner_peek() == Y_INT) {
     /* peek the next value */
@@ -245,7 +216,7 @@ static int parse_abs_addr(void) {
   return v;
 }
 
-/* FACTOR : Y_INT | '(' EXPR ')' | ID  (parser.y:2628-2643).
+/* FACTOR : Y_INT | '(' EXPR ')' | ID.
    ID resolves to its label's address; forward references
    record a data-uses-symbol entry for later resolution. */
 extern void record_data_uses_symbol(mem_addr location, label* sym);
@@ -322,9 +293,7 @@ static imm_expr* parse_imm32(void) {
       hp_scanner_advance();
       int off = parse_abs_addr();
       imm_expr* r = make_imm_expr(off, sym, false);
-      /* Don't free sym — make_imm_expr stores it.  Actually bison
-         frees it after — but make_imm_expr likely copies.  Mirror
-         the bison action: free here. */
+      /* make_imm_expr copies sym internally, so free our local. */
       free(sym);
       return r;
     }
@@ -377,7 +346,7 @@ static imm_expr* parse_br_imm32(void) {
 }
 
 /* LABEL — like ID but produces a PC-relative imm_expr suitable
-   for a branch target.  Matches parser.y:2579-2582 exactly:
+   for a branch target.  Matches exactly:
    the initial offset is `-current_text_pc()`, which gets
    overwritten with `-pc` in resolve_a_label_sub at fix-up
    time, encoding the (target - branch_pc) displacement that
@@ -390,7 +359,7 @@ static imm_expr* parse_label(void) {
   hp_scanner_advance();
   char* sym = (char*)yylval.p;
   imm_expr* r = make_imm_expr(-(int)current_text_pc(), sym, true);
-  /* sym ownership: bison-side LABEL action does NOT free $1.p
+  /* sym ownership: the original LABEL action does NOT free name
      (because make_imm_expr stores it).  Mirror that. */
   return r;
 }
@@ -461,7 +430,7 @@ static addr_expr* parse_address(void) {
 
 /* Return true if `op` is a BINARYI_OPS opcode (has both reg-reg
    and reg-imm forms — add, addu, and, or, xor, slt, sltu).
-   See parser.y's BINARYI_OPS production. */
+   */
 static bool op_has_imm_form(int op) {
   switch (op) {
     case Y_ADD_OP:
@@ -479,23 +448,22 @@ static bool op_has_imm_form(int op) {
 
 /* R3_TYPE_INST: <op> DEST, SRC1, SRC2.  For BINARYI_OPS opcodes,
    also accepts <op> DEST, SRC1, IMM and <op> DEST, IMM (see
-   parser.y:941-956).  SUB_OPS (sub, subu) similarly accept an
+SUB_OPS (sub, subu) similarly accept an
    immediate, converted to addi/addiu with a negated value
-   (parser.y:1068-1103). */
+*/
 extern int32 eval_imm_expr(imm_expr* expr);
 
 static void parse_r3(int op) {
   int rd = parse_register();
   if (op == Y_CLO_OP || op == Y_CLZ_OP) {
     /* COUNT_LEADING_OPS DEST SRC1 — RT must equal RD.
-       parser.y:928-932. */
+      */
     int rs = parse_register();
     r_type_inst(op, rd, rs, rd);
     return;
   }
   if (op == Y_MUL_OP) {
-    /* MULT_OPS3 DEST SRC1 (SRC2|IMM).  3-reg or 3-with-imm
-       (parser.y:1159-1170).  Imm form uses $at + ori. */
+    /* MULT_OPS3 DEST SRC1 (SRC2|IMM).  3-reg or 3-with-imm. Imm form uses $at + ori. */
     int rs = parse_register();
     if (hp_scanner_peek() == Y_REG) {
       int rt = parse_register();
@@ -574,7 +542,6 @@ static void parse_r2sh(int op) {
   r_sh_type_inst(op, rd, rs, sh);
 }
 
-/* R2ds_TYPE_INST: <op> DEST, SRC1 (mfhi/mflo etc.) — out of pilot */
 /* R1s_TYPE_INST: <op> SRC1 (jr) */
 static void parse_r1s(int op) {
   int rs = parse_register();
@@ -583,8 +550,7 @@ static void parse_r1s(int op) {
 
 /* I2_TYPE_INST: <op> DEST, SRC1, IMM16
    Also accepts the 2-operand shorthand `<op> DEST, IMM16` for
-   andi/ori/xori (parser.y:991-994 BINARY_LOGICALI_OPS DEST UIMM16),
-   where the missing SRC1 defaults to DEST — exception handlers use
+   andi/ori/xori where the missing SRC1 defaults to DEST — exception handlers use
    `ori $k0, 0x1`. */
 static void parse_i2(int op) {
   int rt = parse_register();
@@ -619,14 +585,13 @@ static void parse_i2a(int op) {
   i_type_inst(op, rt, addr_expr_reg(addr), addr_expr_imm(addr));
   /* Bison frees the addr_expr's inner imm + the addr_expr; do the
      same.  spim runtime exposes free_imm_expr but not
-     free_addr_expr — see inst.h.  Use free() since that's what
-     parser.y does. */
+     free_addr_expr — see inst.h.  Use free() since that's what */
   free(addr_expr_imm(addr));
   free(addr);
 }
 
 /* B2_TYPE_INST: <op> SRC1, SRC2, LABEL (beq, bne) — reg/reg form.
-   Also <op> SRC1, IMM, LABEL (parser.y:1327-1346) — reg/imm form
+   Also <op> SRC1, IMM, LABEL — reg/imm form
    which uses $at + ori to materialize the immediate, then beq/bne. */
 static void parse_b2(int op) {
   int src1 = parse_register();
@@ -635,7 +600,7 @@ static void parse_b2(int op) {
     imm_expr* target = parse_label();
     i_type_inst_free(op, src2, src1, target);
   } else {
-    /* Immediate form (parser.y:1327-1346) */
+    /* Immediate form */
     imm_expr* imm = parse_imm32();
     imm_expr* target = parse_label();
     extern bool is_zero_imm(imm_expr* expr);
@@ -660,14 +625,14 @@ static void parse_b1(int op) {
 }
 
 /* J_TYPE_INST: <op> LABEL  OR  <op> SRC1 (j/jal/jr/jalr).
-   Matches parser.y:1443-1462.  J_OPS covers j, jal, jr, jalr;
+   Matches.  J_OPS covers j, jal, jr, jalr;
    with a label argument we emit j_type_inst with the right
    absolute-jump opcode; with a register argument we emit
    r_type_inst with the indirect-jump opcode. */
 static void parse_j(int op) {
   if (hp_scanner_peek() == Y_REG) {
     /* J_OPS SRC1  or  J_OPS DEST SRC1 — register-indirect jump.
-       parser.y:1452-1466. */
+      */
     int r1 = parse_register();
     if (hp_scanner_peek() == Y_REG) {
       /* DEST SRC1 form */
@@ -695,7 +660,7 @@ static void parse_j(int op) {
 }
 
 /* NOARG_TYPE_INST: <op>  (syscall) or <op> IMM (break N, sync N).
-   See parser.y:855-866. */
+   See. */
 static void parse_noarg(int op) {
   if (hp_scanner_peek() == Y_INT) {
     /* break N or sync N — encode the int in the rd slot.
@@ -798,9 +763,7 @@ static void parse_expr_list(void) {
 
 /* Pre-fix any labels currently on this_line_labels to the
    address they'll occupy AFTER `set_data_alignment(N)` aligns
-   the data PC.  parser.y achieves this via `align_data` →
-   `fix_current_label_address`, which sees bison's static
-   `this_line_labels`; we maintain our own and pre-fix here.
+   the data PC.  `align_data` calls `fix_current_label_address` to align `this_line_labels`; we maintain our own and pre-fix here.
    Respects the same auto-align gate that data.c uses. */
 static void hp_align_labels_to(int alignment) {
   if (!data_dir || !hp_auto_align || hp_this_line_labels == NULL) return;
@@ -901,35 +864,35 @@ static int find_op_type(int op) {
 static void parse_pseudo(int op) {
   switch (op) {
     case Y_LI_POP: {
-      /* li DEST, IMM32  →  ori DEST, $0, imm  (parser.y:648-651) */
+      /* li DEST, IMM32  →  ori DEST, $0, imm */
       int rt = parse_register();
       imm_expr* imm = parse_imm32();
       i_type_inst_free(Y_ORI_OP, rt, 0, imm);
       break;
     }
     case Y_MOVE_POP: {
-      /* move DEST, SRC1  →  addu DEST, $0, SRC1  (parser.y:910-913) */
+      /* move DEST, SRC1  →  addu DEST, $0, SRC1 */
       int rd = parse_register();
       int rs = parse_register();
       r_type_inst(Y_ADDU_OP, rd, 0, rs);
       break;
     }
     case Y_NEG_POP: {
-      /* neg DEST, SRC1  →  sub DEST, $0, SRC1  (parser.y:892-895) */
+      /* neg DEST, SRC1  →  sub DEST, $0, SRC1 */
       int rd = parse_register();
       int rs = parse_register();
       r_type_inst(Y_SUB_OP, rd, 0, rs);
       break;
     }
     case Y_NEGU_POP: {
-      /* negu DEST, SRC1  →  subu DEST, $0, SRC1  (parser.y:898-901) */
+      /* negu DEST, SRC1  →  subu DEST, $0, SRC1 */
       int rd = parse_register();
       int rs = parse_register();
       r_type_inst(Y_SUBU_OP, rd, 0, rs);
       break;
     }
     case Y_NOT_POP: {
-      /* not DEST, SRC1  →  nor DEST, SRC1, $0  (parser.y:904-907) */
+      /* not DEST, SRC1  →  nor DEST, SRC1, $0 */
       int rd = parse_register();
       int rs = parse_register();
       r_type_inst(Y_NOR_OP, rd, rs, 0);
@@ -937,7 +900,7 @@ static void parse_pseudo(int op) {
     }
     case Y_ROR_POP:
     case Y_ROL_POP: {
-      /* Rotate right / left.  Two forms (parser.y:1173-1211):
+      /* Rotate right / left.  Two forms:
            DEST SRC1 SRC2   — register rotate
            DEST SRC1 IMM    — constant rotate */
       int rd = parse_register();
@@ -979,8 +942,7 @@ static void parse_pseudo(int op) {
     case Y_SGEU_POP:
     case Y_SEQ_POP:
     case Y_SNE_POP: {
-      /* SET_*_POPS: DEST SRC1 (SRC2|IMM32).
-         (parser.y:1221-1283).  IMM form uses $at + ori when imm != 0. */
+      /* SET_*_POPS: DEST SRC1 (SRC2|IMM32).. IMM form uses $at + ori when imm != 0. */
       int rd = parse_register();
       int rs = parse_register();
       int rt;
@@ -1010,7 +972,7 @@ static void parse_pseudo(int op) {
       break;
     }
     case Y_ABS_POP: {
-      /* abs DEST, SRC1  (parser.y:881-889): if DEST != SRC1,
+      /* abs DEST, SRC1: if DEST != SRC1,
          first move; then bgez SRC1 +3; nop; sub DEST, $0, SRC1. */
       int rd = parse_register();
       int rs = parse_register();
@@ -1029,7 +991,7 @@ static void parse_pseudo(int op) {
     case Y_REM_POP:
     case Y_REMU_POP: {
       /* rem/remu — DIV_POPS pseudo, 3-operand form only.
-         parser.y:1115-1131. */
+        */
       int rd = parse_register();
       int rs = parse_register();
       if (hp_scanner_peek() == Y_REG) {
@@ -1049,7 +1011,7 @@ static void parse_pseudo(int op) {
     }
     case Y_MULO_POP:
     case Y_MULOU_POP: {
-      /* mulo/mulou — MUL_POPS, 3-operand form. parser.y:1134-1150. */
+      /* mulo/mulou — MUL_POPS, 3-operand form.. */
       int rd = parse_register();
       int rs = parse_register();
       if (hp_scanner_peek() == Y_REG) {
@@ -1070,7 +1032,7 @@ static void parse_pseudo(int op) {
     }
     case Y_MFC1_D_POP: {
       /* mfc1.d REG COP_REG  →  two mfc1 instructions
-         (parser.y:1560-1563). */
+*/
       int reg = parse_register();
       int copreg;
       if (hp_scanner_peek() == Y_FP_REG) copreg = parse_fp_register();
@@ -1081,7 +1043,7 @@ static void parse_pseudo(int op) {
     }
     case Y_MTC1_D_POP: {
       /* mtc1.d REG COP_REG  →  two mtc1 instructions
-         (parser.y:1565-1569). */
+*/
       int reg = parse_register();
       int copreg;
       if (hp_scanner_peek() == Y_FP_REG) copreg = parse_fp_register();
@@ -1092,7 +1054,7 @@ static void parse_pseudo(int op) {
     }
     case Y_LI_D_POP: {
       /* li.d F_DEST <Y_FP>  →  load double-precision constant
-         via two mtc1 (parser.y:654-662). */
+         via two mtc1. */
       int fd = parse_fp_register();
       if (hp_scanner_peek() != Y_FP) {
         hp_yyerror("Expected FP literal");
@@ -1108,7 +1070,7 @@ static void parse_pseudo(int op) {
     }
     case Y_LI_S_POP: {
       /* li.s F_DEST <Y_FP>  →  single-precision const via one mtc1
-         (parser.y:665-672). */
+*/
       int fd = parse_fp_register();
       if (hp_scanner_peek() != Y_FP) {
         hp_yyerror("Expected FP literal");
@@ -1122,7 +1084,7 @@ static void parse_pseudo(int op) {
       break;
     }
     case Y_L_D_POP: {
-      /* l.d F_DEST ADDRESS  →  ldc1 (parser.y:1668). */
+      /* l.d F_DEST ADDRESS  →  ldc1. */
       int fr = parse_fp_register();
       addr_expr* addr = parse_address();
       i_type_inst(Y_LDC1_OP, fr, addr_expr_reg(addr), addr_expr_imm(addr));
@@ -1159,7 +1121,7 @@ static void parse_pseudo(int op) {
     }
     case Y_LD_POP: {
       /* ld DEST ADDRESS  — load doubleword pseudo, expands to
-         two lw instructions (parser.y:592-606 first alternative). */
+         two lw instructions */
       int rt = parse_register();
       addr_expr* addr = parse_address();
       i_type_inst(Y_LW_OP, rt, addr_expr_reg(addr), addr_expr_imm(addr));
@@ -1181,7 +1143,7 @@ static void parse_pseudo(int op) {
       break;
     }
     case Y_ULW_POP: {
-      /* Unaligned load word.  parser.y:675-696, little-endian
+      /* Unaligned load word. , little-endian
          path (the macOS/Linux x86 default).  Emits LWL+LWR with
          offset bumped by 3 on the LWL. */
       int rt = parse_register();
@@ -1195,7 +1157,7 @@ static void parse_pseudo(int op) {
     }
     case Y_ULH_POP:
     case Y_ULHU_POP: {
-      /* Unaligned load half (signed/unsigned). parser.y:699-724 LE path. */
+      /* Unaligned load half (signed/unsigned). LE path. */
       int rt = parse_register();
       addr_expr* addr = parse_address();
       i_type_inst_free(op == Y_ULH_POP ? Y_LB_OP : Y_LBU_OP, rt,
@@ -1209,7 +1171,7 @@ static void parse_pseudo(int op) {
       break;
     }
     case Y_USW_POP: {
-      /* Unaligned store word.  parser.y:760-781 LE path. */
+      /* Unaligned store word.  LE path. */
       int rt = parse_register();
       addr_expr* addr = parse_address();
       i_type_inst_free(Y_SWL_OP, rt, addr_expr_reg(addr),
@@ -1220,7 +1182,7 @@ static void parse_pseudo(int op) {
       break;
     }
     case Y_USH_POP: {
-      /* Unaligned store half.  parser.y:784-806.  ROL, store
+      /* Unaligned store half.. ROL, store
          high byte, ROR. */
       int rt = parse_register();
       addr_expr* addr = parse_address();
@@ -1240,7 +1202,7 @@ static void parse_pseudo(int op) {
       break;
     }
     case Y_LA_POP: {
-      /* la DEST, ADDRESS  (parser.y:634-645).  If ADDRESS has a
+      /* la DEST, ADDRESS.  If ADDRESS has a
          base register, emit `addi DEST, base, offset`; else emit
          `ori DEST, $0, offset`. */
       int rt = parse_register();
@@ -1255,7 +1217,7 @@ static void parse_pseudo(int op) {
       break;
     }
 
-    /* UNARY_BR_POPS: beqz, bnez SRC1 LABEL  (parser.y:1315-1319) */
+    /* UNARY_BR_POPS: beqz, bnez SRC1 LABEL */
     case Y_BEQZ_POP:
     case Y_BNEZ_POP: {
       int rs = parse_register();
@@ -1265,7 +1227,7 @@ static void parse_pseudo(int op) {
       break;
     }
 
-    /* B_OPS: b, bal LABEL  (parser.y:1469-1473) */
+    /* B_OPS: b, bal LABEL */
     case Y_B_POP:
     case Y_BAL_POP: {
       imm_expr* target = parse_label();
@@ -1274,7 +1236,7 @@ static void parse_pseudo(int op) {
       break;
     }
 
-    /* BR_GT_POPS: bgt/bgtu SRC1 (SRC2|IMM) LABEL (parser.y:1351-1378) */
+    /* BR_GT_POPS: bgt/bgtu SRC1 (SRC2|IMM) LABEL */
     case Y_BGT_POP:
     case Y_BGTU_POP: {
       int rs = parse_register();
@@ -1284,7 +1246,7 @@ static void parse_pseudo(int op) {
         r_type_inst(op == Y_BGT_POP ? Y_SLT_OP : Y_SLTU_OP, 1, rt, rs);
         i_type_inst_free(Y_BNE_OP, 0, 1, target);
       } else {
-        /* Immediate form — see parser.y:1358-1378 */
+        /* Immediate form — see */
         imm_expr* imm = parse_imm32();
         imm_expr* target = parse_label();
         if (op == Y_BGT_POP) {
@@ -1303,7 +1265,7 @@ static void parse_pseudo(int op) {
       break;
     }
 
-    /* BR_GE_POPS: bge/bgeu SRC1 (SRC2|IMM) LABEL (parser.y:1381-1394) */
+    /* BR_GE_POPS: bge/bgeu SRC1 (SRC2|IMM) LABEL */
     case Y_BGE_POP:
     case Y_BGEU_POP: {
       int rs = parse_register();
@@ -1322,7 +1284,7 @@ static void parse_pseudo(int op) {
       break;
     }
 
-    /* BR_LT_POPS: blt/bltu SRC1 (SRC2|IMM) LABEL (parser.y:1397-1410) */
+    /* BR_LT_POPS: blt/bltu SRC1 (SRC2|IMM) LABEL */
     case Y_BLT_POP:
     case Y_BLTU_POP: {
       int rs = parse_register();
@@ -1341,7 +1303,7 @@ static void parse_pseudo(int op) {
       break;
     }
 
-    /* BR_LE_POPS: ble/bleu SRC1 (SRC2|IMM) LABEL (parser.y:1413-1440) */
+    /* BR_LE_POPS: ble/bleu SRC1 (SRC2|IMM) LABEL */
     case Y_BLE_POP:
     case Y_BLEU_POP: {
       int rs = parse_register();
@@ -1370,7 +1332,7 @@ static void parse_pseudo(int op) {
     }
 
     default:
-      hp_yyerror("Pseudo-op not yet supported in hand-written parser pilot");
+      hp_yyerror("Pseudo-op not yet supported");
       hp_sync_to_nl();
       break;
   }
@@ -1394,7 +1356,7 @@ static void parse_asm_code(void) {
     case PSEUDO_OP:       parse_pseudo(op); break;
     case R2td_TYPE_INST: {
       /* mfc0/mtc0/etc.: <op> REG COP_REG.  COP_REG accepts
-         Y_REG or Y_FP_REG (parser.y:2572-2574). */
+         Y_REG or Y_FP_REG. */
       int reg = parse_register();
       int copreg;
       if (hp_scanner_peek() == Y_FP_REG) {
@@ -1414,8 +1376,7 @@ static void parse_asm_code(void) {
     case R2st_TYPE_INST: {
       /* Two-source R-type with no destination — covers
          mult/multu (always 2-operand) and div/divu (which ALSO
-         accept 3-operand DIV_POPS pseudo forms).  See parser.y
-         lines 1106-1131 (div pseudo forms) and 1153 (mult).
+         accept 3-operand DIV_POPS pseudo forms).
 
          Dispatch by operand count: count registers after the
          first one. */
@@ -1430,7 +1391,7 @@ static void parse_asm_code(void) {
       if (op == Y_TEQ_OP || op == Y_TGE_OP || op == Y_TGEU_OP
           || op == Y_TLT_OP || op == Y_TLTU_OP || op == Y_TNE_OP) {
         /* BINARY_TRAP_OPS: <op> SRC1 SRC2 → r_type_inst(op, 0, r1, r2)
-           (parser.y:1482-1485) */
+ */
         int r2 = parse_register();
         r_type_inst(op, 0, r1, r2);
       } else if (op == Y_DIV_OP || op == Y_DIVU_OP) {
@@ -1438,7 +1399,7 @@ static void parse_asm_code(void) {
         int r2 = parse_register();
         if (hp_scanner_peek() == Y_NL || hp_scanner_peek() == Y_EOF) {
           /* 2-operand form: r_type_inst(op, 0, r1, r2)
-             — note r1 is rs (DEST in bison's grammar), r2 is rt (SRC1). */
+             — note r1 is rs , r2 is rt (SRC1). */
           r_type_inst(op, 0, r1, r2);
         } else if (hp_scanner_peek() == Y_REG) {
           int r3 = parse_register();
@@ -1465,16 +1426,16 @@ static void parse_asm_code(void) {
     }
     case R1d_TYPE_INST: {
       /* One-destination-register R-type: mfhi/mflo.  See
-         parser.y MOVE_FROM_HILO_OPS (~line 1919). */
+         */
       int rd = parse_register();
       r_type_inst(op, rd, 0, 0);
       break;
     }
     case R3sh_TYPE_INST: {
       /* BINARYIR_OPS: sllv, srav, srlv (variable-register shift).
-         DEST SRC1 SRC2 — note bison's r_type_inst($1, DEST, SRC2, SRC1)
-         has rs/rt swapped (parser.y:959-962).  Also accepts immediate
-         form which uses op_to_imm_op for the shamt encoding. */
+         DEST SRC1 SRC2 — note the r_type_inst call below has rs/rt
+         swapped (rt=SRC2, rs=SRC1).  Also accepts immediate form
+         which uses op_to_imm_op for the shamt encoding. */
       int rd = parse_register();
       int rs = parse_register();
       if (hp_scanner_peek() == Y_REG) {
@@ -1495,7 +1456,7 @@ static void parse_asm_code(void) {
     case I1s_TYPE_INST: {
       /* BINARYI_TRAP_OPS: teqi/tgei/tgeiu/tlti/tltiu/tnei.
          <op> SRC1 IMM16 → i_type_inst_free(op, 0, rs, imm).
-         (parser.y:1476-1479) */
+ */
       int rs = parse_register();
       imm_expr* imm = parse_imm16();
       i_type_inst_free(op, 0, rs, imm);
@@ -1505,10 +1466,10 @@ static void parse_asm_code(void) {
       /* BR_COP_OPS: bc1f/bc1t/bc1fl/bc1tl.  Two forms:
            <op> LABEL                  → cc=0
            <op> CC_REG LABEL           → cc=Y_INT
-         The RT field is cc_to_rt(cc, nd, tf); RS is 0 (bison
+         The RT field is cc_to_rt(cc, nd, tf); RS is 0 (
          uses BIN_RS($1.i) which is the token-number's bits 21-25,
          always 0 for spim's token-number range).  See
-         parser.y:1286-1306. */
+        */
       extern bool opcode_is_nullified_branch(int);
       extern bool opcode_is_true_branch(int);
       int nd = opcode_is_nullified_branch(op) ? 1 : 0;
@@ -1525,7 +1486,7 @@ static void parse_asm_code(void) {
     }
     case MOVC_TYPE_INST: {
       /* MOVECC_OPS: movf/movt DEST SRC1 Y_INT (cc number).
-         parser.y:1506-1512: r_type_inst($1, DEST, SRC1, (Y_INT&7)<<2). */
+        : r_type_inst($1, DEST, SRC1, (Y_INT&7)<<2). */
       int rd = parse_register();
       int rs = parse_register();
       int cc = 0;
@@ -1537,10 +1498,10 @@ static void parse_asm_code(void) {
       break;
     }
 
-    /* --- FP family (parser.y:1587-2120) --- */
+    /* --- FP family --- */
     case FP_R2ds_TYPE_INST: {
       /* FP_UNARY_OPS / FP_MOVE_OPS: <op> F_DEST F_SRC2.
-         parser.y:1587-1591 etc.: r_co_type_inst($1, $2, $3, 0). */
+         etc.: r_co_type_inst($1, $2, $3, 0). */
       int fd = parse_fp_register();
       int fs = parse_fp_register();
       r_co_type_inst(op, fd, fs, 0);
@@ -1548,7 +1509,7 @@ static void parse_asm_code(void) {
     }
     case FP_R3_TYPE_INST: {
       /* FP_BINARY_OPS: <op> F_DEST F_SRC1 F_SRC2.
-         parser.y FP_BINARY_OPS production: r_co_type_inst. */
+         */
       int fd = parse_fp_register();
       int fs = parse_fp_register();
       int ft = parse_fp_register();
@@ -1556,7 +1517,7 @@ static void parse_asm_code(void) {
       break;
     }
     case FP_CMP_TYPE_INST: {
-      /* FP_CMP_OPS: two forms (parser.y:1617-1626):
+      /* FP_CMP_OPS: two forms:
            <op> F_SRC1 F_SRC2                   → cc=0
            <op> CC_REG F_SRC1 F_SRC2            → cc=Y_INT */
       int cc = 0;
@@ -1571,7 +1532,7 @@ static void parse_asm_code(void) {
     }
     case FP_MOVC_TYPE_INST: {
       /* FP_MOVC_TYPE covers two families with different operand
-         shapes (parser.y:1515-1536):
+         shapes:
            FP_MOVEC_OPS  (movn/movz.{s,d}) : F_DEST F_SRC1 REG
               → r_co_type_inst(op, fd, fs, rt)
            FP_MOVECC_OPS (movf/movt.{s,d}) : F_DEST F_SRC1 [CC_REG]
@@ -1594,7 +1555,7 @@ static void parse_asm_code(void) {
     }
     case FP_I2a_TYPE_INST: {
       /* lwc1 / ldc1 / lwc2 etc.: <op> F_REG ADDRESS.
-         parser.y LOADFP_OPS / STOREFP_OPS productions. */
+         */
       int fr = parse_fp_register();
       addr_expr* addr = parse_address();
       i_type_inst(op, fr, addr_expr_reg(addr), addr_expr_imm(addr));
@@ -1604,7 +1565,7 @@ static void parse_asm_code(void) {
     }
     case FP_R2ts_TYPE_INST: {
       /* mfc1/mtc1/cfc0/ctc0/cfc1/ctc1: <op> REG COP_REG.
-         COP_REG accepts either Y_REG OR Y_FP_REG (parser.y:2572-
+         COP_REG accepts either Y_REG OR Y_FP_REG (
          2574) — both name the coprocessor register number. */
       int reg = parse_register();
       int copreg;
@@ -1617,7 +1578,7 @@ static void parse_asm_code(void) {
       break;
     }
     default:
-      hp_yyerror("Instruction not yet supported in hand-written parser pilot");
+      hp_yyerror("Instruction not yet supported");
       hp_sync_to_nl();
       break;
   }
@@ -1662,7 +1623,7 @@ static void parse_directive(int dir_tok) {
       hp_sync_to_nl();
       break;
     default:
-      hp_yyerror("Directive not yet supported in hand-written parser pilot");
+      hp_yyerror("Directive not yet supported");
       hp_sync_to_nl();
       break;
   }
@@ -1694,7 +1655,7 @@ static void parse_opt_label(void) {
        immediately.  If a subsequent .word (etc.) on the next
        line bumps the data PC for alignment, hp_fix_line_labels
        must be able to update this label's addr first.  Mirrors
-       parser.y's deferred-resolution behavior. */
+       deferred-resolution behavior. */
     hp_cons_label(l);
     free(sym);
   } else {
@@ -1731,10 +1692,10 @@ static void parse_line(void) {
   if (is_directive(t)) {
     int dt = hp_scanner_advance();
     parse_directive(dt);
-    hp_clear_labels();   /* mirrors parser.y's CMD: ASM_DIRECTIVE { clear_labels() } */
+    hp_clear_labels();   /* clear labels after the directive */
   } else {
     parse_asm_code();
-    hp_clear_labels();   /* mirrors parser.y's CMD: ASM_CODE { clear_labels() } */
+    hp_clear_labels();   /* clear labels after the instruction */
   }
 
   /* Expect newline or EOF */
@@ -1765,15 +1726,13 @@ int hp_parse_file(void) {
     hp_scanner_start_line();
     parse_line();
   }
-  /* Mirror parser.y's `TERM: Y_EOF { clear_labels(); ... }` —
-     if the last lines were bare-label definitions, their uses
+  /* if the last lines were bare-label definitions, their uses
      need resolving here. */
   hp_clear_labels();
   return parse_errors_seen;
 }
 
-/* Flex/bison-name compatibility shims for the REPL's ASM_CMD
-   path and any caller that still uses the old surface.  Phase 5
+/* Compatibility wrapper for the REPL's ASM_CMD path. 
    removed the generated yyparse(); spim.c's `case ASM_CMD: yyparse();`
    now lands here. */
 int yyparse(void) {

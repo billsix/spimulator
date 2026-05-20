@@ -1,15 +1,8 @@
 /* SPIM S20 MIPS simulator.
-   Hand-written-parser side: pseudo-op expansion helpers.
+   Pseudo-op expansion helpers + runtime error funnel.
 
-   Each of these is a verbatim relocation (modulo the hp_ name
-   prefix) of the corresponding static function in
-   src/parser.y's postlude.  During Phases 2-4 the bison path
-   keeps its own static copy; these functions are linked into
-   the binary alongside but called only when the hand-written
-   parser is active.
-
-   Phase 5 will delete the bison copy and rename these to their
-   canonical names.
+   Each pseudo-op expander emits a sequence of real R/I-type
+   instructions that implements the user-visible pseudo-op.
 
    Copyright (c) 1990-2026, James R. Larus and contributors.
    BSD 3-Clause.
@@ -21,7 +14,7 @@
 #include "spim.h"
 #include "inst.h"
 #include "sym-tbl.h"       /* SYMBOL_IS_DEFINED */
-#include "tokens.h"   /* Y_*_OP, Y_*_POP token values */
+#include "tokens.h"        /* Y_*_OP, Y_*_POP token values */
 #include "hp_pseudo_op.h"
 
 extern int line_no;  /* from scanner */
@@ -29,19 +22,17 @@ extern char* hp_erroneous_line(void);  /* from hp_scanner.c */
 extern char* hp_input_file_name_get(void);  /* from hp_parser.c */
 
 /* ------------------------------------------------------------------ *
- * Runtime-visible globals previously defined in src/parser.y.
- * Relocated here in Phase 5 of the parser migration.
+ * Runtime-visible globals: parse-error counters.
  * ------------------------------------------------------------------ */
 
-bool parse_error_occurred = false;  /* parse_error_occurred: one parse iteration */
+bool parse_error_occurred = false;  /* set for one parse iteration */
 int  parse_errors_seen   = 0;       /* cumulative errors across the file */
 
 /* ------------------------------------------------------------------ *
  * Runtime error funnel.  sym-tbl.c calls yyerror() when it detects a
- * duplicate label; previously this resolved to the function in
- * parser.y's postlude.  Phase 5 moves the canonical definition here.
- * yywarn() is the unconditional warning channel that yyerror sits on
- * top of.
+ * duplicate label; the runtime call site predates the parser
+ * rewrite, so the name is kept.  yywarn() is the unconditional
+ * warning channel that yyerror sits on top of.
  * ------------------------------------------------------------------ */
 
 void yywarn(char* s) {
@@ -234,9 +225,6 @@ void hp_check_imm_range(imm_expr* expr, int32 min, int32 max) {
       char str[200];
       sprintf(str, "immediate value (%d) out of range (%d .. %d)",
               value, min, max);
-      /* Hand-written parser uses spim's error() directly; the bison
-         path goes through yywarn().  Same destination (stderr),
-         same exit-code effect. */
       error("spim: (parser) %s on line %d\n", str, line_no);
     }
   }

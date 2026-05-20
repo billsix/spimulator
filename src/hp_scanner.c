@@ -1,16 +1,6 @@
 /* SPIM S20 MIPS simulator.
    Hand-written lexical scanner.
 
-   Replaces src/scanner.l during Phases 2-4 of the parser
-   migration.  Same token vocabulary (token enum values come
-   from parser_yacc.h, shared with the bison path); no \001 EOF
-   sentinel hack; no global `only_id` toggle (replaced by a
-   self-clearing per-token flag).
-
-   See tasks/scanner-parser-inventory.md Part 1 for the lex
-   rules being implemented; tasks/handwritten-parser-design.md
-   for the scanner API design.
-
    Copyright (c) 2026, William Emerison Six.
    BSD 3-Clause.
 */
@@ -28,20 +18,17 @@
 #include "scanner.h"        /* yylval, line_no, only_id */
 #include "tokens.h"    /* Y_* token values */
 
-/* Runtime-visible globals previously defined in src/scanner.l.
-   Phase 5 (parser migration) moves them here. */
+/* Runtime-visible globals. */
 int       line_no = 1;
 yylval_t  yylval  = {0};
-int       only_id = 0;  /* legacy flag; the hand scanner uses the
-                            self-clearing force_id_next state
-                            internally and exposes the old global
-                            for any caller (notably explain.c) that
-                            still inspects it. */
+int       only_id = 0;  /* legacy flag retained for any caller that
+                           still inspects it; the scanner itself uses
+                           the self-clearing force_id_next state
+                           internally. */
 
-/* Register-name → register-number lookup table, relocated from
-   scanner.l (Phase 5).  inst.c / explain.c both call
-   register_name_to_number, so it has to remain a public symbol
-   independent of the scanner's internal keyword table. */
+/* Register-name → register-number lookup.  Public because inst.c and
+   explain.c also call register_name_to_number, independent of the
+   scanner's internal keyword table. */
 static name_val_val register_tbl[] = {
     {"a0", 4, 0},   {"a1", 5, 0},   {"a2", 6, 0},   {"a3", 7, 0},
     {"at", 1, 0},   {"fp", 30, 0},  {"gp", 28, 0},  {"k0", 26, 0},
@@ -68,10 +55,7 @@ int register_name_to_number(char* name) {
 }
 
 /* --- keyword table ---------------------------------------- */
-/* Built from the same op.h X-macro that scanner.l's
-   keyword_tbl[] uses.  Phase 5 cleanup will merge this with
-   scanner.l's table; during coexistence each side keeps its
-   own copy. */
+/* Built from op.h's X-macro pattern. */
 
 static name_val_val hp_keyword_tbl[] = {
 #undef OP
@@ -123,8 +107,7 @@ typedef struct {
 static hp_token tok_buf[3];
 
 /* Self-clearing flag: when set, the NEXT identifier token is
-   classified as Y_ID even if it would otherwise be a keyword.
-   Replaces the bison-era global `only_id` toggle. */
+   classified as Y_ID even if it would otherwise be a keyword. */
 static bool force_id_next = false;
 
 /* --- public API ------------------------------------------- */
@@ -271,9 +254,8 @@ static int scan_int(int sign, hp_token* out) {
   return Y_INT;
 }
 
-/* Decode a backslash escape in a char literal (yytext-style).
-   `pp` points to the char AFTER the backslash; it's advanced
-   past the consumed escape.  Matches scan_escape() in scanner.l. */
+/* Decode a backslash escape in a char literal.  `pp` points to the
+   char AFTER the backslash; it's advanced past the consumed escape. */
 static int scan_escape_char(const char** pp) {
   char first = **pp;
   (*pp)++;
@@ -305,10 +287,8 @@ static int scan_escape_char(const char** pp) {
   }
 }
 
-/* Decode a string literal in place — produces a fresh
-   heap-allocated NUL-terminated decoded buffer.  Matches
-   copy_str() in scanner.l, INCLUDING the recently-fixed octal
-   parser. */
+/* Decode a string literal — produces a fresh heap-allocated
+   NUL-terminated decoded buffer. */
 static char* decode_string(const char* src, int len) {
   char* dst = (char*)xmalloc(len + 1);
   char* d = dst;
@@ -324,9 +304,8 @@ static char* decode_string(const char* src, int len) {
       case 't':  *d++ = '\t'; s += 2; break;
       case '"':  *d++ = '"';  s += 2; break;
       case '0': case '1': case '2': case '3': {
-        /* Three-digit octal escape \NNN.  This is the bug-fix
-           path from scanner.l:493 — first digit shift is 6
-           bits, not 3. */
+        /* Three-digit octal escape \NNN.  First digit shifts 6 bits,
+           not 3 — a long-standing spim bug fixed 2026-05-19. */
         if (s + 3 >= end) { *d++ = *s++; break; }
         int c2 = *(s + 2), c3 = *(s + 3);
         int b = (n - '0') << 6;
@@ -354,8 +333,8 @@ static char* decode_string(const char* src, int len) {
         break;
       }
       default:
-        /* Default branch: copy the backslash, let next iteration
-           handle the trailing char.  Matches scanner.l. */
+        /* Unknown escape: copy the backslash, let next iteration
+           handle the trailing char. */
         *d++ = *s++;
         break;
     }
@@ -408,8 +387,7 @@ static int scan_identifier(hp_token* out, bool force_id) {
   return Y_ID;
 }
 
-/* Scan a $register reference.  Matches scanner.l's $-rule
-   (lines 208-248). */
+/* Scan a $register reference. */
 static int scan_register(hp_token* out) {
   int start;
   next_char();  /* skip the $ */
@@ -687,10 +665,8 @@ int hp_scanner_advance(void) {
   ensure_filled(1);
   int t = tok_buf[0].type;
   /* Only overwrite yylval for tokens that actually carry a value.
-     bison's flex actions did not touch yylval for Y_NL / Y_EOF /
-     punctuation, so callers like spim.c's flush_to_newline rely on
-     yylval.p surviving a newline read after a Y_STR.  Preserve
-     that contract here. */
+     Callers like spim.c's flush_to_newline rely on yylval.p
+     surviving a Y_NL read after a Y_STR. */
   switch (t) {
     case Y_INT: case Y_ID: case Y_REG: case Y_FP_REG: case Y_STR: case Y_FP:
       yylval = tok_buf[0].val;
@@ -709,25 +685,23 @@ int hp_scanner_next(void) {
   return hp_scanner_advance();
 }
 
-/* --- flex-name compatibility wrappers (Phase 5) ----------- *
+/* --- compatibility wrappers for the REPL -------------------- *
  *
- * spim.c's REPL command parser was written against flex's
- * `yylex()` + `push_scanner` / `pop_scanner` API for tokenising
- * commands like "load 'foo.s'", "print $a0", "args 1 2 3".  The
- * REPL doesn't use bison's grammar; it just consumes tokens one
- * at a time.  Rather than rewriting parse_spim_command(), expose
- * the hand-scanner under the names spim.c already uses.
+ * spim.c's REPL command tokenizer consumes individual tokens for
+ * commands like "load 'foo.s'", "print $a0", "args 1 2 3".  It
+ * uses the names below (yylex, push_scanner, pop_scanner,
+ * initialize_scanner, initialize_parser) which predate the
+ * scanner rewrite.  These are thin wrappers over the hp_*
+ * primitives above.
  */
 
 void initialize_scanner(FILE* in_file) {
   hp_scanner_init(in_file);
 }
 
-/* spim.c calls initialize_parser("<standard input>") at the top
-   of the REPL loop and again before parsing assembly snippets.
-   The hand parser doesn't need any per-file priming beyond what
-   hp_initialize_parser does, so just update the file-name
-   accessor (referenced by yywarn / yyerror). */
+/* Set the file-name slot used by yywarn / yyerror.  Called at the
+   top of the REPL loop and before parsing assembly snippets;
+   doesn't touch scanner state. */
 void initialize_parser(char* file_name) {
   extern char* hp_input_file_name_get(void);
   /* Re-init the parser's file-name slot using the public API in
@@ -814,25 +788,17 @@ int yylex(void) {
 
 /* --- erroneous_line / source_line ------------------------- */
 
-/* Hand-written-parser side: return a heap-allocated copy of
-   the current source line.  Used by the new parser's error
-   path; mirrors scanner.l's erroneous_line() closely enough
-   that the existing format-string call sites just work. */
+/* Return a heap-allocated copy of the current source line, tab-
+   indented and newline-terminated, for the parse-error printer. */
 char* hp_erroneous_line(void) {
-  /* Format: tab + line + newline + indent + ^ + newline.  The
-     simple version: just return the saved line text.  The
-     existing yywarn() in parser.y formats the message with a
-     newline already; our caller `error()` follows the same
-     format. */
   size_t len = strlen(current_line_buf);
   char* r = (char*)xmalloc((int)(len + 16));
   snprintf(r, len + 16, "\t  %s\n", current_line_buf);
   return r;
 }
 
-/* Runtime-facing names (Phase 5).  scanner.h declares them
-   without the hp_ prefix; runtime call sites in inst.c, explain.c,
-   and sym-tbl.c use these. */
+/* Public aliases (declared in scanner.h) for the runtime call sites
+   in inst.c, explain.c, and sym-tbl.c. */
 char* erroneous_line(void) { return hp_erroneous_line(); }
 
 /* source_line: return a heap-allocated copy of the current source

@@ -1,12 +1,5 @@
 /* SPIM S20 MIPS simulator.
-   Hand-written-parser side: pseudo-op expansion helpers.
-
-   Relocated from parser.y's postlude.  The bison path keeps
-   its own static copy (untouched during Phases 2-4); these
-   functions are called only from the hand-written parser.
-
-   Phase 5 will drop the bison copy and rename these to their
-   canonical names (without the hp_ prefix).
+   Pseudo-op expansion helpers.
 
    Copyright (c) 1990-2026, James R. Larus and contributors.
    BSD 3-Clause.
