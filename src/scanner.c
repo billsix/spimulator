@@ -15,12 +15,12 @@
 #include "spim-utils.h"     /* name_val_val, str_copy, xmalloc */
 #include "reg.h"            /* R_LENGTH */
 #include "sym-tbl.h"        /* label_is_defined */
-#include "scanner.h"        /* yylval, line_no, only_id */
-#include "tokens.h"    /* Y_* token values */
+#include "scanner.h"        /* scan_value, line_no, only_id */
+#include "tokens.h"    /* TOK_* token values */
 
 /* Runtime-visible globals. */
 int       line_no = 1;
-yylval_t  yylval  = {0};
+scan_value_t  scan_value  = {0};
 int       only_id = 0;  /* legacy flag retained for any caller that
                            still inspects it; the scanner itself uses
                            the self-clearing force_id_next state
@@ -100,14 +100,14 @@ static bool  current_line_saved = false;
 
 typedef struct {
   int      type;
-  yylval_t val;
+  scan_value_t val;
   bool     present;
 } scan_token;
 
 static scan_token tok_buf[3];
 
 /* Self-clearing flag: when set, the NEXT identifier token is
-   classified as Y_ID even if it would otherwise be a keyword. */
+   classified as TOK_ID even if it would otherwise be a keyword. */
 static bool force_id_next = false;
 
 /* --- public API ------------------------------------------- */
@@ -224,15 +224,15 @@ static int scan_fp(int sign, int end_pos, scan_token* out) {
   }
   scratch = sign * atof(buf);
   line_pos = end_pos;
-  out->type = Y_FP;
+  out->type = TOK_FP;
   out->val.p = (void*)&scratch;
   out->present = true;
-  return Y_FP;
+  return TOK_FP;
 }
 
 /* Scan an integer literal (decimal or hex).  Leading optional
-   '-' has already been consumed if signed.  Returns Y_INT with
-   yylval.i set. */
+   '-' has already been consumed if signed.  Returns TOK_INT with
+   scan_value.i set. */
 static int scan_int(int sign, scan_token* out) {
   int value = 0;
   if (peek_char() == '0' && (peek_char2() == 'x' || peek_char2() == 'X')) {
@@ -248,10 +248,10 @@ static int scan_int(int sign, scan_token* out) {
       value = value * 10 + (next_char() - '0');
     }
   }
-  out->type = Y_INT;
+  out->type = TOK_INT;
   out->val.i = sign * value;
   out->present = true;
-  return Y_INT;
+  return TOK_INT;
 }
 
 /* Decode a backslash escape in a char literal.  `pp` points to the
@@ -374,17 +374,17 @@ static int scan_identifier(scan_token* out, bool force_id) {
   /* Defined-constant label? */
   label* l = label_is_defined(id_buf);
   if (l != NULL && l->const_flag) {
-    out->type = Y_INT;
+    out->type = TOK_INT;
     out->val.i = (int)l->addr;
     out->present = true;
-    return Y_INT;
+    return TOK_INT;
   }
 
   /* Otherwise an identifier. */
-  out->type = Y_ID;
+  out->type = TOK_ID;
   out->val.p = (void*)str_copy(id_buf);
   out->present = true;
-  return Y_ID;
+  return TOK_ID;
 }
 
 /* Scan a $register reference. */
@@ -408,33 +408,33 @@ static int scan_register(scan_token* out) {
 
   /* FP register if leading is 'f' and not "fp" */
   if (reg_no != -1 && reg_buf[0] == 'f' && reg_buf[1] != 'p') {
-    out->type = Y_FP_REG;
+    out->type = TOK_FP_REG;
     out->val.i = reg_no;
     out->present = true;
-    return Y_FP_REG;
+    return TOK_FP_REG;
   }
 
   if (reg_no >= 0 && reg_no < R_LENGTH) {
-    out->type = Y_REG;
+    out->type = TOK_REG;
     out->val.i = reg_no;
     out->present = true;
-    return Y_REG;
+    return TOK_REG;
   }
 
   /* Fall back to identifier-or-constant-label behavior. */
   label* l = label_is_defined(reg_buf);
   if (l != NULL && l->const_flag) {
-    out->type = Y_INT;
+    out->type = TOK_INT;
     out->val.i = (int)l->addr;
   } else {
-    out->type = Y_ID;
+    out->type = TOK_ID;
     out->val.p = (void*)str_copy(reg_buf);
   }
   out->present = true;
   return out->type;
 }
 
-/* Scan a string literal "...".  Returns Y_STR; yylval.p is a
+/* Scan a string literal "...".  Returns TOK_STR; scan_value.p is a
    heap-allocated decoded copy. */
 static int scan_string(scan_token* out) {
   next_char();  /* skip opening " */
@@ -451,14 +451,14 @@ static int scan_string(scan_token* out) {
   int end = line_pos;
   if (peek_char() == '"') next_char();  /* skip closing " */
 
-  out->type = Y_STR;
+  out->type = TOK_STR;
   out->val.p = (void*)decode_string(line_buf + start, end - start);
   out->present = true;
-  return Y_STR;
+  return TOK_STR;
 }
 
-/* Scan a char literal '...'.  Returns Y_INT with the character
-   value in yylval.i. */
+/* Scan a char literal '...'.  Returns TOK_INT with the character
+   value in scan_value.i. */
 static int scan_char(scan_token* out) {
   next_char();  /* skip opening ' */
   int v;
@@ -475,10 +475,10 @@ static int scan_char(scan_token* out) {
     v = next_char();
   }
   if (peek_char() == '\'') next_char();  /* skip closing ' */
-  out->type = Y_INT;
+  out->type = TOK_INT;
   out->val.i = v;
   out->present = true;
-  return Y_INT;
+  return TOK_INT;
 }
 
 /* The main scanner: produce one token into *out.  Skips
@@ -493,9 +493,9 @@ static void scan_one_token(scan_token* out) {
    * line_buf if we've exhausted it without finding a token. */
   for (;;) {
     /* If buffer is empty / exhausted, refill — but we report
-       Y_NL between every line, and TOK_EOF/Y_EOF only when the
+       TOK_NL between every line, and TOK_EOF/TOK_EOF only when the
        FILE is actually done.  We treat the trailing newline of
-       a line as the line's terminating Y_NL, then refill on
+       a line as the line's terminating TOK_NL, then refill on
        the next call. */
 
     while (line_pos < line_len) {
@@ -518,14 +518,14 @@ static void scan_one_token(scan_token* out) {
 
     /* Need a new line. */
     if (at_eof) {
-      out->type = Y_EOF;
+      out->type = TOK_EOF;
       out->val.i = 0;
       out->present = true;
       return;
     }
     fill_line_buf();
     if (at_eof && line_len == 0) {
-      out->type = Y_EOF;
+      out->type = TOK_EOF;
       out->val.i = 0;
       out->present = true;
       return;
@@ -537,14 +537,14 @@ static void scan_one_token(scan_token* out) {
 have_char: {
     int c = peek_char();
 
-    /* Newline: returns Y_NL.  After we consume it, the line is
+    /* Newline: returns TOK_NL.  After we consume it, the line is
        complete; line_no has already advanced (by fgets reading
        the next chunk later).  Increment line_no here so it
        reflects the line of the NEXT token. */
     if (c == '\n') {
       next_char();
       line_no += 1;
-      out->type = Y_NL;
+      out->type = TOK_NL;
       out->val.i = 0;
       out->present = true;
       return;
@@ -553,7 +553,7 @@ have_char: {
     /* Semicolon also delimits a "line" for grammar purposes. */
     if (c == ';') {
       next_char();
-      out->type = Y_NL;
+      out->type = TOK_NL;
       out->val.i = 0;
       out->present = true;
       return;
@@ -610,11 +610,11 @@ have_char: {
       return;
     }
 
-    /* `?` returns Y_ID for the REPL. */
+    /* `?` returns TOK_ID for the REPL. */
     if (c == '?') {
       next_char();
       static char q[2] = "?";
-      out->type = Y_ID;
+      out->type = TOK_ID;
       out->val.p = (void*)str_copy(q);
       out->present = true;
       return;
@@ -633,7 +633,7 @@ have_char: {
     /* Unknown character. */
     next_char();
     error("Unknown character in source: '%c' (0x%02x)\n", c, c);
-    out->type = Y_NL;  /* recover by treating as line terminator */
+    out->type = TOK_NL;  /* recover by treating as line terminator */
     out->val.i = 0;
     out->present = true;
     return;
@@ -664,12 +664,12 @@ int scanner_peek2(void) {
 int scanner_advance(void) {
   ensure_filled(1);
   int t = tok_buf[0].type;
-  /* Only overwrite yylval for tokens that actually carry a value.
-     Callers like spim.c's flush_to_newline rely on yylval.p
-     surviving a Y_NL read after a Y_STR. */
+  /* Only overwrite scan_value for tokens that actually carry a value.
+     Callers like spim.c's flush_to_newline rely on scan_value.p
+     surviving a TOK_NL read after a TOK_STR. */
   switch (t) {
-    case Y_INT: case Y_ID: case Y_REG: case Y_FP_REG: case Y_STR: case Y_FP:
-      yylval = tok_buf[0].val;
+    case TOK_INT: case TOK_ID: case TOK_REG: case TOK_FP_REG: case TOK_STR: case TOK_FP:
+      scan_value = tok_buf[0].val;
       break;
     default:
       break;

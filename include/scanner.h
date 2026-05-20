@@ -52,8 +52,8 @@ char* source_line(void);
 
 extern int only_id;
 
-typedef intptr_union yylval_t;
-extern yylval_t yylval;  /* Value of the last token returned by the scanner. */
+typedef intptr_union scan_value_t;
+extern scan_value_t scan_value;  /* Value of the last token returned by the scanner. */
 
 extern int line_no; /* Line number in input file*/
 

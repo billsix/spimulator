@@ -183,7 +183,7 @@ static bool line_is_file_command(void) {
 
 /* True if the current line begins with a REPL command whose argument
    is a label/address — `breakpoint` and `delete` accept either a hex
-   address (Y_INT) or a symbol name (Y_ID); tab-completion offers the
+   address (TOK_INT) or a symbol name (TOK_ID); tab-completion offers the
    symbol names defined in the loaded program. */
 static bool line_is_label_command(void) {
   static const char* cmds[] = {"breakpoint", "delete", NULL};
@@ -666,7 +666,7 @@ _Noreturn static void top_level(void) {
       }
       if (*repl_line != '\0') add_history(repl_line);
 
-      /* Append '\n' so flex sees Y_NL exactly once per command, matching
+      /* Append '\n' so flex sees TOK_NL exactly once per command, matching
          the stdin path. Wrap the buffer in a FILE* via fmemopen and reuse
          the existing scanner_push_source mechanism — flex sees a normal input
          source, parse_spim_command is unaware of libedit. */
@@ -769,8 +769,8 @@ static bool parse_spim_command(bool redo) {
       int token = (redo ? prev_token : read_token());
 
       if (!redo) flush_to_newline();
-      if (token == Y_STR) {
-        read_assembly_file((char*)yylval.p);
+      if (token == TOK_STR) {
+        read_assembly_file((char*)scan_value.p);
         scanner_pop_source();
       } else
         error("Must supply a filename to read\n");
@@ -840,37 +840,37 @@ static bool parse_spim_command(bool redo) {
     case PRINT_CMD: {
       int token = (redo ? prev_token : read_token());
       static int loc;
-      /* Set true if we've already consumed Y_NL while parsing a base+offset
+      /* Set true if we've already consumed TOK_NL while parsing a base+offset
        * suffix, so the trailing flush_to_newline doesn't gobble the next
        * command's tokens. */
       bool consumed_nl = false;
 
-      if (token == Y_REG) {
+      if (token == TOK_REG) {
         if (redo)
           loc += 1;
         else
-          loc = yylval.i;
+          loc = scan_value.i;
         print_reg(loc);
-      } else if (token == Y_FP_REG) {
+      } else if (token == TOK_FP_REG) {
         if (redo)
           loc += 2;
         else
-          loc = yylval.i;
+          loc = scan_value.i;
         print_fp_reg(loc);
-      } else if (token == Y_INT) {
+      } else if (token == TOK_INT) {
         if (redo) {
           loc += 4;
           print_mem((mem_addr)loc);
         } else {
-          int int_val = yylval.i;
+          int int_val = scan_value.i;
           /* Peek for the N($reg) base+offset form so students can inspect
            * memory using the same syntax they wrote in load/store ops. */
           int next = read_token();
           if (next == '(') {
             int reg_tok = read_token();
-            int reg = (reg_tok == Y_REG) ? yylval.i : -1;
-            int close = (reg_tok == Y_REG) ? read_token() : 0;
-            if (reg_tok == Y_NL || close == Y_NL) consumed_nl = true;
+            int reg = (reg_tok == TOK_REG) ? scan_value.i : -1;
+            int close = (reg_tok == TOK_REG) ? read_token() : 0;
+            if (reg_tok == TOK_NL || close == TOK_NL) consumed_nl = true;
             if (reg < 0 || close != ')') {
               error("expected $reg) after '(' in print N($reg) form\n");
             } else {
@@ -882,20 +882,20 @@ static bool parse_spim_command(bool redo) {
              * address (the standard form). */
             loc = int_val;
             print_mem((mem_addr)loc);
-            if (next == Y_NL) consumed_nl = true;
+            if (next == TOK_NL) consumed_nl = true;
           }
         }
-      } else if (token == Y_ID) {
-        if (!print_reg_from_string((char*)yylval.p)) {
+      } else if (token == TOK_ID) {
+        if (!print_reg_from_string((char*)scan_value.p)) {
           if (redo)
             loc += 4;
           else
-            loc = (int)find_symbol_address((char*)yylval.p);
+            loc = (int)find_symbol_address((char*)scan_value.p);
 
           if (loc != 0)
             print_mem((mem_addr)loc);
           else
-            error("Unknown label: %s\n", yylval.p);
+            error("Unknown label: %s\n", scan_value.p);
         }
       } else
         error("Print what?\n");
@@ -914,7 +914,7 @@ static bool parse_spim_command(bool redo) {
     case PRINT_ALL_REGS_CMD: {
       int hex_flag = 0;
       int token = (redo ? prev_token : read_token());
-      if (token == Y_ID && streq((char*)yylval.p, "hex")) hex_flag = 1;
+      if (token == TOK_ID && streq((char*)scan_value.p, "hex")) hex_flag = 1;
       print_all_regs(hex_flag);
       if (!redo) flush_to_newline();
       prev_cmd = NOP_CMD;
@@ -971,13 +971,13 @@ static bool parse_spim_command(bool redo) {
 
       int t;
       int cap = 0;
-      while ((t = read_token()) != Y_NL && t != 0) {
+      while ((t = read_token()) != TOK_NL && t != 0) {
         char* s = NULL;
-        if (t == Y_STR || t == Y_ID) {
-          s = strdup((char*)yylval.p);
-        } else if (t == Y_INT) {
+        if (t == TOK_STR || t == TOK_ID) {
+          s = strdup((char*)scan_value.p);
+        } else if (t == TOK_INT) {
           char buf[32];
-          snprintf(buf, sizeof(buf), "%d", yylval.i);
+          snprintf(buf, sizeof(buf), "%d", scan_value.i);
           s = strdup(buf);
         } else {
           continue;
@@ -1065,10 +1065,10 @@ static bool parse_spim_command(bool redo) {
       static mem_addr addr;
 
       if (!redo) flush_to_newline();
-      if (token == Y_INT)
-        addr = redo ? addr + 4 : (mem_addr)yylval.i;
-      else if (token == Y_ID)
-        addr = redo ? addr + 4 : find_symbol_address((char*)yylval.p);
+      if (token == TOK_INT)
+        addr = redo ? addr + 4 : (mem_addr)scan_value.i;
+      else if (token == TOK_ID)
+        addr = redo ? addr + 4 : find_symbol_address((char*)scan_value.p);
       else
         error("Must supply an address for breakpoint\n");
       if (cmd == SET_BKPT_CMD)
@@ -1098,9 +1098,9 @@ static bool parse_spim_command(bool redo) {
       mem_addr dump_start;
       mem_addr dump_end;
 
-      if (token == Y_STR)
-        filename = (char*)yylval.p;
-      else if (token == Y_NL)
+      if (token == TOK_STR)
+        filename = (char*)scan_value.p;
+      else if (token == TOK_NL)
         filename = "spim.dump";
       else {
         fprintf(stderr, "usage: %s [ \"filename\" ]\n",
@@ -1136,7 +1136,7 @@ static bool parse_spim_command(bool redo) {
     }
 
     default:
-      while (read_token() != Y_NL);
+      while (read_token() != TOK_NL);
       error("Unknown spim command\n");
       return (0);
   }
@@ -1148,49 +1148,49 @@ static bool parse_spim_command(bool redo) {
 static int read_assembly_command(void) {
   int token = read_token();
 
-  if (token == Y_NL) /* Blank line means redo */
+  if (token == TOK_NL) /* Blank line means redo */
     return (REDO_CMD);
-  else if (token != Y_ID) /* Better be a string */
+  else if (token != TOK_ID) /* Better be a string */
     return (UNKNOWN_CMD);
-  else if (str_prefix((char*)yylval.p, "exit", 2))
+  else if (str_prefix((char*)scan_value.p, "exit", 2))
     return (EXIT_CMD);
-  else if (str_prefix((char*)yylval.p, "quit", 2))
+  else if (str_prefix((char*)scan_value.p, "quit", 2))
     return (EXIT_CMD);
-  else if (str_prefix((char*)yylval.p, "print", 1))
+  else if (str_prefix((char*)scan_value.p, "print", 1))
     return (PRINT_CMD);
-  else if (str_prefix((char*)yylval.p, "print_symbols", 7))
+  else if (str_prefix((char*)scan_value.p, "print_symbols", 7))
     return (PRINT_SYM_CMD);
-  else if (str_prefix((char*)yylval.p, "print_all_regs", 7))
+  else if (str_prefix((char*)scan_value.p, "print_all_regs", 7))
     return (PRINT_ALL_REGS_CMD);
-  else if (str_prefix((char*)yylval.p, "run", 2))
+  else if (str_prefix((char*)scan_value.p, "run", 2))
     return (RUN_CMD);
-  else if (str_prefix((char*)yylval.p, "args", 2))
+  else if (str_prefix((char*)scan_value.p, "args", 2))
     return (ARGS_CMD);
-  else if (str_prefix((char*)yylval.p, "read", 2))
+  else if (str_prefix((char*)scan_value.p, "read", 2))
     return (READ_CMD);
-  else if (str_prefix((char*)yylval.p, "load", 2))
+  else if (str_prefix((char*)scan_value.p, "load", 2))
     return (READ_CMD);
-  else if (str_prefix((char*)yylval.p, "reinitialize", 6))
+  else if (str_prefix((char*)scan_value.p, "reinitialize", 6))
     return (REINITIALIZE_CMD);
-  else if (str_prefix((char*)yylval.p, "step", 1))
+  else if (str_prefix((char*)scan_value.p, "step", 1))
     return (STEP_CMD);
-  else if (str_prefix((char*)yylval.p, "help", 1))
+  else if (str_prefix((char*)scan_value.p, "help", 1))
     return (HELP_CMD);
-  else if (str_prefix((char*)yylval.p, "continue", 1))
+  else if (str_prefix((char*)scan_value.p, "continue", 1))
     return (CONTINUE_CMD);
-  else if (str_prefix((char*)yylval.p, "breakpoint", 2))
+  else if (str_prefix((char*)scan_value.p, "breakpoint", 2))
     return (SET_BKPT_CMD);
-  else if (str_prefix((char*)yylval.p, "delete", 1))
+  else if (str_prefix((char*)scan_value.p, "delete", 1))
     return (DELETE_BKPT_CMD);
-  else if (str_prefix((char*)yylval.p, "list", 2))
+  else if (str_prefix((char*)scan_value.p, "list", 2))
     return (LIST_BKPT_CMD);
-  else if (str_prefix((char*)yylval.p, "dumpnative", 5))
+  else if (str_prefix((char*)scan_value.p, "dumpnative", 5))
     return (DUMPNATIVE_TEXT_CMD);
-  else if (str_prefix((char*)yylval.p, "dump", 4))
+  else if (str_prefix((char*)scan_value.p, "dump", 4))
     return (DUMP_TEXT_CMD);
-  else if (*(char*)yylval.p == '?')
+  else if (*(char*)scan_value.p == '?')
     return (HELP_CMD);
-  else if (*(char*)yylval.p == '.')
+  else if (*(char*)scan_value.p == '.')
     return (ASM_CMD);
   else
     return (UNKNOWN_CMD);
@@ -1210,10 +1210,10 @@ static int str_prefix(char* s1, char* s2, int min_match) {
 static int get_opt_int(void) {
   int token;
 
-  if ((token = read_token()) == Y_INT) {
+  if ((token = read_token()) == TOK_INT) {
     flush_to_newline();
-    return (yylval.i);
-  } else if (token == Y_NL)
+    return (scan_value.i);
+  } else if (token == TOK_NL)
     return (0);
   else {
     flush_to_newline();
@@ -1223,7 +1223,7 @@ static int get_opt_int(void) {
 
 /* Flush the rest of the input line up to and including the next newline. */
 
-static void flush_to_newline(void) { while (read_token() != Y_NL); }
+static void flush_to_newline(void) { while (read_token() != TOK_NL); }
 
 /* Print register number N. */
 
@@ -1544,7 +1544,7 @@ void put_console_char(char c) {
 static int read_token(void) {
   int token = scanner_advance();
 
-  if (token == Y_EOF) {
+  if (token == TOK_EOF) {
     console_to_spim();
     exit(0);
   } else {

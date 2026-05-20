@@ -150,7 +150,7 @@ static void parse_error_at(const char* msg) {
    newline check would mis-fire "Extra tokens after instruction"
    on every line that follows an ignored directive like `.set`. */
 static void sync_to_nl(void) {
-  while (scanner_peek() != Y_NL && scanner_peek() != Y_EOF) {
+  while (scanner_peek() != TOK_NL && scanner_peek() != TOK_EOF) {
     scanner_advance();
   }
 }
@@ -168,64 +168,64 @@ static bool expect(int expected, const char* what) {
 
 /* ---------------- operand parsers ---------------- */
 
-/* Y_REG → register number 0..31 */
+/* TOK_REG → register number 0..31 */
 static int parse_register(void) {
-  if (scanner_peek() == Y_REG) {
+  if (scanner_peek() == TOK_REG) {
     scanner_advance();
-    return yylval.i;
+    return scan_value.i;
   }
   parse_error_at("Expected register");
   return 0;
 }
 
-/* Y_FP_REG → FP register number 0..31 */
+/* TOK_FP_REG → FP register number 0..31 */
 static int parse_fp_register(void) {
-  if (scanner_peek() == Y_FP_REG) {
+  if (scanner_peek() == TOK_FP_REG) {
     scanner_advance();
-    return yylval.i;
+    return scan_value.i;
   }
   parse_error_at("Expected FP register");
   return 0;
 }
 
-/* ABS_ADDR : Y_INT | Y_INT '+' Y_INT | Y_INT Y_INT (negative sub) */
+/* ABS_ADDR : TOK_INT | TOK_INT '+' TOK_INT | TOK_INT TOK_INT (negative sub) */
 static int parse_abs_addr(void) {
-  if (scanner_peek() != Y_INT) {
+  if (scanner_peek() != TOK_INT) {
     parse_error_at("Expected integer");
     return 0;
   }
   scanner_advance();
-  int v = yylval.i;
+  int v = scan_value.i;
   if (scanner_peek() == '+') {
     scanner_advance();
-    if (scanner_peek() != Y_INT) {
+    if (scanner_peek() != TOK_INT) {
       parse_error_at("Expected integer after '+'");
       return v;
     }
     scanner_advance();
-    return v + yylval.i;
+    return v + scan_value.i;
   }
-  /* Y_INT Y_INT (with the second negative) is the historical
+  /* TOK_INT TOK_INT (with the second negative) is the historical
      subtraction handling — see scanner-parser-inventory Part 8F. */
-  if (scanner_peek() == Y_INT) {
+  if (scanner_peek() == TOK_INT) {
     /* peek the next value */
     scanner_advance();
-    if (yylval.i >= 0) parse_error_at("Syntax error");
-    return v - (-yylval.i);
+    if (scan_value.i >= 0) parse_error_at("Syntax error");
+    return v - (-scan_value.i);
   }
   return v;
 }
 
-/* FACTOR : Y_INT | '(' EXPR ')' | ID.
+/* FACTOR : TOK_INT | '(' EXPR ')' | ID.
    ID resolves to its label's address; forward references
    record a data-uses-symbol entry for later resolution. */
 extern void record_data_uses_symbol(mem_addr location, label* sym);
 
 static int parse_expr(void);  /* forward */
 static int parse_factor(void) {
-  if (scanner_peek() == Y_INT) {
+  if (scanner_peek() == TOK_INT) {
     scanner_advance();
-    return yylval.i;
+    return scan_value.i;
   }
   if (scanner_peek() == '(') {
     scanner_advance();
@@ -233,9 +233,9 @@ static int parse_factor(void) {
     expect(')', "Expected ')'");
     return v;
   }
-  if (scanner_peek() == Y_ID) {
+  if (scanner_peek() == TOK_ID) {
     scanner_advance();
-    char* sym_name = (char*)yylval.p;
+    char* sym_name = (char*)scan_value.p;
     label* l = lookup_label(sym_name);
     if (l->addr == 0) {
       /* Forward reference — record for resolution at label-defn time. */
@@ -281,14 +281,14 @@ static int parse_expression(void) {
   return parse_expr();
 }
 
-/* IMM32 : ABS_ADDR | '(' ABS_ADDR ')' '>' '>' Y_INT
-        | Y_ID | Y_ID '+' ABS_ADDR | Y_ID '-' ABS_ADDR */
+/* IMM32 : ABS_ADDR | '(' ABS_ADDR ')' '>' '>' TOK_INT
+        | TOK_ID | TOK_ID '+' ABS_ADDR | TOK_ID '-' ABS_ADDR */
 static imm_expr* parse_imm32(void) {
   scanner_force_identifier();
-  /* Y_ID lookahead: maybe followed by + or - */
-  if (scanner_peek() == Y_ID) {
+  /* TOK_ID lookahead: maybe followed by + or - */
+  if (scanner_peek() == TOK_ID) {
     scanner_advance();
-    char* sym = (char*)yylval.p;
+    char* sym = (char*)scan_value.p;
     if (scanner_peek() == '+') {
       scanner_advance();
       int off = parse_abs_addr();
@@ -308,18 +308,18 @@ static imm_expr* parse_imm32(void) {
     /* sym ownership passes to make_imm_expr; don't free */
   }
   if (scanner_peek() == '(') {
-    /* '(' ABS_ADDR ')' '>' '>' Y_INT */
+    /* '(' ABS_ADDR ')' '>' '>' TOK_INT */
     scanner_advance();
     int v = parse_abs_addr();
     expect(')', "Expected ')'");
     expect('>', "Expected '>'");
     expect('>', "Expected '>'");
-    if (scanner_peek() != Y_INT) {
+    if (scanner_peek() != TOK_INT) {
       parse_error_at("Expected integer after '>>'");
       return make_imm_expr(0, NULL, false);
     }
     scanner_advance();
-    int sh = yylval.i;
+    int sh = scan_value.i;
     return make_imm_expr(v >> sh, NULL, false);
   }
   /* ABS_ADDR */
@@ -352,12 +352,12 @@ static imm_expr* parse_br_imm32(void) {
    time, encoding the (target - branch_pc) displacement that
    MIPS branches require. */
 static imm_expr* parse_label(void) {
-  if (scanner_peek() != Y_ID) {
+  if (scanner_peek() != TOK_ID) {
     parse_error_at("Expected label");
     return make_imm_expr(0, NULL, true);
   }
   scanner_advance();
-  char* sym = (char*)yylval.p;
+  char* sym = (char*)scan_value.p;
   imm_expr* r = make_imm_expr(-(int)current_text_pc(), sym, true);
   /* sym ownership: the original LABEL action does NOT free name
      (because make_imm_expr stores it).  Mirror that. */
@@ -379,14 +379,14 @@ static addr_expr* parse_address(void) {
   }
 
   /* ABS_ADDR [ '(' REGISTER ')' ] */
-  if (scanner_peek() == Y_INT) {
+  if (scanner_peek() == TOK_INT) {
     int imm = parse_abs_addr();
-    if (scanner_peek() == '+' && scanner_peek2() == Y_ID) {
+    if (scanner_peek() == '+' && scanner_peek2() == TOK_ID) {
       /* ABS_ADDR '+' ID */
       scanner_advance();  /* + */
       scanner_force_identifier();
       scanner_advance();
-      char* sym = (char*)yylval.p;
+      char* sym = (char*)scan_value.p;
       addr_expr* r = make_addr_expr(imm, sym, 0);
       return r;
     }
@@ -399,10 +399,10 @@ static addr_expr* parse_address(void) {
     return make_addr_expr(imm, NULL, 0);
   }
 
-  /* Y_ID [ '+' ABS_ADDR | '-' ABS_ADDR ] [ '(' REGISTER ')' ] */
-  if (scanner_peek() == Y_ID) {
+  /* TOK_ID [ '+' ABS_ADDR | '-' ABS_ADDR ] [ '(' REGISTER ')' ] */
+  if (scanner_peek() == TOK_ID) {
     scanner_advance();
-    char* sym = (char*)yylval.p;
+    char* sym = (char*)scan_value.p;
     int off = 0;
     if (scanner_peek() == '+') {
       scanner_advance();
@@ -433,13 +433,13 @@ static addr_expr* parse_address(void) {
    */
 static bool op_has_imm_form(int op) {
   switch (op) {
-    case Y_ADD_OP:
-    case Y_ADDU_OP:
-    case Y_AND_OP:
-    case Y_OR_OP:
-    case Y_XOR_OP:
-    case Y_SLT_OP:
-    case Y_SLTU_OP:
+    case TOK_ADD_OP:
+    case TOK_ADDU_OP:
+    case TOK_AND_OP:
+    case TOK_OR_OP:
+    case TOK_XOR_OP:
+    case TOK_SLT_OP:
+    case TOK_SLTU_OP:
       return true;
     default:
       return false;
@@ -455,45 +455,45 @@ extern int32 eval_imm_expr(imm_expr* expr);
 
 static void parse_r3(int op) {
   int rd = parse_register();
-  if (op == Y_CLO_OP || op == Y_CLZ_OP) {
+  if (op == TOK_CLO_OP || op == TOK_CLZ_OP) {
     /* COUNT_LEADING_OPS DEST SRC1 — RT must equal RD.
       */
     int rs = parse_register();
     r_type_inst(op, rd, rs, rd);
     return;
   }
-  if (op == Y_MUL_OP) {
+  if (op == TOK_MUL_OP) {
     /* MULT_OPS3 DEST SRC1 (SRC2|IMM).  3-reg or 3-with-imm. Imm form uses $at + ori. */
     int rs = parse_register();
-    if (scanner_peek() == Y_REG) {
+    if (scanner_peek() == TOK_REG) {
       int rt = parse_register();
       r_type_inst(op, rd, rs, rt);
     } else {
       imm_expr* imm = parse_imm32();
-      i_type_inst_free(Y_ORI_OP, 1, 0, imm);
+      i_type_inst_free(TOK_ORI_OP, 1, 0, imm);
       r_type_inst(op, rd, rs, 1);
     }
     return;
   }
-  if (op == Y_SUB_OP || op == Y_SUBU_OP) {
+  if (op == TOK_SUB_OP || op == TOK_SUBU_OP) {
     /* SUB_OPS: 3-reg, 3-with-imm, or 2-with-imm.  Convert imm
        form to addi/addiu with negated value. */
-    if (scanner_peek() != Y_REG) {
+    if (scanner_peek() != TOK_REG) {
       imm_expr* imm = parse_imm32();
       int val = eval_imm_expr(imm);
-      i_type_inst(op == Y_SUB_OP ? Y_ADDI_OP : Y_ADDIU_OP,
+      i_type_inst(op == TOK_SUB_OP ? TOK_ADDI_OP : TOK_ADDIU_OP,
                   rd, rd, make_imm_expr(-val, NULL, false));
       free(imm);
       return;
     }
     int rs = parse_register();
-    if (scanner_peek() == Y_REG) {
+    if (scanner_peek() == TOK_REG) {
       int rt = parse_register();
       r_type_inst(op, rd, rs, rt);
     } else {
       imm_expr* imm = parse_imm32();
       int val = eval_imm_expr(imm);
-      i_type_inst(op == Y_SUB_OP ? Y_ADDI_OP : Y_ADDIU_OP,
+      i_type_inst(op == TOK_SUB_OP ? TOK_ADDI_OP : TOK_ADDIU_OP,
                   rd, rs, make_imm_expr(-val, NULL, false));
       free(imm);
     }
@@ -501,7 +501,7 @@ static void parse_r3(int op) {
   }
   if (op_has_imm_form(op)) {
     /* Two-operand form: <op> DEST, IMM */
-    if (scanner_peek() != Y_REG) {
+    if (scanner_peek() != TOK_REG) {
       imm_expr* imm = parse_imm32();
       i_type_inst_free(op_to_imm_op(op), rd, rd, imm);
       return;
@@ -509,7 +509,7 @@ static void parse_r3(int op) {
     int rs = parse_register();
     /* Three-operand form: <op> DEST, SRC1, SRC2 (reg) or
        <op> DEST, SRC1, IMM (immediate) */
-    if (scanner_peek() == Y_REG) {
+    if (scanner_peek() == TOK_REG) {
       int rt = parse_register();
       r_type_inst(op, rd, rs, rt);
     } else {
@@ -527,18 +527,18 @@ static void parse_r3(int op) {
 /* R2sh_TYPE_INST: <op> DEST, SRC1, SHAMT (immediate 0..31).
    ssnop is a special no-operand case emitting `sll $0, $0, 1`. */
 static void parse_r2sh(int op) {
-  if (op == Y_SSNOP_OP) {
-    r_sh_type_inst(Y_SLL_OP, 0, 0, 1);
+  if (op == TOK_SSNOP_OP) {
+    r_sh_type_inst(TOK_SLL_OP, 0, 0, 1);
     return;
   }
   int rd = parse_register();
   int rs = parse_register();  /* this is rt in MIPS shift encoding */
-  if (scanner_peek() != Y_INT) {
+  if (scanner_peek() != TOK_INT) {
     parse_error_at("Expected integer shift amount");
     return;
   }
   scanner_advance();
-  int sh = yylval.i;
+  int sh = scan_value.i;
   r_sh_type_inst(op, rd, rs, sh);
 }
 
@@ -555,7 +555,7 @@ static void parse_r1s(int op) {
 static void parse_i2(int op) {
   int rt = parse_register();
   int rs;
-  if (scanner_peek() == Y_REG) {
+  if (scanner_peek() == TOK_REG) {
     rs = parse_register();
   } else {
     rs = rt;
@@ -563,7 +563,7 @@ static void parse_i2(int op) {
   /* andi/ori/xori take unsigned; addi/addiu/slti signed.  The
      range check happens inside parse_imm16/parse_uimm16. */
   imm_expr* imm;
-  if (op == Y_ANDI_OP || op == Y_ORI_OP || op == Y_XORI_OP) {
+  if (op == TOK_ANDI_OP || op == TOK_ORI_OP || op == TOK_XORI_OP) {
     imm = parse_uimm16();
   } else {
     imm = parse_imm16();
@@ -595,7 +595,7 @@ static void parse_i2a(int op) {
    which uses $at + ori to materialize the immediate, then beq/bne. */
 static void parse_b2(int op) {
   int src1 = parse_register();
-  if (scanner_peek() == Y_REG) {
+  if (scanner_peek() == TOK_REG) {
     int src2 = parse_register();
     imm_expr* target = parse_label();
     i_type_inst_free(op, src2, src1, target);
@@ -609,7 +609,7 @@ static void parse_b2(int op) {
       i_type_inst(op, src1, 0, target);
     } else {
       /* Use $at: ori $at, $0, imm; <op> src1, $at, target */
-      i_type_inst(Y_ORI_OP, 1, 0, imm);
+      i_type_inst(TOK_ORI_OP, 1, 0, imm);
       i_type_inst(op, src1, 1, target);
     }
     free(imm);
@@ -630,44 +630,44 @@ static void parse_b1(int op) {
    absolute-jump opcode; with a register argument we emit
    r_type_inst with the indirect-jump opcode. */
 static void parse_j(int op) {
-  if (scanner_peek() == Y_REG) {
+  if (scanner_peek() == TOK_REG) {
     /* J_OPS SRC1  or  J_OPS DEST SRC1 — register-indirect jump.
       */
     int r1 = parse_register();
-    if (scanner_peek() == Y_REG) {
+    if (scanner_peek() == TOK_REG) {
       /* DEST SRC1 form */
       int r2 = parse_register();
-      if (op == Y_J_OP || op == Y_JR_OP)
-        r_type_inst(Y_JR_OP, 0, r2, 0);
-      else if (op == Y_JAL_OP || op == Y_JALR_OP)
-        r_type_inst(Y_JALR_OP, r1, r2, 0);
+      if (op == TOK_J_OP || op == TOK_JR_OP)
+        r_type_inst(TOK_JR_OP, 0, r2, 0);
+      else if (op == TOK_JAL_OP || op == TOK_JALR_OP)
+        r_type_inst(TOK_JALR_OP, r1, r2, 0);
       return;
     }
     /* SRC1-only form */
-    if (op == Y_J_OP || op == Y_JR_OP)
-      r_type_inst(Y_JR_OP, 0, r1, 0);
-    else if (op == Y_JAL_OP || op == Y_JALR_OP)
-      r_type_inst(Y_JALR_OP, 31, r1, 0);
+    if (op == TOK_J_OP || op == TOK_JR_OP)
+      r_type_inst(TOK_JR_OP, 0, r1, 0);
+    else if (op == TOK_JAL_OP || op == TOK_JALR_OP)
+      r_type_inst(TOK_JALR_OP, 31, r1, 0);
     return;
   }
   /* J_OPS LABEL — absolute-target jump */
   imm_expr* target = parse_label();
-  if (op == Y_J_OP || op == Y_JR_OP)
-    j_type_inst(Y_J_OP, target);
-  else if (op == Y_JAL_OP || op == Y_JALR_OP)
-    j_type_inst(Y_JAL_OP, target);
+  if (op == TOK_J_OP || op == TOK_JR_OP)
+    j_type_inst(TOK_J_OP, target);
+  else if (op == TOK_JAL_OP || op == TOK_JALR_OP)
+    j_type_inst(TOK_JAL_OP, target);
   free(target);
 }
 
 /* NOARG_TYPE_INST: <op>  (syscall) or <op> IMM (break N, sync N).
    See. */
 static void parse_noarg(int op) {
-  if (scanner_peek() == Y_INT) {
+  if (scanner_peek() == TOK_INT) {
     /* break N or sync N — encode the int in the rd slot.
        Bison: r_type_inst(op, $2.i, 0, 0). */
     scanner_advance();
-    int n = yylval.i;
-    if (op == Y_BREAK_OP && n == 1) {
+    int n = scan_value.i;
+    if (op == TOK_BREAK_OP && n == 1) {
       parse_error_at("Breakpoint 1 is reserved for debugger");
     }
     r_type_inst(op, n, 0, 0);
@@ -683,30 +683,30 @@ static void parse_dir_data(bool kernel) {
   data_dir = true; text_dir = false;
   enable_data_alignment();
   auto_align = true;   /* mirror data.c's enable_data_auto_alignment */
-  if (scanner_peek() == Y_INT) {
+  if (scanner_peek() == TOK_INT) {
     scanner_advance();
-    set_data_pc(yylval.i);
+    set_data_pc(scan_value.i);
   }
 }
 
 static void parse_dir_text(bool kernel) {
   user_kernel_text_segment(kernel);
   data_dir = false; text_dir = true;
-  if (scanner_peek() == Y_INT) {
+  if (scanner_peek() == TOK_INT) {
     scanner_advance();
-    set_text_pc(yylval.i);
+    set_text_pc(scan_value.i);
   }
 }
 
 static void parse_dir_globl(void) {
   scanner_force_identifier();
-  if (scanner_peek() != Y_ID) {
+  if (scanner_peek() != TOK_ID) {
     parse_error_at("Expected identifier after .globl");
     return;
   }
   scanner_advance();
-  make_label_global((char*)yylval.p);
-  free((char*)yylval.p);
+  make_label_global((char*)scan_value.p);
+  free((char*)scan_value.p);
 }
 
 static void parse_dir_align(void) {
@@ -718,9 +718,9 @@ static void parse_dir_align(void) {
 
 static void parse_dir_extern(void) {
   scanner_force_identifier();
-  if (scanner_peek() != Y_ID) { parse_error_at("Expected ID"); return; }
+  if (scanner_peek() != TOK_ID) { parse_error_at("Expected ID"); return; }
   scanner_advance();
-  char* sym = (char*)yylval.p;
+  char* sym = (char*)scan_value.p;
   int sz = parse_expression();
   make_label_global(sym);
   if (lookup_label(sym)->addr == 0) {
@@ -732,9 +732,9 @@ static void parse_dir_extern(void) {
 
 static void parse_dir_comm(void) {
   scanner_force_identifier();
-  if (scanner_peek() != Y_ID) { parse_error_at("Expected ID"); return; }
+  if (scanner_peek() != TOK_ID) { parse_error_at("Expected ID"); return; }
   scanner_advance();
-  char* sym = (char*)yylval.p;
+  char* sym = (char*)scan_value.p;
   int sz = parse_expression();
   align_data(2);
   if (lookup_label(sym)->addr == 0) {
@@ -756,7 +756,7 @@ static void parse_expr_list(void) {
     int v = parse_expression();
     store_op(v);
     /* commas are skipped by the scanner; same with whitespace */
-    if (scanner_peek() == Y_NL || scanner_peek() == Y_EOF) break;
+    if (scanner_peek() == TOK_NL || scanner_peek() == TOK_EOF) break;
     /* Otherwise continue to next expression */
   }
 }
@@ -772,17 +772,17 @@ static void align_labels_to(int alignment) {
   fix_current_label_address(aligned);
 }
 
-/* FP_EXPR_LST: consume Y_FP tokens, emit via store_fp_op. */
+/* FP_EXPR_LST: consume TOK_FP tokens, emit via store_fp_op. */
 static void parse_fp_expr_list(void) {
   for (;;) {
-    if (scanner_peek() != Y_FP) {
+    if (scanner_peek() != TOK_FP) {
       parse_error_at("Expected floating-point literal");
       return;
     }
     scanner_advance();
-    double* val = (double*)yylval.p;
+    double* val = (double*)scan_value.p;
     store_fp_op(val);
-    if (scanner_peek() == Y_NL || scanner_peek() == Y_EOF) break;
+    if (scanner_peek() == TOK_NL || scanner_peek() == TOK_EOF) break;
   }
 }
 
@@ -817,12 +817,12 @@ static void parse_dir_byte(void)  { store_op = store_byte; parse_expr_list(); }
 /* STR_LST: emit each string via store_string */
 static void parse_string_list(void) {
   for (;;) {
-    if (scanner_peek() != Y_STR) {
+    if (scanner_peek() != TOK_STR) {
       parse_error_at("Expected string literal");
       return;
     }
     scanner_advance();
-    char* s = (char*)yylval.p;
+    char* s = (char*)scan_value.p;
     int len = (int)strlen(s);
     if (text_dir) {
       parse_error_at("Can't put data in text segment");
@@ -830,7 +830,7 @@ static void parse_string_list(void) {
       store_string(s, len, null_term);
     }
     free(s);
-    if (scanner_peek() == Y_NL || scanner_peek() == Y_EOF) break;
+    if (scanner_peek() == TOK_NL || scanner_peek() == TOK_EOF) break;
   }
 }
 
@@ -863,96 +863,96 @@ static int find_op_type(int op) {
    different operand shapes. */
 static void parse_pseudo(int op) {
   switch (op) {
-    case Y_LI_POP: {
+    case TOK_LI_POP: {
       /* li DEST, IMM32  →  ori DEST, $0, imm */
       int rt = parse_register();
       imm_expr* imm = parse_imm32();
-      i_type_inst_free(Y_ORI_OP, rt, 0, imm);
+      i_type_inst_free(TOK_ORI_OP, rt, 0, imm);
       break;
     }
-    case Y_MOVE_POP: {
+    case TOK_MOVE_POP: {
       /* move DEST, SRC1  →  addu DEST, $0, SRC1 */
       int rd = parse_register();
       int rs = parse_register();
-      r_type_inst(Y_ADDU_OP, rd, 0, rs);
+      r_type_inst(TOK_ADDU_OP, rd, 0, rs);
       break;
     }
-    case Y_NEG_POP: {
+    case TOK_NEG_POP: {
       /* neg DEST, SRC1  →  sub DEST, $0, SRC1 */
       int rd = parse_register();
       int rs = parse_register();
-      r_type_inst(Y_SUB_OP, rd, 0, rs);
+      r_type_inst(TOK_SUB_OP, rd, 0, rs);
       break;
     }
-    case Y_NEGU_POP: {
+    case TOK_NEGU_POP: {
       /* negu DEST, SRC1  →  subu DEST, $0, SRC1 */
       int rd = parse_register();
       int rs = parse_register();
-      r_type_inst(Y_SUBU_OP, rd, 0, rs);
+      r_type_inst(TOK_SUBU_OP, rd, 0, rs);
       break;
     }
-    case Y_NOT_POP: {
+    case TOK_NOT_POP: {
       /* not DEST, SRC1  →  nor DEST, SRC1, $0 */
       int rd = parse_register();
       int rs = parse_register();
-      r_type_inst(Y_NOR_OP, rd, rs, 0);
+      r_type_inst(TOK_NOR_OP, rd, rs, 0);
       break;
     }
-    case Y_ROR_POP:
-    case Y_ROL_POP: {
+    case TOK_ROR_POP:
+    case TOK_ROL_POP: {
       /* Rotate right / left.  Two forms:
            DEST SRC1 SRC2   — register rotate
            DEST SRC1 IMM    — constant rotate */
       int rd = parse_register();
       int rs = parse_register();
-      if (scanner_peek() == Y_REG) {
+      if (scanner_peek() == TOK_REG) {
         int rt = parse_register();
         /* ROR: subu $at,$0,rt; sllv $at,$at,rs; srlv rd,rt,rs; or rd,rd,$at
            ROL: subu $at,$0,rt; srlv $at,$at,rs; sllv rd,rt,rs; or rd,rd,$at */
-        r_type_inst(Y_SUBU_OP, 1, 0, rt);
-        if (op == Y_ROR_POP) {
-          r_type_inst(Y_SLLV_OP, 1, 1, rs);
-          r_type_inst(Y_SRLV_OP, rd, rt, rs);
+        r_type_inst(TOK_SUBU_OP, 1, 0, rt);
+        if (op == TOK_ROR_POP) {
+          r_type_inst(TOK_SLLV_OP, 1, 1, rs);
+          r_type_inst(TOK_SRLV_OP, rd, rt, rs);
         } else {
-          r_type_inst(Y_SRLV_OP, 1, 1, rs);
-          r_type_inst(Y_SLLV_OP, rd, rt, rs);
+          r_type_inst(TOK_SRLV_OP, 1, 1, rs);
+          r_type_inst(TOK_SLLV_OP, rd, rt, rs);
         }
-        r_type_inst(Y_OR_OP, rd, rd, 1);
+        r_type_inst(TOK_OR_OP, rd, rd, 1);
       } else {
         imm_expr* imm = parse_imm32();
         long dist = eval_imm_expr(imm);
         check_imm_range(imm, 0, 31);
-        if (op == Y_ROR_POP) {
-          r_sh_type_inst(Y_SLL_OP, 1, rs, -dist);
-          r_sh_type_inst(Y_SRL_OP, rd, rs, dist);
+        if (op == TOK_ROR_POP) {
+          r_sh_type_inst(TOK_SLL_OP, 1, rs, -dist);
+          r_sh_type_inst(TOK_SRL_OP, rd, rs, dist);
         } else {
-          r_sh_type_inst(Y_SRL_OP, 1, rs, -dist);
-          r_sh_type_inst(Y_SLL_OP, rd, rs, dist);
+          r_sh_type_inst(TOK_SRL_OP, 1, rs, -dist);
+          r_sh_type_inst(TOK_SLL_OP, rd, rs, dist);
         }
-        r_type_inst(Y_OR_OP, rd, rd, 1);
+        r_type_inst(TOK_OR_OP, rd, rd, 1);
         free(imm);
       }
       break;
     }
-    case Y_SLE_POP:
-    case Y_SLEU_POP:
-    case Y_SGT_POP:
-    case Y_SGTU_POP:
-    case Y_SGE_POP:
-    case Y_SGEU_POP:
-    case Y_SEQ_POP:
-    case Y_SNE_POP: {
+    case TOK_SLE_POP:
+    case TOK_SLEU_POP:
+    case TOK_SGT_POP:
+    case TOK_SGTU_POP:
+    case TOK_SGE_POP:
+    case TOK_SGEU_POP:
+    case TOK_SEQ_POP:
+    case TOK_SNE_POP: {
       /* SET_*_POPS: DEST SRC1 (SRC2|IMM32).. IMM form uses $at + ori when imm != 0. */
       int rd = parse_register();
       int rs = parse_register();
       int rt;
-      if (scanner_peek() == Y_REG) {
+      if (scanner_peek() == TOK_REG) {
         rt = parse_register();
       } else {
         imm_expr* imm = parse_imm32();
         extern bool is_zero_imm(imm_expr*);
         if (!is_zero_imm(imm)) {
-          i_type_inst(Y_ORI_OP, 1, 0, imm);
+          i_type_inst(TOK_ORI_OP, 1, 0, imm);
           rt = 1;
         } else {
           rt = 0;
@@ -960,41 +960,41 @@ static void parse_pseudo(int op) {
         free(imm);
       }
       switch (op) {
-        case Y_SLE_POP:
-        case Y_SLEU_POP: set_le_inst(op, rd, rs, rt); break;
-        case Y_SGT_POP:
-        case Y_SGTU_POP: set_gt_inst(op, rd, rs, rt); break;
-        case Y_SGE_POP:
-        case Y_SGEU_POP: set_ge_inst(op, rd, rs, rt); break;
-        case Y_SEQ_POP:
-        case Y_SNE_POP: set_eq_inst(op, rd, rs, rt); break;
+        case TOK_SLE_POP:
+        case TOK_SLEU_POP: set_le_inst(op, rd, rs, rt); break;
+        case TOK_SGT_POP:
+        case TOK_SGTU_POP: set_gt_inst(op, rd, rs, rt); break;
+        case TOK_SGE_POP:
+        case TOK_SGEU_POP: set_ge_inst(op, rd, rs, rt); break;
+        case TOK_SEQ_POP:
+        case TOK_SNE_POP: set_eq_inst(op, rd, rs, rt); break;
       }
       break;
     }
-    case Y_ABS_POP: {
+    case TOK_ABS_POP: {
       /* abs DEST, SRC1: if DEST != SRC1,
          first move; then bgez SRC1 +3; nop; sub DEST, $0, SRC1. */
       int rd = parse_register();
       int rs = parse_register();
       if (rd != rs) {
-        r_type_inst(Y_ADDU_OP, rd, 0, rs);
+        r_type_inst(TOK_ADDU_OP, rd, 0, rs);
       }
-      i_type_inst_free(Y_BGEZ_OP, 0, rs, branch_offset(3));
+      i_type_inst_free(TOK_BGEZ_OP, 0, rs, branch_offset(3));
       nop_inst();
-      r_type_inst(Y_SUB_OP, rd, 0, rs);
+      r_type_inst(TOK_SUB_OP, rd, 0, rs);
       break;
     }
-    case Y_NOP_POP: {
+    case TOK_NOP_POP: {
       nop_inst();
       break;
     }
-    case Y_REM_POP:
-    case Y_REMU_POP: {
+    case TOK_REM_POP:
+    case TOK_REMU_POP: {
       /* rem/remu — DIV_POPS pseudo, 3-operand form only.
         */
       int rd = parse_register();
       int rs = parse_register();
-      if (scanner_peek() == Y_REG) {
+      if (scanner_peek() == TOK_REG) {
         int rt = parse_register();
         div_inst(op, rd, rs, rt, 0);
       } else {
@@ -1003,18 +1003,18 @@ static void parse_pseudo(int op) {
         if (is_zero_imm(imm)) {
           parse_error_at("Divide by zero");
         } else {
-          i_type_inst_free(Y_ORI_OP, 1, 0, imm);
+          i_type_inst_free(TOK_ORI_OP, 1, 0, imm);
           div_inst(op, rd, rs, 1, 1);
         }
       }
       break;
     }
-    case Y_MULO_POP:
-    case Y_MULOU_POP: {
+    case TOK_MULO_POP:
+    case TOK_MULOU_POP: {
       /* mulo/mulou — MUL_POPS, 3-operand form.. */
       int rd = parse_register();
       int rs = parse_register();
-      if (scanner_peek() == Y_REG) {
+      if (scanner_peek() == TOK_REG) {
         int rt = parse_register();
         mult_inst(op, rd, rs, rt);
       } else {
@@ -1022,195 +1022,195 @@ static void parse_pseudo(int op) {
         extern bool is_zero_imm(imm_expr* expr);
         if (is_zero_imm(imm)) {
           /* Optimize: n * 0 == 0 */
-          i_type_inst_free(Y_ORI_OP, rd, 0, imm);
+          i_type_inst_free(TOK_ORI_OP, rd, 0, imm);
         } else {
-          i_type_inst_free(Y_ORI_OP, 1, 0, imm);
+          i_type_inst_free(TOK_ORI_OP, 1, 0, imm);
           mult_inst(op, rd, rs, 1);
         }
       }
       break;
     }
-    case Y_MFC1_D_POP: {
+    case TOK_MFC1_D_POP: {
       /* mfc1.d REG COP_REG  →  two mfc1 instructions
 */
       int reg = parse_register();
       int copreg;
-      if (scanner_peek() == Y_FP_REG) copreg = parse_fp_register();
+      if (scanner_peek() == TOK_FP_REG) copreg = parse_fp_register();
       else copreg = parse_register();
-      r_co_type_inst(Y_MFC1_OP, 0, copreg, reg);
-      r_co_type_inst(Y_MFC1_OP, 0, copreg + 1, reg + 1);
+      r_co_type_inst(TOK_MFC1_OP, 0, copreg, reg);
+      r_co_type_inst(TOK_MFC1_OP, 0, copreg + 1, reg + 1);
       break;
     }
-    case Y_MTC1_D_POP: {
+    case TOK_MTC1_D_POP: {
       /* mtc1.d REG COP_REG  →  two mtc1 instructions
 */
       int reg = parse_register();
       int copreg;
-      if (scanner_peek() == Y_FP_REG) copreg = parse_fp_register();
+      if (scanner_peek() == TOK_FP_REG) copreg = parse_fp_register();
       else copreg = parse_register();
-      r_co_type_inst(Y_MTC1_OP, 0, copreg, reg);
-      r_co_type_inst(Y_MTC1_OP, 0, copreg + 1, reg + 1);
+      r_co_type_inst(TOK_MTC1_OP, 0, copreg, reg);
+      r_co_type_inst(TOK_MTC1_OP, 0, copreg + 1, reg + 1);
       break;
     }
-    case Y_LI_D_POP: {
-      /* li.d F_DEST <Y_FP>  →  load double-precision constant
+    case TOK_LI_D_POP: {
+      /* li.d F_DEST <TOK_FP>  →  load double-precision constant
          via two mtc1. */
       int fd = parse_fp_register();
-      if (scanner_peek() != Y_FP) {
+      if (scanner_peek() != TOK_FP) {
         parse_error_at("Expected FP literal");
         break;
       }
       scanner_advance();
-      int* x = (int*)yylval.p;
-      i_type_inst(Y_ORI_OP, 1, 0, const_imm_expr(*x));
-      r_co_type_inst(Y_MTC1_OP, 0, fd, 1);
-      i_type_inst(Y_ORI_OP, 1, 0, const_imm_expr(*(x + 1)));
-      r_co_type_inst(Y_MTC1_OP, 0, fd + 1, 1);
+      int* x = (int*)scan_value.p;
+      i_type_inst(TOK_ORI_OP, 1, 0, const_imm_expr(*x));
+      r_co_type_inst(TOK_MTC1_OP, 0, fd, 1);
+      i_type_inst(TOK_ORI_OP, 1, 0, const_imm_expr(*(x + 1)));
+      r_co_type_inst(TOK_MTC1_OP, 0, fd + 1, 1);
       break;
     }
-    case Y_LI_S_POP: {
-      /* li.s F_DEST <Y_FP>  →  single-precision const via one mtc1
+    case TOK_LI_S_POP: {
+      /* li.s F_DEST <TOK_FP>  →  single-precision const via one mtc1
 */
       int fd = parse_fp_register();
-      if (scanner_peek() != Y_FP) {
+      if (scanner_peek() != TOK_FP) {
         parse_error_at("Expected FP literal");
         break;
       }
       scanner_advance();
-      float fval = (float)*((double*)yylval.p);
+      float fval = (float)*((double*)scan_value.p);
       int* y = (int*)&fval;
-      i_type_inst(Y_ORI_OP, 1, 0, const_imm_expr(*y));
-      r_co_type_inst(Y_MTC1_OP, 0, fd, 1);
+      i_type_inst(TOK_ORI_OP, 1, 0, const_imm_expr(*y));
+      r_co_type_inst(TOK_MTC1_OP, 0, fd, 1);
       break;
     }
-    case Y_L_D_POP: {
+    case TOK_L_D_POP: {
       /* l.d F_DEST ADDRESS  →  ldc1. */
       int fr = parse_fp_register();
       addr_expr* addr = parse_address();
-      i_type_inst(Y_LDC1_OP, fr, addr_expr_reg(addr), addr_expr_imm(addr));
+      i_type_inst(TOK_LDC1_OP, fr, addr_expr_reg(addr), addr_expr_imm(addr));
       free(addr_expr_imm(addr));
       free(addr);
       break;
     }
-    case Y_L_S_POP: {
+    case TOK_L_S_POP: {
       /* l.s F_DEST ADDRESS  →  lwc1. */
       int fr = parse_fp_register();
       addr_expr* addr = parse_address();
-      i_type_inst(Y_LWC1_OP, fr, addr_expr_reg(addr), addr_expr_imm(addr));
+      i_type_inst(TOK_LWC1_OP, fr, addr_expr_reg(addr), addr_expr_imm(addr));
       free(addr_expr_imm(addr));
       free(addr);
       break;
     }
-    case Y_S_D_POP: {
+    case TOK_S_D_POP: {
       /* s.d F_SRC1 ADDRESS  →  sdc1. */
       int fr = parse_fp_register();
       addr_expr* addr = parse_address();
-      i_type_inst(Y_SDC1_OP, fr, addr_expr_reg(addr), addr_expr_imm(addr));
+      i_type_inst(TOK_SDC1_OP, fr, addr_expr_reg(addr), addr_expr_imm(addr));
       free(addr_expr_imm(addr));
       free(addr);
       break;
     }
-    case Y_S_S_POP: {
+    case TOK_S_S_POP: {
       /* s.s F_SRC1 ADDRESS  →  swc1. */
       int fr = parse_fp_register();
       addr_expr* addr = parse_address();
-      i_type_inst(Y_SWC1_OP, fr, addr_expr_reg(addr), addr_expr_imm(addr));
+      i_type_inst(TOK_SWC1_OP, fr, addr_expr_reg(addr), addr_expr_imm(addr));
       free(addr_expr_imm(addr));
       free(addr);
       break;
     }
-    case Y_LD_POP: {
+    case TOK_LD_POP: {
       /* ld DEST ADDRESS  — load doubleword pseudo, expands to
          two lw instructions */
       int rt = parse_register();
       addr_expr* addr = parse_address();
-      i_type_inst(Y_LW_OP, rt, addr_expr_reg(addr), addr_expr_imm(addr));
-      i_type_inst_free(Y_LW_OP, rt + 1, addr_expr_reg(addr),
+      i_type_inst(TOK_LW_OP, rt, addr_expr_reg(addr), addr_expr_imm(addr));
+      i_type_inst_free(TOK_LW_OP, rt + 1, addr_expr_reg(addr),
                        incr_expr_offset(addr_expr_imm(addr), 4));
       free(addr_expr_imm(addr));
       free(addr);
       break;
     }
-    case Y_SD_POP: {
+    case TOK_SD_POP: {
       /* sd SRC1 ADDRESS — store doubleword pseudo. */
       int rt = parse_register();
       addr_expr* addr = parse_address();
-      i_type_inst(Y_SW_OP, rt, addr_expr_reg(addr), addr_expr_imm(addr));
-      i_type_inst_free(Y_SW_OP, rt + 1, addr_expr_reg(addr),
+      i_type_inst(TOK_SW_OP, rt, addr_expr_reg(addr), addr_expr_imm(addr));
+      i_type_inst_free(TOK_SW_OP, rt + 1, addr_expr_reg(addr),
                        incr_expr_offset(addr_expr_imm(addr), 4));
       free(addr_expr_imm(addr));
       free(addr);
       break;
     }
-    case Y_ULW_POP: {
+    case TOK_ULW_POP: {
       /* Unaligned load word. , little-endian
          path (the macOS/Linux x86 default).  Emits LWL+LWR with
          offset bumped by 3 on the LWL. */
       int rt = parse_register();
       addr_expr* addr = parse_address();
-      i_type_inst_free(Y_LWL_OP, rt, addr_expr_reg(addr),
+      i_type_inst_free(TOK_LWL_OP, rt, addr_expr_reg(addr),
                        incr_expr_offset(addr_expr_imm(addr), 3));
-      i_type_inst(Y_LWR_OP, rt, addr_expr_reg(addr), addr_expr_imm(addr));
+      i_type_inst(TOK_LWR_OP, rt, addr_expr_reg(addr), addr_expr_imm(addr));
       free(addr_expr_imm(addr));
       free(addr);
       break;
     }
-    case Y_ULH_POP:
-    case Y_ULHU_POP: {
+    case TOK_ULH_POP:
+    case TOK_ULHU_POP: {
       /* Unaligned load half (signed/unsigned). LE path. */
       int rt = parse_register();
       addr_expr* addr = parse_address();
-      i_type_inst_free(op == Y_ULH_POP ? Y_LB_OP : Y_LBU_OP, rt,
+      i_type_inst_free(op == TOK_ULH_POP ? TOK_LB_OP : TOK_LBU_OP, rt,
                        addr_expr_reg(addr),
                        incr_expr_offset(addr_expr_imm(addr), 1));
-      i_type_inst(Y_LBU_OP, 1, addr_expr_reg(addr), addr_expr_imm(addr));
-      r_sh_type_inst(Y_SLL_OP, rt, rt, 8);
-      r_type_inst(Y_OR_OP, rt, rt, 1);
+      i_type_inst(TOK_LBU_OP, 1, addr_expr_reg(addr), addr_expr_imm(addr));
+      r_sh_type_inst(TOK_SLL_OP, rt, rt, 8);
+      r_type_inst(TOK_OR_OP, rt, rt, 1);
       free(addr_expr_imm(addr));
       free(addr);
       break;
     }
-    case Y_USW_POP: {
+    case TOK_USW_POP: {
       /* Unaligned store word.  LE path. */
       int rt = parse_register();
       addr_expr* addr = parse_address();
-      i_type_inst_free(Y_SWL_OP, rt, addr_expr_reg(addr),
+      i_type_inst_free(TOK_SWL_OP, rt, addr_expr_reg(addr),
                        incr_expr_offset(addr_expr_imm(addr), 3));
-      i_type_inst(Y_SWR_OP, rt, addr_expr_reg(addr), addr_expr_imm(addr));
+      i_type_inst(TOK_SWR_OP, rt, addr_expr_reg(addr), addr_expr_imm(addr));
       free(addr_expr_imm(addr));
       free(addr);
       break;
     }
-    case Y_USH_POP: {
+    case TOK_USH_POP: {
       /* Unaligned store half.. ROL, store
          high byte, ROR. */
       int rt = parse_register();
       addr_expr* addr = parse_address();
-      i_type_inst(Y_SB_OP, rt, addr_expr_reg(addr), addr_expr_imm(addr));
+      i_type_inst(TOK_SB_OP, rt, addr_expr_reg(addr), addr_expr_imm(addr));
       /* ROL SRC, SRC, 8 (via SLL+SRL+OR) */
-      r_sh_type_inst(Y_SLL_OP, 1, rt, 24);
-      r_sh_type_inst(Y_SRL_OP, rt, rt, 8);
-      r_type_inst(Y_OR_OP, rt, rt, 1);
-      i_type_inst_free(Y_SB_OP, rt, addr_expr_reg(addr),
+      r_sh_type_inst(TOK_SLL_OP, 1, rt, 24);
+      r_sh_type_inst(TOK_SRL_OP, rt, rt, 8);
+      r_type_inst(TOK_OR_OP, rt, rt, 1);
+      i_type_inst_free(TOK_SB_OP, rt, addr_expr_reg(addr),
                        incr_expr_offset(addr_expr_imm(addr), 1));
       /* ROR SRC, SRC, 8 (via SRL+SLL+OR) */
-      r_sh_type_inst(Y_SRL_OP, 1, rt, 24);
-      r_sh_type_inst(Y_SLL_OP, rt, rt, 8);
-      r_type_inst(Y_OR_OP, rt, rt, 1);
+      r_sh_type_inst(TOK_SRL_OP, 1, rt, 24);
+      r_sh_type_inst(TOK_SLL_OP, rt, rt, 8);
+      r_type_inst(TOK_OR_OP, rt, rt, 1);
       free(addr_expr_imm(addr));
       free(addr);
       break;
     }
-    case Y_LA_POP: {
+    case TOK_LA_POP: {
       /* la DEST, ADDRESS.  If ADDRESS has a
          base register, emit `addi DEST, base, offset`; else emit
          `ori DEST, $0, offset`. */
       int rt = parse_register();
       addr_expr* addr = parse_address();
       if (addr_expr_reg(addr)) {
-        i_type_inst(Y_ADDI_OP, rt, addr_expr_reg(addr), addr_expr_imm(addr));
+        i_type_inst(TOK_ADDI_OP, rt, addr_expr_reg(addr), addr_expr_imm(addr));
       } else {
-        i_type_inst(Y_ORI_OP, rt, 0, addr_expr_imm(addr));
+        i_type_inst(TOK_ORI_OP, rt, 0, addr_expr_imm(addr));
       }
       free(addr_expr_imm(addr));
       free(addr);
@@ -1218,46 +1218,46 @@ static void parse_pseudo(int op) {
     }
 
     /* UNARY_BR_POPS: beqz, bnez SRC1 LABEL */
-    case Y_BEQZ_POP:
-    case Y_BNEZ_POP: {
+    case TOK_BEQZ_POP:
+    case TOK_BNEZ_POP: {
       int rs = parse_register();
       imm_expr* target = parse_label();
-      int real_op = (op == Y_BEQZ_POP) ? Y_BEQ_OP : Y_BNE_OP;
+      int real_op = (op == TOK_BEQZ_POP) ? TOK_BEQ_OP : TOK_BNE_OP;
       i_type_inst_free(real_op, 0, rs, target);
       break;
     }
 
     /* B_OPS: b, bal LABEL */
-    case Y_B_POP:
-    case Y_BAL_POP: {
+    case TOK_B_POP:
+    case TOK_BAL_POP: {
       imm_expr* target = parse_label();
-      int real_op = (op == Y_BAL_POP) ? Y_BGEZAL_OP : Y_BGEZ_OP;
+      int real_op = (op == TOK_BAL_POP) ? TOK_BGEZAL_OP : TOK_BGEZ_OP;
       i_type_inst_free(real_op, 0, 0, target);
       break;
     }
 
     /* BR_GT_POPS: bgt/bgtu SRC1 (SRC2|IMM) LABEL */
-    case Y_BGT_POP:
-    case Y_BGTU_POP: {
+    case TOK_BGT_POP:
+    case TOK_BGTU_POP: {
       int rs = parse_register();
-      if (scanner_peek() == Y_REG) {
+      if (scanner_peek() == TOK_REG) {
         int rt = parse_register();
         imm_expr* target = parse_label();
-        r_type_inst(op == Y_BGT_POP ? Y_SLT_OP : Y_SLTU_OP, 1, rt, rs);
-        i_type_inst_free(Y_BNE_OP, 0, 1, target);
+        r_type_inst(op == TOK_BGT_POP ? TOK_SLT_OP : TOK_SLTU_OP, 1, rt, rs);
+        i_type_inst_free(TOK_BNE_OP, 0, 1, target);
       } else {
         /* Immediate form — see */
         imm_expr* imm = parse_imm32();
         imm_expr* target = parse_label();
-        if (op == Y_BGT_POP) {
+        if (op == TOK_BGT_POP) {
           imm_expr* imm_inc = incr_expr_offset(imm, 1);
-          i_type_inst_free(Y_SLTI_OP, 1, rs, imm_inc);
-          i_type_inst(Y_BEQ_OP, 0, 1, target);
+          i_type_inst_free(TOK_SLTI_OP, 1, rs, imm_inc);
+          i_type_inst(TOK_BEQ_OP, 0, 1, target);
         } else {
-          i_type_inst(Y_ORI_OP, 1, 0, imm);
-          i_type_inst_free(Y_BEQ_OP, rs, 1, branch_offset(3));
-          r_type_inst(Y_SLTU_OP, 1, rs, 1);
-          i_type_inst(Y_BEQ_OP, 0, 1, target);
+          i_type_inst(TOK_ORI_OP, 1, 0, imm);
+          i_type_inst_free(TOK_BEQ_OP, rs, 1, branch_offset(3));
+          r_type_inst(TOK_SLTU_OP, 1, rs, 1);
+          i_type_inst(TOK_BEQ_OP, 0, 1, target);
         }
         free(imm);
         free(target);
@@ -1266,64 +1266,64 @@ static void parse_pseudo(int op) {
     }
 
     /* BR_GE_POPS: bge/bgeu SRC1 (SRC2|IMM) LABEL */
-    case Y_BGE_POP:
-    case Y_BGEU_POP: {
+    case TOK_BGE_POP:
+    case TOK_BGEU_POP: {
       int rs = parse_register();
-      if (scanner_peek() == Y_REG) {
+      if (scanner_peek() == TOK_REG) {
         int rt = parse_register();
         imm_expr* target = parse_label();
-        r_type_inst(op == Y_BGE_POP ? Y_SLT_OP : Y_SLTU_OP, 1, rs, rt);
-        i_type_inst_free(Y_BEQ_OP, 0, 1, target);
+        r_type_inst(op == TOK_BGE_POP ? TOK_SLT_OP : TOK_SLTU_OP, 1, rs, rt);
+        i_type_inst_free(TOK_BEQ_OP, 0, 1, target);
       } else {
         imm_expr* imm = parse_imm32();
         imm_expr* target = parse_label();
-        i_type_inst(op == Y_BGE_POP ? Y_SLTI_OP : Y_SLTIU_OP, 1, rs, imm);
-        i_type_inst_free(Y_BEQ_OP, 0, 1, target);
+        i_type_inst(op == TOK_BGE_POP ? TOK_SLTI_OP : TOK_SLTIU_OP, 1, rs, imm);
+        i_type_inst_free(TOK_BEQ_OP, 0, 1, target);
         free(imm);
       }
       break;
     }
 
     /* BR_LT_POPS: blt/bltu SRC1 (SRC2|IMM) LABEL */
-    case Y_BLT_POP:
-    case Y_BLTU_POP: {
+    case TOK_BLT_POP:
+    case TOK_BLTU_POP: {
       int rs = parse_register();
-      if (scanner_peek() == Y_REG) {
+      if (scanner_peek() == TOK_REG) {
         int rt = parse_register();
         imm_expr* target = parse_label();
-        r_type_inst(op == Y_BLT_POP ? Y_SLT_OP : Y_SLTU_OP, 1, rs, rt);
-        i_type_inst_free(Y_BNE_OP, 0, 1, target);
+        r_type_inst(op == TOK_BLT_POP ? TOK_SLT_OP : TOK_SLTU_OP, 1, rs, rt);
+        i_type_inst_free(TOK_BNE_OP, 0, 1, target);
       } else {
         imm_expr* imm = parse_imm32();
         imm_expr* target = parse_label();
-        i_type_inst(op == Y_BLT_POP ? Y_SLTI_OP : Y_SLTIU_OP, 1, rs, imm);
-        i_type_inst_free(Y_BNE_OP, 0, 1, target);
+        i_type_inst(op == TOK_BLT_POP ? TOK_SLTI_OP : TOK_SLTIU_OP, 1, rs, imm);
+        i_type_inst_free(TOK_BNE_OP, 0, 1, target);
         free(imm);
       }
       break;
     }
 
     /* BR_LE_POPS: ble/bleu SRC1 (SRC2|IMM) LABEL */
-    case Y_BLE_POP:
-    case Y_BLEU_POP: {
+    case TOK_BLE_POP:
+    case TOK_BLEU_POP: {
       int rs = parse_register();
-      if (scanner_peek() == Y_REG) {
+      if (scanner_peek() == TOK_REG) {
         int rt = parse_register();
         imm_expr* target = parse_label();
-        r_type_inst(op == Y_BLE_POP ? Y_SLT_OP : Y_SLTU_OP, 1, rt, rs);
-        i_type_inst_free(Y_BEQ_OP, 0, 1, target);
+        r_type_inst(op == TOK_BLE_POP ? TOK_SLT_OP : TOK_SLTU_OP, 1, rt, rs);
+        i_type_inst_free(TOK_BEQ_OP, 0, 1, target);
       } else {
         imm_expr* imm = parse_imm32();
         imm_expr* target = parse_label();
-        if (op == Y_BLE_POP) {
+        if (op == TOK_BLE_POP) {
           imm_expr* imm_inc = incr_expr_offset(imm, 1);
-          i_type_inst_free(Y_SLTI_OP, 1, rs, imm_inc);
-          i_type_inst(Y_BNE_OP, 0, 1, target);
+          i_type_inst_free(TOK_SLTI_OP, 1, rs, imm_inc);
+          i_type_inst(TOK_BNE_OP, 0, 1, target);
         } else {
-          i_type_inst(Y_ORI_OP, 1, 0, imm);
-          i_type_inst(Y_BEQ_OP, rs, 1, target);
-          r_type_inst(Y_SLTU_OP, 1, rs, 1);
-          i_type_inst(Y_BNE_OP, 0, 1, target);
+          i_type_inst(TOK_ORI_OP, 1, 0, imm);
+          i_type_inst(TOK_BEQ_OP, rs, 1, target);
+          r_type_inst(TOK_SLTU_OP, 1, rs, 1);
+          i_type_inst(TOK_BNE_OP, 0, 1, target);
         }
         free(imm);
         free(target);
@@ -1356,10 +1356,10 @@ static void parse_asm_code(void) {
     case PSEUDO_OP:       parse_pseudo(op); break;
     case R2td_TYPE_INST: {
       /* mfc0/mtc0/etc.: <op> REG COP_REG.  COP_REG accepts
-         Y_REG or Y_FP_REG. */
+         TOK_REG or TOK_FP_REG. */
       int reg = parse_register();
       int copreg;
-      if (scanner_peek() == Y_FP_REG) {
+      if (scanner_peek() == TOK_FP_REG) {
         copreg = parse_fp_register();
       } else {
         copreg = parse_register();
@@ -1381,27 +1381,27 @@ static void parse_asm_code(void) {
          Dispatch by operand count: count registers after the
          first one. */
       int r1 = parse_register();
-      if (scanner_peek() != Y_REG && scanner_peek() != Y_INT
-          && scanner_peek() != Y_ID) {
+      if (scanner_peek() != TOK_REG && scanner_peek() != TOK_INT
+          && scanner_peek() != TOK_ID) {
         /* Not enough operands?  Fall back to plain 2-form
            anyway — produces a syntax error if anything's wrong. */
         parse_error_at("Expected operand for div/mult");
         break;
       }
-      if (op == Y_TEQ_OP || op == Y_TGE_OP || op == Y_TGEU_OP
-          || op == Y_TLT_OP || op == Y_TLTU_OP || op == Y_TNE_OP) {
+      if (op == TOK_TEQ_OP || op == TOK_TGE_OP || op == TOK_TGEU_OP
+          || op == TOK_TLT_OP || op == TOK_TLTU_OP || op == TOK_TNE_OP) {
         /* BINARY_TRAP_OPS: <op> SRC1 SRC2 → r_type_inst(op, 0, r1, r2)
  */
         int r2 = parse_register();
         r_type_inst(op, 0, r1, r2);
-      } else if (op == Y_DIV_OP || op == Y_DIVU_OP) {
+      } else if (op == TOK_DIV_OP || op == TOK_DIVU_OP) {
         /* DIV_POPS: can be 2-op (real hardware) or 3-op (pseudo) */
         int r2 = parse_register();
-        if (scanner_peek() == Y_NL || scanner_peek() == Y_EOF) {
+        if (scanner_peek() == TOK_NL || scanner_peek() == TOK_EOF) {
           /* 2-operand form: r_type_inst(op, 0, r1, r2)
              — note r1 is rs , r2 is rt (SRC1). */
           r_type_inst(op, 0, r1, r2);
-        } else if (scanner_peek() == Y_REG) {
+        } else if (scanner_peek() == TOK_REG) {
           int r3 = parse_register();
           div_inst(op, r1, r2, r3, 0);
         } else {
@@ -1410,7 +1410,7 @@ static void parse_asm_code(void) {
           if (is_zero_imm(imm)) {
             parse_error_at("Divide by zero");
           } else {
-            i_type_inst_free(Y_ORI_OP, 1, 0, imm);
+            i_type_inst_free(TOK_ORI_OP, 1, 0, imm);
             div_inst(op, r1, r2, 1, 1);
             /* don't free imm again — i_type_inst_free already freed */
             break;
@@ -1438,17 +1438,17 @@ static void parse_asm_code(void) {
          which uses op_to_imm_op for the shamt encoding. */
       int rd = parse_register();
       int rs = parse_register();
-      if (scanner_peek() == Y_REG) {
+      if (scanner_peek() == TOK_REG) {
         int rt = parse_register();
         r_type_inst(op, rd, rt, rs);
       } else {
-        /* DEST SRC1 Y_INT → r_sh_type_inst(op_to_imm_op(op), DEST, SRC1, shamt) */
-        if (scanner_peek() != Y_INT) {
+        /* DEST SRC1 TOK_INT → r_sh_type_inst(op_to_imm_op(op), DEST, SRC1, shamt) */
+        if (scanner_peek() != TOK_INT) {
           parse_error_at("Expected register or integer shift");
           break;
         }
         scanner_advance();
-        int shamt = yylval.i;
+        int shamt = scan_value.i;
         r_sh_type_inst(op_to_imm_op(op), rd, rs, shamt);
       }
       break;
@@ -1465,7 +1465,7 @@ static void parse_asm_code(void) {
     case BC_TYPE_INST: {
       /* BR_COP_OPS: bc1f/bc1t/bc1fl/bc1tl.  Two forms:
            <op> LABEL                  → cc=0
-           <op> CC_REG LABEL           → cc=Y_INT
+           <op> CC_REG LABEL           → cc=TOK_INT
          The RT field is cc_to_rt(cc, nd, tf); RS is 0 (
          uses BIN_RS($1.i) which is the token-number's bits 21-25,
          always 0 for spim's token-number range).  See
@@ -1475,9 +1475,9 @@ static void parse_asm_code(void) {
       int nd = opcode_is_nullified_branch(op) ? 1 : 0;
       int tf = opcode_is_true_branch(op) ? 1 : 0;
       int cc = 0;
-      if (scanner_peek() == Y_INT) {
+      if (scanner_peek() == TOK_INT) {
         scanner_advance();
-        cc = yylval.i;
+        cc = scan_value.i;
       }
       imm_expr* target = parse_label();
       int rt = (cc << 2) | (nd << 1) | tf;
@@ -1485,14 +1485,14 @@ static void parse_asm_code(void) {
       break;
     }
     case MOVC_TYPE_INST: {
-      /* MOVECC_OPS: movf/movt DEST SRC1 Y_INT (cc number).
-        : r_type_inst($1, DEST, SRC1, (Y_INT&7)<<2). */
+      /* MOVECC_OPS: movf/movt DEST SRC1 TOK_INT (cc number).
+        : r_type_inst($1, DEST, SRC1, (TOK_INT&7)<<2). */
       int rd = parse_register();
       int rs = parse_register();
       int cc = 0;
-      if (scanner_peek() == Y_INT) {
+      if (scanner_peek() == TOK_INT) {
         scanner_advance();
-        cc = yylval.i;
+        cc = scan_value.i;
       }
       r_type_inst(op, rd, rs, (cc & 0x7) << 2);
       break;
@@ -1519,11 +1519,11 @@ static void parse_asm_code(void) {
     case FP_CMP_TYPE_INST: {
       /* FP_CMP_OPS: two forms:
            <op> F_SRC1 F_SRC2                   → cc=0
-           <op> CC_REG F_SRC1 F_SRC2            → cc=Y_INT */
+           <op> CC_REG F_SRC1 F_SRC2            → cc=TOK_INT */
       int cc = 0;
-      if (scanner_peek() == Y_INT) {
+      if (scanner_peek() == TOK_INT) {
         scanner_advance();
-        cc = yylval.i;
+        cc = scan_value.i;
       }
       int fs = parse_fp_register();
       int ft = parse_fp_register();
@@ -1540,12 +1540,12 @@ static void parse_asm_code(void) {
          Disambiguate by inspecting the third operand. */
       int fd = parse_fp_register();
       int fs = parse_fp_register();
-      if (scanner_peek() == Y_REG) {
+      if (scanner_peek() == TOK_REG) {
         int rt = parse_register();
         r_co_type_inst(op, fd, fs, rt);
-      } else if (scanner_peek() == Y_INT) {
+      } else if (scanner_peek() == TOK_INT) {
         scanner_advance();
-        int cc = yylval.i;
+        int cc = scan_value.i;
         r_co_type_inst(op, fd, fs, (cc & 0x7) << 2);
       } else {
         /* No third operand (movf/movt with implicit cc=0). */
@@ -1565,11 +1565,11 @@ static void parse_asm_code(void) {
     }
     case FP_R2ts_TYPE_INST: {
       /* mfc1/mtc1/cfc0/ctc0/cfc1/ctc1: <op> REG COP_REG.
-         COP_REG accepts either Y_REG OR Y_FP_REG (
+         COP_REG accepts either TOK_REG OR TOK_FP_REG (
          2574) — both name the coprocessor register number. */
       int reg = parse_register();
       int copreg;
-      if (scanner_peek() == Y_FP_REG) {
+      if (scanner_peek() == TOK_FP_REG) {
         copreg = parse_fp_register();
       } else {
         copreg = parse_register();
@@ -1586,40 +1586,40 @@ static void parse_asm_code(void) {
 
 static void parse_directive(int dir_tok) {
   switch (dir_tok) {
-    case Y_DATA_DIR:     parse_dir_data(false); break;
-    case Y_K_DATA_DIR:   parse_dir_data(true);  break;
-    case Y_TEXT_DIR:     parse_dir_text(false); break;
-    case Y_K_TEXT_DIR:   parse_dir_text(true);  break;
-    case Y_GLOBAL_DIR:   parse_dir_globl();     break;
-    case Y_WORD_DIR:     parse_dir_word();      break;
-    case Y_HALF_DIR:     parse_dir_half();      break;
-    case Y_BYTE_DIR:     parse_dir_byte();      break;
-    case Y_ASCII_DIR:    parse_dir_ascii();     break;
-    case Y_ASCIIZ_DIR:   parse_dir_asciiz();    break;
-    case Y_FLOAT_DIR:    parse_dir_float();     break;
-    case Y_DOUBLE_DIR:   parse_dir_double();    break;
-    case Y_SPACE_DIR:    parse_dir_space();     break;
-    case Y_ALIGN_DIR:    parse_dir_align();     break;
-    case Y_COMM_DIR:     parse_dir_comm();      break;
-    case Y_EXTERN_DIR:   parse_dir_extern();    break;
-    case Y_ERR_DIR:      parse_error_at(".err directive"); break;
+    case TOK_DATA_DIR:     parse_dir_data(false); break;
+    case TOK_K_DATA_DIR:   parse_dir_data(true);  break;
+    case TOK_TEXT_DIR:     parse_dir_text(false); break;
+    case TOK_K_TEXT_DIR:   parse_dir_text(true);  break;
+    case TOK_GLOBAL_DIR:   parse_dir_globl();     break;
+    case TOK_WORD_DIR:     parse_dir_word();      break;
+    case TOK_HALF_DIR:     parse_dir_half();      break;
+    case TOK_BYTE_DIR:     parse_dir_byte();      break;
+    case TOK_ASCII_DIR:    parse_dir_ascii();     break;
+    case TOK_ASCIIZ_DIR:   parse_dir_asciiz();    break;
+    case TOK_FLOAT_DIR:    parse_dir_float();     break;
+    case TOK_DOUBLE_DIR:   parse_dir_double();    break;
+    case TOK_SPACE_DIR:    parse_dir_space();     break;
+    case TOK_ALIGN_DIR:    parse_dir_align();     break;
+    case TOK_COMM_DIR:     parse_dir_comm();      break;
+    case TOK_EXTERN_DIR:   parse_dir_extern();    break;
+    case TOK_ERR_DIR:      parse_error_at(".err directive"); break;
     /* Metadata directives — swallow the rest of the line. */
-    case Y_FILE_DIR:
-    case Y_LOC_DIR:
-    case Y_FRAME_DIR:
-    case Y_MASK_DIR:
-    case Y_FMASK_DIR:
-    case Y_ENT_DIR:
-    case Y_END_DIR:
-    case Y_LABEL_DIR:
-    case Y_LIVEREG_DIR:
-    case Y_OPTIONS_DIR:
-    case Y_BGNB_DIR:
-    case Y_ENDB_DIR:
-    case Y_ENDR_DIR:
-    case Y_ASM0_DIR:
-    case Y_ALIAS_DIR:
-    case Y_SET_DIR:
+    case TOK_FILE_DIR:
+    case TOK_LOC_DIR:
+    case TOK_FRAME_DIR:
+    case TOK_MASK_DIR:
+    case TOK_FMASK_DIR:
+    case TOK_ENT_DIR:
+    case TOK_END_DIR:
+    case TOK_LABEL_DIR:
+    case TOK_LIVEREG_DIR:
+    case TOK_OPTIONS_DIR:
+    case TOK_BGNB_DIR:
+    case TOK_ENDB_DIR:
+    case TOK_ENDR_DIR:
+    case TOK_ASM0_DIR:
+    case TOK_ALIAS_DIR:
+    case TOK_SET_DIR:
       sync_to_nl();
       break;
     default:
@@ -1638,13 +1638,13 @@ static bool is_directive(int tok) {
 /* OPT_LBL: ID ':'  |  ID '=' EXPR */
 static void parse_opt_label(void) {
   /* The peek2 disambiguation already happened in parse_line.
-     We know peek == Y_ID and peek2 == ':' or '='.  Don't call
-     scanner_force_identifier here — the Y_ID was already
+     We know peek == TOK_ID and peek2 == ':' or '='.  Don't call
+     scanner_force_identifier here — the TOK_ID was already
      classified at the peek site, so the flag would
      incorrectly affect a LATER token (e.g., misclassifying
-     `buf: .word 42`'s `.word` as Y_ID). */
-  scanner_advance();  /* consume Y_ID */
-  char* sym = (char*)yylval.p;
+     `buf: .word 42`'s `.word` as TOK_ID). */
+  scanner_advance();  /* consume TOK_ID */
+  char* sym = (char*)scan_value.p;
   int sep = scanner_advance();  /* ':' or '=' */
 
   if (sep == ':') {
@@ -1670,24 +1670,24 @@ static void parse_opt_label(void) {
 /* LINE / LBL_CMD / CMD */
 static void parse_line(void) {
   /* Empty line? */
-  if (scanner_peek() == Y_NL) {
+  if (scanner_peek() == TOK_NL) {
     scanner_advance();
     return;
   }
-  if (scanner_peek() == Y_EOF) {
+  if (scanner_peek() == TOK_EOF) {
     return;
   }
 
   /* Look ahead for optional label */
-  if (scanner_peek() == Y_ID
+  if (scanner_peek() == TOK_ID
       && (scanner_peek2() == ':' || scanner_peek2() == '=')) {
     parse_opt_label();
   }
 
   /* Then maybe directive or instruction */
   int t = scanner_peek();
-  if (t == Y_NL) { scanner_advance(); return; }
-  if (t == Y_EOF) { return; }
+  if (t == TOK_NL) { scanner_advance(); return; }
+  if (t == TOK_EOF) { return; }
 
   if (is_directive(t)) {
     int dt = scanner_advance();
@@ -1701,9 +1701,9 @@ static void parse_line(void) {
   /* Expect newline or EOF */
   if (parse_error_occurred) {
     sync_to_nl();
-  } else if (scanner_peek() == Y_NL) {
+  } else if (scanner_peek() == TOK_NL) {
     scanner_advance();
-  } else if (scanner_peek() != Y_EOF) {
+  } else if (scanner_peek() != TOK_EOF) {
     parse_error_at("Extra tokens after instruction");
     sync_to_nl();
   }
@@ -1721,7 +1721,7 @@ void parser_init(FILE* in, char* file_name) {
 }
 
 int parse_file(void) {
-  while (scanner_peek() != Y_EOF) {
+  while (scanner_peek() != TOK_EOF) {
     parse_error_occurred = false;
     scanner_start_line();
     parse_line();
