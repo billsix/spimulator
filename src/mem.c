@@ -285,7 +285,7 @@ void* mem_reference(mem_addr addr) {
   }
 }
 
-instruction* read_mem_inst(mem_addr addr) {
+instruction* mem_read_inst(mem_addr addr) {
   if ((addr >= TEXT_BOT) && (addr < text_top) && !(addr & 0x3))
     return text_seg[(addr - TEXT_BOT) >> 2];
   else if ((addr >= K_TEXT_BOT) && (addr < k_text_top) && !(addr & 0x3))
@@ -294,7 +294,7 @@ instruction* read_mem_inst(mem_addr addr) {
     return bad_text_read(addr);
 }
 
-reg_word read_mem_byte(mem_addr addr) {
+reg_word mem_read_byte(mem_addr addr) {
   if ((addr >= DATA_BOT) && (addr < data_top))
     return data_seg_b[addr - DATA_BOT];
   else if ((addr >= stack_bot) && (addr < STACK_TOP))
@@ -305,7 +305,7 @@ reg_word read_mem_byte(mem_addr addr) {
     return bad_mem_read(addr, 0);
 }
 
-reg_word read_mem_half(mem_addr addr) {
+reg_word mem_read_half(mem_addr addr) {
   if ((addr >= DATA_BOT) && (addr < data_top) && !(addr & 0x1))
     return data_seg_h[(addr - DATA_BOT) >> 1];
   else if ((addr >= stack_bot) && (addr < STACK_TOP) && !(addr & 0x1))
@@ -316,7 +316,7 @@ reg_word read_mem_half(mem_addr addr) {
     return bad_mem_read(addr, 0x1);
 }
 
-reg_word read_mem_word(mem_addr addr) {
+reg_word mem_read_word(mem_addr addr) {
   if ((addr >= DATA_BOT) && (addr < data_top) && !(addr & 0x3))
     return data_seg[(addr - DATA_BOT) >> 2];
   else if ((addr >= stack_bot) && (addr < STACK_TOP) && !(addr & 0x3))
@@ -327,7 +327,7 @@ reg_word read_mem_word(mem_addr addr) {
     return bad_mem_read(addr, 0x3);
 }
 
-void set_mem_inst(mem_addr addr, instruction* inst) {
+void mem_write_inst(mem_addr addr, instruction* inst) {
   text_modified = true;
   if ((addr >= TEXT_BOT) && (addr < text_top) && !(addr & 0x3))
     text_seg[(addr - TEXT_BOT) >> 2] = inst;
@@ -337,7 +337,7 @@ void set_mem_inst(mem_addr addr, instruction* inst) {
     bad_text_write(addr, inst);
 }
 
-void set_mem_byte(mem_addr addr, reg_word value) {
+void mem_write_byte(mem_addr addr, reg_word value) {
   data_modified = true;
   if ((addr >= DATA_BOT) && (addr < data_top))
     data_seg_b[addr - DATA_BOT] = (BYTE_TYPE)value;
@@ -349,7 +349,7 @@ void set_mem_byte(mem_addr addr, reg_word value) {
     bad_mem_write(addr, value, 0);
 }
 
-void set_mem_half(mem_addr addr, reg_word value) {
+void mem_write_half(mem_addr addr, reg_word value) {
   data_modified = true;
   if ((addr >= DATA_BOT) && (addr < data_top) && !(addr & 0x1))
     data_seg_h[(addr - DATA_BOT) >> 1] = (short)value;
@@ -361,7 +361,7 @@ void set_mem_half(mem_addr addr, reg_word value) {
     bad_mem_write(addr, value, 0x1);
 }
 
-void set_mem_word(mem_addr addr, reg_word value) {
+void mem_write_word(mem_addr addr, reg_word value) {
   data_modified = true;
   if ((addr >= DATA_BOT) && (addr < data_top) && !(addr & 0x3))
     data_seg[(addr - DATA_BOT) >> 2] = (mem_word)value;
@@ -382,7 +382,7 @@ static instruction* bad_text_read(mem_addr addr) {
 
 static void bad_text_write(mem_addr addr, instruction* inst) {
   RAISE_EXCEPTION(ExcCode_IBE, CP0_BadVAddr = addr);
-  set_mem_word(addr, ENCODING(inst));
+  mem_write_word(addr, ENCODING(inst));
 }
 
 static mem_word bad_mem_read(mem_addr addr, int mask) {
@@ -643,17 +643,17 @@ void print_mem(mem_addr addr) {
   if (TEXT_BOT <= addr && addr < text_top)
     print_inst(addr);
   else if (DATA_BOT <= addr && addr < data_top) {
-    value = read_mem_word(addr);
+    value = mem_read_word(addr);
     write_output(message_out, "Data seg @ 0x%08x (%d) = 0x%08x (%d)\n", addr,
                  addr, value, value);
   } else if (stack_bot <= addr && addr < STACK_TOP) {
-    value = read_mem_word(addr);
+    value = mem_read_word(addr);
     write_output(message_out, "Stack seg @ 0x%08x (%d) = 0x%08x (%d)\n", addr,
                  addr, value, value);
   } else if (K_TEXT_BOT <= addr && addr < k_text_top)
     print_inst(addr);
   else if (K_DATA_BOT <= addr && addr < k_data_top) {
-    value = read_mem_word(addr);
+    value = mem_read_word(addr);
     write_output(message_out, "Kernel Data seg @ 0x%08x (%d) = 0x%08x (%d)\n",
                  addr, addr, value, value);
   } else

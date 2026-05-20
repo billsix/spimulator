@@ -66,7 +66,7 @@ bool read_assembly_file(char* name);
 bool run_program(mem_addr pc, int steps, bool display, bool cont_bkpt,
                  bool* continuable);
 mem_addr starting_address(void);
-char* str_copy(char* str);
+char* str_copy(const char* str);
 void write_startup_message(void);
 void* xmalloc(int);
 void* zmalloc(int);

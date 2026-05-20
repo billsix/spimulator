@@ -226,7 +226,7 @@ void resolve_label_uses(label* sym) {
   for (use = sym->uses; use != NULL; use = next_use) {
     resolve_a_label_sub(sym, use->inst, use->addr);
     if (use->inst != NULL && use->addr >= DATA_BOT && use->addr < stack_bot) {
-      set_mem_word(use->addr, inst_encode(use->inst));
+      mem_write_word(use->addr, inst_encode(use->inst));
       free_inst(use->inst);
     }
     next_use = use->next;
@@ -245,7 +245,7 @@ void resolve_a_label(label* sym, instruction* inst) {
 static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc) {
   if (inst == NULL) {
     /* Memory data: */
-    set_mem_word(pc, sym->addr);
+    mem_write_word(pc, sym->addr);
   } else {
     /* Instruction: */
     if (EXPR(inst)->pc_relative)
@@ -289,8 +289,8 @@ static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc) {
            */
           instruction* prev_inst;
           instruction* prev_prev_inst;
-          prev_inst = read_mem_inst(pc - BYTES_PER_WORD);
-          prev_prev_inst = read_mem_inst(pc - 2 * BYTES_PER_WORD);
+          prev_inst = mem_read_inst(pc - BYTES_PER_WORD);
+          prev_prev_inst = mem_read_inst(pc - 2 * BYTES_PER_WORD);
 
           if (prev_inst != NULL && OPCODE(prev_inst) == TOK_LUI_OP &&
               EXPR(inst)->symbol == EXPR(prev_inst)->symbol &&

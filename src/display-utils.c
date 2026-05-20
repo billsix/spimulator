@@ -175,7 +175,7 @@ void format_insts(str_stream* ss, mem_addr from, mem_addr to) {
   mem_addr i;
 
   for (i = from; i < to; i += 4) {
-    inst = read_mem_inst(i);
+    inst = mem_read_inst(i);
     if (inst != NULL) {
       format_an_inst(ss, inst, i);
     }
@@ -211,7 +211,7 @@ void format_mem(str_stream* ss, mem_addr from, mem_addr to) {
   for (; i < to;) {
     /* Count consecutive zero words */
     for (j = 0; (i + (uint32)j * BYTES_PER_WORD) < to; j += 1) {
-      val = read_mem_word(i + (uint32)j * BYTES_PER_WORD);
+      val = mem_read_word(i + (uint32)j * BYTES_PER_WORD);
       if (val != 0) {
         break;
       }
@@ -228,7 +228,7 @@ void format_mem(str_stream* ss, mem_addr from, mem_addr to) {
       /* Fewer than 4 zero words, print them on a single line: */
       ss_printf(ss, "[0x%08x]		      ", i);
       do {
-        val = read_mem_word(i);
+        val = mem_read_word(i);
         ss_printf(ss, "  0x%08x", (unsigned int)val);
         i += BYTES_PER_WORD;
       } while (i % BYTES_PER_LINE != 0);
@@ -246,7 +246,7 @@ static mem_addr format_partial_line(str_stream* ss, mem_addr addr) {
     ss_printf(ss, "[0x%08x]		      ", addr);
 
     for (; (addr % BYTES_PER_LINE) != 0; addr += BYTES_PER_WORD) {
-      mem_word val = read_mem_word(addr);
+      mem_word val = mem_read_word(addr);
       ss_printf(ss, "  0x%08x", (unsigned int)val);
     }
 

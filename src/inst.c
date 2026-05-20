@@ -168,7 +168,7 @@ void store_instruction(instruction* inst) {
     free_inst(inst);
   } else if (text_dir) {
     exception_occurred = 0;
-    set_mem_inst(INST_PC, inst);
+    mem_write_inst(INST_PC, inst);
     if (exception_occurred)
       error("Invalid address (0x%08x) for instruction\n", INST_PC);
     else
@@ -569,7 +569,7 @@ char* inst_to_string(mem_addr addr) {
   instruction* inst;
 
   exception_occurred = 0;
-  inst = read_mem_inst(addr);
+  inst = mem_read_inst(addr);
 
   if (exception_occurred) {
     error("Can't print instruction not in text segment (0x%08x)\n", addr);
@@ -588,7 +588,7 @@ void format_an_inst(str_stream* ss, instruction* inst, mem_addr addr) {
   if (addr != 0 && inst_is_breakpoint(addr)) {
     delete_breakpoint(addr);
     ss_printf(ss, "*");
-    format_an_inst(ss, read_mem_inst(addr), addr);
+    format_an_inst(ss, mem_read_inst(addr), addr);
     add_breakpoint(addr);
     return;
   }
@@ -890,7 +890,7 @@ bool opcode_is_load_store(int opcode) {
 bool inst_is_breakpoint(mem_addr addr) {
   if (break_inst == NULL) break_inst = make_r_type_inst(TOK_BREAK_OP, 1, 0, 0);
 
-  return (read_mem_inst(addr) == break_inst);
+  return (mem_read_inst(addr) == break_inst);
 }
 
 /* Set a breakpoint at ADDR and return the old instruction.  If the
@@ -902,10 +902,10 @@ instruction* set_breakpoint(mem_addr addr) {
   if (break_inst == NULL) break_inst = make_r_type_inst(TOK_BREAK_OP, 1, 0, 0);
 
   exception_occurred = 0;
-  old_inst = read_mem_inst(addr);
+  old_inst = mem_read_inst(addr);
   if (old_inst == break_inst) return (NULL);
 
-  set_mem_inst(addr, break_inst);
+  mem_write_inst(addr, break_inst);
   if (exception_occurred)
     return (NULL);
   else

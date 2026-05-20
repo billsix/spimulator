@@ -192,7 +192,7 @@ void store_string(char* string, int length, bool null_terminate) {
 /* Process a .byte EXPR directive. */
 
 void store_byte(int value) {
-  set_mem_byte(DATA_PC, value);
+  mem_write_byte(DATA_PC, value);
   increment_data_pc(1);
 }
 
@@ -208,7 +208,7 @@ void store_half(int value) {
     store_byte((value >> 8) & 0xff);
 #endif
   } else {
-    set_mem_half(DATA_PC, value);
+    mem_write_half(DATA_PC, value);
     increment_data_pc(BYTES_PER_WORD / 2);
   }
 }
@@ -225,7 +225,7 @@ void store_word(int value) {
     store_half((value >> 16) & 0xffff);
 #endif
   } else {
-    set_mem_word(DATA_PC, value);
+    mem_write_word(DATA_PC, value);
     increment_data_pc(BYTES_PER_WORD);
   }
 }
@@ -237,9 +237,9 @@ void store_double(double* value) {
     store_word(*((mem_word*)value));
     store_word(*(((mem_word*)value) + 1));
   } else {
-    set_mem_word(DATA_PC, *((mem_word*)value));
+    mem_write_word(DATA_PC, *((mem_word*)value));
     increment_data_pc(BYTES_PER_WORD);
-    set_mem_word(DATA_PC, *(((mem_word*)value) + 1));
+    mem_write_word(DATA_PC, *(((mem_word*)value) + 1));
     increment_data_pc(BYTES_PER_WORD);
   }
 }
@@ -254,7 +254,7 @@ void store_float(double* value) {
     store_half(*(mem_word*)vp & 0xffff);
     store_half((*(mem_word*)vp >> 16) & 0xffff);
   } else {
-    set_mem_word(DATA_PC, *((mem_word*)vp));
+    mem_write_word(DATA_PC, *((mem_word*)vp));
     increment_data_pc(BYTES_PER_WORD);
   }
 }

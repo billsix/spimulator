@@ -114,7 +114,7 @@ void initialize_world(char* exception_file_names, bool print_message) {
 
     /* strtok modifies the string, so we must back up the string prior to use.
      */
-    if ((files = strdup(exception_file_names)) == NULL)
+    if ((files = str_copy(exception_file_names)) == NULL)
       fatal_error("Insufficient memory to complete.\n");
 
     for (filename = strtok(files, ";"); filename != NULL;
@@ -274,13 +274,13 @@ void initialize_run_stack(int argc, char** argv) {
 
   /* argc: */
   R[REG_A0] = argc;
-  set_mem_word(R[REG_SP], argc); /* Leave argc on stack */
+  mem_write_word(R[REG_SP], argc); /* Leave argc on stack */
 }
 
 static mem_addr copy_str_to_stack(char* s) {
   int i = (int)strlen(s);
   while (i >= 0) {
-    set_mem_byte(R[REG_SP], s[i]);
+    mem_write_byte(R[REG_SP], s[i]);
     R[REG_SP] -= 1;
     i -= 1;
   }
@@ -288,7 +288,7 @@ static mem_addr copy_str_to_stack(char* s) {
 }
 
 static mem_addr copy_int_to_stack(int n) {
-  set_mem_word(R[REG_SP], n);
+  mem_write_word(R[REG_SP], n);
   R[REG_SP] -= BYTES_PER_WORD;
   return ((mem_addr)R[REG_SP] + BYTES_PER_WORD);
 }
@@ -362,7 +362,7 @@ void delete_breakpoint(mem_addr addr) {
     if (b->addr == addr) {
       bkpt* n;
 
-      set_mem_inst(addr, b->inst);
+      mem_write_inst(addr, b->inst);
       if (p == NULL)
         bkpts = b->next;
       else
@@ -504,7 +504,7 @@ unsigned long strtoul(const char* str, char** eptr, int base) {
 }
 #endif
 
-char* str_copy(char* str) {
+char* str_copy(const char* str) {
   const int len_to_copy = (int)strlen(str) + 1;
   char* const new_str = (char*)xmalloc(len_to_copy);
   strlcpy(new_str, str, len_to_copy);

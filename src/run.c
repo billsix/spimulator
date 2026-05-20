@@ -228,7 +228,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 #endif
 
       exception_occurred = 0;
-      inst = read_mem_inst(PC);
+      inst = mem_read_inst(PC);
       if (exception_occurred) /* In reading instruction */
       {
         exception_occurred = 0;
@@ -469,28 +469,28 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         } break;
 
         case TOK_LB_OP:
-          LOAD_INST(&R[RT(inst)], read_mem_byte(R[BASE(inst)] + IOFFSET(inst)),
+          LOAD_INST(&R[RT(inst)], mem_read_byte(R[BASE(inst)] + IOFFSET(inst)),
                     0xffffffff);
           break;
 
         case TOK_LBU_OP:
-          LOAD_INST(&R[RT(inst)], read_mem_byte(R[BASE(inst)] + IOFFSET(inst)),
+          LOAD_INST(&R[RT(inst)], mem_read_byte(R[BASE(inst)] + IOFFSET(inst)),
                     0xff);
           break;
 
         case TOK_LH_OP:
-          LOAD_INST(&R[RT(inst)], read_mem_half(R[BASE(inst)] + IOFFSET(inst)),
+          LOAD_INST(&R[RT(inst)], mem_read_half(R[BASE(inst)] + IOFFSET(inst)),
                     0xffffffff);
           break;
 
         case TOK_LHU_OP:
-          LOAD_INST(&R[RT(inst)], read_mem_half(R[BASE(inst)] + IOFFSET(inst)),
+          LOAD_INST(&R[RT(inst)], mem_read_half(R[BASE(inst)] + IOFFSET(inst)),
                     0xffff);
           break;
 
         case TOK_LL_OP:
           /* Uniprocess, so this instruction is just a load */
-          LOAD_INST(&R[RT(inst)], read_mem_word(R[BASE(inst)] + IOFFSET(inst)),
+          LOAD_INST(&R[RT(inst)], mem_read_word(R[BASE(inst)] + IOFFSET(inst)),
                     0xffffffff);
           break;
 
@@ -499,7 +499,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
 
         case TOK_LW_OP:
-          LOAD_INST(&R[RT(inst)], read_mem_word(R[BASE(inst)] + IOFFSET(inst)),
+          LOAD_INST(&R[RT(inst)], mem_read_word(R[BASE(inst)] + IOFFSET(inst)),
                     0xffffffff);
           break;
 
@@ -517,7 +517,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           int byte = addr & 0x3;
           reg_word reg_val = R[RT(inst)];
 
-          word = read_mem_word(addr & 0xfffffffc);
+          word = mem_read_word(addr & 0xfffffffc);
           if (!exception_occurred)
 #ifdef SPIM_BIGENDIAN
             switch (byte) {
@@ -565,7 +565,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           int byte = addr & 0x3;
           reg_word reg_val = R[RT(inst)];
 
-          word = read_mem_word(addr & 0xfffffffc);
+          word = mem_read_word(addr & 0xfffffffc);
           if (!exception_occurred)
 #ifdef SPIM_BIGENDIAN
             switch (byte) {
@@ -753,12 +753,12 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
 
         case TOK_SB_OP:
-          set_mem_byte(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
+          mem_write_byte(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
           break;
 
         case TOK_SC_OP:
           /* Uniprocessor, so instruction is just a store */
-          set_mem_word(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
+          mem_write_word(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
           break;
 
         case TOK_SDC2_OP:
@@ -766,7 +766,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
 
         case TOK_SH_OP:
-          set_mem_half(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
+          mem_write_half(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
           break;
 
         case TOK_SLL_OP: {
@@ -879,7 +879,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
 
         case TOK_SW_OP:
-          set_mem_word(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
+          mem_write_word(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
           break;
 
         case TOK_SWC2_OP:
@@ -892,7 +892,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           reg_word reg = R[RT(inst)];
           int byte = addr & 0x3;
 
-          data = read_mem_word(addr & 0xfffffffc);
+          data = mem_read_word(addr & 0xfffffffc);
 #ifdef SPIM_BIGENDIAN
           switch (byte) {
             case 0:
@@ -930,7 +930,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
               break;
           }
 #endif
-          set_mem_word(addr & 0xfffffffc, data);
+          mem_write_word(addr & 0xfffffffc, data);
           break;
         }
 
@@ -940,7 +940,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           reg_word reg = R[RT(inst)];
           int byte = addr & 0x3;
 
-          data = read_mem_word(addr & 0xfffffffc);
+          data = mem_read_word(addr & 0xfffffffc);
 #ifdef SPIM_BIGENDIAN
           switch (byte) {
             case 0:
@@ -978,7 +978,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
               break;
           }
 #endif
-          set_mem_word(addr & 0xfffffffc, data);
+          mem_write_word(addr & 0xfffffffc, data);
           break;
         }
 
@@ -1256,16 +1256,16 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           if ((addr & 0x3) != 0)
             RAISE_EXCEPTION(ExcCode_AdEL, CP0_BadVAddr = addr);
 
-          LOAD_INST((reg_word*)&FPR_S(FT(inst)), read_mem_word(addr),
+          LOAD_INST((reg_word*)&FPR_S(FT(inst)), mem_read_word(addr),
                     0xffffffff);
           LOAD_INST((reg_word*)&FPR_S(FT(inst) + 1),
-                    read_mem_word(addr + sizeof(mem_word)), 0xffffffff);
+                    mem_read_word(addr + sizeof(mem_word)), 0xffffffff);
           break;
         }
 
         case TOK_LWC1_OP:
           LOAD_INST((reg_word*)&FPR_S(FT(inst)),
-                    read_mem_word(R[BASE(inst)] + IOFFSET(inst)), 0xffffffff);
+                    mem_read_word(R[BASE(inst)] + IOFFSET(inst)), 0xffffffff);
           break;
 
         case TOK_MFC1_OP: {
@@ -1385,8 +1385,8 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           if ((addr & 0x3) != 0)
             RAISE_EXCEPTION(ExcCode_AdEL, CP0_BadVAddr = addr);
 
-          set_mem_word(addr, *vp);
-          set_mem_word(addr + sizeof(mem_word), *(vp + 1));
+          mem_write_word(addr, *vp);
+          mem_write_word(addr + sizeof(mem_word), *(vp + 1));
           break;
         }
 
@@ -1410,7 +1410,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           float val = FPR_S(RT(inst));
           reg_word* vp = (reg_word*)&val;
 
-          set_mem_word(R[BASE(inst)] + IOFFSET(inst), *vp);
+          mem_write_word(R[BASE(inst)] + IOFFSET(inst), *vp);
           break;
         }
 

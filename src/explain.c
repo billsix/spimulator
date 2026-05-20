@@ -164,7 +164,7 @@ void explain_print_step_header(mem_addr pc, instruction* inst) {
  * from its libedit completion callback so a student can recall a hint
  * with Tab.
  *
- * Lifetime: strings are strdup'd at add time and freed by
+ * Lifetime: strings are str_copy'd at add time and freed by
  * explain_clear_suggestions. Storage is a fixed-cap array — 16 is a
  * comfortable ceiling (templates emit at most 3-4 hints).
  */
@@ -182,7 +182,7 @@ void explain_clear_suggestions(void) {
 
 static void add_suggestion(const char* cmd) {
   if (n_suggestions >= MAX_SUGGESTIONS) return;
-  char* copy = strdup(cmd);
+  char* copy = str_copy(cmd);
   if (copy != NULL) suggestions[n_suggestions++] = copy;
 }
 
@@ -404,7 +404,7 @@ static const struct pseudo_info* find_pseudo_in_source(const char* src) {
 static reg_word peek_word(mem_addr addr) {
   int se = exception_occurred;
   reg_word sbv = CP0_BadVAddr;
-  reg_word v = read_mem_word(addr);
+  reg_word v = mem_read_word(addr);
   exception_occurred = se;
   CP0_BadVAddr = sbv;
   return v;
@@ -413,7 +413,7 @@ static reg_word peek_word(mem_addr addr) {
 static reg_word peek_half(mem_addr addr) {
   int se = exception_occurred;
   reg_word sbv = CP0_BadVAddr;
-  reg_word v = read_mem_half(addr);
+  reg_word v = mem_read_half(addr);
   exception_occurred = se;
   CP0_BadVAddr = sbv;
   return v;
@@ -422,7 +422,7 @@ static reg_word peek_half(mem_addr addr) {
 static reg_word peek_byte(mem_addr addr) {
   int se = exception_occurred;
   reg_word sbv = CP0_BadVAddr;
-  reg_word v = read_mem_byte(addr);
+  reg_word v = mem_read_byte(addr);
   exception_occurred = se;
   CP0_BadVAddr = sbv;
   return v;

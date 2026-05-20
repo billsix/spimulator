@@ -126,7 +126,7 @@ static char* command_generator(const char* text, int state) {
   }
   while (spim_commands[idx] != NULL) {
     const char* s = spim_commands[idx++];
-    if (strncmp(s, text, text_len) == 0) return strdup(s);
+    if (strncmp(s, text, text_len) == 0) return str_copy(s);
   }
   return NULL;
 }
@@ -151,7 +151,7 @@ static char* suggestion_generator(const char* text, int state) {
     const char* tail = s;
     const char* space = strchr(s, ' ');
     if (space != NULL) tail = space + 1;
-    if (strncmp(tail, text, text_len) == 0) return strdup(tail);
+    if (strncmp(tail, text, text_len) == 0) return str_copy(tail);
   }
   return NULL;
 }
@@ -191,7 +191,7 @@ static bool line_is_label_command(void) {
 }
 
 /* Snapshot of label names taken on each Tab. The pointers point into
-   the symbol table's own storage (label->name), so we don't strdup —
+   the symbol table's own storage (label->name), so we don't str_copy —
    but we re-collect on every state==0 call in case the symbol table
    changed (e.g. after `reinit` + `load`). */
 static const char** label_names_cache = NULL;
@@ -224,7 +224,7 @@ static char* label_generator(const char* text, int state) {
   }
   while (idx < label_names_cache_n) {
     const char* s = label_names_cache[idx++];
-    if (strncmp(s, text, text_len) == 0) return strdup(s);
+    if (strncmp(s, text, text_len) == 0) return str_copy(s);
   }
   return NULL;
 }
@@ -972,11 +972,11 @@ static bool parse_spim_command(bool redo) {
       while ((t = read_token()) != TOK_NL && t != 0) {
         char* s = NULL;
         if (t == TOK_STR || t == TOK_ID) {
-          s = strdup((char*)scan_value.p);
+          s = str_copy((char*)scan_value.p);
         } else if (t == TOK_INT) {
           char buf[32];
           snprintf(buf, sizeof(buf), "%d", scan_value.i);
-          s = strdup(buf);
+          s = str_copy(buf);
         } else {
           continue;
         }
@@ -1117,7 +1117,7 @@ static bool parse_spim_command(bool redo) {
       dump_end = current_text_pc();
 
       for (addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
-        int32 code = inst_encode(read_mem_inst(addr));
+        int32 code = inst_encode(mem_read_inst(addr));
         if (cmd == DUMP_TEXT_CMD)
           code = (int32)htonl(
               (unsigned long)code); /* dump in network byte order */
@@ -1311,7 +1311,7 @@ static bool write_assembled_code(char* program_name) {
 
   (void)fprintf(fp, ".text # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
   for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
-    int32 code = inst_encode(read_mem_inst(addr));
+    int32 code = inst_encode(mem_read_inst(addr));
     (void)fprintf(fp, "0x%x%s", code,
                   addr != (dump_end - BYTES_PER_WORD) ? ", " : "");
   }
@@ -1329,7 +1329,7 @@ static bool write_assembled_code(char* program_name) {
   if (dump_end > dump_start) {
     (void)fprintf(fp, ".data # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
     for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
-      int32 code = read_mem_word(addr);
+      int32 code = mem_read_word(addr);
       (void)fprintf(fp, "0x%x%s", code,
                     addr != (dump_end - BYTES_PER_WORD) ? ", " : "");
     }
