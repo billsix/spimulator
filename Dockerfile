@@ -25,7 +25,6 @@ RUN sed -i -e "s@tsflags=nodocs@#tsflags=nodocs@g" /etc/dnf/dnf.conf && \
     dnf upgrade -y && \
     dnf install -y clang \
                    clang-tools-extra \
-                   g++ \
                    gcc \
                    gdb \
                    git \
@@ -58,7 +57,7 @@ COPY Documentation/   ${SPIM_SRC_DIR}/Documentation
 # default on Unix is also /usr/local, but spelling it out keeps the
 # Dockerfile self-documenting.
 RUN cd ${SPIM_SRC_DIR} && \
-    CC=clang CXX=clang++ meson setup ${SPIM_BUILD_DIR} \
+    CC=clang meson setup ${SPIM_BUILD_DIR} \
         --buildtype=debug \
         --prefix=${SPIM_PREFIX} \
         -Dwarning_level=3 \
