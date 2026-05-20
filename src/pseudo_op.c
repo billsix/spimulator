@@ -15,11 +15,11 @@
 #include "inst.h"
 #include "sym-tbl.h"       /* SYMBOL_IS_DEFINED */
 #include "tokens.h"        /* Y_*_OP, Y_*_POP token values */
-#include "hp_pseudo_op.h"
+#include "pseudo_op.h"
 
 extern int line_no;  /* from scanner */
-extern char* hp_erroneous_line(void);  /* from hp_scanner.c */
-extern char* hp_input_file_name_get(void);  /* from hp_parser.c */
+extern char* erroneous_line(void);  /* from scanner.c */
+extern char* input_file_name_get(void);  /* from parser.c */
 
 /* ------------------------------------------------------------------ *
  * Runtime-visible globals: parse-error counters.
@@ -38,8 +38,8 @@ int  parse_errors_seen   = 0;       /* cumulative errors across the file */
 void yywarn(char* s) {
   error("spim: (parser) %s on line %d of file %s\n%s",
         s, line_no,
-        hp_input_file_name_get() ? hp_input_file_name_get() : "(input)",
-        hp_erroneous_line());
+        input_file_name_get() ? input_file_name_get() : "(input)",
+        erroneous_line());
 }
 
 void yyerror(char* s) {
@@ -49,9 +49,7 @@ void yyerror(char* s) {
 }
 
 /* ------------------------------------------------------------------ *
- * imm_op_to_op: needed by src/inst.c's pseudo-op expander.  Identical
- * body to hp_imm_op_to_op below; keep them as separate symbols so the
- * inst.c call site doesn't have to learn about the hp_ namespace.
+ * imm_op_to_op: needed by src/inst.c's pseudo-op expander.
  * ------------------------------------------------------------------ */
 
 int imm_op_to_op(int opcode) {
@@ -81,19 +79,19 @@ extern void i_type_inst_free(int opcode, int rt, int rs, imm_expr* expr);
 extern imm_expr* const_imm_expr(int value);
 extern int32 eval_imm_expr(imm_expr* expr);
 
-void hp_nop_inst(void) {
+void nop_inst(void) {
   r_type_inst(Y_SLL_OP, 0, 0, 0);  /* sll $0, $0, 0 == 0x00000000 */
 }
 
-void hp_trap_inst(void) {
+void trap_inst(void) {
   r_type_inst(Y_BREAK_OP, 0, 0, 0);
 }
 
-imm_expr* hp_branch_offset(int n_inst) {
+imm_expr* branch_offset(int n_inst) {
   return const_imm_expr(n_inst << 2);  /* later shifted right 2 by the encoder */
 }
 
-int hp_op_to_imm_op(int opcode) {
+int op_to_imm_op(int opcode) {
   switch (opcode) {
     case Y_ADD_OP:  return Y_ADDI_OP;
     case Y_ADDU_OP: return Y_ADDIU_OP;
@@ -111,31 +109,11 @@ int hp_op_to_imm_op(int opcode) {
   }
 }
 
-int hp_imm_op_to_op(int opcode) {
-  switch (opcode) {
-    case Y_ADDI_OP:  return Y_ADD_OP;
-    case Y_ADDIU_OP: return Y_ADDU_OP;
-    case Y_ANDI_OP:  return Y_AND_OP;
-    case Y_ORI_OP:   return Y_OR_OP;
-    case Y_XORI_OP:  return Y_XOR_OP;
-    case Y_SLTI_OP:  return Y_SLT_OP;
-    case Y_SLTIU_OP: return Y_SLTU_OP;
-    case Y_J_OP:     return Y_JR_OP;
-    case Y_LUI_OP:   return Y_ADDU_OP;
-    case Y_SLL_OP:   return Y_SLLV_OP;
-    case Y_SRA_OP:   return Y_SRAV_OP;
-    case Y_SRL_OP:   return Y_SRLV_OP;
-    default:
-      fatal_error("Can't convert immediate op to op\n");
-      return 0;
-  }
-}
-
-void hp_div_inst(int op, int rd, int rs, int rt, int const_divisor) {
+void div_inst(int op, int rd, int rs, int rt, int const_divisor) {
   if (rd != 0 && !const_divisor) {
-    i_type_inst_free(Y_BNE_OP, 0, rt, hp_branch_offset(3));
-    hp_nop_inst();
-    hp_trap_inst();
+    i_type_inst_free(Y_BNE_OP, 0, rt, branch_offset(3));
+    nop_inst();
+    trap_inst();
   }
 
   if (op == Y_DIV_OP || op == Y_REM_POP)
@@ -153,7 +131,7 @@ void hp_div_inst(int op, int rd, int rs, int rt, int const_divisor) {
   }
 }
 
-void hp_mult_inst(int op, int rd, int rs, int rt) {
+void mult_inst(int op, int rd, int rs, int rt) {
   if (op == Y_MULOU_POP)
     r_type_inst(Y_MULTU_OP, 0, rs, rt);
   else
@@ -161,42 +139,42 @@ void hp_mult_inst(int op, int rd, int rs, int rt) {
 
   if (op == Y_MULOU_POP && rd != 0) {
     r_type_inst(Y_MFHI_OP, 1, 0, 0);  /* Use $at */
-    i_type_inst_free(Y_BEQ_OP, 0, 1, hp_branch_offset(3));
-    hp_nop_inst();
-    hp_trap_inst();
+    i_type_inst_free(Y_BEQ_OP, 0, 1, branch_offset(3));
+    nop_inst();
+    trap_inst();
   } else if (op == Y_MULO_POP && rd != 0) {
     r_type_inst(Y_MFHI_OP, 1, 0, 0);  /* use $at */
     r_type_inst(Y_MFLO_OP, rd, 0, 0);
     r_sh_type_inst(Y_SRA_OP, rd, rd, 31);
-    i_type_inst_free(Y_BEQ_OP, rd, 1, hp_branch_offset(3));
-    hp_nop_inst();
-    hp_trap_inst();
+    i_type_inst_free(Y_BEQ_OP, rd, 1, branch_offset(3));
+    nop_inst();
+    trap_inst();
   }
   if (rd != 0)
     r_type_inst(Y_MFLO_OP, rd, 0, 0);
 }
 
-void hp_set_le_inst(int op, int rd, int rs, int rt) {
-  i_type_inst_free(Y_BNE_OP, rs, rt, hp_branch_offset(3));
+void set_le_inst(int op, int rd, int rs, int rt) {
+  i_type_inst_free(Y_BNE_OP, rs, rt, branch_offset(3));
   i_type_inst_free(Y_ORI_OP, rd, 0, const_imm_expr(1));
-  i_type_inst_free(Y_BEQ_OP, 0, 0, hp_branch_offset(3));
-  hp_nop_inst();
+  i_type_inst_free(Y_BEQ_OP, 0, 0, branch_offset(3));
+  nop_inst();
   r_type_inst((op == Y_SLE_POP ? Y_SLT_OP : Y_SLTU_OP), rd, rs, rt);
 }
 
-void hp_set_gt_inst(int op, int rd, int rs, int rt) {
+void set_gt_inst(int op, int rd, int rs, int rt) {
   r_type_inst(op == Y_SGT_POP ? Y_SLT_OP : Y_SLTU_OP, rd, rt, rs);
 }
 
-void hp_set_ge_inst(int op, int rd, int rs, int rt) {
-  i_type_inst_free(Y_BNE_OP, rs, rt, hp_branch_offset(3));
+void set_ge_inst(int op, int rd, int rs, int rt) {
+  i_type_inst_free(Y_BNE_OP, rs, rt, branch_offset(3));
   i_type_inst_free(Y_ORI_OP, rd, 0, const_imm_expr(1));
-  i_type_inst_free(Y_BEQ_OP, 0, 0, hp_branch_offset(3));
-  hp_nop_inst();
+  i_type_inst_free(Y_BEQ_OP, 0, 0, branch_offset(3));
+  nop_inst();
   r_type_inst(op == Y_SGE_POP ? Y_SLT_OP : Y_SLTU_OP, rd, rt, rs);
 }
 
-void hp_set_eq_inst(int op, int rd, int rs, int rt) {
+void set_eq_inst(int op, int rd, int rs, int rt) {
   imm_expr *if_eq, *if_neq;
 
   if (op == Y_SEQ_POP) {
@@ -207,16 +185,16 @@ void hp_set_eq_inst(int op, int rd, int rs, int rt) {
     if_neq = const_imm_expr(1);
   }
 
-  i_type_inst_free(Y_BEQ_OP, rs, rt, hp_branch_offset(3));
+  i_type_inst_free(Y_BEQ_OP, rs, rt, branch_offset(3));
   /* RD <- 0 (if not equal) */
   i_type_inst_free(Y_ORI_OP, rd, 0, if_neq);
-  i_type_inst_free(Y_BEQ_OP, 0, 0, hp_branch_offset(3));  /* Branch always */
-  hp_nop_inst();
+  i_type_inst_free(Y_BEQ_OP, 0, 0, branch_offset(3));  /* Branch always */
+  nop_inst();
   /* RD <- 1 */
   i_type_inst_free(Y_ORI_OP, rd, 0, if_eq);
 }
 
-void hp_check_imm_range(imm_expr* expr, int32 min, int32 max) {
+void check_imm_range(imm_expr* expr, int32 min, int32 max) {
   if (expr->symbol == NULL || SYMBOL_IS_DEFINED(expr->symbol)) {
     /* If expression can be evaluated, compare against limits. */
     int32 value = eval_imm_expr(expr);
@@ -230,7 +208,7 @@ void hp_check_imm_range(imm_expr* expr, int32 min, int32 max) {
   }
 }
 
-void hp_check_uimm_range(imm_expr* expr, uint32 min, uint32 max) {
+void check_uimm_range(imm_expr* expr, uint32 min, uint32 max) {
   if (expr->symbol == NULL || SYMBOL_IS_DEFINED(expr->symbol)) {
     uint32 value = (uint32)eval_imm_expr(expr);
 

@@ -17,38 +17,38 @@
 #include "parser.h"
 #include "tokens.h"
 #include "spim-utils.h"
-#include "hp_parser.h"
-#include "hp_pseudo_op.h"
+#include "parser.h"
+#include "pseudo_op.h"
 
-extern int hp_scanner_peek(void);
-extern int hp_scanner_peek2(void);
-extern int hp_scanner_advance(void);
-extern void hp_scanner_init(FILE* in);
-extern void hp_scanner_start_line(void);
-extern void hp_scanner_force_identifier(void);
+extern int scanner_peek(void);
+extern int scanner_peek2(void);
+extern int scanner_advance(void);
+extern void scanner_init(FILE* in);
+extern void scanner_start_line(void);
+extern void scanner_force_identifier(void);
 
 /* ------- runtime-visible globals --------------------------- */
 
 bool data_dir = false;            /* => item in data segment */
 bool text_dir = true;             /* => item in text segment */
-/* parse_error_occurred / parse_errors_seen live in hp_pseudo_op.c
+/* parse_error_occurred / parse_errors_seen live in pseudo_op.c
    alongside the yyerror funnel that sets them; declared extern
    here for the parse_line tail. */
 extern bool parse_error_occurred;
 extern int  parse_errors_seen;
 
 /* Source file name, used by yyerror / yywarn for messages.  Exposed
-   via the accessor below so hp_pseudo_op.c can read it without
+   via the accessor below so pseudo_op.c can read it without
    needing the static directly. */
-static char* hp_input_file_name = NULL;
-char* hp_input_file_name_get(void) { return hp_input_file_name; }
-void hp_set_input_file_name(char* name) { hp_input_file_name = name; }
+static char* input_file_name = NULL;
+char* input_file_name_get(void) { return input_file_name; }
+void set_input_file_name(char* name) { input_file_name = name; }
 
 /* These globals control directive emission.  Local to this TU. */
 
-static bool hp_null_term;
-static void (*hp_store_op)(int);
-static void (*hp_store_fp_op)(double*);
+static bool null_term;
+static void (*store_op)(int);
+static void (*store_fp_op)(double*);
 
 /* Labels collected on the current line, flushed (resolved + freed)
    at line end.  The list persists across newlines until an ASM_CODE
@@ -56,31 +56,31 @@ static void (*hp_store_fp_op)(double*);
    from inside the directive) can retroactively update label
    addresses via fix_current_label_address. */
 
-typedef struct hp_label_cell {
+typedef struct label_cell {
   label* lab;
-  struct hp_label_cell* next;
-} hp_label_cell;
+  struct label_cell* next;
+} label_cell;
 
-static hp_label_cell* hp_this_line_labels = NULL;
+static label_cell* this_line_labels = NULL;
 
 /* Mirror of data.c's `enable_data_auto_alignment` static.
    Cleared by `.align 0`, set by `.data` / `.kdata`. */
-static bool hp_auto_align = true;
+static bool auto_align = true;
 
-static void hp_cons_label(label* l) {
-  hp_label_cell* c = (hp_label_cell*)xmalloc(sizeof(hp_label_cell));
+static void cons_label(label* l) {
+  label_cell* c = (label_cell*)xmalloc(sizeof(label_cell));
   c->lab = l;
-  c->next = hp_this_line_labels;
-  hp_this_line_labels = c;
+  c->next = this_line_labels;
+  this_line_labels = c;
 }
 
 /* Resolve and free. */
-static void hp_clear_labels(void) {
-  while (hp_this_line_labels != NULL) {
-    hp_label_cell* next = hp_this_line_labels->next;
-    resolve_label_uses(hp_this_line_labels->lab);
-    free(hp_this_line_labels);
-    hp_this_line_labels = next;
+static void clear_labels(void) {
+  while (this_line_labels != NULL) {
+    label_cell* next = this_line_labels->next;
+    resolve_label_uses(this_line_labels->lab);
+    free(this_line_labels);
+    this_line_labels = next;
   }
 }
 
@@ -90,12 +90,12 @@ static void hp_clear_labels(void) {
    alignment, so any labels recorded on the current line follow
    the PC to its aligned position. */
 void fix_current_label_address(mem_addr new_addr) {
-  for (hp_label_cell* c = hp_this_line_labels; c != NULL; c = c->next) {
+  for (label_cell* c = this_line_labels; c != NULL; c = c->next) {
     c->lab->addr = new_addr;
   }
 }
 /* Internal call sites kept under the old name to minimise churn. */
-#define hp_fix_line_labels fix_current_label_address
+#define fix_current_label_address fix_current_label_address
 
 /* External spim runtime functions */
 extern void r_type_inst(int opcode, int rd, int rs, int rt);
@@ -137,11 +137,11 @@ extern void flush_local_labels(int issue_undef_warning);
 
 /* ---------------- error helpers ---------------- */
 
-static void hp_yyerror(const char* msg) {
+static void parse_error_at(const char* msg) {
   parse_error_occurred = true;
   parse_errors_seen += 1;
   error("spim: (parser) %s on line %d of file %s\n",
-        msg, line_no, hp_input_file_name ? hp_input_file_name : "(stdin)");
+        msg, line_no, input_file_name ? input_file_name : "(stdin)");
 }
 
 /* Skip tokens up to (but NOT past) the next newline.  parse_line's
@@ -149,20 +149,20 @@ static void hp_yyerror(const char* msg) {
    outer loop pointing at the next line's first token and the
    newline check would mis-fire "Extra tokens after instruction"
    on every line that follows an ignored directive like `.set`. */
-static void hp_sync_to_nl(void) {
-  while (hp_scanner_peek() != Y_NL && hp_scanner_peek() != Y_EOF) {
-    hp_scanner_advance();
+static void sync_to_nl(void) {
+  while (scanner_peek() != Y_NL && scanner_peek() != Y_EOF) {
+    scanner_advance();
   }
 }
 
 /* Consume a token and assert it matches `expected`; on
    mismatch, emit an error and DON'T consume. */
-static bool hp_expect(int expected, const char* what) {
-  if (hp_scanner_peek() == expected) {
-    hp_scanner_advance();
+static bool expect(int expected, const char* what) {
+  if (scanner_peek() == expected) {
+    scanner_advance();
     return true;
   }
-  hp_yyerror(what);
+  parse_error_at(what);
   return false;
 }
 
@@ -170,47 +170,47 @@ static bool hp_expect(int expected, const char* what) {
 
 /* Y_REG → register number 0..31 */
 static int parse_register(void) {
-  if (hp_scanner_peek() == Y_REG) {
-    hp_scanner_advance();
+  if (scanner_peek() == Y_REG) {
+    scanner_advance();
     return yylval.i;
   }
-  hp_yyerror("Expected register");
+  parse_error_at("Expected register");
   return 0;
 }
 
 /* Y_FP_REG → FP register number 0..31 */
 static int parse_fp_register(void) {
-  if (hp_scanner_peek() == Y_FP_REG) {
-    hp_scanner_advance();
+  if (scanner_peek() == Y_FP_REG) {
+    scanner_advance();
     return yylval.i;
   }
-  hp_yyerror("Expected FP register");
+  parse_error_at("Expected FP register");
   return 0;
 }
 
 /* ABS_ADDR : Y_INT | Y_INT '+' Y_INT | Y_INT Y_INT (negative sub) */
 static int parse_abs_addr(void) {
-  if (hp_scanner_peek() != Y_INT) {
-    hp_yyerror("Expected integer");
+  if (scanner_peek() != Y_INT) {
+    parse_error_at("Expected integer");
     return 0;
   }
-  hp_scanner_advance();
+  scanner_advance();
   int v = yylval.i;
-  if (hp_scanner_peek() == '+') {
-    hp_scanner_advance();
-    if (hp_scanner_peek() != Y_INT) {
-      hp_yyerror("Expected integer after '+'");
+  if (scanner_peek() == '+') {
+    scanner_advance();
+    if (scanner_peek() != Y_INT) {
+      parse_error_at("Expected integer after '+'");
       return v;
     }
-    hp_scanner_advance();
+    scanner_advance();
     return v + yylval.i;
   }
   /* Y_INT Y_INT (with the second negative) is the historical
      subtraction handling — see scanner-parser-inventory Part 8F. */
-  if (hp_scanner_peek() == Y_INT) {
+  if (scanner_peek() == Y_INT) {
     /* peek the next value */
-    hp_scanner_advance();
-    if (yylval.i >= 0) hp_yyerror("Syntax error");
+    scanner_advance();
+    if (yylval.i >= 0) parse_error_at("Syntax error");
     return v - (-yylval.i);
   }
   return v;
@@ -223,18 +223,18 @@ extern void record_data_uses_symbol(mem_addr location, label* sym);
 
 static int parse_expr(void);  /* forward */
 static int parse_factor(void) {
-  if (hp_scanner_peek() == Y_INT) {
-    hp_scanner_advance();
+  if (scanner_peek() == Y_INT) {
+    scanner_advance();
     return yylval.i;
   }
-  if (hp_scanner_peek() == '(') {
-    hp_scanner_advance();
+  if (scanner_peek() == '(') {
+    scanner_advance();
     int v = parse_expr();
-    hp_expect(')', "Expected ')'");
+    expect(')', "Expected ')'");
     return v;
   }
-  if (hp_scanner_peek() == Y_ID) {
-    hp_scanner_advance();
+  if (scanner_peek() == Y_ID) {
+    scanner_advance();
     char* sym_name = (char*)yylval.p;
     label* l = lookup_label(sym_name);
     if (l->addr == 0) {
@@ -247,15 +247,15 @@ static int parse_factor(void) {
     free(sym_name);
     return addr;
   }
-  hp_yyerror("Expected expression");
+  parse_error_at("Expected expression");
   return 0;
 }
 
 /* TRM : FACTOR ( ('*'|'/') FACTOR )* */
 static int parse_term(void) {
   int v = parse_factor();
-  while (hp_scanner_peek() == '*' || hp_scanner_peek() == '/') {
-    int op = hp_scanner_advance();
+  while (scanner_peek() == '*' || scanner_peek() == '/') {
+    int op = scanner_advance();
     int r = parse_factor();
     if (op == '*') v *= r;
     else v = (r == 0) ? 0 : v / r;
@@ -266,8 +266,8 @@ static int parse_term(void) {
 /* EXPR : TRM ( ('+'|'-') TRM )* */
 static int parse_expr(void) {
   int v = parse_term();
-  while (hp_scanner_peek() == '+' || hp_scanner_peek() == '-') {
-    int op = hp_scanner_advance();
+  while (scanner_peek() == '+' || scanner_peek() == '-') {
+    int op = scanner_advance();
     int r = parse_term();
     if (op == '+') v += r;
     else          v -= r;
@@ -277,28 +277,28 @@ static int parse_expr(void) {
 
 /* EXPRESSION: like EXPR but with the only_id flag */
 static int parse_expression(void) {
-  hp_scanner_force_identifier();
+  scanner_force_identifier();
   return parse_expr();
 }
 
 /* IMM32 : ABS_ADDR | '(' ABS_ADDR ')' '>' '>' Y_INT
         | Y_ID | Y_ID '+' ABS_ADDR | Y_ID '-' ABS_ADDR */
 static imm_expr* parse_imm32(void) {
-  hp_scanner_force_identifier();
+  scanner_force_identifier();
   /* Y_ID lookahead: maybe followed by + or - */
-  if (hp_scanner_peek() == Y_ID) {
-    hp_scanner_advance();
+  if (scanner_peek() == Y_ID) {
+    scanner_advance();
     char* sym = (char*)yylval.p;
-    if (hp_scanner_peek() == '+') {
-      hp_scanner_advance();
+    if (scanner_peek() == '+') {
+      scanner_advance();
       int off = parse_abs_addr();
       imm_expr* r = make_imm_expr(off, sym, false);
       /* make_imm_expr copies sym internally, so free our local. */
       free(sym);
       return r;
     }
-    if (hp_scanner_peek() == '-') {
-      hp_scanner_advance();
+    if (scanner_peek() == '-') {
+      scanner_advance();
       int off = parse_abs_addr();
       imm_expr* r = make_imm_expr(-off, sym, false);
       free(sym);
@@ -307,18 +307,18 @@ static imm_expr* parse_imm32(void) {
     return make_imm_expr(0, sym, false);
     /* sym ownership passes to make_imm_expr; don't free */
   }
-  if (hp_scanner_peek() == '(') {
+  if (scanner_peek() == '(') {
     /* '(' ABS_ADDR ')' '>' '>' Y_INT */
-    hp_scanner_advance();
+    scanner_advance();
     int v = parse_abs_addr();
-    hp_expect(')', "Expected ')'");
-    hp_expect('>', "Expected '>'");
-    hp_expect('>', "Expected '>'");
-    if (hp_scanner_peek() != Y_INT) {
-      hp_yyerror("Expected integer after '>>'");
+    expect(')', "Expected ')'");
+    expect('>', "Expected '>'");
+    expect('>', "Expected '>'");
+    if (scanner_peek() != Y_INT) {
+      parse_error_at("Expected integer after '>>'");
       return make_imm_expr(0, NULL, false);
     }
-    hp_scanner_advance();
+    scanner_advance();
     int sh = yylval.i;
     return make_imm_expr(v >> sh, NULL, false);
   }
@@ -330,19 +330,19 @@ static imm_expr* parse_imm32(void) {
 /* IMM16, UIMM16 — IMM32 plus range check */
 static imm_expr* parse_imm16(void) {
   imm_expr* e = parse_imm32();
-  hp_check_imm_range(e, IMM_MIN, IMM_MAX);
+  check_imm_range(e, IMM_MIN, IMM_MAX);
   return e;
 }
 
 static imm_expr* parse_uimm16(void) {
   imm_expr* e = parse_imm32();
-  hp_check_uimm_range(e, UIMM_MIN, UIMM_MAX);
+  check_uimm_range(e, UIMM_MIN, UIMM_MAX);
   return e;
 }
 
 /* BR_IMM32 — like IMM32 but with only_id toggle */
 static imm_expr* parse_br_imm32(void) {
-  return parse_imm32();  /* hp_scanner_force_identifier already set inside */
+  return parse_imm32();  /* scanner_force_identifier already set inside */
 }
 
 /* LABEL — like ID but produces a PC-relative imm_expr suitable
@@ -352,11 +352,11 @@ static imm_expr* parse_br_imm32(void) {
    time, encoding the (target - branch_pc) displacement that
    MIPS branches require. */
 static imm_expr* parse_label(void) {
-  if (hp_scanner_peek() != Y_ID) {
-    hp_yyerror("Expected label");
+  if (scanner_peek() != Y_ID) {
+    parse_error_at("Expected label");
     return make_imm_expr(0, NULL, true);
   }
-  hp_scanner_advance();
+  scanner_advance();
   char* sym = (char*)yylval.p;
   imm_expr* r = make_imm_expr(-(int)current_text_pc(), sym, true);
   /* sym ownership: the original LABEL action does NOT free name
@@ -368,61 +368,61 @@ static imm_expr* parse_label(void) {
    the 25 shift-reduce conflicts collapse into one explicit
    lookahead. */
 static addr_expr* parse_address(void) {
-  hp_scanner_force_identifier();
+  scanner_force_identifier();
 
   /* '(' REGISTER ')' */
-  if (hp_scanner_peek() == '(') {
-    hp_scanner_advance();
+  if (scanner_peek() == '(') {
+    scanner_advance();
     int reg = parse_register();
-    hp_expect(')', "Expected ')' after register");
+    expect(')', "Expected ')' after register");
     return make_addr_expr(0, NULL, reg);
   }
 
   /* ABS_ADDR [ '(' REGISTER ')' ] */
-  if (hp_scanner_peek() == Y_INT) {
+  if (scanner_peek() == Y_INT) {
     int imm = parse_abs_addr();
-    if (hp_scanner_peek() == '+' && hp_scanner_peek2() == Y_ID) {
+    if (scanner_peek() == '+' && scanner_peek2() == Y_ID) {
       /* ABS_ADDR '+' ID */
-      hp_scanner_advance();  /* + */
-      hp_scanner_force_identifier();
-      hp_scanner_advance();
+      scanner_advance();  /* + */
+      scanner_force_identifier();
+      scanner_advance();
       char* sym = (char*)yylval.p;
       addr_expr* r = make_addr_expr(imm, sym, 0);
       return r;
     }
-    if (hp_scanner_peek() == '(') {
-      hp_scanner_advance();
+    if (scanner_peek() == '(') {
+      scanner_advance();
       int reg = parse_register();
-      hp_expect(')', "Expected ')'");
+      expect(')', "Expected ')'");
       return make_addr_expr(imm, NULL, reg);
     }
     return make_addr_expr(imm, NULL, 0);
   }
 
   /* Y_ID [ '+' ABS_ADDR | '-' ABS_ADDR ] [ '(' REGISTER ')' ] */
-  if (hp_scanner_peek() == Y_ID) {
-    hp_scanner_advance();
+  if (scanner_peek() == Y_ID) {
+    scanner_advance();
     char* sym = (char*)yylval.p;
     int off = 0;
-    if (hp_scanner_peek() == '+') {
-      hp_scanner_advance();
+    if (scanner_peek() == '+') {
+      scanner_advance();
       off = parse_abs_addr();
-    } else if (hp_scanner_peek() == '-') {
-      hp_scanner_advance();
+    } else if (scanner_peek() == '-') {
+      scanner_advance();
       off = -parse_abs_addr();
     }
     int reg = 0;
-    if (hp_scanner_peek() == '(') {
-      hp_scanner_advance();
+    if (scanner_peek() == '(') {
+      scanner_advance();
       reg = parse_register();
-      hp_expect(')', "Expected ')'");
+      expect(')', "Expected ')'");
     }
     addr_expr* r = make_addr_expr(off, sym, reg);
     free(sym);
     return r;
   }
 
-  hp_yyerror("Expected address");
+  parse_error_at("Expected address");
   return make_addr_expr(0, NULL, 0);
 }
 
@@ -465,7 +465,7 @@ static void parse_r3(int op) {
   if (op == Y_MUL_OP) {
     /* MULT_OPS3 DEST SRC1 (SRC2|IMM).  3-reg or 3-with-imm. Imm form uses $at + ori. */
     int rs = parse_register();
-    if (hp_scanner_peek() == Y_REG) {
+    if (scanner_peek() == Y_REG) {
       int rt = parse_register();
       r_type_inst(op, rd, rs, rt);
     } else {
@@ -478,7 +478,7 @@ static void parse_r3(int op) {
   if (op == Y_SUB_OP || op == Y_SUBU_OP) {
     /* SUB_OPS: 3-reg, 3-with-imm, or 2-with-imm.  Convert imm
        form to addi/addiu with negated value. */
-    if (hp_scanner_peek() != Y_REG) {
+    if (scanner_peek() != Y_REG) {
       imm_expr* imm = parse_imm32();
       int val = eval_imm_expr(imm);
       i_type_inst(op == Y_SUB_OP ? Y_ADDI_OP : Y_ADDIU_OP,
@@ -487,7 +487,7 @@ static void parse_r3(int op) {
       return;
     }
     int rs = parse_register();
-    if (hp_scanner_peek() == Y_REG) {
+    if (scanner_peek() == Y_REG) {
       int rt = parse_register();
       r_type_inst(op, rd, rs, rt);
     } else {
@@ -501,20 +501,20 @@ static void parse_r3(int op) {
   }
   if (op_has_imm_form(op)) {
     /* Two-operand form: <op> DEST, IMM */
-    if (hp_scanner_peek() != Y_REG) {
+    if (scanner_peek() != Y_REG) {
       imm_expr* imm = parse_imm32();
-      i_type_inst_free(hp_op_to_imm_op(op), rd, rd, imm);
+      i_type_inst_free(op_to_imm_op(op), rd, rd, imm);
       return;
     }
     int rs = parse_register();
     /* Three-operand form: <op> DEST, SRC1, SRC2 (reg) or
        <op> DEST, SRC1, IMM (immediate) */
-    if (hp_scanner_peek() == Y_REG) {
+    if (scanner_peek() == Y_REG) {
       int rt = parse_register();
       r_type_inst(op, rd, rs, rt);
     } else {
       imm_expr* imm = parse_imm32();
-      i_type_inst_free(hp_op_to_imm_op(op), rd, rs, imm);
+      i_type_inst_free(op_to_imm_op(op), rd, rs, imm);
     }
     return;
   }
@@ -533,11 +533,11 @@ static void parse_r2sh(int op) {
   }
   int rd = parse_register();
   int rs = parse_register();  /* this is rt in MIPS shift encoding */
-  if (hp_scanner_peek() != Y_INT) {
-    hp_yyerror("Expected integer shift amount");
+  if (scanner_peek() != Y_INT) {
+    parse_error_at("Expected integer shift amount");
     return;
   }
-  hp_scanner_advance();
+  scanner_advance();
   int sh = yylval.i;
   r_sh_type_inst(op, rd, rs, sh);
 }
@@ -555,7 +555,7 @@ static void parse_r1s(int op) {
 static void parse_i2(int op) {
   int rt = parse_register();
   int rs;
-  if (hp_scanner_peek() == Y_REG) {
+  if (scanner_peek() == Y_REG) {
     rs = parse_register();
   } else {
     rs = rt;
@@ -595,7 +595,7 @@ static void parse_i2a(int op) {
    which uses $at + ori to materialize the immediate, then beq/bne. */
 static void parse_b2(int op) {
   int src1 = parse_register();
-  if (hp_scanner_peek() == Y_REG) {
+  if (scanner_peek() == Y_REG) {
     int src2 = parse_register();
     imm_expr* target = parse_label();
     i_type_inst_free(op, src2, src1, target);
@@ -630,11 +630,11 @@ static void parse_b1(int op) {
    absolute-jump opcode; with a register argument we emit
    r_type_inst with the indirect-jump opcode. */
 static void parse_j(int op) {
-  if (hp_scanner_peek() == Y_REG) {
+  if (scanner_peek() == Y_REG) {
     /* J_OPS SRC1  or  J_OPS DEST SRC1 — register-indirect jump.
       */
     int r1 = parse_register();
-    if (hp_scanner_peek() == Y_REG) {
+    if (scanner_peek() == Y_REG) {
       /* DEST SRC1 form */
       int r2 = parse_register();
       if (op == Y_J_OP || op == Y_JR_OP)
@@ -662,13 +662,13 @@ static void parse_j(int op) {
 /* NOARG_TYPE_INST: <op>  (syscall) or <op> IMM (break N, sync N).
    See. */
 static void parse_noarg(int op) {
-  if (hp_scanner_peek() == Y_INT) {
+  if (scanner_peek() == Y_INT) {
     /* break N or sync N — encode the int in the rd slot.
        Bison: r_type_inst(op, $2.i, 0, 0). */
-    hp_scanner_advance();
+    scanner_advance();
     int n = yylval.i;
     if (op == Y_BREAK_OP && n == 1) {
-      hp_yyerror("Breakpoint 1 is reserved for debugger");
+      parse_error_at("Breakpoint 1 is reserved for debugger");
     }
     r_type_inst(op, n, 0, 0);
   } else {
@@ -682,9 +682,9 @@ static void parse_dir_data(bool kernel) {
   user_kernel_data_segment(kernel);
   data_dir = true; text_dir = false;
   enable_data_alignment();
-  hp_auto_align = true;   /* mirror data.c's enable_data_auto_alignment */
-  if (hp_scanner_peek() == Y_INT) {
-    hp_scanner_advance();
+  auto_align = true;   /* mirror data.c's enable_data_auto_alignment */
+  if (scanner_peek() == Y_INT) {
+    scanner_advance();
     set_data_pc(yylval.i);
   }
 }
@@ -692,34 +692,34 @@ static void parse_dir_data(bool kernel) {
 static void parse_dir_text(bool kernel) {
   user_kernel_text_segment(kernel);
   data_dir = false; text_dir = true;
-  if (hp_scanner_peek() == Y_INT) {
-    hp_scanner_advance();
+  if (scanner_peek() == Y_INT) {
+    scanner_advance();
     set_text_pc(yylval.i);
   }
 }
 
 static void parse_dir_globl(void) {
-  hp_scanner_force_identifier();
-  if (hp_scanner_peek() != Y_ID) {
-    hp_yyerror("Expected identifier after .globl");
+  scanner_force_identifier();
+  if (scanner_peek() != Y_ID) {
+    parse_error_at("Expected identifier after .globl");
     return;
   }
-  hp_scanner_advance();
+  scanner_advance();
   make_label_global((char*)yylval.p);
   free((char*)yylval.p);
 }
 
 static void parse_dir_align(void) {
   int v = parse_expression();
-  if (v == 0) hp_auto_align = false;   /* mirror data.c's flag */
+  if (v == 0) auto_align = false;   /* mirror data.c's flag */
   if (text_dir) align_text(v);
   else          align_data(v);
 }
 
 static void parse_dir_extern(void) {
-  hp_scanner_force_identifier();
-  if (hp_scanner_peek() != Y_ID) { hp_yyerror("Expected ID"); return; }
-  hp_scanner_advance();
+  scanner_force_identifier();
+  if (scanner_peek() != Y_ID) { parse_error_at("Expected ID"); return; }
+  scanner_advance();
   char* sym = (char*)yylval.p;
   int sz = parse_expression();
   make_label_global(sym);
@@ -731,9 +731,9 @@ static void parse_dir_extern(void) {
 }
 
 static void parse_dir_comm(void) {
-  hp_scanner_force_identifier();
-  if (hp_scanner_peek() != Y_ID) { hp_yyerror("Expected ID"); return; }
-  hp_scanner_advance();
+  scanner_force_identifier();
+  if (scanner_peek() != Y_ID) { parse_error_at("Expected ID"); return; }
+  scanner_advance();
   char* sym = (char*)yylval.p;
   int sz = parse_expression();
   align_data(2);
@@ -746,17 +746,17 @@ static void parse_dir_comm(void) {
 
 static void parse_dir_space(void) {
   int v = parse_expression();
-  if (text_dir) { hp_yyerror("Can't put data in text segment"); return; }
+  if (text_dir) { parse_error_at("Can't put data in text segment"); return; }
   increment_data_pc(v);
 }
 
-/* EXPR_LST: emit each expression value via hp_store_op */
+/* EXPR_LST: emit each expression value via store_op */
 static void parse_expr_list(void) {
   for (;;) {
     int v = parse_expression();
-    hp_store_op(v);
+    store_op(v);
     /* commas are skipped by the scanner; same with whitespace */
-    if (hp_scanner_peek() == Y_NL || hp_scanner_peek() == Y_EOF) break;
+    if (scanner_peek() == Y_NL || scanner_peek() == Y_EOF) break;
     /* Otherwise continue to next expression */
   }
 }
@@ -765,77 +765,77 @@ static void parse_expr_list(void) {
    address they'll occupy AFTER `set_data_alignment(N)` aligns
    the data PC.  `align_data` calls `fix_current_label_address` to align `this_line_labels`; we maintain our own and pre-fix here.
    Respects the same auto-align gate that data.c uses. */
-static void hp_align_labels_to(int alignment) {
-  if (!data_dir || !hp_auto_align || hp_this_line_labels == NULL) return;
+static void align_labels_to(int alignment) {
+  if (!data_dir || !auto_align || this_line_labels == NULL) return;
   mem_addr cur = current_data_pc();
   mem_addr aligned = (cur + (1u << alignment) - 1) & (~0u << alignment);
-  hp_fix_line_labels(aligned);
+  fix_current_label_address(aligned);
 }
 
-/* FP_EXPR_LST: consume Y_FP tokens, emit via hp_store_fp_op. */
+/* FP_EXPR_LST: consume Y_FP tokens, emit via store_fp_op. */
 static void parse_fp_expr_list(void) {
   for (;;) {
-    if (hp_scanner_peek() != Y_FP) {
-      hp_yyerror("Expected floating-point literal");
+    if (scanner_peek() != Y_FP) {
+      parse_error_at("Expected floating-point literal");
       return;
     }
-    hp_scanner_advance();
+    scanner_advance();
     double* val = (double*)yylval.p;
-    hp_store_fp_op(val);
-    if (hp_scanner_peek() == Y_NL || hp_scanner_peek() == Y_EOF) break;
+    store_fp_op(val);
+    if (scanner_peek() == Y_NL || scanner_peek() == Y_EOF) break;
   }
 }
 
 static void parse_dir_float(void) {
-  hp_align_labels_to(2);
-  hp_store_fp_op = store_float;
+  align_labels_to(2);
+  store_fp_op = store_float;
   if (data_dir) set_data_alignment(2);
   parse_fp_expr_list();
 }
 
 static void parse_dir_double(void) {
-  hp_align_labels_to(3);
-  hp_store_fp_op = store_double;
+  align_labels_to(3);
+  store_fp_op = store_double;
   if (data_dir) set_data_alignment(3);
   parse_fp_expr_list();
 }
 
 static void parse_dir_word(void)  {
-  hp_align_labels_to(2);
-  hp_store_op = store_word;
+  align_labels_to(2);
+  store_op = store_word;
   if (data_dir) set_data_alignment(2);
   parse_expr_list();
 }
 static void parse_dir_half(void)  {
-  hp_align_labels_to(1);
-  hp_store_op = store_half;
+  align_labels_to(1);
+  store_op = store_half;
   if (data_dir) set_data_alignment(1);
   parse_expr_list();
 }
-static void parse_dir_byte(void)  { hp_store_op = store_byte; parse_expr_list(); }
+static void parse_dir_byte(void)  { store_op = store_byte; parse_expr_list(); }
 
 /* STR_LST: emit each string via store_string */
 static void parse_string_list(void) {
   for (;;) {
-    if (hp_scanner_peek() != Y_STR) {
-      hp_yyerror("Expected string literal");
+    if (scanner_peek() != Y_STR) {
+      parse_error_at("Expected string literal");
       return;
     }
-    hp_scanner_advance();
+    scanner_advance();
     char* s = (char*)yylval.p;
     int len = (int)strlen(s);
     if (text_dir) {
-      hp_yyerror("Can't put data in text segment");
+      parse_error_at("Can't put data in text segment");
     } else {
-      store_string(s, len, hp_null_term);
+      store_string(s, len, null_term);
     }
     free(s);
-    if (hp_scanner_peek() == Y_NL || hp_scanner_peek() == Y_EOF) break;
+    if (scanner_peek() == Y_NL || scanner_peek() == Y_EOF) break;
   }
 }
 
-static void parse_dir_ascii(void)  { hp_null_term = false; parse_string_list(); }
-static void parse_dir_asciiz(void) { hp_null_term = true;  parse_string_list(); }
+static void parse_dir_ascii(void)  { null_term = false; parse_string_list(); }
+static void parse_dir_asciiz(void) { null_term = true;  parse_string_list(); }
 
 /* ---------------- top-level dispatch ---------------- */
 
@@ -905,7 +905,7 @@ static void parse_pseudo(int op) {
            DEST SRC1 IMM    — constant rotate */
       int rd = parse_register();
       int rs = parse_register();
-      if (hp_scanner_peek() == Y_REG) {
+      if (scanner_peek() == Y_REG) {
         int rt = parse_register();
         /* ROR: subu $at,$0,rt; sllv $at,$at,rs; srlv rd,rt,rs; or rd,rd,$at
            ROL: subu $at,$0,rt; srlv $at,$at,rs; sllv rd,rt,rs; or rd,rd,$at */
@@ -921,7 +921,7 @@ static void parse_pseudo(int op) {
       } else {
         imm_expr* imm = parse_imm32();
         long dist = eval_imm_expr(imm);
-        hp_check_imm_range(imm, 0, 31);
+        check_imm_range(imm, 0, 31);
         if (op == Y_ROR_POP) {
           r_sh_type_inst(Y_SLL_OP, 1, rs, -dist);
           r_sh_type_inst(Y_SRL_OP, rd, rs, dist);
@@ -946,7 +946,7 @@ static void parse_pseudo(int op) {
       int rd = parse_register();
       int rs = parse_register();
       int rt;
-      if (hp_scanner_peek() == Y_REG) {
+      if (scanner_peek() == Y_REG) {
         rt = parse_register();
       } else {
         imm_expr* imm = parse_imm32();
@@ -961,13 +961,13 @@ static void parse_pseudo(int op) {
       }
       switch (op) {
         case Y_SLE_POP:
-        case Y_SLEU_POP: hp_set_le_inst(op, rd, rs, rt); break;
+        case Y_SLEU_POP: set_le_inst(op, rd, rs, rt); break;
         case Y_SGT_POP:
-        case Y_SGTU_POP: hp_set_gt_inst(op, rd, rs, rt); break;
+        case Y_SGTU_POP: set_gt_inst(op, rd, rs, rt); break;
         case Y_SGE_POP:
-        case Y_SGEU_POP: hp_set_ge_inst(op, rd, rs, rt); break;
+        case Y_SGEU_POP: set_ge_inst(op, rd, rs, rt); break;
         case Y_SEQ_POP:
-        case Y_SNE_POP: hp_set_eq_inst(op, rd, rs, rt); break;
+        case Y_SNE_POP: set_eq_inst(op, rd, rs, rt); break;
       }
       break;
     }
@@ -979,13 +979,13 @@ static void parse_pseudo(int op) {
       if (rd != rs) {
         r_type_inst(Y_ADDU_OP, rd, 0, rs);
       }
-      i_type_inst_free(Y_BGEZ_OP, 0, rs, hp_branch_offset(3));
-      hp_nop_inst();
+      i_type_inst_free(Y_BGEZ_OP, 0, rs, branch_offset(3));
+      nop_inst();
       r_type_inst(Y_SUB_OP, rd, 0, rs);
       break;
     }
     case Y_NOP_POP: {
-      hp_nop_inst();
+      nop_inst();
       break;
     }
     case Y_REM_POP:
@@ -994,17 +994,17 @@ static void parse_pseudo(int op) {
         */
       int rd = parse_register();
       int rs = parse_register();
-      if (hp_scanner_peek() == Y_REG) {
+      if (scanner_peek() == Y_REG) {
         int rt = parse_register();
-        hp_div_inst(op, rd, rs, rt, 0);
+        div_inst(op, rd, rs, rt, 0);
       } else {
         imm_expr* imm = parse_imm32();
         extern bool is_zero_imm(imm_expr* expr);
         if (is_zero_imm(imm)) {
-          hp_yyerror("Divide by zero");
+          parse_error_at("Divide by zero");
         } else {
           i_type_inst_free(Y_ORI_OP, 1, 0, imm);
-          hp_div_inst(op, rd, rs, 1, 1);
+          div_inst(op, rd, rs, 1, 1);
         }
       }
       break;
@@ -1014,9 +1014,9 @@ static void parse_pseudo(int op) {
       /* mulo/mulou — MUL_POPS, 3-operand form.. */
       int rd = parse_register();
       int rs = parse_register();
-      if (hp_scanner_peek() == Y_REG) {
+      if (scanner_peek() == Y_REG) {
         int rt = parse_register();
-        hp_mult_inst(op, rd, rs, rt);
+        mult_inst(op, rd, rs, rt);
       } else {
         imm_expr* imm = parse_imm32();
         extern bool is_zero_imm(imm_expr* expr);
@@ -1025,7 +1025,7 @@ static void parse_pseudo(int op) {
           i_type_inst_free(Y_ORI_OP, rd, 0, imm);
         } else {
           i_type_inst_free(Y_ORI_OP, 1, 0, imm);
-          hp_mult_inst(op, rd, rs, 1);
+          mult_inst(op, rd, rs, 1);
         }
       }
       break;
@@ -1035,7 +1035,7 @@ static void parse_pseudo(int op) {
 */
       int reg = parse_register();
       int copreg;
-      if (hp_scanner_peek() == Y_FP_REG) copreg = parse_fp_register();
+      if (scanner_peek() == Y_FP_REG) copreg = parse_fp_register();
       else copreg = parse_register();
       r_co_type_inst(Y_MFC1_OP, 0, copreg, reg);
       r_co_type_inst(Y_MFC1_OP, 0, copreg + 1, reg + 1);
@@ -1046,7 +1046,7 @@ static void parse_pseudo(int op) {
 */
       int reg = parse_register();
       int copreg;
-      if (hp_scanner_peek() == Y_FP_REG) copreg = parse_fp_register();
+      if (scanner_peek() == Y_FP_REG) copreg = parse_fp_register();
       else copreg = parse_register();
       r_co_type_inst(Y_MTC1_OP, 0, copreg, reg);
       r_co_type_inst(Y_MTC1_OP, 0, copreg + 1, reg + 1);
@@ -1056,11 +1056,11 @@ static void parse_pseudo(int op) {
       /* li.d F_DEST <Y_FP>  →  load double-precision constant
          via two mtc1. */
       int fd = parse_fp_register();
-      if (hp_scanner_peek() != Y_FP) {
-        hp_yyerror("Expected FP literal");
+      if (scanner_peek() != Y_FP) {
+        parse_error_at("Expected FP literal");
         break;
       }
-      hp_scanner_advance();
+      scanner_advance();
       int* x = (int*)yylval.p;
       i_type_inst(Y_ORI_OP, 1, 0, const_imm_expr(*x));
       r_co_type_inst(Y_MTC1_OP, 0, fd, 1);
@@ -1072,11 +1072,11 @@ static void parse_pseudo(int op) {
       /* li.s F_DEST <Y_FP>  →  single-precision const via one mtc1
 */
       int fd = parse_fp_register();
-      if (hp_scanner_peek() != Y_FP) {
-        hp_yyerror("Expected FP literal");
+      if (scanner_peek() != Y_FP) {
+        parse_error_at("Expected FP literal");
         break;
       }
-      hp_scanner_advance();
+      scanner_advance();
       float fval = (float)*((double*)yylval.p);
       int* y = (int*)&fval;
       i_type_inst(Y_ORI_OP, 1, 0, const_imm_expr(*y));
@@ -1240,7 +1240,7 @@ static void parse_pseudo(int op) {
     case Y_BGT_POP:
     case Y_BGTU_POP: {
       int rs = parse_register();
-      if (hp_scanner_peek() == Y_REG) {
+      if (scanner_peek() == Y_REG) {
         int rt = parse_register();
         imm_expr* target = parse_label();
         r_type_inst(op == Y_BGT_POP ? Y_SLT_OP : Y_SLTU_OP, 1, rt, rs);
@@ -1255,7 +1255,7 @@ static void parse_pseudo(int op) {
           i_type_inst(Y_BEQ_OP, 0, 1, target);
         } else {
           i_type_inst(Y_ORI_OP, 1, 0, imm);
-          i_type_inst_free(Y_BEQ_OP, rs, 1, hp_branch_offset(3));
+          i_type_inst_free(Y_BEQ_OP, rs, 1, branch_offset(3));
           r_type_inst(Y_SLTU_OP, 1, rs, 1);
           i_type_inst(Y_BEQ_OP, 0, 1, target);
         }
@@ -1269,7 +1269,7 @@ static void parse_pseudo(int op) {
     case Y_BGE_POP:
     case Y_BGEU_POP: {
       int rs = parse_register();
-      if (hp_scanner_peek() == Y_REG) {
+      if (scanner_peek() == Y_REG) {
         int rt = parse_register();
         imm_expr* target = parse_label();
         r_type_inst(op == Y_BGE_POP ? Y_SLT_OP : Y_SLTU_OP, 1, rs, rt);
@@ -1288,7 +1288,7 @@ static void parse_pseudo(int op) {
     case Y_BLT_POP:
     case Y_BLTU_POP: {
       int rs = parse_register();
-      if (hp_scanner_peek() == Y_REG) {
+      if (scanner_peek() == Y_REG) {
         int rt = parse_register();
         imm_expr* target = parse_label();
         r_type_inst(op == Y_BLT_POP ? Y_SLT_OP : Y_SLTU_OP, 1, rs, rt);
@@ -1307,7 +1307,7 @@ static void parse_pseudo(int op) {
     case Y_BLE_POP:
     case Y_BLEU_POP: {
       int rs = parse_register();
-      if (hp_scanner_peek() == Y_REG) {
+      if (scanner_peek() == Y_REG) {
         int rt = parse_register();
         imm_expr* target = parse_label();
         r_type_inst(op == Y_BLE_POP ? Y_SLT_OP : Y_SLTU_OP, 1, rt, rs);
@@ -1332,14 +1332,14 @@ static void parse_pseudo(int op) {
     }
 
     default:
-      hp_yyerror("Pseudo-op not yet supported");
-      hp_sync_to_nl();
+      parse_error_at("Pseudo-op not yet supported");
+      sync_to_nl();
       break;
   }
 }
 
 static void parse_asm_code(void) {
-  int op = hp_scanner_advance();
+  int op = scanner_advance();
   int type = find_op_type(op);
 
   switch (type) {
@@ -1359,7 +1359,7 @@ static void parse_asm_code(void) {
          Y_REG or Y_FP_REG. */
       int reg = parse_register();
       int copreg;
-      if (hp_scanner_peek() == Y_FP_REG) {
+      if (scanner_peek() == Y_FP_REG) {
         copreg = parse_fp_register();
       } else {
         copreg = parse_register();
@@ -1381,11 +1381,11 @@ static void parse_asm_code(void) {
          Dispatch by operand count: count registers after the
          first one. */
       int r1 = parse_register();
-      if (hp_scanner_peek() != Y_REG && hp_scanner_peek() != Y_INT
-          && hp_scanner_peek() != Y_ID) {
+      if (scanner_peek() != Y_REG && scanner_peek() != Y_INT
+          && scanner_peek() != Y_ID) {
         /* Not enough operands?  Fall back to plain 2-form
            anyway — produces a syntax error if anything's wrong. */
-        hp_yyerror("Expected operand for div/mult");
+        parse_error_at("Expected operand for div/mult");
         break;
       }
       if (op == Y_TEQ_OP || op == Y_TGE_OP || op == Y_TGEU_OP
@@ -1397,21 +1397,21 @@ static void parse_asm_code(void) {
       } else if (op == Y_DIV_OP || op == Y_DIVU_OP) {
         /* DIV_POPS: can be 2-op (real hardware) or 3-op (pseudo) */
         int r2 = parse_register();
-        if (hp_scanner_peek() == Y_NL || hp_scanner_peek() == Y_EOF) {
+        if (scanner_peek() == Y_NL || scanner_peek() == Y_EOF) {
           /* 2-operand form: r_type_inst(op, 0, r1, r2)
              — note r1 is rs , r2 is rt (SRC1). */
           r_type_inst(op, 0, r1, r2);
-        } else if (hp_scanner_peek() == Y_REG) {
+        } else if (scanner_peek() == Y_REG) {
           int r3 = parse_register();
-          hp_div_inst(op, r1, r2, r3, 0);
+          div_inst(op, r1, r2, r3, 0);
         } else {
           imm_expr* imm = parse_imm32();
           extern bool is_zero_imm(imm_expr* expr);
           if (is_zero_imm(imm)) {
-            hp_yyerror("Divide by zero");
+            parse_error_at("Divide by zero");
           } else {
             i_type_inst_free(Y_ORI_OP, 1, 0, imm);
-            hp_div_inst(op, r1, r2, 1, 1);
+            div_inst(op, r1, r2, 1, 1);
             /* don't free imm again — i_type_inst_free already freed */
             break;
           }
@@ -1438,18 +1438,18 @@ static void parse_asm_code(void) {
          which uses op_to_imm_op for the shamt encoding. */
       int rd = parse_register();
       int rs = parse_register();
-      if (hp_scanner_peek() == Y_REG) {
+      if (scanner_peek() == Y_REG) {
         int rt = parse_register();
         r_type_inst(op, rd, rt, rs);
       } else {
         /* DEST SRC1 Y_INT → r_sh_type_inst(op_to_imm_op(op), DEST, SRC1, shamt) */
-        if (hp_scanner_peek() != Y_INT) {
-          hp_yyerror("Expected register or integer shift");
+        if (scanner_peek() != Y_INT) {
+          parse_error_at("Expected register or integer shift");
           break;
         }
-        hp_scanner_advance();
+        scanner_advance();
         int shamt = yylval.i;
-        r_sh_type_inst(hp_op_to_imm_op(op), rd, rs, shamt);
+        r_sh_type_inst(op_to_imm_op(op), rd, rs, shamt);
       }
       break;
     }
@@ -1475,8 +1475,8 @@ static void parse_asm_code(void) {
       int nd = opcode_is_nullified_branch(op) ? 1 : 0;
       int tf = opcode_is_true_branch(op) ? 1 : 0;
       int cc = 0;
-      if (hp_scanner_peek() == Y_INT) {
-        hp_scanner_advance();
+      if (scanner_peek() == Y_INT) {
+        scanner_advance();
         cc = yylval.i;
       }
       imm_expr* target = parse_label();
@@ -1490,8 +1490,8 @@ static void parse_asm_code(void) {
       int rd = parse_register();
       int rs = parse_register();
       int cc = 0;
-      if (hp_scanner_peek() == Y_INT) {
-        hp_scanner_advance();
+      if (scanner_peek() == Y_INT) {
+        scanner_advance();
         cc = yylval.i;
       }
       r_type_inst(op, rd, rs, (cc & 0x7) << 2);
@@ -1521,8 +1521,8 @@ static void parse_asm_code(void) {
            <op> F_SRC1 F_SRC2                   → cc=0
            <op> CC_REG F_SRC1 F_SRC2            → cc=Y_INT */
       int cc = 0;
-      if (hp_scanner_peek() == Y_INT) {
-        hp_scanner_advance();
+      if (scanner_peek() == Y_INT) {
+        scanner_advance();
         cc = yylval.i;
       }
       int fs = parse_fp_register();
@@ -1540,11 +1540,11 @@ static void parse_asm_code(void) {
          Disambiguate by inspecting the third operand. */
       int fd = parse_fp_register();
       int fs = parse_fp_register();
-      if (hp_scanner_peek() == Y_REG) {
+      if (scanner_peek() == Y_REG) {
         int rt = parse_register();
         r_co_type_inst(op, fd, fs, rt);
-      } else if (hp_scanner_peek() == Y_INT) {
-        hp_scanner_advance();
+      } else if (scanner_peek() == Y_INT) {
+        scanner_advance();
         int cc = yylval.i;
         r_co_type_inst(op, fd, fs, (cc & 0x7) << 2);
       } else {
@@ -1569,7 +1569,7 @@ static void parse_asm_code(void) {
          2574) — both name the coprocessor register number. */
       int reg = parse_register();
       int copreg;
-      if (hp_scanner_peek() == Y_FP_REG) {
+      if (scanner_peek() == Y_FP_REG) {
         copreg = parse_fp_register();
       } else {
         copreg = parse_register();
@@ -1578,8 +1578,8 @@ static void parse_asm_code(void) {
       break;
     }
     default:
-      hp_yyerror("Instruction not yet supported");
-      hp_sync_to_nl();
+      parse_error_at("Instruction not yet supported");
+      sync_to_nl();
       break;
   }
 }
@@ -1602,7 +1602,7 @@ static void parse_directive(int dir_tok) {
     case Y_ALIGN_DIR:    parse_dir_align();     break;
     case Y_COMM_DIR:     parse_dir_comm();      break;
     case Y_EXTERN_DIR:   parse_dir_extern();    break;
-    case Y_ERR_DIR:      hp_yyerror(".err directive"); break;
+    case Y_ERR_DIR:      parse_error_at(".err directive"); break;
     /* Metadata directives — swallow the rest of the line. */
     case Y_FILE_DIR:
     case Y_LOC_DIR:
@@ -1620,11 +1620,11 @@ static void parse_directive(int dir_tok) {
     case Y_ASM0_DIR:
     case Y_ALIAS_DIR:
     case Y_SET_DIR:
-      hp_sync_to_nl();
+      sync_to_nl();
       break;
     default:
-      hp_yyerror("Directive not yet supported");
-      hp_sync_to_nl();
+      parse_error_at("Directive not yet supported");
+      sync_to_nl();
       break;
   }
 }
@@ -1639,13 +1639,13 @@ static bool is_directive(int tok) {
 static void parse_opt_label(void) {
   /* The peek2 disambiguation already happened in parse_line.
      We know peek == Y_ID and peek2 == ':' or '='.  Don't call
-     hp_scanner_force_identifier here — the Y_ID was already
+     scanner_force_identifier here — the Y_ID was already
      classified at the peek site, so the flag would
      incorrectly affect a LATER token (e.g., misclassifying
      `buf: .word 42`'s `.word` as Y_ID). */
-  hp_scanner_advance();  /* consume Y_ID */
+  scanner_advance();  /* consume Y_ID */
   char* sym = (char*)yylval.p;
-  int sep = hp_scanner_advance();  /* ':' or '=' */
+  int sep = scanner_advance();  /* ':' or '=' */
 
   if (sep == ':') {
     label* l = record_label(sym,
@@ -1653,10 +1653,10 @@ static void parse_opt_label(void) {
                             0);
     /* Cons onto this_line_labels — DO NOT resolve uses
        immediately.  If a subsequent .word (etc.) on the next
-       line bumps the data PC for alignment, hp_fix_line_labels
+       line bumps the data PC for alignment, fix_current_label_address
        must be able to update this label's addr first.  Mirrors
        deferred-resolution behavior. */
-    hp_cons_label(l);
+    cons_label(l);
     free(sym);
   } else {
     /* ID '=' EXPR : constant label */
@@ -1670,65 +1670,65 @@ static void parse_opt_label(void) {
 /* LINE / LBL_CMD / CMD */
 static void parse_line(void) {
   /* Empty line? */
-  if (hp_scanner_peek() == Y_NL) {
-    hp_scanner_advance();
+  if (scanner_peek() == Y_NL) {
+    scanner_advance();
     return;
   }
-  if (hp_scanner_peek() == Y_EOF) {
+  if (scanner_peek() == Y_EOF) {
     return;
   }
 
   /* Look ahead for optional label */
-  if (hp_scanner_peek() == Y_ID
-      && (hp_scanner_peek2() == ':' || hp_scanner_peek2() == '=')) {
+  if (scanner_peek() == Y_ID
+      && (scanner_peek2() == ':' || scanner_peek2() == '=')) {
     parse_opt_label();
   }
 
   /* Then maybe directive or instruction */
-  int t = hp_scanner_peek();
-  if (t == Y_NL) { hp_scanner_advance(); return; }
+  int t = scanner_peek();
+  if (t == Y_NL) { scanner_advance(); return; }
   if (t == Y_EOF) { return; }
 
   if (is_directive(t)) {
-    int dt = hp_scanner_advance();
+    int dt = scanner_advance();
     parse_directive(dt);
-    hp_clear_labels();   /* clear labels after the directive */
+    clear_labels();   /* clear labels after the directive */
   } else {
     parse_asm_code();
-    hp_clear_labels();   /* clear labels after the instruction */
+    clear_labels();   /* clear labels after the instruction */
   }
 
   /* Expect newline or EOF */
   if (parse_error_occurred) {
-    hp_sync_to_nl();
-  } else if (hp_scanner_peek() == Y_NL) {
-    hp_scanner_advance();
-  } else if (hp_scanner_peek() != Y_EOF) {
-    hp_yyerror("Extra tokens after instruction");
-    hp_sync_to_nl();
+    sync_to_nl();
+  } else if (scanner_peek() == Y_NL) {
+    scanner_advance();
+  } else if (scanner_peek() != Y_EOF) {
+    parse_error_at("Extra tokens after instruction");
+    sync_to_nl();
   }
 }
 
 /* ---------------- public API ---------------- */
 
-void hp_initialize_parser(FILE* in, char* file_name) {
-  hp_scanner_init(in);
-  hp_input_file_name = file_name;
+void initialize_parser(FILE* in, char* file_name) {
+  scanner_init(in);
+  input_file_name = file_name;
   parse_errors_seen = 0;
   parse_error_occurred = false;
   data_dir = false;
   text_dir = true;
 }
 
-int hp_parse_file(void) {
-  while (hp_scanner_peek() != Y_EOF) {
+int parse_file(void) {
+  while (scanner_peek() != Y_EOF) {
     parse_error_occurred = false;
-    hp_scanner_start_line();
+    scanner_start_line();
     parse_line();
   }
   /* if the last lines were bare-label definitions, their uses
      need resolving here. */
-  hp_clear_labels();
+  clear_labels();
   return parse_errors_seen;
 }
 
@@ -1736,5 +1736,5 @@ int hp_parse_file(void) {
    removed the generated yyparse(); spim.c's `case ASM_CMD: yyparse();`
    now lands here. */
 int yyparse(void) {
-  return hp_parse_file();
+  return parse_file();
 }

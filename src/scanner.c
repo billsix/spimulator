@@ -57,16 +57,16 @@ int register_name_to_number(char* name) {
 /* --- keyword table ---------------------------------------- */
 /* Built from op.h's X-macro pattern. */
 
-static name_val_val hp_keyword_tbl[] = {
+static name_val_val keyword_tbl[] = {
 #undef OP
 #define OP(NAME, OPCODE, TYPE, R_OPCODE) {NAME, OPCODE, TYPE},
 #include "op.h"
 };
 
-static int hp_check_keyword(char* id, int allow_pseudo_ops) {
+static int check_keyword(char* id, int allow_pseudo_ops) {
   name_val_val* entry =
-    map_string_to_name_val_val(hp_keyword_tbl,
-                               sizeof(hp_keyword_tbl) / sizeof(name_val_val),
+    map_string_to_name_val_val(keyword_tbl,
+                               sizeof(keyword_tbl) / sizeof(name_val_val),
                                id);
   if (entry == NULL) return 0;
   if (!allow_pseudo_ops && entry->value2 == PSEUDO_OP) return 0;
@@ -102,9 +102,9 @@ typedef struct {
   int      type;
   yylval_t val;
   bool     present;
-} hp_token;
+} scan_token;
 
-static hp_token tok_buf[3];
+static scan_token tok_buf[3];
 
 /* Self-clearing flag: when set, the NEXT identifier token is
    classified as Y_ID even if it would otherwise be a keyword. */
@@ -112,7 +112,7 @@ static bool force_id_next = false;
 
 /* --- public API ------------------------------------------- */
 
-void hp_scanner_init(FILE* in) {
+void scanner_init(FILE* in) {
   input_file = in;
   line_pos = 0;
   line_len = 0;
@@ -123,11 +123,11 @@ void hp_scanner_init(FILE* in) {
   tok_buf[0].present = tok_buf[1].present = tok_buf[2].present = false;
 }
 
-void hp_scanner_start_line(void) {
+void scanner_start_line(void) {
   current_line_saved = false;
 }
 
-void hp_scanner_force_identifier(void) {
+void scanner_force_identifier(void) {
   force_id_next = true;
 }
 
@@ -209,7 +209,7 @@ static int scan_fp_check(void) {
   return p;
 }
 
-static int scan_fp(int sign, int end_pos, hp_token* out) {
+static int scan_fp(int sign, int end_pos, scan_token* out) {
   static double scratch;
   /* Copy literal text into a temp buffer for atof.  Replace any
      `,` or `'` separator with `.` since atof wants a `.`. */
@@ -233,7 +233,7 @@ static int scan_fp(int sign, int end_pos, hp_token* out) {
 /* Scan an integer literal (decimal or hex).  Leading optional
    '-' has already been consumed if signed.  Returns Y_INT with
    yylval.i set. */
-static int scan_int(int sign, hp_token* out) {
+static int scan_int(int sign, scan_token* out) {
   int value = 0;
   if (peek_char() == '0' && (peek_char2() == 'x' || peek_char2() == 'X')) {
     next_char(); next_char();  /* consume "0x" */
@@ -344,7 +344,7 @@ static char* decode_string(const char* src, int len) {
 }
 
 /* Scan an identifier or keyword.  Returns the appropriate token. */
-static int scan_identifier(hp_token* out, bool force_id) {
+static int scan_identifier(scan_token* out, bool force_id) {
   /* Capture the identifier text. */
   int start = line_pos;
   while (peek_char() == '_' || peek_char() == '.'
@@ -361,7 +361,7 @@ static int scan_identifier(hp_token* out, bool force_id) {
 
   /* Keyword lookup (unless force_id). */
   if (!force_id) {
-    int token = hp_check_keyword(id_buf,
+    int token = check_keyword(id_buf,
                                  !bare_machine && accept_pseudo_insts);
     if (token != 0) {
       out->type = token;
@@ -388,7 +388,7 @@ static int scan_identifier(hp_token* out, bool force_id) {
 }
 
 /* Scan a $register reference. */
-static int scan_register(hp_token* out) {
+static int scan_register(scan_token* out) {
   int start;
   next_char();  /* skip the $ */
   start = line_pos;
@@ -436,7 +436,7 @@ static int scan_register(hp_token* out) {
 
 /* Scan a string literal "...".  Returns Y_STR; yylval.p is a
    heap-allocated decoded copy. */
-static int scan_string(hp_token* out) {
+static int scan_string(scan_token* out) {
   next_char();  /* skip opening " */
   int start = line_pos;
   /* Find closing quote, respecting \" escapes. */
@@ -459,7 +459,7 @@ static int scan_string(hp_token* out) {
 
 /* Scan a char literal '...'.  Returns Y_INT with the character
    value in yylval.i. */
-static int scan_char(hp_token* out) {
+static int scan_char(scan_token* out) {
   next_char();  /* skip opening ' */
   int v;
   if (peek_char() == '\\') {
@@ -483,7 +483,7 @@ static int scan_char(hp_token* out) {
 
 /* The main scanner: produce one token into *out.  Skips
    whitespace and comments first. */
-static void scan_one_token(hp_token* out) {
+static void scan_one_token(scan_token* out) {
   /* Force-identifier flag is consumed by this call (one-shot). */
   bool force_id = force_id_next;
   force_id_next = false;
@@ -651,17 +651,17 @@ static void ensure_filled(int n) {
   }
 }
 
-int hp_scanner_peek(void) {
+int scanner_peek(void) {
   ensure_filled(1);
   return tok_buf[0].type;
 }
 
-int hp_scanner_peek2(void) {
+int scanner_peek2(void) {
   ensure_filled(2);
   return tok_buf[1].type;
 }
 
-int hp_scanner_advance(void) {
+int scanner_advance(void) {
   ensure_filled(1);
   int t = tok_buf[0].type;
   /* Only overwrite yylval for tokens that actually carry a value.
@@ -681,43 +681,26 @@ int hp_scanner_advance(void) {
   return t;
 }
 
-int hp_scanner_next(void) {
-  return hp_scanner_advance();
+int scanner_next(void) {
+  return scanner_advance();
 }
 
 /* --- compatibility wrappers for the REPL -------------------- *
  *
- * spim.c's REPL command tokenizer consumes individual tokens for
- * commands like "load 'foo.s'", "print $a0", "args 1 2 3".  It
- * uses the names below (yylex, push_scanner, pop_scanner,
- * initialize_scanner, initialize_parser) which predate the
- * scanner rewrite.  These are thin wrappers over the hp_*
- * primitives above.
+ * spim.c's REPL command tokenizer uses the bison-era names yylex,
+ * push_scanner, pop_scanner, initialize_scanner.  Thin wrappers
+ * here keep that surface stable.
  */
 
 void initialize_scanner(FILE* in_file) {
-  hp_scanner_init(in_file);
-}
-
-/* Set the file-name slot used by yywarn / yyerror.  Called at the
-   top of the REPL loop and before parsing assembly snippets;
-   doesn't touch scanner state. */
-void initialize_parser(char* file_name) {
-  extern char* hp_input_file_name_get(void);
-  /* Re-init the parser's file-name slot using the public API in
-     hp_parser.c.  hp_initialize_parser() resets too much (scanner
-     state, parse_errors_seen), so don't call it here — just set
-     the name. */
-  extern void hp_set_input_file_name(char* name);
-  hp_set_input_file_name(file_name);
-  (void)hp_input_file_name_get;
+  scanner_init(in_file);
 }
 
 /* Scanner-state stack for nested input sources.  spim.c's
    libedit REPL wraps each command line in a fmemopen FILE* and
    pushes it; parse_spim_command consumes tokens; then pop. */
 
-#define HP_STACK_DEPTH 8
+#define SCANNER_STACK_DEPTH 8
 typedef struct {
   FILE*  input_file;
   char   line_buf[LINE_BUF_MAX];
@@ -729,18 +712,18 @@ typedef struct {
   int    current_line_no_saved;
   bool   current_line_saved;
   bool   force_id_next;
-  hp_token tok_buf[3];
-} hp_scanner_snapshot;
+  scan_token tok_buf[3];
+} scanner_snapshot;
 
-static hp_scanner_snapshot hp_stack[HP_STACK_DEPTH];
-static int hp_stack_depth = 0;
+static scanner_snapshot scanner_stack[SCANNER_STACK_DEPTH];
+static int scanner_stack_depth = 0;
 
 void push_scanner(FILE* in_file) {
-  if (hp_stack_depth >= HP_STACK_DEPTH) {
+  if (scanner_stack_depth >= SCANNER_STACK_DEPTH) {
     fatal_error("push_scanner: nested scanner stack overflow\n");
     return;
   }
-  hp_scanner_snapshot* s = &hp_stack[hp_stack_depth++];
+  scanner_snapshot* s = &scanner_stack[scanner_stack_depth++];
   s->input_file = input_file;
   memcpy(s->line_buf, line_buf, sizeof(line_buf));
   s->line_pos = line_pos;
@@ -753,17 +736,17 @@ void push_scanner(FILE* in_file) {
   s->force_id_next         = force_id_next;
   memcpy(s->tok_buf, tok_buf, sizeof(tok_buf));
 
-  hp_scanner_init(in_file);
+  scanner_init(in_file);
 }
 
 void pop_scanner(void) {
-  if (hp_stack_depth <= 0) {
+  if (scanner_stack_depth <= 0) {
     /* No saved state — silently no-op; spim.c's SIGINT unwind path
        can fire pop without a matching push if the signal lands
        before push_scanner ran. */
     return;
   }
-  hp_scanner_snapshot* s = &hp_stack[--hp_stack_depth];
+  scanner_snapshot* s = &scanner_stack[--scanner_stack_depth];
   input_file = s->input_file;
   memcpy(line_buf, s->line_buf, sizeof(line_buf));
   line_pos = s->line_pos;
@@ -782,7 +765,7 @@ void pop_scanner(void) {
    relies on the 0-means-EOF contract — it calls exit(0) when
    yylex returns 0.  Map Y_EOF to 0 to preserve that. */
 int yylex(void) {
-  int t = hp_scanner_advance();
+  int t = scanner_advance();
   return (t == Y_EOF) ? 0 : t;
 }
 
@@ -790,16 +773,12 @@ int yylex(void) {
 
 /* Return a heap-allocated copy of the current source line, tab-
    indented and newline-terminated, for the parse-error printer. */
-char* hp_erroneous_line(void) {
+char* erroneous_line(void) {
   size_t len = strlen(current_line_buf);
   char* r = (char*)xmalloc((int)(len + 16));
   snprintf(r, len + 16, "\t  %s\n", current_line_buf);
   return r;
 }
-
-/* Public aliases (declared in scanner.h) for the runtime call sites
-   in inst.c, explain.c, and sym-tbl.c. */
-char* erroneous_line(void) { return hp_erroneous_line(); }
 
 /* source_line: return a heap-allocated copy of the current source
    line, prefixed with "NNN: " line number.  Used by inst.c to
@@ -812,5 +791,3 @@ char* source_line(void) {
   snprintf(r, len + 16, "%d: %s", current_line_no_saved, current_line_buf);
   return r;
 }
-
-void scanner_start_line(void) { hp_scanner_start_line(); }

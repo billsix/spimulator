@@ -48,7 +48,7 @@
 #include "mem.h"
 #include "scanner.h"
 #include "parser.h"
-#include "hp_parser.h"
+#include "parser.h"
 #include "tokens.h"
 #include "run.h"
 #include "sym-tbl.h"
@@ -186,8 +186,8 @@ bool read_assembly_file(char* name) {
     error("Cannot open file: `%s'\n", name);
     return false;
   } else {
-    hp_initialize_parser(file, name);
-    (void)hp_parse_file();
+    initialize_parser(file, name);
+    (void)parse_file();
     fclose(file);
     flush_local_labels(!parse_error_occurred);
     end_of_assembly_file();

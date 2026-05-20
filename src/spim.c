@@ -298,16 +298,14 @@ static int get_opt_int(void);
 static bool parse_spim_command(bool redo);
 static void print_reg(int reg_no);
 
-/* Hand-written scanner / parser surface used by the REPL.  These
-   names used to come from the flex/bison-generated headers (which
-   Phase 5 removed); now they're defined in src/hp_scanner.c and
-   src/hp_parser.c. */
+/* Scanner / parser surface used by the REPL.  Defined in
+   src/scanner.c and src/parser.c. */
 extern int yylex(void);
 extern int yyparse(void);
 extern void push_scanner(FILE* in_file);
 extern void pop_scanner(void);
 extern void initialize_scanner(FILE* in_file);
-extern void initialize_parser(char* file_name);
+extern void set_input_file_name(char* file_name);
 static int print_fp_reg(int reg_no);
 static int print_reg_from_string(char* reg);
 static void print_all_regs(int hex_flag);
@@ -599,7 +597,7 @@ _Noreturn static void top_level(void) {
 
   (void)signal(SIGINT, control_c_seen);
   initialize_scanner(stdin);
-  initialize_parser("<standard input>");
+  set_input_file_name("<standard input>");
 
 #ifdef HAVE_LIBEDIT
   /* Persistent REPL history at ~/.spimulator_history, the same idiom gdb,

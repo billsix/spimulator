@@ -47,9 +47,9 @@ source_files = files(
   'src/display-utils.c',
   'src/string-stream.c',
   'src/explain.c',
-  'src/hp_scanner.c',
-  'src/hp_parser.c',
-  'src/hp_pseudo_op.c'
+  'src/scanner.c',
+  'src/parser.c',
+  'src/pseudo_op.c'
 )
 
 spim_source_files = source_files + files('src/spim.c')
