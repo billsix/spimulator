@@ -15,17 +15,19 @@ add_project_arguments(
 
 
 # BSD-licensed line-editing library. Auto by default; gate with
-# -Dline_editing=disabled to skip on platforms where it isn't packaged
-# (e.g. Windows), or -Dline_editing=enabled to fail hard if missing.
+# -Dline_editing=disabled to skip if not packaged, or -Dline_editing=enabled
+# to fail hard if missing.
 libedit_dep = dependency('libedit', required: get_option('line_editing'))
 if libedit_dep.found()
   add_project_arguments('-DHAVE_LIBEDIT=1', language: 'c')
 endif
 
-# Platform-specific configuration
-if host_machine.system() == 'windows'
-  add_project_arguments('-x', 'c++', language: 'c')
-  add_project_arguments('-std=c++98', language: 'cpp')
+# Host endianness.  The simulator's mem_word is the host's int32_t, so
+# byte-extraction shifts in mem.c / data.c / run.c (LWL/LWR/SWL/SWR) depend
+# on the host's byte order.  Auto-detect rather than requiring the user to
+# pass -DSPIM_BIGENDIAN by hand.
+if host_machine.endian() == 'big'
+  add_project_arguments('-DSPIM_BIGENDIAN', language: 'c')
 endif
 
 
@@ -66,15 +68,9 @@ spim_source_files = source_files + files('src/spim.c')
 # Note: meson.current_build_dir() allows accessing generated files
 inc = include_directories('include')
 
-# Platform-specific libraries.  spim has no socket code, so Windows
-# only needs the standard runtime; Unix needs libm for the FP syscalls.
-if host_machine.system() == 'windows'
-  link_libraries = []
-else
-  link_libraries = [
-    meson.get_compiler('c').find_library('m')
-  ]
-endif
+link_libraries = [
+  meson.get_compiler('c').find_library('m')
+]
 
 # Executable
 spimulator_exe = executable('spimulator',

@@ -4,18 +4,11 @@
    SPDX-License-Identifier: BSD-3-Clause
    See LICENSE in the project root for full text. */
 
-#ifndef _WIN32
 #include <unistd.h>
-#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <sys/types.h>
-
-#ifdef _WIN32
-#include <io.h>
-#endif
 
 #include "spim.h"
 #include "string-stream.h"
@@ -25,57 +18,10 @@
 #include "sym-tbl.h"
 #include "syscall.h"
 
-#ifdef _WIN32
-/* Windows has an handler that is invoked when an invalid argument is passed to
-   a system call.
-   https://msdn.microsoft.com/en-us/library/a9yf33zb(v=vs.110).aspx
-
-   All good, except that the handler tries to invoke Watson and then kill spim
-   with an exception.
-
-   Override the handler to just report an error.
-*/
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <crtdbg.h>
-
-void myInvalidParameterHandler(const wchar_t* expression,
-                               const wchar_t* function, const wchar_t* file,
-                               unsigned int line, uintptr_t pReserved) {
-  if (function != nullptr) {
-    run_error("Bad parameter to system call: %s\n", function);
-  } else {
-    run_error("Bad parameter to system call\n");
-  }
-}
-
-static _invalid_parameter_handler oldHandler;
-
-void windowsParameterHandlingControl(int flag) {
-  static _invalid_parameter_handler oldHandler;
-  static _invalid_parameter_handler newHandler = myInvalidParameterHandler;
-
-  if (flag == 0) {
-    oldHandler = _set_invalid_parameter_handler(newHandler);
-    _CrtSetReportMode(_CRT_ASSERT,
-                      0);  // Disable the message box for assertions.
-  } else {
-    newHandler = _set_invalid_parameter_handler(oldHandler);
-    _CrtSetReportMode(_CRT_ASSERT,
-                      1);  // Enable the message box for assertions.
-  }
-}
-#endif
-
 /* Decides which syscall to execute or simulate.  Returns zero upon
    exit syscall and non-zero to continue execution. */
 
 int do_syscall(void) {
-#ifdef _WIN32
-  windowsParameterHandlingControl(0);
-#endif
-
   /* Syscalls for the source-language version of SPIM.  These are easier to
      use than the real syscall and are portable to non-MIPS operating
      systems. */
@@ -167,22 +113,14 @@ int do_syscall(void) {
       return (0);
 
     case OPEN_SYSCALL: {
-#ifdef _WIN32
-      R[REG_RES] = _open((char*)mem_reference(R[REG_A0]), R[REG_A1], R[REG_A2]);
-#else
       R[REG_RES] = open((char*)mem_reference(R[REG_A0]), R[REG_A1], R[REG_A2]);
-#endif
       break;
     }
 
     case READ_SYSCALL: {
       /* Test if address is valid */
       (void)mem_reference(R[REG_A1] + R[REG_A2] - 1);
-#ifdef _WIN32
-      R[REG_RES] = _read(R[REG_A0], mem_reference(R[REG_A1]), R[REG_A2]);
-#else
       R[REG_RES] = read(R[REG_A0], mem_reference(R[REG_A1]), R[REG_A2]);
-#endif
       data_modified = true;
       break;
     }
@@ -190,20 +128,12 @@ int do_syscall(void) {
     case WRITE_SYSCALL: {
       /* Test if address is valid */
       (void)mem_reference(R[REG_A1] + R[REG_A2] - 1);
-#ifdef _WIN32
-      R[REG_RES] = _write(R[REG_A0], mem_reference(R[REG_A1]), R[REG_A2]);
-#else
       R[REG_RES] = write(R[REG_A0], mem_reference(R[REG_A1]), R[REG_A2]);
-#endif
       break;
     }
 
     case CLOSE_SYSCALL: {
-#ifdef _WIN32
-      R[REG_RES] = _close(R[REG_A0]);
-#else
       R[REG_RES] = close(R[REG_A0]);
-#endif
       break;
     }
 
@@ -212,9 +142,6 @@ int do_syscall(void) {
       break;
   }
 
-#ifdef _WIN32
-  windowsParameterHandlingControl(1);
-#endif
   return (1);
 }
 

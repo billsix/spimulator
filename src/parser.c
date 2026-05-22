@@ -411,7 +411,7 @@ static bool op_has_imm_form(int op) {
 SUB_OPS (sub, subu) similarly accept an
    immediate, converted to addi/addiu with a negated value
 */
-extern int32 eval_imm_expr(imm_expr* expr);
+extern int32_t eval_imm_expr(imm_expr* expr);
 
 static void parse_r3(int op) {
   int rd = parse_register();

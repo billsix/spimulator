@@ -15,7 +15,7 @@
 
 /* Type of contents of a memory word — 32 bits on MIPS regardless of host. */
 
-typedef int32 /*@alt unsigned int @*/ mem_word;
+typedef int32_t mem_word;
 static_assert(sizeof(mem_word) == BYTES_PER_WORD,
               "mem_word must be exactly one MIPS word wide");
 
@@ -41,9 +41,7 @@ extern bool data_modified; /* => a data segment was written */
 
 extern short* data_seg_h; /* Points to same vector as DATA_SEG */
 
-#define BYTE_TYPE signed char
-
-extern BYTE_TYPE* data_seg_b; /* Ditto */
+extern int8_t* data_seg_b; /* Ditto */
 
 #define DATA_BOT ((mem_addr)0x10000000)
 
@@ -57,7 +55,7 @@ extern mem_word* stack_seg;
 
 extern short* stack_seg_h; /* Points to same vector as STACK_SEG */
 
-extern BYTE_TYPE* stack_seg_b; /* Ditto */
+extern int8_t* stack_seg_b; /* Ditto */
 
 extern mem_addr stack_bot;
 
@@ -79,7 +77,7 @@ extern mem_word* k_data_seg;
 
 extern short* k_data_seg_h;
 
-extern BYTE_TYPE* k_data_seg_b;
+extern int8_t* k_data_seg_b;
 
 #define K_DATA_BOT ((mem_addr)0x90000000)
 

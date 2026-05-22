@@ -224,8 +224,8 @@ static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc) {
 
     if (EXPR(inst)->symbol == nullptr ||
         SYMBOL_IS_DEFINED(EXPR(inst)->symbol)) {
-      int32 value;
-      int32 field_mask;
+      int32_t value;
+      int32_t field_mask;
 
       if (opcode_is_branch(OPCODE(inst))) {
         int val;
@@ -286,8 +286,8 @@ static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc) {
         field_mask = 0xffff;
       }
 
-      if ((value & ~field_mask) != (int32)0 &&
-          (value & ~field_mask) != (int32)0xffff0000) {
+      if ((value & ~field_mask) != (int32_t)0 &&
+          (value & ~field_mask) != (int32_t)0xffff0000) {
         error("Immediate value is too large for field: ");
         print_inst(pc);
       }

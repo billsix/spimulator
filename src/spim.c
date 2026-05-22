@@ -5,26 +5,17 @@
 
 #include "config.h"
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 #include <stdio.h>
 #include <ctype.h>
 #include <setjmp.h>
 #include <signal.h>
-#ifndef WIN32
 #include <arpa/inet.h>
-#else
-#include <winsock.h>
-#include <io.h>
-#endif
 
 #include <sys/types.h>
-#ifndef WIN32
 #include <sys/select.h>
 #include <sys/time.h>
 #include <termios.h>
-#endif
 
 #include <stdarg.h>
 
@@ -290,9 +281,7 @@ int spim_return_value; /* Value returned when spim exits */
 static bool load_exception_handler = true;
 static int console_state_saved;
 
-#ifndef WIN32
 static struct termios saved_console_state;
-#endif
 static int program_argc;
 static char** program_argv;
 static bool dump_user_segments = false;
@@ -325,11 +314,6 @@ int main(int argc, char** argv) {
     exception_file_name = getenv("SPIM_EXCEPTION_HANDLER");
 
   for (i = 1; i < argc; i++) {
-#ifdef WIN32
-    if (argv[i][0] == '/') {
-      argv[i][0] = '-';
-    }
-#endif
     if (streq(argv[i], "-asm") || streq(argv[i], "-a")) {
       bare_machine = false;
       delayed_branches = false;
@@ -1065,9 +1049,9 @@ static bool parse_spim_command(bool redo) {
       dump_end = current_text_pc();
 
       for (addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
-        int32 code = inst_encode(mem_read_inst(addr));
+        int32_t code = inst_encode(mem_read_inst(addr));
         if (cmd == DUMP_TEXT_CMD)
-          code = (int32)htonl(
+          code = (int32_t)htonl(
               (unsigned long)code); /* dump in network byte order */
         (void)fwrite(&code, 1, sizeof(code), fp);
         words += 1;
@@ -1259,7 +1243,7 @@ static bool write_assembled_code(char* program_name) {
 
   (void)fprintf(fp, ".text # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
   for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
-    int32 code = inst_encode(mem_read_inst(addr));
+    int32_t code = inst_encode(mem_read_inst(addr));
     (void)fprintf(fp, "0x%x%s", code,
                   addr != (dump_end - BYTES_PER_WORD) ? ", " : "");
   }
@@ -1277,7 +1261,7 @@ static bool write_assembled_code(char* program_name) {
   if (dump_end > dump_start) {
     (void)fprintf(fp, ".data # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
     for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
-      int32 code = mem_read_word(addr);
+      int32_t code = mem_read_word(addr);
       (void)fprintf(fp, "0x%x%s", code,
                     addr != (dump_end - BYTES_PER_WORD) ? ", " : "");
     }
@@ -1294,12 +1278,7 @@ void error(char* fmt, ...) {
   va_list args;
 
   va_start(args, fmt);
-
-#ifdef NEED_VFPRINTF
-  _doprnt(fmt, args, stderr);
-#else
   vfprintf(stderr, fmt, args);
-#endif
   va_end(args);
 }
 
@@ -1309,12 +1288,7 @@ void fatal_error(char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
   fmt = va_arg(args, char*);
-
-#ifdef NEED_VFPRINTF
-  _doprnt(fmt, args, stderr);
-#else
   vfprintf(stderr, fmt, args);
-#endif
   exit(-1);
 }
 
@@ -1327,11 +1301,7 @@ _Noreturn void run_error(char* fmt, ...) {
 
   console_to_spim();
 
-#ifdef NEED_VFPRINTF
-  _doprnt(fmt, args, stderr);
-#else
   vfprintf(stderr, fmt, args);
-#endif
   va_end(args);
   longjmp(spim_top_level_env, 1);
 }
@@ -1352,18 +1322,10 @@ void write_output(port fp, char* fmt, ...) {
   }
 
   if (f != 0) {
-#ifdef NEED_VFPRINTF
-    _doprnt(fmt, args, f);
-#else
     vfprintf(f, fmt, args);
-#endif
     fflush(f);
   } else {
-#ifdef NEED_VFPRINTF
-    _doprnt(fmt, args, stdout);
-#else
     vfprintf(stdout, fmt, args);
-#endif
     fflush(stdout);
   }
   va_end(args);
@@ -1438,11 +1400,9 @@ static void console_to_program(void) {
 /* Return the console to SPIM. */
 
 static void console_to_spim(void) {
-#ifndef WIN32
   if (mapped_io && console_state_saved)
     tcsetattr(console_in.i, TCSANOW, &saved_console_state);
   console_state_saved = 0;
-#endif
 }
 
 int console_input_available(void) {

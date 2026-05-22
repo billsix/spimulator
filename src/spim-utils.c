@@ -119,11 +119,11 @@ void write_startup_message(void) {
 }
 
 void initialize_registers(void) {
-  memclr(FPR, FPR_LENGTH * sizeof(double));
+  memset(FPR, 0, FPR_LENGTH * sizeof(double));
   FGR = (float*)FPR;
   FWR = (int*)FPR;
 
-  memclr(R, R_LENGTH * sizeof(reg_word));
+  memset(R, 0, R_LENGTH * sizeof(reg_word));
   R[REG_SP] = STACK_TOP - BYTES_PER_WORD - 4096; /* Initialize $sp */
   HI = LO = 0;
   PC = 0;
@@ -206,10 +206,6 @@ void initialize_stack(const char* command_line) {
 }
 
 /* Initialize the SPIM stack with ARGC, ARGV, and ENVP data. */
-
-#ifdef _MSC_VER
-#define environ _environ
-#endif
 
 void initialize_run_stack(int argc, char** argv) {
   char** p;
@@ -421,58 +417,6 @@ name_val_val* map_int_to_name_val_val(name_val_val tbl[], int tbl_len,
   return nullptr;
 }
 
-#ifdef NEED_VSPRINTF
-char* vsprintf(str, fmt, args)
-char *str, *fmt;
-va_list* args;
-{
-  FILE _strbuf;
-
-  _strbuf._flag = _IOWRT + _IOSTRG;
-  _strbuf._ptr = str;
-  _strbuf._cnt = 32767;
-  _doprnt(fmt, args, &_strbuf);
-  putc('\0', &_strbuf);
-  return (str);
-}
-#endif
-
-#ifdef NEED_STRTOL
-unsigned long strtol(const char* str, const char** eptr, int base) {
-  long result;
-
-  if (base != 0 && base != 16)
-    fatal_error("SPIM's strtol only works for base 16 (not base %d)\n", base);
-  if (*str == '0' && (*(str + 1) == 'x' || *(str + 1) == 'X')) {
-    str += 2;
-    sscanf(str, "%lx", &result);
-  } else if (base == 16) {
-    sscanf(str, "%lx", &result);
-  } else {
-    sscanf(str, "%ld", &result);
-  }
-  return (result);
-}
-#endif
-
-#ifdef NEED_STRTOUL
-unsigned long strtoul(const char* str, char** eptr, int base) {
-  unsigned long result;
-
-  if (base != 0 && base != 16)
-    fatal_error("SPIM's strtoul only works for base 16 (not base %d)\n", base);
-  if (*str == '0' && (*(str + 1) == 'x' || *(str + 1) == 'X')) {
-    str += 2;
-    sscanf(str, "%lx", &result);
-  } else if (base == 16) {
-    sscanf(str, "%lx", &result);
-  } else {
-    sscanf(str, "%ld", &result);
-  }
-  return (result);
-}
-#endif
-
 char* str_copy(const char* str) {
   const int len_to_copy = (int)strlen(str) + 1;
   char* const new_str = (char*)xmalloc(len_to_copy);
@@ -494,6 +438,6 @@ void* zmalloc(int size) {
 
   if (z == 0) fatal_error("Out of memory at request for %d bytes.\n");
 
-  memclr(z, size);
+  memset(z, 0, size);
   return (z);
 }
