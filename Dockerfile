@@ -25,7 +25,9 @@ COPY entrypoint/shell.sh /usr/local/bin
 
 
 
-RUN sed -i -e "s@tsflags=nodocs@#tsflags=nodocs@g" /etc/dnf/dnf.conf && \
+RUN --mount=type=cache,target=/var/cache/libdnf5 \
+    --mount=type=cache,target=/var/lib/dnf \
+    sed -i -e "s@tsflags=nodocs@#tsflags=nodocs@g" /etc/dnf/dnf.conf && \
     echo "keepcache=True" >> /etc/dnf/dnf.conf && \
     dnf upgrade -y && \
     dnf install -y clang \
@@ -85,7 +87,9 @@ RUN meson test -C ${SPIM_BUILD_DIR} --print-errorlogs
 # load path, so M-x mips-spim-ts-mode (auto-bound to .s/.asm/.mips)
 # just works inside the container.
 COPY tree-sitter/ ${SPIM_SRC_DIR}/tree-sitter
-RUN if [ "$BUILD_TREE_SITTER" = "1" ]; then \
+RUN --mount=type=cache,target=/var/cache/libdnf5 \
+    --mount=type=cache,target=/var/lib/dnf \
+    if [ "$BUILD_TREE_SITTER" = "1" ]; then \
       dnf install -y nodejs npm && \
       cd ${SPIM_SRC_DIR}/tree-sitter && \
       npm install && \
