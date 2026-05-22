@@ -113,6 +113,8 @@ regression_tests = [
   'explain', 'explain_parity',
   # Assemble-time event trace (Phase 1 of parse-tree migration)
   'listing',
+  # AST parser parity + print-ast (Phase 2d)
+  'ast_parity', 'print_ast',
 ]
 
 foreach name : regression_tests

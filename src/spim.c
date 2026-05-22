@@ -505,6 +505,16 @@ int main(int argc, char** argv) {
       break;
     } else if (streq(argv[i], "-assemble")) {
       assemble = true;
+    } else if (streq(argv[i], "-parser=ast")) {
+      parser_set_mode(PARSE_AST);
+    } else if (streq(argv[i], "-parser=sdt")) {
+      parser_set_mode(PARSE_DIRECT);
+    } else if (streq(argv[i], "-print-ast")) {
+      /* Build the AST, dump it to stderr, and skip the emit phase so
+         spim doesn't commit anything to memory.  Implies AST mode. */
+      parser_set_mode(PARSE_AST);
+      parser_set_print_ast(true, stderr);
+      parser_set_print_ast_only(true);
     } else if (streq(argv[i], "-listing")) {
       if (i + 1 >= argc) {
         error("\n-listing requires a filename argument\n");
@@ -557,6 +567,8 @@ int main(int argc, char** argv) {
 	-file <file> <args>	Assembly code file and arguments to program\n\
 	-assemble		Write assembled code to <file>.out\n\
 	-listing <file>		Write assemble-time event trace to <file> (use - for stderr)\n\
+	-parser=ast|sdt		Choose parser mode (sdt default; ast also builds an AST as a side effect)\n\
+	-print-ast		Parse to AST, print it to stderr, and exit without emitting any code\n\
 	-dump			Write user data and text segments into files\n\
 	-full_dump		Write user and kernel data and text into files.\n");
   }
@@ -580,6 +592,12 @@ int main(int argc, char** argv) {
        tell that the build failed. */
     if (parse_errors_seen > 0) {
       return spim_return_value != 0 ? spim_return_value : 2;
+    }
+
+    /* -print-ast: AST already dumped in parse_file; nothing was
+       emitted to memory.  Exit cleanly. */
+    if (parser_get_print_ast_only()) {
+      return 0;
     }
 
     if (assemble) {

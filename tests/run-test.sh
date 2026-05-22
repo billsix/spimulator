@@ -126,6 +126,31 @@ case "$NAME" in
       || fail "data.asm differs between explain=0 and explain=2"
     ;;
 
+  ast_parity)
+    # SDT and AST (tee) modes should call the action helpers in
+    # identical order with identical arguments — the -listing output
+    # is the diff oracle.  Diff the two traces against each other on
+    # the same input file.
+    lst_sdt=$(mktemp); lst_ast=$(mktemp)
+    trap 'rm -f "$out" "$lst_sdt" "$lst_ast"' EXIT
+    "$SPIM" -exception_file "$EF" -parser=sdt -listing "$lst_sdt" \
+      -f tt.listing.s >"$out" 2>&1
+    "$SPIM" -exception_file "$EF" -parser=ast -listing "$lst_ast" \
+      -f tt.listing.s >"$out" 2>&1
+    diff -q "$lst_sdt" "$lst_ast" > /dev/null \
+      || fail "listing differs between SDT and AST modes"
+    ;;
+  print_ast)
+    # -print-ast: AST gets dumped to stderr, exit 0, no emit.
+    "$SPIM" -noexception -print-ast -f tt.listing.s >/dev/null 2>"$out"; rc=$?
+    [ "$rc" = "0" ] || fail "expected exit=0, got exit=$rc"
+    grep -q "FILE source=" "$out" || fail "AST output missing FILE header"
+    grep -q "DATA_BYTE count=1 values=\[66\]" "$out" \
+      || fail "AST output missing data byte node"
+    grep -q "INST_J op=" "$out" || fail "AST output missing J-type node"
+    grep -q "LABEL_DEF name=target" "$out" \
+      || fail "AST output missing target label"
+    ;;
   listing)
     # -listing FILE: produces an assemble-time event trace.  Verify each
     # event kind we instrumented fires for tt.listing.s.  Greps for
