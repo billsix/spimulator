@@ -207,10 +207,6 @@ void initialize_stack(const char* command_line) {
 
 /* Initialize the SPIM stack with ARGC, ARGV, and ENVP data. */
 
-#ifdef _MSC_VER
-#define environ _environ
-#endif
-
 void initialize_run_stack(int argc, char** argv) {
   char** p;
   extern char** environ;

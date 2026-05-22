@@ -5,26 +5,17 @@
 
 #include "config.h"
 
-#ifndef WIN32
 #include <unistd.h>
-#endif
 #include <stdio.h>
 #include <ctype.h>
 #include <setjmp.h>
 #include <signal.h>
-#ifndef WIN32
 #include <arpa/inet.h>
-#else
-#include <winsock.h>
-#include <io.h>
-#endif
 
 #include <sys/types.h>
-#ifndef WIN32
 #include <sys/select.h>
 #include <sys/time.h>
 #include <termios.h>
-#endif
 
 #include <stdarg.h>
 
@@ -290,9 +281,7 @@ int spim_return_value; /* Value returned when spim exits */
 static bool load_exception_handler = true;
 static int console_state_saved;
 
-#ifndef WIN32
 static struct termios saved_console_state;
-#endif
 static int program_argc;
 static char** program_argv;
 static bool dump_user_segments = false;
@@ -325,11 +314,6 @@ int main(int argc, char** argv) {
     exception_file_name = getenv("SPIM_EXCEPTION_HANDLER");
 
   for (i = 1; i < argc; i++) {
-#ifdef WIN32
-    if (argv[i][0] == '/') {
-      argv[i][0] = '-';
-    }
-#endif
     if (streq(argv[i], "-asm") || streq(argv[i], "-a")) {
       bare_machine = false;
       delayed_branches = false;
@@ -1438,11 +1422,9 @@ static void console_to_program(void) {
 /* Return the console to SPIM. */
 
 static void console_to_spim(void) {
-#ifndef WIN32
   if (mapped_io && console_state_saved)
     tcsetattr(console_in.i, TCSANOW, &saved_console_state);
   console_state_saved = 0;
-#endif
 }
 
 int console_input_available(void) {

@@ -13,15 +13,10 @@
 #include <math.h>
 #include <stdio.h>
 
-#ifdef _WIN32
-#define VC_EXTRALEAN
-#include <Windows.h>
-#else
 #include <errno.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/time.h>
-#endif
 
 #include "spim.h"
 #include "string-stream.h"
@@ -38,22 +33,12 @@
 bool force_break =
     false; /* For the execution env. to force an execution break */
 
-#ifdef _MSC_BUILD
-/* Disable MS VS warning about constant predicate in conditional. */
-#pragma warning(disable : 4127)
-#endif
-
 /* Local functions: */
 
 static void bump_CP0_timer(void);
 static void set_fpu_cc(int cond, int cc, int less, int equal, int unordered);
 static void signed_multiply(reg_word v1, reg_word v2);
 static void start_CP0_timer(void);
-#ifdef _WIN32
-void CALLBACK timer_completion_routine(LPVOID lpArgToCompletionRoutine,
-                                       DWORD dwTimerLowValue,
-                                       DWORD dwTimerHighValue);
-#endif
 static void unsigned_multiply(reg_word v1, reg_word v2);
 
 #define SIGN_BIT(X) ((X) & 0x80000000)
@@ -178,9 +163,6 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
       R[0] = 0; /* Maintain invariant value */
 
-#ifdef _WIN32
-      SleepEx(0, TRUE); /* Put thread in awaitable state for WaitableTimer */
-#else
       {
         /* Poll for timer expiration */
         struct itimerval time;
@@ -195,7 +177,6 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           start_CP0_timer();
         }
       }
-#endif
 
       exception_occurred = 0;
       inst = mem_read_inst(PC);
@@ -1420,17 +1401,6 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
   return true;
 }
 
-#ifdef _WIN32
-void CALLBACK timer_completion_routine(LPVOID lpArgToCompletionRoutine,
-                                       DWORD dwTimerLowValue,
-                                       DWORD dwTimerHighValue) {
-  lpArgToCompletionRoutine = lpArgToCompletionRoutine;
-  dwTimerLowValue = dwTimerLowValue;
-  dwTimerHighValue = dwTimerHighValue;
-  bump_CP0_timer();
-}
-#endif
-
 /* Increment CP0 Count register and test if it matches the Compare
    register. If so, cause an interrupt. */
 
@@ -1442,28 +1412,10 @@ static void bump_CP0_timer(void) {
 }
 
 static void start_CP0_timer(void) {
-#ifdef _WIN32
-  HANDLE timer = CreateWaitableTimer(nullptr, TRUE, TEXT("SPIMTimer"));
-  if (nullptr == timer) {
-    error("CreateWaitableTimer failed");
-  } else {
-    LARGE_INTEGER interval;
-    interval.QuadPart = -10000 * TIMER_TICK_MS; /* Unit is 100 nsec */
-
-    if (!SetWaitableTimer(timer, &interval, 1, timer_completion_routine, 0,
-                          FALSE)) {
-      error("SetWaitableTimer failed");
-    }
-  }
-#else
-  /* Should use ITIMER_VIRTUAL delivering SIGVTALRM, but that does not seem
-     to work under Cygwin, so we'll adopt the lowest common denominator and
-     use real time.
-
-     We ignore the resulting signal, however, and read the timer with getitimer,
-     since signals interrupt I/O calls, such as read, and make user
-     interaction with SPIM work very poorly. Since speed isn't an important
-     aspect of SPIM, polling isn't a big deal. */
+  /* Read the timer with getitimer rather than handling SIGALRM, since signals
+     interrupt I/O calls (read, etc.) and make user interaction with SPIM work
+     very poorly. Since speed isn't an important aspect of SPIM, polling isn't
+     a big deal. */
   if (SIG_ERR == signal(SIGALRM, SIG_IGN)) {
     perror("signal failed");
   } else {
@@ -1483,7 +1435,6 @@ static void start_CP0_timer(void) {
       }
     }
   }
-#endif
 }
 
 /* Multiply two 32-bit numbers, V1 and V2, to produce a 64 bit result in
