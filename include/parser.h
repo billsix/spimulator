@@ -7,6 +7,7 @@
 #define PARSER_H
 
 #include "spim.h"
+#include "inst.h"  /* for imm_expr in the emit_* signatures */
 
 /* Exported functions. */
 
@@ -55,6 +56,23 @@ void parse_error(char* s);
 /* Name of the current input file (set by parser_init).  May be null
    when assembling from a non-file stream. */
 char* input_file_name_get(void);
+
+/* Emit-action dispatch helpers.  Every instruction-emitting call in
+   parser.c and pseudo_op.c routes through these so the parser can
+   pick between inline emit (SDT) and AST construction (AST mode)
+   without per-call-site branching.  Signatures mirror the action
+   helpers they wrap:
+     - emit_i: caller retains ownership of `imm` (mirrors i_type_inst).
+     - emit_i_free: caller transfers ownership (mirrors i_type_inst_free).
+     - emit_j: caller retains ownership.
+   See PLAN-parse-tree-migration.md Phase 2d for the design. */
+void emit_r(int op, int rd, int rs, int rt);
+void emit_r_shift(int op, int rd, int rt, int shamt);
+void emit_i(int op, int rt, int rs, imm_expr* imm);
+void emit_i_free(int op, int rt, int rs, imm_expr* imm);
+void emit_j(int op, imm_expr* target);
+void emit_fp_r(int op, int fd, int fs, int ft);
+void emit_fp_compare(int op, int fs, int ft, int cc);
 
 /* Exported Variables: */
 

@@ -72,16 +72,11 @@ static bool print_ast_after_parse = false;
 static FILE* ast_print_out = nullptr;
 static bool print_ast_only_ = false;
 
-/* If true, AST mode skips inline action calls and parse_file invokes
-   emit_ast at the end; if false, AST mode is "tee" — inline action
-   calls run AND the AST is built as a side effect.  Default false
-   (tee) because nop_inst/trap_inst in pseudo_op.c bypass the parser
-   dispatch wrappers, so they emit at parse time with parser-side
-   state (in_kernel etc.) not yet committed by deferred emit_ast.
-   Phase 2f will fix the bypass and then flip this default to true.
-   In the meantime emit_ast is callable explicitly via the -emit-ast
-   flag for verification. */
-static bool defer_emit_to_emit_ast = false;
+/* When AST mode is active, the parser builds an AST during parse and
+   emit_ast walks it after parse completes — calling the same action
+   helpers (r_type_inst, store_word, ...) the SDT path used to call
+   inline.  Two-pass-style decoupling; same behavioral footprint. */
+static bool defer_emit_to_emit_ast = true;
 
 /* In deferred mode, parse_factor stashes the FIRST unresolved label
    it sees in the current expression into this slot; data_int_push
@@ -133,27 +128,27 @@ static imm_expr* dup_imm(const imm_expr* e) {
 
 /* ----- instruction dispatch helpers ------------------------ */
 
-static void emit_r(int op, int rd, int rs, int rt) {
+void emit_r(int op, int rd, int rs, int rt) {
   if (should_emit()) r_type_inst(op, rd, rs, rt);
   if (should_build_ast())
     ast_file_append(current_file, ast_make_inst_r(op, rd, rs, rt));
 }
 
-static void emit_r_shift(int op, int rd, int rt, int shamt) {
+void emit_r_shift(int op, int rd, int rt, int shamt) {
   if (should_emit()) r_sh_type_inst(op, rd, rt, shamt);
   if (should_build_ast())
     ast_file_append(current_file, ast_make_inst_r_shift(op, rd, rt, shamt));
 }
 
 /* emit_i: caller keeps ownership of imm (matches i_type_inst). */
-static void emit_i(int op, int rt, int rs, imm_expr* imm) {
+void emit_i(int op, int rt, int rs, imm_expr* imm) {
   if (should_build_ast())
     ast_file_append(current_file, ast_make_inst_i(op, rt, rs, dup_imm(imm)));
   if (should_emit()) i_type_inst(op, rt, rs, imm);
 }
 
 /* emit_i_free: caller transfers ownership (matches i_type_inst_free). */
-static void emit_i_free(int op, int rt, int rs, imm_expr* imm) {
+void emit_i_free(int op, int rt, int rs, imm_expr* imm) {
   if (should_build_ast())
     ast_file_append(current_file, ast_make_inst_i(op, rt, rs, dup_imm(imm)));
   if (should_emit())
@@ -162,7 +157,7 @@ static void emit_i_free(int op, int rt, int rs, imm_expr* imm) {
     free(imm); /* AST took a copy; original needs to go */
 }
 
-static void emit_j(int op, imm_expr* target) {
+void emit_j(int op, imm_expr* target) {
   /* j_type_inst copies its arg; caller (parse_j) frees the
      original. AST-only mode dups for the AST and lets the caller's
      free still run. */
@@ -172,13 +167,13 @@ static void emit_j(int op, imm_expr* target) {
     j_type_inst(op, target);
 }
 
-static void emit_fp_r(int op, int fd, int fs, int ft) {
+void emit_fp_r(int op, int fd, int fs, int ft) {
   if (should_emit()) r_co_type_inst(op, fd, fs, ft);
   if (should_build_ast())
     ast_file_append(current_file, ast_make_inst_fp_r(op, fd, fs, ft));
 }
 
-static void emit_fp_compare(int op, int fs, int ft, int cc) {
+void emit_fp_compare(int op, int fs, int ft, int cc) {
   if (should_emit()) r_cond_type_inst(op, fs, ft, cc);
   if (should_build_ast())
     ast_file_append(current_file, ast_make_inst_fp_compare(op, fs, ft, cc));
@@ -189,10 +184,15 @@ static void emit_fp_compare(int op, int fs, int ft, int cc) {
 /* Buffered current-directive accumulator.  parse_dir_word / half / byte
    set the kind, then parse_expr_list collects values into this buffer;
    at the end of the list, finalize_data_int_node builds one AST node. */
-static ast_kind   data_int_kind  = AST_DATA_WORD;
-static imm_expr** data_int_buf   = nullptr;
-static int        data_int_count = 0;
-static int        data_int_cap   = 0;
+static ast_kind   data_int_kind   = AST_DATA_WORD;
+static imm_expr** data_int_buf    = nullptr;
+static int        data_int_count  = 0;
+static int        data_int_cap    = 0;
+/* Source line of the directive that opened the current accumulator.
+   Captured at *_begin so the AST node reflects the directive's first
+   line even if its value list spans onto the next line (`.word a,b,\n
+   c,d`). */
+static int        data_directive_line = 0;
 
 static double*    data_fp_buf    = nullptr;
 static int        data_fp_count  = 0;
@@ -201,6 +201,7 @@ static int        data_fp_cap    = 0;
 static void data_int_begin(ast_kind kind) {
   data_int_kind  = kind;
   data_int_count = 0;
+  data_directive_line = line_no;
   if (data_int_buf == nullptr) {
     data_int_cap = 8;
     data_int_buf = (imm_expr**)xmalloc(data_int_cap * sizeof(imm_expr*));
@@ -243,6 +244,7 @@ static void data_int_finalize(void) {
     case AST_DATA_WORD: node = ast_make_data_word(data_int_count, exprs); break;
     default: node = ast_make_data_word(data_int_count, exprs); break;
   }
+  node->source_line = data_directive_line;
   ast_file_append(current_file, node);
   data_int_count = 0;
 }
@@ -250,6 +252,7 @@ static void data_int_finalize(void) {
 static void data_fp_begin(ast_kind kind) {
   data_int_kind = kind; /* reuse the discriminant */
   data_fp_count = 0;
+  data_directive_line = line_no;
   if (data_fp_buf == nullptr) {
     data_fp_cap = 8;
     data_fp_buf = (double*)xmalloc(data_fp_cap * sizeof(double));
@@ -277,6 +280,7 @@ static void data_fp_finalize(void) {
   ast_node* node = (data_int_kind == AST_DATA_FLOAT)
                        ? ast_make_data_float(data_fp_count, values)
                        : ast_make_data_double(data_fp_count, values);
+  node->source_line = data_directive_line;
   ast_file_append(current_file, node);
   data_fp_count = 0;
 }
@@ -2233,6 +2237,12 @@ static void emit_data_fp_node(const ast_node* node,
 
 static void emit_one(const ast_node* node) {
   if (node == nullptr) return;
+
+  /* Restore the per-node source line so listing observers (and any
+     parse_error / parse_warn fired from inside an action helper)
+     report the right line.  Without this, the scanner's line_no
+     stays at the file's last line throughout emit_ast. */
+  line_no = node->source_line;
 
   switch (node->kind) {
     case AST_FILE:

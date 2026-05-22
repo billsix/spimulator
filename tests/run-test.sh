@@ -127,18 +127,27 @@ case "$NAME" in
     ;;
 
   ast_parity)
-    # SDT and AST (tee) modes should call the action helpers in
-    # identical order with identical arguments — the -listing output
-    # is the diff oracle.  Diff the two traces against each other on
-    # the same input file.
-    lst_sdt=$(mktemp); lst_ast=$(mktemp)
-    trap 'rm -f "$out" "$lst_sdt" "$lst_ast"' EXIT
-    "$SPIM" -exception_file "$EF" -parser=sdt -listing "$lst_sdt" \
-      -f tt.listing.s >"$out" 2>&1
-    "$SPIM" -exception_file "$EF" -parser=ast -listing "$lst_ast" \
-      -f tt.listing.s >"$out" 2>&1
-    diff -q "$lst_sdt" "$lst_ast" > /dev/null \
-      || fail "listing differs between SDT and AST modes"
+    # SDT and AST modes should produce identical MEMORY contents for
+    # the same input.  Compare via -dump (text + data segments).
+    # The listing trace can differ in line_no decoration due to
+    # scanner-lookahead timing (peek for arithmetic operators may
+    # consume a newline ahead of the next emit), which is cosmetic
+    # — but the bytes written must match.
+    dir_sdt=$(mktemp -d); dir_ast=$(mktemp -d)
+    trap 'rm -f "$out"; rm -rf "$dir_sdt" "$dir_ast"' EXIT
+    ( cd "$dir_sdt" && "$SPIM" -exception_file "$EF" -parser=sdt -dump \
+        -f "$TESTS_DIR/tt.core.s" </dev/null >/dev/null 2>&1 )
+    ( cd "$dir_ast" && "$SPIM" -exception_file "$EF" -parser=ast -dump \
+        -f "$TESTS_DIR/tt.core.s" </dev/null >/dev/null 2>&1 )
+    # Strip the trailing `; NNN: source` annotations before diffing —
+    # those track scanner state at emit time and differ in deferred
+    # AST mode without affecting the assembled bytes.
+    sed 's/[[:space:]]*;.*$//' "$dir_sdt/text.asm" > "$dir_sdt/text.bare"
+    sed 's/[[:space:]]*;.*$//' "$dir_ast/text.asm" > "$dir_ast/text.bare"
+    diff -q "$dir_sdt/text.bare" "$dir_ast/text.bare" > /dev/null \
+      || fail "text segment differs between SDT and AST modes"
+    diff -q "$dir_sdt/data.asm" "$dir_ast/data.asm" > /dev/null \
+      || fail "data segment differs between SDT and AST modes"
     ;;
   print_ast)
     # -print-ast: AST gets dumped to stderr, exit 0, no emit.

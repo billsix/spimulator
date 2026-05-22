@@ -14,11 +14,11 @@
 #include "inst.h"
 #include "sym-tbl.h" /* SYMBOL_IS_DEFINED */
 #include "tokens.h"  /* Y_*_OP, Y_*_POP token values */
+#include "parser.h"  /* emit_r, emit_r_shift, emit_i_free, ... */
 #include "pseudo_op.h"
 
 extern int line_no;                     /* from scanner */
 extern char* erroneous_line(void);      /* from scanner.c */
-extern char* input_file_name_get(void); /* from parser.c */
 
 /* ------------------------------------------------------------------ *
  * Runtime-visible globals: parse-error counters.
@@ -82,18 +82,18 @@ int imm_op_to_op(int opcode) {
   }
 }
 
-/* Forward declarations for spim runtime calls. */
-extern void r_type_inst(int opcode, int rd, int rs, int rt);
-extern void r_sh_type_inst(int opcode, int rd, int rt, int shamt);
-extern void i_type_inst_free(int opcode, int rt, int rs, imm_expr* expr);
+/* Forward declarations for runtime helpers still provided by inst.c.
+   The instruction-emit calls (r_type_inst, i_type_inst_free, ...) come
+   in via parser.h's emit_* dispatch wrappers so they participate in
+   AST construction. */
 extern imm_expr* const_imm_expr(int value);
 extern int32_t eval_imm_expr(imm_expr* expr);
 
 void nop_inst(void) {
-  r_type_inst(TOK_SLL_OP, 0, 0, 0); /* sll $0, $0, 0 == 0x00000000 */
+  emit_r(TOK_SLL_OP, 0, 0, 0); /* sll $0, $0, 0 == 0x00000000 */
 }
 
-void trap_inst(void) { r_type_inst(TOK_BREAK_OP, 0, 0, 0); }
+void trap_inst(void) { emit_r(TOK_BREAK_OP, 0, 0, 0); }
 
 imm_expr* branch_offset(int n_inst) {
   return const_imm_expr(n_inst << 2); /* later shifted right 2 by the encoder */
@@ -129,65 +129,65 @@ int op_to_imm_op(int opcode) {
 
 void div_inst(int op, int rd, int rs, int rt, int const_divisor) {
   if (rd != 0 && !const_divisor) {
-    i_type_inst_free(TOK_BNE_OP, 0, rt, branch_offset(3));
+    emit_i_free(TOK_BNE_OP, 0, rt, branch_offset(3));
     nop_inst();
     trap_inst();
   }
 
   if (op == TOK_DIV_OP || op == TOK_REM_POP)
-    r_type_inst(TOK_DIV_OP, 0, rs, rt);
+    emit_r(TOK_DIV_OP, 0, rs, rt);
   else
-    r_type_inst(TOK_DIVU_OP, 0, rs, rt);
+    emit_r(TOK_DIVU_OP, 0, rs, rt);
 
   if (rd != 0) {
     if (op == TOK_DIV_OP || op == TOK_DIVU_OP) /* Quotient */
-      r_type_inst(TOK_MFLO_OP, rd, 0, 0);
+      emit_r(TOK_MFLO_OP, rd, 0, 0);
     else
       /* Remainder */
-      r_type_inst(TOK_MFHI_OP, rd, 0, 0);
+      emit_r(TOK_MFHI_OP, rd, 0, 0);
   }
 }
 
 void mult_inst(int op, int rd, int rs, int rt) {
   if (op == TOK_MULOU_POP)
-    r_type_inst(TOK_MULTU_OP, 0, rs, rt);
+    emit_r(TOK_MULTU_OP, 0, rs, rt);
   else
-    r_type_inst(TOK_MULT_OP, 0, rs, rt);
+    emit_r(TOK_MULT_OP, 0, rs, rt);
 
   if (op == TOK_MULOU_POP && rd != 0) {
-    r_type_inst(TOK_MFHI_OP, 1, 0, 0); /* Use $at */
-    i_type_inst_free(TOK_BEQ_OP, 0, 1, branch_offset(3));
+    emit_r(TOK_MFHI_OP, 1, 0, 0); /* Use $at */
+    emit_i_free(TOK_BEQ_OP, 0, 1, branch_offset(3));
     nop_inst();
     trap_inst();
   } else if (op == TOK_MULO_POP && rd != 0) {
-    r_type_inst(TOK_MFHI_OP, 1, 0, 0); /* use $at */
-    r_type_inst(TOK_MFLO_OP, rd, 0, 0);
-    r_sh_type_inst(TOK_SRA_OP, rd, rd, 31);
-    i_type_inst_free(TOK_BEQ_OP, rd, 1, branch_offset(3));
+    emit_r(TOK_MFHI_OP, 1, 0, 0); /* use $at */
+    emit_r(TOK_MFLO_OP, rd, 0, 0);
+    emit_r_shift(TOK_SRA_OP, rd, rd, 31);
+    emit_i_free(TOK_BEQ_OP, rd, 1, branch_offset(3));
     nop_inst();
     trap_inst();
   }
-  if (rd != 0) r_type_inst(TOK_MFLO_OP, rd, 0, 0);
+  if (rd != 0) emit_r(TOK_MFLO_OP, rd, 0, 0);
 }
 
 void set_le_inst(int op, int rd, int rs, int rt) {
-  i_type_inst_free(TOK_BNE_OP, rs, rt, branch_offset(3));
-  i_type_inst_free(TOK_ORI_OP, rd, 0, const_imm_expr(1));
-  i_type_inst_free(TOK_BEQ_OP, 0, 0, branch_offset(3));
+  emit_i_free(TOK_BNE_OP, rs, rt, branch_offset(3));
+  emit_i_free(TOK_ORI_OP, rd, 0, const_imm_expr(1));
+  emit_i_free(TOK_BEQ_OP, 0, 0, branch_offset(3));
   nop_inst();
-  r_type_inst((op == TOK_SLE_POP ? TOK_SLT_OP : TOK_SLTU_OP), rd, rs, rt);
+  emit_r((op == TOK_SLE_POP ? TOK_SLT_OP : TOK_SLTU_OP), rd, rs, rt);
 }
 
 void set_gt_inst(int op, int rd, int rs, int rt) {
-  r_type_inst(op == TOK_SGT_POP ? TOK_SLT_OP : TOK_SLTU_OP, rd, rt, rs);
+  emit_r(op == TOK_SGT_POP ? TOK_SLT_OP : TOK_SLTU_OP, rd, rt, rs);
 }
 
 void set_ge_inst(int op, int rd, int rs, int rt) {
-  i_type_inst_free(TOK_BNE_OP, rs, rt, branch_offset(3));
-  i_type_inst_free(TOK_ORI_OP, rd, 0, const_imm_expr(1));
-  i_type_inst_free(TOK_BEQ_OP, 0, 0, branch_offset(3));
+  emit_i_free(TOK_BNE_OP, rs, rt, branch_offset(3));
+  emit_i_free(TOK_ORI_OP, rd, 0, const_imm_expr(1));
+  emit_i_free(TOK_BEQ_OP, 0, 0, branch_offset(3));
   nop_inst();
-  r_type_inst(op == TOK_SGE_POP ? TOK_SLT_OP : TOK_SLTU_OP, rd, rt, rs);
+  emit_r(op == TOK_SGE_POP ? TOK_SLT_OP : TOK_SLTU_OP, rd, rt, rs);
 }
 
 void set_eq_inst(int op, int rd, int rs, int rt) {
@@ -201,13 +201,13 @@ void set_eq_inst(int op, int rd, int rs, int rt) {
     if_neq = const_imm_expr(1);
   }
 
-  i_type_inst_free(TOK_BEQ_OP, rs, rt, branch_offset(3));
+  emit_i_free(TOK_BEQ_OP, rs, rt, branch_offset(3));
   /* RD <- 0 (if not equal) */
-  i_type_inst_free(TOK_ORI_OP, rd, 0, if_neq);
-  i_type_inst_free(TOK_BEQ_OP, 0, 0, branch_offset(3)); /* Branch always */
+  emit_i_free(TOK_ORI_OP, rd, 0, if_neq);
+  emit_i_free(TOK_BEQ_OP, 0, 0, branch_offset(3)); /* Branch always */
   nop_inst();
   /* RD <- 1 */
-  i_type_inst_free(TOK_ORI_OP, rd, 0, if_eq);
+  emit_i_free(TOK_ORI_OP, rd, 0, if_eq);
 }
 
 void check_imm_range(imm_expr* expr, int32_t min, int32_t max) {
