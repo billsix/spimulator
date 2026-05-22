@@ -7,6 +7,12 @@
 #     in 6 chars, then \t, then the line itself.
 
 
+# Invocations:
+#   spimulator -f nl.asm             # reads stdin
+#   spimulator -f nl.asm -           # reads stdin (explicit "-")
+#   spimulator -f nl.asm /etc/motd   # reads the file
+
+
 #PURPOSE:  Number lines.  New asm pattern: width-padded int
 #          output via a `print_padded` helper that counts
 #          digits and emits leading spaces.

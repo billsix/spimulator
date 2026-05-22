@@ -7,6 +7,12 @@
 #     inclusive) of each line.
 
 
+# Invocations:
+#   spimulator -f cut.asm -c 1-3              # reads stdin, cols 1..3
+#   spimulator -f cut.asm -c 5-10 /etc/motd   # reads the file
+#   echo hello world | spimulator -f cut.asm -c 7-11   # prints "world"
+
+
 #PURPOSE:  Range slicing on byte positions.  Parses "N-M" out of
 #          argv[2].
 

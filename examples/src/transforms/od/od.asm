@@ -7,6 +7,13 @@
 #     printable/escape/octal, leading 7-digit octal offset.
 
 
+# Invocations:
+#   spimulator -f od.asm                     # reads stdin
+#   spimulator -f od.asm -                   # reads stdin (explicit "-")
+#   spimulator -f od.asm /etc/services       # reads the file
+#   printf 'hi\t\\\n' | spimulator -f od.asm # see the per-byte escapes
+
+
 #PURPOSE:  Hex/octal dump with per-byte formatted output.
 #          Demonstrates row-oriented output + character escapes.
 

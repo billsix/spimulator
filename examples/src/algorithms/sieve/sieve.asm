@@ -33,6 +33,11 @@
 #     }
 
 
+# Invocations:
+#   spimulator -f sieve.asm           # primes up to 100 (default)
+#   spimulator -f sieve.asm 200       # primes up to 200
+
+
 #PURPOSE:  Sieve of Eratosthenes with N from argv.  Default 100.
 #          **First curriculum demo to use sbrk (syscall 9)** — the
 #          flag array is allocated dynamically because LIMIT is

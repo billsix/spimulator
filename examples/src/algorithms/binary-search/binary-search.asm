@@ -31,6 +31,12 @@
 #     }
 
 
+# Invocations (sorted ints, one per line — see bubble-sort for why):
+#   printf '1\n3\n5\n7\n9\n' | spimulator -f binary-search.asm 5
+#   seq 1 100               | spimulator -f binary-search.asm 42
+#   spimulator -f binary-search.asm 5 < sorted-ints.txt
+
+
 #PURPOSE:  linear + binary search for TARGET on a sorted array
 #          read from stdin.  TARGET from argv[1].  Array up to
 #          256 ints.  Same stdin-int-reader pattern as

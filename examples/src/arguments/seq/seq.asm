@@ -30,6 +30,12 @@
 #     }
 
 
+# Invocations:
+#   spimulator -f seq.asm 5            # 1..5
+#   spimulator -f seq.asm 10 15        # 10..15
+#   spimulator -f seq.asm 5 1          # 5..1 (descending)
+
+
 #PURPOSE:  seq with 1- or 2-arg form.  Pure argv → loop → stdout.
 #          First curriculum demo with NO input I/O syscalls at
 #          all.

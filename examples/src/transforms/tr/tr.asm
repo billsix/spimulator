@@ -33,6 +33,11 @@
 #     }
 
 
+# Invocations (pure stdin filter — like real `tr`, no file arg):
+#   echo hello | spimulator -f tr.asm           # => HELLO
+#   spimulator -f tr.asm < /etc/motd            # upcase a file via redirect
+
+
 #PURPOSE:  Copy stdin to stdout, upcasing every lowercase ASCII
 #          byte.  Demonstrates byte-level conditional transformation:
 #          read a byte, check whether it falls in a range, optionally

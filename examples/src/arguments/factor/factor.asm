@@ -13,6 +13,11 @@
 #     }
 
 
+# Invocations:
+#   spimulator -f factor.asm 360       # => 360: 2 2 2 3 3 5
+#   spimulator -f factor.asm 65537     # => 65537: 65537   (prime)
+
+
 #PURPOSE:  Trial-divide factorization.  argv-only; no I/O.
 #          Pairs with sieve (which also generates primes).
 

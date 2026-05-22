@@ -33,6 +33,13 @@
 #     }
 
 
+# Invocations:
+#   spimulator -f cat.asm             # reads stdin
+#   spimulator -f cat.asm -           # reads stdin (explicit "-")
+#   spimulator -f cat.asm /etc/motd   # reads the file
+#   echo hello | spimulator -f cat.asm
+
+
 #PURPOSE:  cat with real-Unix argv handling.  Block-at-a-time
 #          I/O via syscalls 14/15.  Subsumes the old "cat-file"
 #          variant.

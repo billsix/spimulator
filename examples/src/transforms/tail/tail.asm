@@ -7,6 +7,13 @@
 #     Write-index modulo N keeps the last N complete lines.
 
 
+# Invocations:
+#   spimulator -f tail.asm                       # stdin, last 10 lines
+#   spimulator -f tail.asm -n 3                  # stdin, last 3 lines
+#   spimulator -f tail.asm -n 5 /etc/services    # file, last 5 lines
+#   seq 1 100 | spimulator -f tail.asm -n 4      # pipe in, last 4 lines
+
+
 #PURPOSE:  tail -n N [FILE|-] via a ring buffer.
 
         .data

@@ -37,6 +37,12 @@
 #     }
 
 
+# Invocations:
+#   spimulator -f expand.asm             # reads stdin
+#   spimulator -f expand.asm -           # reads stdin (explicit "-")
+#   spimulator -f expand.asm Makefile    # reads the file
+
+
 #PURPOSE:  expand with real-Unix argv handling.  Tab width is
 #          hard-coded to 8; col counter is reset to 0 on each '\n'.
 

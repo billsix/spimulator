@@ -33,6 +33,11 @@
 #     }
 
 
+# Invocations:
+#   spimulator -f pascals-triangle.asm        # 10 rows (default)
+#   spimulator -f pascals-triangle.asm 6      # 6 rows
+
+
 #PURPOSE:  Print first N rows of Pascal's triangle.  Default N=10.
 #          Static 35-cell row array (last row that fits in int32).
 #

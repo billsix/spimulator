@@ -7,6 +7,13 @@
 #     '=' padding for partial final group.  Wrap at 76 cols.
 
 
+# Invocations:
+#   spimulator -f base64.asm             # reads stdin
+#   spimulator -f base64.asm -           # reads stdin (explicit "-")
+#   spimulator -f base64.asm /etc/motd   # reads the file
+#   echo hello | spimulator -f base64.asm
+
+
 #PURPOSE:  base64 encode.  Bit packing across byte triples.
 
         .data

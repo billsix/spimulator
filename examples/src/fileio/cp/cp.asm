@@ -13,6 +13,13 @@
 #     }
 
 
+# Invocation:
+#   spimulator -f cp.asm /etc/motd /tmp/copy
+#
+#          Two filename args.  DST is created if missing,
+#          truncated if it exists.
+
+
 #PURPOSE:  Copy SRC to DST.  Block I/O.  First demo to call
 #          `open` with O_CREAT | O_WRONLY | O_TRUNC (flags = 577).
 

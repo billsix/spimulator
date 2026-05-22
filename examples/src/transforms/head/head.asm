@@ -45,6 +45,13 @@
 #     }
 
 
+# Invocations:
+#   spimulator -f head.asm                       # stdin, first 10 lines
+#   spimulator -f head.asm -n 3                  # stdin, first 3 lines
+#   spimulator -f head.asm -n 5 /etc/services    # file, first 5 lines
+#   seq 1 100 | spimulator -f head.asm -n 4      # pipe in, first 4 lines
+
+
 #PURPOSE:  head with real-Unix argv handling.  Accepts the
 #          full `head [-n N] [FILE|-]` shape.  Subsumes both the
 #          old "head" (stdin, hardcoded N=10) and the old

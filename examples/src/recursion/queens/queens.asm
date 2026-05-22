@@ -34,6 +34,12 @@
 #     }
 
 
+# Invocations:
+#   spimulator -f queens.asm           # 8-queens (92 solutions, default)
+#   spimulator -f queens.asm 6         # 6-queens (4 solutions)
+#   spimulator -f queens.asm 12        # 12-queens (14200; max)
+
+
 #PURPOSE:  N-Queens with N from argv.  Default 8 (92 solutions).
 #          Capped at 12 (14200 solutions).
 

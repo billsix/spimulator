@@ -6,6 +6,13 @@
 #     Three-column line-by-line diff of two sorted files.
 
 
+# Invocation:
+#   spimulator -f comm.asm A.sorted B.sorted
+#
+#          Each input must be sorted; comm compares line-by-line.
+#          Try: seq 1 5 > /tmp/a; seq 3 7 > /tmp/b; comm /tmp/a /tmp/b
+
+
 #PURPOSE:  Open TWO files for reading.  Maintain a current-line
 #          buffer for each; read both, compare, emit, advance
 #          whichever is lower.

@@ -15,6 +15,10 @@
 #     }
 
 
+# Invocation:
+#   spimulator -f touch.asm /tmp/newfile
+
+
 #PURPOSE:  touch FILE.  Creates an empty file via
 #          open(O_WRONLY | O_CREAT, 0644) and closes it
 #          immediately.  Flag value 65 = 1 | 0x40 =

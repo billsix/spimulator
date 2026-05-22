@@ -36,6 +36,13 @@
 #     }
 
 
+# Invocations:
+#   spimulator -f cksum.asm                  # reads stdin
+#   spimulator -f cksum.asm -                # reads stdin (explicit "-")
+#   spimulator -f cksum.asm /etc/motd        # reads the file, prints name
+#   echo -n hello | spimulator -f cksum.asm  # cross-check vs system cksum
+
+
 #PURPOSE:  cksum with real-Unix argv handling.  Stdin mode
 #          prints "<crc> <bytes>"; file mode prints
 #          "<crc> <bytes> <filename>" (matches `cksum FILE`).

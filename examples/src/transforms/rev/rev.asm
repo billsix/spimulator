@@ -37,6 +37,12 @@
 #     }
 
 
+# Invocations:
+#   spimulator -f rev.asm             # reads stdin
+#   spimulator -f rev.asm -           # reads stdin (explicit "-")
+#   spimulator -f rev.asm /etc/motd   # reads the file
+
+
 #PURPOSE:  rev with real-Unix argv handling.  Buffers each line
 #          in `buf` (256 bytes), then walks it backwards on
 #          newline.  Input source picked from argv as in wc.

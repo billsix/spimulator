@@ -6,6 +6,13 @@
 #     Collapse adjacent duplicate lines.  stdin-or-file argv shape.
 
 
+# Invocations:
+#   spimulator -f uniq.asm             # reads stdin
+#   spimulator -f uniq.asm -           # reads stdin (explicit "-")
+#   spimulator -f uniq.asm /etc/motd   # reads the file
+#   printf 'a\na\nb\nb\nc\n' | spimulator -f uniq.asm   # => a b c
+
+
 #PURPOSE:  uniq.  Maintain `prev_line` buffer; compare each new
 #          line to it.  Emit line + '\n' if it differs from prev,
 #          then copy current into prev.

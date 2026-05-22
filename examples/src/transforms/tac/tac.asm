@@ -8,6 +8,13 @@
 #     without trailing newline gets one appended.
 
 
+# Invocations:
+#   spimulator -f tac.asm             # reads stdin
+#   spimulator -f tac.asm -           # reads stdin (explicit "-")
+#   spimulator -f tac.asm /etc/motd   # reads the file
+#   seq 1 5 | spimulator -f tac.asm   # prints 5 4 3 2 1
+
+
 #PURPOSE:  Reverse line order.  Second sbrk demo (after
 #          sieve), this one uses sbrk INCREMENTALLY —
 #          calling it repeatedly to grow the buffer as bytes
