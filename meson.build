@@ -22,6 +22,14 @@ if libedit_dep.found()
   add_project_arguments('-DHAVE_LIBEDIT=1', language: 'c')
 endif
 
+# Host endianness.  The simulator's mem_word is the host's int32_t, so
+# byte-extraction shifts in mem.c / data.c / run.c (LWL/LWR/SWL/SWR) depend
+# on the host's byte order.  Auto-detect rather than requiring the user to
+# pass -DSPIM_BIGENDIAN by hand.
+if host_machine.endian() == 'big'
+  add_project_arguments('-DSPIM_BIGENDIAN', language: 'c')
+endif
+
 
 # Configure config.h
 conf_data = configuration_data()

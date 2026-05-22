@@ -8,8 +8,9 @@
 
 /* This declaration must match the endianness of the machine SPIM is running on.
    You CANNOT set SPIM to simulate a different endianness than the machine that
-   executes it. Almost every processor (notably the x86) is little endian today.
-   If your machine is big endian, define -DSPIM_BIGENDIAN in the Makefile. */
+   executes it.  meson.build auto-detects host endianness and defines
+   SPIM_BIGENDIAN when needed; little-endian is the default (and matches every
+   common host: x86, ARM, RISC-V, Apple Silicon). */
 
 #ifndef SPIM_BIGENDIAN
 #define SPIM_LITTLENDIAN
