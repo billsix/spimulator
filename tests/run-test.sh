@@ -126,6 +126,30 @@ case "$NAME" in
       || fail "data.asm differs between explain=0 and explain=2"
     ;;
 
+  listing)
+    # -listing FILE: produces an assemble-time event trace.  Verify each
+    # event kind we instrumented fires for tt.listing.s.  Greps for
+    # patterns rather than diffing a golden file because exception_file
+    # addresses are environment-dependent.
+    lst=$(mktemp); trap 'rm -f "$out" "$lst"' EXIT
+    "$SPIM" -exception_file "$EF" -listing "$lst" -f tt.listing.s >"$out" 2>&1
+    grep -q "label  b1 .*defined at" "$lst" \
+      || fail "missing label def for b1"
+    grep -q "label  main .*defined at .*(global)" "$lst" \
+      || fail "missing global label def for main"
+    grep -qE "data .*  byte    0x42" "$lst" \
+      || fail "missing byte event for b1"
+    grep -qE "data .*  half    0x1234" "$lst" \
+      || fail "missing half event for h1"
+    grep -qE "data .*  word    0xdeadbeef" "$lst" \
+      || fail "missing word event for w1"
+    grep -qE "data .*  string  len=2 \(\+\\\\0\)" "$lst" \
+      || fail "missing string event for s1"
+    grep -q "fref .*uses unresolved symbol 'target'" "$lst" \
+      || fail "missing forward ref for target"
+    grep -q "fres .*patched 'target'" "$lst" \
+      || fail "missing forward resolved for target"
+    ;;
   divide_by_zero)
     # spim's div pseudo-op traps on zero divisor.  The default
     # exception handler reports ExcCode 9 (Bp) and continues, so

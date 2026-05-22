@@ -18,6 +18,7 @@
 #include "scanner.h"
 #include "tokens.h"
 #include "data.h"
+#include "asm_event.h"
 
 /* Local functions: */
 
@@ -137,15 +138,17 @@ static void store_instruction(instruction* inst) {
     store_word(inst_encode(inst));
     free_inst(inst);
   } else if (text_dir) {
+    mem_addr at = INST_PC;
     exception_occurred = 0;
-    mem_write_inst(INST_PC, inst);
+    mem_write_inst(at, inst);
     if (exception_occurred)
-      error("Invalid address (0x%08x) for instruction\n", INST_PC);
+      error("Invalid address (0x%08x) for instruction\n", at);
     else
       increment_text_pc(BYTES_PER_WORD);
     if (inst != nullptr) {
       SET_SOURCE(inst, source_line());
       if (ENCODING(inst) == 0) SET_ENCODING(inst, inst_encode(inst));
+      asm_fire_text_inst(at, (uint32_t)ENCODING(inst));
     }
   }
 }

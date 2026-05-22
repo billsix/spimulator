@@ -25,6 +25,10 @@ void fix_current_label_address(mem_addr new_addr);
 int imm_op_to_op(int opcode);
 void parse_error(char* s);
 
+/* Name of the current input file (set by parser_init).  May be null
+   when assembling from a non-file stream. */
+char* input_file_name_get(void);
+
 /* Exported Variables: */
 
 extern bool data_dir; /* => item in data segment */

@@ -31,6 +31,7 @@
 #include "tokens.h"
 #include "data.h"
 #include "explain.h"
+#include "asm_event.h"
 
 #ifdef HAVE_LIBEDIT
 #include <editline/readline.h>
@@ -287,6 +288,91 @@ static char** program_argv;
 static bool dump_user_segments = false;
 static bool dump_all_segments = false;
 
+/* -listing FILE — write an assemble-time event trace here.
+   Opened in main() when the flag is seen; observer is installed
+   before any read_assembly_file() call so all label/instruction/
+   data events get captured.  Closed at exit. */
+static FILE* listing_file = nullptr;
+
+static void close_listing_file(void) {
+  if (listing_file != nullptr && listing_file != stderr) {
+    fclose(listing_file);
+    listing_file = nullptr;
+  }
+}
+
+static const char* seg_name(asm_segment s) {
+  switch (s) {
+    case ASM_SEG_TEXT:  return "text";
+    case ASM_SEG_DATA:  return "data";
+    case ASM_SEG_KTEXT: return "ktext";
+    case ASM_SEG_KDATA: return "kdata";
+  }
+  return "?";
+}
+
+static void listing_observer(const asm_event* e) {
+  if (listing_file == nullptr) return;
+  switch (e->kind) {
+    case AE_LABEL_DEF:
+      fprintf(listing_file, "line %4d  label  %-24s defined at 0x%08x%s\n",
+              e->source_line, e->u.label_def.name, e->addr,
+              e->u.label_def.global ? "  (global)" : "");
+      break;
+    case AE_TEXT_INST: {
+      char* disasm = inst_to_string(e->addr);
+      fprintf(listing_file, "line %4d  text   0x%08x  %-32s  0x%08x\n",
+              e->source_line, e->addr, disasm ? disasm : "",
+              e->u.text_inst.encoding);
+      break;
+    }
+    case AE_DATA_BYTE:
+      fprintf(listing_file, "line %4d  data   0x%08x  byte    0x%02x\n",
+              e->source_line, e->addr, e->u.data_int.value & 0xff);
+      break;
+    case AE_DATA_HALF:
+      fprintf(listing_file, "line %4d  data   0x%08x  half    0x%04x\n",
+              e->source_line, e->addr, e->u.data_int.value & 0xffff);
+      break;
+    case AE_DATA_WORD:
+      fprintf(listing_file, "line %4d  data   0x%08x  word    0x%08x\n",
+              e->source_line, e->addr, (uint32_t)e->u.data_int.value);
+      break;
+    case AE_DATA_DOUBLE:
+      fprintf(listing_file, "line %4d  data   0x%08x  double  %.18g\n",
+              e->source_line, e->addr, e->u.data_double.value);
+      break;
+    case AE_DATA_STRING:
+      fprintf(listing_file,
+              "line %4d  data   0x%08x  string  len=%d%s\n",
+              e->source_line, e->addr, e->u.data_string.length,
+              e->u.data_string.null_term ? " (+\\0)" : "");
+      break;
+    case AE_ALIGN:
+      fprintf(listing_file, "line %4d  align  0x%08x  +%d bytes in %s\n",
+              e->source_line, e->addr, e->u.align.new_pc_offset,
+              seg_name(e->u.align.seg));
+      break;
+    case AE_SEG_CHANGE:
+      fprintf(listing_file, "line %4d  seg    %s  at 0x%08x\n",
+              e->source_line, seg_name(e->u.seg_change.seg), e->addr);
+      break;
+    case AE_FORWARD_REF:
+      fprintf(listing_file,
+              "line %4d  fref   0x%08x  uses unresolved symbol '%s'\n",
+              e->source_line, e->u.forward_ref.from,
+              e->u.forward_ref.symbol);
+      break;
+    case AE_FORWARD_RESOLVED:
+      fprintf(listing_file,
+              "line %4d  fres   0x%08x  patched '%s' = 0x%08x\n",
+              e->source_line, e->u.forward_resolved.at,
+              e->u.forward_resolved.symbol,
+              (uint32_t)e->u.forward_resolved.value);
+      break;
+  }
+}
+
 int main(int argc, char** argv) {
   int i;
   bool assembly_file_loaded = false;
@@ -419,6 +505,25 @@ int main(int argc, char** argv) {
       break;
     } else if (streq(argv[i], "-assemble")) {
       assemble = true;
+    } else if (streq(argv[i], "-listing")) {
+      if (i + 1 >= argc) {
+        error("\n-listing requires a filename argument\n");
+        print_usage_msg = 1;
+        continue;
+      }
+      const char* path = argv[++i];
+      if (streq(path, "-")) {
+        listing_file = stderr;
+      } else {
+        listing_file = fopen(path, "w");
+        if (listing_file == nullptr) {
+          error("\nCannot open listing file '%s'\n", path);
+          print_usage_msg = 1;
+          continue;
+        }
+      }
+      asm_set_observer(listing_observer);
+      atexit(close_listing_file);
     } else if (streq(argv[i], "-dump")) {
       dump_user_segments = true;
     } else if (streq(argv[i], "-full_dump")) {
@@ -451,6 +556,7 @@ int main(int argc, char** argv) {
 	-nomapped_io		Do not enable memory-mapped IO (default)\n\
 	-file <file> <args>	Assembly code file and arguments to program\n\
 	-assemble		Write assembled code to <file>.out\n\
+	-listing <file>		Write assemble-time event trace to <file> (use - for stderr)\n\
 	-dump			Write user data and text segments into files\n\
 	-full_dump		Write user and kernel data and text into files.\n");
   }

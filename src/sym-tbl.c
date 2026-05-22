@@ -13,6 +13,7 @@
 #include "parser.h"
 #include "sym-tbl.h"
 #include "tokens.h"
+#include "asm_event.h"
 
 /* Local functions: */
 
@@ -138,6 +139,8 @@ label* record_label(char* name, mem_addr address, int resolve_uses) {
     l->addr = address;
   }
 
+  asm_fire_label_def(address, l->name, l->global_flag != 0);
+
   if (resolve_uses) {
     resolve_label_uses(l);
   }
@@ -173,6 +176,7 @@ void record_inst_uses_symbol(instruction* inst, label* sym) {
   }
   u->next = sym->uses;
   sym->uses = u;
+  asm_fire_forward_ref(u->addr, sym->name);
 }
 
 /* Record that a memory LOCATION uses the as-yet undefined SYMBOL. */
@@ -184,6 +188,7 @@ void record_data_uses_symbol(mem_addr location, label* sym) {
   u->addr = location;
   u->next = sym->uses;
   sym->uses = u;
+  asm_fire_forward_ref(location, sym->name);
 }
 
 /* Given a newly-defined LABEL, resolve the previously encountered
@@ -200,6 +205,7 @@ void resolve_label_uses(label* sym) {
       mem_write_word(use->addr, inst_encode(use->inst));
       free_inst(use->inst);
     }
+    asm_fire_forward_resolved(use->addr, sym->name, (int32_t)sym->addr);
     next_use = use->next;
     free(use);
   }

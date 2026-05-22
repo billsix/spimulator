@@ -59,7 +59,8 @@ source_files = files(
   'src/explain.c',
   'src/scanner.c',
   'src/parser.c',
-  'src/pseudo_op.c'
+  'src/pseudo_op.c',
+  'src/asm_event.c'
 )
 
 spim_source_files = source_files + files('src/spim.c')
@@ -109,6 +110,8 @@ regression_tests = [
   'divide_by_zero',
   # Teaching-mode golden output + parity sanity
   'explain', 'explain_parity',
+  # Assemble-time event trace (Phase 1 of parse-tree migration)
+  'listing',
 ]
 
 foreach name : regression_tests
