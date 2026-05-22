@@ -50,7 +50,6 @@ typedef union {
 
 #include <stdlib.h>
 #include <string.h>
-#define QSORT_FUNC int (*)(const void*, const void*)
 
 #define K 1024
 

@@ -27,7 +27,7 @@ static imm_expr* lower_bits_of_expr(imm_expr* old_expr);
 static void store_instruction(instruction* inst);
 static imm_expr* upper_bits_of_expr(imm_expr* old_expr);
 
-static int compare_pair_value(name_val_val* p1, name_val_val* p2);
+static int compare_pair_value(const void* a, const void* b);
 static void format_imm_expr(str_stream* ss, imm_expr* expr, int base_reg);
 static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
                                   int value_known, int32_t value);
@@ -502,13 +502,15 @@ static name_val_val name_tbl[] = {
 
 static void sort_name_table(void) {
   qsort(name_tbl, sizeof(name_tbl) / sizeof(name_val_val), sizeof(name_val_val),
-        (QSORT_FUNC)compare_pair_value);
+        compare_pair_value);
 }
 
 /* Compare the VALUE1 field of two NAME_VAL_VAL entries in the format
    required by qsort. */
 
-static int compare_pair_value(name_val_val* p1, name_val_val* p2) {
+static int compare_pair_value(const void* a, const void* b) {
+  const name_val_val* p1 = a;
+  const name_val_val* p2 = b;
   if (p1->value1 < p2->value1)
     return (-1);
   else if (p1->value1 > p2->value1)
@@ -1039,7 +1041,7 @@ static name_val_val i_opcode_tbl[] = {
 
 static void sort_i_opcode_table(void) {
   qsort(i_opcode_tbl, sizeof(i_opcode_tbl) / sizeof(name_val_val),
-        sizeof(name_val_val), (QSORT_FUNC)compare_pair_value);
+        sizeof(name_val_val), compare_pair_value);
 }
 
 #define REGS(R, O) (((R) & 0x1f) << O)
@@ -1162,7 +1164,7 @@ static name_val_val a_opcode_tbl[] = {
 
 static void sort_a_opcode_table(void) {
   qsort(a_opcode_tbl, sizeof(a_opcode_tbl) / sizeof(name_val_val),
-        sizeof(name_val_val), (QSORT_FUNC)compare_pair_value);
+        sizeof(name_val_val), compare_pair_value);
 }
 
 instruction* inst_decode(int32_t val) {

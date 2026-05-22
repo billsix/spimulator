@@ -3,12 +3,7 @@
    SPDX-License-Identifier: BSD-3-Clause
    See LICENSE in the project root for full text. */
 
-#ifdef mips
-#define _IEEE 1
-#include <nan.h>
-#else
 #define NaN(X) ((X) != (X))
-#endif
 
 #include <math.h>
 #include <stdio.h>
