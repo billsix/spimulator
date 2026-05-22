@@ -86,6 +86,26 @@ static bool defer_emit_to_emit_ast = true;
    inline there. */
 static label* expr_unresolved_label = nullptr;
 
+/* When non-null, AST nodes built by the dispatch helpers go into this
+   pseudo-op's child list instead of the file-level child list.
+   parse_pseudo sets this around its expansion body so the AST keeps
+   the structural "this is one pseudo-op that expanded to N
+   instructions" relationship.  Nesting via saved_pseudo lets a
+   pseudo-op that internally uses another expander (e.g. `li` with a
+   big constant inside `la`) keep its outer wrapping. */
+static ast_node* current_pseudo = nullptr;
+
+/* Append `node` to the current scope: if a pseudo-op is being built,
+   its child list; otherwise the file root. */
+static void ast_append(ast_node* node) {
+  if (node == nullptr) return;
+  if (current_pseudo != nullptr) {
+    ast_pseudo_append(current_pseudo, node);
+  } else if (current_file != nullptr) {
+    ast_file_append(current_file, node);
+  }
+}
+
 void emit_ast(const ast_node* file);
 
 void parser_set_mode(parse_mode_t mode) { parse_mode_ = mode; }
@@ -94,6 +114,33 @@ parse_mode_t parser_get_mode(void) { return parse_mode_; }
 void parser_set_print_ast(bool on, FILE* out) {
   print_ast_after_parse = on;
   ast_print_out = (out != nullptr) ? out : stderr;
+}
+
+static bool show_expansion_after_parse = false;
+static FILE* show_expansion_out = nullptr;
+
+void parser_set_show_expansion(bool on, FILE* out) {
+  show_expansion_after_parse = on;
+  show_expansion_out = (out != nullptr) ? out : stderr;
+}
+
+/* Walk the AST and print just the AST_PSEUDO wrappers + their
+   expanded children.  Used by -show-expansion. */
+static void print_pseudo_walk(const ast_node* node, FILE* out);
+static void print_pseudo_in_chain(const ast_node* head, FILE* out) {
+  for (const ast_node* n = head; n != nullptr; n = n->next)
+    print_pseudo_walk(n, out);
+}
+static void print_pseudo_walk(const ast_node* node, FILE* out) {
+  if (node == nullptr) return;
+  if (node->kind == AST_PSEUDO) {
+    /* ast_print already knows how to render a pseudo node + its
+       children.  Reuse it. */
+    ast_print(node, out);
+  } else if (node->kind == AST_FILE) {
+    print_pseudo_in_chain(node->u.file.child, out);
+  }
+  /* Other node kinds are skipped — -show-expansion is a focused view. */
 }
 
 void parser_set_print_ast_only(bool on) {
@@ -131,26 +178,26 @@ static imm_expr* dup_imm(const imm_expr* e) {
 void emit_r(int op, int rd, int rs, int rt) {
   if (should_emit()) r_type_inst(op, rd, rs, rt);
   if (should_build_ast())
-    ast_file_append(current_file, ast_make_inst_r(op, rd, rs, rt));
+    ast_append(ast_make_inst_r(op, rd, rs, rt));
 }
 
 void emit_r_shift(int op, int rd, int rt, int shamt) {
   if (should_emit()) r_sh_type_inst(op, rd, rt, shamt);
   if (should_build_ast())
-    ast_file_append(current_file, ast_make_inst_r_shift(op, rd, rt, shamt));
+    ast_append(ast_make_inst_r_shift(op, rd, rt, shamt));
 }
 
 /* emit_i: caller keeps ownership of imm (matches i_type_inst). */
 void emit_i(int op, int rt, int rs, imm_expr* imm) {
   if (should_build_ast())
-    ast_file_append(current_file, ast_make_inst_i(op, rt, rs, dup_imm(imm)));
+    ast_append(ast_make_inst_i(op, rt, rs, dup_imm(imm)));
   if (should_emit()) i_type_inst(op, rt, rs, imm);
 }
 
 /* emit_i_free: caller transfers ownership (matches i_type_inst_free). */
 void emit_i_free(int op, int rt, int rs, imm_expr* imm) {
   if (should_build_ast())
-    ast_file_append(current_file, ast_make_inst_i(op, rt, rs, dup_imm(imm)));
+    ast_append(ast_make_inst_i(op, rt, rs, dup_imm(imm)));
   if (should_emit())
     i_type_inst_free(op, rt, rs, imm);
   else
@@ -162,7 +209,7 @@ void emit_j(int op, imm_expr* target) {
      original. AST-only mode dups for the AST and lets the caller's
      free still run. */
   if (should_build_ast())
-    ast_file_append(current_file, ast_make_inst_j(op, dup_imm(target)));
+    ast_append(ast_make_inst_j(op, dup_imm(target)));
   if (should_emit())
     j_type_inst(op, target);
 }
@@ -170,13 +217,13 @@ void emit_j(int op, imm_expr* target) {
 void emit_fp_r(int op, int fd, int fs, int ft) {
   if (should_emit()) r_co_type_inst(op, fd, fs, ft);
   if (should_build_ast())
-    ast_file_append(current_file, ast_make_inst_fp_r(op, fd, fs, ft));
+    ast_append(ast_make_inst_fp_r(op, fd, fs, ft));
 }
 
 void emit_fp_compare(int op, int fs, int ft, int cc) {
   if (should_emit()) r_cond_type_inst(op, fs, ft, cc);
   if (should_build_ast())
-    ast_file_append(current_file, ast_make_inst_fp_compare(op, fs, ft, cc));
+    ast_append(ast_make_inst_fp_compare(op, fs, ft, cc));
 }
 
 /* ----- data dispatch helpers ------------------------------- */
@@ -245,7 +292,7 @@ static void data_int_finalize(void) {
     default: node = ast_make_data_word(data_int_count, exprs); break;
   }
   node->source_line = data_directive_line;
-  ast_file_append(current_file, node);
+  ast_append(node);
   data_int_count = 0;
 }
 
@@ -281,15 +328,14 @@ static void data_fp_finalize(void) {
                        ? ast_make_data_float(data_fp_count, values)
                        : ast_make_data_double(data_fp_count, values);
   node->source_line = data_directive_line;
-  ast_file_append(current_file, node);
+  ast_append(node);
   data_fp_count = 0;
 }
 
 static void emit_data_string(char* s, int len, bool null_term_in) {
   if (should_emit()) store_string(s, len, null_term_in);
   if (should_build_ast())
-    ast_file_append(current_file,
-                    ast_make_data_string(s, len, null_term_in));
+    ast_append(ast_make_data_string(s, len, null_term_in));
 }
 
 /* ----- label + directive dispatch helpers ------------------ */
@@ -300,7 +346,7 @@ static void emit_label_normal(const char* name, mem_addr addr) {
     cons_label(l);
   }
   if (should_build_ast())
-    ast_file_append(current_file, ast_make_label_normal(name));
+    ast_append(ast_make_label_normal(name));
 }
 
 static void emit_label_const(const char* name, int v) {
@@ -309,13 +355,13 @@ static void emit_label_const(const char* name, int v) {
     l->const_flag = 1;
   }
   if (should_build_ast())
-    ast_file_append(current_file, ast_make_label_const(name, v));
+    ast_append(ast_make_label_const(name, v));
 }
 
 static void emit_dir_globl(const char* name) {
   if (should_emit()) make_label_global((char*)name);
   if (should_build_ast())
-    ast_file_append(current_file, ast_make_dir_globl(name));
+    ast_append(ast_make_dir_globl(name));
 }
 
 static void emit_dir_align(int n) {
@@ -326,13 +372,13 @@ static void emit_dir_align(int n) {
       align_data(n);
   }
   if (should_build_ast())
-    ast_file_append(current_file, ast_make_dir_align(n));
+    ast_append(ast_make_dir_align(n));
 }
 
 static void emit_dir_space(int v) {
   if (should_emit()) increment_data_pc(v);
   if (should_build_ast())
-    ast_file_append(current_file, ast_make_dir_space(v));
+    ast_append(ast_make_dir_space(v));
 }
 
 static void emit_dir_extern(const char* sym, int sz) {
@@ -344,7 +390,7 @@ static void emit_dir_extern(const char* sym, int sz) {
     increment_data_pc(sz);
   }
   if (should_build_ast())
-    ast_file_append(current_file, ast_make_dir_extern(sym, sz));
+    ast_append(ast_make_dir_extern(sym, sz));
 }
 
 static void emit_dir_comm(const char* sym, int sz) {
@@ -356,7 +402,7 @@ static void emit_dir_comm(const char* sym, int sz) {
     increment_data_pc(sz);
   }
   if (should_build_ast())
-    ast_file_append(current_file, ast_make_dir_comm(sym, sz));
+    ast_append(ast_make_dir_comm(sym, sz));
 }
 
 static void emit_dir_seg(ast_kind kind, bool kernel, bool has_addr,
@@ -392,7 +438,7 @@ static void emit_dir_seg(ast_kind kind, bool kernel, bool has_addr,
       case AST_DIR_KDATA: n = ast_make_dir_kdata(has_addr, addr); break;
       default:            n = ast_make_dir_data(has_addr, addr); break;
     }
-    ast_file_append(current_file, n);
+    ast_append(n);
   }
 }
 
@@ -1207,7 +1253,34 @@ static int find_op_type(int op) {
 /* Pseudo-op dispatcher.  Handled separately from the TYPE
    switch because pseudo-ops share TYPE=PSEUDO_OP but have
    different operand shapes. */
+/* Pseudo-op expander.  Each pseudo-op expands into one or more real
+   instructions via the emit_* dispatch helpers.  In AST mode this
+   function wraps the expansion in an AST_PSEUDO node so the listing
+   and -show-expansion output keep the structural pseudo→expansion
+   relationship.  do_parse_pseudo holds the per-op switch — the
+   outer parse_pseudo handles the wrapping. */
+static void do_parse_pseudo(int op);
+
 static void parse_pseudo(int op) {
+  ast_node* pseudo_node = nullptr;
+  ast_node* saved_pseudo = nullptr;
+  int saved_line = line_no;
+  if (should_build_ast()) {
+    pseudo_node = ast_make_pseudo(op_token_name(op));
+    pseudo_node->source_line = saved_line;
+    saved_pseudo = current_pseudo;
+    current_pseudo = pseudo_node;
+  }
+
+  do_parse_pseudo(op);
+
+  if (should_build_ast()) {
+    current_pseudo = saved_pseudo;
+    ast_append(pseudo_node);
+  }
+}
+
+static void do_parse_pseudo(int op) {
   switch (op) {
     case TOK_LI_POP: {
       /* li DEST, IMM32  →  ori DEST, $0, imm */
@@ -2160,6 +2233,14 @@ int parse_file(void) {
      possibly before/instead of emit). */
   if (should_build_ast() && print_ast_after_parse && current_file != nullptr) {
     ast_print(current_file, ast_print_out ? ast_print_out : stderr);
+  }
+
+  /* If -show-expansion was requested, dump just the pseudo-op
+     wrappers from this file. */
+  if (should_build_ast() && show_expansion_after_parse &&
+      current_file != nullptr) {
+    print_pseudo_walk(current_file,
+                      show_expansion_out ? show_expansion_out : stderr);
   }
 
   /* In AST mode (when not in -print-ast-only), walk the tree and

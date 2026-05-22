@@ -160,6 +160,30 @@ case "$NAME" in
     grep -q "LABEL_DEF name=target" "$out" \
       || fail "AST output missing target label"
     ;;
+  show_expansion)
+    # -show-expansion: prints each PSEUDO node + its expansion children.
+    # Verify we see the expected pseudo wrappers and that each has at
+    # least one expansion child.  Exit 0; no emit.
+    "$SPIM" -noexception -show-expansion -f tt.pseudo.s >/dev/null 2>"$out"; rc=$?
+    [ "$rc" = "0" ] || fail "expected exit=0, got exit=$rc"
+    grep -q "PSEUDO mnemonic=li" "$out" \
+      || fail "missing PSEUDO wrapper for li"
+    grep -q "PSEUDO mnemonic=la" "$out" \
+      || fail "missing PSEUDO wrapper for la"
+    grep -q "PSEUDO mnemonic=move" "$out" \
+      || fail "missing PSEUDO wrapper for move"
+    grep -q "PSEUDO mnemonic=neg" "$out" \
+      || fail "missing PSEUDO wrapper for neg"
+    grep -q "PSEUDO mnemonic=not" "$out" \
+      || fail "missing PSEUDO wrapper for not"
+    grep -q "PSEUDO mnemonic=bge" "$out" \
+      || fail "missing PSEUDO wrapper for bge"
+    # bge expands to slt + beq — verify at least two children below
+    # the PSEUDO bge line by checking the count of indented expansion
+    # entries.
+    awk '/PSEUDO mnemonic=bge/{flag=1; next} flag && /^  \[line/{c++; next} flag && /^\[line/{flag=0} END{exit (c >= 2 ? 0 : 1)}' "$out" \
+      || fail "bge PSEUDO should have >=2 expansion children"
+    ;;
   listing)
     # -listing FILE: produces an assemble-time event trace.  Verify each
     # event kind we instrumented fires for tt.listing.s.  Greps for

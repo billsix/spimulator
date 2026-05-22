@@ -115,6 +115,8 @@ regression_tests = [
   'listing',
   # AST parser parity + print-ast (Phase 2d)
   'ast_parity', 'print_ast',
+  # Pseudo-op AST wrapping (Phase 3)
+  'show_expansion',
 ]
 
 foreach name : regression_tests

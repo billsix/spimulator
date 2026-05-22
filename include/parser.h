@@ -39,6 +39,13 @@ void parser_set_print_ast(bool on, FILE* out);
 void parser_set_print_ast_only(bool on);
 bool parser_get_print_ast_only(void);
 
+/* If true, after the parse completes in PARSE_AST mode, dump just the
+   pseudo-op wrappers (each AST_PSEUDO plus its expanded children) to
+   ast_print_out.  Skips the rest of the tree.  Used by
+   -show-expansion to give a focused view of what each pseudo-op
+   actually becomes in the parser. */
+void parser_set_show_expansion(bool on, FILE* out);
+
 /* Parse the file currently bound to the scanner.  Returns the number
    of parse errors encountered (0 on success).  Drives the scanner
    until EOF.  Sets parse_errors_seen as a side effect.  In PARSE_AST

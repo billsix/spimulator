@@ -515,6 +515,13 @@ int main(int argc, char** argv) {
       parser_set_mode(PARSE_AST);
       parser_set_print_ast(true, stderr);
       parser_set_print_ast_only(true);
+    } else if (streq(argv[i], "-show-expansion")) {
+      /* Dump just the pseudo-op wrappers and their expansion children.
+         Focused teaching view of "what does each pseudo-op become."
+         Implies AST mode + skip-emit. */
+      parser_set_mode(PARSE_AST);
+      parser_set_show_expansion(true, stderr);
+      parser_set_print_ast_only(true);
     } else if (streq(argv[i], "-listing")) {
       if (i + 1 >= argc) {
         error("\n-listing requires a filename argument\n");
@@ -569,6 +576,7 @@ int main(int argc, char** argv) {
 	-listing <file>		Write assemble-time event trace to <file> (use - for stderr)\n\
 	-parser=ast|sdt		Choose parser mode (sdt default; ast also builds an AST as a side effect)\n\
 	-print-ast		Parse to AST, print it to stderr, and exit without emitting any code\n\
+	-show-expansion		Parse to AST, print just the pseudo-op wrappers + their expansion, and exit\n\
 	-dump			Write user data and text segments into files\n\
 	-full_dump		Write user and kernel data and text into files.\n");
   }

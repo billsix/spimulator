@@ -540,6 +540,15 @@ const char* inst_op_name(instruction* inst) {
   return entry ? entry->name : "<unknown>";
 }
 
+/* Op-token variant: take a raw opcode token (TOK_*_OP, TOK_*_POP) and
+   return its mnemonic — used by the AST builder to label AST_PSEUDO
+   nodes. */
+const char* op_token_name(int op_token) {
+  name_val_val* entry = map_int_to_name_val_val(
+      name_tbl, sizeof(name_tbl) / sizeof(name_val_val), op_token);
+  return entry ? entry->name : "<unknown>";
+}
+
 char* inst_to_string(mem_addr addr) {
   str_stream ss;
   instruction* inst;
