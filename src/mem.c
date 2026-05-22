@@ -27,18 +27,18 @@ mem_addr text_top;
 mem_word* data_seg;
 bool data_modified;    /* => a data segment was written */
 short* data_seg_h;     /* Points to same vector as DATA_SEG */
-BYTE_TYPE* data_seg_b; /* Ditto */
+int8_t* data_seg_b; /* Ditto */
 mem_addr data_top;
 mem_addr gp_midpoint; /* Middle of $gp area */
 mem_word* stack_seg;
 short* stack_seg_h;     /* Points to same vector as STACK_SEG */
-BYTE_TYPE* stack_seg_b; /* Ditto */
+int8_t* stack_seg_b; /* Ditto */
 mem_addr stack_bot;
 instruction** k_text_seg;
 mem_addr k_text_top;
 mem_word* k_data_seg;
 short* k_data_seg_h;
-BYTE_TYPE* k_data_seg_b;
+int8_t* k_data_seg_b;
 mem_addr k_data_top;
 
 /* Local functions: */
@@ -53,7 +53,7 @@ static void write_memory_mapped_IO(mem_addr addr, mem_word value);
 
 /* Local variables: */
 
-static int32 data_size_limit, stack_size_limit, k_data_size_limit;
+static int32_t data_size_limit, stack_size_limit, k_data_size_limit;
 
 /* Memory is allocated in five chunks:
         text, data, stack, kernel text, and kernel data.
@@ -106,7 +106,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   else
     data_seg = (mem_word*)realloc(data_seg, data_size);
   memclr(data_seg, data_size);
-  data_seg_b = (BYTE_TYPE*)data_seg;
+  data_seg_b = (int8_t*)data_seg;
   data_seg_h = (short*)data_seg;
   data_top = DATA_BOT + data_size;
   data_size_limit = data_limit;
@@ -117,7 +117,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   else
     stack_seg = (mem_word*)realloc(stack_seg, stack_size);
   memclr(stack_seg, stack_size);
-  stack_seg_b = (BYTE_TYPE*)stack_seg;
+  stack_seg_b = (int8_t*)stack_seg;
   stack_seg_h = (short*)stack_seg;
   stack_bot = STACK_TOP - stack_size;
   stack_size_limit = stack_limit;
@@ -137,7 +137,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   else
     k_data_seg = (mem_word*)realloc(k_data_seg, k_data_size);
   memclr(k_data_seg, k_data_size);
-  k_data_seg_b = (BYTE_TYPE*)k_data_seg;
+  k_data_seg_b = (int8_t*)k_data_seg;
   k_data_seg_h = (short*)k_data_seg;
   k_data_top = K_DATA_BOT + k_data_size;
   k_data_size_limit = k_data_limit;
@@ -159,7 +159,7 @@ void expand_data(int addl_bytes) {
   int delta = ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
   int old_size = data_top - DATA_BOT;
   int new_size = old_size + delta;
-  BYTE_TYPE* p;
+  int8_t* p;
 
   if ((addl_bytes < 0) || (new_size > data_size_limit)) {
     error("Can't expand data segment by %d bytes to %d bytes\n", addl_bytes,
@@ -169,7 +169,7 @@ void expand_data(int addl_bytes) {
   data_seg = (mem_word*)realloc(data_seg, new_size);
   if (data_seg == nullptr) fatal_error("realloc failed in expand_data\n");
 
-  data_seg_b = (BYTE_TYPE*)data_seg;
+  data_seg_b = (int8_t*)data_seg;
   data_seg_h = (short*)data_seg;
   data_top += delta;
 
@@ -204,7 +204,7 @@ void expand_stack(int addl_bytes) {
 
   free(stack_seg);
   stack_seg = new_seg;
-  stack_seg_b = (BYTE_TYPE*)stack_seg;
+  stack_seg_b = (int8_t*)stack_seg;
   stack_seg_h = (short*)stack_seg;
   stack_bot -= (new_size - old_size);
 }
@@ -215,7 +215,7 @@ void expand_k_data(int addl_bytes) {
   int delta = ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
   int old_size = k_data_top - K_DATA_BOT;
   int new_size = old_size + delta;
-  BYTE_TYPE* p;
+  int8_t* p;
 
   if ((addl_bytes < 0) || (new_size > k_data_size_limit)) {
     run_error(
@@ -226,7 +226,7 @@ void expand_k_data(int addl_bytes) {
   k_data_seg = (mem_word*)realloc(k_data_seg, new_size);
   if (k_data_seg == nullptr) fatal_error("realloc failed in expand_k_data\n");
 
-  k_data_seg_b = (BYTE_TYPE*)k_data_seg;
+  k_data_seg_b = (int8_t*)k_data_seg;
   k_data_seg_h = (short*)k_data_seg;
   k_data_top += delta;
 
@@ -310,11 +310,11 @@ void mem_write_inst(mem_addr addr, instruction* inst) {
 void mem_write_byte(mem_addr addr, reg_word value) {
   data_modified = true;
   if ((addr >= DATA_BOT) && (addr < data_top))
-    data_seg_b[addr - DATA_BOT] = (BYTE_TYPE)value;
+    data_seg_b[addr - DATA_BOT] = (int8_t)value;
   else if ((addr >= stack_bot) && (addr < STACK_TOP))
-    stack_seg_b[addr - stack_bot] = (BYTE_TYPE)value;
+    stack_seg_b[addr - stack_bot] = (int8_t)value;
   else if ((addr >= K_DATA_BOT) && (addr < k_data_top))
-    k_data_seg_b[addr - K_DATA_BOT] = (BYTE_TYPE)value;
+    k_data_seg_b[addr - K_DATA_BOT] = (int8_t)value;
   else
     bad_mem_write(addr, value, 0);
 }

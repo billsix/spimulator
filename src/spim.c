@@ -1049,9 +1049,9 @@ static bool parse_spim_command(bool redo) {
       dump_end = current_text_pc();
 
       for (addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
-        int32 code = inst_encode(mem_read_inst(addr));
+        int32_t code = inst_encode(mem_read_inst(addr));
         if (cmd == DUMP_TEXT_CMD)
-          code = (int32)htonl(
+          code = (int32_t)htonl(
               (unsigned long)code); /* dump in network byte order */
         (void)fwrite(&code, 1, sizeof(code), fp);
         words += 1;
@@ -1243,7 +1243,7 @@ static bool write_assembled_code(char* program_name) {
 
   (void)fprintf(fp, ".text # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
   for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
-    int32 code = inst_encode(mem_read_inst(addr));
+    int32_t code = inst_encode(mem_read_inst(addr));
     (void)fprintf(fp, "0x%x%s", code,
                   addr != (dump_end - BYTES_PER_WORD) ? ", " : "");
   }
@@ -1261,7 +1261,7 @@ static bool write_assembled_code(char* program_name) {
   if (dump_end > dump_start) {
     (void)fprintf(fp, ".data # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
     for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
-      int32 code = mem_read_word(addr);
+      int32_t code = mem_read_word(addr);
       (void)fprintf(fp, "0x%x%s", code,
                     addr != (dump_end - BYTES_PER_WORD) ? ", " : "");
     }

@@ -1127,14 +1127,14 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         case TOK_CEIL_W_D_OP: {
           double val = FPR_D(FS(inst));
 
-          SET_FPR_W(FD(inst), (int32)ceil(val));
+          SET_FPR_W(FD(inst), (int32_t)ceil(val));
           break;
         }
 
         case TOK_CEIL_W_S_OP: {
           double val = (double)FPR_S(FS(inst));
 
-          SET_FPR_W(FD(inst), (int32)ceil(val));
+          SET_FPR_W(FD(inst), (int32_t)ceil(val));
           break;
         }
 
@@ -1167,14 +1167,14 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         }
 
         case TOK_CVT_W_D_OP: {
-          int val = (int32)FPR_D(FS(inst));
+          int val = (int32_t)FPR_D(FS(inst));
 
           SET_FPR_W(FD(inst), val);
           break;
         }
 
         case TOK_CVT_W_S_OP: {
-          int val = (int32)FPR_S(FS(inst));
+          int val = (int32_t)FPR_S(FS(inst));
 
           SET_FPR_W(FD(inst), val);
           break;
@@ -1191,14 +1191,14 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         case TOK_FLOOR_W_D_OP: {
           double val = FPR_D(FS(inst));
 
-          SET_FPR_W(FD(inst), (int32)floor(val));
+          SET_FPR_W(FD(inst), (int32_t)floor(val));
           break;
         }
 
         case TOK_FLOOR_W_S_OP: {
           double val = (double)FPR_S(FS(inst));
 
-          SET_FPR_W(FD(inst), (int32)floor(val));
+          SET_FPR_W(FD(inst), (int32_t)floor(val));
           break;
         }
 
@@ -1318,14 +1318,14 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         case TOK_ROUND_W_D_OP: {
           double val = FPR_D(FS(inst));
 
-          SET_FPR_W(FD(inst), (int32)(val + 0.5)); /* Casting truncates */
+          SET_FPR_W(FD(inst), (int32_t)(val + 0.5)); /* Casting truncates */
           break;
         }
 
         case TOK_ROUND_W_S_OP: {
           double val = (double)FPR_S(FS(inst));
 
-          SET_FPR_W(FD(inst), (int32)(val + 0.5)); /* Casting truncates */
+          SET_FPR_W(FD(inst), (int32_t)(val + 0.5)); /* Casting truncates */
           break;
         }
 
@@ -1368,14 +1368,14 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         case TOK_TRUNC_W_D_OP: {
           double val = FPR_D(FS(inst));
 
-          SET_FPR_W(FD(inst), (int32)val); /* Casting truncates */
+          SET_FPR_W(FD(inst), (int32_t)val); /* Casting truncates */
           break;
         }
 
         case TOK_TRUNC_W_S_OP: {
           double val = (double)FPR_S(FS(inst));
 
-          SET_FPR_W(FD(inst), (int32)val); /* Casting truncates */
+          SET_FPR_W(FD(inst), (int32_t)val); /* Casting truncates */
           break;
         }
 

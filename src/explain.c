@@ -146,7 +146,7 @@ void explain_print_step_header(mem_addr pc, instruction* inst) {
     while (*dasm == ' ' || *dasm == '\t') dasm++;
   }
 
-  uint32 enc = (uint32)inst_encode(inst);
+  uint32_t enc = (uint32_t)inst_encode(inst);
   write_output(message_out, "    memory[0x%08x] = 0x%08x   →   %s\n", pc, enc,
                dasm);
   if (source_part && *source_part) {
@@ -472,7 +472,7 @@ static void say_wrote_lo(void) {
    sensibly. Only valid when snap_has_mem is true. */
 static void say_wrote_mem(int width) {
   if (!snap_has_mem) return;
-  uint32 mask = (width == 1) ? 0xff : (width == 2) ? 0xffff : 0xffffffffu;
+  uint32_t mask = (width == 1) ? 0xff : (width == 2) ? 0xffff : 0xffffffffu;
   reg_word now;
   if (width == 1)
     now = peek_byte(snap_mem_addr) & 0xff;
@@ -482,7 +482,7 @@ static void say_wrote_mem(int width) {
     now = peek_word(snap_mem_addr);
   write_output(message_out, "  Wrote to memory:\n");
   write_output(message_out, "    0x%08x:  0x%08x  →  0x%08x\n", snap_mem_addr,
-               ((uint32)snap_mem_val) & mask, ((uint32)now) & mask);
+               ((uint32_t)snap_mem_val) & mask, ((uint32_t)now) & mask);
 }
 
 /* Emit "Try it yourself" lines for up to four registers. Pass 0 (=$zero) to
@@ -660,7 +660,7 @@ static void tpl_load(int level, instruction* inst, const char* op_label,
     else
       cur = peek_word(ea);
     write_output(message_out, "    memory at 0x%08x = 0x%08x\n", ea,
-                 (uint32)cur);
+                 (uint32_t)cur);
     write_output(message_out, "  Wrote:\n");
     say_wrote_reg(rt);
     say_try_regs(base, rt, 0, 0);
@@ -870,7 +870,7 @@ static void explain_syscall(int level) {
  *    same 6/5/5/16 split closely enough for a first look.)
  */
 
-static void write_bits(char* out, uint32 val, int hi, int lo) {
+static void write_bits(char* out, uint32_t val, int hi, int lo) {
   int width = hi - lo + 1;
   for (int i = 0; i < width; i++) {
     int bit_pos = hi - i;
@@ -879,7 +879,7 @@ static void write_bits(char* out, uint32 val, int hi, int lo) {
   out[width] = '\0';
 }
 
-static void render_r_layout(uint32 enc, const char* mnemonic) {
+static void render_r_layout(uint32_t enc, const char* mnemonic) {
   char b_op[7], b_rs[6], b_rt[6], b_rd[6], b_sh[6], b_fn[7];
   write_bits(b_op, enc, 31, 26);
   write_bits(b_rs, enc, 25, 21);
@@ -913,7 +913,7 @@ static void render_r_layout(uint32 enc, const char* mnemonic) {
                funct, mnemonic);
 }
 
-static void render_i_layout(uint32 enc, const char* mnemonic) {
+static void render_i_layout(uint32_t enc, const char* mnemonic) {
   char b_op[7], b_rs[6], b_rt[6], b_im[17];
   write_bits(b_op, enc, 31, 26);
   write_bits(b_rs, enc, 25, 21);
@@ -938,12 +938,12 @@ static void render_i_layout(uint32 enc, const char* mnemonic) {
                int_reg_names[rt], (int)imm_s, imm_u, op, mnemonic);
 }
 
-static void render_j_layout(uint32 enc, const char* mnemonic) {
+static void render_j_layout(uint32_t enc, const char* mnemonic) {
   char b_op[7], b_tg[27];
   write_bits(b_op, enc, 31, 26);
   write_bits(b_tg, enc, 25, 0);
   int op = (enc >> 26) & 0x3f;
-  uint32 target = enc & 0x03ffffff;
+  uint32_t target = enc & 0x03ffffff;
 
   write_output(message_out,
                "  Bit layout (J-type, encoding 0x%08x):\n"
@@ -961,7 +961,7 @@ static void render_j_layout(uint32 enc, const char* mnemonic) {
 
 static void explain_bit_layout(instruction* inst) {
   if (inst == nullptr) return;
-  uint32 enc = (uint32)inst_encode(inst);
+  uint32_t enc = (uint32_t)inst_encode(inst);
   /* nop (sll $0,$0,0) genuinely encodes to 0x00000000. Skip the diagram
      since "all zeros" carries no pedagogical signal of its own; the
      mnemonic-level explanation below covers it. */
@@ -1015,14 +1015,14 @@ static const char* regimm_rt_to_name[32] = {
     [0x11] = "bgezal",
 };
 
-static void render_r_decode_step(uint32 enc, int step, const char* mnemonic,
+static void render_r_decode_step(uint32_t enc, int step, const char* mnemonic,
                                  const char* group_name) {
-  uint32 op = (enc >> 26) & 0x3f;
-  uint32 rs = (enc >> 21) & 0x1f;
-  uint32 rt = (enc >> 16) & 0x1f;
-  uint32 rd = (enc >> 11) & 0x1f;
-  uint32 shamt = (enc >> 6) & 0x1f;
-  uint32 funct = enc & 0x3f;
+  uint32_t op = (enc >> 26) & 0x3f;
+  uint32_t rs = (enc >> 21) & 0x1f;
+  uint32_t rt = (enc >> 16) & 0x1f;
+  uint32_t rd = (enc >> 11) & 0x1f;
+  uint32_t shamt = (enc >> 6) & 0x1f;
+  uint32_t funct = enc & 0x3f;
 
   char b_op[7], b_rs[6], b_rt[6], b_rd[6], b_sh[6], b_fn[7];
   write_bits(b_op, enc, 31, 26);
@@ -1105,10 +1105,10 @@ static void render_r_decode_step(uint32 enc, int step, const char* mnemonic,
   }
 }
 
-static void render_i_decode_step(uint32 enc, int step, const char* mnemonic) {
-  uint32 op = (enc >> 26) & 0x3f;
-  uint32 rs = (enc >> 21) & 0x1f;
-  uint32 rt = (enc >> 16) & 0x1f;
+static void render_i_decode_step(uint32_t enc, int step, const char* mnemonic) {
+  uint32_t op = (enc >> 26) & 0x3f;
+  uint32_t rs = (enc >> 21) & 0x1f;
+  uint32_t rt = (enc >> 16) & 0x1f;
   int16_t imm_s = (int16_t)(enc & 0xffff);
   uint16_t imm_u = (uint16_t)(enc & 0xffff);
 
@@ -1158,9 +1158,9 @@ static void render_i_decode_step(uint32 enc, int step, const char* mnemonic) {
   }
 }
 
-static void render_j_decode_step(uint32 enc, int step, const char* mnemonic) {
-  uint32 op = (enc >> 26) & 0x3f;
-  uint32 target = enc & 0x03ffffff;
+static void render_j_decode_step(uint32_t enc, int step, const char* mnemonic) {
+  uint32_t op = (enc >> 26) & 0x3f;
+  uint32_t target = enc & 0x03ffffff;
 
   char b_op[7], b_tg[27];
   write_bits(b_op, enc, 31, 26);
@@ -1203,11 +1203,11 @@ static void render_j_decode_step(uint32 enc, int step, const char* mnemonic) {
   }
 }
 
-static void render_regimm_decode_step(uint32 enc, int step,
+static void render_regimm_decode_step(uint32_t enc, int step,
                                       const char* mnemonic) {
-  uint32 op = (enc >> 26) & 0x3f;
-  uint32 rs = (enc >> 21) & 0x1f;
-  uint32 rt = (enc >> 16) & 0x1f;
+  uint32_t op = (enc >> 26) & 0x3f;
+  uint32_t rs = (enc >> 21) & 0x1f;
+  uint32_t rt = (enc >> 16) & 0x1f;
   int16_t imm_s = (int16_t)(enc & 0xffff);
 
   char b_op[7], b_rs[6], b_rt[6], b_im[17];
@@ -1273,7 +1273,7 @@ static void render_regimm_decode_step(uint32 enc, int step,
 
 static void explain_decoding_steps(instruction* inst) {
   if (inst == nullptr) return;
-  uint32 enc = (uint32)inst_encode(inst);
+  uint32_t enc = (uint32_t)inst_encode(inst);
   if (enc == 0) return; /* true nop — skip */
 
   const char* mnemonic = inst_op_name(inst);

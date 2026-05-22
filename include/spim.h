@@ -16,13 +16,11 @@
 #define SPIM_LITTLENDIAN
 #endif
 
-/* Type declarations.  spim simulates a 32-bit MIPS, so these must be
-   exactly 32 bits wide regardless of host word size. */
+/* spim simulates a 32-bit MIPS, so register and memory words must be
+   exactly 32 bits wide regardless of host word size.  Use the fixed-width
+   integer types from <stdint.h>. */
 
-typedef int int32;
-typedef unsigned int uint32;
-static_assert(sizeof(int32) == 4, "int32 must be 32 bits");
-static_assert(sizeof(uint32) == 4, "uint32 must be 32 bits");
+#include <stdint.h>
 
 typedef union {
   int i;
@@ -35,12 +33,9 @@ typedef union {
 #define ROUND_UP(V, B) (((int)V + (B - 1)) & ~(B - 1))
 #define ROUND_DOWN(V, B) (((int)V) & ~(B - 1))
 
-/* Sign-extend an int16 to an int32.  Both ?: branches kept in
-   unsigned-int territory so -Wsign-compare doesn't trip on the
-   mixed signedness; the final cast back to int32 carries the
-   sign-extended value. */
-#define SIGN_EX(X) \
-  ((int32)(((X) & 0x8000) ? ((uint32)(X) | 0xffff0000u) : (uint32)(X)))
+/* Sign-extend the low 16 bits of X to a 32-bit signed integer.
+   Casting through int16_t lets the compiler emit a single movsx. */
+#define SIGN_EX(X) ((int32_t)(int16_t)(X))
 
 #ifdef MIN /* Some systems define these in system includes */
 #undef MIN
@@ -70,7 +65,7 @@ typedef union {
 
 /* Type of a memory address.  Must be a 32-bit quantity to match MIPS.  */
 
-typedef uint32 /*@alt int @*/ mem_addr;
+typedef uint32_t mem_addr;
 
 #define BYTES_PER_WORD 4 /* On the MIPS processor */
 

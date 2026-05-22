@@ -54,7 +54,7 @@ typedef struct inst_s {
     mem_addr target;
   } r_t;
 
-  int32 encoding;
+  int32_t encoding;
   imm_expr* expr;
   char* source_line;
 } instruction;
@@ -108,7 +108,7 @@ typedef struct inst_s {
 #define SET_TARGET(INST, VAL) (INST)->r_t.target = (mem_addr)(VAL)
 
 #define ENCODING(INST) (INST)->encoding
-#define SET_ENCODING(INST, VAL) (INST)->encoding = (int32)(VAL)
+#define SET_ENCODING(INST, VAL) (INST)->encoding = (int32_t)(VAL)
 
 #define EXPR(INST) (INST)->expr
 #define SET_EXPR(INST, VAL) (INST)->expr = (imm_expr*)(VAL)
@@ -192,18 +192,18 @@ extern int first_bad_exception;
 imm_expr* addr_expr_imm(addr_expr* expr);
 int addr_expr_reg(addr_expr* expr);
 void align_text(int alignment);
-imm_expr* const_imm_expr(int32 value);
+imm_expr* const_imm_expr(int32_t value);
 instruction* copy_inst(instruction* inst);
 mem_addr current_text_pc(void);
-int32 eval_imm_expr(imm_expr* expr);
+int32_t eval_imm_expr(imm_expr* expr);
 void format_an_inst(str_stream* ss, instruction* inst, mem_addr addr);
 void free_inst(instruction* inst);
 void i_type_inst(int opcode, int rt, int rs, imm_expr* expr);
 void i_type_inst_free(int opcode, int rt, int rs, imm_expr* expr);
-imm_expr* incr_expr_offset(imm_expr* expr, int32 value);
+imm_expr* incr_expr_offset(imm_expr* expr, int32_t value);
 void initialize_inst_tables(void);
-instruction* inst_decode(int32 value);
-int32 inst_encode(instruction* inst);
+instruction* inst_decode(int32_t value);
+int32_t inst_encode(instruction* inst);
 bool inst_is_breakpoint(mem_addr addr);
 const char* inst_op_name(instruction* inst);
 void j_type_inst(int opcode, imm_expr* target);

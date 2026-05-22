@@ -87,7 +87,7 @@ extern void r_type_inst(int opcode, int rd, int rs, int rt);
 extern void r_sh_type_inst(int opcode, int rd, int rt, int shamt);
 extern void i_type_inst_free(int opcode, int rt, int rs, imm_expr* expr);
 extern imm_expr* const_imm_expr(int value);
-extern int32 eval_imm_expr(imm_expr* expr);
+extern int32_t eval_imm_expr(imm_expr* expr);
 
 void nop_inst(void) {
   r_type_inst(TOK_SLL_OP, 0, 0, 0); /* sll $0, $0, 0 == 0x00000000 */
@@ -210,10 +210,10 @@ void set_eq_inst(int op, int rd, int rs, int rt) {
   i_type_inst_free(TOK_ORI_OP, rd, 0, if_eq);
 }
 
-void check_imm_range(imm_expr* expr, int32 min, int32 max) {
+void check_imm_range(imm_expr* expr, int32_t min, int32_t max) {
   if (expr->symbol == nullptr || SYMBOL_IS_DEFINED(expr->symbol)) {
     /* If expression can be evaluated, compare against limits. */
-    int32 value = eval_imm_expr(expr);
+    int32_t value = eval_imm_expr(expr);
 
     if (value < min || max < value) {
       char str[200];
@@ -224,14 +224,14 @@ void check_imm_range(imm_expr* expr, int32 min, int32 max) {
   }
 }
 
-void check_uimm_range(imm_expr* expr, uint32 min, uint32 max) {
+void check_uimm_range(imm_expr* expr, uint32_t min, uint32_t max) {
   if (expr->symbol == nullptr || SYMBOL_IS_DEFINED(expr->symbol)) {
-    uint32 value = (uint32)eval_imm_expr(expr);
+    uint32_t value = (uint32_t)eval_imm_expr(expr);
 
     if (value < min || max < value) {
       char str[200];
-      sprintf(str, "immediate value (%d) out of range (%d .. %d)", (int32)value,
-              (int32)min, (int32)max);
+      sprintf(str, "immediate value (%d) out of range (%d .. %d)", (int32_t)value,
+              (int32_t)min, (int32_t)max);
       error("spim: (parser) %s on line %d\n", str, line_no);
     }
   }

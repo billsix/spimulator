@@ -9,7 +9,7 @@
 #include <stdint.h>
 #include "spim.h"
 
-typedef int32_t /*@alt unsigned int @*/ reg_word;
+typedef int32_t reg_word;
 typedef uint32_t u_reg_word;
 
 /* General purpose registers: */
@@ -155,7 +155,7 @@ extern int* FWR;    /* is possible */
 
 #define SET_FPR_W(REGNO, VALUE)  \
   {                              \
-    FWR[REGNO] = (int32)(VALUE); \
+    FWR[REGNO] = (int32_t)(VALUE); \
   }
 
 /* Floating point control registers: */

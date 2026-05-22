@@ -180,8 +180,8 @@ void format_mem(str_stream* ss, mem_addr from, mem_addr to) {
 
   for (; i < to;) {
     /* Count consecutive zero words */
-    for (j = 0; (i + (uint32)j * BYTES_PER_WORD) < to; j += 1) {
-      val = mem_read_word(i + (uint32)j * BYTES_PER_WORD);
+    for (j = 0; (i + (uint32_t)j * BYTES_PER_WORD) < to; j += 1) {
+      val = mem_read_word(i + (uint32_t)j * BYTES_PER_WORD);
       if (val != 0) {
         break;
       }
@@ -190,9 +190,9 @@ void format_mem(str_stream* ss, mem_addr from, mem_addr to) {
     if (j >= 4) {
       /* Block of 4 or more zero memory words: */
       ss_printf(ss, "[0x%08x]...[0x%08x]	0x00000000\n", i,
-                i + (uint32)j * BYTES_PER_WORD);
+                i + (uint32_t)j * BYTES_PER_WORD);
 
-      i = i + (uint32)j * BYTES_PER_WORD;
+      i = i + (uint32_t)j * BYTES_PER_WORD;
       i = format_partial_line(ss, i);
     } else {
       /* Fewer than 4 zero words, print them on a single line: */

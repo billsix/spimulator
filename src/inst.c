@@ -30,18 +30,18 @@ static imm_expr* upper_bits_of_expr(imm_expr* old_expr);
 static int compare_pair_value(name_val_val* p1, name_val_val* p2);
 static void format_imm_expr(str_stream* ss, imm_expr* expr, int base_reg);
 static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
-                                  int value_known, int32 value);
+                                  int value_known, int32_t value);
 static void inst_cmp(instruction* inst1, instruction* inst2);
 static instruction* make_r_type_inst(int opcode, int rd, int rs, int rt);
-static instruction* mk_i_inst(int32 value, int opcode, int rs, int rt,
+static instruction* mk_i_inst(int32_t value, int opcode, int rs, int rt,
                               int offset);
-static instruction* mk_j_inst(int32 value, int opcode, int target);
-static instruction* mk_r_inst(int32 value, int opcode, int rs, int rt, int rd,
+static instruction* mk_j_inst(int32_t value, int opcode, int target);
+static instruction* mk_r_inst(int32_t value, int opcode, int rs, int rt, int rd,
                               int shamt);
-static instruction* mk_co_r_inst(int32 value, int opcode, int fd, int fs,
+static instruction* mk_co_r_inst(int32_t value, int opcode, int fd, int fs,
                                  int ft);
 static void produce_immediate(imm_expr* expr, int rt, int value_known,
-                              int32 value);
+                              int32_t value);
 static void sort_a_opcode_table(void);
 static void sort_i_opcode_table(void);
 static void sort_name_table(void);
@@ -170,7 +170,7 @@ void i_type_inst(int opcode, int rt, int rs, imm_expr* expr) {
   SET_EXPR(inst, copy_imm_expr(expr));
   if (expr->symbol == nullptr || SYMBOL_IS_DEFINED(expr->symbol)) {
     /* Evaluate the instruction's expression. */
-    int32 value = eval_imm_expr(expr);
+    int32_t value = eval_imm_expr(expr);
 
     if (!bare_machine && (((opcode == TOK_ADDI_OP || opcode == TOK_ADDIU_OP ||
                             opcode == TOK_SLTI_OP || opcode == TOK_SLTIU_OP ||
@@ -210,13 +210,13 @@ void i_type_inst(int opcode, int rt, int rs, imm_expr* expr) {
    Build the value from its piece with separate instructions. */
 
 static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
-                                  int value_known, int32 value) {
+                                  int value_known, int32_t value) {
   if (opcode_is_load_store(opcode)) {
-    int32 offset;
+    int32_t offset;
 
     if (expr->symbol != nullptr && expr->symbol->gp_flag && rs == 0 &&
-        (int32)IMM_MIN <= (offset = expr->symbol->addr + expr->offset) &&
-        offset <= (int32)IMM_MAX) {
+        (int32_t)IMM_MIN <= (offset = expr->symbol->addr + expr->offset) &&
+        offset <= (int32_t)IMM_MAX) {
       i_type_inst_free(opcode, rt, REG_GP,
                        make_imm_expr(offset, nullptr, false));
     } else if (value_known) {
@@ -263,8 +263,8 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
     int offset;
 
     if (expr->symbol != nullptr && expr->symbol->gp_flag && rs == 0 &&
-        (int32)IMM_MIN <= (offset = expr->symbol->addr + expr->offset) &&
-        offset <= (int32)IMM_MAX) {
+        (int32_t)IMM_MIN <= (offset = expr->symbol->addr + expr->offset) &&
+        offset <= (int32_t)IMM_MAX) {
       i_type_inst_free((opcode == TOK_LUI_OP ? TOK_ADDIU_OP : opcode), rt,
                        REG_GP, make_imm_expr(offset, nullptr, false));
     } else {
@@ -282,7 +282,7 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
 }
 
 static void produce_immediate(imm_expr* expr, int rt, int value_known,
-                              int32 value) {
+                              int32_t value) {
   if (value_known && (value & 0xffff) == 0) {
     i_type_inst_free(TOK_LUI_OP, rt, 0, upper_bits_of_expr(expr));
   } else if (value_known && (value & 0xffff0000) == 0) {
@@ -577,7 +577,7 @@ void format_an_inst(str_stream* ss, instruction* inst, mem_addr addr) {
     return;
   }
 
-  ss_printf(ss, "0x%08x  %s", (uint32)ENCODING(inst), entry->name);
+  ss_printf(ss, "0x%08x  %s", (uint32_t)ENCODING(inst), entry->name);
   switch (entry->value2) {
     case BC_TYPE_INST:
       ss_printf(ss, "%d %d", CC(inst), IDISP(inst));
@@ -935,14 +935,14 @@ static imm_expr* lower_bits_of_expr(imm_expr* old_expr) {
 
 /* Return an instruction expression for a constant VALUE. */
 
-imm_expr* const_imm_expr(int32 value) {
+imm_expr* const_imm_expr(int32_t value) {
   return (make_imm_expr(value, nullptr, false));
 }
 
 /* Return a shallow copy of the EXPRESSION with the offset field
    incremented by the given amount. */
 
-imm_expr* incr_expr_offset(imm_expr* expr, int32 value) {
+imm_expr* incr_expr_offset(imm_expr* expr, int32_t value) {
   imm_expr* new_expr = copy_imm_expr(expr);
 
   new_expr->offset += value;
@@ -951,8 +951,8 @@ imm_expr* incr_expr_offset(imm_expr* expr, int32 value) {
 
 /* Return the value of the EXPRESSION. */
 
-int32 eval_imm_expr(imm_expr* expr) {
-  int32 value;
+int32_t eval_imm_expr(imm_expr* expr) {
+  int32_t value;
 
   if (expr->symbol == nullptr)
     value = expr->offset;
@@ -1044,8 +1044,8 @@ static void sort_i_opcode_table(void) {
 
 #define REGS(R, O) (((R) & 0x1f) << O)
 
-int32 inst_encode(instruction* inst) {
-  int32 a_opcode = 0;
+int32_t inst_encode(instruction* inst) {
+  int32_t a_opcode = 0;
   name_val_val* entry;
 
   if (inst == nullptr) return (0);
@@ -1165,10 +1165,10 @@ static void sort_a_opcode_table(void) {
         sizeof(name_val_val), (QSORT_FUNC)compare_pair_value);
 }
 
-instruction* inst_decode(int32 val) {
-  int32 a_opcode = val & 0xfc000000;
+instruction* inst_decode(int32_t val) {
+  int32_t a_opcode = val & 0xfc000000;
   name_val_val* entry;
-  int32 i_opcode;
+  int32_t i_opcode;
 
   /* Field classes: (opcode is continued in other part of instruction): */
   if (a_opcode == 0 || a_opcode == 0x70000000) /* SPECIAL or SPECIAL2 */
@@ -1284,7 +1284,7 @@ instruction* inst_decode(int32 val) {
   }
 }
 
-static instruction* mk_r_inst(int32 val, int opcode, int rs, int rt, int rd,
+static instruction* mk_r_inst(int32_t val, int opcode, int rs, int rt, int rd,
                               int shamt) {
   instruction* inst = (instruction*)zmalloc(sizeof(instruction));
 
@@ -1298,7 +1298,7 @@ static instruction* mk_r_inst(int32 val, int opcode, int rs, int rt, int rd,
   return (inst);
 }
 
-static instruction* mk_co_r_inst(int32 val, int opcode, int fs, int ft,
+static instruction* mk_co_r_inst(int32_t val, int opcode, int fs, int ft,
                                  int fd) {
   instruction* inst = (instruction*)zmalloc(sizeof(instruction));
 
@@ -1311,7 +1311,7 @@ static instruction* mk_co_r_inst(int32 val, int opcode, int fs, int ft,
   return (inst);
 }
 
-static instruction* mk_i_inst(int32 val, int opcode, int rs, int rt,
+static instruction* mk_i_inst(int32_t val, int opcode, int rs, int rt,
                               int offset) {
   instruction* inst = (instruction*)zmalloc(sizeof(instruction));
 
@@ -1324,7 +1324,7 @@ static instruction* mk_i_inst(int32 val, int opcode, int rs, int rt,
   return (inst);
 }
 
-static instruction* mk_j_inst(int32 val, int opcode, int target) {
+static instruction* mk_j_inst(int32_t val, int opcode, int target) {
   instruction* inst = (instruction*)zmalloc(sizeof(instruction));
 
   SET_OPCODE(inst, opcode);
