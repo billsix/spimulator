@@ -34,7 +34,7 @@
 #include <stdio.h>
 
 #include "spim.h"
-#include "inst.h"   /* for imm_expr, addr_expr */
+#include "inst.h" /* for imm_expr, addr_expr */
 
 /* ------------------------------------------------------------------ */
 /* Node kinds                                                          */
@@ -42,49 +42,49 @@
 
 typedef enum {
   /* Instructions */
-  AST_INST_R,           /* op rd, rs, rt                     */
-  AST_INST_R_SHIFT,     /* op rd, rt, shamt                  */
-  AST_INST_I,           /* op rt, rs, imm                    */
-  AST_INST_J,           /* op target                         */
-  AST_INST_FP_R,        /* op fd, fs, ft                     */
-  AST_INST_FP_COMPARE,  /* op fs, ft, cc                     */
-  AST_PSEUDO,           /* wrapper for a parser-level pseudo-op
-                           rewrite (la, li, move, neg, bge, ...).
-                           Children are the real instructions the
-                           parser emits for that pseudo-op. */
+  AST_INST_R,          /* op rd, rs, rt                     */
+  AST_INST_R_SHIFT,    /* op rd, rt, shamt                  */
+  AST_INST_I,          /* op rt, rs, imm                    */
+  AST_INST_J,          /* op target                         */
+  AST_INST_FP_R,       /* op fd, fs, ft                     */
+  AST_INST_FP_COMPARE, /* op fs, ft, cc                     */
+  AST_PSEUDO,          /* wrapper for a parser-level pseudo-op
+                          rewrite (la, li, move, neg, bge, ...).
+                          Children are the real instructions the
+                          parser emits for that pseudo-op. */
 
   /* Data directives */
-  AST_DATA_BYTE,        /* .byte  EXPR[, EXPR]*              */
-  AST_DATA_HALF,        /* .half  EXPR[, EXPR]*              */
-  AST_DATA_WORD,        /* .word  EXPR[, EXPR]*              */
-  AST_DATA_FLOAT,       /* .float FP[, FP]*                  */
-  AST_DATA_DOUBLE,      /* .double FP[, FP]*                 */
-  AST_DATA_STRING,      /* .ascii STR  or  .asciiz STR       */
+  AST_DATA_BYTE,   /* .byte  EXPR[, EXPR]*              */
+  AST_DATA_HALF,   /* .half  EXPR[, EXPR]*              */
+  AST_DATA_WORD,   /* .word  EXPR[, EXPR]*              */
+  AST_DATA_FLOAT,  /* .float FP[, FP]*                  */
+  AST_DATA_DOUBLE, /* .double FP[, FP]*                 */
+  AST_DATA_STRING, /* .ascii STR  or  .asciiz STR       */
 
   /* Segment / layout directives */
-  AST_DIR_TEXT,         /* .text [ADDR]                      */
-  AST_DIR_DATA,         /* .data [ADDR]                      */
-  AST_DIR_KTEXT,        /* .ktext [ADDR]                     */
-  AST_DIR_KDATA,        /* .kdata [ADDR]                     */
-  AST_DIR_ALIGN,        /* .align N                          */
-  AST_DIR_SPACE,        /* .space N                          */
-  AST_DIR_GLOBL,        /* .globl NAME                       */
-  AST_DIR_EXTERN,       /* .extern NAME SIZE                 */
-  AST_DIR_COMM,         /* .comm NAME SIZE                   */
+  AST_DIR_TEXT,   /* .text [ADDR]                      */
+  AST_DIR_DATA,   /* .data [ADDR]                      */
+  AST_DIR_KTEXT,  /* .ktext [ADDR]                     */
+  AST_DIR_KDATA,  /* .kdata [ADDR]                     */
+  AST_DIR_ALIGN,  /* .align N                          */
+  AST_DIR_SPACE,  /* .space N                          */
+  AST_DIR_GLOBL,  /* .globl NAME                       */
+  AST_DIR_EXTERN, /* .extern NAME SIZE                 */
+  AST_DIR_COMM,   /* .comm NAME SIZE                   */
 
   /* Labels */
-  AST_LABEL_DEF,        /* NAME:    or    NAME = EXPR        */
+  AST_LABEL_DEF, /* NAME:    or    NAME = EXPR        */
 
   /* Structural */
-  AST_FILE,             /* root — owns the .child chain      */
+  AST_FILE, /* root — owns the .child chain      */
 
   /* Sentinel for error recovery */
-  AST_ERROR,            /* held position of a sync'd line    */
+  AST_ERROR, /* held position of a sync'd line    */
 } ast_kind;
 
 typedef enum {
-  AST_LABEL_NORMAL,  /* NAME : (placement at current PC)     */
-  AST_LABEL_CONST,   /* NAME = EXPR (compile-time constant)  */
+  AST_LABEL_NORMAL, /* NAME : (placement at current PC)     */
+  AST_LABEL_CONST,  /* NAME = EXPR (compile-time constant)  */
 } ast_label_kind;
 
 /* ------------------------------------------------------------------ */
@@ -95,8 +95,8 @@ typedef struct ast_node ast_node;
 
 struct ast_node {
   ast_kind kind;
-  int source_line;        /* 1-based, 0 if unknown */
-  ast_node* next;         /* sibling chain inside a parent's child list */
+  int source_line; /* 1-based, 0 if unknown */
+  ast_node* next;  /* sibling chain inside a parent's child list */
 
   union {
     /* ---------- instructions ---------- */
@@ -114,12 +114,12 @@ struct ast_node {
     struct {
       int op;
       int rt, rs;
-      imm_expr* imm;      /* owned */
+      imm_expr* imm; /* owned */
     } inst_i;
 
     struct {
       int op;
-      imm_expr* target;   /* owned */
+      imm_expr* target; /* owned */
     } inst_j;
 
     struct {
@@ -134,24 +134,24 @@ struct ast_node {
     } inst_fp_compare;
 
     struct {
-      char* mnemonic;     /* owned — e.g., "la", "li", "rol"        */
-      ast_node* child;    /* chain of expanded AST_INST_* children   */
+      char* mnemonic;  /* owned — e.g., "la", "li", "rol"        */
+      ast_node* child; /* chain of expanded AST_INST_* children   */
     } pseudo;
 
     /* ---------- data (lists of values) ---------- */
 
     struct {
       int count;
-      imm_expr** exprs;   /* array of count imm_expr*, each owned */
-    } data_int;           /* used by BYTE / HALF / WORD */
+      imm_expr** exprs; /* array of count imm_expr*, each owned */
+    } data_int;         /* used by BYTE / HALF / WORD */
 
     struct {
       int count;
-      double* values;     /* malloc'd array */
-    } data_fp;            /* used by FLOAT / DOUBLE */
+      double* values; /* malloc'd array */
+    } data_fp;        /* used by FLOAT / DOUBLE */
 
     struct {
-      char* bytes;        /* not necessarily NUL-terminated; len fields below */
+      char* bytes; /* not necessarily NUL-terminated; len fields below */
       int length;
       bool null_terminate;
     } data_string;
@@ -161,44 +161,44 @@ struct ast_node {
     struct {
       bool has_start_addr;
       mem_addr start_addr;
-    } dir_seg;            /* covers TEXT / DATA / KTEXT / KDATA */
+    } dir_seg; /* covers TEXT / DATA / KTEXT / KDATA */
 
     struct {
-      int n;              /* alignment power */
+      int n; /* alignment power */
     } dir_align;
 
     struct {
-      int size;           /* bytes */
+      int size; /* bytes */
     } dir_space;
 
     struct {
-      char* name;         /* owned */
+      char* name; /* owned */
     } dir_globl;
 
     struct {
-      char* name;         /* owned */
+      char* name; /* owned */
       int size;
-    } dir_named_size;     /* covers EXTERN and COMM */
+    } dir_named_size; /* covers EXTERN and COMM */
 
     /* ---------- labels ---------- */
 
     struct {
-      char* name;         /* owned */
+      char* name; /* owned */
       ast_label_kind kind;
-      int32_t value;      /* for AST_LABEL_CONST; ignored otherwise */
+      int32_t value; /* for AST_LABEL_CONST; ignored otherwise */
     } label_def;
 
     /* ---------- file ---------- */
 
     struct {
-      ast_node* child;    /* head of the statement chain */
-      char* source_file;  /* owned; may be null */
+      ast_node* child;   /* head of the statement chain */
+      char* source_file; /* owned; may be null */
     } file;
 
     /* ---------- error ---------- */
 
     struct {
-      char* message;      /* owned; may be null */
+      char* message; /* owned; may be null */
     } error;
   } u;
 };
@@ -216,13 +216,13 @@ ast_node* ast_make_inst_i(int op, int rt, int rs, imm_expr* imm);
 ast_node* ast_make_inst_j(int op, imm_expr* target);
 ast_node* ast_make_inst_fp_r(int op, int fd, int fs, int ft);
 ast_node* ast_make_inst_fp_compare(int op, int fs, int ft, int cc);
-ast_node* ast_make_pseudo(const char* mnemonic);  /* mnemonic dup'd */
+ast_node* ast_make_pseudo(const char* mnemonic); /* mnemonic dup'd */
 
 /* Data */
-ast_node* ast_make_data_byte(int count, imm_expr** exprs);   /* takes ownership */
+ast_node* ast_make_data_byte(int count, imm_expr** exprs); /* takes ownership */
 ast_node* ast_make_data_half(int count, imm_expr** exprs);
 ast_node* ast_make_data_word(int count, imm_expr** exprs);
-ast_node* ast_make_data_float(int count, double* values);    /* takes ownership */
+ast_node* ast_make_data_float(int count, double* values); /* takes ownership */
 ast_node* ast_make_data_double(int count, double* values);
 ast_node* ast_make_data_string(const char* bytes, int length, bool null_term);
 
@@ -233,7 +233,7 @@ ast_node* ast_make_dir_ktext(bool has_start_addr, mem_addr start_addr);
 ast_node* ast_make_dir_kdata(bool has_start_addr, mem_addr start_addr);
 ast_node* ast_make_dir_align(int n);
 ast_node* ast_make_dir_space(int size);
-ast_node* ast_make_dir_globl(const char* name);   /* name dup'd */
+ast_node* ast_make_dir_globl(const char* name); /* name dup'd */
 ast_node* ast_make_dir_extern(const char* name, int size);
 ast_node* ast_make_dir_comm(const char* name, int size);
 

@@ -17,8 +17,8 @@
 #include "parser.h"  /* emit_r, emit_r_shift, emit_i_free, ... */
 #include "pseudo_op.h"
 
-extern int line_no;                     /* from scanner */
-extern char* erroneous_line(void);      /* from scanner.c */
+extern int line_no;                /* from scanner */
+extern char* erroneous_line(void); /* from scanner.c */
 
 /* ------------------------------------------------------------------ *
  * Runtime-visible globals: parse-error counters.
@@ -230,8 +230,8 @@ void check_uimm_range(imm_expr* expr, uint32_t min, uint32_t max) {
 
     if (value < min || max < value) {
       char str[200];
-      sprintf(str, "immediate value (%d) out of range (%d .. %d)", (int32_t)value,
-              (int32_t)min, (int32_t)max);
+      sprintf(str, "immediate value (%d) out of range (%d .. %d)",
+              (int32_t)value, (int32_t)min, (int32_t)max);
       error("spim: (parser) %s on line %d\n", str, line_no);
     }
   }

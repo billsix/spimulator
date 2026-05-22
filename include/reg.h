@@ -153,8 +153,8 @@ extern int* FWR;    /* is possible */
       FPR[(REGNO) / 2] = (double)(VALUE);           \
   }
 
-#define SET_FPR_W(REGNO, VALUE)  \
-  {                              \
+#define SET_FPR_W(REGNO, VALUE)    \
+  {                                \
     FWR[REGNO] = (int32_t)(VALUE); \
   }
 

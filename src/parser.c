@@ -53,7 +53,7 @@ static void (*store_fp_op)(double*);
 /* ------- Forward declarations for items defined below ------ */
 
 static void cons_label(label* l);
-static bool auto_align;  /* defined as static further down */
+static bool auto_align; /* defined as static further down */
 
 /* ------- Parser mode and AST state ------------------------- */
 
@@ -155,13 +155,9 @@ static void print_pseudo_walk(const ast_node* node, FILE* out) {
   /* Other node kinds are skipped — -show-expansion is a focused view. */
 }
 
-void parser_set_print_ast_only(bool on) {
-  print_ast_only_ = on;
-}
+void parser_set_print_ast_only(bool on) { print_ast_only_ = on; }
 
-bool parser_get_print_ast_only(void) {
-  return print_ast_only_;
-}
+bool parser_get_print_ast_only(void) { return print_ast_only_; }
 
 /* Whether the inline action helpers should fire during parse.
    False when:
@@ -189,27 +185,23 @@ static imm_expr* dup_imm(const imm_expr* e) {
 
 void emit_r(int op, int rd, int rs, int rt) {
   if (should_emit()) r_type_inst(op, rd, rs, rt);
-  if (should_build_ast())
-    ast_append(ast_make_inst_r(op, rd, rs, rt));
+  if (should_build_ast()) ast_append(ast_make_inst_r(op, rd, rs, rt));
 }
 
 void emit_r_shift(int op, int rd, int rt, int shamt) {
   if (should_emit()) r_sh_type_inst(op, rd, rt, shamt);
-  if (should_build_ast())
-    ast_append(ast_make_inst_r_shift(op, rd, rt, shamt));
+  if (should_build_ast()) ast_append(ast_make_inst_r_shift(op, rd, rt, shamt));
 }
 
 /* emit_i: caller keeps ownership of imm (matches i_type_inst). */
 void emit_i(int op, int rt, int rs, imm_expr* imm) {
-  if (should_build_ast())
-    ast_append(ast_make_inst_i(op, rt, rs, dup_imm(imm)));
+  if (should_build_ast()) ast_append(ast_make_inst_i(op, rt, rs, dup_imm(imm)));
   if (should_emit()) i_type_inst(op, rt, rs, imm);
 }
 
 /* emit_i_free: caller transfers ownership (matches i_type_inst_free). */
 void emit_i_free(int op, int rt, int rs, imm_expr* imm) {
-  if (should_build_ast())
-    ast_append(ast_make_inst_i(op, rt, rs, dup_imm(imm)));
+  if (should_build_ast()) ast_append(ast_make_inst_i(op, rt, rs, dup_imm(imm)));
   if (should_emit())
     i_type_inst_free(op, rt, rs, imm);
   else
@@ -220,22 +212,18 @@ void emit_j(int op, imm_expr* target) {
   /* j_type_inst copies its arg; caller (parse_j) frees the
      original. AST-only mode dups for the AST and lets the caller's
      free still run. */
-  if (should_build_ast())
-    ast_append(ast_make_inst_j(op, dup_imm(target)));
-  if (should_emit())
-    j_type_inst(op, target);
+  if (should_build_ast()) ast_append(ast_make_inst_j(op, dup_imm(target)));
+  if (should_emit()) j_type_inst(op, target);
 }
 
 void emit_fp_r(int op, int fd, int fs, int ft) {
   if (should_emit()) r_co_type_inst(op, fd, fs, ft);
-  if (should_build_ast())
-    ast_append(ast_make_inst_fp_r(op, fd, fs, ft));
+  if (should_build_ast()) ast_append(ast_make_inst_fp_r(op, fd, fs, ft));
 }
 
 void emit_fp_compare(int op, int fs, int ft, int cc) {
   if (should_emit()) r_cond_type_inst(op, fs, ft, cc);
-  if (should_build_ast())
-    ast_append(ast_make_inst_fp_compare(op, fs, ft, cc));
+  if (should_build_ast()) ast_append(ast_make_inst_fp_compare(op, fs, ft, cc));
 }
 
 /* ----- data dispatch helpers ------------------------------- */
@@ -243,22 +231,22 @@ void emit_fp_compare(int op, int fs, int ft, int cc) {
 /* Buffered current-directive accumulator.  parse_dir_word / half / byte
    set the kind, then parse_expr_list collects values into this buffer;
    at the end of the list, finalize_data_int_node builds one AST node. */
-static ast_kind   data_int_kind   = AST_DATA_WORD;
-static imm_expr** data_int_buf    = nullptr;
-static int        data_int_count  = 0;
-static int        data_int_cap    = 0;
+static ast_kind data_int_kind = AST_DATA_WORD;
+static imm_expr** data_int_buf = nullptr;
+static int data_int_count = 0;
+static int data_int_cap = 0;
 /* Source line of the directive that opened the current accumulator.
    Captured at *_begin so the AST node reflects the directive's first
    line even if its value list spans onto the next line (`.word a,b,\n
    c,d`). */
-static int        data_directive_line = 0;
+static int data_directive_line = 0;
 
-static double*    data_fp_buf    = nullptr;
-static int        data_fp_count  = 0;
-static int        data_fp_cap    = 0;
+static double* data_fp_buf = nullptr;
+static int data_fp_count = 0;
+static int data_fp_cap = 0;
 
 static void data_int_begin(ast_kind kind) {
-  data_int_kind  = kind;
+  data_int_kind = kind;
   data_int_count = 0;
   data_directive_line = line_no;
   if (data_int_buf == nullptr) {
@@ -270,8 +258,7 @@ static void data_int_begin(ast_kind kind) {
 static void data_int_push(int value) {
   if (data_int_count == data_int_cap) {
     data_int_cap *= 2;
-    imm_expr** grow =
-        (imm_expr**)xmalloc(data_int_cap * sizeof(imm_expr*));
+    imm_expr** grow = (imm_expr**)xmalloc(data_int_cap * sizeof(imm_expr*));
     memcpy(grow, data_int_buf, data_int_count * sizeof(imm_expr*));
     free(data_int_buf);
     data_int_buf = grow;
@@ -279,9 +266,8 @@ static void data_int_push(int value) {
   /* If parse_factor stashed an unresolved label for this expression
      (deferred mode), wire it into the imm_expr so emit_ast can
      register the use against the correct PC. */
-  const char* sym_name = expr_unresolved_label != nullptr
-                             ? expr_unresolved_label->name
-                             : nullptr;
+  const char* sym_name =
+      expr_unresolved_label != nullptr ? expr_unresolved_label->name : nullptr;
   data_int_buf[data_int_count++] = make_imm_expr(value, (char*)sym_name, false);
   expr_unresolved_label = nullptr;
 }
@@ -298,10 +284,18 @@ static void data_int_finalize(void) {
   memcpy(exprs, data_int_buf, data_int_count * sizeof(imm_expr*));
   ast_node* node;
   switch (data_int_kind) {
-    case AST_DATA_BYTE: node = ast_make_data_byte(data_int_count, exprs); break;
-    case AST_DATA_HALF: node = ast_make_data_half(data_int_count, exprs); break;
-    case AST_DATA_WORD: node = ast_make_data_word(data_int_count, exprs); break;
-    default: node = ast_make_data_word(data_int_count, exprs); break;
+    case AST_DATA_BYTE:
+      node = ast_make_data_byte(data_int_count, exprs);
+      break;
+    case AST_DATA_HALF:
+      node = ast_make_data_half(data_int_count, exprs);
+      break;
+    case AST_DATA_WORD:
+      node = ast_make_data_word(data_int_count, exprs);
+      break;
+    default:
+      node = ast_make_data_word(data_int_count, exprs);
+      break;
   }
   node->source_line = data_directive_line;
   ast_append(node);
@@ -357,8 +351,7 @@ static void emit_label_normal(const char* name, mem_addr addr) {
     label* l = record_label((char*)name, addr, 0);
     cons_label(l);
   }
-  if (should_build_ast())
-    ast_append(ast_make_label_normal(name));
+  if (should_build_ast()) ast_append(ast_make_label_normal(name));
 }
 
 static void emit_label_const(const char* name, int v) {
@@ -366,14 +359,12 @@ static void emit_label_const(const char* name, int v) {
     label* l = record_label((char*)name, (mem_addr)v, 1);
     l->const_flag = 1;
   }
-  if (should_build_ast())
-    ast_append(ast_make_label_const(name, v));
+  if (should_build_ast()) ast_append(ast_make_label_const(name, v));
 }
 
 static void emit_dir_globl(const char* name) {
   if (should_emit()) make_label_global((char*)name);
-  if (should_build_ast())
-    ast_append(ast_make_dir_globl(name));
+  if (should_build_ast()) ast_append(ast_make_dir_globl(name));
 }
 
 static void emit_dir_align(int n) {
@@ -383,14 +374,12 @@ static void emit_dir_align(int n) {
     else
       align_data(n);
   }
-  if (should_build_ast())
-    ast_append(ast_make_dir_align(n));
+  if (should_build_ast()) ast_append(ast_make_dir_align(n));
 }
 
 static void emit_dir_space(int v) {
   if (should_emit()) increment_data_pc(v);
-  if (should_build_ast())
-    ast_append(ast_make_dir_space(v));
+  if (should_build_ast()) ast_append(ast_make_dir_space(v));
 }
 
 static void emit_dir_extern(const char* sym, int sz) {
@@ -401,8 +390,7 @@ static void emit_dir_extern(const char* sym, int sz) {
     }
     increment_data_pc(sz);
   }
-  if (should_build_ast())
-    ast_append(ast_make_dir_extern(sym, sz));
+  if (should_build_ast()) ast_append(ast_make_dir_extern(sym, sz));
 }
 
 static void emit_dir_comm(const char* sym, int sz) {
@@ -413,8 +401,7 @@ static void emit_dir_comm(const char* sym, int sz) {
     }
     increment_data_pc(sz);
   }
-  if (should_build_ast())
-    ast_append(ast_make_dir_comm(sym, sz));
+  if (should_build_ast()) ast_append(ast_make_dir_comm(sym, sz));
 }
 
 static void emit_dir_seg(ast_kind kind, bool kernel, bool has_addr,
@@ -444,11 +431,21 @@ static void emit_dir_seg(ast_kind kind, bool kernel, bool has_addr,
   if (should_build_ast()) {
     ast_node* n;
     switch (kind) {
-      case AST_DIR_TEXT:  n = ast_make_dir_text(has_addr, addr); break;
-      case AST_DIR_DATA:  n = ast_make_dir_data(has_addr, addr); break;
-      case AST_DIR_KTEXT: n = ast_make_dir_ktext(has_addr, addr); break;
-      case AST_DIR_KDATA: n = ast_make_dir_kdata(has_addr, addr); break;
-      default:            n = ast_make_dir_data(has_addr, addr); break;
+      case AST_DIR_TEXT:
+        n = ast_make_dir_text(has_addr, addr);
+        break;
+      case AST_DIR_DATA:
+        n = ast_make_dir_data(has_addr, addr);
+        break;
+      case AST_DIR_KTEXT:
+        n = ast_make_dir_ktext(has_addr, addr);
+        break;
+      case AST_DIR_KDATA:
+        n = ast_make_dir_kdata(has_addr, addr);
+        break;
+      default:
+        n = ast_make_dir_data(has_addr, addr);
+        break;
     }
     ast_append(n);
   }
@@ -859,7 +856,7 @@ static void parse_r3(int op) {
       imm_expr* imm = parse_imm32();
       int val = eval_imm_expr(imm);
       emit_i(op == TOK_SUB_OP ? TOK_ADDI_OP : TOK_ADDIU_OP, rd, rd,
-                  make_imm_expr(-val, nullptr, false));
+             make_imm_expr(-val, nullptr, false));
       free(imm);
       return;
     }
@@ -871,7 +868,7 @@ static void parse_r3(int op) {
       imm_expr* imm = parse_imm32();
       int val = eval_imm_expr(imm);
       emit_i(op == TOK_SUB_OP ? TOK_ADDI_OP : TOK_ADDIU_OP, rd, rs,
-                  make_imm_expr(-val, nullptr, false));
+             make_imm_expr(-val, nullptr, false));
       free(imm);
     }
     return;
@@ -1570,7 +1567,7 @@ static void do_parse_pseudo(int op) {
       addr_expr* addr = parse_address();
       emit_i(TOK_LW_OP, rt, addr_expr_reg(addr), addr_expr_imm(addr));
       emit_i_free(TOK_LW_OP, rt + 1, addr_expr_reg(addr),
-                       incr_expr_offset(addr_expr_imm(addr), 4));
+                  incr_expr_offset(addr_expr_imm(addr), 4));
       free(addr_expr_imm(addr));
       free(addr);
       break;
@@ -1581,7 +1578,7 @@ static void do_parse_pseudo(int op) {
       addr_expr* addr = parse_address();
       emit_i(TOK_SW_OP, rt, addr_expr_reg(addr), addr_expr_imm(addr));
       emit_i_free(TOK_SW_OP, rt + 1, addr_expr_reg(addr),
-                       incr_expr_offset(addr_expr_imm(addr), 4));
+                  incr_expr_offset(addr_expr_imm(addr), 4));
       free(addr_expr_imm(addr));
       free(addr);
       break;
@@ -1593,7 +1590,7 @@ static void do_parse_pseudo(int op) {
       int rt = parse_register();
       addr_expr* addr = parse_address();
       emit_i_free(TOK_LWL_OP, rt, addr_expr_reg(addr),
-                       incr_expr_offset(addr_expr_imm(addr), 3));
+                  incr_expr_offset(addr_expr_imm(addr), 3));
       emit_i(TOK_LWR_OP, rt, addr_expr_reg(addr), addr_expr_imm(addr));
       free(addr_expr_imm(addr));
       free(addr);
@@ -1605,8 +1602,8 @@ static void do_parse_pseudo(int op) {
       int rt = parse_register();
       addr_expr* addr = parse_address();
       emit_i_free(op == TOK_ULH_POP ? TOK_LB_OP : TOK_LBU_OP, rt,
-                       addr_expr_reg(addr),
-                       incr_expr_offset(addr_expr_imm(addr), 1));
+                  addr_expr_reg(addr),
+                  incr_expr_offset(addr_expr_imm(addr), 1));
       emit_i(TOK_LBU_OP, 1, addr_expr_reg(addr), addr_expr_imm(addr));
       emit_r_shift(TOK_SLL_OP, rt, rt, 8);
       emit_r(TOK_OR_OP, rt, rt, 1);
@@ -1619,7 +1616,7 @@ static void do_parse_pseudo(int op) {
       int rt = parse_register();
       addr_expr* addr = parse_address();
       emit_i_free(TOK_SWL_OP, rt, addr_expr_reg(addr),
-                       incr_expr_offset(addr_expr_imm(addr), 3));
+                  incr_expr_offset(addr_expr_imm(addr), 3));
       emit_i(TOK_SWR_OP, rt, addr_expr_reg(addr), addr_expr_imm(addr));
       free(addr_expr_imm(addr));
       free(addr);
@@ -1636,7 +1633,7 @@ static void do_parse_pseudo(int op) {
       emit_r_shift(TOK_SRL_OP, rt, rt, 8);
       emit_r(TOK_OR_OP, rt, rt, 1);
       emit_i_free(TOK_SB_OP, rt, addr_expr_reg(addr),
-                       incr_expr_offset(addr_expr_imm(addr), 1));
+                  incr_expr_offset(addr_expr_imm(addr), 1));
       /* ROR SRC, SRC, 8 (via SRL+SLL+OR) */
       emit_r_shift(TOK_SRL_OP, 1, rt, 24);
       emit_r_shift(TOK_SLL_OP, rt, rt, 8);
@@ -2329,8 +2326,7 @@ static void emit_data_int_node(const ast_node* node, void (*store)(int)) {
   }
 }
 
-static void emit_data_fp_node(const ast_node* node,
-                              void (*store)(double*)) {
+static void emit_data_fp_node(const ast_node* node, void (*store)(double*)) {
   for (int i = 0; i < node->u.data_fp.count; i++) {
     double tmp = node->u.data_fp.values[i];
     store(&tmp);
@@ -2448,8 +2444,7 @@ static void emit_one(const ast_node* node) {
 
     case AST_DATA_STRING:
       if (!text_dir) {
-        store_string(node->u.data_string.bytes,
-                     node->u.data_string.length,
+        store_string(node->u.data_string.bytes, node->u.data_string.length,
                      node->u.data_string.null_terminate);
       }
       return;
@@ -2481,8 +2476,8 @@ static void emit_one(const ast_node* node) {
       return;
     case AST_INST_I: {
       imm_expr* copy = dup_imm(node->u.inst_i.imm);
-      i_type_inst_free(node->u.inst_i.op, node->u.inst_i.rt,
-                       node->u.inst_i.rs, copy);
+      i_type_inst_free(node->u.inst_i.op, node->u.inst_i.rt, node->u.inst_i.rs,
+                       copy);
       return;
     }
     case AST_INST_J: {

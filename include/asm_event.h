@@ -40,36 +40,36 @@ typedef enum {
 
 typedef struct asm_event {
   asm_event_kind kind;
-  int source_line;          /* line_no at fire time; 0 if N/A */
-  const char* source_file;  /* input_file_name_get(); may be null */
-  mem_addr addr;            /* the memory address the event touches */
+  int source_line;         /* line_no at fire time; 0 if N/A */
+  const char* source_file; /* input_file_name_get(); may be null */
+  mem_addr addr;           /* the memory address the event touches */
   union {
     struct {
-      const char* name;     /* label name (not owned) */
+      const char* name; /* label name (not owned) */
       bool global;
     } label_def;
 
     struct {
-      uint32_t encoding;    /* 32-bit instruction word */
+      uint32_t encoding; /* 32-bit instruction word */
     } text_inst;
 
     struct {
-      int value;            /* sign-extended for byte/half, raw for word */
-    } data_int;             /* used for AE_DATA_BYTE/HALF/WORD */
+      int value; /* sign-extended for byte/half, raw for word */
+    } data_int;  /* used for AE_DATA_BYTE/HALF/WORD */
 
     struct {
       double value;
     } data_double;
 
     struct {
-      const char* string;   /* not owned; freed by the parser */
+      const char* string; /* not owned; freed by the parser */
       int length;
       bool null_term;
     } data_string;
 
     struct {
-      int new_pc_low_bits;  /* alignment bits that got zeroed */
-      int new_pc_offset;    /* bytes the PC was advanced */
+      int new_pc_low_bits; /* alignment bits that got zeroed */
+      int new_pc_offset;   /* bytes the PC was advanced */
       asm_segment seg;
     } align;
 
@@ -78,14 +78,14 @@ typedef struct asm_event {
     } seg_change;
 
     struct {
-      const char* symbol;   /* not owned */
-      mem_addr from;        /* address of the use site */
+      const char* symbol; /* not owned */
+      mem_addr from;      /* address of the use site */
     } forward_ref;
 
     struct {
-      const char* symbol;   /* not owned */
-      mem_addr at;          /* the use-site address that got patched */
-      int32_t value;        /* the resolved value written there */
+      const char* symbol; /* not owned */
+      mem_addr at;        /* the use-site address that got patched */
+      int32_t value;      /* the resolved value written there */
     } forward_resolved;
   } u;
 } asm_event;

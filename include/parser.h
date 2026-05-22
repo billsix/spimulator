@@ -7,7 +7,7 @@
 #define PARSER_H
 
 #include "spim.h"
-#include "inst.h"  /* for imm_expr in the emit_* signatures */
+#include "inst.h" /* for imm_expr in the emit_* signatures */
 
 /* Exported functions. */
 
@@ -28,7 +28,7 @@
    the AST-inspecting flags). */
 typedef enum {
   PARSE_DIRECT = 0,
-  PARSE_AST    = 1,
+  PARSE_AST = 1,
 } parse_mode_t;
 
 /* Set before parser_init / parse_file.  Defaults to PARSE_DIRECT

@@ -20,10 +20,10 @@
 #include <string.h>
 
 #include "ast.h"
-#include "spim-utils.h"   /* xmalloc, str_copy           */
-#include "scanner.h"      /* line_no                      */
-#include "sym-tbl.h"      /* struct lab definition        */
-#include "tokens.h"       /* TOK_*_OP names for ast_print */
+#include "spim-utils.h" /* xmalloc, str_copy           */
+#include "scanner.h"    /* line_no                      */
+#include "sym-tbl.h"    /* struct lab definition        */
+#include "tokens.h"     /* TOK_*_OP names for ast_print */
 
 /* ------------------------------------------------------------------ */
 /* Internal node allocator                                             */
@@ -383,7 +383,8 @@ static void print_imm(const imm_expr* e, FILE* out) {
   if (e->symbol != nullptr && e->symbol->name != nullptr) {
     fprintf(out, "%s", e->symbol->name);
     if (e->offset > 0) fprintf(out, "+%d", e->offset);
-    if (e->offset < 0) fprintf(out, "%d", e->offset); /* the - is in the number */
+    if (e->offset < 0)
+      fprintf(out, "%d", e->offset); /* the - is in the number */
     if (e->pc_relative) fputs(" (pc-rel)", out);
   } else {
     fprintf(out, "%d", e->offset);
@@ -411,9 +412,8 @@ static void print_node(const ast_node* node, FILE* out, int depth) {
       return;
 
     case AST_INST_R:
-      fprintf(out, "INST_R op=%d rd=%d rs=%d rt=%d\n",
-              node->u.inst_r.op, node->u.inst_r.rd, node->u.inst_r.rs,
-              node->u.inst_r.rt);
+      fprintf(out, "INST_R op=%d rd=%d rs=%d rt=%d\n", node->u.inst_r.op,
+              node->u.inst_r.rd, node->u.inst_r.rs, node->u.inst_r.rt);
       return;
 
     case AST_INST_R_SHIFT:
@@ -423,8 +423,8 @@ static void print_node(const ast_node* node, FILE* out, int depth) {
       return;
 
     case AST_INST_I:
-      fprintf(out, "INST_I op=%d rt=%d rs=%d imm=",
-              node->u.inst_i.op, node->u.inst_i.rt, node->u.inst_i.rs);
+      fprintf(out, "INST_I op=%d rt=%d rs=%d imm=", node->u.inst_i.op,
+              node->u.inst_i.rt, node->u.inst_i.rs);
       print_imm(node->u.inst_i.imm, out);
       fputc('\n', out);
       return;
@@ -436,9 +436,8 @@ static void print_node(const ast_node* node, FILE* out, int depth) {
       return;
 
     case AST_INST_FP_R:
-      fprintf(out, "INST_FP_R op=%d fd=%d fs=%d ft=%d\n",
-              node->u.inst_fp_r.op, node->u.inst_fp_r.fd,
-              node->u.inst_fp_r.fs, node->u.inst_fp_r.ft);
+      fprintf(out, "INST_FP_R op=%d fd=%d fs=%d ft=%d\n", node->u.inst_fp_r.op,
+              node->u.inst_fp_r.fd, node->u.inst_fp_r.fs, node->u.inst_fp_r.ft);
       return;
 
     case AST_INST_FP_COMPARE:
@@ -538,8 +537,7 @@ static void print_node(const ast_node* node, FILE* out, int depth) {
 
     case AST_LABEL_DEF:
       if (node->u.label_def.kind == AST_LABEL_NORMAL)
-        fprintf(out, "LABEL_DEF name=%s (placement)\n",
-                node->u.label_def.name);
+        fprintf(out, "LABEL_DEF name=%s (placement)\n", node->u.label_def.name);
       else
         fprintf(out, "LABEL_DEF name=%s = %d (constant)\n",
                 node->u.label_def.name, node->u.label_def.value);
@@ -552,9 +550,7 @@ static void print_node(const ast_node* node, FILE* out, int depth) {
   }
 }
 
-void ast_print(const ast_node* node, FILE* out) {
-  print_node(node, out, 0);
-}
+void ast_print(const ast_node* node, FILE* out) { print_node(node, out, 0); }
 
 /* ------------------------------------------------------------------ */
 /* ast_print_json — JSON dump for external tooling                     */
@@ -580,16 +576,32 @@ static void json_escape_string(const char* s, int len, FILE* out) {
   for (int i = 0; i < n; i++) {
     unsigned char c = (unsigned char)s[i];
     switch (c) {
-      case '"':  fputs("\\\"", out); break;
-      case '\\': fputs("\\\\", out); break;
-      case '\n': fputs("\\n", out);  break;
-      case '\r': fputs("\\r", out);  break;
-      case '\t': fputs("\\t", out);  break;
-      case '\b': fputs("\\b", out);  break;
-      case '\f': fputs("\\f", out);  break;
+      case '"':
+        fputs("\\\"", out);
+        break;
+      case '\\':
+        fputs("\\\\", out);
+        break;
+      case '\n':
+        fputs("\\n", out);
+        break;
+      case '\r':
+        fputs("\\r", out);
+        break;
+      case '\t':
+        fputs("\\t", out);
+        break;
+      case '\b':
+        fputs("\\b", out);
+        break;
+      case '\f':
+        fputs("\\f", out);
+        break;
       default:
-        if (c < 0x20) fprintf(out, "\\u%04x", c);
-        else          fputc(c, out);
+        if (c < 0x20)
+          fprintf(out, "\\u%04x", c);
+        else
+          fputc(c, out);
     }
   }
   fputc('"', out);
@@ -616,31 +628,81 @@ static void json_imm(const imm_expr* e, FILE* out) {
 static void json_kind_header(const ast_node* node, FILE* out) {
   const char* kind_name = "?";
   switch (node->kind) {
-    case AST_INST_R:           kind_name = "INST_R";           break;
-    case AST_INST_R_SHIFT:     kind_name = "INST_R_SHIFT";     break;
-    case AST_INST_I:           kind_name = "INST_I";           break;
-    case AST_INST_J:           kind_name = "INST_J";           break;
-    case AST_INST_FP_R:        kind_name = "INST_FP_R";        break;
-    case AST_INST_FP_COMPARE:  kind_name = "INST_FP_COMPARE";  break;
-    case AST_PSEUDO:           kind_name = "PSEUDO";           break;
-    case AST_DATA_BYTE:        kind_name = "DATA_BYTE";        break;
-    case AST_DATA_HALF:        kind_name = "DATA_HALF";        break;
-    case AST_DATA_WORD:        kind_name = "DATA_WORD";        break;
-    case AST_DATA_FLOAT:       kind_name = "DATA_FLOAT";       break;
-    case AST_DATA_DOUBLE:      kind_name = "DATA_DOUBLE";      break;
-    case AST_DATA_STRING:      kind_name = "DATA_STRING";      break;
-    case AST_DIR_TEXT:         kind_name = "DIR_TEXT";         break;
-    case AST_DIR_DATA:         kind_name = "DIR_DATA";         break;
-    case AST_DIR_KTEXT:        kind_name = "DIR_KTEXT";        break;
-    case AST_DIR_KDATA:        kind_name = "DIR_KDATA";        break;
-    case AST_DIR_ALIGN:        kind_name = "DIR_ALIGN";        break;
-    case AST_DIR_SPACE:        kind_name = "DIR_SPACE";        break;
-    case AST_DIR_GLOBL:        kind_name = "DIR_GLOBL";        break;
-    case AST_DIR_EXTERN:       kind_name = "DIR_EXTERN";       break;
-    case AST_DIR_COMM:         kind_name = "DIR_COMM";         break;
-    case AST_LABEL_DEF:        kind_name = "LABEL_DEF";        break;
-    case AST_FILE:             kind_name = "FILE";             break;
-    case AST_ERROR:            kind_name = "ERROR";            break;
+    case AST_INST_R:
+      kind_name = "INST_R";
+      break;
+    case AST_INST_R_SHIFT:
+      kind_name = "INST_R_SHIFT";
+      break;
+    case AST_INST_I:
+      kind_name = "INST_I";
+      break;
+    case AST_INST_J:
+      kind_name = "INST_J";
+      break;
+    case AST_INST_FP_R:
+      kind_name = "INST_FP_R";
+      break;
+    case AST_INST_FP_COMPARE:
+      kind_name = "INST_FP_COMPARE";
+      break;
+    case AST_PSEUDO:
+      kind_name = "PSEUDO";
+      break;
+    case AST_DATA_BYTE:
+      kind_name = "DATA_BYTE";
+      break;
+    case AST_DATA_HALF:
+      kind_name = "DATA_HALF";
+      break;
+    case AST_DATA_WORD:
+      kind_name = "DATA_WORD";
+      break;
+    case AST_DATA_FLOAT:
+      kind_name = "DATA_FLOAT";
+      break;
+    case AST_DATA_DOUBLE:
+      kind_name = "DATA_DOUBLE";
+      break;
+    case AST_DATA_STRING:
+      kind_name = "DATA_STRING";
+      break;
+    case AST_DIR_TEXT:
+      kind_name = "DIR_TEXT";
+      break;
+    case AST_DIR_DATA:
+      kind_name = "DIR_DATA";
+      break;
+    case AST_DIR_KTEXT:
+      kind_name = "DIR_KTEXT";
+      break;
+    case AST_DIR_KDATA:
+      kind_name = "DIR_KDATA";
+      break;
+    case AST_DIR_ALIGN:
+      kind_name = "DIR_ALIGN";
+      break;
+    case AST_DIR_SPACE:
+      kind_name = "DIR_SPACE";
+      break;
+    case AST_DIR_GLOBL:
+      kind_name = "DIR_GLOBL";
+      break;
+    case AST_DIR_EXTERN:
+      kind_name = "DIR_EXTERN";
+      break;
+    case AST_DIR_COMM:
+      kind_name = "DIR_COMM";
+      break;
+    case AST_LABEL_DEF:
+      kind_name = "LABEL_DEF";
+      break;
+    case AST_FILE:
+      kind_name = "FILE";
+      break;
+    case AST_ERROR:
+      kind_name = "ERROR";
+      break;
   }
   fputs("{\"kind\":\"", out);
   fputs(kind_name, out);
@@ -697,16 +759,15 @@ static void json_node(const ast_node* node, FILE* out) {
     case AST_INST_R_SHIFT:
       fprintf(out, ",\"op\":%d,\"mnemonic\":", node->u.inst_r_shift.op);
       json_escape_string(op_token_name(node->u.inst_r_shift.op), -1, out);
-      fprintf(out, ",\"rd\":%d,\"rt\":%d,\"shamt\":%d",
-              node->u.inst_r_shift.rd, node->u.inst_r_shift.rt,
-              node->u.inst_r_shift.shamt);
+      fprintf(out, ",\"rd\":%d,\"rt\":%d,\"shamt\":%d", node->u.inst_r_shift.rd,
+              node->u.inst_r_shift.rt, node->u.inst_r_shift.shamt);
       break;
 
     case AST_INST_I:
       fprintf(out, ",\"op\":%d,\"mnemonic\":", node->u.inst_i.op);
       json_escape_string(op_token_name(node->u.inst_i.op), -1, out);
-      fprintf(out, ",\"rt\":%d,\"rs\":%d,\"imm\":",
-              node->u.inst_i.rt, node->u.inst_i.rs);
+      fprintf(out, ",\"rt\":%d,\"rs\":%d,\"imm\":", node->u.inst_i.rt,
+              node->u.inst_i.rs);
       json_imm(node->u.inst_i.imm, out);
       break;
 
@@ -720,17 +781,15 @@ static void json_node(const ast_node* node, FILE* out) {
     case AST_INST_FP_R:
       fprintf(out, ",\"op\":%d,\"mnemonic\":", node->u.inst_fp_r.op);
       json_escape_string(op_token_name(node->u.inst_fp_r.op), -1, out);
-      fprintf(out, ",\"fd\":%d,\"fs\":%d,\"ft\":%d",
-              node->u.inst_fp_r.fd, node->u.inst_fp_r.fs,
-              node->u.inst_fp_r.ft);
+      fprintf(out, ",\"fd\":%d,\"fs\":%d,\"ft\":%d", node->u.inst_fp_r.fd,
+              node->u.inst_fp_r.fs, node->u.inst_fp_r.ft);
       break;
 
     case AST_INST_FP_COMPARE:
       fprintf(out, ",\"op\":%d,\"mnemonic\":", node->u.inst_fp_compare.op);
       json_escape_string(op_token_name(node->u.inst_fp_compare.op), -1, out);
-      fprintf(out, ",\"fs\":%d,\"ft\":%d,\"cc\":%d",
-              node->u.inst_fp_compare.fs, node->u.inst_fp_compare.ft,
-              node->u.inst_fp_compare.cc);
+      fprintf(out, ",\"fs\":%d,\"ft\":%d,\"cc\":%d", node->u.inst_fp_compare.fs,
+              node->u.inst_fp_compare.ft, node->u.inst_fp_compare.cc);
       break;
 
     case AST_PSEUDO:
@@ -762,8 +821,8 @@ static void json_node(const ast_node* node, FILE* out) {
       fprintf(out, ",\"length\":%d,\"null_terminate\":%s,\"value\":",
               node->u.data_string.length,
               node->u.data_string.null_terminate ? "true" : "false");
-      json_escape_string(node->u.data_string.bytes,
-                         node->u.data_string.length, out);
+      json_escape_string(node->u.data_string.bytes, node->u.data_string.length,
+                         out);
       break;
 
     case AST_DIR_TEXT:
@@ -800,9 +859,9 @@ static void json_node(const ast_node* node, FILE* out) {
       fputs(",\"name\":", out);
       json_escape_string(node->u.label_def.name, -1, out);
       fputs(",\"label_kind\":\"", out);
-      fputs(node->u.label_def.kind == AST_LABEL_NORMAL ? "placement"
-                                                       : "constant",
-            out);
+      fputs(
+          node->u.label_def.kind == AST_LABEL_NORMAL ? "placement" : "constant",
+          out);
       fputc('"', out);
       if (node->u.label_def.kind == AST_LABEL_CONST) {
         fprintf(out, ",\"value\":%d", node->u.label_def.value);
@@ -811,8 +870,8 @@ static void json_node(const ast_node* node, FILE* out) {
 
     case AST_ERROR:
       fputs(",\"message\":", out);
-      json_escape_string(node->u.error.message ? node->u.error.message : "",
-                         -1, out);
+      json_escape_string(node->u.error.message ? node->u.error.message : "", -1,
+                         out);
       break;
   }
 

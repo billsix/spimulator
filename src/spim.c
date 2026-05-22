@@ -303,10 +303,14 @@ static void close_listing_file(void) {
 
 static const char* seg_name(asm_segment s) {
   switch (s) {
-    case ASM_SEG_TEXT:  return "text";
-    case ASM_SEG_DATA:  return "data";
-    case ASM_SEG_KTEXT: return "ktext";
-    case ASM_SEG_KDATA: return "kdata";
+    case ASM_SEG_TEXT:
+      return "text";
+    case ASM_SEG_DATA:
+      return "data";
+    case ASM_SEG_KTEXT:
+      return "ktext";
+    case ASM_SEG_KDATA:
+      return "kdata";
   }
   return "?";
 }
@@ -343,8 +347,7 @@ static void listing_observer(const asm_event* e) {
               e->source_line, e->addr, e->u.data_double.value);
       break;
     case AE_DATA_STRING:
-      fprintf(listing_file,
-              "line %4d  data   0x%08x  string  len=%d%s\n",
+      fprintf(listing_file, "line %4d  data   0x%08x  string  len=%d%s\n",
               e->source_line, e->addr, e->u.data_string.length,
               e->u.data_string.null_term ? " (+\\0)" : "");
       break;
@@ -354,18 +357,16 @@ static void listing_observer(const asm_event* e) {
               seg_name(e->u.align.seg));
       break;
     case AE_SEG_CHANGE:
-      fprintf(listing_file, "line %4d  seg    %s  at 0x%08x\n",
-              e->source_line, seg_name(e->u.seg_change.seg), e->addr);
+      fprintf(listing_file, "line %4d  seg    %s  at 0x%08x\n", e->source_line,
+              seg_name(e->u.seg_change.seg), e->addr);
       break;
     case AE_FORWARD_REF:
       fprintf(listing_file,
               "line %4d  fref   0x%08x  uses unresolved symbol '%s'\n",
-              e->source_line, e->u.forward_ref.from,
-              e->u.forward_ref.symbol);
+              e->source_line, e->u.forward_ref.from, e->u.forward_ref.symbol);
       break;
     case AE_FORWARD_RESOLVED:
-      fprintf(listing_file,
-              "line %4d  fres   0x%08x  patched '%s' = 0x%08x\n",
+      fprintf(listing_file, "line %4d  fres   0x%08x  patched '%s' = 0x%08x\n",
               e->source_line, e->u.forward_resolved.at,
               e->u.forward_resolved.symbol,
               (uint32_t)e->u.forward_resolved.value);

@@ -25,13 +25,13 @@ instruction** text_seg;
 bool text_modified; /* => text segment was written */
 mem_addr text_top;
 mem_word* data_seg;
-bool data_modified;    /* => a data segment was written */
-short* data_seg_h;     /* Points to same vector as DATA_SEG */
+bool data_modified; /* => a data segment was written */
+short* data_seg_h;  /* Points to same vector as DATA_SEG */
 int8_t* data_seg_b; /* Ditto */
 mem_addr data_top;
 mem_addr gp_midpoint; /* Middle of $gp area */
 mem_word* stack_seg;
-short* stack_seg_h;     /* Points to same vector as STACK_SEG */
+short* stack_seg_h;  /* Points to same vector as STACK_SEG */
 int8_t* stack_seg_b; /* Ditto */
 mem_addr stack_bot;
 instruction** k_text_seg;
