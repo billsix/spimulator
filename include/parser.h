@@ -17,20 +17,23 @@
      PARSE_DIRECT — syntax-directed translation.  The parser calls
        action helpers like r_type_inst / store_word inline while
        parsing, committing to memory as each statement is seen.  No
-       AST is built.
+       AST is built.  This is the **default** — what every spim
+       invocation has used historically.
      PARSE_AST — the parser builds an abstract syntax tree first,
        then emit_ast() walks the tree calling the same action helpers
-       in source order.  Lets us inspect or transform the tree
-       between parse and emit, and is what -print-ast / -show-
-       expansion / -print-ast-json render.
-   Both produce identical memory contents for the same input.
-   Set via the -parser= command-line flag. */
+       in source order.  Enables -print-ast / -show-expansion /
+       -print-ast-json.
+   Both produce byte-identical memory contents for the same input.
+   Set via the -parser= command-line flag (or implicitly by any of
+   the AST-inspecting flags). */
 typedef enum {
   PARSE_DIRECT = 0,
   PARSE_AST    = 1,
 } parse_mode_t;
 
-/* Set before parser_init / parse_file.  Defaults to PARSE_DIRECT. */
+/* Set before parser_init / parse_file.  Defaults to PARSE_DIRECT
+   (SDT).  Auto-flipped to PARSE_AST when -print-ast,
+   -show-expansion, or -print-ast-json is on the command line. */
 void parser_set_mode(parse_mode_t mode);
 parse_mode_t parser_get_mode(void);
 

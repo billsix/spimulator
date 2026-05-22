@@ -582,7 +582,7 @@ int main(int argc, char** argv) {
 	-file <file> <args>	Assembly code file and arguments to program\n\
 	-assemble		Write assembled code to <file>.out\n\
 	-listing <file>		Write assemble-time event trace to <file> (use - for stderr)\n\
-	-parser=ast|sdt		Choose parser mode (sdt default; ast also builds an AST as a side effect)\n\
+	-parser=sdt|ast		Choose parser mode (sdt = inline emit, default; ast = build tree first)\n\
 	-print-ast		Parse to AST, print it to stderr, and exit without emitting any code\n\
 	-print-ast-json		Parse to AST, dump JSON to stdout (for tooling), and exit\n\
 	-show-expansion		Parse to AST, print just the pseudo-op wrappers + their expansion, and exit\n\
