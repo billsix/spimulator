@@ -55,35 +55,39 @@ static void (*store_fp_op)(double*);
 static void cons_label(label* l);
 static bool auto_align;  /* defined as static further down */
 
-/* ------- AST-mode state (Phase 2d) ------------------------- */
+/* ------- Parser mode and AST state ------------------------- */
 
-/* `parse_mode_` is the mode toggle.
-   - PARSE_DIRECT (default): the parser calls action helpers (r_type_inst,
-     store_word, ...) inline.  No AST is built.  Byte-identical to
-     spim's behavior before Phase 2d.
-   - PARSE_AST: the parser ALSO builds an AST as a side effect of the
-     inline action calls (tee).  If -print-ast set print_ast_only_ to
-     true, the dispatch helpers suppress the inline action calls so
-     that only the AST is built; useful for inspecting what the
-     parser sees without committing anything to memory. */
+/* `parse_mode_` selects between two equivalent emit strategies:
+   - PARSE_DIRECT: the parser calls action helpers (r_type_inst,
+     store_word, ...) inline as each statement is parsed.  No AST
+     is built.
+   - PARSE_AST (default): the parser builds an AST during parse,
+     then emit_ast walks it in source order calling the same action
+     helpers.  Equivalent memory contents; the AST lets us inspect
+     or transform the program between parse and emit.
+   The `print_ast_only_` flag (set by -print-ast / -show-expansion /
+   -print-ast-json) suppresses the emit pass entirely in AST mode
+   so spim can dump the tree without committing anything to memory. */
 static parse_mode_t parse_mode_ = PARSE_DIRECT;
 static ast_node* current_file = nullptr;
 static bool print_ast_after_parse = false;
 static FILE* ast_print_out = nullptr;
 static bool print_ast_only_ = false;
 
-/* When AST mode is active, the parser builds an AST during parse and
-   emit_ast walks it after parse completes — calling the same action
-   helpers (r_type_inst, store_word, ...) the SDT path used to call
-   inline.  Two-pass-style decoupling; same behavioral footprint. */
+/* When false, AST mode runs in tee form: both the inline action
+   helpers AND the AST-construction path fire.  Useful as a parity
+   oracle when debugging — the listing output should be identical
+   either way.  True is the production setting; the AST is the
+   driver and the action helpers only fire from emit_ast. */
 static bool defer_emit_to_emit_ast = true;
 
-/* In deferred mode, parse_factor stashes the FIRST unresolved label
-   it sees in the current expression into this slot; data_int_push
-   reads it (and clears it) to attach symbol info to the AST imm_expr.
-   emit_ast then records the use at the correct emit-time PC.
-   The SDT path is unchanged — record_data_uses_symbol still fires
-   inline there. */
+/* When AST mode is deferred, parse_factor stashes the FIRST
+   unresolved label it sees in the current expression here so
+   data_int_push can attach symbol info to the AST imm_expr.
+   emit_ast then records the forward-reference use at the
+   correct (emit-time) data PC.  In PARSE_DIRECT mode this slot
+   is unused — record_data_uses_symbol fires inline from
+   parse_factor with the right PC already. */
 static label* expr_unresolved_label = nullptr;
 
 /* When non-null, AST nodes built by the dispatch helpers go into this
@@ -161,10 +165,10 @@ bool parser_get_print_ast_only(void) {
 
 /* Whether the inline action helpers should fire during parse.
    False when:
-     - -print-ast is set (we want the tree but no side effects); or
-     - we're in AST mode and deferring to emit_ast (the default
-       Phase 2e behavior — parse builds the tree, emit_ast drives
-       the action calls). */
+     - -print-ast / -show-expansion / -print-ast-json is set (we want
+       the tree built but no side effects on the simulator); or
+     - we're in AST mode with deferred emit (the default — parse
+       builds the tree, then emit_ast drives the action calls). */
 static inline bool should_emit(void) {
   if (print_ast_only_) return false;
   if (parse_mode_ == PARSE_AST && defer_emit_to_emit_ast) return false;
@@ -2257,9 +2261,9 @@ int parse_file(void) {
     ast_print_json(current_file, ast_json_out ? ast_json_out : stderr);
   }
 
-  /* In AST mode (when not in -print-ast-only), walk the tree and
-     emit code via the action helpers.  Phase 2e: emit_ast is now the
-     driver in AST mode, replacing the tee behavior from Phase 2d. */
+  /* AST mode: walk the tree and emit code via the action helpers.
+     Skipped when the user asked to just inspect the tree
+     (-print-ast / -show-expansion / -print-ast-json). */
   if (should_build_ast() && !print_ast_only_ && defer_emit_to_emit_ast &&
       current_file != nullptr) {
     emit_ast(current_file);
@@ -2268,18 +2272,21 @@ int parse_file(void) {
   return parse_errors_seen;
 }
 
-/* ------- emit_ast — AST walker (Phase 2e) -------------------
+/* ------- emit_ast — AST walker ------------------------------
 
-   Walks the file's children in order, calling the same action
-   helpers the SDT path calls (r_type_inst, store_word, etc.).
-   Produces byte-identical event-log output to the SDT path for
-   any program the regression suite exercises today.
+   Walks the file's children in source order, calling the action
+   helpers (r_type_inst, store_word, record_label, ...) that commit
+   each node's effect to the simulator's memory and symbol table.
 
-   Known limitation: data forward references (`.word LABEL` where
-   LABEL is defined later) currently work via parse-time
-   record_data_uses_symbol, which sees the wrong PC in deferred
-   mode.  Phase 2e ships with this limitation noted; a follow-up
-   refactor of parse_factor to return imm_expr* fixes it.
+   The action helpers themselves are unchanged from when the parser
+   called them inline; the AST walk is just a different driver for
+   the same effect chain.  In PARSE_DIRECT mode this function isn't
+   called — the parser fires the same helpers itself.
+
+   Forward references in `.word LABEL`-style data work via a small
+   side channel: the parser attaches the unresolved label to the
+   imm_expr in the AST_DATA_* node, and emit_data_int_node here
+   records the use at the correct data PC at emit time.
 */
 
 static void emit_one(const ast_node* node);
@@ -2494,8 +2501,9 @@ static void emit_one(const ast_node* node) {
       return;
 
     case AST_PSEUDO:
-      /* Phase 3 introduces these.  Until then, walk the children
-         (which are the expanded form) the same way as a file.  */
+      /* Walk the expansion children — the real instructions the
+         parser emitted for this pseudo-op (la, li, bge, ...).  Same
+         line-boundary clear_labels rule as the file-level walk. */
       for (const ast_node* c = node->u.pseudo.child; c != nullptr;
            c = c->next) {
         emit_one(c);

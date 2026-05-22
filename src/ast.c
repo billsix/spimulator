@@ -1,9 +1,19 @@
 /* SPIM S20 MIPS simulator.
-   AST constructors, free, and debug print.
+   AST constructors, recursive free, indented text printer, JSON
+   printer.  Node shapes and ownership rules live in include/ast.h.
 
-   Pure additions for Phase 2b/2c.  Nothing in the simulator calls
-   these yet — Phase 2d wires the parser to start producing nodes
-   behind the -parser=ast flag.
+   The constructors snapshot the scanner's current line_no onto each
+   new node; callers that build nodes off the parser's current line
+   (e.g. multi-line data directives) override node->source_line by
+   hand after construction.
+
+   ast_free is recursive over both the .next sibling chain and any
+   .child list (AST_FILE, AST_PSEUDO).  Free is idempotent on NULL.
+
+   ast_print and ast_print_json walk the tree in source order.  The
+   text printer is for direct human reading (-print-ast,
+   -show-expansion); the JSON printer is the data surface for
+   external tooling.
 
    SPDX-License-Identifier: BSD-3-Clause */
 

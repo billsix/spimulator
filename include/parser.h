@@ -13,14 +13,20 @@
 
 #include <stdio.h>
 
-/* Parser execution mode.  Default is PARSE_DIRECT (syntax-directed
-   translation — the parser calls action helpers like r_type_inst /
-   store_word directly while parsing, committing to memory inline).
-   PARSE_AST routes the same actions through an AST: the parser
-   builds a tree, then emit_ast() walks it calling the same action
-   helpers.  Phase 2d.  Set via the -parser= command-line flag. */
+/* Parser execution mode.  Two paths are kept alive:
+     PARSE_DIRECT — syntax-directed translation.  The parser calls
+       action helpers like r_type_inst / store_word inline while
+       parsing, committing to memory as each statement is seen.  No
+       AST is built.
+     PARSE_AST — the parser builds an abstract syntax tree first,
+       then emit_ast() walks the tree calling the same action helpers
+       in source order.  Lets us inspect or transform the tree
+       between parse and emit, and is what -print-ast / -show-
+       expansion / -print-ast-json render.
+   Both produce identical memory contents for the same input.
+   Set via the -parser= command-line flag. */
 typedef enum {
-  PARSE_DIRECT = 0,   /* default — current SDT behavior */
+  PARSE_DIRECT = 0,
   PARSE_AST    = 1,
 } parse_mode_t;
 
@@ -72,13 +78,12 @@ char* input_file_name_get(void);
 
 /* Emit-action dispatch helpers.  Every instruction-emitting call in
    parser.c and pseudo_op.c routes through these so the parser can
-   pick between inline emit (SDT) and AST construction (AST mode)
-   without per-call-site branching.  Signatures mirror the action
-   helpers they wrap:
+   pick between inline emit (PARSE_DIRECT) and AST construction
+   (PARSE_AST) without per-call-site branching.  Signatures mirror
+   the underlying action helpers:
      - emit_i: caller retains ownership of `imm` (mirrors i_type_inst).
      - emit_i_free: caller transfers ownership (mirrors i_type_inst_free).
-     - emit_j: caller retains ownership.
-   See PLAN-parse-tree-migration.md Phase 2d for the design. */
+     - emit_j: caller retains ownership. */
 void emit_r(int op, int rd, int rs, int rt);
 void emit_r_shift(int op, int rd, int rt, int shamt);
 void emit_i(int op, int rt, int rs, imm_expr* imm);

@@ -1,17 +1,23 @@
 /* SPIM S20 MIPS simulator.
    Abstract Syntax Tree node definitions.
 
-   The parser (when running in -parser=ast mode, default after
-   Phase 2f) produces a tree of these nodes rather than calling the
-   action helpers directly.  The emit pass walks the tree in two
-   passes — pass 1 assigns addresses and populates the symbol table,
-   pass 2 calls the action helpers (r_type_inst, store_word, ...)
-   to commit memory.
+   The parser running in PARSE_AST mode (the default) produces a tree
+   of these nodes rather than calling the action helpers directly.
+   `emit_ast` in parser.c walks the tree in source order and calls
+   the action helpers (r_type_inst, store_word, record_label, ...)
+   that commit each node's effect to the simulator's memory and
+   symbol table.
 
-   Layout choice: tagged union (single ast_node struct with a
-   discriminant + per-kind payload).  Trades a bit of wasted space
-   per node for a uniform tree-walk shape.  At ~50-100 bytes/node
-   and O(10k) nodes per file, the overhead is irrelevant.
+   Three teaching surfaces consume the tree:
+     -print-ast      indented text dump of every node
+     -print-ast-json same as JSON for external tooling
+     -show-expansion just the AST_PSEUDO wrappers and their children,
+                     showing what each pseudo-op rewrites into
+
+   Layout: tagged union (one ast_node struct with a discriminant +
+   per-kind payload).  Trades a little wasted space per node for a
+   uniform tree-walk shape.  At ~50-100 bytes/node and O(10k) nodes
+   for a typical file, the overhead is irrelevant.
 
    Ownership: each ast_node owns
      - its own malloc'd struct
@@ -42,7 +48,10 @@ typedef enum {
   AST_INST_J,           /* op target                         */
   AST_INST_FP_R,        /* op fd, fs, ft                     */
   AST_INST_FP_COMPARE,  /* op fs, ft, cc                     */
-  AST_PSEUDO,           /* wrapper for Phase 3 pseudo-ops    */
+  AST_PSEUDO,           /* wrapper for a parser-level pseudo-op
+                           rewrite (la, li, move, neg, bge, ...).
+                           Children are the real instructions the
+                           parser emits for that pseudo-op. */
 
   /* Data directives */
   AST_DATA_BYTE,        /* .byte  EXPR[, EXPR]*              */
