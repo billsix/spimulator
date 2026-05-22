@@ -48,15 +48,6 @@ typedef union {
 
 /* Useful and pervasive declarations: */
 
-#ifdef NEED_MEM_FUNCTIONS
-#define memcpy(T, F, S) bcopy((void*)F, (void*)T, S)
-#define memclr(B, S) bzero(B, S)
-#define memcmp(S1, S2, N) bcmp(S1, S2, N)
-#else
-#include <memory.h>
-#define memclr(B, S) memset((void*)B, 0, S)
-#endif
-
 #include <stdlib.h>
 #include <string.h>
 #define QSORT_FUNC int (*)(const void*, const void*)

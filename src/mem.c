@@ -97,7 +97,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
     free_instructions(text_seg, (text_top - TEXT_BOT) / BYTES_PER_WORD);
     text_seg = (instruction**)realloc(text_seg, BYTES_TO_INST(text_size));
   }
-  memclr(text_seg, BYTES_TO_INST(text_size));
+  memset(text_seg, 0, BYTES_TO_INST(text_size));
   text_top = TEXT_BOT + text_size;
 
   data_size = ROUND_UP(data_size, BYTES_PER_WORD); /* Keep word aligned */
@@ -105,7 +105,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
     data_seg = (mem_word*)xmalloc(data_size);
   else
     data_seg = (mem_word*)realloc(data_seg, data_size);
-  memclr(data_seg, data_size);
+  memset(data_seg, 0, data_size);
   data_seg_b = (int8_t*)data_seg;
   data_seg_h = (short*)data_seg;
   data_top = DATA_BOT + data_size;
@@ -116,7 +116,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
     stack_seg = (mem_word*)xmalloc(stack_size);
   else
     stack_seg = (mem_word*)realloc(stack_seg, stack_size);
-  memclr(stack_seg, stack_size);
+  memset(stack_seg, 0, stack_size);
   stack_seg_b = (int8_t*)stack_seg;
   stack_seg_h = (short*)stack_seg;
   stack_bot = STACK_TOP - stack_size;
@@ -128,7 +128,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
     free_instructions(k_text_seg, (k_text_top - K_TEXT_BOT) / BYTES_PER_WORD);
     k_text_seg = (instruction**)realloc(k_text_seg, BYTES_TO_INST(k_text_size));
   }
-  memclr(k_text_seg, BYTES_TO_INST(k_text_size));
+  memset(k_text_seg, 0, BYTES_TO_INST(k_text_size));
   k_text_top = K_TEXT_BOT + k_text_size;
 
   k_data_size = ROUND_UP(k_data_size, BYTES_PER_WORD); /* Keep word aligned */
@@ -136,7 +136,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
     k_data_seg = (mem_word*)xmalloc(k_data_size);
   else
     k_data_seg = (mem_word*)realloc(k_data_seg, k_data_size);
-  memclr(k_data_seg, k_data_size);
+  memset(k_data_seg, 0, k_data_size);
   k_data_seg_b = (int8_t*)k_data_seg;
   k_data_seg_h = (short*)k_data_seg;
   k_data_top = K_DATA_BOT + k_data_size;

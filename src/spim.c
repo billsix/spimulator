@@ -1278,12 +1278,7 @@ void error(char* fmt, ...) {
   va_list args;
 
   va_start(args, fmt);
-
-#ifdef NEED_VFPRINTF
-  _doprnt(fmt, args, stderr);
-#else
   vfprintf(stderr, fmt, args);
-#endif
   va_end(args);
 }
 
@@ -1293,12 +1288,7 @@ void fatal_error(char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
   fmt = va_arg(args, char*);
-
-#ifdef NEED_VFPRINTF
-  _doprnt(fmt, args, stderr);
-#else
   vfprintf(stderr, fmt, args);
-#endif
   exit(-1);
 }
 
@@ -1311,11 +1301,7 @@ _Noreturn void run_error(char* fmt, ...) {
 
   console_to_spim();
 
-#ifdef NEED_VFPRINTF
-  _doprnt(fmt, args, stderr);
-#else
   vfprintf(stderr, fmt, args);
-#endif
   va_end(args);
   longjmp(spim_top_level_env, 1);
 }
@@ -1336,18 +1322,10 @@ void write_output(port fp, char* fmt, ...) {
   }
 
   if (f != 0) {
-#ifdef NEED_VFPRINTF
-    _doprnt(fmt, args, f);
-#else
     vfprintf(f, fmt, args);
-#endif
     fflush(f);
   } else {
-#ifdef NEED_VFPRINTF
-    _doprnt(fmt, args, stdout);
-#else
     vfprintf(stdout, fmt, args);
-#endif
     fflush(stdout);
   }
   va_end(args);
