@@ -664,7 +664,7 @@ int main(int argc, char** argv) {
 
 /* Top-level read-eval-print loop for SPIM. */
 
-_Noreturn static void top_level(void) {
+[[noreturn]] static void top_level(void) {
   bool redo = false; /* => reexecute last command */
 
   (void)signal(SIGINT, control_c_seen);
@@ -790,7 +790,7 @@ _Noreturn static void top_level(void) {
   }
 }
 
-_Noreturn static void control_c_seen(int arg) {
+[[noreturn]] static void control_c_seen(int arg) {
   (void)arg;  // this line is to suppress compiler warnings
   console_to_spim();
   write_output(message_out, "\nExecution interrupted\n");
@@ -1436,7 +1436,7 @@ void fatal_error(char* fmt, ...) {
 
 /* Print an error message and return to top level. */
 
-_Noreturn void run_error(char* fmt, ...) {
+[[noreturn]] void run_error(char* fmt, ...) {
   va_list args;
 
   va_start(args, fmt);
