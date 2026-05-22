@@ -126,6 +126,46 @@ case "$NAME" in
       || fail "data.asm differs between explain=0 and explain=2"
     ;;
 
+  ast_parity_all)
+    # Broad SDT-vs-AST parity check: for every representative .s file
+    # in tests/, run it with -parser=sdt and -parser=ast, then diff
+    # the text + data segment dumps.  Catches any drift between the
+    # two parser implementations on real programs.
+    #
+    # tt.parse_error.s is excluded because its parse intentionally
+    # fails — the assembled output is empty/partial under both modes
+    # and there's nothing meaningful to compare.
+    progs="
+      tt.alu.bare.s tt.argv.s tt.bare.s tt.be.s tt.core.s tt.dir.s
+      tt.divide_by_zero.s tt.explain.s tt.fpu.bare.s tt.io.s tt.le.s
+      tt.listing.s tt.missing_main.s tt.octal_escape.s tt.pseudo.s
+      tt.read_char_eof.s tt.read_int_eof.s tt.return_value.s
+      tt.stderr_split.s tt.unaligned.s
+    "
+    dir_sdt=$(mktemp -d); dir_ast=$(mktemp -d)
+    trap 'rm -f "$out"; rm -rf "$dir_sdt" "$dir_ast"' EXIT
+    fail_prog=""
+    for prog in $progs; do
+      [ -f "$prog" ] || continue
+      ( cd "$dir_sdt" && "$SPIM" -exception_file "$EF" -parser=sdt -dump \
+          -f "$TESTS_DIR/$prog" </dev/null >/dev/null 2>&1 ) || true
+      ( cd "$dir_ast" && "$SPIM" -exception_file "$EF" -parser=ast -dump \
+          -f "$TESTS_DIR/$prog" </dev/null >/dev/null 2>&1 ) || true
+      # The `; NNN: source` annotations track scanner state at emit
+      # time and differ between modes without affecting bytes — strip
+      # them before diffing.
+      for seg in text data; do
+        [ -f "$dir_sdt/$seg.asm" ] && [ -f "$dir_ast/$seg.asm" ] || continue
+        sed 's/[[:space:]]*;.*$//' "$dir_sdt/$seg.asm" > "$dir_sdt/$seg.bare"
+        sed 's/[[:space:]]*;.*$//' "$dir_ast/$seg.asm" > "$dir_ast/$seg.bare"
+        if ! diff -q "$dir_sdt/$seg.bare" "$dir_ast/$seg.bare" >/dev/null; then
+          fail_prog="$prog ($seg)"
+          break 2
+        fi
+      done
+    done
+    [ -z "$fail_prog" ] || fail "SDT vs AST differ on $fail_prog"
+    ;;
   ast_parity)
     # SDT and AST modes should produce identical MEMORY contents for
     # the same input.  Compare via -dump (text + data segments).
