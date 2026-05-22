@@ -18,6 +18,7 @@
 #include "scanner.h"
 #include "tokens.h"
 #include "data.h"
+#include "asm_event.h"
 
 /* Local functions: */
 
@@ -137,15 +138,17 @@ static void store_instruction(instruction* inst) {
     store_word(inst_encode(inst));
     free_inst(inst);
   } else if (text_dir) {
+    mem_addr at = INST_PC;
     exception_occurred = 0;
-    mem_write_inst(INST_PC, inst);
+    mem_write_inst(at, inst);
     if (exception_occurred)
-      error("Invalid address (0x%08x) for instruction\n", INST_PC);
+      error("Invalid address (0x%08x) for instruction\n", at);
     else
       increment_text_pc(BYTES_PER_WORD);
     if (inst != nullptr) {
       SET_SOURCE(inst, source_line());
       if (ENCODING(inst) == 0) SET_ENCODING(inst, inst_encode(inst));
+      asm_fire_text_inst(at, (uint32_t)ENCODING(inst));
     }
   }
 }
@@ -534,6 +537,15 @@ const char* inst_op_name(instruction* inst) {
   if (inst == nullptr) return "<null>";
   name_val_val* entry = map_int_to_name_val_val(
       name_tbl, sizeof(name_tbl) / sizeof(name_val_val), OPCODE(inst));
+  return entry ? entry->name : "<unknown>";
+}
+
+/* Op-token variant: take a raw opcode token (TOK_*_OP, TOK_*_POP) and
+   return its mnemonic — used by the AST builder to label AST_PSEUDO
+   nodes. */
+const char* op_token_name(int op_token) {
+  name_val_val* entry = map_int_to_name_val_val(
+      name_tbl, sizeof(name_tbl) / sizeof(name_val_val), op_token);
   return entry ? entry->name : "<unknown>";
 }
 

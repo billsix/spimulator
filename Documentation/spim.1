@@ -104,6 +104,45 @@ off again on the command line, use \fB-noexplain\fP.
 .IP \fB-noexplain\fP 10
 Disable teaching mode. This is the default.
 
+.IP "\fB-listing\fP \fIfile\fP" 10
+Write an assemble-time event trace to \fIfile\fP (use \fB-\fP for stderr).
+Captures every label definition, instruction emission, data directive emission,
+and forward-reference resolution, with source-line provenance for each event.
+Useful for understanding what the assembler does step-by-step and for
+visualization tooling.
+
+.IP "\fB-parser\fP=\fIast\fP|\fIsdt\fP" 10
+Choose the parser implementation.  Default is \fIsdt\fP: syntax-directed
+translation — the parser calls action helpers (e.g. \fIr_type_inst\fP,
+\fIstore_word\fP) inline as each statement is parsed, committing to memory
+as it goes.  No AST is built.  This is the production path and what every
+spim invocation has used historically.
+
+Pass \fI-parser=ast\fP to switch to the AST path: the parser builds an
+abstract syntax tree first, then \fIemit_ast\fP walks the tree in source
+order and calls the same action helpers.  Both paths produce byte-identical
+memory contents; AST mode is what enables \fB-print-ast\fP,
+\fB-show-expansion\fP, and \fB-print-ast-json\fP (each of those flags
+implicitly sets \fI-parser=ast\fP, so you don't have to combine them by
+hand).
+
+.IP \fB-print-ast\fP 10
+Parse the source file to an abstract syntax tree, dump the tree to stderr as
+indented text, and exit without emitting any code.  Teaching surface for "what
+does the parser see?".  Implies AST mode.
+
+.IP \fB-print-ast-json\fP 10
+Same as \fB-print-ast\fP but writes the tree as JSON to stdout.  Data surface
+for external tooling — GUI scrubbers, listing converters, static-analysis
+exercise frameworks.
+
+.IP \fB-show-expansion\fP 10
+Parse to AST, print just the pseudo-op wrappers (each pseudo-op plus its
+expansion children) to stderr, and exit.  Focused teaching view of "what
+does each pseudo-op become" — shows that \fBla\fP, \fBmove\fP, \fBbge\fP,
+\fBli\fP-with-large-constant, etc. are rewritten by the parser into real
+MIPS instructions.
+
 .IP \fB-mapped_io\fP 10
 Enable the memory-mapped IO facility.  Programs that use SPIM syscalls to read from the terminal
 \fBcannot\fP also use memory-mapped IO.

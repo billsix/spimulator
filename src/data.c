@@ -13,6 +13,7 @@
 #include "parser.h"
 #include "run.h"
 #include "data.h"
+#include "asm_event.h"
 
 /* The first 64K of the data segment are dedicated to small data
    segment, which is pointed to by $gp. This register points to the
@@ -148,27 +149,44 @@ void lcomm_directive(char* name, int size) {
   }
 }
 
+/* Recursion guard so that one .word/.half/.string directive fires
+   exactly one AE_DATA_* event even when the unaligned path or the
+   string loop recurses into smaller stores. */
+static int data_store_depth = 0;
+
 /* Process a .ascii STRING or .asciiz STRING directive. */
 
 void store_string(char* string, int length, bool null_terminate) {
+  mem_addr at = DATA_PC;
+  const char* orig = string;
+  int orig_len = length;
+  data_store_depth++;
   for (; length > 0; string++, length--) {
     store_byte(*string);
   }
   if (null_terminate) {
     store_byte(0);
   }
+  data_store_depth--;
+  if (data_store_depth == 0)
+    asm_fire_data_string(at, orig, orig_len, null_terminate);
 }
 
 /* Process a .byte EXPR directive. */
 
 void store_byte(int value) {
-  mem_write_byte(DATA_PC, value);
+  mem_addr at = DATA_PC;
+  mem_write_byte(at, value);
   increment_data_pc(1);
+  if (data_store_depth == 0) asm_fire_data_byte(at, value);
 }
 
 /* Process a .half EXPR directive. */
 
 void store_half(int value) {
+  mem_addr at = DATA_PC;
+  bool outer = (data_store_depth == 0);
+  data_store_depth++;
   if ((DATA_PC & 0x1) != 0) {
 #ifdef SPIM_BIGENDIAN
     store_byte((value >> 8) & 0xff);
@@ -178,14 +196,19 @@ void store_half(int value) {
     store_byte((value >> 8) & 0xff);
 #endif
   } else {
-    mem_write_half(DATA_PC, value);
+    mem_write_half(at, value);
     increment_data_pc(BYTES_PER_WORD / 2);
   }
+  data_store_depth--;
+  if (outer) asm_fire_data_half(at, value);
 }
 
 /* Process a .word EXPR directive. */
 
 void store_word(int value) {
+  mem_addr at = DATA_PC;
+  bool outer = (data_store_depth == 0);
+  data_store_depth++;
   if ((DATA_PC & 0x3) != 0) {
 #ifdef SPIM_BIGENDIAN
     store_half((value >> 16) & 0xffff);
@@ -195,14 +218,19 @@ void store_word(int value) {
     store_half((value >> 16) & 0xffff);
 #endif
   } else {
-    mem_write_word(DATA_PC, value);
+    mem_write_word(at, value);
     increment_data_pc(BYTES_PER_WORD);
   }
+  data_store_depth--;
+  if (outer) asm_fire_data_word(at, value);
 }
 
 /* Process a .double EXPR directive. */
 
 void store_double(double* value) {
+  mem_addr at = DATA_PC;
+  bool outer = (data_store_depth == 0);
+  data_store_depth++;
   if ((DATA_PC & 0x7) != 0) {
     store_word(*((mem_word*)value));
     store_word(*(((mem_word*)value) + 1));
@@ -212,6 +240,8 @@ void store_double(double* value) {
     mem_write_word(DATA_PC, *(((mem_word*)value) + 1));
     increment_data_pc(BYTES_PER_WORD);
   }
+  data_store_depth--;
+  if (outer) asm_fire_data_double(at, *value);
 }
 
 /* Process a .float EXPR directive. */

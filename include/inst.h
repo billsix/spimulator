@@ -206,6 +206,9 @@ instruction* inst_decode(int32_t value);
 int32_t inst_encode(instruction* inst);
 bool inst_is_breakpoint(mem_addr addr);
 const char* inst_op_name(instruction* inst);
+/* Lookup mnemonic for a raw opcode token (TOK_*_OP, TOK_*_POP).
+   Returned pointer is owned by inst.c's static name_tbl. */
+const char* op_token_name(int op_token);
 void j_type_inst(int opcode, imm_expr* target);
 void k_text_begins_at_point(mem_addr addr);
 addr_expr* make_addr_expr(int offs, char* sym, int reg_no);

@@ -126,6 +126,128 @@ case "$NAME" in
       || fail "data.asm differs between explain=0 and explain=2"
     ;;
 
+  ast_parity_all)
+    # Broad SDT-vs-AST parity check: for every representative .s file
+    # in tests/, run it with -parser=sdt and -parser=ast, then diff
+    # the text + data segment dumps.  Catches any drift between the
+    # two parser implementations on real programs.
+    #
+    # tt.parse_error.s is excluded because its parse intentionally
+    # fails — the assembled output is empty/partial under both modes
+    # and there's nothing meaningful to compare.
+    progs="
+      tt.alu.bare.s tt.argv.s tt.bare.s tt.be.s tt.core.s tt.dir.s
+      tt.divide_by_zero.s tt.explain.s tt.fpu.bare.s tt.io.s tt.le.s
+      tt.listing.s tt.missing_main.s tt.octal_escape.s tt.pseudo.s
+      tt.read_char_eof.s tt.read_int_eof.s tt.return_value.s
+      tt.stderr_split.s tt.unaligned.s
+    "
+    dir_sdt=$(mktemp -d); dir_ast=$(mktemp -d)
+    trap 'rm -f "$out"; rm -rf "$dir_sdt" "$dir_ast"' EXIT
+    fail_prog=""
+    for prog in $progs; do
+      [ -f "$prog" ] || continue
+      ( cd "$dir_sdt" && "$SPIM" -exception_file "$EF" -parser=sdt -dump \
+          -f "$TESTS_DIR/$prog" </dev/null >/dev/null 2>&1 ) || true
+      ( cd "$dir_ast" && "$SPIM" -exception_file "$EF" -parser=ast -dump \
+          -f "$TESTS_DIR/$prog" </dev/null >/dev/null 2>&1 ) || true
+      # The `; NNN: source` annotations track scanner state at emit
+      # time and differ between modes without affecting bytes — strip
+      # them before diffing.
+      for seg in text data; do
+        [ -f "$dir_sdt/$seg.asm" ] && [ -f "$dir_ast/$seg.asm" ] || continue
+        sed 's/[[:space:]]*;.*$//' "$dir_sdt/$seg.asm" > "$dir_sdt/$seg.bare"
+        sed 's/[[:space:]]*;.*$//' "$dir_ast/$seg.asm" > "$dir_ast/$seg.bare"
+        if ! diff -q "$dir_sdt/$seg.bare" "$dir_ast/$seg.bare" >/dev/null; then
+          fail_prog="$prog ($seg)"
+          break 2
+        fi
+      done
+    done
+    [ -z "$fail_prog" ] || fail "SDT vs AST differ on $fail_prog"
+    ;;
+  ast_parity)
+    # SDT and AST modes should produce identical MEMORY contents for
+    # the same input.  Compare via -dump (text + data segments).
+    # The listing trace can differ in line_no decoration due to
+    # scanner-lookahead timing (peek for arithmetic operators may
+    # consume a newline ahead of the next emit), which is cosmetic
+    # — but the bytes written must match.
+    dir_sdt=$(mktemp -d); dir_ast=$(mktemp -d)
+    trap 'rm -f "$out"; rm -rf "$dir_sdt" "$dir_ast"' EXIT
+    ( cd "$dir_sdt" && "$SPIM" -exception_file "$EF" -parser=sdt -dump \
+        -f "$TESTS_DIR/tt.core.s" </dev/null >/dev/null 2>&1 )
+    ( cd "$dir_ast" && "$SPIM" -exception_file "$EF" -parser=ast -dump \
+        -f "$TESTS_DIR/tt.core.s" </dev/null >/dev/null 2>&1 )
+    # Strip the trailing `; NNN: source` annotations before diffing —
+    # those track scanner state at emit time and differ in deferred
+    # AST mode without affecting the assembled bytes.
+    sed 's/[[:space:]]*;.*$//' "$dir_sdt/text.asm" > "$dir_sdt/text.bare"
+    sed 's/[[:space:]]*;.*$//' "$dir_ast/text.asm" > "$dir_ast/text.bare"
+    diff -q "$dir_sdt/text.bare" "$dir_ast/text.bare" > /dev/null \
+      || fail "text segment differs between SDT and AST modes"
+    diff -q "$dir_sdt/data.asm" "$dir_ast/data.asm" > /dev/null \
+      || fail "data segment differs between SDT and AST modes"
+    ;;
+  print_ast)
+    # -print-ast: AST gets dumped to stderr, exit 0, no emit.
+    "$SPIM" -noexception -print-ast -f tt.listing.s >/dev/null 2>"$out"; rc=$?
+    [ "$rc" = "0" ] || fail "expected exit=0, got exit=$rc"
+    grep -q "FILE source=" "$out" || fail "AST output missing FILE header"
+    grep -q "DATA_BYTE count=1 values=\[66\]" "$out" \
+      || fail "AST output missing data byte node"
+    grep -q "INST_J op=" "$out" || fail "AST output missing J-type node"
+    grep -q "LABEL_DEF name=target" "$out" \
+      || fail "AST output missing target label"
+    ;;
+  show_expansion)
+    # -show-expansion: prints each PSEUDO node + its expansion children.
+    # Verify we see the expected pseudo wrappers and that each has at
+    # least one expansion child.  Exit 0; no emit.
+    "$SPIM" -noexception -show-expansion -f tt.pseudo.s >/dev/null 2>"$out"; rc=$?
+    [ "$rc" = "0" ] || fail "expected exit=0, got exit=$rc"
+    grep -q "PSEUDO mnemonic=li" "$out" \
+      || fail "missing PSEUDO wrapper for li"
+    grep -q "PSEUDO mnemonic=la" "$out" \
+      || fail "missing PSEUDO wrapper for la"
+    grep -q "PSEUDO mnemonic=move" "$out" \
+      || fail "missing PSEUDO wrapper for move"
+    grep -q "PSEUDO mnemonic=neg" "$out" \
+      || fail "missing PSEUDO wrapper for neg"
+    grep -q "PSEUDO mnemonic=not" "$out" \
+      || fail "missing PSEUDO wrapper for not"
+    grep -q "PSEUDO mnemonic=bge" "$out" \
+      || fail "missing PSEUDO wrapper for bge"
+    # bge expands to slt + beq — verify at least two children below
+    # the PSEUDO bge line by checking the count of indented expansion
+    # entries.
+    awk '/PSEUDO mnemonic=bge/{flag=1; next} flag && /^  \[line/{c++; next} flag && /^\[line/{flag=0} END{exit (c >= 2 ? 0 : 1)}' "$out" \
+      || fail "bge PSEUDO should have >=2 expansion children"
+    ;;
+  listing)
+    # -listing FILE: produces an assemble-time event trace.  Verify each
+    # event kind we instrumented fires for tt.listing.s.  Greps for
+    # patterns rather than diffing a golden file because exception_file
+    # addresses are environment-dependent.
+    lst=$(mktemp); trap 'rm -f "$out" "$lst"' EXIT
+    "$SPIM" -exception_file "$EF" -listing "$lst" -f tt.listing.s >"$out" 2>&1
+    grep -q "label  b1 .*defined at" "$lst" \
+      || fail "missing label def for b1"
+    grep -q "label  main .*defined at .*(global)" "$lst" \
+      || fail "missing global label def for main"
+    grep -qE "data .*  byte    0x42" "$lst" \
+      || fail "missing byte event for b1"
+    grep -qE "data .*  half    0x1234" "$lst" \
+      || fail "missing half event for h1"
+    grep -qE "data .*  word    0xdeadbeef" "$lst" \
+      || fail "missing word event for w1"
+    grep -qE "data .*  string  len=2 \(\+\\\\0\)" "$lst" \
+      || fail "missing string event for s1"
+    grep -q "fref .*uses unresolved symbol 'target'" "$lst" \
+      || fail "missing forward ref for target"
+    grep -q "fres .*patched 'target'" "$lst" \
+      || fail "missing forward resolved for target"
+    ;;
   divide_by_zero)
     # spim's div pseudo-op traps on zero divisor.  The default
     # exception handler reports ExcCode 9 (Bp) and continues, so
