@@ -381,6 +381,104 @@ course using spim for assignments.
 
 ---
 
+## Phase 6 — Comment hygiene (the final sweep)
+
+**Goal:** strip transitional, phase-anchored language from the
+codebase once the migration is complete. Replace with clean
+architectural commentary aimed at a future reader who never
+lived through the rewrite.
+
+The migration leaves behind two kinds of cruft:
+1. **Transitional language** in code comments — references to
+   "Phase 1," "Phase 2d," "previously SDT did," "future Phase
+   3 will," "for now," "tee mode," "deferred emit," etc.
+   These were useful during the rewrite as anchors but read
+   as archaeological noise after the dust settles.
+2. **Under-explained final design** — some functions, structs,
+   and files got minimal commentary because their role was
+   obvious to whoever was actively touching them. After
+   migration that context is lost; a fresh reader needs the
+   intent spelled out.
+
+This phase is **the last task** in the AST migration. It runs
+after Phase 2f's SDT deletion and Phase 3's pseudo-op work, so
+the codebase is at its final shape before commentary gets
+finalized.
+
+### Work items
+
+1. **Sweep every file touched during phases 1–5** for these
+   patterns:
+   - `Phase N` / `Phase 2d` / `Phase 2e` / etc.
+   - "Previously," "for now," "until Phase N," "in the future"
+   - "SDT path" / "AST mode" comparisons (after SDT is gone)
+   - "tee mode" — gone after Phase 2e
+   - "the new ___" — relative-to-rewrite wording
+   - References to the dispatch helpers as "wrappers around the
+     old action helpers" — after Phase 2f they ARE the action
+     surface
+
+2. **For each function and struct member**, ensure there's a
+   single concise comment that explains:
+   - What the thing represents (one sentence)
+   - Any non-obvious invariant or ownership rule
+   - Cross-references to related types (one or two)
+
+   The bar: a reader who's never seen spim before should be
+   able to navigate `include/ast.h`, `src/emit.c`, and the
+   parser within ~30 minutes.
+
+3. **File-level header comments** for the files added during
+   migration (`asm_event.h/.c`, `ast.h/.c`, `emit.c`):
+   - One paragraph on the file's role
+   - Pointer to the parser/emit interface
+   - Note about ownership conventions for any allocated
+     payloads
+
+4. **Update the `tasks/` directory:**
+   - Move completed plan docs into `tasks/archive/` or similar
+     (PLAN-parse-tree-investigation.md, PLAN-parse-tree-migration.md,
+     parse-actions-catalog.md, handwritten-parser-migration.md,
+     handwritten-parser-design.md, scanner-parser-inventory.md).
+   - Keep at the top level only the docs that describe **current
+     architecture**, not migration history.
+
+5. **`README.md` / curriculum docs**: confirm any "parser is
+   hand-written recursive descent" claims are still accurate
+   and updated to mention AST.
+
+6. **`SESSION_NOTES.md` (or equivalent rolling log)**: archive
+   the migration phase entries into a one-paragraph "the AST
+   migration happened in May–June 2026" historical note.
+
+### Scope guardrails
+
+- **Do not** rewrite working code that's correctly commented
+  already.
+- **Do not** add comments to obvious code (assignment,
+  one-line helper, named-after-its-purpose).
+- **Do** prioritize: file headers > struct definitions >
+  exported functions > internal helpers > inline blocks.
+- **Do not** turn this into a documentation-overhaul project
+  — the goal is "remove phase noise, fill in non-obvious
+  intent at structural boundaries." Anything beyond that is
+  a separate task.
+
+### Verification
+
+- Build + full regression suite still green.
+- `grep -ri "phase [0-9]" src/ include/` returns nothing.
+- `grep -ri "for now\|TODO.*phase\|previously" src/ include/`
+  returns only legitimate uses (e.g. "for now" describing a
+  current-state limitation, not a migration anchor).
+- Visual code review of `include/ast.h`, `src/emit.c`,
+  `src/parser.c`, `src/asm_event.{c,h}` to confirm a fresh
+  reader could navigate.
+
+**Effort:** 1 day. Mechanical; no risk.
+
+---
+
 ## Total effort
 
 | Phase | Days | Cumulative |
@@ -395,8 +493,9 @@ course using spim for assignments.
 | 3: Pseudo-ops first-class | 3-5 | 15-22.5 |
 | 4: Teaching surfaces | 2-3 | 17-25.5 |
 | 5 (optional): Homework | 3-5 | 20-30.5 |
+| 6: Comment hygiene | 1 | 21-31.5 |
 
-Realistic estimate: **3-4 weeks** of focused work for phases 1-4.
+Realistic estimate: **3-4 weeks** of focused work for phases 1-4 + 6.
 Phase 5 only if there's a course needing it.
 
 ---
