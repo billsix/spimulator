@@ -46,6 +46,12 @@ bool parser_get_print_ast_only(void);
    actually becomes in the parser. */
 void parser_set_show_expansion(bool on, FILE* out);
 
+/* If true, after parse_file completes in PARSE_AST mode, dump the AST
+   as JSON to `out` (default stderr).  Output is one line per file.
+   Drives external tooling — GUI scrubber, listing-to-html converter,
+   static-analysis exercise framework. */
+void parser_set_print_ast_json(bool on, FILE* out);
+
 /* Parse the file currently bound to the scanner.  Returns the number
    of parse errors encountered (0 on success).  Drives the scanner
    until EOF.  Sets parse_errors_seen as a side effect.  In PARSE_AST

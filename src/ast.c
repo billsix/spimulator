@@ -545,3 +545,271 @@ static void print_node(const ast_node* node, FILE* out, int depth) {
 void ast_print(const ast_node* node, FILE* out) {
   print_node(node, out, 0);
 }
+
+/* ------------------------------------------------------------------ */
+/* ast_print_json — JSON dump for external tooling                     */
+/* ------------------------------------------------------------------ */
+
+/* Each node renders as one JSON object:
+     {"kind":"INST_R","source_line":12,"op":315,"mnemonic":"addu",
+      "rd":4,"rs":0,"rt":5}
+   AST_FILE / AST_PSEUDO carry their child chain as "children":[...].
+   imm_expr renders as {"value":N,"symbol":null} or
+     {"value":N,"symbol":"foo","offset":4,"pc_relative":false}.
+   String fields are escaped per RFC 8259 (NUL/control bytes become
+   \uXXXX). */
+
+static void json_escape_string(const char* s, int len, FILE* out) {
+  fputc('"', out);
+  if (s == nullptr) {
+    fputc('"', out);
+    return;
+  }
+  /* If len < 0, treat as NUL-terminated. */
+  int n = (len < 0) ? (int)strlen(s) : len;
+  for (int i = 0; i < n; i++) {
+    unsigned char c = (unsigned char)s[i];
+    switch (c) {
+      case '"':  fputs("\\\"", out); break;
+      case '\\': fputs("\\\\", out); break;
+      case '\n': fputs("\\n", out);  break;
+      case '\r': fputs("\\r", out);  break;
+      case '\t': fputs("\\t", out);  break;
+      case '\b': fputs("\\b", out);  break;
+      case '\f': fputs("\\f", out);  break;
+      default:
+        if (c < 0x20) fprintf(out, "\\u%04x", c);
+        else          fputc(c, out);
+    }
+  }
+  fputc('"', out);
+}
+
+static void json_imm(const imm_expr* e, FILE* out) {
+  if (e == nullptr) {
+    fputs("null", out);
+    return;
+  }
+  fputs("{\"offset\":", out);
+  fprintf(out, "%d", e->offset);
+  fputs(",\"symbol\":", out);
+  if (e->symbol != nullptr && e->symbol->name != nullptr) {
+    json_escape_string(e->symbol->name, -1, out);
+  } else {
+    fputs("null", out);
+  }
+  fputs(",\"pc_relative\":", out);
+  fputs(e->pc_relative ? "true" : "false", out);
+  fputc('}', out);
+}
+
+static void json_kind_header(const ast_node* node, FILE* out) {
+  const char* kind_name = "?";
+  switch (node->kind) {
+    case AST_INST_R:           kind_name = "INST_R";           break;
+    case AST_INST_R_SHIFT:     kind_name = "INST_R_SHIFT";     break;
+    case AST_INST_I:           kind_name = "INST_I";           break;
+    case AST_INST_J:           kind_name = "INST_J";           break;
+    case AST_INST_FP_R:        kind_name = "INST_FP_R";        break;
+    case AST_INST_FP_COMPARE:  kind_name = "INST_FP_COMPARE";  break;
+    case AST_PSEUDO:           kind_name = "PSEUDO";           break;
+    case AST_DATA_BYTE:        kind_name = "DATA_BYTE";        break;
+    case AST_DATA_HALF:        kind_name = "DATA_HALF";        break;
+    case AST_DATA_WORD:        kind_name = "DATA_WORD";        break;
+    case AST_DATA_FLOAT:       kind_name = "DATA_FLOAT";       break;
+    case AST_DATA_DOUBLE:      kind_name = "DATA_DOUBLE";      break;
+    case AST_DATA_STRING:      kind_name = "DATA_STRING";      break;
+    case AST_DIR_TEXT:         kind_name = "DIR_TEXT";         break;
+    case AST_DIR_DATA:         kind_name = "DIR_DATA";         break;
+    case AST_DIR_KTEXT:        kind_name = "DIR_KTEXT";        break;
+    case AST_DIR_KDATA:        kind_name = "DIR_KDATA";        break;
+    case AST_DIR_ALIGN:        kind_name = "DIR_ALIGN";        break;
+    case AST_DIR_SPACE:        kind_name = "DIR_SPACE";        break;
+    case AST_DIR_GLOBL:        kind_name = "DIR_GLOBL";        break;
+    case AST_DIR_EXTERN:       kind_name = "DIR_EXTERN";       break;
+    case AST_DIR_COMM:         kind_name = "DIR_COMM";         break;
+    case AST_LABEL_DEF:        kind_name = "LABEL_DEF";        break;
+    case AST_FILE:             kind_name = "FILE";             break;
+    case AST_ERROR:            kind_name = "ERROR";            break;
+  }
+  fputs("{\"kind\":\"", out);
+  fputs(kind_name, out);
+  fputs("\",\"source_line\":", out);
+  fprintf(out, "%d", node->source_line);
+}
+
+static void json_node(const ast_node* node, FILE* out);
+
+static void json_chain(const ast_node* head, FILE* out) {
+  fputc('[', out);
+  bool first = true;
+  for (const ast_node* n = head; n != nullptr; n = n->next) {
+    if (!first) fputc(',', out);
+    first = false;
+    json_node(n, out);
+  }
+  fputc(']', out);
+}
+
+static void json_imm_array(imm_expr* const* arr, int n, FILE* out) {
+  fputc('[', out);
+  for (int i = 0; i < n; i++) {
+    if (i > 0) fputc(',', out);
+    json_imm(arr[i], out);
+  }
+  fputc(']', out);
+}
+
+static void json_node(const ast_node* node, FILE* out) {
+  if (node == nullptr) {
+    fputs("null", out);
+    return;
+  }
+  json_kind_header(node, out);
+
+  switch (node->kind) {
+    case AST_FILE:
+      if (node->u.file.source_file != nullptr) {
+        fputs(",\"source_file\":", out);
+        json_escape_string(node->u.file.source_file, -1, out);
+      }
+      fputs(",\"children\":", out);
+      json_chain(node->u.file.child, out);
+      break;
+
+    case AST_INST_R:
+      fprintf(out, ",\"op\":%d,\"mnemonic\":", node->u.inst_r.op);
+      json_escape_string(op_token_name(node->u.inst_r.op), -1, out);
+      fprintf(out, ",\"rd\":%d,\"rs\":%d,\"rt\":%d", node->u.inst_r.rd,
+              node->u.inst_r.rs, node->u.inst_r.rt);
+      break;
+
+    case AST_INST_R_SHIFT:
+      fprintf(out, ",\"op\":%d,\"mnemonic\":", node->u.inst_r_shift.op);
+      json_escape_string(op_token_name(node->u.inst_r_shift.op), -1, out);
+      fprintf(out, ",\"rd\":%d,\"rt\":%d,\"shamt\":%d",
+              node->u.inst_r_shift.rd, node->u.inst_r_shift.rt,
+              node->u.inst_r_shift.shamt);
+      break;
+
+    case AST_INST_I:
+      fprintf(out, ",\"op\":%d,\"mnemonic\":", node->u.inst_i.op);
+      json_escape_string(op_token_name(node->u.inst_i.op), -1, out);
+      fprintf(out, ",\"rt\":%d,\"rs\":%d,\"imm\":",
+              node->u.inst_i.rt, node->u.inst_i.rs);
+      json_imm(node->u.inst_i.imm, out);
+      break;
+
+    case AST_INST_J:
+      fprintf(out, ",\"op\":%d,\"mnemonic\":", node->u.inst_j.op);
+      json_escape_string(op_token_name(node->u.inst_j.op), -1, out);
+      fputs(",\"target\":", out);
+      json_imm(node->u.inst_j.target, out);
+      break;
+
+    case AST_INST_FP_R:
+      fprintf(out, ",\"op\":%d,\"mnemonic\":", node->u.inst_fp_r.op);
+      json_escape_string(op_token_name(node->u.inst_fp_r.op), -1, out);
+      fprintf(out, ",\"fd\":%d,\"fs\":%d,\"ft\":%d",
+              node->u.inst_fp_r.fd, node->u.inst_fp_r.fs,
+              node->u.inst_fp_r.ft);
+      break;
+
+    case AST_INST_FP_COMPARE:
+      fprintf(out, ",\"op\":%d,\"mnemonic\":", node->u.inst_fp_compare.op);
+      json_escape_string(op_token_name(node->u.inst_fp_compare.op), -1, out);
+      fprintf(out, ",\"fs\":%d,\"ft\":%d,\"cc\":%d",
+              node->u.inst_fp_compare.fs, node->u.inst_fp_compare.ft,
+              node->u.inst_fp_compare.cc);
+      break;
+
+    case AST_PSEUDO:
+      fputs(",\"mnemonic\":", out);
+      json_escape_string(node->u.pseudo.mnemonic, -1, out);
+      fputs(",\"children\":", out);
+      json_chain(node->u.pseudo.child, out);
+      break;
+
+    case AST_DATA_BYTE:
+    case AST_DATA_HALF:
+    case AST_DATA_WORD:
+      fprintf(out, ",\"count\":%d,\"values\":", node->u.data_int.count);
+      json_imm_array(node->u.data_int.exprs, node->u.data_int.count, out);
+      break;
+
+    case AST_DATA_FLOAT:
+    case AST_DATA_DOUBLE: {
+      fprintf(out, ",\"count\":%d,\"values\":[", node->u.data_fp.count);
+      for (int i = 0; i < node->u.data_fp.count; i++) {
+        if (i > 0) fputc(',', out);
+        fprintf(out, "%.17g", node->u.data_fp.values[i]);
+      }
+      fputc(']', out);
+      break;
+    }
+
+    case AST_DATA_STRING:
+      fprintf(out, ",\"length\":%d,\"null_terminate\":%s,\"value\":",
+              node->u.data_string.length,
+              node->u.data_string.null_terminate ? "true" : "false");
+      json_escape_string(node->u.data_string.bytes,
+                         node->u.data_string.length, out);
+      break;
+
+    case AST_DIR_TEXT:
+    case AST_DIR_DATA:
+    case AST_DIR_KTEXT:
+    case AST_DIR_KDATA:
+      if (node->u.dir_seg.has_start_addr) {
+        fprintf(out, ",\"start_addr\":%u",
+                (unsigned)node->u.dir_seg.start_addr);
+      }
+      break;
+
+    case AST_DIR_ALIGN:
+      fprintf(out, ",\"n\":%d", node->u.dir_align.n);
+      break;
+
+    case AST_DIR_SPACE:
+      fprintf(out, ",\"size\":%d", node->u.dir_space.size);
+      break;
+
+    case AST_DIR_GLOBL:
+      fputs(",\"name\":", out);
+      json_escape_string(node->u.dir_globl.name, -1, out);
+      break;
+
+    case AST_DIR_EXTERN:
+    case AST_DIR_COMM:
+      fputs(",\"name\":", out);
+      json_escape_string(node->u.dir_named_size.name, -1, out);
+      fprintf(out, ",\"size\":%d", node->u.dir_named_size.size);
+      break;
+
+    case AST_LABEL_DEF:
+      fputs(",\"name\":", out);
+      json_escape_string(node->u.label_def.name, -1, out);
+      fputs(",\"label_kind\":\"", out);
+      fputs(node->u.label_def.kind == AST_LABEL_NORMAL ? "placement"
+                                                       : "constant",
+            out);
+      fputc('"', out);
+      if (node->u.label_def.kind == AST_LABEL_CONST) {
+        fprintf(out, ",\"value\":%d", node->u.label_def.value);
+      }
+      break;
+
+    case AST_ERROR:
+      fputs(",\"message\":", out);
+      json_escape_string(node->u.error.message ? node->u.error.message : "",
+                         -1, out);
+      break;
+  }
+
+  fputc('}', out);
+}
+
+void ast_print_json(const ast_node* node, FILE* out) {
+  json_node(node, out);
+  fputc('\n', out);
+}

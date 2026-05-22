@@ -260,8 +260,12 @@ void ast_free(ast_node* node);
 /* ------------------------------------------------------------------ */
 
 /* Dump the tree rooted at `node` to `out` as indented text.  Used by
-   the future -print-ast flag and by Phase-2 testing.  Does not free
-   anything. */
+   the -print-ast flag.  Does not free anything. */
 void ast_print(const ast_node* node, FILE* out);
+
+/* Dump the tree as JSON, one node per object.  Used by -print-ast-json
+   as the data surface for external tooling (GUI scrubber, listing
+   converter, static-analysis pass runners). */
+void ast_print_json(const ast_node* node, FILE* out);
 
 #endif

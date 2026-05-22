@@ -124,6 +124,14 @@ void parser_set_show_expansion(bool on, FILE* out) {
   show_expansion_out = (out != nullptr) ? out : stderr;
 }
 
+static bool print_ast_json_after_parse = false;
+static FILE* ast_json_out = nullptr;
+
+void parser_set_print_ast_json(bool on, FILE* out) {
+  print_ast_json_after_parse = on;
+  ast_json_out = (out != nullptr) ? out : stderr;
+}
+
 /* Walk the AST and print just the AST_PSEUDO wrappers + their
    expanded children.  Used by -show-expansion. */
 static void print_pseudo_walk(const ast_node* node, FILE* out);
@@ -2241,6 +2249,12 @@ int parse_file(void) {
       current_file != nullptr) {
     print_pseudo_walk(current_file,
                       show_expansion_out ? show_expansion_out : stderr);
+  }
+
+  /* If -print-ast-json was requested, dump the tree as JSON. */
+  if (should_build_ast() && print_ast_json_after_parse &&
+      current_file != nullptr) {
+    ast_print_json(current_file, ast_json_out ? ast_json_out : stderr);
   }
 
   /* In AST mode (when not in -print-ast-only), walk the tree and

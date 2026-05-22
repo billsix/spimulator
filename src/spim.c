@@ -522,6 +522,14 @@ int main(int argc, char** argv) {
       parser_set_mode(PARSE_AST);
       parser_set_show_expansion(true, stderr);
       parser_set_print_ast_only(true);
+    } else if (streq(argv[i], "-print-ast-json")) {
+      /* Dump the AST as JSON.  Used by external tooling (GUI, etc.).
+         Goes to stdout so the JSON can be piped to a parser; the
+         "Loaded:" banner stays on stderr.  Implies AST mode + skip-
+         emit. */
+      parser_set_mode(PARSE_AST);
+      parser_set_print_ast_json(true, stdout);
+      parser_set_print_ast_only(true);
     } else if (streq(argv[i], "-listing")) {
       if (i + 1 >= argc) {
         error("\n-listing requires a filename argument\n");
@@ -576,6 +584,7 @@ int main(int argc, char** argv) {
 	-listing <file>		Write assemble-time event trace to <file> (use - for stderr)\n\
 	-parser=ast|sdt		Choose parser mode (sdt default; ast also builds an AST as a side effect)\n\
 	-print-ast		Parse to AST, print it to stderr, and exit without emitting any code\n\
+	-print-ast-json		Parse to AST, dump JSON to stdout (for tooling), and exit\n\
 	-show-expansion		Parse to AST, print just the pseudo-op wrappers + their expansion, and exit\n\
 	-dump			Write user data and text segments into files\n\
 	-full_dump		Write user and kernel data and text into files.\n");
