@@ -111,7 +111,7 @@ Prepended to the symbol table, NOT a replacement for it:
 Rules:
 
 - Only for demos with a real stack frame.  Register-only demos
-  (everything from 09 onward except 18-cksum's print_uint scratch)
+  (everything from 09 onward except cksum's print_uint scratch)
   do not get the diagram.
 - The diagram shows the frame at its peak occupancy.  If $fp and
   $sp move during the demo, annotate which moment the diagram
@@ -155,64 +155,64 @@ proposed below for review.
 
 ### Tier 1 — strong value (apply, with full table and frame diagram)
 
-- **24-get-char-from-user-1.asm**, **-2.asm** — frame + the
+- **get-char-from-user-1.asm**, **-2.asm** — frame + the
   intentional alignment bug.  The bug becomes visible the moment
   you see "user_input: 1($fp)" in the table.
-- **42-subrountines-1.asm**, **-2.asm** — the canonical
+- **subrountines-1.asm**, **-2.asm** — the canonical
   calling-convention demo.  -1 is the longhand version (every
   call-block slot named); -2 is the register-passing variant.
-- **43-testStringsForEquality-1.asm** — frame + str_eq +
+- **testStringsForEquality-1.asm** — frame + str_eq +
   intentional read-past-frame bug.
 
 ### Tier 2 — high value (apply, full table, no frame diagram)
 
-- **18-cksum.asm** — `$s` saves + private `print_uint`
+- **cksum.asm** — `$s` saves + private `print_uint`
   subroutine + 256-entry lookup table.  Best demo for the
   Cross-call saves story.
-- **20-factorial.asm** — atoi + cross-call saves for `n` and
+- **factorial.asm** — atoi + cross-call saves for `n` and
   `result`.  First post-argv demo.
-- **21-gcd.asm** — two atois back-to-back; the "park argv in
+- **gcd.asm** — two atois back-to-back; the "park argv in
   $s2 while calling atoi" dance is subtle and benefits from
   being named.
-- **11-head.asm** — three function-call flows (str_eq,
+- **head.asm** — three function-call flows (str_eq,
   atoi, open) and the most argv state of any demo.
-- **23-tee.asm** — fd array in `.data` + variable argc +
+- **tee.asm** — fd array in `.data` + variable argc +
   per-block fan-out.  The fd-array entry is the first "named
   composite" in the table.
 
 ### Tier 3 — moderate value (apply, smaller table)
 
-- **40-print-out-ascii.asm** — single-counter loop in $s.
-- **41-commaAndPeriodCounter.asm** — two $s counters + byte
+- **print-out-ascii.asm** — single-counter loop in $s.
+- **commaAndPeriodCounter.asm** — two $s counters + byte
   loop.
-- **10-wc.asm** — same shape as 06 with one more counter.
-- **11-head.asm** — counter + early termination.
-- **12-rev.asm** — line buffer with pointer arithmetic.
-- **17-nologin.asm** — open/close, introduces the "fd in $s0"
+- **wc.asm** — same shape as 06 with one more counter.
+- **head.asm** — counter + early termination.
+- **rev.asm** — line buffer with pointer arithmetic.
+- **nologin.asm** — open/close, introduces the "fd in $s0"
   pattern.
-- **15-expand.asm** — column-tracking state machine.
-- **19-echo.asm** — argv walk preview (no atoi yet).
-- **16-cat.asm** — small extension of 15 with argv.
+- **expand.asm** — column-tracking state machine.
+- **echo.asm** — argv walk preview (no atoi yet).
+- **cat.asm** — small extension of 15 with argv.
 
 ### Tier 4 — skip (trivial / one variable / no payoff)
 
-- **01-helloworld.asm** — one string constant.
-- **02-print1through10.asm** — one counter.
-- **03-increment-ints.asm** — two ints, trivial naming.
-- **04-clear.asm** — one string constant.
-- **05-yes.asm** — one string constant in an infinite loop.
-- **16-cat.asm** — $t0 + $t1 scratch only; existing comments
+- **helloworld.asm** — one string constant.
+- **print1through10.asm** — one counter.
+- **increment-ints.asm** — two ints, trivial naming.
+- **clear.asm** — one string constant.
+- **yes.asm** — one string constant in an infinite loop.
+- **cat.asm** — $t0 + $t1 scratch only; existing comments
   suffice.
-- **13-tr.asm** — byte-conditional with a sentinel; the lesson
+- **tr.asm** — byte-conditional with a sentinel; the lesson
   is the conditional, not the storage layout.
 
 (11 and 16 are the closest calls.  Demote either to Tier 3 if
 the table format ends up working well on the similar-shape
-10-wc / 15-expand demos.)
+wc / expand demos.)
 
 ## Worked examples
 
-### 20-factorial.asm (Tier 2)
+### factorial.asm (Tier 2)
 
 ```
 #SYMBOL TABLE  (C variable -> MIPS location)
@@ -245,7 +245,7 @@ the table format ends up working well on the similar-shape
 #     $v0   syscall selector / return value
 ```
 
-### 42-subrountines-1.asm (Tier 1)
+### subrountines-1.asm (Tier 1)
 
 ```
 #STORAGE LAYOUT
@@ -323,13 +323,13 @@ The roll-out is per-file and trivially parallelisable.  Suggested
 order (highest pedagogical lift first, so format issues surface
 early):
 
-1. **20-factorial.asm** — full Tier-2 table; sets the template.
-2. **42-subrountines-1.asm**, **-2.asm** — full Tier-1 with
+1. **factorial.asm** — full Tier-2 table; sets the template.
+2. **subrountines-1.asm**, **-2.asm** — full Tier-1 with
    frame diagram; stresses the format on the canonical demo.
-3. **43-testStringsForEquality-1.asm**, **24-get-char-from-user-1.asm**,
+3. **testStringsForEquality-1.asm**, **get-char-from-user-1.asm**,
    **-2.asm** — remaining Tier 1.
-4. **18-cksum.asm**, **21-gcd.asm**, **11-head.asm**,
-   **23-tee.asm** — remaining Tier 2.
+4. **cksum.asm**, **gcd.asm**, **head.asm**,
+   **tee.asm** — remaining Tier 2.
 5. **Tier 3 batch** — 05, 06, 12, 13, 14, 15, 17, 19, 21.
 
 After step 1, pause for format review — it's much cheaper to
@@ -354,7 +354,7 @@ After step 2, pause again for the frame-diagram style.
 - **Cutline 11/16 vs Tier 3.**  Decide after the first three
   Tier-3 demos land.  If the smaller-table form reads cleanly
   there, promoting 11 and 16 is cheap.
-- **Frame diagram for 18-cksum's `digitsBuf`?**  `digitsBuf`
+- **Frame diagram for cksum's `digitsBuf`?**  `digitsBuf`
   lives in `.data`, not on the stack — currently I'd list it
   in the symbol table with location `digitsBuf` rather than
   drawing a `.data` diagram.  Revisit if the `.data` layout

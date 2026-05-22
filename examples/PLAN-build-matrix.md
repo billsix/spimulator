@@ -40,8 +40,8 @@ something the reader can hold in their hand.
 Materializing the .s matrix at image build time:
 
 - **Makes the comparison concrete and immediate.**  The
-  student opens `asm-out/x86_64/19-echo-1.s` and
-  `asm-out/aarch64/19-echo-1.s` and sees the difference,
+  student opens `asm-out/x86_64/echo-1.s` and
+  `asm-out/aarch64/echo-1.s` and sees the difference,
   with no toolchain install.
 - **Catches portability regressions at image-build time.**  A
   new demo that breaks the cross-compile on any arch fails the
@@ -54,8 +54,8 @@ Materializing the .s matrix at image build time:
 ## Dependencies
 
 Soft prerequisite: [`PLAN-multiarch-shim.md`](PLAN-multiarch-shim.md)
-needs to land first for the six argv-using demos (19-echo,
-20-factorial, 16-cat, 21-gcd, 11-head, 23-tee).
+needs to land first for the six argv-using demos (echo,
+factorial, cat, gcd, head, tee).
 Those carry an inline `_start` shim that's currently gated as
 `#error` on non-x86_64.  Without the shim plan applied, the
 preprocessor halts on the unsupported `#elif` branch and
@@ -112,10 +112,10 @@ Per-arch subdirectories under `asm-out/`:
 ```
 asm-out/
 ├── x86_64/
-│   ├── 01-helloworld-1.s
-│   ├── 02-print1through10-1.s
+│   ├── helloworld-1.s
+│   ├── print1through10-1.s
 │   ├── ...
-│   ├── 23-tee-1.s
+│   ├── tee-1.s
 │   ├── count-chars.s
 │   ├── integer-to-string.s
 │   └── ... (io-lib sources)
@@ -129,7 +129,7 @@ Same `.s` name across arches lets the student script
 side-by-side diffs:
 
 ```sh
-diff -u asm-out/x86_64/19-echo-1.s asm-out/aarch64/19-echo-1.s | less
+diff -u asm-out/x86_64/echo-1.s asm-out/aarch64/echo-1.s | less
 ```
 
 or open both in a tiled editor.

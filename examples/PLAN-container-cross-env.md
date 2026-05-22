@@ -14,9 +14,9 @@ Concretely:
 # inside the container
 $ clang --target=aarch64-linux-gnu -static -nostdlib \
         -I src -ffreestanding \
-        src/19-echo/19-echo.c <io-lib sources> \
-        -fuse-ld=lld -o /tmp/19-echo-aarch64
-$ qemu-aarch64-static /tmp/19-echo-aarch64 one two three
+        src/arguments/echo/echo.c <io-lib sources> \
+        -fuse-ld=lld -o /tmp/echo-aarch64
+$ qemu-aarch64-static /tmp/echo-aarch64 one two three
 one two three
 ```
 
@@ -89,7 +89,7 @@ don't link against libc.  So clang + lld is *sufficient*:
 ```sh
 clang --target=aarch64-linux-gnu -static -nostdlib \
       -ffreestanding -fuse-ld=lld \
-      -I src src/19-echo/19-echo.c <...> -o /tmp/out
+      -I src src/arguments/echo/echo.c <...> -o /tmp/out
 ```
 
 Then `qemu-aarch64-static /tmp/out one two three` runs it.
@@ -201,9 +201,9 @@ env is good.
 cd /examples/src
 clang --target=aarch64-linux-gnu -static -nostdlib \
       -ffreestanding -fuse-ld=lld -I. \
-      19-echo/19-echo.c read-int.c <other io-lib sources as needed> \
-      -o /tmp/19-echo-aarch64
-qemu-aarch64-static /tmp/19-echo-aarch64 one two three
+      echo/echo.c read-int.c <other io-lib sources as needed> \
+      -o /tmp/echo-aarch64
+qemu-aarch64-static /tmp/echo-aarch64 one two three
 # Expected: one two three
 ```
 
@@ -240,7 +240,7 @@ easier once the in-container env is provisioned.
 3. Rebuild the container; verify `which clang lld qemu-aarch64-static`
    all resolve.
 4. Run Step 1 smoke test above.  If it passes, the env is good.
-5. Run Step 2 (the 19-echo cross test) for each non-host arch.
+5. Run Step 2 (the echo cross test) for each non-host arch.
    If it passes, `crt0.h` is verified multi-arch.
 6. (Optional) Add a meson cross-file under `src/cross/` per
    arch.  Add a `meson test` invocation in the Dockerfile that

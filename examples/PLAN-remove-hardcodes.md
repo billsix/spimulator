@@ -6,39 +6,39 @@ All 6 demos in scope unhardcoded.  Verified end-to-end:
 
 | Demo | Before | After |
 |---|---|---|
-| 06-fizzbuzz | hardcoded 1..100 | argv[1] = N (default 100) |
-| 08-pascals-triangle | hardcoded 10 rows | argv[1] = rows (default 10, cap 34) |
-| 27-queens | hardcoded N=8 | argv[1] = N (default 8, cap 12) |
-| 09-sieve | hardcoded LIMIT=100, `.space 101` | argv[1] = limit, **sbrk-allocated** |
-| 07-bubble-sort | hardcoded 10-int `.word` array | **reads ints from stdin** until EOF |
-| 22-binary-search | hardcoded array, target from argv | **reads sorted ints from stdin**, target from argv |
+| fizzbuzz | hardcoded 1..100 | argv[1] = N (default 100) |
+| pascals-triangle | hardcoded 10 rows | argv[1] = rows (default 10, cap 34) |
+| queens | hardcoded N=8 | argv[1] = N (default 8, cap 12) |
+| sieve | hardcoded LIMIT=100, `.space 101` | argv[1] = limit, **sbrk-allocated** |
+| bubble-sort | hardcoded 10-int `.word` array | **reads ints from stdin** until EOF |
+| binary-search | hardcoded array, target from argv | **reads sorted ints from stdin**, target from argv |
 
 New shared infrastructure added:
 
 - **`/examples/src/read-int.c`** + **`read_int_from_stdin`**
   declaration in `io.h`.  C-side equivalent of spim's syscall
-  5 (read_int), used by 07-bubble-sort and 22-binary-search.
+  5 (read_int), used by bubble-sort and binary-search.
 
 New asm patterns introduced by this rollout:
 
 - **sbrk via syscall 9** — first-ever use in the curriculum,
-  in 09-sieve.  `addi $a0, $s1, 1; li $v0, 9; syscall;`
+  in sieve.  `addi $a0, $s1, 1; li $v0, 9; syscall;`
   returns the base of the new region in `$v0`.
 - **read_int via syscall 5 + `$a3` EOF flag** — first-ever
-  use, in 07-bubble-sort and 22-binary-search.  Pays back
+  use, in bubble-sort and binary-search.  Pays back
   the eof-signaling spim change from earlier this session.
 
 Verification highlights:
 
-- 06-fizzbuzz: default + N=20 + diff N=30, all match.
+- fizzbuzz: default + N=20 + diff N=30, all match.
 - 08-pascals: default + N=5 + diff N=15, all match.
-- 27-queens: default produces 92 solutions (canonical
+- queens: default produces 92 solutions (canonical
   8-queens count); N=4 produces 2; N=6 diff matches.
-- 09-sieve: default produces 25 primes up to 100; N=200 diff
+- sieve: default produces 25 primes up to 100; N=200 diff
   matches; N=1000 produces 168 primes (correct, π(1000)=168).
-- 07-bubble-sort: random shuffles sort identically on C and
+- bubble-sort: random shuffles sort identically on C and
   spim sides; empty input → no output.
-- 22-binary-search: 6 target probes (3, 41, 71, 50, 100, 11)
+- binary-search: 6 target probes (3, 41, 71, 50, 100, 11)
   all match including the "not found" cases.
 
 ## Goal
@@ -63,21 +63,21 @@ asks: where does the input come from today?
 
 | Demo | Why |
 |---|---|
-| 01-helloworld | "hello world" string is the demo. |
-| 02-print1through10 | The "1..10" IS the demo. |
-| 03-increment-ints | Tiny arithmetic; no input concept. |
-| 04-clear | ANSI escape sequence; no input. |
-| 05-yes | Infinite "y" stream; no input. |
-| 19-echo | Already takes argv. |
+| helloworld | "hello world" string is the demo. |
+| print1through10 | The "1..10" IS the demo. |
+| increment-ints | Tiny arithmetic; no input concept. |
+| clear | ANSI escape sequence; no input. |
+| yes | Infinite "y" stream; no input. |
+| echo | Already takes argv. |
 
 ### Input-from-stdin demos (already correct — no change)
 
-10-wc, 11-head, 12-rev, 13-tr, 14-rot13, 15-expand, 16-cat,
-17-nologin (hardcoded file path is the lesson), 18-cksum.
+wc, head, rev, tr, rot13, expand, cat,
+nologin (hardcoded file path is the lesson), cksum.
 
 ### Already-take-argv demos (no change)
 
-20-factorial, 21-gcd, 25-fibonacci, 26-hanoi, 23-tee.
+factorial, gcd, fibonacci, hanoi, tee.
 
 ### Demos with HARDCODED data that could be input
 
@@ -85,26 +85,26 @@ Five demos.  Each is a real candidate for unhardcoding.
 
 | Demo | What's hardcoded | Proposed source |
 |---|---|---|
-| **06-fizzbuzz** | `1..100` range | `argv[1] = upper bound`; default 100 if absent |
-| **07-bubble-sort** | 10-int array `{9, 4, 1, 7, …, 0}` | **stdin ints (one per line)**, EOF terminates |
-| **08-pascals-triangle** | `10` rows | `argv[1] = rows`; default 10 |
-| **09-sieve** | `LIMIT = 100` | `argv[1] = limit`; default 100 |
-| **22-binary-search** | 10-int array `{3, 7, 11, …, 71}` | **stdin ints**, then `argv[1] = target` |
-| **27-queens** | `N = 8` | `argv[1] = N`; default 8 (becomes "N-queens") |
+| **fizzbuzz** | `1..100` range | `argv[1] = upper bound`; default 100 if absent |
+| **bubble-sort** | 10-int array `{9, 4, 1, 7, …, 0}` | **stdin ints (one per line)**, EOF terminates |
+| **pascals-triangle** | `10` rows | `argv[1] = rows`; default 10 |
+| **sieve** | `LIMIT = 100` | `argv[1] = limit`; default 100 |
+| **binary-search** | 10-int array `{3, 7, 11, …, 71}` | **stdin ints**, then `argv[1] = target` |
+| **queens** | `N = 8` | `argv[1] = N`; default 8 (becomes "N-queens") |
 
 ### Demos to KEEP hardcoded (with reason)
 
 | Demo | What's hardcoded | Why keep |
 |---|---|---|
-| 17-nologin | `/etc/nologin.txt` | The demo's whole point is "this specific file." |
-| 18-cksum | 256-entry CRC table | The table IS the lesson; not user input. |
-| 22-binary-search's array (alternative) | Could keep | The algorithm is the point; reading a sorted array from stdin is more code. |
-| 24-get-char-from-user | (no hardcoded input; takes stdin) | — |
+| nologin | `/etc/nologin.txt` | The demo's whole point is "this specific file." |
+| cksum | 256-entry CRC table | The table IS the lesson; not user input. |
+| binary-search's array (alternative) | Could keep | The algorithm is the point; reading a sorted array from stdin is more code. |
+| get-char-from-user | (no hardcoded input; takes stdin) | — |
 | Extras 40-43 | Various | Not in main reading order; leave alone. |
 
 ## Per-demo upgrade design
 
-### `06-fizzbuzz` → `fizzbuzz [N]`
+### `fizzbuzz` → `fizzbuzz [N]`
 
 ```c
 int my_main(int argc, char **argv) {
@@ -117,7 +117,7 @@ Trivial change.  C and asm each grow by ~10 lines.  Default
 preserves existing behaviour (run with no args still produces
 the canonical 1..100 output).
 
-### `07-bubble-sort` → reads stdin ints, sorts, prints
+### `bubble-sort` → reads stdin ints, sorts, prints
 
 ```c
 int my_main(int argc, char **argv) {
@@ -154,7 +154,7 @@ Subtleties:
 
 Output format: one int per line.
 
-### `08-pascals-triangle` → `pascals-triangle [N]`
+### `pascals-triangle` → `pascals-triangle [N]`
 
 Same shape as fizzbuzz.  Default N=10; argv[1] overrides.
 Need to bump the working array's size or sbrk to scale.
@@ -168,7 +168,7 @@ Subtleties:
   cap N at 34.  Or sbrk if we want unbounded.  Static cap is
   simpler.
 
-### `09-sieve` → `sieve [LIMIT]`
+### `sieve` → `sieve [LIMIT]`
 
 ```c
 int my_main(int argc, char **argv) {
@@ -186,12 +186,12 @@ Two options:
 - **sbrk-allocated** of `LIMIT+1` bytes.  Dynamic, teaches
   another sbrk use.
 
-Lean: sbrk-allocated.  09-sieve becomes the second sbrk demo
-(36-tac is the first).  Pedagogically the sieve is a natural
+Lean: sbrk-allocated.  sieve becomes the second sbrk demo
+(tac is the first).  Pedagogically the sieve is a natural
 fit for "allocate exactly what we need" since LIMIT
 determines memory directly.
 
-### `22-binary-search` → reads stdin ints, target from argv
+### `binary-search` → reads stdin ints, target from argv
 
 ```c
 int my_main(int argc, char **argv) {
@@ -211,9 +211,9 @@ int my_main(int argc, char **argv) {
 Subtlety: real `look(1)` (the binary-search Unix tool) also
 takes a sorted file argument.  We could allow stdin OR file
 following the now-established argv-with-dash convention.  My
-lean: just stdin for v1; matches `07-bubble-sort`'s shape.
+lean: just stdin for v1; matches `bubble-sort`'s shape.
 
-### `27-queens` → `queens [N]`
+### `queens` → `queens [N]`
 
 ```c
 int my_main(int argc, char **argv) {
@@ -235,16 +235,16 @@ solutions.  Cap recommended.
 
 Sorted easy → hard:
 
-1. **06-fizzbuzz** — tiny argv addition, trivial.
-2. **08-pascals-triangle** — tiny argv addition + size scaling
+1. **fizzbuzz** — tiny argv addition, trivial.
+2. **pascals-triangle** — tiny argv addition + size scaling
    via static cap.
-3. **27-queens** — tiny argv addition + size scaling via
+3. **queens** — tiny argv addition + size scaling via
    static cap.
-4. **09-sieve** — first sbrk integration (after 36-tac if
+4. **sieve** — first sbrk integration (after tac if
    that lands first).
-5. **07-bubble-sort** — stdin int reader + bubble sort.
+5. **bubble-sort** — stdin int reader + bubble sort.
    Biggest change.
-6. **22-binary-search** — stdin int reader (sorted) + target
+6. **binary-search** — stdin int reader (sorted) + target
    from argv.
 
 ## Subtleties for the asm side
@@ -252,7 +252,7 @@ Sorted easy → hard:
 The new pieces all six demos need are some subset of:
 
 - **Reading argv with an optional N** (already familiar from
-  20-factorial / 21-gcd / 26-hanoi).
+  factorial / gcd / hanoi).
 - **Reading ints from stdin** (`read_int` syscall 5, with
   the new `$a3` EOF flag introduced in
   `/spimulator/tasks/eof-signaling.md`).  First curriculum
@@ -267,9 +267,9 @@ The new pieces all six demos need are some subset of:
 
 ## Out of scope
 
-- **Hardcoded `.data` lookup tables** (18-cksum's 256-entry
+- **Hardcoded `.data` lookup tables** (cksum's 256-entry
   CRC table, etc).  Those are constants, not user input.
-- **Hardcoded paths** in 17-nologin.  The demo's lesson IS
+- **Hardcoded paths** in nologin.  The demo's lesson IS
   that specific file.
 - **Argv-as-data demos** (e.g., `echo args`, `seq M N`,
   `factor N`) — they already take input from argv.
@@ -287,10 +287,10 @@ demonstrates the algorithm" into "the program is a Unix tool
 that implements the algorithm."  Which is the natural
 progression:
 
-- **Today's `07-bubble-sort`**: shows the algorithm with a
+- **Today's `bubble-sort`**: shows the algorithm with a
   hardcoded example.  Student reads the asm and sees what
   sort looks like; the data was chosen by the author.
-- **Tomorrow's `07-bubble-sort`**: pipe ANY ints in,
+- **Tomorrow's `bubble-sort`**: pipe ANY ints in,
   receive sorted output.  Student pipes their own data and
   watches it sort.
 
@@ -308,11 +308,11 @@ real-world skill.
 - **Static cap vs sbrk for bubble-sort and binary-search**:
   static cap (256 ints).  These demos' lesson is the
   algorithm; memory management is a different lesson.
-  sbrk shows up in 09-sieve and 36-tac.
-- **27-queens upper bound on N**: cap at 12 (still produces
+  sbrk shows up in sieve and tac.
+- **queens upper bound on N**: cap at 12 (still produces
   14k solutions; anything larger generates output you'd
   never scroll through).  Or no cap, let the user wait.
-- **Should 07-bubble-sort print "before/after" or just
+- **Should bubble-sort print "before/after" or just
   "after"?**  Real `sort` only prints the sorted output.
   The current demo prints both (instructive but not
   Unix-like).  Probably switch to "after only" when the

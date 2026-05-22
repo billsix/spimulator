@@ -35,13 +35,13 @@ main-return `jr $ra`:
 
 Verified post-sweep that the only non-zero exits are intentional:
 
-- 17-nologin (1): `/etc/nologin.txt` doesn't exist in container,
+- nologin (1): `/etc/nologin.txt` doesn't exist in container,
   demo correctly takes its error path.
-- 24-get-char-from-user-1 (133 = 128+5): intentional alignment-
+- get-char-from-user-1 (133 = 128+5): intentional alignment-
   fault teaching demo.
-- 42-subrountines-1 (155 = 128+27): intentional "read past
+- subrountines-1 (155 = 128+27): intentional "read past
   frame" teaching bug.
-- 43-testStringsForEquality-1 (1): intentional teaching bug.
+- testStringsForEquality-1 (1): intentional teaching bug.
 
 The C side already returns correctly via `crt0.h` propagating
 `my_main`'s return value through `exit`.
@@ -71,7 +71,7 @@ run."
 
 ### Demo 00 — the canonical "set status, exit" lesson (landed)
 
-Added `src/00-exit/00-exit.{c,asm}` as Part 0 of the curriculum.
+Added `src/intro/exit/exit.{c,asm}` as Part 0 of the curriculum.
 This is the PGU exit.s pattern retargeted to MIPS+spim — the
 smallest possible program (no output, just a status code) — and
 serves as the canonical reference for the syscall mechanism and
@@ -79,7 +79,7 @@ the `$v0`-before-`jr $ra` discipline introduced by the
 Unix-process fixes.
 
 The .asm header is the teaching block; PLAN-asm-comments.md got
-a "this lesson lives at 00-exit" pointer so future demos can
+a "this lesson lives at exit" pointer so future demos can
 assume the reader has seen it and avoid restating.  meson.build,
 READING-ORDER.md (new Part 0 section + 2 concept-table rows)
 updated.
@@ -100,21 +100,21 @@ where applicable, against the real system tool (`factor`, `od -c`,
 
 Two non-obvious defects fixed during smoke-test:
 
-- **35-od** hit a real spim bug in `.asciiz` octal-escape
-  decoding (see below).  Fixed in spim; `35-od.asm` keeps the
+- **od** hit a real spim bug in `.asciiz` octal-escape
+  decoding (see below).  Fixed in spim; `od.asm` keeps the
   `\134` form, which now decodes correctly.
-- **39-base64**'s `emit_char` clobbered `$t0`, while the caller
+- **base64**'s `emit_char` clobbered `$t0`, while the caller
   held `b0` in `$t0` across the four emit_char calls per triple.
   Scratch moved to `$t8`; header comment names the constraint.
 
 ### `PLAN-remove-hardcodes.md` — landed
 
 Six demos had hardcoded inputs replaced with argv / stdin:
-06-fizzbuzz (`N` from argv), 07-bubble-sort (ints from stdin
-+ `$a3` EOF), 08-pascals-triangle (`rows` from argv),
-09-sieve (`LIMIT` from argv, **sbrk-allocated** bit array),
-22-binary-search (target from argv, sorted ints from stdin),
-27-queens (generalized to N-queens from argv, cap N=12).
+fizzbuzz (`N` from argv), bubble-sort (ints from stdin
++ `$a3` EOF), pascals-triangle (`rows` from argv),
+sieve (`LIMIT` from argv, **sbrk-allocated** bit array),
+binary-search (target from argv, sorted ints from stdin),
+queens (generalized to N-queens from argv, cap N=12).
 
 ### `READING-ORDER.md` — added Part 7
 
@@ -130,11 +130,11 @@ instead of 6, so `\abc` decoded to `(a+b)*8+c` rather than
 `a*64+b*8+c`.  `\134` (intended `\`) silently produced `$`
 (0x24).  Only escapes with high digit ≥ 1 were affected; the
 `\033` form (high digit 0) was self-healing because the bad
-shift on `0` produces `0` either way — so existing 04-clear
+shift on `0` produces `0` either way — so existing clear
 and others were untouched.
 
 Audit: only two `.asciiz` octal escapes anywhere in the trees
-(`\033` in 04-clear, `\134` in 35-od); no workarounds had been
+(`\033` in clear, `\134` in od); no workarounds had been
 added to compensate.  See
 [`/spimulator/tasks/octal-escape-fix.md`](../spimulator/tasks/octal-escape-fix.md)
 and ChangeLog 2026-05-19 entry.
@@ -221,13 +221,13 @@ Examples-side work (all done, all committed in `/examples`):
   `src/meson.build`.  The asm side replicates a small `atoi:`
   subroutine per demo (pgu pattern of self-contained .asm
   files).
-- **19-echo** — first argv demo.  C side uses an inline-asm
+- **echo** — first argv demo.  C side uses an inline-asm
   `_start` crt0 shim (x86_64 Linux) that pulls argc/argv off
   the kernel-supplied stack and calls `my_main(int, char**)`;
   the shim is the same one
   `/pgu/src/c/toupper-nomm-simplified.c` uses.  Spim side
   reads `$a0`/`$a1` at main entry (no syscall needed).
-- **20-factorial** — first numeric-argv CS demo.  Iterative
+- **factorial** — first numeric-argv CS demo.  Iterative
   `mult`/`mflo` loop.  Spim version has its own `atoi:`
   subroutine.  Verified end-to-end matches between C and spim
   including the silent overflow at `factorial 13` →
@@ -252,17 +252,17 @@ What's open after this round (priority order):
 2. **Phase C unix tools** (`PLAN-unix-tools.md`): `cat <file>`,
    `gcd a b`, `head -n N <file>`, `tee <file...>`.
 3. **CS demos** (`PLAN-cs-demos.md`): 21-fibonacci (introduces
-   nested-call stack frames), 22-binary-search, etc.
+   nested-call stack frames), binary-search, etc.
 4. Sphinx book chapters (still untouched beyond ch01).
 
-## Update — overnight 2026-05-17/18 (Phase 5 started: 18-cksum)
+## Update — overnight 2026-05-17/18 (Phase 5 started: cksum)
 
 Bill asked to start on "the last porting of sbase ubase code"
 while away.  Phase 4 (argv-needing) WAS blocked on (we thought)
 spimulator, but a new **Phase 5** of stdin-only *algorithmic*
 sbase tools is doable and pedagogically distinct.
 
-**18-cksum** done in both C and spim asm.  Verified byte-for-byte
+**cksum** done in both C and spim asm.  Verified byte-for-byte
 against system `cksum`:
 
 | input | output |
@@ -309,30 +309,30 @@ Three landed in the same window:
 **Phases 1, 2, and 3 of `PLAN-unix-tools.md`** — nine new demos
 appended after 08:
 
-- **04-clear** (`ubase/clear`): write ANSI ESC `[2J [H`.  Octal
+- **clear** (`ubase/clear`): write ANSI ESC `[2J [H`.  Octal
   `\033` used in both .c and .asm because spim's `.asciiz`
   accepts `\X` (uppercase) and `\NNN` but NOT lowercase `\x`.
-- **05-yes** (`sbase/yes`): infinite `print_string("y\n")`.  spim
+- **yes** (`sbase/yes`): infinite `print_string("y\n")`.  spim
   asm sets `$v0=4, $a0=&str` ONCE outside the loop; inner body
   is just `syscall; j forever`.
-- **16-cat** (stdin only): first demo with block I/O (syscalls
+- **cat** (stdin only): first demo with block I/O (syscalls
   14/15 in spim, `os_read`/`os_write` in C).  EOF via return
   value, no sentinel needed.
-- **10-wc**: byte + line counters, same shape as 06 with one
+- **wc**: byte + line counters, same shape as 06 with one
   extra counter.  spim still uses 'z' as sentinel because
   syscall 12 (read_char) has no EOF.
-- **11-head**: hardcoded N=10, early loop exit at the 10th
+- **head**: hardcoded N=10, early loop exit at the 10th
   newline.
-- **12-rev**: 256-byte fixed line buffer, reverse and emit on
+- **rev**: 256-byte fixed line buffer, reverse and emit on
   '\n'.  Uses `$t9` as scratch (NOT `$at` — see gotchas).
-- **17-nologin**: open + read/write loop + close.  First demo
+- **nologin**: open + read/write loop + close.  First demo
   that needs a non-zero exit status, which forced us to
   discover the second gotcha below.
-- **13-tr** (`sbase/tr 'a-z' 'A-Z'`): byte-level conditional
+- **tr** (`sbase/tr 'a-z' 'A-Z'`): byte-level conditional
   transformation, hardcoded mapping.  Sentinel changed from
   `z` (used by 06/12/13/14) to `~` because `z` collides with
   the a..z upcase range.  Same reasoning applied to 17.
-- **15-expand** (`sbase/expand`): tabs → spaces with a `col`
+- **expand** (`sbase/expand`): tabs → spaces with a `col`
   counter maintained across the stream.  Hardcoded tab width
   of 8.  Variable number of output bytes per input byte —
   the new pattern this demo introduces.
@@ -363,7 +363,7 @@ demos linked with musl-gcc; the freestanding pgu-style C uses
    `li $v0, 10; syscall` after main returns, and syscall 10's
    handler ignores `$v0` and sets exit status to 0.  To exit
    non-zero, issue syscall **17** (exit2) yourself with the
-   status in `$a0`.  17-nologin's `#NOTES` block has the
+   status in `$a0`.  nologin's `#NOTES` block has the
    pattern.
 
 ## Where we are (end of 2026-05-17)
@@ -400,7 +400,7 @@ What's not yet underway:
 - Re-running `spimulator -explain=4` on 01–06 to refresh the
   `src/*/NN.txt` traces — those were captured BEFORE the pgu
   strip and are stale for 01–06.  03.txt is doubly stale (it was
-  generated against the now-deleted 03-increment-ints-2.asm).
+  generated against the now-deleted increment-ints-2.asm).
 
 ## Updates this session (in order)
 
@@ -433,7 +433,7 @@ rootless-namespace reasons unrelated to package names.
 Iteration history (so future sessions don't accidentally undo):
 
 1. Replicated Bill's per-instruction state-diagram style (the
-   original 03-increment-ints-2.asm reference).
+   original increment-ints-2.asm reference).
 2. Bill redirected to "C-construct → asm-construct mapping" —
    quote the C source, block comments above each chunk.
 3. Started swapping to /pgu's pure inline style; Bill stopped me
@@ -446,7 +446,7 @@ Iteration history (so future sessions don't accidentally undo):
    04-1/04-2 kept frames (alignment lesson).
 6. Layer 5 rolled out on 05, 06, 07-1, 07-2, 08-1.
 7. `$s8 → $fp` and `$r0 → $0` normalized across L5 prefix lines.
-8. 03-increment-ints-2.asm deleted (byte-identical duplicate of
+8. increment-ints-2.asm deleted (byte-identical duplicate of
    -1 after the strip).
 
 ### D. New files added
@@ -470,16 +470,16 @@ freestanding C only has the `io.h` include + `_start`).
 Each is called out in the relevant .asm's `#NOTES` block.  Do NOT
 silently fix them.
 
-- `24-get-char-from-user-1.asm` — frame at `0..4($fp)` is not
+- `get-char-from-user-1.asm` — frame at `0..4($fp)` is not
   word-aligned for the int32_t (THE alignment lesson); also
   compares against `la $t0, a` (string *address*) instead of the
   byte `'a'`; also reads `8($fp)` past the 5-byte frame.  `-2.asm`
   fixes the alignment.
-- `24-get-char-from-user-2.asm` — inside the loop body the two
+- `get-char-from-user-2.asm` — inside the loop body the two
   syscall selectors for "print the char" and "print the int" are
   swapped relative to the C source.  Program still completes; the
   per-iteration output is in the opposite order.
-- `42-subrountines-1.asm`, `43-testStringsForEquality-1.asm` —
+- `subrountines-1.asm`, `testStringsForEquality-1.asm` —
   `lw $v0, N($fp)` at the end reads past the frame after teardown.
   SPIM surfaces 0 here.
 
@@ -490,7 +490,7 @@ silently fix them.
 2. Skim `PLAN-asm-comments.md` (the "Status" line at top tells
    you whether the asm-side work is still done).
 3. Skim `PLAN-unix-tools.md` for the next batch of work.
-4. Read one .asm file end-to-end (e.g. `src/40-print-out-ascii/05-
+4. Read one .asm file end-to-end (e.g. `src/print-out-ascii/05-
    print-out-ascii-1.asm`) to see the current layered comment
    style in action — especially L5 prefix conventions.
 5. Once spimulator has been installed (`meson install -C

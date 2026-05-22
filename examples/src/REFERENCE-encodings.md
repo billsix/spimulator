@@ -168,7 +168,7 @@ To actually exit with a non-zero status, issue syscall **17**
 The other demos work fine with `li $v0, 0; jr $ra` because they
 all intend to exit 0 — the `li $v0, 0` is misleading documentation
 (spim ignores it), and the actual exit-zero behaviour comes from
-the runtime's syscall-10 hand-off.  17-nologin is the first demo
+the runtime's syscall-10 hand-off.  nologin is the first demo
 in the tree that needs a non-zero status, and its `#NOTES` block
 explains the syscall-17 pattern in place.
 
@@ -198,4 +198,4 @@ ASCII chart:
         addi $t1, $t0, -97           # offset = ch - 'a'   ('a' = 97)
 ```
 
-14-rot13 is where this first matters in the curriculum.
+rot13 is where this first matters in the curriculum.

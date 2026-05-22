@@ -7,7 +7,7 @@
  *          for print_int — `li $v0, 1 ; move $a0, n ; syscall`
  *          — but spim's print_int syscall is signed too, so a
  *          spim demo that needs unsigned printing has to do the
- *          digit conversion by hand (see 18-cksum.asm).
+ *          digit conversion by hand (see cksum.asm).
  */
 
 #include "io.h"

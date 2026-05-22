@@ -14,8 +14,8 @@ should contain something like
 
 ```
 builddir/
-  19-echo
-  19-echo.p/
+  echo
+  echo.p/
     19-echo_19-echo.c.o
     19-echo_19-echo.c.s    <-- new, readable, ABI register names, no debug noise
 ```
@@ -35,7 +35,7 @@ The pedagogy of this repo is "one program, three vocabularies":
 (3) is implicit today: the student would have to know to run
 `cc -S` themselves, with the right flags, in the right
 directory.  Most don't.  Making this an artifact of the normal
-build means a student can `less builddir/19-echo.p/19-echo.c.s`
+build means a student can `less builddir/echo.p/echo.c.s`
 and learn from it without leaving the workflow.
 
 This also pairs naturally with [`PLAN-build-matrix.md`](PLAN-build-matrix.md),
@@ -180,8 +180,8 @@ separate is cleaner if Option B is chosen.
 
 ## Test plan
 
-1. Pick a representative demo (say 01-helloworld).  Apply Option A.
-   Verify `.s` lands in `builddir/01-helloworld.p/`.
+1. Pick a representative demo (say helloworld).  Apply Option A.
+   Verify `.s` lands in `builddir/helloworld.p/`.
 2. `less` the .s file — confirm readability.  Look for noise:
    are there too many `.cfi_*` directives?  Are labels
    over-mangled?

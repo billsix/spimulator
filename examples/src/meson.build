@@ -40,64 +40,61 @@ io_lib = static_library('examples_io',
 inc = include_directories('.')
 
 # One executable per demo.  Pairs are [target_name, source_path].
-# Demos are numbered in engagement-first reading order
-# (see ../READING-ORDER.md).  Parts 1-6 = entries 01-29.
-# Entries 30-33 are extras kept on disk but not in the
-# main reading order.
+# Demos are grouped by topic folder (intro, algorithms, transforms,
+# fileio, arguments, recursion, extras) — see ../READING-ORDER.md for
+# the engagement-first sequence across these topics.
 demos = [
-  # ---- Part 0: the smallest possible program ----
-  ['00-exit',                   '00-exit/00-exit.c'],
-  # ---- Part 1: first contact ----
-  ['01-helloworld',             '01-helloworld/01-helloworld.c'],
-  ['02-print1through10',        '02-print1through10/02-print1through10.c'],
-  ['03-increment-ints',         '03-increment-ints/03-increment-ints.c'],
-  ['04-clear',                  '04-clear/04-clear.c'],
-  ['05-yes',                    '05-yes/05-yes.c'],
-  # ---- Part 2: algorithms you already know (no argv) ----
-  ['06-fizzbuzz',               '06-fizzbuzz/06-fizzbuzz.c'],
-  ['07-bubble-sort',            '07-bubble-sort/07-bubble-sort.c'],
-  ['08-pascals-triangle',       '08-pascals-triangle/08-pascals-triangle.c'],
-  ['09-sieve',                  '09-sieve/09-sieve.c'],
-  # ---- Part 3: stdin byte loops ----
-  ['10-wc',                     '10-wc/10-wc.c'],
-  ['11-head',                   '11-head/11-head.c'],
-  ['12-rev',                    '12-rev/12-rev.c'],
-  ['13-tr',                     '13-tr/13-tr.c'],
-  ['14-rot13',                  '14-rot13/14-rot13.c'],
-  ['15-expand',                 '15-expand/15-expand.c'],
-  # ---- Part 4: files ----
-  ['16-cat',                    '16-cat/16-cat.c'],
-  ['17-nologin',                '17-nologin/17-nologin.c'],
-  ['18-cksum',                  '18-cksum/18-cksum.c'],
-  # ---- Part 5: argv ----
-  ['19-echo',                   '19-echo/19-echo.c'],
-  ['20-factorial',              '20-factorial/20-factorial.c'],
-  ['21-gcd',                    '21-gcd/21-gcd.c'],
-  ['22-binary-search',          '22-binary-search/22-binary-search.c'],
-  ['23-tee',                    '23-tee/23-tee.c'],
-  # ---- Part 6: stack frames and recursion ----
-  ['24-get-char-from-user',     '24-get-char-from-user/24-get-char-from-user.c'],
-  ['25-fibonacci',              '25-fibonacci/25-fibonacci.c'],
-  ['26-hanoi',                  '26-hanoi/26-hanoi.c'],
-  ['27-queens',                 '27-queens/27-queens.c'],
-  # ---- Part 7: deeper Unix tools ----
-  ['28-seq',                    '28-seq/28-seq.c'],
-  ['29-touch',                  '29-touch/29-touch.c'],
-  ['30-factor',                 '30-factor/30-factor.c'],
-  ['31-cp',                     '31-cp/31-cp.c'],
-  ['32-uniq',                   '32-uniq/32-uniq.c'],
-  ['33-nl',                     '33-nl/33-nl.c'],
-  ['34-cut',                    '34-cut/34-cut.c'],
-  ['35-od',                     '35-od/35-od.c'],
-  ['36-tac',                    '36-tac/36-tac.c'],
-  ['37-tail',                   '37-tail/37-tail.c'],
-  ['38-comm',                   '38-comm/38-comm.c'],
-  ['39-base64',                 '39-base64/39-base64.c'],
-  # ---- Extras (not in main reading order) ----
-  ['40-print-out-ascii',        '40-print-out-ascii/40-print-out-ascii.c'],
-  ['41-commaAndPeriodCounter',  '41-commaAndPeriodCounter/41-commaAndPeriodCounter.c'],
-  ['42-subrountines',           '42-subrountines/42-subrountines.c'],
-  ['43-testStringsForEquality', '43-testStringsForEquality/43-testStringsForEquality.c'],
+  # ---- intro: the smallest possible programs ----
+  ['exit',                   'intro/exit/exit.c'],
+  ['helloworld',             'intro/helloworld/helloworld.c'],
+  ['print1through10',        'intro/print1through10/print1through10.c'],
+  ['increment-ints',         'intro/increment-ints/increment-ints.c'],
+  ['clear',                  'intro/clear/clear.c'],
+  ['yes',                    'intro/yes/yes.c'],
+  # ---- algorithms: familiar algorithms in asm ----
+  ['fizzbuzz',               'algorithms/fizzbuzz/fizzbuzz.c'],
+  ['bubble-sort',            'algorithms/bubble-sort/bubble-sort.c'],
+  ['pascals-triangle',       'algorithms/pascals-triangle/pascals-triangle.c'],
+  ['sieve',                  'algorithms/sieve/sieve.c'],
+  ['binary-search',          'algorithms/binary-search/binary-search.c'],
+  # ---- transforms: stdin -> stdout stream transforms ----
+  ['wc',                     'transforms/wc/wc.c'],
+  ['head',                   'transforms/head/head.c'],
+  ['rev',                    'transforms/rev/rev.c'],
+  ['tr',                     'transforms/tr/tr.c'],
+  ['rot13',                  'transforms/rot13/rot13.c'],
+  ['expand',                 'transforms/expand/expand.c'],
+  ['uniq',                   'transforms/uniq/uniq.c'],
+  ['nl',                     'transforms/nl/nl.c'],
+  ['cut',                    'transforms/cut/cut.c'],
+  ['od',                     'transforms/od/od.c'],
+  ['tac',                    'transforms/tac/tac.c'],
+  ['tail',                   'transforms/tail/tail.c'],
+  ['base64',                 'transforms/base64/base64.c'],
+  # ---- fileio: open/close/read/write of named files ----
+  ['cat',                    'fileio/cat/cat.c'],
+  ['nologin',                'fileio/nologin/nologin.c'],
+  ['cksum',                  'fileio/cksum/cksum.c'],
+  ['touch',                  'fileio/touch/touch.c'],
+  ['cp',                     'fileio/cp/cp.c'],
+  ['comm',                   'fileio/comm/comm.c'],
+  # ---- arguments: argv handling, atoi, variable argc ----
+  ['echo',                   'arguments/echo/echo.c'],
+  ['factorial',              'arguments/factorial/factorial.c'],
+  ['gcd',                    'arguments/gcd/gcd.c'],
+  ['tee',                    'arguments/tee/tee.c'],
+  ['seq',                    'arguments/seq/seq.c'],
+  ['factor',                 'arguments/factor/factor.c'],
+  # ---- recursion: per-call stack frames ----
+  ['get-char-from-user',     'recursion/get-char-from-user/get-char-from-user.c'],
+  ['fibonacci',              'recursion/fibonacci/fibonacci.c'],
+  ['hanoi',                  'recursion/hanoi/hanoi.c'],
+  ['queens',                 'recursion/queens/queens.c'],
+  # ---- extras (not in main reading order) ----
+  ['print-out-ascii',        'extras/print-out-ascii/print-out-ascii.c'],
+  ['commaAndPeriodCounter',  'extras/commaAndPeriodCounter/commaAndPeriodCounter.c'],
+  ['subrountines',           'extras/subrountines/subrountines.c'],
+  ['testStringsForEquality', 'extras/testStringsForEquality/testStringsForEquality.c'],
 ]
 
 foreach demo : demos

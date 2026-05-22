@@ -286,22 +286,22 @@ parsing.
 
 **Phase B — argv smoke + first arithmetic demo.**
 
-- **19-echo**: print `argv[1..N-1]` space-separated, newline.
+- **echo**: print `argv[1..N-1]` space-separated, newline.
   Validates the argv pipeline; no atoi needed.
-- **20-factorial**: `n = parse_int(argv[1])`; iterative
+- **factorial**: `n = parse_int(argv[1])`; iterative
   factorial; print result.  First demo where a numeric
   command-line arg drives the algorithm.
 
 **Phase C — broader rollout** (priority order, after B lands):
 
 - `cat <file>` — `os_open(argv[1])` + the existing block-I/O
-  loop from 16-cat.  **DONE — 16-cat.**
-- `gcd a b` — two-arg numeric, Euclidean.  **DONE — 21-gcd.**
+  loop from cat.  **DONE — cat.**
+- `gcd a b` — two-arg numeric, Euclidean.  **DONE — gcd.**
 - `head -n N <file>` — combines atoi for `-n` with file open.
-  **DONE — 11-head** (the richest argv demo: combines `-n`
+  **DONE — head** (the richest argv demo: combines `-n`
   flag-check via str_eq, atoi on `N`, and open on the filename).
 - `tee <file ...>` — multiple output fds + stdin read loop.
-  **DONE — 23-tee** (variable argc, fd-array, per-block fan-out
+  **DONE — tee** (variable argc, fd-array, per-block fan-out
   write, capped at MAX_OUT=8 files).
 - `fizzbuzz N`, `fibonacci N`, etc. — `PLAN-cs-demos.md`
   entries whose hardcoded N becomes more natural via argv.
@@ -320,7 +320,7 @@ Subtleties to remember when porting:
 stdin-only algorithmic ports of sbase tools that aren't argv-
 bound:
 
-- **18-cksum** done.  Computes the POSIX CRC32 of stdin in both
+- **cksum** done.  Computes the POSIX CRC32 of stdin in both
   C and spim asm, verified byte-for-byte against system `cksum`
   on empty / "a" / "hello world".  Carries a 256-entry `.word`
   table for the polynomial lookups, uses `srl`/`sll`/`xor`/`nor`
@@ -344,7 +344,7 @@ Candidate next Phase-5 demos (all stdin-only, no argv blocker):
 - `tail -n N`: ring-buffer the last N lines, print on EOF.
   Hardcode N=10.  Introduces the ring-buffer pattern.
 - `od`: dump stdin in some fixed format (octal/hex/c-style).
-  Column-tracking like 15-expand, but with numeric formatting.
+  Column-tracking like expand, but with numeric formatting.
 - A hash demo (`md5sum`/`sha256sum`): heavy on the algorithm
   side, but worth one for symmetry with cksum.  Big
   lookup-free implementation.

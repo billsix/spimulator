@@ -9,14 +9,14 @@ where applicable, against the system Unix tool (`factor`,
 
 Notable defects found and resolved during smoke-testing:
 
-- **35-od** depended on `\134` octal escape in `.asciiz`,
+- **od** depended on `\134` octal escape in `.asciiz`,
   which surfaced a real spim bug (scanner.l's `copy_str`
   shifted the first octal digit by 3 instead of 6 bits, so
   `\134` decoded to `$` instead of `\`).  See
   [`/spimulator/tasks/octal-escape-fix.md`](../../spimulator/tasks/octal-escape-fix.md);
   fixed in scanner.l line 493 and guarded by
   `tests/tt.octal_escape.s`.
-- **39-base64** had an emit_char subroutine that clobbered
+- **base64** had an emit_char subroutine that clobbered
   `$t0`, while the caller held `b0` in `$t0` across the
   four emit_char calls per triple.  Moved scratch to `$t8`,
   added a header comment naming the constraint.
@@ -133,7 +133,7 @@ close(src); close(dst);
 ```
 
 First demo to call `open` with `O_CREAT | O_WRONLY | O_TRUNC`
-to produce a NEW file.  We saw `O_RDONLY` in 16-cat/17-nologin;
+to produce a NEW file.  We saw `O_RDONLY` in cat/nologin;
 the file-creation flags are the missing half.  Flag values for
 spim's host-passthrough open: `O_WRONLY = 1`, `O_CREAT = 0100
 = 64`, `O_TRUNC = 01000 = 512` → combined `577`.  Mode `0644 =
@@ -181,7 +181,7 @@ d * d <= n; d++) while (n % d == 0) { print_int(d); n /= d; }`,
 then print the remaining n if > 1.
 
 Pure argv + integer math + print_int.  No input I/O.  Pairs
-naturally with `09-sieve`.
+naturally with `sieve`.
 
 #### `base64 [FILE|-]`  *(new asm pattern: 3-byte → 4-char bit packing)*
 
@@ -241,7 +241,7 @@ Add a new "Part 7: deeper Unix tools" containing all 12,
 numbered 28-39.  Existing demos unchanged.
 
 Pros: zero renumbering churn, no cross-reference sweep.
-Cons: the engagement arc currently peaks at 27-queens; new
+Cons: the engagement arc currently peaks at queens; new
 demos after that feel like an extension rather than part of
 the main reading order.
 
@@ -252,18 +252,18 @@ slotting:
 
 | Demo | Natural slot | Renumbers |
 |---|---|---|
-| `nl` | after 10-wc | 1 demo back-bumped |
-| `tail` | after 11-head | several |
-| `uniq` | after 12-rev | several |
-| `tac` | after 12-rev (or 13-tr) | several |
-| `od` | after 14-rot13 | several |
-| `base64` | after 14-rot13 | several |
-| `cp` | after 16-cat | several |
-| `touch` | after 17-nologin | several |
-| `seq` | after 19-echo | several |
-| `cut` | after 21-gcd (or 22-binary-search) | several |
-| `factor` | after 22-binary-search | several |
-| `comm` | after 23-tee (multi-file) | several |
+| `nl` | after wc | 1 demo back-bumped |
+| `tail` | after head | several |
+| `uniq` | after rev | several |
+| `tac` | after rev (or tr) | several |
+| `od` | after rot13 | several |
+| `base64` | after rot13 | several |
+| `cp` | after cat | several |
+| `touch` | after nologin | several |
+| `seq` | after echo | several |
+| `cut` | after gcd (or binary-search) | several |
+| `factor` | after binary-search | several |
+| `comm` | after tee (multi-file) | several |
 
 Every demo numbered above the insertion point gets renumbered.
 About 30+ cross-reference updates in `.c` / `.asm` / `.md`
@@ -326,8 +326,8 @@ touch), the resulting file must match.
 Cross-check against system tools where possible:
 - `cksum FILE | head` should produce the same bytes our
   `cp FILE OUT; cksum OUT` would.
-- `seq 1 5` should match our `28-seq 1 5`.
-- `factor 360` should match our `30-factor 360`.
+- `seq 1 5` should match our `seq 1 5`.
+- `factor 360` should match our `factor 360`.
 
 ## Decisions (confirmed)
 
@@ -346,8 +346,8 @@ Cross-check against system tools where possible:
   real `comm`'s "garbage in, garbage out" behaviour.
 
 ## Other open questions
-- **17-nologin and `touch` overlap?**  Both demonstrate
-  `open`+`close`.  17-nologin is the read-side; `touch` is
+- **nologin and `touch` overlap?**  Both demonstrate
+  `open`+`close`.  nologin is the read-side; `touch` is
   the create-side.  No conflict; they're complementary.
 - **`tail -f`?**  Real `tail -f` watches for new data.
   Needs `lseek` and (ideally) `select`/`poll`.  spim has
@@ -370,9 +370,9 @@ These are sbase tools that I'd NOT add to the curriculum:
 - **`stat`, `du`, `df`** — need `stat`.
 - **`chmod`, `chown`** — need `chmod`/`chown` syscalls.
 - **`grep`, `sed`, `awk`** — small languages of their own.
-- **`sort`** — real sort is genuinely complex; 07-bubble-sort
+- **`sort`** — real sort is genuinely complex; bubble-sort
   covers the sort lesson on numeric arrays already.
-- **`md5sum`/`sha256sum`** — same family as 18-cksum but the
+- **`md5sum`/`sha256sum`** — same family as cksum but the
   algorithm is more complex without teaching a new asm
   concept.
 - **`paste`** — multi-file input is more naturally taught
@@ -384,13 +384,13 @@ These are sbase tools that I'd NOT add to the curriculum:
 ## Order of work
 
 1. **Confirm slotting** with Bill (Option A vs B).
-2. **Write 28-seq** (tiny, validates the "argv → loop → stdout"
+2. **Write seq** (tiny, validates the "argv → loop → stdout"
    shape).
-3. **Write 29-touch** (tiny, validates the file-creation flags).
-4. **Write 30-factor** (small, pairs with 09-sieve).
-5. **Write 31-cp** (open read + open write loop).
-6. **Write 32-uniq, 33-nl, 34-cut, 35-od** in that order.
-7. **Write 36-tac, 37-tail, 38-comm, 39-base64** (the four
+3. **Write touch** (tiny, validates the file-creation flags).
+4. **Write factor** (small, pairs with sieve).
+5. **Write cp** (open read + open write loop).
+6. **Write uniq, nl, cut, od** in that order.
+7. **Write tac, tail, comm, base64** (the four
    medium-difficulty demos).
 8. **Update meson.build, READING-ORDER.md, PLAN-curriculum-
    order.md** with the new Part 7.

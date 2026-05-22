@@ -27,13 +27,13 @@ Print ``hello world`` to standard output and exit.
 Includes
 ^^^^^^^^
 
-.. literalinclude:: ../../src/01-helloworld/01-helloworld-1.c
+.. literalinclude:: ../../src/helloworld/helloworld-1.c
    :language: c
    :start-after: doc-region-begin include
    :end-before: doc-region-end include
    :linenos:
    :lineno-match:
-   :caption: src/01-helloworld/01-helloworld-1.c
+   :caption: src/helloworld/helloworld-1.c
 
 Entry point
 ^^^^^^^^^^^
@@ -42,10 +42,10 @@ The program defines its own ``_start`` — no ``main``, no C library.
 ``print_string`` resolves down to one ``os_write`` syscall; ``os_exit``
 is the kernel exit.
 
-.. literalinclude:: ../../src/01-helloworld/01-helloworld-1.c
+.. literalinclude:: ../../src/helloworld/helloworld-1.c
    :language: c
    :start-after: doc-region-begin main
    :end-before: doc-region-end main
    :linenos:
    :lineno-match:
-   :caption: src/01-helloworld/01-helloworld-1.c
+   :caption: src/helloworld/helloworld-1.c

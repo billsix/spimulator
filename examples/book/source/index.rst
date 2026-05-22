@@ -19,8 +19,8 @@ documentation for details.
 
 
 ..
-   02-print1through10
-   03-increment-ints
+   print1through10
+   increment-ints
    04-get-char-from-user
    05-print-out-ascii
    06-commaAndPeriodCounter
