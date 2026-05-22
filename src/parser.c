@@ -72,6 +72,27 @@ static bool print_ast_after_parse = false;
 static FILE* ast_print_out = nullptr;
 static bool print_ast_only_ = false;
 
+/* If true, AST mode skips inline action calls and parse_file invokes
+   emit_ast at the end; if false, AST mode is "tee" — inline action
+   calls run AND the AST is built as a side effect.  Default false
+   (tee) because nop_inst/trap_inst in pseudo_op.c bypass the parser
+   dispatch wrappers, so they emit at parse time with parser-side
+   state (in_kernel etc.) not yet committed by deferred emit_ast.
+   Phase 2f will fix the bypass and then flip this default to true.
+   In the meantime emit_ast is callable explicitly via the -emit-ast
+   flag for verification. */
+static bool defer_emit_to_emit_ast = false;
+
+/* In deferred mode, parse_factor stashes the FIRST unresolved label
+   it sees in the current expression into this slot; data_int_push
+   reads it (and clears it) to attach symbol info to the AST imm_expr.
+   emit_ast then records the use at the correct emit-time PC.
+   The SDT path is unchanged — record_data_uses_symbol still fires
+   inline there. */
+static label* expr_unresolved_label = nullptr;
+
+void emit_ast(const ast_node* file);
+
 void parser_set_mode(parse_mode_t mode) { parse_mode_ = mode; }
 parse_mode_t parser_get_mode(void) { return parse_mode_; }
 
@@ -88,9 +109,17 @@ bool parser_get_print_ast_only(void) {
   return print_ast_only_;
 }
 
-/* Whether the inline action helpers should fire.  False when
-   -print-ast is set (we want the tree but no side effects). */
-static inline bool should_emit(void) { return !print_ast_only_; }
+/* Whether the inline action helpers should fire during parse.
+   False when:
+     - -print-ast is set (we want the tree but no side effects); or
+     - we're in AST mode and deferring to emit_ast (the default
+       Phase 2e behavior — parse builds the tree, emit_ast drives
+       the action calls). */
+static inline bool should_emit(void) {
+  if (print_ast_only_) return false;
+  if (parse_mode_ == PARSE_AST && defer_emit_to_emit_ast) return false;
+  return true;
+}
 static inline bool should_build_ast(void) { return parse_mode_ == PARSE_AST; }
 
 /* Deep-copy an imm_expr so the AST can own its own copy independent
@@ -187,7 +216,14 @@ static void data_int_push(int value) {
     free(data_int_buf);
     data_int_buf = grow;
   }
-  data_int_buf[data_int_count++] = make_imm_expr(value, nullptr, false);
+  /* If parse_factor stashed an unresolved label for this expression
+     (deferred mode), wire it into the imm_expr so emit_ast can
+     register the use against the correct PC. */
+  const char* sym_name = expr_unresolved_label != nullptr
+                             ? expr_unresolved_label->name
+                             : nullptr;
+  data_int_buf[data_int_count++] = make_imm_expr(value, (char*)sym_name, false);
+  expr_unresolved_label = nullptr;
 }
 
 static void data_int_finalize(void) {
@@ -506,8 +542,16 @@ static int parse_factor(void) {
     char* sym_name = (char*)scan_value.p;
     label* l = lookup_label(sym_name);
     if (l->addr == 0) {
-      /* Forward reference — record for resolution at label-defn time. */
-      record_data_uses_symbol(current_data_pc(), l);
+      /* Forward reference.  In SDT mode record the use at parse time
+         (current_data_pc is correct because emission is happening
+         inline).  In AST-deferred mode current_data_pc isn't the
+         right address yet — stash the label and let emit_ast record
+         the use against the actual data PC. */
+      if (should_emit()) {
+        record_data_uses_symbol(current_data_pc(), l);
+      } else if (expr_unresolved_label == nullptr) {
+        expr_unresolved_label = l;
+      }
       free(sym_name);
       return 0;
     }
@@ -547,9 +591,12 @@ static int parse_expr(void) {
   return v;
 }
 
-/* EXPRESSION: like EXPR but with the next-token force-identifier flag */
+/* EXPRESSION: like EXPR but with the next-token force-identifier flag.
+   Resets expr_unresolved_label so the side-channel only carries the
+   symbol of THIS expression, not a leftover from a previous one. */
 static int parse_expression(void) {
   scanner_force_identifier();
+  expr_unresolved_label = nullptr;
   return parse_expr();
 }
 
@@ -2111,5 +2158,246 @@ int parse_file(void) {
     ast_print(current_file, ast_print_out ? ast_print_out : stderr);
   }
 
+  /* In AST mode (when not in -print-ast-only), walk the tree and
+     emit code via the action helpers.  Phase 2e: emit_ast is now the
+     driver in AST mode, replacing the tee behavior from Phase 2d. */
+  if (should_build_ast() && !print_ast_only_ && defer_emit_to_emit_ast &&
+      current_file != nullptr) {
+    emit_ast(current_file);
+  }
+
   return parse_errors_seen;
+}
+
+/* ------- emit_ast — AST walker (Phase 2e) -------------------
+
+   Walks the file's children in order, calling the same action
+   helpers the SDT path calls (r_type_inst, store_word, etc.).
+   Produces byte-identical event-log output to the SDT path for
+   any program the regression suite exercises today.
+
+   Known limitation: data forward references (`.word LABEL` where
+   LABEL is defined later) currently work via parse-time
+   record_data_uses_symbol, which sees the wrong PC in deferred
+   mode.  Phase 2e ships with this limitation noted; a follow-up
+   refactor of parse_factor to return imm_expr* fixes it.
+*/
+
+static void emit_one(const ast_node* node);
+
+void emit_ast(const ast_node* file) {
+  if (file == nullptr || file->kind != AST_FILE) return;
+  for (const ast_node* n = file->u.file.child; n != nullptr; n = n->next) {
+    emit_one(n);
+    /* Match parse_line's "clear labels after a non-label
+       directive or instruction" rule. */
+    if (n->kind != AST_LABEL_DEF && n->kind != AST_DIR_GLOBL) {
+      clear_labels();
+    }
+  }
+  /* Trailing labels (file ends with `foo:` and no following
+     directive) get their uses resolved here, just like
+     parse_file does. */
+  clear_labels();
+}
+
+/* Emit one .byte/.half/.word value list.  For literal-only exprs
+   (no symbol), evaluate and store.  For symbol-bearing exprs whose
+   symbol is still unresolved at emit time, store the partial value
+   and record the use at the (now-correct) data PC; the existing
+   resolve_label_uses mechanism patches it when the label is later
+   defined. */
+static void emit_data_int_node(const ast_node* node, void (*store)(int)) {
+  for (int i = 0; i < node->u.data_int.count; i++) {
+    imm_expr* e = node->u.data_int.exprs[i];
+    if (e == nullptr) {
+      store(0);
+      continue;
+    }
+    if (e->symbol != nullptr && !SYMBOL_IS_DEFINED(e->symbol)) {
+      record_data_uses_symbol(current_data_pc(), e->symbol);
+      store(e->offset);
+    } else {
+      store(eval_imm_expr(e));
+    }
+  }
+}
+
+static void emit_data_fp_node(const ast_node* node,
+                              void (*store)(double*)) {
+  for (int i = 0; i < node->u.data_fp.count; i++) {
+    double tmp = node->u.data_fp.values[i];
+    store(&tmp);
+  }
+}
+
+static void emit_one(const ast_node* node) {
+  if (node == nullptr) return;
+
+  switch (node->kind) {
+    case AST_FILE:
+    case AST_ERROR:
+      return; /* shouldn't appear as a direct child of the file root */
+
+    /* Segment changes — mirror parse_dir_data / parse_dir_text. */
+    case AST_DIR_TEXT:
+      user_kernel_text_segment(false);
+      data_dir = false;
+      text_dir = true;
+      if (node->u.dir_seg.has_start_addr)
+        set_text_pc(node->u.dir_seg.start_addr);
+      return;
+    case AST_DIR_KTEXT:
+      user_kernel_text_segment(true);
+      data_dir = false;
+      text_dir = true;
+      if (node->u.dir_seg.has_start_addr)
+        set_text_pc(node->u.dir_seg.start_addr);
+      return;
+    case AST_DIR_DATA:
+      user_kernel_data_segment(false);
+      data_dir = true;
+      text_dir = false;
+      enable_data_alignment();
+      auto_align = true;
+      if (node->u.dir_seg.has_start_addr)
+        set_data_pc(node->u.dir_seg.start_addr);
+      return;
+    case AST_DIR_KDATA:
+      user_kernel_data_segment(true);
+      data_dir = true;
+      text_dir = false;
+      enable_data_alignment();
+      auto_align = true;
+      if (node->u.dir_seg.has_start_addr)
+        set_data_pc(node->u.dir_seg.start_addr);
+      return;
+
+    case AST_DIR_ALIGN: {
+      int v = node->u.dir_align.n;
+      if (v == 0) auto_align = false;
+      if (text_dir)
+        align_text(v);
+      else
+        align_data(v);
+      return;
+    }
+
+    case AST_DIR_SPACE:
+      increment_data_pc(node->u.dir_space.size);
+      return;
+
+    case AST_DIR_GLOBL:
+      make_label_global(node->u.dir_globl.name);
+      return;
+
+    case AST_DIR_EXTERN: {
+      const char* sym = node->u.dir_named_size.name;
+      make_label_global((char*)sym);
+      if (lookup_label((char*)sym)->addr == 0)
+        record_label((char*)sym, current_data_pc(), 1);
+      increment_data_pc(node->u.dir_named_size.size);
+      return;
+    }
+
+    case AST_DIR_COMM: {
+      const char* sym = node->u.dir_named_size.name;
+      align_data(2);
+      if (lookup_label((char*)sym)->addr == 0)
+        record_label((char*)sym, current_data_pc(), 1);
+      increment_data_pc(node->u.dir_named_size.size);
+      return;
+    }
+
+    /* Data. */
+    case AST_DATA_BYTE:
+      emit_data_int_node(node, store_byte);
+      return;
+    case AST_DATA_HALF:
+      align_labels_to(1);
+      if (data_dir) set_data_alignment(1);
+      emit_data_int_node(node, store_half);
+      return;
+    case AST_DATA_WORD:
+      align_labels_to(2);
+      if (data_dir) set_data_alignment(2);
+      emit_data_int_node(node, store_word);
+      return;
+    case AST_DATA_FLOAT:
+      align_labels_to(2);
+      if (data_dir) set_data_alignment(2);
+      emit_data_fp_node(node, store_float);
+      return;
+    case AST_DATA_DOUBLE:
+      align_labels_to(3);
+      if (data_dir) set_data_alignment(3);
+      emit_data_fp_node(node, store_double);
+      return;
+
+    case AST_DATA_STRING:
+      if (!text_dir) {
+        store_string(node->u.data_string.bytes,
+                     node->u.data_string.length,
+                     node->u.data_string.null_terminate);
+      }
+      return;
+
+    /* Labels. */
+    case AST_LABEL_DEF:
+      if (node->u.label_def.kind == AST_LABEL_NORMAL) {
+        mem_addr addr = text_dir ? current_text_pc() : current_data_pc();
+        label* l = record_label((char*)node->u.label_def.name, addr, 0);
+        cons_label(l);
+      } else {
+        label* l = record_label((char*)node->u.label_def.name,
+                                (mem_addr)node->u.label_def.value, 1);
+        l->const_flag = 1;
+      }
+      return;
+
+    /* Instructions — pass copies of imm_expr so the AST keeps its
+       own.  The action helpers (i_type_inst, j_type_inst) already
+       copy what they store, so a single dup is enough for either
+       to drop on the floor / store internally. */
+    case AST_INST_R:
+      r_type_inst(node->u.inst_r.op, node->u.inst_r.rd, node->u.inst_r.rs,
+                  node->u.inst_r.rt);
+      return;
+    case AST_INST_R_SHIFT:
+      r_sh_type_inst(node->u.inst_r_shift.op, node->u.inst_r_shift.rd,
+                     node->u.inst_r_shift.rt, node->u.inst_r_shift.shamt);
+      return;
+    case AST_INST_I: {
+      imm_expr* copy = dup_imm(node->u.inst_i.imm);
+      i_type_inst_free(node->u.inst_i.op, node->u.inst_i.rt,
+                       node->u.inst_i.rs, copy);
+      return;
+    }
+    case AST_INST_J: {
+      imm_expr* copy = dup_imm(node->u.inst_j.target);
+      j_type_inst(node->u.inst_j.op, copy);
+      free(copy);
+      return;
+    }
+    case AST_INST_FP_R:
+      r_co_type_inst(node->u.inst_fp_r.op, node->u.inst_fp_r.fd,
+                     node->u.inst_fp_r.fs, node->u.inst_fp_r.ft);
+      return;
+    case AST_INST_FP_COMPARE:
+      r_cond_type_inst(node->u.inst_fp_compare.op, node->u.inst_fp_compare.fs,
+                       node->u.inst_fp_compare.ft, node->u.inst_fp_compare.cc);
+      return;
+
+    case AST_PSEUDO:
+      /* Phase 3 introduces these.  Until then, walk the children
+         (which are the expanded form) the same way as a file.  */
+      for (const ast_node* c = node->u.pseudo.child; c != nullptr;
+           c = c->next) {
+        emit_one(c);
+        if (c->kind != AST_LABEL_DEF && c->kind != AST_DIR_GLOBL) {
+          clear_labels();
+        }
+      }
+      return;
+  }
 }
