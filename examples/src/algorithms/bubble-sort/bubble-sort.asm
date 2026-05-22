@@ -36,6 +36,17 @@
 #          $a3 EOF flag.  Output is one int per line, sorted
 #          ascending — same shape as `sort -n` for small inputs.
 #
+#INVOCATION (one int per line, pipe-friendly):
+#
+#    printf '10\n2\n11\n4\n' | spimulator -f bubble-sort.asm
+#    seq 100 -1 1            | spimulator -f bubble-sort.asm
+#    spimulator -f bubble-sort.asm < nums.txt
+#
+#          spim's read_int (syscall 5) consumes one line per call
+#          and atols it, so the ints must be newline-separated.
+#          `echo 10 2 11 4` (all on one line) only yields the first
+#          int — atol stops at the first space.
+#
 #NOTES:    spim's read_int (syscall 5):
 #            $v0 = parsed int  (0 on EOF, but $a3 is the truth)
 #            $a3 = 0 on success, 1 on EOF
