@@ -6,10 +6,18 @@ project('spimulator', 'c',
 # -Wno-zero-length-array: spim uses flexible array members.
 # -Wunused-function: catches dead static fns like the late parse_br_imm32.
 # -Wshadow: prevents inner-scope rebinding bugs.
+# -Wimplicit-fallthrough=5: surfaces unannotated switch fallthroughs.
+#   Level 5 means ONLY the C23 [[fallthrough]]; attribute is
+#   accepted as an annotation — comment-style "/* fall through */"
+#   doesn't count.  Fits the C23 modernization direction and
+#   means there's one true way to express "I meant to flow into
+#   the next case."  Anything without a break/return/goto/
+#   [[fallthrough]] is a likely bug.
 add_project_arguments(
   '-Wno-zero-length-array',
   '-Wunused-function',
   '-Wshadow',
+  '-Wimplicit-fallthrough=5',
   language: 'c'
 )
 
