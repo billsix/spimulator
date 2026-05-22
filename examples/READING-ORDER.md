@@ -22,6 +22,13 @@ across those topics.  See
 [`PLAN-curriculum-order.md`](PLAN-curriculum-order.md) for the
 rationale.
 
+Once you've worked through enough demos to be comfortable writing
+MIPS, see
+[`TEACHING-ASSEMBLER-INTERNALS.md`](TEACHING-ASSEMBLER-INTERNALS.md)
+for a tour of spim's four teaching surfaces (`-print-ast`,
+`-show-expansion`, `-listing`, `-explain`) that let you see what
+each layer of the assembler does.
+
 ## How to use this list
 
 Each entry is a `<demo-name>` directory under one of the topic
