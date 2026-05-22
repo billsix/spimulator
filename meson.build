@@ -60,7 +60,8 @@ source_files = files(
   'src/scanner.c',
   'src/parser.c',
   'src/pseudo_op.c',
-  'src/asm_event.c'
+  'src/asm_event.c',
+  'src/ast.c'
 )
 
 spim_source_files = source_files + files('src/spim.c')
