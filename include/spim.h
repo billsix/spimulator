@@ -21,21 +21,32 @@
    integer types from <stdint.h>. */
 
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 typedef union {
   int i;
   void* p;
 } intptr_union;
 
-#define streq(s1, s2) !strcmp(s1, s2)
+static inline bool streq(const char* a, const char* b) {
+  return strcmp(a, b) == 0;
+}
 
-/* Round V to next greatest B boundary */
-#define ROUND_UP(V, B) (((int)V + (B - 1)) & ~(B - 1))
-#define ROUND_DOWN(V, B) (((int)V) & ~(B - 1))
-
-/* Sign-extend the low 16 bits of X to a 32-bit signed integer.
+/* Sign-extend the low 16 bits of x to a 32-bit signed integer.
    Casting through int16_t lets the compiler emit a single movsx. */
-#define SIGN_EX(X) ((int32_t)(int16_t)(X))
+static inline int32_t sign_ex(int x) {
+  return (int32_t)(int16_t)x;
+}
+
+/* MIN/MAX/ROUND macros use C23-standardized typeof to capture each
+   argument into a local before comparing, so the arguments are
+   evaluated exactly once even when they have side effects.  Macros
+   rather than functions because they need to be polymorphic across
+   int / mem_addr / size_t / etc.  GNU statement-expression form
+   (allowed by c_std=gnu23); the __extension__ keyword silences
+   -Wpedantic's complaint about ISO C not allowing braced-groups in
+   expressions. */
 
 #ifdef MIN /* Some systems define these in system includes */
 #undef MIN
@@ -43,13 +54,34 @@ typedef union {
 #ifdef MAX
 #undef MAX
 #endif
-#define MIN(A, B) ((A) < (B) ? (A) : (B))
-#define MAX(A, B) ((A) > (B) ? (A) : (B))
+#define MIN(A, B)                \
+  __extension__ ({               \
+    typeof(A) _spim_a_ = (A);    \
+    typeof(B) _spim_b_ = (B);    \
+    _spim_a_ < _spim_b_ ? _spim_a_ : _spim_b_; \
+  })
 
-/* Useful and pervasive declarations: */
+#define MAX(A, B)                \
+  __extension__ ({               \
+    typeof(A) _spim_a_ = (A);    \
+    typeof(B) _spim_b_ = (B);    \
+    _spim_a_ > _spim_b_ ? _spim_a_ : _spim_b_; \
+  })
 
-#include <stdlib.h>
-#include <string.h>
+/* Round V to next greatest B boundary (B must be a power of two). */
+#define ROUND_UP(V, B)                                          \
+  __extension__ ({                                              \
+    typeof(V) _spim_v_ = (V);                                   \
+    typeof(B) _spim_b_ = (B);                                   \
+    (typeof(V))((_spim_v_ + _spim_b_ - 1) & ~(_spim_b_ - 1));   \
+  })
+
+#define ROUND_DOWN(V, B)                          \
+  __extension__ ({                                \
+    typeof(V) _spim_v_ = (V);                     \
+    typeof(B) _spim_b_ = (B);                     \
+    (typeof(V))(_spim_v_ & ~(_spim_b_ - 1));      \
+  })
 
 constexpr int K = 1024;
 

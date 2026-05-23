@@ -91,7 +91,7 @@ typedef struct inst_s {
 
 #define IOFFSET(INST) IMM(INST)
 #define SET_IOFFSET(INST, VAL) SET_IMM(INST, VAL)
-#define IDISP(INST) (SIGN_EX(IOFFSET(INST) << 2))
+#define IDISP(INST) (sign_ex(IOFFSET(INST) << 2))
 
 #define COND(INST) RS(INST)
 #define SET_COND(INST, VAL) SET_RS(INST, VAL)
