@@ -270,7 +270,7 @@ static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc) {
           prev_inst = mem_read_inst(pc - BYTES_PER_WORD);
           prev_prev_inst = mem_read_inst(pc - 2 * BYTES_PER_WORD);
 
-          if (prev_inst != nullptr && OPCODE(prev_inst) == TOK_LUI_OP &&
+          if (prev_inst != nullptr && OPCODE(prev_inst) == TOK_LUI_OPCODE &&
               EXPR(inst)->symbol == EXPR(prev_inst)->symbol &&
               IMM(prev_inst) == 0) {
             /* Check that previous instruction was LUI and it has no immediate,
@@ -280,7 +280,7 @@ static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc) {
           /* There is an ADDU instruction before the LUI if the
              LW/SW instruction uses an index register: skip over the ADDU. */
           else if (prev_prev_inst != nullptr &&
-                   OPCODE(prev_prev_inst) == TOK_LUI_OP &&
+                   OPCODE(prev_prev_inst) == TOK_LUI_OPCODE &&
                    EXPR(inst)->symbol == EXPR(prev_prev_inst)->symbol &&
                    IMM(prev_prev_inst) == 0) {
             EXPR(prev_prev_inst)->offset += 0x10000;

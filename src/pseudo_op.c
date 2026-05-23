@@ -52,30 +52,30 @@ void parse_error(char* s) {
 
 int imm_op_to_op(int opcode) {
   switch (opcode) {
-    case TOK_ADDI_OP:
-      return TOK_ADD_OP;
-    case TOK_ADDIU_OP:
-      return TOK_ADDU_OP;
-    case TOK_ANDI_OP:
-      return TOK_AND_OP;
-    case TOK_ORI_OP:
-      return TOK_OR_OP;
-    case TOK_XORI_OP:
-      return TOK_XOR_OP;
-    case TOK_SLTI_OP:
-      return TOK_SLT_OP;
-    case TOK_SLTIU_OP:
-      return TOK_SLTU_OP;
-    case TOK_J_OP:
-      return TOK_JR_OP;
-    case TOK_LUI_OP:
-      return TOK_ADDU_OP;
-    case TOK_SLL_OP:
-      return TOK_SLLV_OP;
-    case TOK_SRA_OP:
-      return TOK_SRAV_OP;
-    case TOK_SRL_OP:
-      return TOK_SRLV_OP;
+    case TOK_ADDI_OPCODE:
+      return TOK_ADD_OPCODE;
+    case TOK_ADDIU_OPCODE:
+      return TOK_ADDU_OPCODE;
+    case TOK_ANDI_OPCODE:
+      return TOK_AND_OPCODE;
+    case TOK_ORI_OPCODE:
+      return TOK_OR_OPCODE;
+    case TOK_XORI_OPCODE:
+      return TOK_XOR_OPCODE;
+    case TOK_SLTI_OPCODE:
+      return TOK_SLT_OPCODE;
+    case TOK_SLTIU_OPCODE:
+      return TOK_SLTU_OPCODE;
+    case TOK_J_OPCODE:
+      return TOK_JR_OPCODE;
+    case TOK_LUI_OPCODE:
+      return TOK_ADDU_OPCODE;
+    case TOK_SLL_OPCODE:
+      return TOK_SLLV_OPCODE;
+    case TOK_SRA_OPCODE:
+      return TOK_SRAV_OPCODE;
+    case TOK_SRL_OPCODE:
+      return TOK_SRLV_OPCODE;
     default:
       fatal_error("Can't convert immediate op to op\n");
       return 0;
@@ -90,10 +90,10 @@ extern imm_expr* const_imm_expr(int value);
 extern int32_t eval_imm_expr(imm_expr* expr);
 
 void nop_inst(void) {
-  emit_r(TOK_SLL_OP, 0, 0, 0); /* sll $0, $0, 0 == 0x00000000 */
+  emit_r(TOK_SLL_OPCODE, 0, 0, 0); /* sll $0, $0, 0 == 0x00000000 */
 }
 
-void trap_inst(void) { emit_r(TOK_BREAK_OP, 0, 0, 0); }
+void trap_inst(void) { emit_r(TOK_BREAK_OPCODE, 0, 0, 0); }
 
 imm_expr* branch_offset(int n_inst) {
   return const_imm_expr(n_inst << 2); /* later shifted right 2 by the encoder */
@@ -101,26 +101,26 @@ imm_expr* branch_offset(int n_inst) {
 
 int op_to_imm_op(int opcode) {
   switch (opcode) {
-    case TOK_ADD_OP:
-      return TOK_ADDI_OP;
-    case TOK_ADDU_OP:
-      return TOK_ADDIU_OP;
-    case TOK_AND_OP:
-      return TOK_ANDI_OP;
-    case TOK_OR_OP:
-      return TOK_ORI_OP;
-    case TOK_XOR_OP:
-      return TOK_XORI_OP;
-    case TOK_SLT_OP:
-      return TOK_SLTI_OP;
-    case TOK_SLTU_OP:
-      return TOK_SLTIU_OP;
-    case TOK_SLLV_OP:
-      return TOK_SLL_OP;
-    case TOK_SRAV_OP:
-      return TOK_SRA_OP;
-    case TOK_SRLV_OP:
-      return TOK_SRL_OP;
+    case TOK_ADD_OPCODE:
+      return TOK_ADDI_OPCODE;
+    case TOK_ADDU_OPCODE:
+      return TOK_ADDIU_OPCODE;
+    case TOK_AND_OPCODE:
+      return TOK_ANDI_OPCODE;
+    case TOK_OR_OPCODE:
+      return TOK_ORI_OPCODE;
+    case TOK_XOR_OPCODE:
+      return TOK_XORI_OPCODE;
+    case TOK_SLT_OPCODE:
+      return TOK_SLTI_OPCODE;
+    case TOK_SLTU_OPCODE:
+      return TOK_SLTIU_OPCODE;
+    case TOK_SLLV_OPCODE:
+      return TOK_SLL_OPCODE;
+    case TOK_SRAV_OPCODE:
+      return TOK_SRA_OPCODE;
+    case TOK_SRLV_OPCODE:
+      return TOK_SRL_OPCODE;
     default:
       fatal_error("Can't convert op to immediate op\n");
       return 0;
@@ -129,71 +129,71 @@ int op_to_imm_op(int opcode) {
 
 void div_inst(int op, int rd, int rs, int rt, int const_divisor) {
   if (rd != 0 && !const_divisor) {
-    emit_i_free(TOK_BNE_OP, 0, rt, branch_offset(3));
+    emit_i_free(TOK_BNE_OPCODE, 0, rt, branch_offset(3));
     nop_inst();
     trap_inst();
   }
 
-  if (op == TOK_DIV_OP || op == TOK_REM_POP)
-    emit_r(TOK_DIV_OP, 0, rs, rt);
+  if (op == TOK_DIV_OPCODE || op == TOK_REM_PSEUDO_OP)
+    emit_r(TOK_DIV_OPCODE, 0, rs, rt);
   else
-    emit_r(TOK_DIVU_OP, 0, rs, rt);
+    emit_r(TOK_DIVU_OPCODE, 0, rs, rt);
 
   if (rd != 0) {
-    if (op == TOK_DIV_OP || op == TOK_DIVU_OP) /* Quotient */
-      emit_r(TOK_MFLO_OP, rd, 0, 0);
+    if (op == TOK_DIV_OPCODE || op == TOK_DIVU_OPCODE) /* Quotient */
+      emit_r(TOK_MFLO_OPCODE, rd, 0, 0);
     else
       /* Remainder */
-      emit_r(TOK_MFHI_OP, rd, 0, 0);
+      emit_r(TOK_MFHI_OPCODE, rd, 0, 0);
   }
 }
 
 void mult_inst(int op, int rd, int rs, int rt) {
-  if (op == TOK_MULOU_POP)
-    emit_r(TOK_MULTU_OP, 0, rs, rt);
+  if (op == TOK_MULOU_PSEUDO_OP)
+    emit_r(TOK_MULTU_OPCODE, 0, rs, rt);
   else
-    emit_r(TOK_MULT_OP, 0, rs, rt);
+    emit_r(TOK_MULT_OPCODE, 0, rs, rt);
 
-  if (op == TOK_MULOU_POP && rd != 0) {
-    emit_r(TOK_MFHI_OP, 1, 0, 0); /* Use $at */
-    emit_i_free(TOK_BEQ_OP, 0, 1, branch_offset(3));
+  if (op == TOK_MULOU_PSEUDO_OP && rd != 0) {
+    emit_r(TOK_MFHI_OPCODE, 1, 0, 0); /* Use $at */
+    emit_i_free(TOK_BEQ_OPCODE, 0, 1, branch_offset(3));
     nop_inst();
     trap_inst();
-  } else if (op == TOK_MULO_POP && rd != 0) {
-    emit_r(TOK_MFHI_OP, 1, 0, 0); /* use $at */
-    emit_r(TOK_MFLO_OP, rd, 0, 0);
-    emit_r_shift(TOK_SRA_OP, rd, rd, 31);
-    emit_i_free(TOK_BEQ_OP, rd, 1, branch_offset(3));
+  } else if (op == TOK_MULO_PSEUDO_OP && rd != 0) {
+    emit_r(TOK_MFHI_OPCODE, 1, 0, 0); /* use $at */
+    emit_r(TOK_MFLO_OPCODE, rd, 0, 0);
+    emit_r_shift(TOK_SRA_OPCODE, rd, rd, 31);
+    emit_i_free(TOK_BEQ_OPCODE, rd, 1, branch_offset(3));
     nop_inst();
     trap_inst();
   }
-  if (rd != 0) emit_r(TOK_MFLO_OP, rd, 0, 0);
+  if (rd != 0) emit_r(TOK_MFLO_OPCODE, rd, 0, 0);
 }
 
 void set_le_inst(int op, int rd, int rs, int rt) {
-  emit_i_free(TOK_BNE_OP, rs, rt, branch_offset(3));
-  emit_i_free(TOK_ORI_OP, rd, 0, const_imm_expr(1));
-  emit_i_free(TOK_BEQ_OP, 0, 0, branch_offset(3));
+  emit_i_free(TOK_BNE_OPCODE, rs, rt, branch_offset(3));
+  emit_i_free(TOK_ORI_OPCODE, rd, 0, const_imm_expr(1));
+  emit_i_free(TOK_BEQ_OPCODE, 0, 0, branch_offset(3));
   nop_inst();
-  emit_r((op == TOK_SLE_POP ? TOK_SLT_OP : TOK_SLTU_OP), rd, rs, rt);
+  emit_r((op == TOK_SLE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE), rd, rs, rt);
 }
 
 void set_gt_inst(int op, int rd, int rs, int rt) {
-  emit_r(op == TOK_SGT_POP ? TOK_SLT_OP : TOK_SLTU_OP, rd, rt, rs);
+  emit_r(op == TOK_SGT_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, rd, rt, rs);
 }
 
 void set_ge_inst(int op, int rd, int rs, int rt) {
-  emit_i_free(TOK_BNE_OP, rs, rt, branch_offset(3));
-  emit_i_free(TOK_ORI_OP, rd, 0, const_imm_expr(1));
-  emit_i_free(TOK_BEQ_OP, 0, 0, branch_offset(3));
+  emit_i_free(TOK_BNE_OPCODE, rs, rt, branch_offset(3));
+  emit_i_free(TOK_ORI_OPCODE, rd, 0, const_imm_expr(1));
+  emit_i_free(TOK_BEQ_OPCODE, 0, 0, branch_offset(3));
   nop_inst();
-  emit_r(op == TOK_SGE_POP ? TOK_SLT_OP : TOK_SLTU_OP, rd, rt, rs);
+  emit_r(op == TOK_SGE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, rd, rt, rs);
 }
 
 void set_eq_inst(int op, int rd, int rs, int rt) {
   imm_expr *if_eq, *if_neq;
 
-  if (op == TOK_SEQ_POP) {
+  if (op == TOK_SEQ_PSEUDO_OP) {
     if_eq = const_imm_expr(1);
     if_neq = const_imm_expr(0);
   } else {
@@ -201,13 +201,13 @@ void set_eq_inst(int op, int rd, int rs, int rt) {
     if_neq = const_imm_expr(1);
   }
 
-  emit_i_free(TOK_BEQ_OP, rs, rt, branch_offset(3));
+  emit_i_free(TOK_BEQ_OPCODE, rs, rt, branch_offset(3));
   /* RD <- 0 (if not equal) */
-  emit_i_free(TOK_ORI_OP, rd, 0, if_neq);
-  emit_i_free(TOK_BEQ_OP, 0, 0, branch_offset(3)); /* Branch always */
+  emit_i_free(TOK_ORI_OPCODE, rd, 0, if_neq);
+  emit_i_free(TOK_BEQ_OPCODE, 0, 0, branch_offset(3)); /* Branch always */
   nop_inst();
   /* RD <- 1 */
-  emit_i_free(TOK_ORI_OP, rd, 0, if_eq);
+  emit_i_free(TOK_ORI_OPCODE, rd, 0, if_eq);
 }
 
 void check_imm_range(imm_expr* expr, int32_t min, int32_t max) {

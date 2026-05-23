@@ -25,7 +25,7 @@ enum : int32_t {
   TOK_STR,
   TOK_FP,
 
-  /* The remaining ~380 enumerators (TOK_ADD_OP, TOK_ADDI_OP, ...) are
+  /* The remaining ~380 enumerators (TOK_ADD_OPCODE, TOK_ADDI_OPCODE, ...) are
      produced by the X-macro expansion below.  Each OP(name, sym, type,
      enc) row in op.h becomes `sym,` here — adding one enumerator per
      keyword.  See op.h's top-of-file comment for the X-macro pattern;

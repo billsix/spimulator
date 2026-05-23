@@ -261,6 +261,60 @@ gain on a name that already reads cleanly to the audience.
 
 If proceeding, default to `instruction` (fully spelled).
 
+## Phase 9.5 — Token suffix expansion
+
+Currently the token enumerators look like `TOK_CFC0_OP`,
+`TOK_ASCII_DIR`, `TOK_LA_POP`.  The middle component is the
+MIPS assembler mnemonic (stays — MIPS-spec).  The trailing
+suffix encodes a real semantic category but in opaque
+abbreviation:
+
+| Current | Means | Proposed |
+|---|---|---|
+| `_OP` | machine opcode | `_OPCODE` |
+| `_DIR` | assembler directive (`.align`, `.ascii`) | `_DIRECTIVE` |
+| `_POP` | pseudo-instruction (`la`, `li`, `b`, etc.) | `_PSEUDO_OP` |
+
+After: `TOK_CFC0_OPCODE`, `TOK_ASCII_DIRECTIVE`,
+`TOK_LA_PSEUDO_OP`.  Each token name carries its category at
+the call site without needing to consult `op.h`.
+
+**The `TOK_` prefix stays as `TOK_`** — pure namespace marker,
+expanding it ("token") adds 3 chars per case label across ~400
+sites for zero conceptual gain.
+
+### Mechanics
+
+Three independent sed sweeps, in order:
+
+1. `_OP` (~380 sites in op.h + ~250 case labels in run.c +
+   scattered uses) → `_OPCODE`
+2. `_DIR` (~25 sites) → `_DIRECTIVE`
+3. `_POP` (~40 sites in op.h + several call sites) →
+   `_PSEUDO_OP`
+
+Care: `_OP` is a common substring, but `\bTOK_[A-Z0-9_]+_OP\b`
+(word-boundary regex) catches exactly the right names.  Same
+for `_DIR` and `_POP`.  Build between each sweep so any missed
+site fails the compile loudly.
+
+### Scope
+
+Files touched: `include/op.h`, `include/tokens.h` (via X-macro
+expansion, no direct change), `src/run.c`, `src/inst.c`,
+`src/parser.c`, `src/explain.c`, `src/pseudo_op.c`,
+`src/scanner.c`.  Total ~1000 use-site changes (mechanical).
+
+### Why placed here
+
+Phase 9.5 because the change is independent of every earlier
+phase (it touches different identifiers).  Could land any time;
+sandwiched between phase 9 and phase 10 mostly because phase 10
+(file renames) is the natural cleanup-last operation.
+
+**Effort:** ~45 minutes.  **Risk:** very low; pure rename, the
+compiler will fail loudly on any missed site.
+
 ## Phase 10 — Source file name expansion
 
 Rename the source files whose names are abbreviated.  Touches
@@ -386,6 +440,7 @@ merge to master.
 | 6 | `FPR`/`FGR`/`FWR` → `fp_*_view` | 1 hour | low |
 | 7 | `R` → `gpr` | 1 hour | low |
 | 8 | `K` → inline `1024` | 10 min | none |
+| 9.5 | `TOK_*_OP` → `_OPCODE`, `_DIR` → `_DIRECTIVE`, `_POP` → `_PSEUDO_OP` | 45 min | very low |
 | 10 | source file names expanded | 2 hours | low |
 | 9 | `inst` → `instruction` (optional) | 1-2 hours | low |
 

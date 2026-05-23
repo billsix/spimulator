@@ -176,11 +176,11 @@ void i_type_inst(int opcode, int rt, int rs, imm_expr* expr) {
     /* Evaluate the instruction's expression. */
     int32_t value = eval_imm_expr(expr);
 
-    if (!bare_machine && (((opcode == TOK_ADDI_OP || opcode == TOK_ADDIU_OP ||
-                            opcode == TOK_SLTI_OP || opcode == TOK_SLTIU_OP ||
-                            opcode == TOK_TEQI_OP || opcode == TOK_TGEI_OP ||
-                            opcode == TOK_TGEIU_OP || opcode == TOK_TLTI_OP ||
-                            opcode == TOK_TLTIU_OP || opcode == TOK_TNEI_OP ||
+    if (!bare_machine && (((opcode == TOK_ADDI_OPCODE || opcode == TOK_ADDIU_OPCODE ||
+                            opcode == TOK_SLTI_OPCODE || opcode == TOK_SLTIU_OPCODE ||
+                            opcode == TOK_TEQI_OPCODE || opcode == TOK_TGEI_OPCODE ||
+                            opcode == TOK_TGEIU_OPCODE || opcode == TOK_TLTI_OPCODE ||
+                            opcode == TOK_TLTIU_OPCODE || opcode == TOK_TNEI_OPCODE ||
                             (opcode_is_load_store(opcode) && expr->bits == 0))
                                // Sign-extended immediate values:
                                ? ((value & 0xffff8000) != 0 &&
@@ -237,10 +237,10 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
           high += 1;
         }
 
-        i_type_inst_free(TOK_LUI_OP, 1, 0, const_imm_expr(high));
+        i_type_inst_free(TOK_LUI_OPCODE, 1, 0, const_imm_expr(high));
         if (rs != 0) /* Base register */
         {
-          r_type_inst(TOK_ADDU_OP, 1, 1, rs);
+          r_type_inst(TOK_ADDU_OPCODE, 1, 1, rs);
         }
         i_type_inst_free(opcode, rt, 1,
                          lower_bits_of_expr(const_imm_expr(low)));
@@ -251,10 +251,10 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
     } else {
       /* Use $at */
       /* Need to adjust if lower bits are negative */
-      i_type_inst_free(TOK_LUI_OP, 1, 0, upper_bits_of_expr(expr));
+      i_type_inst_free(TOK_LUI_OPCODE, 1, 0, upper_bits_of_expr(expr));
       if (rs != 0) /* Base register */
       {
-        r_type_inst(TOK_ADDU_OP, 1, 1, rs);
+        r_type_inst(TOK_ADDU_OPCODE, 1, 1, rs);
       }
       i_type_inst_free(opcode, rt, 1, lower_bits_of_expr(expr));
     }
@@ -269,12 +269,12 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
     if (expr->symbol != nullptr && expr->symbol->gp_flag && rs == 0 &&
         IMM_MIN <= (offset = expr->symbol->addr + expr->offset) &&
         offset <= IMM_MAX) {
-      i_type_inst_free((opcode == TOK_LUI_OP ? TOK_ADDIU_OP : opcode), rt,
+      i_type_inst_free((opcode == TOK_LUI_OPCODE ? TOK_ADDIU_OPCODE : opcode), rt,
                        REG_GP, make_imm_expr(offset, nullptr, false));
     } else {
       /* Use $at */
-      if ((opcode == TOK_ORI_OP || opcode == TOK_ADDI_OP ||
-           opcode == TOK_ADDIU_OP || opcode == TOK_LUI_OP) &&
+      if ((opcode == TOK_ORI_OPCODE || opcode == TOK_ADDI_OPCODE ||
+           opcode == TOK_ADDIU_OPCODE || opcode == TOK_LUI_OPCODE) &&
           rs == 0) {
         produce_immediate(expr, rt, value_known, value);
       } else {
@@ -288,12 +288,12 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
 static void produce_immediate(imm_expr* expr, int rt, int value_known,
                               int32_t value) {
   if (value_known && (value & 0xffff) == 0) {
-    i_type_inst_free(TOK_LUI_OP, rt, 0, upper_bits_of_expr(expr));
+    i_type_inst_free(TOK_LUI_OPCODE, rt, 0, upper_bits_of_expr(expr));
   } else if (value_known && (value & 0xffff0000) == 0) {
-    i_type_inst_free(TOK_ORI_OP, rt, 0, lower_bits_of_expr(expr));
+    i_type_inst_free(TOK_ORI_OPCODE, rt, 0, lower_bits_of_expr(expr));
   } else {
-    i_type_inst_free(TOK_LUI_OP, 1, 0, upper_bits_of_expr(expr));
-    i_type_inst_free(TOK_ORI_OP, rt, 1, lower_bits_of_expr(expr));
+    i_type_inst_free(TOK_LUI_OPCODE, 1, 0, upper_bits_of_expr(expr));
+    i_type_inst_free(TOK_ORI_OPCODE, rt, 1, lower_bits_of_expr(expr));
   }
 }
 
@@ -361,98 +361,98 @@ void r_cond_type_inst(int opcode, int fs, int ft, int cc) {
   instruction* inst = make_r_type_inst(opcode, fs, 0, ft);
   SET_FD(inst, cc << 2);
   switch (opcode) {
-    case TOK_C_EQ_D_OP:
-    case TOK_C_EQ_S_OP: {
+    case TOK_C_EQ_D_OPCODE:
+    case TOK_C_EQ_S_OPCODE: {
       SET_COND(inst, COND_EQ);
       break;
     }
 
-    case TOK_C_LE_D_OP:
-    case TOK_C_LE_S_OP: {
+    case TOK_C_LE_D_OPCODE:
+    case TOK_C_LE_S_OPCODE: {
       SET_COND(inst, COND_IN | COND_LT | COND_EQ);
       break;
     }
 
-    case TOK_C_LT_D_OP:
-    case TOK_C_LT_S_OP: {
+    case TOK_C_LT_D_OPCODE:
+    case TOK_C_LT_S_OPCODE: {
       SET_COND(inst, COND_IN | COND_LT);
       break;
     }
 
-    case TOK_C_NGE_D_OP:
-    case TOK_C_NGE_S_OP: {
+    case TOK_C_NGE_D_OPCODE:
+    case TOK_C_NGE_S_OPCODE: {
       SET_COND(inst, COND_IN | COND_LT | COND_UN);
       break;
     }
 
-    case TOK_C_NGLE_D_OP:
-    case TOK_C_NGLE_S_OP: {
+    case TOK_C_NGLE_D_OPCODE:
+    case TOK_C_NGLE_S_OPCODE: {
       SET_COND(inst, COND_IN | COND_UN);
       break;
     }
 
-    case TOK_C_NGL_D_OP:
-    case TOK_C_NGL_S_OP: {
+    case TOK_C_NGL_D_OPCODE:
+    case TOK_C_NGL_S_OPCODE: {
       SET_COND(inst, COND_IN | COND_EQ | COND_UN);
       break;
     }
 
-    case TOK_C_NGT_D_OP:
-    case TOK_C_NGT_S_OP: {
+    case TOK_C_NGT_D_OPCODE:
+    case TOK_C_NGT_S_OPCODE: {
       SET_COND(inst, COND_IN | COND_LT | COND_EQ | COND_UN);
       break;
     }
 
-    case TOK_C_OLT_D_OP:
-    case TOK_C_OLT_S_OP: {
+    case TOK_C_OLT_D_OPCODE:
+    case TOK_C_OLT_S_OPCODE: {
       SET_COND(inst, COND_LT);
       break;
     }
 
-    case TOK_C_OLE_D_OP:
-    case TOK_C_OLE_S_OP: {
+    case TOK_C_OLE_D_OPCODE:
+    case TOK_C_OLE_S_OPCODE: {
       SET_COND(inst, COND_LT | COND_EQ);
       break;
     }
 
-    case TOK_C_SEQ_D_OP:
-    case TOK_C_SEQ_S_OP: {
+    case TOK_C_SEQ_D_OPCODE:
+    case TOK_C_SEQ_S_OPCODE: {
       SET_COND(inst, COND_IN | COND_EQ);
       break;
     }
 
-    case TOK_C_SF_D_OP:
-    case TOK_C_SF_S_OP: {
+    case TOK_C_SF_D_OPCODE:
+    case TOK_C_SF_S_OPCODE: {
       SET_COND(inst, COND_IN);
       break;
     }
 
-    case TOK_C_F_D_OP:
-    case TOK_C_F_S_OP: {
+    case TOK_C_F_D_OPCODE:
+    case TOK_C_F_S_OPCODE: {
       SET_COND(inst, 0);
       break;
     }
 
-    case TOK_C_UEQ_D_OP:
-    case TOK_C_UEQ_S_OP: {
+    case TOK_C_UEQ_D_OPCODE:
+    case TOK_C_UEQ_S_OPCODE: {
       SET_COND(inst, COND_EQ | COND_UN);
       break;
     }
 
-    case TOK_C_ULT_D_OP:
-    case TOK_C_ULT_S_OP: {
+    case TOK_C_ULT_D_OPCODE:
+    case TOK_C_ULT_S_OPCODE: {
       SET_COND(inst, COND_LT | COND_UN);
       break;
     }
 
-    case TOK_C_ULE_D_OP:
-    case TOK_C_ULE_S_OP: {
+    case TOK_C_ULE_D_OPCODE:
+    case TOK_C_ULE_S_OPCODE: {
       SET_COND(inst, COND_LT | COND_EQ | COND_UN);
       break;
     }
 
-    case TOK_C_UN_D_OP:
-    case TOK_C_UN_S_OP: {
+    case TOK_C_UN_D_OPCODE:
+    case TOK_C_UN_S_OPCODE: {
       SET_COND(inst, COND_UN);
       break;
     }
@@ -749,40 +749,40 @@ void format_an_inst(str_stream* ss, instruction* inst, mem_addr addr) {
 
 bool opcode_is_branch(int opcode) {
   switch (opcode) {
-    case TOK_BC1F_OP:
-    case TOK_BC1FL_OP:
-    case TOK_BC1T_OP:
-    case TOK_BC1TL_OP:
-    case TOK_BC2F_OP:
-    case TOK_BC2FL_OP:
-    case TOK_BC2T_OP:
-    case TOK_BC2TL_OP:
-    case TOK_BEQ_OP:
-    case TOK_BEQL_OP:
-    case TOK_BEQZ_POP:
-    case TOK_BGE_POP:
-    case TOK_BGEU_POP:
-    case TOK_BGEZ_OP:
-    case TOK_BGEZAL_OP:
-    case TOK_BGEZALL_OP:
-    case TOK_BGEZL_OP:
-    case TOK_BGT_POP:
-    case TOK_BGTU_POP:
-    case TOK_BGTZ_OP:
-    case TOK_BGTZL_OP:
-    case TOK_BLE_POP:
-    case TOK_BLEU_POP:
-    case TOK_BLEZ_OP:
-    case TOK_BLEZL_OP:
-    case TOK_BLT_POP:
-    case TOK_BLTU_POP:
-    case TOK_BLTZ_OP:
-    case TOK_BLTZAL_OP:
-    case TOK_BLTZALL_OP:
-    case TOK_BLTZL_OP:
-    case TOK_BNE_OP:
-    case TOK_BNEL_OP:
-    case TOK_BNEZ_POP:
+    case TOK_BC1F_OPCODE:
+    case TOK_BC1FL_OPCODE:
+    case TOK_BC1T_OPCODE:
+    case TOK_BC1TL_OPCODE:
+    case TOK_BC2F_OPCODE:
+    case TOK_BC2FL_OPCODE:
+    case TOK_BC2T_OPCODE:
+    case TOK_BC2TL_OPCODE:
+    case TOK_BEQ_OPCODE:
+    case TOK_BEQL_OPCODE:
+    case TOK_BEQZ_PSEUDO_OP:
+    case TOK_BGE_PSEUDO_OP:
+    case TOK_BGEU_PSEUDO_OP:
+    case TOK_BGEZ_OPCODE:
+    case TOK_BGEZAL_OPCODE:
+    case TOK_BGEZALL_OPCODE:
+    case TOK_BGEZL_OPCODE:
+    case TOK_BGT_PSEUDO_OP:
+    case TOK_BGTU_PSEUDO_OP:
+    case TOK_BGTZ_OPCODE:
+    case TOK_BGTZL_OPCODE:
+    case TOK_BLE_PSEUDO_OP:
+    case TOK_BLEU_PSEUDO_OP:
+    case TOK_BLEZ_OPCODE:
+    case TOK_BLEZL_OPCODE:
+    case TOK_BLT_PSEUDO_OP:
+    case TOK_BLTU_PSEUDO_OP:
+    case TOK_BLTZ_OPCODE:
+    case TOK_BLTZAL_OPCODE:
+    case TOK_BLTZALL_OPCODE:
+    case TOK_BLTZL_OPCODE:
+    case TOK_BNE_OPCODE:
+    case TOK_BNEL_OPCODE:
+    case TOK_BNEZ_PSEUDO_OP:
       return true;
 
     default:
@@ -795,18 +795,18 @@ bool opcode_is_branch(int opcode) {
 
 bool opcode_is_nullified_branch(int opcode) {
   switch (opcode) {
-    case TOK_BC1FL_OP:
-    case TOK_BC1TL_OP:
-    case TOK_BC2FL_OP:
-    case TOK_BC2TL_OP:
-    case TOK_BEQL_OP:
-    case TOK_BGEZALL_OP:
-    case TOK_BGEZL_OP:
-    case TOK_BGTZL_OP:
-    case TOK_BLEZL_OP:
-    case TOK_BLTZALL_OP:
-    case TOK_BLTZL_OP:
-    case TOK_BNEL_OP:
+    case TOK_BC1FL_OPCODE:
+    case TOK_BC1TL_OPCODE:
+    case TOK_BC2FL_OPCODE:
+    case TOK_BC2TL_OPCODE:
+    case TOK_BEQL_OPCODE:
+    case TOK_BGEZALL_OPCODE:
+    case TOK_BGEZL_OPCODE:
+    case TOK_BGTZL_OPCODE:
+    case TOK_BLEZL_OPCODE:
+    case TOK_BLTZALL_OPCODE:
+    case TOK_BLTZL_OPCODE:
+    case TOK_BNEL_OPCODE:
       return true;
 
     default:
@@ -819,10 +819,10 @@ bool opcode_is_nullified_branch(int opcode) {
 
 bool opcode_is_true_branch(int opcode) {
   switch (opcode) {
-    case TOK_BC1T_OP:
-    case TOK_BC1TL_OP:
-    case TOK_BC2T_OP:
-    case TOK_BC2TL_OP:
+    case TOK_BC1T_OPCODE:
+    case TOK_BC1TL_OPCODE:
+    case TOK_BC2T_OPCODE:
+    case TOK_BC2TL_OPCODE:
       return true;
 
     default:
@@ -835,8 +835,8 @@ bool opcode_is_true_branch(int opcode) {
 
 bool opcode_is_jump(int opcode) {
   switch (opcode) {
-    case TOK_J_OP:
-    case TOK_JAL_OP:
+    case TOK_J_OPCODE:
+    case TOK_JAL_OPCODE:
       return true;
 
     default:
@@ -848,28 +848,28 @@ bool opcode_is_jump(int opcode) {
 
 bool opcode_is_load_store(int opcode) {
   switch (opcode) {
-    case TOK_LB_OP:
-    case TOK_LBU_OP:
-    case TOK_LH_OP:
-    case TOK_LHU_OP:
-    case TOK_LL_OP:
-    case TOK_LDC1_OP:
-    case TOK_LDC2_OP:
-    case TOK_LW_OP:
-    case TOK_LWC1_OP:
-    case TOK_LWC2_OP:
-    case TOK_LWL_OP:
-    case TOK_LWR_OP:
-    case TOK_SB_OP:
-    case TOK_SC_OP:
-    case TOK_SH_OP:
-    case TOK_SDC1_OP:
-    case TOK_SDC2_OP:
-    case TOK_SW_OP:
-    case TOK_SWC1_OP:
-    case TOK_SWC2_OP:
-    case TOK_SWL_OP:
-    case TOK_SWR_OP:
+    case TOK_LB_OPCODE:
+    case TOK_LBU_OPCODE:
+    case TOK_LH_OPCODE:
+    case TOK_LHU_OPCODE:
+    case TOK_LL_OPCODE:
+    case TOK_LDC1_OPCODE:
+    case TOK_LDC2_OPCODE:
+    case TOK_LW_OPCODE:
+    case TOK_LWC1_OPCODE:
+    case TOK_LWC2_OPCODE:
+    case TOK_LWL_OPCODE:
+    case TOK_LWR_OPCODE:
+    case TOK_SB_OPCODE:
+    case TOK_SC_OPCODE:
+    case TOK_SH_OPCODE:
+    case TOK_SDC1_OPCODE:
+    case TOK_SDC2_OPCODE:
+    case TOK_SW_OPCODE:
+    case TOK_SWC1_OPCODE:
+    case TOK_SWC2_OPCODE:
+    case TOK_SWL_OPCODE:
+    case TOK_SWR_OPCODE:
       return true;
 
     default:
@@ -881,7 +881,7 @@ bool opcode_is_load_store(int opcode) {
 
 bool inst_is_breakpoint(mem_addr addr) {
   if (break_inst == nullptr)
-    break_inst = make_r_type_inst(TOK_BREAK_OP, 1, 0, 0);
+    break_inst = make_r_type_inst(TOK_BREAK_OPCODE, 1, 0, 0);
 
   return (mem_read_inst(addr) == break_inst);
 }
@@ -893,7 +893,7 @@ instruction* set_breakpoint(mem_addr addr) {
   instruction* old_inst;
 
   if (break_inst == nullptr)
-    break_inst = make_r_type_inst(TOK_BREAK_OP, 1, 0, 0);
+    break_inst = make_r_type_inst(TOK_BREAK_OPCODE, 1, 0, 0);
 
   exception_occurred = 0;
   old_inst = mem_read_inst(addr);

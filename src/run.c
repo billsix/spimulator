@@ -207,7 +207,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
       explain_before(inst, PC);
 
       switch (OPCODE(inst)) {
-        case TOK_ADD_OP: {
+        case TOK_ADD_OPCODE: {
           reg_word sum;
           if (ckd_add(&sum, R[RS(inst)], R[RT(inst)]))
             RAISE_EXCEPTION(ExcCode_Ov, break);
@@ -215,7 +215,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_ADDI_OP: {
+        case TOK_ADDI_OPCODE: {
           reg_word sum;
           if (ckd_add(&sum, R[RS(inst)], (reg_word)(short)IMM(inst)))
             RAISE_EXCEPTION(ExcCode_Ov, break);
@@ -223,139 +223,139 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_ADDIU_OP:
+        case TOK_ADDIU_OPCODE:
           R[RT(inst)] = R[RS(inst)] + (short)IMM(inst);
           break;
 
-        case TOK_ADDU_OP:
+        case TOK_ADDU_OPCODE:
           R[RD(inst)] = R[RS(inst)] + R[RT(inst)];
           break;
 
-        case TOK_AND_OP:
+        case TOK_AND_OPCODE:
           R[RD(inst)] = R[RS(inst)] & R[RT(inst)];
           break;
 
-        case TOK_ANDI_OP:
+        case TOK_ANDI_OPCODE:
           R[RT(inst)] = R[RS(inst)] & (0xffff & IMM(inst));
           break;
 
-        case TOK_BC2F_OP:
-        case TOK_BC2FL_OP:
-        case TOK_BC2T_OP:
-        case TOK_BC2TL_OP:
+        case TOK_BC2F_OPCODE:
+        case TOK_BC2FL_OPCODE:
+        case TOK_BC2T_OPCODE:
+        case TOK_BC2TL_OPCODE:
           RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
           break;
 
-        case TOK_BEQ_OP:
+        case TOK_BEQ_OPCODE:
           BRANCH_INST(R[RS(inst)] == R[RT(inst)], PC + BRANCH_OFFSET(inst), 0);
           break;
 
-        case TOK_BEQL_OP:
+        case TOK_BEQL_OPCODE:
           BRANCH_INST(R[RS(inst)] == R[RT(inst)], PC + BRANCH_OFFSET(inst), 1);
           break;
 
-        case TOK_BGEZ_OP:
+        case TOK_BGEZ_OPCODE:
           BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + BRANCH_OFFSET(inst), 0);
           break;
 
-        case TOK_BGEZL_OP:
+        case TOK_BGEZL_OPCODE:
           BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + BRANCH_OFFSET(inst), 1);
           break;
 
-        case TOK_BGEZAL_OP:
+        case TOK_BGEZAL_OPCODE:
           R[31] = PC + (delayed_branches ? 2 * BYTES_PER_WORD : BYTES_PER_WORD);
           BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + BRANCH_OFFSET(inst), 0);
           break;
 
-        case TOK_BGEZALL_OP:
+        case TOK_BGEZALL_OPCODE:
           R[31] = PC + (delayed_branches ? 2 * BYTES_PER_WORD : BYTES_PER_WORD);
           BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + BRANCH_OFFSET(inst), 1);
           break;
 
-        case TOK_BGTZ_OP:
+        case TOK_BGTZ_OPCODE:
           BRANCH_INST(R[RS(inst)] != 0 && SIGN_BIT(R[RS(inst)]) == 0,
                       PC + BRANCH_OFFSET(inst), 0);
           break;
 
-        case TOK_BGTZL_OP:
+        case TOK_BGTZL_OPCODE:
           BRANCH_INST(R[RS(inst)] != 0 && SIGN_BIT(R[RS(inst)]) == 0,
                       PC + BRANCH_OFFSET(inst), 1);
           break;
 
-        case TOK_BLEZ_OP:
+        case TOK_BLEZ_OPCODE:
           BRANCH_INST(R[RS(inst)] == 0 || SIGN_BIT(R[RS(inst)]) != 0,
                       PC + BRANCH_OFFSET(inst), 0);
           break;
 
-        case TOK_BLEZL_OP:
+        case TOK_BLEZL_OPCODE:
           BRANCH_INST(R[RS(inst)] == 0 || SIGN_BIT(R[RS(inst)]) != 0,
                       PC + BRANCH_OFFSET(inst), 1);
           break;
 
-        case TOK_BLTZ_OP:
+        case TOK_BLTZ_OPCODE:
           BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + BRANCH_OFFSET(inst), 0);
           break;
 
-        case TOK_BLTZL_OP:
+        case TOK_BLTZL_OPCODE:
           BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + BRANCH_OFFSET(inst), 1);
           break;
 
-        case TOK_BLTZAL_OP:
+        case TOK_BLTZAL_OPCODE:
           R[31] = PC + (delayed_branches ? 2 * BYTES_PER_WORD : BYTES_PER_WORD);
           BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + BRANCH_OFFSET(inst), 0);
           break;
 
-        case TOK_BLTZALL_OP:
+        case TOK_BLTZALL_OPCODE:
           R[31] = PC + (delayed_branches ? 2 * BYTES_PER_WORD : BYTES_PER_WORD);
           BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + BRANCH_OFFSET(inst), 1);
           break;
 
-        case TOK_BNE_OP:
+        case TOK_BNE_OPCODE:
           BRANCH_INST(R[RS(inst)] != R[RT(inst)], PC + BRANCH_OFFSET(inst), 0);
           break;
 
-        case TOK_BNEL_OP:
+        case TOK_BNEL_OPCODE:
           BRANCH_INST(R[RS(inst)] != R[RT(inst)], PC + BRANCH_OFFSET(inst), 1);
           break;
 
-        case TOK_BREAK_OP:
+        case TOK_BREAK_OPCODE:
           if (RD(inst) == 1) /* Debugger breakpoint */
             RAISE_EXCEPTION(ExcCode_Bp, return true)
           else
             RAISE_EXCEPTION(ExcCode_Bp, break);
 
-        case TOK_CACHE_OP:
+        case TOK_CACHE_OPCODE:
           break; /* Memory details not implemented */
 
-        case TOK_CFC0_OP:
+        case TOK_CFC0_OPCODE:
           R[RT(inst)] = coprocessor_control_registers[0][RD(inst)];
           break;
 
-        case TOK_CFC2_OP:
+        case TOK_CFC2_OPCODE:
           RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
           break;
 
-        case TOK_CLO_OP:
+        case TOK_CLO_OPCODE:
           R[RD(inst)] = (reg_word)stdc_leading_ones((uint32_t)R[RS(inst)]);
           break;
 
-        case TOK_CLZ_OP:
+        case TOK_CLZ_OPCODE:
           R[RD(inst)] = (reg_word)stdc_leading_zeros((uint32_t)R[RS(inst)]);
           break;
 
-        case TOK_COP2_OP:
+        case TOK_COP2_OPCODE:
           RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
           break;
 
-        case TOK_CTC0_OP:
+        case TOK_CTC0_OPCODE:
           coprocessor_control_registers[0][RD(inst)] = R[RT(inst)];
           break;
 
-        case TOK_CTC2_OP:
+        case TOK_CTC2_OPCODE:
           RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
           break;
 
-        case TOK_DIV_OP:
+        case TOK_DIV_OPCODE:
           /* The behavior of this instruction is undefined on divide by
              zero or overflow. */
           if (R[RT(inst)] != 0 && !(R[RS(inst)] == (reg_word)0x80000000 &&
@@ -365,7 +365,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           }
           break;
 
-        case TOK_DIVU_OP:
+        case TOK_DIVU_OPCODE:
           /* The behavior of this instruction is undefined on divide by
              zero or overflow. */
           if (R[RT(inst)] != 0 && !(R[RS(inst)] == (reg_word)0x80000000 &&
@@ -375,16 +375,16 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           }
           break;
 
-        case TOK_ERET_OP: {
+        case TOK_ERET_OPCODE: {
           CP0_Status &= ~CP0_Status_EXL; /* Clear EXL bit */
           JUMP_INST(CP0_EPC);            /* Jump to EPC */
         } break;
 
-        case TOK_J_OP:
+        case TOK_J_OPCODE:
           JUMP_INST(((PC & 0xf0000000) | TARGET(inst) << 2));
           break;
 
-        case TOK_JAL_OP:
+        case TOK_JAL_OPCODE:
           if (delayed_branches)
             R[31] = PC + 2 * BYTES_PER_WORD;
           else
@@ -392,7 +392,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           JUMP_INST(((PC & 0xf0000000) | (TARGET(inst) << 2)));
           break;
 
-        case TOK_JALR_OP: {
+        case TOK_JALR_OPCODE: {
           mem_addr tmp = R[RS(inst)];
 
           if (delayed_branches)
@@ -402,56 +402,56 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           JUMP_INST(tmp);
         } break;
 
-        case TOK_JR_OP: {
+        case TOK_JR_OPCODE: {
           mem_addr tmp = R[RS(inst)];
 
           JUMP_INST(tmp);
         } break;
 
-        case TOK_LB_OP:
+        case TOK_LB_OPCODE:
           LOAD_INST(&R[RT(inst)], mem_read_byte(R[BASE(inst)] + IOFFSET(inst)),
                     0xffffffff);
           break;
 
-        case TOK_LBU_OP:
+        case TOK_LBU_OPCODE:
           LOAD_INST(&R[RT(inst)], mem_read_byte(R[BASE(inst)] + IOFFSET(inst)),
                     0xff);
           break;
 
-        case TOK_LH_OP:
+        case TOK_LH_OPCODE:
           LOAD_INST(&R[RT(inst)], mem_read_half(R[BASE(inst)] + IOFFSET(inst)),
                     0xffffffff);
           break;
 
-        case TOK_LHU_OP:
+        case TOK_LHU_OPCODE:
           LOAD_INST(&R[RT(inst)], mem_read_half(R[BASE(inst)] + IOFFSET(inst)),
                     0xffff);
           break;
 
-        case TOK_LL_OP:
+        case TOK_LL_OPCODE:
           /* Uniprocess, so this instruction is just a load */
           LOAD_INST(&R[RT(inst)], mem_read_word(R[BASE(inst)] + IOFFSET(inst)),
                     0xffffffff);
           break;
 
-        case TOK_LUI_OP:
+        case TOK_LUI_OPCODE:
           R[RT(inst)] = (IMM(inst) << 16) & 0xffff0000;
           break;
 
-        case TOK_LW_OP:
+        case TOK_LW_OPCODE:
           LOAD_INST(&R[RT(inst)], mem_read_word(R[BASE(inst)] + IOFFSET(inst)),
                     0xffffffff);
           break;
 
-        case TOK_LDC2_OP:
+        case TOK_LDC2_OPCODE:
           RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
           break;
 
-        case TOK_LWC2_OP:
+        case TOK_LWC2_OPCODE:
           RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
           break;
 
-        case TOK_LWL_OP: {
+        case TOK_LWL_OPCODE: {
           mem_addr addr = R[BASE(inst)] + IOFFSET(inst);
           reg_word word; /* Can't be register */
           int byte = addr & 0x3;
@@ -499,7 +499,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_LWR_OP: {
+        case TOK_LWR_OPCODE: {
           mem_addr addr = R[BASE(inst)] + IOFFSET(inst);
           reg_word word; /* Can't be register */
           int byte = addr & 0x3;
@@ -550,13 +550,13 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_MADD_OP:
-        case TOK_MADDU_OP: {
+        case TOK_MADD_OPCODE:
+        case TOK_MADDU_OPCODE: {
           reg_word product_low = LO, product_high = HI;
           reg_word tmp;
-          if (OPCODE(inst) == TOK_MADD_OP) {
+          if (OPCODE(inst) == TOK_MADD_OPCODE) {
             signed_multiply(R[RS(inst)], R[RT(inst)]);
-          } else /* TOK_MADDU_OP */
+          } else /* TOK_MADDU_OPCODE */
           {
             unsigned_multiply(R[RS(inst)], R[RT(inst)]);
           }
@@ -571,38 +571,38 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_MFC0_OP:
+        case TOK_MFC0_OPCODE:
           R[RT(inst)] = coprocessor_registers[0][FS(inst)];
           break;
 
-        case TOK_MFC2_OP:
+        case TOK_MFC2_OPCODE:
           RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
           break;
 
-        case TOK_MFHI_OP:
+        case TOK_MFHI_OPCODE:
           R[RD(inst)] = HI;
           break;
 
-        case TOK_MFLO_OP:
+        case TOK_MFLO_OPCODE:
           R[RD(inst)] = LO;
           break;
 
-        case TOK_MOVN_OP:
+        case TOK_MOVN_OPCODE:
           if (R[RT(inst)] != 0) R[RD(inst)] = R[RS(inst)];
           break;
 
-        case TOK_MOVZ_OP:
+        case TOK_MOVZ_OPCODE:
           if (R[RT(inst)] == 0) R[RD(inst)] = R[RS(inst)];
           break;
 
-        case TOK_MSUB_OP:
-        case TOK_MSUBU_OP: {
+        case TOK_MSUB_OPCODE:
+        case TOK_MSUBU_OPCODE: {
           reg_word product_low = LO, product_high = HI;
           reg_word tmp;
 
-          if (OPCODE(inst) == TOK_MSUB_OP) {
+          if (OPCODE(inst) == TOK_MSUB_OPCODE) {
             signed_multiply(R[RS(inst)], R[RT(inst)]);
-          } else /* TOK_MSUBU_OP */
+          } else /* TOK_MSUBU_OPCODE */
           {
             unsigned_multiply(R[RS(inst)], R[RT(inst)]);
           }
@@ -617,7 +617,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_MTC0_OP:
+        case TOK_MTC0_OPCODE:
           coprocessor_registers[0][FS(inst)] = R[RT(inst)];
           switch (FS(inst)) {
             case CP0_Compare_Reg:
@@ -642,47 +642,47 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           }
           break;
 
-        case TOK_MTC2_OP:
+        case TOK_MTC2_OPCODE:
           RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
           break;
 
-        case TOK_MTHI_OP:
+        case TOK_MTHI_OPCODE:
           HI = R[RS(inst)];
           break;
 
-        case TOK_MTLO_OP:
+        case TOK_MTLO_OPCODE:
           LO = R[RS(inst)];
           break;
 
-        case TOK_MUL_OP:
+        case TOK_MUL_OPCODE:
           signed_multiply(R[RS(inst)], R[RT(inst)]);
           R[RD(inst)] = LO;
           break;
 
-        case TOK_MULT_OP:
+        case TOK_MULT_OPCODE:
           signed_multiply(R[RS(inst)], R[RT(inst)]);
           break;
 
-        case TOK_MULTU_OP:
+        case TOK_MULTU_OPCODE:
           unsigned_multiply(R[RS(inst)], R[RT(inst)]);
           break;
 
-        case TOK_NOR_OP:
+        case TOK_NOR_OPCODE:
           R[RD(inst)] = ~(R[RS(inst)] | R[RT(inst)]);
           break;
 
-        case TOK_OR_OP:
+        case TOK_OR_OPCODE:
           R[RD(inst)] = R[RS(inst)] | R[RT(inst)];
           break;
 
-        case TOK_ORI_OP:
+        case TOK_ORI_OPCODE:
           R[RT(inst)] = R[RS(inst)] | (0xffff & IMM(inst));
           break;
 
-        case TOK_PREF_OP:
+        case TOK_PREF_OPCODE:
           break; /* Memory details not implemented */
 
-        case TOK_RFE_OP:
+        case TOK_RFE_OPCODE:
 #ifdef MIPS1
           /* This is MIPS-I, not compatible with MIPS32 or the
              definition of the bits in the CP0 Status register in that
@@ -693,24 +693,24 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 #endif
           break;
 
-        case TOK_SB_OP:
+        case TOK_SB_OPCODE:
           mem_write_byte(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
           break;
 
-        case TOK_SC_OP:
+        case TOK_SC_OPCODE:
           /* Uniprocessor, so instruction is just a store */
           mem_write_word(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
           break;
 
-        case TOK_SDC2_OP:
+        case TOK_SDC2_OPCODE:
           RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
           break;
 
-        case TOK_SH_OP:
+        case TOK_SH_OPCODE:
           mem_write_half(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
           break;
 
-        case TOK_SLL_OP: {
+        case TOK_SLL_OPCODE: {
           int shamt = SHAMT(inst);
 
           if (shamt >= 0 && shamt < 32)
@@ -720,7 +720,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_SLLV_OP: {
+        case TOK_SLLV_OPCODE: {
           int shamt = (R[RS(inst)] & 0x1f);
 
           if (shamt >= 0 && shamt < 32)
@@ -730,21 +730,21 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_SLT_OP:
+        case TOK_SLT_OPCODE:
           if (R[RS(inst)] < R[RT(inst)])
             R[RD(inst)] = 1;
           else
             R[RD(inst)] = 0;
           break;
 
-        case TOK_SLTI_OP:
+        case TOK_SLTI_OPCODE:
           if (R[RS(inst)] < (short)IMM(inst))
             R[RT(inst)] = 1;
           else
             R[RT(inst)] = 0;
           break;
 
-        case TOK_SLTIU_OP: {
+        case TOK_SLTIU_OPCODE: {
           int x = (short)IMM(inst);
 
           if ((u_reg_word)R[RS(inst)] < (u_reg_word)x)
@@ -754,14 +754,14 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_SLTU_OP:
+        case TOK_SLTU_OPCODE:
           if ((u_reg_word)R[RS(inst)] < (u_reg_word)R[RT(inst)])
             R[RD(inst)] = 1;
           else
             R[RD(inst)] = 0;
           break;
 
-        case TOK_SRA_OP: {
+        case TOK_SRA_OPCODE: {
           int shamt = SHAMT(inst);
           reg_word val = R[RT(inst)];
 
@@ -772,7 +772,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_SRAV_OP: {
+        case TOK_SRAV_OPCODE: {
           int shamt = R[RS(inst)] & 0x1f;
           reg_word val = R[RT(inst)];
 
@@ -783,7 +783,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_SRL_OP: {
+        case TOK_SRL_OPCODE: {
           int shamt = SHAMT(inst);
           u_reg_word val = R[RT(inst)];
 
@@ -794,7 +794,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_SRLV_OP: {
+        case TOK_SRLV_OPCODE: {
           int shamt = R[RS(inst)] & 0x1f;
           u_reg_word val = R[RT(inst)];
 
@@ -805,7 +805,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_SUB_OP: {
+        case TOK_SUB_OPCODE: {
           reg_word diff;
           if (ckd_sub(&diff, R[RS(inst)], R[RT(inst)]))
             RAISE_EXCEPTION(ExcCode_Ov, break);
@@ -813,19 +813,19 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_SUBU_OP:
+        case TOK_SUBU_OPCODE:
           R[RD(inst)] = (u_reg_word)R[RS(inst)] - (u_reg_word)R[RT(inst)];
           break;
 
-        case TOK_SW_OP:
+        case TOK_SW_OPCODE:
           mem_write_word(R[BASE(inst)] + IOFFSET(inst), R[RT(inst)]);
           break;
 
-        case TOK_SWC2_OP:
+        case TOK_SWC2_OPCODE:
           RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
           break;
 
-        case TOK_SWL_OP: {
+        case TOK_SWL_OPCODE: {
           mem_addr addr = R[BASE(inst)] + IOFFSET(inst);
           mem_word data;
           reg_word reg = R[RT(inst)];
@@ -873,7 +873,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_SWR_OP: {
+        case TOK_SWR_OPCODE: {
           mem_addr addr = R[BASE(inst)] + IOFFSET(inst);
           mem_word data;
           reg_word reg = R[RT(inst)];
@@ -921,113 +921,113 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_SYNC_OP:
+        case TOK_SYNC_OPCODE:
           break; /* Memory details not implemented */
 
-        case TOK_SYSCALL_OP:
+        case TOK_SYSCALL_OPCODE:
           if (!do_syscall()) return false;
           break;
 
-        case TOK_TEQ_OP:
+        case TOK_TEQ_OPCODE:
           if (R[RS(inst)] == R[RT(inst)]) RAISE_EXCEPTION(ExcCode_Tr, {});
           break;
 
-        case TOK_TEQI_OP:
+        case TOK_TEQI_OPCODE:
           if (R[RS(inst)] == IMM(inst)) RAISE_EXCEPTION(ExcCode_Tr, {});
           break;
 
-        case TOK_TGE_OP:
+        case TOK_TGE_OPCODE:
           if (R[RS(inst)] >= R[RT(inst)]) RAISE_EXCEPTION(ExcCode_Tr, {});
           break;
 
-        case TOK_TGEI_OP:
+        case TOK_TGEI_OPCODE:
           if (R[RS(inst)] >= IMM(inst)) RAISE_EXCEPTION(ExcCode_Tr, {});
           break;
 
-        case TOK_TGEIU_OP:
+        case TOK_TGEIU_OPCODE:
           if ((u_reg_word)R[RS(inst)] >= (u_reg_word)IMM(inst))
             RAISE_EXCEPTION(ExcCode_Tr, {});
           break;
 
-        case TOK_TGEU_OP:
+        case TOK_TGEU_OPCODE:
           if ((u_reg_word)R[RS(inst)] >= (u_reg_word)R[RT(inst)])
             RAISE_EXCEPTION(ExcCode_Tr, {});
           break;
 
-        case TOK_TLBP_OP:
+        case TOK_TLBP_OPCODE:
           RAISE_EXCEPTION(ExcCode_RI, {}); /* TLB not implemented */
           break;
 
-        case TOK_TLBR_OP:
+        case TOK_TLBR_OPCODE:
           RAISE_EXCEPTION(ExcCode_RI, {}); /* TLB not implemented */
           break;
 
-        case TOK_TLBWI_OP:
+        case TOK_TLBWI_OPCODE:
           RAISE_EXCEPTION(ExcCode_RI, {}); /* TLB not implemented */
           break;
 
-        case TOK_TLBWR_OP:
+        case TOK_TLBWR_OPCODE:
           RAISE_EXCEPTION(ExcCode_RI, {}); /* TLB not implemented */
           break;
 
-        case TOK_TLT_OP:
+        case TOK_TLT_OPCODE:
           if (R[RS(inst)] < R[RT(inst)]) RAISE_EXCEPTION(ExcCode_Tr, {});
           break;
 
-        case TOK_TLTI_OP:
+        case TOK_TLTI_OPCODE:
           if (R[RS(inst)] < IMM(inst)) RAISE_EXCEPTION(ExcCode_Tr, {});
           break;
 
-        case TOK_TLTIU_OP:
+        case TOK_TLTIU_OPCODE:
           if ((u_reg_word)R[RS(inst)] < (u_reg_word)IMM(inst))
             RAISE_EXCEPTION(ExcCode_Tr, {});
           break;
 
-        case TOK_TLTU_OP:
+        case TOK_TLTU_OPCODE:
           if ((u_reg_word)R[RS(inst)] < (u_reg_word)R[RT(inst)])
             RAISE_EXCEPTION(ExcCode_Tr, {});
           break;
 
-        case TOK_TNE_OP:
+        case TOK_TNE_OPCODE:
           if (R[RS(inst)] != R[RT(inst)]) RAISE_EXCEPTION(ExcCode_Tr, {});
           break;
 
-        case TOK_TNEI_OP:
+        case TOK_TNEI_OPCODE:
           if (R[RS(inst)] != IMM(inst)) RAISE_EXCEPTION(ExcCode_Tr, {});
           break;
 
-        case TOK_XOR_OP:
+        case TOK_XOR_OPCODE:
           R[RD(inst)] = R[RS(inst)] ^ R[RT(inst)];
           break;
 
-        case TOK_XORI_OP:
+        case TOK_XORI_OPCODE:
           R[RT(inst)] = R[RS(inst)] ^ (0xffff & IMM(inst));
           break;
 
           /* FPA Operations */
 
-        case TOK_ABS_S_OP:
+        case TOK_ABS_S_OPCODE:
           SET_FPR_S(FD(inst), fabs(FPR_S(FS(inst))));
           break;
 
-        case TOK_ABS_D_OP:
+        case TOK_ABS_D_OPCODE:
           SET_FPR_D(FD(inst), fabs(FPR_D(FS(inst))));
           break;
 
-        case TOK_ADD_S_OP:
+        case TOK_ADD_S_OPCODE:
           SET_FPR_S(FD(inst), FPR_S(FS(inst)) + FPR_S(FT(inst)));
           /* Should trap on inexact/overflow/underflow */
           break;
 
-        case TOK_ADD_D_OP:
+        case TOK_ADD_D_OPCODE:
           SET_FPR_D(FD(inst), FPR_D(FS(inst)) + FPR_D(FT(inst)));
           /* Should trap on inexact/overflow/underflow */
           break;
 
-        case TOK_BC1F_OP:
-        case TOK_BC1FL_OP:
-        case TOK_BC1T_OP:
-        case TOK_BC1TL_OP: {
+        case TOK_BC1F_OPCODE:
+        case TOK_BC1FL_OPCODE:
+        case TOK_BC1T_OPCODE:
+        case TOK_BC1TL_OPCODE: {
           int cc = CC(inst);
           int nd = ND(inst); /* 1 => nullify */
           int tf = TF(inst); /* 0 => BC1F, 1 => BC1T */
@@ -1035,22 +1035,22 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_C_F_S_OP:
-        case TOK_C_UN_S_OP:
-        case TOK_C_EQ_S_OP:
-        case TOK_C_UEQ_S_OP:
-        case TOK_C_OLT_S_OP:
-        case TOK_C_OLE_S_OP:
-        case TOK_C_ULT_S_OP:
-        case TOK_C_ULE_S_OP:
-        case TOK_C_SF_S_OP:
-        case TOK_C_NGLE_S_OP:
-        case TOK_C_SEQ_S_OP:
-        case TOK_C_NGL_S_OP:
-        case TOK_C_LT_S_OP:
-        case TOK_C_NGE_S_OP:
-        case TOK_C_LE_S_OP:
-        case TOK_C_NGT_S_OP: {
+        case TOK_C_F_S_OPCODE:
+        case TOK_C_UN_S_OPCODE:
+        case TOK_C_EQ_S_OPCODE:
+        case TOK_C_UEQ_S_OPCODE:
+        case TOK_C_OLT_S_OPCODE:
+        case TOK_C_OLE_S_OPCODE:
+        case TOK_C_ULT_S_OPCODE:
+        case TOK_C_ULE_S_OPCODE:
+        case TOK_C_SF_S_OPCODE:
+        case TOK_C_NGLE_S_OPCODE:
+        case TOK_C_SEQ_S_OPCODE:
+        case TOK_C_NGL_S_OPCODE:
+        case TOK_C_LT_S_OPCODE:
+        case TOK_C_NGE_S_OPCODE:
+        case TOK_C_LE_S_OPCODE:
+        case TOK_C_NGT_S_OPCODE: {
           float v1 = FPR_S(FS(inst)), v2 = FPR_S(FT(inst));
           double dv1 = v1, dv2 = v2;
           int cond = COND(inst);
@@ -1066,22 +1066,22 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           }
         } break;
 
-        case TOK_C_F_D_OP:
-        case TOK_C_UN_D_OP:
-        case TOK_C_EQ_D_OP:
-        case TOK_C_UEQ_D_OP:
-        case TOK_C_OLT_D_OP:
-        case TOK_C_OLE_D_OP:
-        case TOK_C_ULT_D_OP:
-        case TOK_C_ULE_D_OP:
-        case TOK_C_SF_D_OP:
-        case TOK_C_NGLE_D_OP:
-        case TOK_C_SEQ_D_OP:
-        case TOK_C_NGL_D_OP:
-        case TOK_C_LT_D_OP:
-        case TOK_C_NGE_D_OP:
-        case TOK_C_LE_D_OP:
-        case TOK_C_NGT_D_OP: {
+        case TOK_C_F_D_OPCODE:
+        case TOK_C_UN_D_OPCODE:
+        case TOK_C_EQ_D_OPCODE:
+        case TOK_C_UEQ_D_OPCODE:
+        case TOK_C_OLT_D_OPCODE:
+        case TOK_C_OLE_D_OPCODE:
+        case TOK_C_ULT_D_OPCODE:
+        case TOK_C_ULE_D_OPCODE:
+        case TOK_C_SF_D_OPCODE:
+        case TOK_C_NGLE_D_OPCODE:
+        case TOK_C_SEQ_D_OPCODE:
+        case TOK_C_NGL_D_OPCODE:
+        case TOK_C_LT_D_OPCODE:
+        case TOK_C_NGE_D_OPCODE:
+        case TOK_C_LE_D_OPCODE:
+        case TOK_C_NGT_D_OPCODE: {
           double v1 = FPR_D(FS(inst)), v2 = FPR_D(FT(inst));
           int cond = COND(inst);
           int cc = CCFP(inst);
@@ -1096,11 +1096,11 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           }
         } break;
 
-        case TOK_CFC1_OP:
+        case TOK_CFC1_OPCODE:
           R[RT(inst)] = FCR[FS(inst)];
           break;
 
-        case TOK_CTC1_OP:
+        case TOK_CTC1_OPCODE:
           FCR[FS(inst)] = R[RT(inst)];
 
           if (FIR_REG == FS(inst)) {
@@ -1112,85 +1112,85 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           }
           break;
 
-        case TOK_CEIL_W_D_OP: {
+        case TOK_CEIL_W_D_OPCODE: {
           double val = FPR_D(FS(inst));
 
           SET_FPR_W(FD(inst), (int32_t)ceil(val));
           break;
         }
 
-        case TOK_CEIL_W_S_OP: {
+        case TOK_CEIL_W_S_OPCODE: {
           double val = (double)FPR_S(FS(inst));
 
           SET_FPR_W(FD(inst), (int32_t)ceil(val));
           break;
         }
 
-        case TOK_CVT_D_S_OP: {
+        case TOK_CVT_D_S_OPCODE: {
           double val = FPR_S(FS(inst));
 
           SET_FPR_D(FD(inst), val);
           break;
         }
 
-        case TOK_CVT_D_W_OP: {
+        case TOK_CVT_D_W_OPCODE: {
           double val = (double)FPR_W(FS(inst));
 
           SET_FPR_D(FD(inst), val);
           break;
         }
 
-        case TOK_CVT_S_D_OP: {
+        case TOK_CVT_S_D_OPCODE: {
           float val = (float)FPR_D(FS(inst));
 
           SET_FPR_S(FD(inst), val);
           break;
         }
 
-        case TOK_CVT_S_W_OP: {
+        case TOK_CVT_S_W_OPCODE: {
           float val = (float)FPR_W(FS(inst));
 
           SET_FPR_S(FD(inst), val);
           break;
         }
 
-        case TOK_CVT_W_D_OP: {
+        case TOK_CVT_W_D_OPCODE: {
           int val = (int32_t)FPR_D(FS(inst));
 
           SET_FPR_W(FD(inst), val);
           break;
         }
 
-        case TOK_CVT_W_S_OP: {
+        case TOK_CVT_W_S_OPCODE: {
           int val = (int32_t)FPR_S(FS(inst));
 
           SET_FPR_W(FD(inst), val);
           break;
         }
 
-        case TOK_DIV_S_OP:
+        case TOK_DIV_S_OPCODE:
           SET_FPR_S(FD(inst), FPR_S(FS(inst)) / FPR_S(FT(inst)));
           break;
 
-        case TOK_DIV_D_OP:
+        case TOK_DIV_D_OPCODE:
           SET_FPR_D(FD(inst), FPR_D(FS(inst)) / FPR_D(FT(inst)));
           break;
 
-        case TOK_FLOOR_W_D_OP: {
+        case TOK_FLOOR_W_D_OPCODE: {
           double val = FPR_D(FS(inst));
 
           SET_FPR_W(FD(inst), (int32_t)floor(val));
           break;
         }
 
-        case TOK_FLOOR_W_S_OP: {
+        case TOK_FLOOR_W_S_OPCODE: {
           double val = (double)FPR_S(FS(inst));
 
           SET_FPR_W(FD(inst), (int32_t)floor(val));
           break;
         }
 
-        case TOK_LDC1_OP: {
+        case TOK_LDC1_OPCODE: {
           mem_addr addr = R[BASE(inst)] + IOFFSET(inst);
           if ((addr & 0x3) != 0)
             RAISE_EXCEPTION(ExcCode_AdEL, CP0_BadVAddr = addr);
@@ -1202,12 +1202,12 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_LWC1_OP:
+        case TOK_LWC1_OPCODE:
           LOAD_INST((reg_word*)&FPR_S(FT(inst)),
                     mem_read_word(R[BASE(inst)] + IOFFSET(inst)), 0xffffffff);
           break;
 
-        case TOK_MFC1_OP: {
+        case TOK_MFC1_OPCODE: {
           float val = FPR_S(FS(inst));
           reg_word* vp = (reg_word*)&val;
 
@@ -1215,71 +1215,71 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_MOV_S_OP:
+        case TOK_MOV_S_OPCODE:
           SET_FPR_S(FD(inst), FPR_S(FS(inst)));
           break;
 
-        case TOK_MOV_D_OP:
+        case TOK_MOV_D_OPCODE:
           SET_FPR_D(FD(inst), FPR_D(FS(inst)));
           break;
 
-        case TOK_MOVF_OP: {
+        case TOK_MOVF_OPCODE: {
           int cc = CC(inst);
           if (FCC(cc) == 0) R[RD(inst)] = R[RS(inst)];
           break;
         }
 
-        case TOK_MOVF_D_OP: {
+        case TOK_MOVF_D_OPCODE: {
           int cc = CC(inst);
           if (FCC(cc) == 0) SET_FPR_D(FD(inst), FPR_D(FS(inst)));
           break;
         }
 
-        case TOK_MOVF_S_OP: {
+        case TOK_MOVF_S_OPCODE: {
           int cc = CC(inst);
           if (FCC(cc) == 0) SET_FPR_S(FD(inst), FPR_S(FS(inst)));
           break;
         }
 
-        case TOK_MOVN_D_OP: {
+        case TOK_MOVN_D_OPCODE: {
           if (R[RT(inst)] != 0) SET_FPR_D(FD(inst), FPR_D(FS(inst)));
           break;
         }
 
-        case TOK_MOVN_S_OP: {
+        case TOK_MOVN_S_OPCODE: {
           if (R[RT(inst)] != 0) SET_FPR_S(FD(inst), FPR_S(FS(inst)));
           break;
         }
 
-        case TOK_MOVT_OP: {
+        case TOK_MOVT_OPCODE: {
           int cc = CC(inst);
           if (FCC(cc) != 0) R[RD(inst)] = R[RS(inst)];
           break;
         }
 
-        case TOK_MOVT_D_OP: {
+        case TOK_MOVT_D_OPCODE: {
           int cc = CC(inst);
           if (FCC(cc) != 0) SET_FPR_D(FD(inst), FPR_D(FS(inst)));
           break;
         }
 
-        case TOK_MOVT_S_OP: {
+        case TOK_MOVT_S_OPCODE: {
           int cc = CC(inst);
           if (FCC(cc) != 0) SET_FPR_S(FD(inst), FPR_S(FS(inst)));
           break;
         }
 
-        case TOK_MOVZ_D_OP: {
+        case TOK_MOVZ_D_OPCODE: {
           if (R[RT(inst)] == 0) SET_FPR_D(FD(inst), FPR_D(FS(inst)));
           break;
         }
 
-        case TOK_MOVZ_S_OP: {
+        case TOK_MOVZ_S_OPCODE: {
           if (R[RT(inst)] == 0) SET_FPR_S(FD(inst), FPR_S(FS(inst)));
           break;
         }
 
-        case TOK_MTC1_OP: {
+        case TOK_MTC1_OPCODE: {
           reg_word word = R[RT(inst)];
           float* wp = (float*)&word;
 
@@ -1287,37 +1287,37 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_MUL_S_OP:
+        case TOK_MUL_S_OPCODE:
           SET_FPR_S(FD(inst), FPR_S(FS(inst)) * FPR_S(FT(inst)));
           break;
 
-        case TOK_MUL_D_OP:
+        case TOK_MUL_D_OPCODE:
           SET_FPR_D(FD(inst), FPR_D(FS(inst)) * FPR_D(FT(inst)));
           break;
 
-        case TOK_NEG_S_OP:
+        case TOK_NEG_S_OPCODE:
           SET_FPR_S(FD(inst), -FPR_S(FS(inst)));
           break;
 
-        case TOK_NEG_D_OP:
+        case TOK_NEG_D_OPCODE:
           SET_FPR_D(FD(inst), -FPR_D(FS(inst)));
           break;
 
-        case TOK_ROUND_W_D_OP: {
+        case TOK_ROUND_W_D_OPCODE: {
           double val = FPR_D(FS(inst));
 
           SET_FPR_W(FD(inst), (int32_t)(val + 0.5)); /* Casting truncates */
           break;
         }
 
-        case TOK_ROUND_W_S_OP: {
+        case TOK_ROUND_W_S_OPCODE: {
           double val = (double)FPR_S(FS(inst));
 
           SET_FPR_W(FD(inst), (int32_t)(val + 0.5)); /* Casting truncates */
           break;
         }
 
-        case TOK_SDC1_OP: {
+        case TOK_SDC1_OPCODE: {
           double val = FPR_D(RT(inst));
           reg_word* vp = (reg_word*)&val;
           mem_addr addr = R[BASE(inst)] + IOFFSET(inst);
@@ -1329,23 +1329,23 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_SQRT_D_OP:
+        case TOK_SQRT_D_OPCODE:
           SET_FPR_D(FD(inst), sqrt(FPR_D(FS(inst))));
           break;
 
-        case TOK_SQRT_S_OP:
+        case TOK_SQRT_S_OPCODE:
           SET_FPR_S(FD(inst), sqrt(FPR_S(FS(inst))));
           break;
 
-        case TOK_SUB_S_OP:
+        case TOK_SUB_S_OPCODE:
           SET_FPR_S(FD(inst), FPR_S(FS(inst)) - FPR_S(FT(inst)));
           break;
 
-        case TOK_SUB_D_OP:
+        case TOK_SUB_D_OPCODE:
           SET_FPR_D(FD(inst), FPR_D(FS(inst)) - FPR_D(FT(inst)));
           break;
 
-        case TOK_SWC1_OP: {
+        case TOK_SWC1_OPCODE: {
           float val = FPR_S(RT(inst));
           reg_word* vp = (reg_word*)&val;
 
@@ -1353,14 +1353,14 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
         }
 
-        case TOK_TRUNC_W_D_OP: {
+        case TOK_TRUNC_W_D_OPCODE: {
           double val = FPR_D(FS(inst));
 
           SET_FPR_W(FD(inst), (int32_t)val); /* Casting truncates */
           break;
         }
 
-        case TOK_TRUNC_W_S_OP: {
+        case TOK_TRUNC_W_S_OPCODE: {
           double val = (double)FPR_S(FS(inst));
 
           SET_FPR_W(FD(inst), (int32_t)val); /* Casting truncates */

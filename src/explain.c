@@ -1332,9 +1332,9 @@ void explain_before(instruction* inst, mem_addr addr) {
      and peek_word would return the new value. */
   snap_has_mem = false;
   switch (OPCODE(inst)) {
-    case TOK_SW_OP:
-    case TOK_SH_OP:
-    case TOK_SB_OP: {
+    case TOK_SW_OPCODE:
+    case TOK_SH_OPCODE:
+    case TOK_SB_OPCODE: {
       int base = BASE(inst);
       short off = (short)IOFFSET(inst);
       snap_mem_addr = (mem_addr)(R[base] + off);
@@ -1474,136 +1474,136 @@ static void lookup_classification(int op, inst_category* cat,
   *cat = CAT_COUNT; /* default = unknown */
   switch (op) {
     /* Arithmetic */
-    case TOK_ADD_OP:
-    case TOK_SUB_OP:
-    case TOK_MUL_OP:
-    case TOK_MULT_OP:
-    case TOK_DIV_OP:
-    case TOK_MFHI_OP:
-    case TOK_MFLO_OP:
+    case TOK_ADD_OPCODE:
+    case TOK_SUB_OPCODE:
+    case TOK_MUL_OPCODE:
+    case TOK_MULT_OPCODE:
+    case TOK_DIV_OPCODE:
+    case TOK_MFHI_OPCODE:
+    case TOK_MFLO_OPCODE:
       *cat = CAT_ARITHMETIC;
       break;
-    case TOK_ADDU_OP:
-    case TOK_SUBU_OP:
-    case TOK_MULTU_OP:
-    case TOK_DIVU_OP:
+    case TOK_ADDU_OPCODE:
+    case TOK_SUBU_OPCODE:
+    case TOK_MULTU_OPCODE:
+    case TOK_DIVU_OPCODE:
       *cat = CAT_ARITHMETIC;
       mods[(*n_mods)++] = MOD_U_UNSIGNED_ARITH;
       break;
-    case TOK_ADDI_OP:
+    case TOK_ADDI_OPCODE:
       *cat = CAT_ARITHMETIC;
       mods[(*n_mods)++] = MOD_I_IMMEDIATE;
       break;
-    case TOK_ADDIU_OP:
+    case TOK_ADDIU_OPCODE:
       *cat = CAT_ARITHMETIC;
       mods[(*n_mods)++] = MOD_I_IMMEDIATE;
       mods[(*n_mods)++] = MOD_U_UNSIGNED_ARITH;
       break;
 
     /* Logical */
-    case TOK_AND_OP:
-    case TOK_OR_OP:
-    case TOK_XOR_OP:
-    case TOK_NOR_OP:
-    case TOK_SLL_OP:
-    case TOK_SRL_OP:
-    case TOK_SRA_OP:
+    case TOK_AND_OPCODE:
+    case TOK_OR_OPCODE:
+    case TOK_XOR_OPCODE:
+    case TOK_NOR_OPCODE:
+    case TOK_SLL_OPCODE:
+    case TOK_SRL_OPCODE:
+    case TOK_SRA_OPCODE:
       *cat = CAT_LOGICAL;
       break;
-    case TOK_ANDI_OP:
-    case TOK_ORI_OP:
-    case TOK_XORI_OP:
+    case TOK_ANDI_OPCODE:
+    case TOK_ORI_OPCODE:
+    case TOK_XORI_OPCODE:
       *cat = CAT_LOGICAL;
       mods[(*n_mods)++] = MOD_I_IMMEDIATE;
       break;
-    case TOK_SLLV_OP:
-    case TOK_SRLV_OP:
-    case TOK_SRAV_OP:
+    case TOK_SLLV_OPCODE:
+    case TOK_SRLV_OPCODE:
+    case TOK_SRAV_OPCODE:
       *cat = CAT_LOGICAL;
       mods[(*n_mods)++] = MOD_V_VARIABLE_SHIFT;
       break;
 
     /* Data transfer */
-    case TOK_LW_OP:
+    case TOK_LW_OPCODE:
       *cat = CAT_DATA_TRANSFER;
       mods[(*n_mods)++] = MOD_W_WORD;
       break;
-    case TOK_LH_OP:
+    case TOK_LH_OPCODE:
       *cat = CAT_DATA_TRANSFER;
       mods[(*n_mods)++] = MOD_H_HALFWORD;
       break;
-    case TOK_LHU_OP:
+    case TOK_LHU_OPCODE:
       *cat = CAT_DATA_TRANSFER;
       mods[(*n_mods)++] = MOD_H_HALFWORD;
       mods[(*n_mods)++] = MOD_U_ZERO_EXTEND;
       break;
-    case TOK_LB_OP:
+    case TOK_LB_OPCODE:
       *cat = CAT_DATA_TRANSFER;
       mods[(*n_mods)++] = MOD_B_BYTE;
       break;
-    case TOK_LBU_OP:
+    case TOK_LBU_OPCODE:
       *cat = CAT_DATA_TRANSFER;
       mods[(*n_mods)++] = MOD_B_BYTE;
       mods[(*n_mods)++] = MOD_U_ZERO_EXTEND;
       break;
-    case TOK_SW_OP:
+    case TOK_SW_OPCODE:
       *cat = CAT_DATA_TRANSFER;
       mods[(*n_mods)++] = MOD_W_WORD;
       break;
-    case TOK_SH_OP:
+    case TOK_SH_OPCODE:
       *cat = CAT_DATA_TRANSFER;
       mods[(*n_mods)++] = MOD_H_HALFWORD;
       break;
-    case TOK_SB_OP:
+    case TOK_SB_OPCODE:
       *cat = CAT_DATA_TRANSFER;
       mods[(*n_mods)++] = MOD_B_BYTE;
       break;
-    case TOK_LUI_OP:
+    case TOK_LUI_OPCODE:
       *cat = CAT_DATA_TRANSFER;
       break;
 
     /* Conditional branch */
-    case TOK_BEQ_OP:
-    case TOK_BNE_OP:
-    case TOK_BGEZ_OP:
-    case TOK_BGTZ_OP:
-    case TOK_BLEZ_OP:
-    case TOK_BLTZ_OP:
-    case TOK_SLT_OP:
+    case TOK_BEQ_OPCODE:
+    case TOK_BNE_OPCODE:
+    case TOK_BGEZ_OPCODE:
+    case TOK_BGTZ_OPCODE:
+    case TOK_BLEZ_OPCODE:
+    case TOK_BLTZ_OPCODE:
+    case TOK_SLT_OPCODE:
       *cat = CAT_COND_BRANCH;
       break;
-    case TOK_SLTU_OP:
+    case TOK_SLTU_OPCODE:
       *cat = CAT_COND_BRANCH;
       mods[(*n_mods)++] = MOD_U_UNSIGNED_ARITH;
       break;
-    case TOK_SLTI_OP:
+    case TOK_SLTI_OPCODE:
       *cat = CAT_COND_BRANCH;
       mods[(*n_mods)++] = MOD_I_IMMEDIATE;
       break;
-    case TOK_SLTIU_OP:
+    case TOK_SLTIU_OPCODE:
       *cat = CAT_COND_BRANCH;
       mods[(*n_mods)++] = MOD_I_IMMEDIATE;
       mods[(*n_mods)++] = MOD_U_UNSIGNED_ARITH;
       break;
-    case TOK_BGEZAL_OP:
-    case TOK_BLTZAL_OP:
+    case TOK_BGEZAL_OPCODE:
+    case TOK_BLTZAL_OPCODE:
       *cat = CAT_COND_BRANCH;
       mods[(*n_mods)++] = MOD_AL_AND_LINK;
       break;
 
     /* Unconditional jump */
-    case TOK_J_OP:
-    case TOK_JR_OP:
+    case TOK_J_OPCODE:
+    case TOK_JR_OPCODE:
       *cat = CAT_UNCOND_JUMP;
       break;
-    case TOK_JAL_OP:
-    case TOK_JALR_OP:
+    case TOK_JAL_OPCODE:
+    case TOK_JALR_OPCODE:
       *cat = CAT_UNCOND_JUMP;
       mods[(*n_mods)++] = MOD_AL_AND_LINK;
       break;
 
     /* System */
-    case TOK_SYSCALL_OP:
+    case TOK_SYSCALL_OPCODE:
       *cat = CAT_SYSTEM;
       break;
   }
@@ -1647,83 +1647,83 @@ static void emit_category_preamble(instruction* inst) {
 static void render_dispatch(int level, instruction* inst) {
   switch (OPCODE(inst)) {
     /* Arithmetic, R-type */
-    case TOK_ADD_OP:
+    case TOK_ADD_OPCODE:
       tpl_r3_arith(level, inst, "Add",
                    "computed $rs + $rt as a signed sum; trapped on overflow");
       break;
-    case TOK_ADDU_OP:
+    case TOK_ADDU_OPCODE:
       tpl_r3_arith(level, inst, "Add Unsigned",
                    "computed $rs + $rt with no overflow trap");
       break;
-    case TOK_SUB_OP:
+    case TOK_SUB_OPCODE:
       tpl_r3_arith(
           level, inst, "Subtract",
           "computed $rs - $rt as a signed difference; trapped on overflow");
       break;
-    case TOK_SUBU_OP:
+    case TOK_SUBU_OPCODE:
       tpl_r3_arith(level, inst, "Subtract Unsigned",
                    "computed $rs - $rt with no overflow trap");
       break;
-    case TOK_AND_OP:
+    case TOK_AND_OPCODE:
       tpl_r3_arith(level, inst, "Bitwise AND",
                    "computed the bitwise AND of $rs and $rt");
       break;
-    case TOK_OR_OP:
+    case TOK_OR_OPCODE:
       tpl_r3_arith(level, inst, "Bitwise OR",
                    "computed the bitwise OR of $rs and $rt");
       break;
-    case TOK_XOR_OP:
+    case TOK_XOR_OPCODE:
       tpl_r3_arith(level, inst, "Bitwise XOR",
                    "computed the bitwise XOR of $rs and $rt");
       break;
-    case TOK_NOR_OP:
+    case TOK_NOR_OPCODE:
       tpl_r3_arith(level, inst, "Bitwise NOR", "computed NOT($rs OR $rt)");
       break;
-    case TOK_SLT_OP:
+    case TOK_SLT_OPCODE:
       tpl_r3_arith(level, inst, "Set on Less Than (signed)",
                    "set the destination to 1 if $rs < $rt (signed), else 0");
       break;
-    case TOK_SLTU_OP:
+    case TOK_SLTU_OPCODE:
       tpl_r3_arith(level, inst, "Set on Less Than (unsigned)",
                    "set the destination to 1 if $rs < $rt (unsigned), else 0");
       break;
-    case TOK_MUL_OP:
+    case TOK_MUL_OPCODE:
       tpl_r3_arith(level, inst, "Multiply (MIPS32)",
                    "computed the low 32 bits of $rs * $rt");
       break;
 
     /* Arithmetic, I-type */
-    case TOK_ADDI_OP:
+    case TOK_ADDI_OPCODE:
       tpl_i2_arith(level, inst, "Add Immediate",
                    "computed $rs + immediate; trapped on overflow");
       break;
-    case TOK_ADDIU_OP:
+    case TOK_ADDIU_OPCODE:
       tpl_i2_arith(level, inst, "Add Immediate Unsigned",
                    "computed $rs + sign-extended immediate, no overflow trap");
       break;
-    case TOK_ANDI_OP:
+    case TOK_ANDI_OPCODE:
       tpl_i2_arith(level, inst, "AND Immediate",
                    "computed $rs AND zero-extended immediate");
       break;
-    case TOK_ORI_OP:
+    case TOK_ORI_OPCODE:
       tpl_i2_arith(level, inst, "OR Immediate",
                    "computed $rs OR zero-extended immediate");
       break;
-    case TOK_XORI_OP:
+    case TOK_XORI_OPCODE:
       tpl_i2_arith(level, inst, "XOR Immediate",
                    "computed $rs XOR zero-extended immediate");
       break;
-    case TOK_SLTI_OP:
+    case TOK_SLTI_OPCODE:
       tpl_i2_arith(level, inst, "Set Less Than Immediate (signed)",
                    "set destination to 1 if $rs < imm (signed)");
       break;
-    case TOK_SLTIU_OP:
+    case TOK_SLTIU_OPCODE:
       tpl_i2_arith(level, inst, "Set Less Than Immediate (unsigned)",
                    "set destination to 1 if $rs < imm (unsigned)");
       break;
 
     /* LUI is special: I1t-type, only writes high bits. */
-    case TOK_LUI_OP: {
+    case TOK_LUI_OPCODE: {
       int rt = RT(inst);
       short imm = (short)IMM(inst);
       write_output(message_out, "  What it did:\n");
@@ -1745,7 +1745,7 @@ static void render_dispatch(int level, instruction* inst) {
     }
 
     /* Shifts */
-    case TOK_SLL_OP:
+    case TOK_SLL_OPCODE:
       if (RD(inst) == 0 && RT(inst) == 0 && SHAMT(inst) == 0) {
         /* nop = sll $0, $0, 0 */
         write_output(message_out, "  What it did:\n");
@@ -1765,42 +1765,42 @@ static void render_dispatch(int level, instruction* inst) {
                   "shifted $rt left, filling with 0");
       }
       break;
-    case TOK_SRL_OP:
+    case TOK_SRL_OPCODE:
       tpl_shift(level, inst, "Shift Right Logical",
                 "shifted $rt right, filling with 0");
       break;
-    case TOK_SRA_OP:
+    case TOK_SRA_OPCODE:
       tpl_shift(level, inst, "Shift Right Arithmetic",
                 "shifted $rt right, filling with the sign bit");
       break;
 
     /* Loads */
-    case TOK_LW_OP:
+    case TOK_LW_OPCODE:
       tpl_load(level, inst, "Load Word", "a 32-bit word", 4);
       break;
-    case TOK_LB_OP:
+    case TOK_LB_OPCODE:
       tpl_load(level, inst, "Load Byte (signed)", "one byte, sign-extended", 1);
       break;
-    case TOK_LBU_OP:
+    case TOK_LBU_OPCODE:
       tpl_load(level, inst, "Load Byte Unsigned", "one byte, zero-extended", 1);
       break;
-    case TOK_LH_OP:
+    case TOK_LH_OPCODE:
       tpl_load(level, inst, "Load Halfword (signed)", "16 bits, sign-extended",
                2);
       break;
-    case TOK_LHU_OP:
+    case TOK_LHU_OPCODE:
       tpl_load(level, inst, "Load Halfword Unsigned", "16 bits, zero-extended",
                2);
       break;
 
     /* Stores */
-    case TOK_SW_OP:
+    case TOK_SW_OPCODE:
       tpl_store(level, inst, "Store Word", "the 32-bit value", 4);
       break;
-    case TOK_SB_OP:
+    case TOK_SB_OPCODE:
       tpl_store(level, inst, "Store Byte", "the low 8 bits", 1);
       break;
-    case TOK_SH_OP:
+    case TOK_SH_OPCODE:
       tpl_store(level, inst, "Store Halfword", "the low 16 bits", 2);
       break;
 
@@ -1808,34 +1808,34 @@ static void render_dispatch(int level, instruction* inst) {
        time the template runs, an instruction like `beq $t0, $t0, ...`
        has already executed (though it would not have modified rs/rt
        anyway). */
-    case TOK_BEQ_OP:
+    case TOK_BEQ_OPCODE:
       tpl_branch_2reg(level, inst, "Branch if Equal",
                       "==", snap_R[RS(inst)] == snap_R[RT(inst)]);
       break;
-    case TOK_BNE_OP:
+    case TOK_BNE_OPCODE:
       tpl_branch_2reg(level, inst, "Branch if Not Equal",
                       "!=", snap_R[RS(inst)] != snap_R[RT(inst)]);
       break;
-    case TOK_BGEZ_OP:
+    case TOK_BGEZ_OPCODE:
       tpl_branch_1reg(level, inst, "Branch if Greater or Equal Zero",
                       ">=", (reg_word)snap_R[RS(inst)] >= 0);
       break;
-    case TOK_BGTZ_OP:
+    case TOK_BGTZ_OPCODE:
       tpl_branch_1reg(level, inst, "Branch if Greater Than Zero", ">",
                       (reg_word)snap_R[RS(inst)] > 0);
       break;
-    case TOK_BLEZ_OP:
+    case TOK_BLEZ_OPCODE:
       tpl_branch_1reg(level, inst, "Branch if Less or Equal Zero",
                       "<=", (reg_word)snap_R[RS(inst)] <= 0);
       break;
-    case TOK_BLTZ_OP:
+    case TOK_BLTZ_OPCODE:
       tpl_branch_1reg(level, inst, "Branch if Less Than Zero", "<",
                       (reg_word)snap_R[RS(inst)] < 0);
       break;
 
     /* Jumps. PC change is captured by the side-effect fallback at the
        end of explain_after, so per-jump templates don't repeat it. */
-    case TOK_J_OP: {
+    case TOK_J_OPCODE: {
       mem_addr target = TARGET(inst) << 2;
       write_output(message_out, "  What it did:\n");
       write_output(message_out, "    Jumped unconditionally to 0x%08x.\n",
@@ -1846,7 +1846,7 @@ static void render_dispatch(int level, instruction* inst) {
       }
       break;
     }
-    case TOK_JAL_OP: {
+    case TOK_JAL_OPCODE: {
       mem_addr target = TARGET(inst) << 2;
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
@@ -1864,7 +1864,7 @@ static void render_dispatch(int level, instruction* inst) {
       }
       break;
     }
-    case TOK_JR_OP: {
+    case TOK_JR_OPCODE: {
       int rs = RS(inst);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
@@ -1879,7 +1879,7 @@ static void render_dispatch(int level, instruction* inst) {
       }
       break;
     }
-    case TOK_JALR_OP: {
+    case TOK_JALR_OPCODE: {
       int rd = RD(inst), rs = RS(inst);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
@@ -1898,7 +1898,7 @@ static void render_dispatch(int level, instruction* inst) {
     }
 
     /* HI / LO */
-    case TOK_MFHI_OP: {
+    case TOK_MFHI_OPCODE: {
       int rd = RD(inst);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
@@ -1916,7 +1916,7 @@ static void render_dispatch(int level, instruction* inst) {
       }
       break;
     }
-    case TOK_MFLO_OP: {
+    case TOK_MFLO_OPCODE: {
       int rd = RD(inst);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
@@ -1934,7 +1934,7 @@ static void render_dispatch(int level, instruction* inst) {
       }
       break;
     }
-    case TOK_MULT_OP: {
+    case TOK_MULT_OPCODE: {
       int rs = RS(inst), rt = RT(inst);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
@@ -1955,7 +1955,7 @@ static void render_dispatch(int level, instruction* inst) {
       }
       break;
     }
-    case TOK_DIV_OP: {
+    case TOK_DIV_OPCODE: {
       int rs = RS(inst), rt = RT(inst);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
@@ -1973,7 +1973,7 @@ static void render_dispatch(int level, instruction* inst) {
       }
       break;
     }
-    case TOK_MULTU_OP: {
+    case TOK_MULTU_OPCODE: {
       int rs = RS(inst), rt = RT(inst);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
@@ -1994,7 +1994,7 @@ static void render_dispatch(int level, instruction* inst) {
       }
       break;
     }
-    case TOK_DIVU_OP: {
+    case TOK_DIVU_OPCODE: {
       int rs = RS(inst), rt = RT(inst);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
@@ -2015,7 +2015,7 @@ static void render_dispatch(int level, instruction* inst) {
     }
 
     /* Syscall */
-    case TOK_SYSCALL_OP:
+    case TOK_SYSCALL_OPCODE:
       explain_syscall(level);
       break;
 
@@ -2105,11 +2105,11 @@ void explain_after(instruction* inst) {
        is technically true but easy to misread as "nothing happened."
        Annotate explicitly. */
     switch (OPCODE(inst)) {
-      case TOK_LW_OP:
-      case TOK_LB_OP:
-      case TOK_LBU_OP:
-      case TOK_LH_OP:
-      case TOK_LHU_OP: {
+      case TOK_LW_OPCODE:
+      case TOK_LB_OPCODE:
+      case TOK_LBU_OPCODE:
+      case TOK_LH_OPCODE:
+      case TOK_LHU_OPCODE: {
         int rt = RT(inst);
         if (rt != 0 && snap_R[rt] == R[rt]) {
           write_output(message_out,
