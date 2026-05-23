@@ -20,8 +20,11 @@ pseudo-op header being 4× the size of plain instruction blocks.
 - **`explain-mode-consistency-audit.md`** — final-state summary
   covering the seven items, what fixed each, the per-level
   spread numbers before and after (L1 hit the 1.5× target;
-  L2-L4 modestly improved), and the deferred cross-mnemonic
-  template-shape normalization.
+  L2-L4 modestly improved), the deferred cross-mnemonic
+  template-shape normalization, and a followup round on branch
+  `moreExplainModeUpdates` that trimmed the repetitive
+  family-enumeration anti-pattern in category and modifier
+  descriptions (~5% additional L2 reduction).
 
 Files updated: `src/explain.c` and `tests/tt.explain.expected`.
 

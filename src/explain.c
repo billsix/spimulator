@@ -939,6 +939,32 @@ static void write_bits(char* out, uint32_t val, int hi, int lo) {
   out[width] = '\0';
 }
 
+/* Render an 8-column hex/binary table showing the 32-bit encoding
+   broken into nibbles.  Row 1 is the hex digit, row 2 is its 4-bit
+   binary equivalent.  Helps students trace `0x0c10000a` back to
+   the bits the CPU's decoder actually sees.
+
+   The nibble boundaries don't align with MIPS field boundaries
+   (e.g. the 6-bit opcode crosses two nibbles); the field-layout box
+   below this table shows the field-aligned grouping. */
+static void render_hex_bin_table(uint32_t enc) {
+  char n[8][5];
+  for (int i = 0; i < 8; i++) {
+    int hi = 31 - 4 * i;
+    write_bits(n[i], enc, hi, hi - 3);
+  }
+  write_output(
+      message_out,
+      "    ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┐\n"
+      "    │ hex │  %x  │  %x  │  %x  │  %x  │  %x  │  %x  │  %x  │  %x  │\n"
+      "    ├─────┼─────┼─────┼─────┼─────┼─────┼─────┼─────┼─────┤\n"
+      "    │ bin │%s │%s │%s │%s │%s │%s │%s │%s │\n"
+      "    └─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘\n",
+      (enc >> 28) & 0xf, (enc >> 24) & 0xf, (enc >> 20) & 0xf,
+      (enc >> 16) & 0xf, (enc >> 12) & 0xf, (enc >> 8) & 0xf, (enc >> 4) & 0xf,
+      enc & 0xf, n[0], n[1], n[2], n[3], n[4], n[5], n[6], n[7]);
+}
+
 static void render_r_layout(uint32_t enc, const char* mnemonic) {
   char b_op[7], b_rs[6], b_rt[6], b_rd[6], b_sh[6], b_fn[7];
   write_bits(b_op, enc, 31, 26);
@@ -958,8 +984,9 @@ static void render_r_layout(uint32_t enc, const char* mnemonic) {
                       : (op == 0x1f) ? "SPECIAL3"
                                      : "?";
 
+  write_output(message_out, "  Bit layout (R-type, encoding 0x%08x):\n", enc);
+  render_hex_bin_table(enc);
   write_output(message_out,
-               "  Bit layout (R-type, encoding 0x%08x):\n"
                "     31    26 25  21 20  16 15  11 10   6 5     0\n"
                "    ┌────────┬───────┬───────┬───────┬───────┬────────┐\n"
                "    │ %s │ %s │ %s │ %s │ %s │ %s │\n"
@@ -968,7 +995,7 @@ static void render_r_layout(uint32_t enc, const char* mnemonic) {
                "       = %-2d   = $%-4s = $%-4s = $%-4s   = %-2d    = 0x%02x\n"
                "    -> opcode=0x%02x (%s) tells the CPU to look at funct;\n"
                "       funct=0x%02x selects the `%s` instruction.\n",
-               enc, b_op, b_rs, b_rt, b_rd, b_sh, b_fn, op, int_reg_names[rs],
+               b_op, b_rs, b_rt, b_rd, b_sh, b_fn, op, int_reg_names[rs],
                int_reg_names[rt], int_reg_names[rd], shamt, funct, op, group,
                funct, mnemonic);
 }
@@ -985,8 +1012,9 @@ static void render_i_layout(uint32_t enc, const char* mnemonic) {
   int16_t imm_s = (int16_t)(enc & 0xffff);
   uint16_t imm_u = (uint16_t)(enc & 0xffff);
 
+  write_output(message_out, "  Bit layout (I-type, encoding 0x%08x):\n", enc);
+  render_hex_bin_table(enc);
   write_output(message_out,
-               "  Bit layout (I-type, encoding 0x%08x):\n"
                "     31    26 25  21 20  16 15                 0\n"
                "    ┌────────┬───────┬───────┬──────────────────┐\n"
                "    │ %s │ %s │ %s │ %s │\n"
@@ -994,8 +1022,8 @@ static void render_i_layout(uint32_t enc, const char* mnemonic) {
                "      opcode    rs      rt        immediate (16-bit)\n"
                "      = 0x%02x  = $%-4s = $%-4s   = %d  (signed) / 0x%04x\n"
                "    -> opcode=0x%02x selects the `%s` instruction.\n",
-               enc, b_op, b_rs, b_rt, b_im, op, int_reg_names[rs],
-               int_reg_names[rt], (int)imm_s, imm_u, op, mnemonic);
+               b_op, b_rs, b_rt, b_im, op, int_reg_names[rs], int_reg_names[rt],
+               (int)imm_s, imm_u, op, mnemonic);
 }
 
 static void render_j_layout(uint32_t enc, const char* mnemonic) {
@@ -1005,8 +1033,9 @@ static void render_j_layout(uint32_t enc, const char* mnemonic) {
   int op = (enc >> 26) & 0x3f;
   uint32_t target = enc & 0x03ffffff;
 
+  write_output(message_out, "  Bit layout (J-type, encoding 0x%08x):\n", enc);
+  render_hex_bin_table(enc);
   write_output(message_out,
-               "  Bit layout (J-type, encoding 0x%08x):\n"
                "     31    26 25                          0\n"
                "    ┌────────┬────────────────────────────┐\n"
                "    │ %s │ %s │\n"
@@ -1015,8 +1044,8 @@ static void render_j_layout(uint32_t enc, const char* mnemonic) {
                "      = 0x%02x  = 0x%07x  ->  jump addr = (PC[31:28] | "
                "target<<2) = 0x%08x\n"
                "    -> opcode=0x%02x selects the `%s` instruction.\n",
-               enc, b_op, b_tg, op, target,
-               (snap_PC & 0xf0000000u) | (target << 2), op, mnemonic);
+               b_op, b_tg, op, target, (snap_PC & 0xf0000000u) | (target << 2),
+               op, mnemonic);
 }
 
 static void explain_bit_layout(mips_instruction* instruction) {
@@ -1339,7 +1368,9 @@ static void explain_decoding_steps(mips_instruction* instruction) {
   const char* mnemonic = inst_op_name(instruction);
   int op = (enc >> 26) & 0x3f;
 
-  write_output(message_out, "  Decoding 0x%08x step by step:\n\n", enc);
+  write_output(message_out, "  Decoding 0x%08x step by step:\n", enc);
+  render_hex_bin_table(enc);
+  write_output(message_out, "\n");
 
   if (op == 0x00 || op == 0x1c || op == 0x1f) {
     const char* group = (op == 0x00)   ? "SPECIAL"
@@ -1454,29 +1485,26 @@ static const char* category_names[CAT_COUNT] = {
     [CAT_SYSTEM] = "System / coprocessor",
 };
 
+/* Category descriptions are intentionally short — they say what
+   defines the family, not which instructions are in it.  Listing
+   members (e.g. "Includes direct jumps, register-indirect jumps...")
+   was useful when these were shown once per session, but Phase C
+   made the category preamble always-on, and the member enumeration
+   becomes noise on every specific instruction the student looks at.
+   Keep each description one conceptual sentence. */
 static const char* category_descriptions[CAT_COUNT] = {
-    [CAT_ARITHMETIC] =
-        "Integer math on registers. Includes add/sub/mul/div and\n"
-        "    their immediate variants. (COD §2.2.)",
-    [CAT_LOGICAL] =
-        "Bitwise operations (AND, OR, XOR, NOR) and shifts (left,\n"
-        "    right-logical, right-arithmetic). (COD §2.6.)",
+    [CAT_ARITHMETIC] = "Integer math on registers. (COD §2.2.)",
+    [CAT_LOGICAL] = "Bitwise operations and shifts. (COD §2.6.)",
     [CAT_DATA_TRANSFER] =
-        "Move data between registers and memory. MIPS is a load/store\n"
-        "    architecture — math never operates on memory directly.\n"
-        "    Includes `lui` for constructing 32-bit constants and\n"
-        "    addresses. (COD §2.3 and §2.9.)",
+        "Move data between registers and memory.  MIPS is\n"
+        "    load/store — math never operates on memory directly.\n"
+        "    (COD §2.3, §2.9.)",
     [CAT_COND_BRANCH] =
         "Test a condition; if true, transfer PC to a labeled target.\n"
-        "    Also includes the set-less-than family (slt/slti) used to\n"
-        "    build compound comparisons. (COD §2.7.)",
+        "    (COD §2.7.)",
     [CAT_UNCOND_JUMP] =
-        "Transfer PC unconditionally — no condition test. Includes\n"
-        "    direct jumps, register-indirect jumps, and the and-link\n"
-        "    variants used for subroutine calls. (COD §2.8.)",
-    [CAT_SYSTEM] =
-        "Operating-system services and miscellaneous control. The\n"
-        "    `syscall` instruction in particular dispatches on $v0.",
+        "Transfer PC unconditionally — no condition test. (COD §2.8.)",
+    [CAT_SYSTEM] = "Operating-system services and miscellaneous control.",
 };
 
 static const char* modifier_letters[MOD_COUNT] = {
@@ -1490,14 +1518,10 @@ static const char* modifier_letters[MOD_COUNT] = {
 static const char* modifier_descriptions[MOD_COUNT] = {
     [MOD_U_UNSIGNED_ARITH] =
         "unsigned: no trap on overflow. The plain (no-`u`) form\n"
-        "          traps on overflow; the `u` form silently wraps.\n"
-        "          Note: `u` means different things in different\n"
-        "          contexts — see the load modifiers.",
+        "          traps on overflow; the `u` form silently wraps.",
     [MOD_U_ZERO_EXTEND] =
         "unsigned: zero-extend the loaded value to 32 bits. The\n"
-        "          plain (no-`u`) load sign-extends instead. Affects\n"
-        "          how `lbu`/`lhu` interpret the high bit of the\n"
-        "          byte/halfword they read.",
+        "          plain (no-`u`) load sign-extends instead.",
     [MOD_I_IMMEDIATE] =
         "immediate form: one operand is a 16-bit constant baked\n"
         "          into the instruction word, not a register. Lets\n"
@@ -1517,14 +1541,11 @@ static const char* modifier_descriptions[MOD_COUNT] = {
         "          effective address must be a multiple of 4.",
     [MOD_H_HALFWORD] =
         "halfword width: the load/store transfers 16 bits.  The\n"
-        "          effective address must be a multiple of 2.  Plain\n"
-        "          (no-`u`) loads sign-extend the high bit to fill\n"
-        "          the register.",
+        "          effective address must be a multiple of 2.",
     [MOD_B_BYTE] =
         "byte width: the load/store transfers 8 bits — the smallest\n"
         "          addressable unit on MIPS.  No alignment\n"
-        "          requirement.  Plain (no-`u`) loads sign-extend\n"
-        "          the high bit to fill the register.",
+        "          requirement.",
     [MOD_L_LIKELY] =
         "likely: if the branch is not taken, the instruction in the\n"
         "          delay slot is NOT executed (\"nullified\").  The\n"
