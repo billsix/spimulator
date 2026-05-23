@@ -17,6 +17,7 @@
 #include "parser.h"
 #include "scanner.h"
 #include "tokens.h"
+#include "op-types.h"
 #include "data.h"
 #include "asm_event.h"
 

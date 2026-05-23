@@ -159,28 +159,30 @@ extern int first_bad_exception;
     CP0_Cause &= ~(1 << ((LEVEL) + 8));               \
   } while (0)
 
-/* Recognized exceptions: */
-
-#define ExcCode_Int 0       /* Interrupt */
-#define ExcCode_Mod 1       /* TLB modification (not implemented) */
-#define ExcCode_TLBL 2      /* TLB exception (not implemented) */
-#define ExcCode_TLBS 3      /* TLB exception (not implemented) */
-#define ExcCode_AdEL 4      /* Address error (load/fetch) */
-#define ExcCode_AdES 5      /* Address error (store) */
-#define ExcCode_IBE 6       /* Bus error, instruction fetch */
-#define ExcCode_DBE 7       /* Bus error, data reference */
-#define ExcCode_Sys 8       /* Syscall exception */
-#define ExcCode_Bp 9        /* Breakpoint exception */
-#define ExcCode_RI 10       /* Reserve instruction */
-#define ExcCode_CpU 11      /* Coprocessor unusable */
-#define ExcCode_Ov 12       /* Arithmetic overflow */
-#define ExcCode_Tr 13       /* Trap */
-#define ExcCode_FPE 15      /* Floating point */
-#define ExcCode_C2E 18      /* Coprocessor 2 (not impelemented) */
-#define ExcCode_MDMX 22     /* MDMX unusable (not implemented) */
-#define ExcCode_WATCH 23    /* Reference to Watch (not impelemented) */
-#define ExcCode_MCheck 24   /* Machine check (not implemented) */
-#define ExcCode_CacheErr 30 /* Cache error (not impelemented) */
+/* Recognized exceptions.  Values from the MIPS32 Cause register's
+   ExcCode field, sparse 0..30.  uint8_t-backed since values fit. */
+typedef enum mips_exc_code : uint8_t {
+  ExcCode_Int = 0,       /* Interrupt */
+  ExcCode_Mod = 1,       /* TLB modification (not implemented) */
+  ExcCode_TLBL = 2,      /* TLB exception (not implemented) */
+  ExcCode_TLBS = 3,      /* TLB exception (not implemented) */
+  ExcCode_AdEL = 4,      /* Address error (load/fetch) */
+  ExcCode_AdES = 5,      /* Address error (store) */
+  ExcCode_IBE = 6,       /* Bus error, instruction fetch */
+  ExcCode_DBE = 7,       /* Bus error, data reference */
+  ExcCode_Sys = 8,       /* Syscall exception */
+  ExcCode_Bp = 9,        /* Breakpoint exception */
+  ExcCode_RI = 10,       /* Reserve instruction */
+  ExcCode_CpU = 11,      /* Coprocessor unusable */
+  ExcCode_Ov = 12,       /* Arithmetic overflow */
+  ExcCode_Tr = 13,       /* Trap */
+  ExcCode_FPE = 15,      /* Floating point */
+  ExcCode_C2E = 18,      /* Coprocessor 2 (not implemented) */
+  ExcCode_MDMX = 22,     /* MDMX unusable (not implemented) */
+  ExcCode_WATCH = 23,    /* Reference to Watch (not implemented) */
+  ExcCode_MCheck = 24,   /* Machine check (not implemented) */
+  ExcCode_CacheErr = 30, /* Cache error (not implemented) */
+} mips_exc_code;
 
 /* Fields in binary representation of instructions: */
 
@@ -232,7 +234,7 @@ void r_co_type_inst(int opcode, int fd, int fs, int ft);
 void r_cond_type_inst(int opcode, int fs, int ft, int cc);
 void r_sh_type_inst(int opcode, int rd, int rt, int shamt);
 void r_type_inst(int opcode, int rd, int rs, int rt);
-void raise_exception(int excode);
+void raise_exception(mips_exc_code excode);
 [[nodiscard]] instruction* set_breakpoint(mem_addr addr);
 void test_assembly(instruction* inst);
 void text_begins_at_point(mem_addr addr);

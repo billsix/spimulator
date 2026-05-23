@@ -4,50 +4,15 @@
    SPDX-License-Identifier: BSD-3-Clause
    See LICENSE in the project root for full text. */
 
-/* op.h is intentionally an X-macro: it must be re-includable so a single
-   translation unit can build several different tables (name_tbl,
-   i_opcode_tbl, a_opcode_tbl) by redefining OP() each time. The type-macro
-   definitions below are guarded so they don't redefine on subsequent
-   includes; the OP() list itself is left outside the guard. */
-
-#ifndef OP_H_TYPES
-#define OP_H_TYPES
-
-/* Type of each entry: */
-
-#define ASM_DIR 0
-#define PSEUDO_OP 1
-
-#define BC_TYPE_INST 10
-#define B1_TYPE_INST 11
-#define I1s_TYPE_INST 12
-#define I1t_TYPE_INST 13
-#define I2_TYPE_INST 14
-#define B2_TYPE_INST 15
-#define I2a_TYPE_INST 16
-
-#define R1s_TYPE_INST 20
-#define R1d_TYPE_INST 21
-#define R2st_TYPE_INST 22
-#define R2ds_TYPE_INST 23
-#define R2td_TYPE_INST 24
-#define R2sh_TYPE_INST 25
-#define R3_TYPE_INST 26
-#define R3sh_TYPE_INST 27
-
-#define FP_I2a_TYPE_INST 30
-#define FP_R2ds_TYPE_INST 31
-#define FP_R2ts_TYPE_INST 32
-#define FP_CMP_TYPE_INST 33
-#define FP_R3_TYPE_INST 34
-#define FP_R4_TYPE_INST 35
-#define FP_MOVC_TYPE_INST 36
-#define MOVC_TYPE_INST 37
-
-#define J_TYPE_INST 40
-#define NOARG_TYPE_INST 42
-
-#endif /* OP_H_TYPES */
+/* op.h is intentionally pure X-macro content: it must be re-includable
+   so a single translation unit can build several different tables
+   (name_tbl, i_opcode_tbl, a_opcode_tbl) by redefining OP() each
+   time.  No header guard, no typedefs, no #defines — anything stateful
+   would break either re-inclusion (typedef redefinition) or use inside
+   another enum body (tokens.h's TOK_* enum #include's this file inside
+   its braces).  The type-tag names (BC_TYPE_INST etc.) referenced in
+   the third argument of each OP() live in op-types.h; include that
+   header before any OP() definition that uses the tags. */
 
 /* Information on each keyword token that can be read by spim.	Must be
    sorted in alphabetical order. */

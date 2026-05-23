@@ -16,6 +16,7 @@
 #include "sym-tbl.h"    /* label_is_defined */
 #include "scanner.h"    /* scan_value, line_no */
 #include "tokens.h"     /* TOK_* token values */
+#include "op-types.h"   /* op_type tag enumerators (ASM_DIR, R3_TYPE_INST, ...) */
 
 /* Runtime-visible globals. */
 int line_no = 1;

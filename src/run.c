@@ -1510,7 +1510,7 @@ static void set_fpu_cc(int cond, int cc, int less, int equal, int unordered) {
   SET_FCC(cc, result);
 }
 
-void raise_exception(int excode) {
+void raise_exception(mips_exc_code excode) {
   if (ExcCode_Int != excode ||
       ((CP0_Status & CP0_Status_IE) /* Allow interrupt if IE and !EXL */
        && !(CP0_Status & CP0_Status_EXL))) {
