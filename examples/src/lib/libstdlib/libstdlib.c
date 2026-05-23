@@ -1,0 +1,136 @@
+/* libstdlib.c — atoi (and, as the library grows, the rest of
+ * <stdlib.h>'s teaching subset: abs, labs, bsearch, _Exit).
+ *
+ * Adapted from musl libc (src/stdlib/atoi.c initially).
+ *   musl:    https://musl.libc.org/
+ *   License: MIT — see LICENSE-musl in this directory.
+ */
+
+#include "libstdlib.h"
+#include "libctype.h"
+#include "os.h"
+
+/* atoi(s) — parse a leading optional sign and decimal digits
+ * from s; return the int value.
+ *
+ * Adapted from musl src/stdlib/atoi.c.
+ *
+ * Notes mirrored from musl's source:
+ * - Skip leading whitespace (POSIX-ish; older C atoi sometimes
+ *   didn't, but musl's does).
+ * - Accept one optional sign char ('+' or '-').  The C switch
+ *   uses fallthrough to consume the sign char in both cases.
+ * - **Compute n as a negative number** to avoid overflow on
+ *   INT_MIN — if you computed positively and negated at the end,
+ *   "-2147483648" would overflow during the positive accumulation
+ *   step.
+ * - Stop at the first non-digit; no error reporting (matches the
+ *   C99 spec for atoi).
+ */
+int atoi(const char* s) {
+  int n = 0, neg = 0;
+  while (isspace(*s)) s++;
+  switch (*s) {
+    case '-':
+      neg = 1;
+      /* fallthrough */
+    case '+':
+      s++;
+  }
+  while (isdigit(*s)) n = 10 * n - (*s++ - '0');
+  return neg ? n : -n;
+}
+
+/* absolute(x) — absolute value of an int.
+ *
+ * Equivalent to libc's abs(int).  Renamed in this library
+ * because `abs` is a reserved MIPS pseudoinstruction in spim
+ * and using it as a label fails to parse; we keep the C and
+ * asm sides under one consistent name.  See libstdlib.h.
+ *
+ * Adapted from musl src/stdlib/abs.c — same algorithm.
+ *
+ * Note on the INT_MIN edge case: abs(INT_MIN) is undefined
+ * behavior in standard C because -INT_MIN can't be represented
+ * as int (the positive range is one short).  In two's complement
+ * (which spim and every real MIPS use), -INT_MIN wraps back to
+ * INT_MIN, so absolute(-2147483648) returns -2147483648.  Same
+ * wrinkle in the asm. */
+int absolute(int x) { return x > 0 ? x : -x; }
+
+/* labsolute(x) — absolute value of a long.
+ *
+ * Equivalent to libc's labs(long).  On MIPS32, `long` is 32
+ * bits (same as int), so labsolute is algorithmically and
+ * structurally identical to absolute.  The asm version uses a
+ * single shared body — `labsolute` falls through to `absolute`.
+ *
+ * Adapted from musl src/stdlib/labs.c. */
+long labsolute(long x) { return x > 0 ? x : -x; }
+
+/* _Exit(status) — terminate immediately with the given exit status.
+ *
+ * Adapted from musl src/exit/_Exit.c (which on Linux is essentially
+ * a one-line syscall wrapper).  In this freestanding curriculum we
+ * route through os_exit() from os.h — that hides the per-arch
+ * inline-asm details (x86_64 uses syscall #60, i386 uses int 0x80
+ * with eax=1, etc.) behind a single portable name.  os_exit is
+ * itself __attribute__((noreturn)), so the compiler can verify
+ * that we never fall off the end of _Exit. */
+__attribute__((noreturn)) void _Exit(int status) { os_exit(status); }
+
+/* bsearch(key, base, nel, width, cmp) — classic binary search.
+ *
+ * Adapted from musl src/stdlib/bsearch.c (algorithm unchanged;
+ * size_t → unsigned to avoid pulling in <stddef.h> in the
+ * freestanding build).
+ *
+ * Returns pointer to the matching element, or NULL.  Calls cmp
+ * exactly O(log2 nel) times.  Behavior with duplicate keys is
+ * implementation-defined (POSIX): you get a pointer to ONE of
+ * the matching elements, not necessarily the first or last. */
+void* bsearch(const void* key, const void* base, unsigned nel, unsigned width,
+              int (*cmp)(const void*, const void*)) {
+  while (nel > 0) {
+    void* try = (char*)base + width * (nel / 2);
+    int sign = cmp(key, try);
+    if (sign < 0) {
+      nel /= 2;
+    } else if (sign > 0) {
+      base = (char*)try + width;
+      nel -= nel / 2 + 1;
+    } else {
+      return try;
+    }
+  }
+  return 0;
+}
+
+/* atexit / exit — the cleanup-on-exit chain.
+ *
+ * Adapted from musl src/exit/atexit.c + exit.c.  musl's versions
+ * are much heavier — they manage locks, weak aliases, thread-
+ * local data, the __cxa_atexit chain, and the stdio flush hook.
+ * None of that exists in this freestanding lib; what's left is
+ * the LIFO function-pointer table plus a walk that calls each
+ * entry via `jalr` (the asm side's pedagogical hook).
+ *
+ * MAX_ATEXIT = 32 is the C99 minimum portable count.  Plenty
+ * for any teaching demo. */
+#define MAX_ATEXIT 32
+static void (*handlers[MAX_ATEXIT])(void);
+static int handler_count = 0;
+
+int atexit(void (*fn)(void)) {
+  if (handler_count >= MAX_ATEXIT) return -1;
+  handlers[handler_count++] = fn;
+  return 0;
+}
+
+__attribute__((noreturn)) void exit(int status) {
+  /* POSIX: handlers run in reverse registration order (LIFO). */
+  for (int i = handler_count - 1; i >= 0; i--) {
+    handlers[i]();
+  }
+  _Exit(status);
+}

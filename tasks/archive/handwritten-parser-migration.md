@@ -348,7 +348,7 @@ Scaffolding + pilot subset + parity harness all landed.
 | `test_branch.s` | beq/bne with labels (the 25-conflict case) |
 | `test_loadstore.s` | lw/lb/sw with label addresses + `.word`/`.asciiz` |
 | `test_minimal_data.s` | `.data` segment + label + `.word` |
-| `/examples/src/00-exit/00-exit.asm` | The PGU-style "set status, exit" demo |
+| `examples/src/00-exit/00-exit.asm` | The PGU-style "set status, exit" demo |
 
 All pass `parity-harness.sh` — byte-for-byte identical assembled
 output through both parsers.  The first curriculum demo flows
@@ -490,7 +490,7 @@ project is a foot-gun.
 
 ### Parity results
 
-- **`/examples/src/*/*.asm`: 44 / 44 demos pass byte-for-byte
+- **`examples/src/*/*.asm`: 44 / 44 demos pass byte-for-byte
   parity.** Every curriculum demo flows through the
   hand-written parser correctly.
 - **`/spimulator/tests/tt.*.s`: 10 / 19 pass parity.** The
@@ -710,7 +710,7 @@ build as the fallback (`-parser=bison`).
 
 ### Verification (under new default)
 
-- `/examples/src/*/*.asm`: **44 / 44 demos pass parity**
+- `examples/src/*/*.asm`: **44 / 44 demos pass parity**
   (hand byte-identical to bison output).
 - `/spimulator/tests/tt.*.s`: **10 / 19 pass parity**;
   remaining 9 use FP family / coproc / TLB / unaligned-load
@@ -720,7 +720,7 @@ build as the fallback (`-parser=bison`).
   rejects), OR fail under hand with "parse error" — in both
   cases users can fall back with `-parser=bison`.
 - All existing curriculum runtime tests still green
-  (`/examples/src/06-fizzbuzz 5` etc.).
+  (`examples/src/06-fizzbuzz 5` etc.).
 - Existing `/spimulator/tests/tt.*.s` tests green under
   default: `tt.octal_escape`, `tt.return_value`,
   `tt.unaligned`, `tt.parse_error`, `tt.missing_main`,
@@ -956,7 +956,7 @@ exposures, but two of them shrink:
 
 - **Parity-comparison harness.**  CI step that builds both
   parsers, runs every `tests/tt.*.s` and every
-  `/examples/src/*/*.asm` through both, byte-diffs the
+  `examples/src/*/*.asm` through both, byte-diffs the
   assembled text/data segments.  Phase 2 cannot proceed
   without this.
 - **`-parser=` flag.**  Both parsers in the binary, switchable

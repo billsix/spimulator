@@ -6,7 +6,7 @@ Make space-separated piped input work for the `read_int`
 (syscall 5) loop pattern, so that
 
 ```
-echo 43 3 12 | spimulator -f /examples/src/07-bubble-sort/07-bubble-sort.asm
+echo 43 3 12 | spimulator -f examples/src/07-bubble-sort/07-bubble-sort.asm
 ```
 
 reads all three values and runs the demo.  Today it reads
@@ -106,7 +106,7 @@ After fixing, audit which /examples demos use syscall 5
 in a loop:
 
 ```
-grep -lE 'li \$v0, 5\b' /examples/src/*/*.asm
+grep -lE 'li \$v0, 5\b' examples/src/*/*.asm
 ```
 
 For each, verify it still terminates correctly with the

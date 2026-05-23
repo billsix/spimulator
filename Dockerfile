@@ -33,6 +33,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
     dnf upgrade -y && \
     dnf install -y clang \
                    clang-tools-extra \
+                   diffutils \
                    gcc \
                    gdb \
                    git \
@@ -60,6 +61,11 @@ COPY src/             ${SPIM_SRC_DIR}/src
 COPY include/         ${SPIM_SRC_DIR}/include
 COPY tests/           ${SPIM_SRC_DIR}/tests
 COPY Documentation/   ${SPIM_SRC_DIR}/Documentation
+# Examples curriculum — paired C + MIPS-asm teaching demos.
+# Built and tested as part of the unified meson setup below
+# (the `meson test` step runs the 'examples' suite alongside
+# spim's 'regression' suite).
+COPY examples/        ${SPIM_SRC_DIR}/examples
 
 # Build from source.  --prefix sets the install root explicitly; meson's
 # default on Unix is also /usr/local, but spelling it out keeps the
@@ -74,9 +80,18 @@ RUN cd ${SPIM_SRC_DIR} && \
     meson install -C ${SPIM_BUILD_DIR} && \
     ln -s ${SPIM_BUILD_DIR}/compile_commands.json ${SPIM_SRC_DIR}/compile_commands.json
 
-# Execute the regression suite via `meson test`.  Fails the image
-# build if any test fails.  The full inventory is enumerated in
-# meson.build under `regression_tests`; driven by tests/run-test.sh.
+# Execute the full test suite via `meson test`.  Fails the image
+# build if any test fails.  Two suites run here:
+#   - 'regression' (spim itself): inventory in meson.build under
+#     `regression_tests`; driven by tests/run-test.sh.
+#   - 'examples' (curriculum demos): inventory in
+#     examples/src/meson.build under `lib_demo_tests`; driven by
+#     examples/tests/run-demo.sh.  Each demo runs BOTH the C
+#     binary AND the spim-asm version, diffs both stdouts against
+#     the pinned `<demo>.expected` golden, and (for exit-demo and
+#     atexit-demo) verifies the host shell exit status matches
+#     `<demo>.expected-status`.  Any drift on either side fails
+#     the build.
 RUN meson test -C ${SPIM_BUILD_DIR} --print-errorlogs
 
 # Optional: build and test the editor-integration tree-sitter grammar.

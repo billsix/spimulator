@@ -1,0 +1,8 @@
+absolute(0) = 0    labsolute(0) = 0
+absolute(1) = 1    labsolute(1) = 1
+absolute(-1) = 1    labsolute(-1) = 1
+absolute(100) = 100    labsolute(100) = 100
+absolute(-100) = 100    labsolute(-100) = 100
+absolute(2147483647) = 2147483647    labsolute(2147483647) = 2147483647
+absolute(-2147483647) = 2147483647    labsolute(-2147483647) = 2147483647
+absolute(-2147483648) = -2147483648    labsolute(-2147483648) = -2147483648
