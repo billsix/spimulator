@@ -175,6 +175,55 @@ spread at the 1.50 target, L2-L4 modestly improved.
 - `tests/tt.explain.expected` — golden output for the
   `explain` regression test, regenerated after each phase.
 
+## Followup round — repetitive-enumeration trim (May 2026)
+
+After the main audit landed, a user spot-check on the `jal`
+block surfaced an unintended consequence of Phase C's
+"always-show category description" decision: the category
+descriptions tried to cover the whole family by enumerating
+its members (e.g. "Includes direct jumps, register-indirect
+jumps, and the and-link variants...").  This worked fine when
+shown ONCE per session, but Phase C made it repeat on every
+instruction — and the member enumeration became noise on the
+specific instruction the student was looking at.
+
+Same anti-pattern was present in modifier descriptions: the
+`u`-on-arithmetic description ended with `"Note: 'u' means
+different things in different contexts — see the load
+modifiers"`, and `u`-on-load mentioned `lbu`/`lhu` together —
+both irrelevant cross-references for someone reading one
+specific instruction.
+
+Phase B's expansion of width-modifier descriptions
+(`b`/`h`/`w`) included `"Plain (no-'u') loads sign-extend the
+high bit..."` — duplicate of what the per-opcode `"What it
+did"` template already says (`Load Byte (signed) — read one
+byte, sign-extended...`).
+
+The trim, on branch `moreExplainModeUpdates`:
+
+- All 6 category descriptions tightened to one conceptual
+  sentence each (no member enumeration).
+- `MOD_U_UNSIGNED_ARITH` — cross-ref sentence dropped.
+- `MOD_U_ZERO_EXTEND` — `lbu`/`lhu` enumeration dropped.
+- `MOD_H_HALFWORD` and `MOD_B_BYTE` — sign-extension
+  duplication dropped (per-opcode line already teaches it).
+
+L2 total dropped 3555 → 3373 lines (~5%).  `jal` block went
+from 24 lines to 21.
+
+What's NOT this pattern (verified, kept as-is):
+- Pseudo-op descriptions (`pseudo_ops[]` table) that say
+  `"Branch if Equal to Zero — ... Encoded as 'beq $rs, $0, label'"`
+  — that's the whole point of the pseudo-op block (showing
+  the rewrite), not sibling enumeration.
+- `mult`'s `"Use mfhi/mflo to retrieve them"` — useful
+  next-step hint.
+- `lui`'s `"Often paired with 'ori'"` — standard idiom
+  callout.
+- `jr`'s `"(Used to return from a subroutine when $rs == $ra)"`
+  — use-case note.
+
 ## Followup items worth filing
 
 - **Cross-mnemonic shape normalization** — the deferred 7th
