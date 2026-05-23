@@ -1,3 +1,41 @@
+2026-05-23  Bill Six  <billsix@gmail.com>
+
+	Teaching mode: base+offset coverage and display polish.
+
+	* tests/tt.explain.s: new multi-slot stack-frame save/restore
+	  block (sw $a0/$a1/$a2/$ra at $sp+4/+8/+12/+16, then matching
+	  loads) and a negative-offset locals block (sw/lw at -4($fp)
+	  and -8($fp)).  Closes the offset-diversity gap — previously
+	  only zero and offset=4 were exercised.
+	* src/display-utils.c: int_reg_names[30] renamed from "s8" to
+	  "fp".  The disassembler now consistently shows $fp when the
+	  source uses register 30 as a frame pointer.  The scanner
+	  already accepted both "fp" and "s8" as input, so this is a
+	  display-only change.
+	* src/explain.c (tpl_load, tpl_store): effective-address line
+	  prints "$rs - N" instead of "$rs + -N" for negative
+	  immediates.  Example: a `lw $t3, -4($fp)` now reads
+	  "Effective address = $fp - 4 = 0x7fffffdc - 4 = 0x7fffffd8."
+
+	Teaching mode: narration for the rest of MIPS's base+offset
+	load/store families.
+
+	* src/explain.c: six new templates and a shared
+	  `say_effective_address()` helper.  Wired into the opcode
+	  switch for 10 previously-undocumented opcodes:
+	  - lwl, lwr, swl, swr (unaligned word access)
+	  - ll, sc (atomic primitives — narration explains the real
+	    multiprocessor semantics spim doesn't model)
+	  - lwc1, ldc1, swc1, sdc1 (coprocessor-1 FP loads/stores)
+	  Pre-refactor of tpl_load/tpl_store is byte-identical
+	  (verified with zero-diff before new templates landed).
+	* tests/tt.explain.s: added an 8-byte-aligned data buffer
+	  `ubuf` and four test blocks (one per family above)
+	  exercising every new opcode.
+	* tests/tt.explain.expected: regenerated.  Output grew from
+	  3940 to 4534 lines; zero `(no detailed explanation)`
+	  fallthroughs remain in the tt.explain.s run.
+
 2026-05-20  Bill Six  <billsix@gmail.com>
 
 	Post-Phase-5 naming cleanup (four tiers):

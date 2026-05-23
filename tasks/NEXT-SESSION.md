@@ -131,9 +131,14 @@ something changed.
   specific instance. Added `#include <ctype.h>` for `isalnum`.
 
 **Open / declared stretch:**
-- FP family (~70 opcodes Y_*_S_OP / Y_*_D_OP / c.*) — Gap 1 P8. Biggest
-  defensible add for an H&P-aligned course; would benefit from a
-  table-driven approach (Option B in `teaching-mode.md`).
+- FP arithmetic/compare family (~66 remaining opcodes:
+  Y_ADD_S/D_OP, Y_MUL_S/D_OP, Y_C_LT_S/D_OP, Y_CVT_*, etc.) —
+  Gap 1 P8.  The four FP **memory** ops (lwc1/swc1/ldc1/sdc1)
+  landed 2026-05-23 via `explain-missing-load-store-families.md`;
+  the math/compare/convert/branch surface is still untouched.
+  Biggest defensible add for an H&P-aligned course; would
+  benefit from a table-driven approach (Option B in
+  `teaching-mode.md`).
 - Runtime REPL toggle (`explain` / `noexplain` commands) — needs
   scanner.l / parser.y changes (flex/bison regen).
 - ~~Golden expected-output file (`tests/tt.explain.expected`)~~ —
@@ -151,7 +156,8 @@ something changed.
   "(saving return address — callee-save convention)" line.
 - 9 FP-flavor pseudo-ops (l.s, l.d, s.s, s.d, li.s, li.d, ld-as-FP,
   mfc1.d, mtc1.d) — sit alongside the FP opcode gap.
-- Niche: Gap 1 P2 (likely/and-link branches), P3 (LL/SC, LWL/LWR/SWL/SWR),
+- Niche: Gap 1 P2 (likely/and-link branches),
+  ~~P3 (LL/SC, LWL/LWR/SWL/SWR)~~ landed 2026-05-23,
   P4 (traps), P5 (madd family), P6/P7 (CP0/TLB/COP2). All pedagogically
   marginal for intro MIPS — skip unless there's a specific audience.
 

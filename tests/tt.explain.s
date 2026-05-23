@@ -26,6 +26,8 @@
 src:    .word   0x12345678
 dst:    .word   0
 hello:  .asciiz "hi\n"
+        .align  3                   # 8-byte alignment for ldc1/sdc1
+ubuf:   .word   0x11223344, 0x55667788
 
         .text
         .globl  main
@@ -54,6 +56,75 @@ done:   la      $a0, hello          # pseudo-op for address load
         sw      $t7, 4($sp)         # store with non-zero offset into frame
         lw      $t9, 4($sp)         # load back from the frame slot
         addiu   $sp, $sp, 8         # tear down the frame
+
+        # --- canonical multi-slot stack-frame save/restore ---
+        # Frame layout: $sp+0 reserved as the outgoing-args slot,
+        # then four save slots at $sp+4, +8, +12, +16. Four
+        # different positive offsets exercised in sequence — the
+        # pattern every real MIPS function uses to spill $ra and
+        # the incoming-arg registers it needs across a call.
+        addiu   $sp, $sp, -20       # 5-word frame (slot 0 = arg area)
+        sw      $a0,  4($sp)        # save arg 0
+        sw      $a1,  8($sp)        # save arg 1
+        sw      $a2, 12($sp)        # save arg 2
+        sw      $ra, 16($sp)        # save return address
+        lw      $a0,  4($sp)        # restore arg 0
+        lw      $a1,  8($sp)        # restore arg 1
+        lw      $a2, 12($sp)        # restore arg 2
+        lw      $ra, 16($sp)        # restore return address
+        addiu   $sp, $sp, 20        # tear down frame
+
+        # --- negative-offset local-variable access ---
+        # Locals at -4($fp) / -8($fp) — $fp points to the TOP of
+        # the locals area, so they're addressed via a sign-extended
+        # negative immediate. (No $fp save/restore — main doesn't
+        # need $fp preserved.)
+        move    $fp, $sp            # remember the top of frame
+        addiu   $sp, $sp, -8        # carve out 2 words of locals
+        li      $t1, 111
+        sw      $t1, -4($fp)        # store local 0 (signed immediate)
+        li      $t2, 222
+        sw      $t2, -8($fp)        # store local 1
+        lw      $t3, -4($fp)        # load local 0
+        lw      $t4, -8($fp)        # load local 1
+        addiu   $sp, $sp, 8         # release locals
+
+        # --- unaligned word loads/stores (lwl/lwr, swl/swr) ---
+        # lwl/lwr together assemble a 32-bit word from a possibly
+        # misaligned address; swl/swr spill a word back to one.
+        # The pair is what compilers emit when a word straddles a
+        # word boundary (struct packing, memcpy of non-aligned data).
+        la      $t0, ubuf
+        li      $t1, 0xaaaaaaaa     # garbage in destination
+        lwl     $t1, 4($t0)         # merge high bytes
+        lwr     $t1, 1($t0)         # merge low bytes
+        li      $t2, 0x99887766     # word to spill
+        swl     $t2, 4($t0)         # spill high bytes
+        swr     $t2, 1($t0)         # spill low bytes
+
+        # --- atomic primitives (ll / sc) ---
+        # In spim's single-threaded model, ll is a plain word load
+        # and sc is a plain word store. The narration explains the
+        # real multiprocessor semantics (link register + success
+        # flag) that spim deliberately doesn't model.
+        la      $t0, ubuf
+        ll      $t1, 0($t0)
+        addi    $t1, $t1, 1         # the increment-via-CAS idiom
+        sc      $t1, 0($t0)
+
+        # --- FP word loads/stores (lwc1, swc1) ---
+        # Move 32 bits between memory and an FP register; no math.
+        la      $t0, ubuf
+        lwc1    $f0, 0($t0)         # load word into $f0
+        swc1    $f0, 4($t0)         # store $f0 at $t0+4
+
+        # --- FP double loads/stores (ldc1, sdc1) ---
+        # Move 64 bits (the $fN/$f(N+1) pair). spim requires 4-byte
+        # alignment; real MIPS requires 8 — ubuf is .align 3 above
+        # so both are happy.
+        la      $t0, ubuf
+        ldc1    $f2, 0($t0)         # load 8 bytes into $f2/$f3 pair
+        sdc1    $f2, 0($t0)         # store them back
 
         # --- unsigned arithmetic variants (no overflow trap) ---
         addu    $s0, $t0, $t1       # unsigned add
