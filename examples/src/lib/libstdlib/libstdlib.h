@@ -27,7 +27,20 @@
 #define LIBSTDLIB_H
 
 int atoi(const char *s);
-int abs(int x);
-long labs(long x);
+
+/* absolute / labsolute: this library exposes these functions
+ * under longer names instead of the standard C library's
+ * `abs` / `labs`.  Two reasons:
+ *   1. `abs` is a reserved MIPS pseudoinstruction in spim
+ *      (`abs $rd, $rs`), so a hand-written .asm file can't
+ *      use `abs` as a label at all.  Renaming avoids the
+ *      collision without a C-vs-asm naming mismatch.
+ *   2. The longer name is self-documenting for students who
+ *      haven't memorized libc conventions yet.
+ * Library mapping:  absolute  <->  C library's abs(int)
+ *                   labsolute <->  C library's labs(long)
+ */
+int absolute(int x);
+long labsolute(long x);
 
 #endif

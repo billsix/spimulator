@@ -264,27 +264,39 @@ minus on character literals (`-'0'` fails with "Expected
 integer").  Wrote `-48` directly in the asm.  Worth a small
 spim follow-up if `-'X'` should be supported.
 
-### abs / labs (landed 2026-05-23)
+### absolute / labsolute (landed 2026-05-23)
+
+Library functions for what the C standard library calls
+`abs(int)` and `labs(long)`.  Renamed to longer self-documenting
+names — see the "naming gotcha" note below.
 
 `/examples/src/lib/libstdlib/`:
-- `libstdlib.{h,c}` — `abs` and `labs` added.  C-side implementations
-  mirror musl directly (`return x > 0 ? x : -x;`).  On MIPS32
-  `long == int` so labs is structurally identical to abs.
-- `libstdlib.asm` — exports `labs` only (NOT `abs`).  Branching
-  version (`bgez` + `subu`) as the primary; branchless
-  `sra`+`xor`+`subu` shown in the comment block as a sidebar.
+- `libstdlib.{h,c}` — `absolute(int)` and `labsolute(long)`.
+  C-side implementations mirror musl directly
+  (`return x > 0 ? x : -x;`).  On MIPS32 `long == int` so
+  labsolute is structurally identical to absolute.  Each function's
+  header notes the libc-name correspondence.
+- `libstdlib.asm` — exports both `absolute` and `labsolute` as
+  global labels; labsolute falls straight through into absolute
+  (one shared body, since the algorithms are identical on
+  MIPS32).  Branching version (`bgez` + `subu`) as the
+  primary; branchless `sra`+`xor`+`subu` shown in the comment
+  block as a sidebar.
 
 `/examples/src/lib/libstdlib-demo/`:
 - `abs-demo.{c,asm}` — 8 cases covering 0, ±1, ±100, ±INT_MAX,
   and the INT_MIN edge case where -INT_MIN overflows to itself
 - `abs-demo.expected` — pinned 8-line golden
 
-**Gotcha discovered**: spim reserves `abs` as a built-in MIPS
+**Naming gotcha**: spim reserves `abs` as a built-in MIPS
 pseudoinstruction (`abs $rd, $rs`).  Cannot use `abs` as a
-label in spim asm at all.  Workaround: asm side exports only
-`labs`; C side still has both names; document the conflict in
-both files' header blocks.  Asm callers wanting "abs" call
-`labs` (identical semantics on MIPS32).
+label in spim asm at all.  Rather than have the asm side
+diverge from the C side (asm-only `labs`, C-has-both), this
+library uses the longer names `absolute` / `labsolute` on
+BOTH sides — keeps the C-asm naming consistent and adds
+pedagogical clarity for students who haven't memorized libc.
+Each file's header comment block points to the libc-standard
+names so the relationship is clear.
 
 **Verified**: C and asm produce byte-identical 8-line output.
 

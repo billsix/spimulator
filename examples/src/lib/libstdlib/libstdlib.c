@@ -40,22 +40,29 @@ int atoi(const char *s) {
   return neg ? n : -n;
 }
 
-/* abs(x) — absolute value of an int.
+/* absolute(x) — absolute value of an int.
  *
- * Adapted from musl src/stdlib/abs.c.
+ * Equivalent to libc's abs(int).  Renamed in this library
+ * because `abs` is a reserved MIPS pseudoinstruction in spim
+ * and using it as a label fails to parse; we keep the C and
+ * asm sides under one consistent name.  See libstdlib.h.
  *
- * Note on the INT_MIN edge case: abs(INT_MIN) is undefined behavior
- * in standard C because -INT_MIN can't be represented as int (the
- * positive range is one short).  In two's-complement (which spim
- * and every real MIPS use), -INT_MIN wraps back to INT_MIN, so
- * abs(-2147483648) returns -2147483648.  Same wrinkle in the asm. */
-int abs(int x) { return x > 0 ? x : -x; }
+ * Adapted from musl src/stdlib/abs.c — same algorithm.
+ *
+ * Note on the INT_MIN edge case: abs(INT_MIN) is undefined
+ * behavior in standard C because -INT_MIN can't be represented
+ * as int (the positive range is one short).  In two's complement
+ * (which spim and every real MIPS use), -INT_MIN wraps back to
+ * INT_MIN, so absolute(-2147483648) returns -2147483648.  Same
+ * wrinkle in the asm. */
+int absolute(int x) { return x > 0 ? x : -x; }
 
-/* labs(x) — absolute value of a long.
+/* labsolute(x) — absolute value of a long.
  *
- * Adapted from musl src/stdlib/labs.c.
+ * Equivalent to libc's labs(long).  On MIPS32, `long` is 32
+ * bits (same as int), so labsolute is algorithmically and
+ * structurally identical to absolute.  The asm version uses a
+ * single shared body — `labsolute` falls through to `absolute`.
  *
- * On MIPS32, `long` is 32 bits (same as int), so labs is
- * algorithmically and structurally identical to abs.  The asm
- * version uses a single shared body. */
-long labs(long x) { return x > 0 ? x : -x; }
+ * Adapted from musl src/stdlib/labs.c. */
+long labsolute(long x) { return x > 0 ? x : -x; }

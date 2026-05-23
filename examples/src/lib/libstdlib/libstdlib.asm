@@ -12,7 +12,14 @@
 #   $t*      — clobbered freely
 #   $ra      — preserved by the library
 #
-# Functions currently implemented: atoi, abs, labs.
+# Functions currently implemented: atoi, absolute, labsolute.
+#
+# Note on naming: `absolute` and `labsolute` correspond to the
+# C library's `abs(int)` and `labs(long)`.  They're renamed
+# here because `abs` is a reserved MIPS pseudoinstruction in
+# spim (`abs $rd, $rs`) and would collide with a label of the
+# same name.  Keeping the C and asm sides on matching names
+# avoids interop friction; the longer names also self-document.
 #
 # Load order: libctype.asm must be loaded alongside this file
 # (or before it).  Each spim invocation looks like
@@ -123,23 +130,19 @@ atoi_done:
         jr      $ra
 
 #--------------------------------------------------------------
-# labs(x) — absolute value of a long.
+# absolute(x)  — absolute value of an int.
+# labsolute(x) — absolute value of a long.
 #
-# Adapted from musl src/stdlib/labs.c (and src/stdlib/abs.c).
+# Library names for what the C standard library calls abs() and
+# labs().  See the header note at the top of this file for the
+# rename rationale.
+#
+# Adapted from musl src/stdlib/abs.c and src/stdlib/labs.c.
 # C: return x > 0 ? x : -x;
 #
-# On MIPS32, `long` is 32 bits (same as int), so abs(int) and
-# labs(long) are byte-identical.  One label, used for both.
-#
-# === Why "labs" and not "abs"? ===
-# spim treats `abs` as a built-in MIPS pseudoinstruction
-# (`abs $rd, $rs` expands to a signed-conditional sequence),
-# so `abs` is a reserved word in spim's parser and CANNOT be
-# used as a label.  We export only `labs` from this asm file;
-# asm callers that want "abs" should `jal labs` (the semantics
-# are identical on MIPS32).  The C side of libstdlib still
-# exposes both `abs` and `labs` because the C compiler has no
-# such conflict.
+# On MIPS32, `long` is 32 bits (same as int), so absolute(int)
+# and labsolute(long) are byte-identical.  Single shared body —
+# labsolute falls straight through into absolute.
 #
 # Leaf function: no $ra save, no frame, no $s* touched.
 #
@@ -149,7 +152,7 @@ atoi_done:
 # two's complement so the behavior is predictable.
 #
 # --- Sidebar: branchless alternative ---
-# A common compiler trick for abs without a branch:
+# A common compiler trick for the same result without a branch:
 #     sra   $t0, $a0, 31        # $t0 = sign-extended mask (0 or -1)
 #     xor   $t1, $a0, $t0       # one's complement of $a0 if neg
 #     subu  $v0, $t1, $t0       # adds 1 (via -(-1)) if neg
@@ -160,11 +163,13 @@ atoi_done:
 # "time" — the branchless variant is here for educational
 # contrast only.
 #--------------------------------------------------------------
-        .globl  labs
-labs:
-        bgez    $a0, labs_pos       # $a0 >= 0 -> already non-negative
+        .globl  labsolute
+labsolute:                          # labsolute falls through to absolute
+        .globl  absolute
+absolute:
+        bgez    $a0, absolute_pos   # $a0 >= 0 -> already non-negative
         subu    $v0, $zero, $a0     # $v0 = -$a0
         jr      $ra
-labs_pos:
+absolute_pos:
         move    $v0, $a0
         jr      $ra

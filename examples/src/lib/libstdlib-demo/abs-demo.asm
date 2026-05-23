@@ -23,10 +23,11 @@ cases:    .word   0
           .word   -2147483648        # INT_MIN — abs returns INT_MIN
 n_cases:  .word   8
 
-# Format strings.
-fmt_abs:  .asciiz "abs("
+# Format strings.  Library uses the longer names absolute /
+# labsolute (vs. the C library's abs / labs).
+fmt_abs:  .asciiz "absolute("
 fmt_mid:  .asciiz ") = "
-fmt_lab:  .asciiz "    labs("
+fmt_lab:  .asciiz "    labsolute("
 fmt_nl:   .asciiz "\n"
 
         .text
@@ -62,14 +63,13 @@ loop:
         # print ") = "
         la      $a0, fmt_mid
         jal     _ps
-        # call abs(input) — calls labs (since spim reserves `abs`
-        # as a built-in pseudoinstruction; see libstdlib.asm).
+        # call absolute(input)
         move    $a0, $s3
-        jal     labs
+        jal     absolute
         move    $a0, $v0
         jal     _pi
 
-        # print "    labs("
+        # print "    labsolute("
         la      $a0, fmt_lab
         jal     _ps
         # print input value (same value, as long)
@@ -78,9 +78,9 @@ loop:
         # print ") = "
         la      $a0, fmt_mid
         jal     _ps
-        # call labs(input)
+        # call labsolute(input)
         move    $a0, $s3
-        jal     labs
+        jal     labsolute
         move    $a0, $v0
         jal     _pi
 
