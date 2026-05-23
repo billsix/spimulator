@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include <errno.h>
+#include <stdbit.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/time.h>
@@ -334,25 +335,13 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
           break;
 
-        case TOK_CLO_OP: {
-          reg_word val = R[RS(inst)];
-          int i;
-          for (i = 31; 0 <= i; i -= 1)
-            if (((val >> i) & 0x1) == 0) break;
-
-          R[RD(inst)] = 31 - i;
+        case TOK_CLO_OP:
+          R[RD(inst)] = (reg_word)stdc_leading_ones((uint32_t)R[RS(inst)]);
           break;
-        }
 
-        case TOK_CLZ_OP: {
-          reg_word val = R[RS(inst)];
-          int i;
-          for (i = 31; 0 <= i; i -= 1)
-            if (((val >> i) & 0x1) == 1) break;
-
-          R[RD(inst)] = 31 - i;
+        case TOK_CLZ_OP:
+          R[RD(inst)] = (reg_word)stdc_leading_zeros((uint32_t)R[RS(inst)]);
           break;
-        }
 
         case TOK_COP2_OP:
           RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
