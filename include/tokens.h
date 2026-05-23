@@ -10,7 +10,9 @@
 #ifndef TOKENS_H
 #define TOKENS_H
 
-enum {
+#include <stdint.h>
+
+enum : int32_t {
   /* Structural / literal tokens.  Start at 256 so they don't collide
      with single-character punctuation tokens like '+', ',', '(' which
      the scanner returns as their own ASCII value. */

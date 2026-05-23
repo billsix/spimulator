@@ -17,7 +17,7 @@
 
 #include "spim.h"
 
-typedef enum {
+typedef enum : uint8_t {
   AE_LABEL_DEF,        /* a label became defined at addr */
   AE_TEXT_INST,        /* an instruction was stored at addr (text seg) */
   AE_DATA_BYTE,        /* .byte EXPR */
@@ -31,7 +31,7 @@ typedef enum {
   AE_FORWARD_RESOLVED, /* forward reference got patched at label-def time */
 } asm_event_kind;
 
-typedef enum {
+typedef enum : uint8_t {
   ASM_SEG_TEXT,
   ASM_SEG_DATA,
   ASM_SEG_KTEXT,

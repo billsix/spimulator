@@ -40,7 +40,7 @@
 /* Node kinds                                                          */
 /* ------------------------------------------------------------------ */
 
-typedef enum {
+typedef enum : uint8_t {
   /* Instructions */
   AST_INST_R,          /* op rd, rs, rt                     */
   AST_INST_R_SHIFT,    /* op rd, rt, shamt                  */
@@ -82,7 +82,7 @@ typedef enum {
   AST_ERROR, /* held position of a sync'd line    */
 } ast_kind;
 
-typedef enum {
+typedef enum : uint8_t {
   AST_LABEL_NORMAL, /* NAME : (placement at current PC)     */
   AST_LABEL_CONST,  /* NAME = EXPR (compile-time constant)  */
 } ast_label_kind;
