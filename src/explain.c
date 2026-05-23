@@ -92,6 +92,20 @@ static void emit_legend(void) {
       "        `ori` — the source line appears once but two real\n"
       "        instructions get narrated).\n"
       "\n"
+      "Placeholder notation in pseudo-op descriptions and structural\n"
+      "explanations:\n"
+      "\n"
+      "  $rs, $rt, $rd, shamt\n"
+      "        Field names from the MIPS instruction encoding —\n"
+      "        $rs = first source register, $rt = second source or\n"
+      "        target register, $rd = destination register, shamt =\n"
+      "        shift amount.  When you see these in a pseudo-op's\n"
+      "        general-form description (e.g. \"set $rd to ...\"),\n"
+      "        they refer to whatever registers you wrote in YOUR\n"
+      "        source line.  The disassembled \"What it did\" lines\n"
+      "        substitute the concrete register names in place of\n"
+      "        these placeholders.\n"
+      "\n"
       "(This header is shown once per session. Higher `-explain`\n"
       "levels add per-instruction narration after the header.)\n");
 }
@@ -485,13 +499,24 @@ static void say_wrote_mem(int width) {
                ((uint32_t)snap_mem_val) & mask, ((uint32_t)now) & mask);
 }
 
+/* Per-block state for "Try it yourself" emission.  `try_block_active`
+   is set when `say_try_regs` opens a block, cleared by
+   `say_try_finish`; `try_lines_emitted` counts lines so the finish
+   call knows how many generic-suggestion padding lines to add. */
+static bool try_block_active;
+static int try_lines_emitted;
+
 /* Emit "Try it yourself" lines for up to four registers. Pass 0 (=$zero) to
    skip a slot; duplicates are skipped automatically. Each emitted line is
-   also added to the tab-completion suggestions list. */
+   also added to the tab-completion suggestions list.
+
+   `say_try_finish` is called by the dispatch wrapper at the end of each
+   instruction's render to pad the block to a 3-line minimum. */
 static void say_try_regs(int a, int b, int c, int d) {
   int regs[4] = {a, b, c, d};
   write_output(message_out, "  Try it yourself:\n");
-  bool any = false;
+  try_block_active = true;
+  try_lines_emitted = 0;
   char cmd[64];
   for (int i = 0; i < 4; i++) {
     int r = regs[i];
@@ -503,11 +528,7 @@ static void say_try_regs(int a, int b, int c, int d) {
     snprintf(cmd, sizeof cmd, "print $%s", int_reg_names[r]);
     write_output(message_out, "    %s\n", cmd);
     add_suggestion(cmd);
-    any = true;
-  }
-  if (!any) {
-    write_output(message_out, "    print_all_regs   # show every register\n");
-    add_suggestion("print_all_regs");
+    try_lines_emitted++;
   }
 }
 
@@ -517,6 +538,38 @@ static void say_try_regs(int a, int b, int c, int d) {
 static void say_try(const char* cmd, const char* why) {
   write_output(message_out, "    %-22s # %s\n", cmd, why);
   add_suggestion(cmd);
+  try_lines_emitted++;
+}
+
+/* Close out the "Try it yourself" block.  If fewer than 3 lines have
+   been emitted (e.g. for `j` which has no register operands, or `mfhi`
+   with one), pad with generic suggestions (`print_all_regs`, `step`)
+   so every block is uniformly substantive.  Templates that emit more
+   than 3 operand-specific lines (loads/stores) skip the padding.
+   No-op if no try block was opened by this instruction. */
+static void say_try_finish(void) {
+  if (!try_block_active) return;
+  if (try_lines_emitted < 3) {
+    write_output(message_out,
+                 "    print_all_regs         # show every register\n");
+    add_suggestion("print_all_regs");
+    try_lines_emitted++;
+  }
+  if (try_lines_emitted < 3) {
+    write_output(
+        message_out,
+        "    step                   # advance to the next instruction\n");
+    add_suggestion("step");
+    try_lines_emitted++;
+  }
+  if (try_lines_emitted < 3) {
+    write_output(
+        message_out,
+        "    continue               # run until the next breakpoint\n");
+    add_suggestion("continue");
+    try_lines_emitted++;
+  }
+  try_block_active = false;
 }
 
 /* ------------ per-opcode templates ------------
@@ -647,9 +700,7 @@ static void tpl_load(int level, mips_instruction* instruction,
   if (level >= 2) {
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_reg(base);
-    if (off != 0)
-      write_output(message_out, "    offset = %d  (0x%04x)\n", off,
-                   off & 0xffff);
+    write_output(message_out, "    offset = %d  (0x%04x)\n", off, off & 0xffff);
     /* Loads don't modify memory, so peek_word post-execute returns the
        same value the instruction read. */
     reg_word cur = 0;
@@ -689,9 +740,15 @@ static void tpl_store(int level, mips_instruction* instruction,
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_reg(base);
     say_input_reg(rt);
-    if (off != 0)
-      write_output(message_out, "    offset = %d  (0x%04x)\n", off,
-                   off & 0xffff);
+    write_output(message_out, "    offset = %d  (0x%04x)\n", off, off & 0xffff);
+    /* Mirror the load template's "memory at addr = X" line — shows
+       what's being overwritten, masked to the store width so a byte
+       store shows the byte that's being clobbered, not the full word. */
+    if (snap_has_mem) {
+      uint32_t mask = (width == 1) ? 0xff : (width == 2) ? 0xffff : 0xffffffffu;
+      write_output(message_out, "    memory at 0x%08x = 0x%08x\n", ea,
+                   ((uint32_t)snap_mem_val) & mask);
+    }
     say_wrote_mem(width);
     say_try_regs(base, rt, 0, 0);
     char buf2[64];
@@ -755,8 +812,9 @@ static void explain_syscall(int level) {
   reg_word v0 = snap_R[REG_V0];
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
-               "    System call. The call number was in $v0; arguments\n"
-               "    were in $a0..$a3 (and $f12 for floats).\n");
+               "    System Call — invoked the kernel.  The call number was "
+               "in $v0;\n    arguments were in $a0..$a3 (and $f12 for "
+               "floats).\n");
   switch (v0) {
     case 1:
       write_output(message_out,
@@ -1380,6 +1438,7 @@ typedef enum {
   MOD_I_IMMEDIATE,      /* `i` suffix: 16-bit constant in instruction */
   MOD_V_VARIABLE_SHIFT, /* `v` suffix: shift count from a register */
   MOD_AL_AND_LINK,      /* `al` suffix: write $ra (subroutine call) */
+  MOD_L_LIKELY,         /* `l` suffix: branch-likely (delay-slot nullify) */
   MOD_W_WORD,           /* word-width memory access (32 bits) */
   MOD_H_HALFWORD,       /* halfword-width memory access (16 bits) */
   MOD_B_BYTE,           /* byte-width memory access (8 bits) */
@@ -1423,8 +1482,9 @@ static const char* category_descriptions[CAT_COUNT] = {
 static const char* modifier_letters[MOD_COUNT] = {
     [MOD_U_UNSIGNED_ARITH] = "`u`", [MOD_U_ZERO_EXTEND] = "`u`",
     [MOD_I_IMMEDIATE] = "`i`",      [MOD_V_VARIABLE_SHIFT] = "`v`",
-    [MOD_AL_AND_LINK] = "`al`",     [MOD_W_WORD] = "`w`",
-    [MOD_H_HALFWORD] = "`h`",       [MOD_B_BYTE] = "`b`",
+    [MOD_AL_AND_LINK] = "`al`",     [MOD_L_LIKELY] = "`l`",
+    [MOD_W_WORD] = "`w`",           [MOD_H_HALFWORD] = "`h`",
+    [MOD_B_BYTE] = "`b`",
 };
 
 static const char* modifier_descriptions[MOD_COUNT] = {
@@ -1451,24 +1511,27 @@ static const char* modifier_descriptions[MOD_COUNT] = {
         "and link: save the return address (PC+4, or PC+8 with\n"
         "          delayed branches) into $ra. Turns the\n"
         "          branch/jump into a subroutine call.",
-    [MOD_W_WORD] = "word width: 32 bits (full register width).",
-    [MOD_H_HALFWORD] = "halfword width: 16 bits.",
-    [MOD_B_BYTE] = "byte width: 8 bits.",
+    [MOD_W_WORD] =
+        "word width: the load/store transfers 32 bits — one full\n"
+        "          register's worth.  MIPS is word-aligned, so the\n"
+        "          effective address must be a multiple of 4.",
+    [MOD_H_HALFWORD] =
+        "halfword width: the load/store transfers 16 bits.  The\n"
+        "          effective address must be a multiple of 2.  Plain\n"
+        "          (no-`u`) loads sign-extend the high bit to fill\n"
+        "          the register.",
+    [MOD_B_BYTE] =
+        "byte width: the load/store transfers 8 bits — the smallest\n"
+        "          addressable unit on MIPS.  No alignment\n"
+        "          requirement.  Plain (no-`u`) loads sign-extend\n"
+        "          the high bit to fill the register.",
+    [MOD_L_LIKELY] =
+        "likely: if the branch is not taken, the instruction in the\n"
+        "          delay slot is NOT executed (\"nullified\").  The\n"
+        "          plain (no-`l`) branch always executes the delay\n"
+        "          slot regardless of the branch outcome.  Used by\n"
+        "          compilers to fill the delay slot more aggressively.",
 };
-
-static const char* modifier_short[MOD_COUNT] = {
-    [MOD_U_UNSIGNED_ARITH] = "unsigned (no overflow trap)",
-    [MOD_U_ZERO_EXTEND] = "unsigned (zero-extend on load)",
-    [MOD_I_IMMEDIATE] = "immediate (16-bit constant)",
-    [MOD_V_VARIABLE_SHIFT] = "variable shift count (from register)",
-    [MOD_AL_AND_LINK] = "and link (writes $ra)",
-    [MOD_W_WORD] = "word (32-bit)",
-    [MOD_H_HALFWORD] = "halfword (16-bit)",
-    [MOD_B_BYTE] = "byte (8-bit)",
-};
-
-static bool category_seen[CAT_COUNT];
-static bool modifier_seen[MOD_COUNT];
 
 static void lookup_classification(int op, inst_category* cat,
                                   inst_modifier mods[3], int* n_mods) {
@@ -1592,6 +1655,21 @@ static void lookup_classification(int op, inst_category* cat,
       *cat = CAT_COND_BRANCH;
       mods[(*n_mods)++] = MOD_AL_AND_LINK;
       break;
+    case TOK_BEQL_OPCODE:
+    case TOK_BNEL_OPCODE:
+    case TOK_BGEZL_OPCODE:
+    case TOK_BGTZL_OPCODE:
+    case TOK_BLEZL_OPCODE:
+    case TOK_BLTZL_OPCODE:
+      *cat = CAT_COND_BRANCH;
+      mods[(*n_mods)++] = MOD_L_LIKELY;
+      break;
+    case TOK_BGEZALL_OPCODE:
+    case TOK_BLTZALL_OPCODE:
+      *cat = CAT_COND_BRANCH;
+      mods[(*n_mods)++] = MOD_AL_AND_LINK;
+      mods[(*n_mods)++] = MOD_L_LIKELY;
+      break;
 
     /* Unconditional jump */
     case TOK_J_OPCODE:
@@ -1620,24 +1698,15 @@ static void emit_category_preamble(mips_instruction* instruction) {
   if (cat == CAT_COUNT) return; /* unknown opcode; skip preamble */
 
   write_output(message_out, "  Category: %s\n", category_names[cat]);
-  if (!category_seen[cat]) {
-    write_output(message_out, "    %s\n", category_descriptions[cat]);
-    category_seen[cat] = true;
-  }
+  write_output(message_out, "    %s\n", category_descriptions[cat]);
 
   if (n_mods > 0) {
     const char* mnemonic = inst_op_name(instruction);
     write_output(message_out, "  Modifiers in `%s`:\n", mnemonic);
     for (int i = 0; i < n_mods; i++) {
       inst_modifier m = mods[i];
-      if (!modifier_seen[m]) {
-        write_output(message_out, "    %s — %s\n", modifier_letters[m],
-                     modifier_descriptions[m]);
-        modifier_seen[m] = true;
-      } else {
-        write_output(message_out, "    %s — %s\n", modifier_letters[m],
-                     modifier_short[m]);
-      }
+      write_output(message_out, "    %s — %s\n", modifier_letters[m],
+                   modifier_descriptions[m]);
     }
   }
 }
@@ -1844,8 +1913,8 @@ static void render_dispatch(int level, mips_instruction* instruction) {
     case TOK_J_OPCODE: {
       mem_addr target = TARGET(instruction) << 2;
       write_output(message_out, "  What it did:\n");
-      write_output(message_out, "    Jumped unconditionally to 0x%08x.\n",
-                   target);
+      write_output(message_out,
+                   "    Jump — jumped unconditionally to 0x%08x.\n", target);
       if (level >= 2) {
         write_output(message_out, "  Inputs (before this step):\n    (none)\n");
         say_try_regs(0, 0, 0, 0);
@@ -2031,8 +2100,6 @@ static void render_dispatch(int level, mips_instruction* instruction) {
                    "see the disassembly above)\n");
       break;
   }
-
-  write_output(message_out, "\n");
 }
 
 /* explain_after runs immediately after the dispatch switch (and PC
@@ -2070,13 +2137,22 @@ void explain_after(mips_instruction* instruction) {
   if (accept_pseudo_insts && SOURCE(instruction) != nullptr) {
     const struct pseudo_info* p = find_pseudo_in_source(SOURCE(instruction));
     if (p != nullptr) {
-      write_output(message_out,
-                   "  Pseudo-instruction `%s` (as written in source):\n"
-                   "    %s\n"
-                   "  This was the %s real instruction the assembler "
-                   "emitted for it.\n",
-                   p->name, p->what_it_means,
-                   p->may_be_multi ? "first" : "single");
+      if (level >= 2) {
+        /* Full 4-line block: header + description + footer. */
+        write_output(message_out,
+                     "  Pseudo-instruction `%s` (as written in source):\n"
+                     "    %s\n"
+                     "  This was the %s real instruction the assembler "
+                     "emitted for it.\n",
+                     p->name, p->what_it_means,
+                     p->may_be_multi ? "first" : "single");
+      } else {
+        /* L1 compact form: single line, no verbose description.  Keeps
+           every L1 instruction block roughly uniform in height while
+           still signaling "you wrote a pseudo-op here." */
+        write_output(message_out, "  Pseudo-op: `%s` (%s real instruction)\n",
+                     p->name, p->may_be_multi ? "first" : "single");
+      }
       pending_pseudo_name = p->name;
       pending_pseudo_multi = p->may_be_multi;
     } else {
@@ -2084,11 +2160,17 @@ void explain_after(mips_instruction* instruction) {
       pending_pseudo_multi = false;
     }
   } else if (pending_pseudo_name != nullptr && pending_pseudo_multi) {
-    write_output(message_out,
-                 "  (continuation of the `%s` pseudo-op expansion above —\n"
-                 "   same source line, this was the next real instruction "
-                 "emitted)\n",
-                 pending_pseudo_name);
+    if (level >= 2) {
+      write_output(message_out,
+                   "  (continuation of the `%s` pseudo-op expansion above —\n"
+                   "   same source line, this was the next real instruction "
+                   "emitted)\n",
+                   pending_pseudo_name);
+    } else {
+      /* L1 compact form of the continuation hint. */
+      write_output(message_out, "  Pseudo-op: `%s` (continuation)\n",
+                   pending_pseudo_name);
+    }
   }
   write_output(message_out, "\n");
 
@@ -2104,6 +2186,12 @@ void explain_after(mips_instruction* instruction) {
 
     /* Per-opcode narration. */
     render_dispatch(level, instruction);
+
+    /* Pad the "Try it yourself" block to a 3-line minimum if the
+       template opened one.  No-op for L1 (no try block at all) and
+       for templates whose specific suggestions already reach the
+       minimum. */
+    say_try_finish();
 
     /* Load destination annotation: if a load completed but its
        destination register value didn't change (loaded the same value
