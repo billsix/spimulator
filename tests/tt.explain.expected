@@ -53,6 +53,7 @@ Stepped at PC = 0x00400000:
     Effective address = $sp + 0  =  0x7fffffdc + 0  =  0x7fffffdc.
   Inputs (before this step):
     $sp = 0x7fffffdc  (decimal 2147483612)
+    offset = 0  (0x0000)
     memory at 0x7fffffdc = 0x00000001
   Wrote:
     $a0:  0x00000001  →  0x00000001   (decimal 1)
@@ -334,6 +335,7 @@ Stepped at PC = 0x00400040:
     Effective address = $at + 0  =  0x10010000 + 0  =  0x10010000.
   Inputs (before this step):
     $at = 0x10010000  (decimal 268500992)
+    offset = 0  (0x0000)
     memory at 0x10010000 = 0x12345678
   Wrote:
     $t5:  0x00000000  →  0x12345678   (decimal 305419896)
@@ -539,6 +541,7 @@ Stepped at PC = 0x00400068:
     Effective address = $t6 + 0  =  0x10010000 + 0  =  0x10010000.
   Inputs (before this step):
     $t6 = 0x10010000  (decimal 268500992)
+    offset = 0  (0x0000)
     memory at 0x10010000 = 0x12345678
   Wrote:
     $t7:  0x00000000  →  0x12345678   (decimal 305419896)
@@ -564,6 +567,7 @@ Stepped at PC = 0x0040006c:
     Effective address = $t6 + 0  =  0x10010000 + 0  =  0x10010000.
   Inputs (before this step):
     $t6 = 0x10010000  (decimal 268500992)
+    offset = 0  (0x0000)
     memory at 0x10010000 = 0x00000078
   Wrote:
     $t8:  0x00000000  →  0x00000078   (decimal 120)
@@ -1145,6 +1149,7 @@ Stepped at PC = 0x004000e4:
   Inputs (before this step):
     $t7 = 0x10010004  (decimal 268500996)
     $t8 = 0x000000ab  (decimal 171)
+    offset = 0  (0x0000)
   Wrote to memory:
     0x10010004:  0x0000000c  →  0x000000ab
   Try it yourself:
@@ -2044,6 +2049,7 @@ Stepped at PC = 0x00400170:
     Effective address = $t0 + 0  =  0x10010004 + 0  =  0x10010004.
   Inputs (before this step):
     $t0 = 0x10010004  (decimal 268500996)
+    offset = 0  (0x0000)
     memory at 0x10010004 = 0x000000ab
   Wrote:
     $s6:  0x00000006  →  0xffffffab   (decimal -85)
@@ -2073,6 +2079,7 @@ Stepped at PC = 0x00400174:
     Effective address = $t0 + 0  =  0x10010004 + 0  =  0x10010004.
   Inputs (before this step):
     $t0 = 0x10010004  (decimal 268500996)
+    offset = 0  (0x0000)
     memory at 0x10010004 = 0x000000ab
   Wrote:
     $s7:  0x00000001  →  0x000000ab   (decimal 171)
@@ -2145,7 +2152,7 @@ Stepped at PC = 0x00400180:
 
   Category: Unconditional jump
   What it did:
-    Jumped unconditionally to 0x00400188.
+    Jump — jumped unconditionally to 0x00400188.
   Inputs (before this step):
     (none)
   Try it yourself:
@@ -2471,8 +2478,8 @@ Stepped at PC = 0x004001a8:
     Operating-system services and miscellaneous control. The
     `syscall` instruction in particular dispatches on $v0.
   What it did:
-    System call. The call number was in $v0; arguments
-    were in $a0..$a3 (and $f12 for floats).
+    System Call — invoked the kernel.  The call number was in $v0;
+    arguments were in $a0..$a3 (and $f12 for floats).
     $v0 = 1  →  print_int: printed the integer in $a0.
   Output:
     Wrote the integer to the console.
@@ -2543,8 +2550,8 @@ Stepped at PC = 0x004001b4:
 
   Category: System / coprocessor
   What it did:
-    System call. The call number was in $v0; arguments
-    were in $a0..$a3 (and $f12 for floats).
+    System Call — invoked the kernel.  The call number was in $v0;
+    arguments were in $a0..$a3 (and $f12 for floats).
     $v0 = 11 →  print_char: printed the byte in $a0 as a character.
   Output:
     Wrote one character to the console.
@@ -2919,8 +2926,8 @@ Stepped at PC = 0x0040020c:
 
   Category: System / coprocessor
   What it did:
-    System call. The call number was in $v0; arguments
-    were in $a0..$a3 (and $f12 for floats).
+    System Call — invoked the kernel.  The call number was in $v0;
+    arguments were in $a0..$a3 (and $f12 for floats).
     $v0 = 4  →  print_string: printed the null-terminated
     string whose address was in $a0.
   Output:

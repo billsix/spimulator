@@ -647,9 +647,8 @@ static void tpl_load(int level, mips_instruction* instruction,
   if (level >= 2) {
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_reg(base);
-    if (off != 0)
-      write_output(message_out, "    offset = %d  (0x%04x)\n", off,
-                   off & 0xffff);
+    write_output(message_out, "    offset = %d  (0x%04x)\n", off,
+                 off & 0xffff);
     /* Loads don't modify memory, so peek_word post-execute returns the
        same value the instruction read. */
     reg_word cur = 0;
@@ -689,9 +688,8 @@ static void tpl_store(int level, mips_instruction* instruction,
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_reg(base);
     say_input_reg(rt);
-    if (off != 0)
-      write_output(message_out, "    offset = %d  (0x%04x)\n", off,
-                   off & 0xffff);
+    write_output(message_out, "    offset = %d  (0x%04x)\n", off,
+                 off & 0xffff);
     say_wrote_mem(width);
     say_try_regs(base, rt, 0, 0);
     char buf2[64];
@@ -755,8 +753,9 @@ static void explain_syscall(int level) {
   reg_word v0 = snap_R[REG_V0];
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
-               "    System call. The call number was in $v0; arguments\n"
-               "    were in $a0..$a3 (and $f12 for floats).\n");
+               "    System Call — invoked the kernel.  The call number was "
+               "in $v0;\n    arguments were in $a0..$a3 (and $f12 for "
+               "floats).\n");
   switch (v0) {
     case 1:
       write_output(message_out,
@@ -1844,8 +1843,8 @@ static void render_dispatch(int level, mips_instruction* instruction) {
     case TOK_J_OPCODE: {
       mem_addr target = TARGET(instruction) << 2;
       write_output(message_out, "  What it did:\n");
-      write_output(message_out, "    Jumped unconditionally to 0x%08x.\n",
-                   target);
+      write_output(message_out,
+                   "    Jump — jumped unconditionally to 0x%08x.\n", target);
       if (level >= 2) {
         write_output(message_out, "  Inputs (before this step):\n    (none)\n");
         say_try_regs(0, 0, 0, 0);
