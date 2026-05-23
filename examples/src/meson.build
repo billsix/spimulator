@@ -162,3 +162,10 @@ executable('exit-demo',
   link_with: [io_lib, libstdlib_lib, libctype_lib],
   install: true,
 )
+
+executable('bsearch-demo',
+  'lib/libstdlib-demo/bsearch-demo.c',
+  include_directories: [inc, libstdlib_inc, libctype_inc],
+  link_with: [io_lib, libstdlib_lib, libctype_lib],
+  install: true,
+)

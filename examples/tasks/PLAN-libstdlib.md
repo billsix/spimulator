@@ -326,14 +326,41 @@ with a host-shell-visible exit status.
 **Verified**: C and asm versions produce byte-identical stdout
 AND both propagate exit 42 to the host shell.
 
+### bsearch (landed 2026-05-23)
+
+`/examples/src/lib/libstdlib/`:
+- `libstdlib.{h,c}` — `void *bsearch(key, base, nel, width, cmp)`
+  matching musl's algorithm.  `unsigned` substituted for `size_t`
+  to avoid `<stddef.h>` in the freestanding build.
+- `libstdlib.asm` — bsearch + a header block explaining two new
+  pedagogical concepts:
+  1. The **5th arg lives on the stack** at 16($sp) at entry
+     (MIPS o32 only passes 4 in `$a0..$a3`).  Read it as the
+     function's very first instruction, before frame alloc.
+  2. The **indirect call via `jalr $s4`** — first time in the
+     curriculum.  cmp lives in `$s4` so it survives across loop
+     iterations.
+
+`/examples/src/lib/libstdlib-demo/`:
+- `bsearch-demo.{c,asm}` — sorted 10-int array, 9 search keys
+  covering: first/last/middle present, near-front/back present,
+  three between-element absents (50, 13), below-range (0), and
+  above-range (200).  Output reports INDEX rather than raw
+  pointer so C and spim values agree.
+- `bsearch-demo.expected` — pinned 9-line golden
+
+The asm demo also teaches the **caller side** of the 5th-arg
+ABI: `main` allocates a 40-byte frame, writes `cmp_ptr` to
+`16($sp)` once before the loop, and the four normal-position
+args go in `$a0..$a3` per call.
+
+**Verified**: C and asm produce byte-identical 9-line output.
+
 ### Open follow-ups (in plan but not in this turn)
-- **bsearch**: function pointer via `jalr` — first indirect-call
-  demo in the curriculum.
 - **atexit + exit**: second `jalr` lesson (function-pointer
   table walked in reverse).  Filed separately at
   [`PLAN-libstdlib-atexit.md`](PLAN-libstdlib-atexit.md).  To be
-  done after bsearch so students see the indirect-call lesson
-  in a focused single-call context first.
+  done next now that bsearch has landed.
 - **parse_int kept; atoi available alongside**: 27 demo files in
   `/examples/src/` call `parse_int` (defined in
   `string-to-int.c`).  After discussion 2026-05-23: Bill keeps

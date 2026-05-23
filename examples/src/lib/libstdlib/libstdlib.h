@@ -61,4 +61,29 @@ long labsolute(long x);
  */
 __attribute__((noreturn)) void _Exit(int status);
 
+/* bsearch(key, base, nel, width, cmp) — binary search a sorted
+ * array.  Returns a pointer to the matching element, or NULL.
+ *
+ *   key   address of the value to find
+ *   base  start of the sorted array
+ *   nel   number of elements
+ *   width sizeof each element
+ *   cmp   comparator returning <0, 0, >0 like strcmp
+ *
+ * Note for the asm-side reader: bsearch takes FIVE arguments,
+ * but the MIPS o32 ABI passes only four in $a0..$a3.  The 5th
+ * arg (cmp) is passed on the caller's stack at 16($sp) — the
+ * first time in this curriculum we use the "args 5+ on stack"
+ * rule.  The asm bsearch's first instruction reads it from
+ * there.
+ *
+ * The other novelty: cmp is a function pointer.  The asm calls
+ * it via `jalr $sX` rather than `jal label` — the first indirect
+ * call in this curriculum.  Function pointers in libc happen
+ * surprisingly often (qsort, bsearch, signal, atexit, ...);
+ * jalr is the gateway. */
+void *bsearch(const void *key, const void *base, unsigned nel,
+              unsigned width,
+              int (*cmp)(const void *, const void *));
+
 #endif

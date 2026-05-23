@@ -13,7 +13,7 @@
 #   $ra      — preserved by the library
 #
 # Functions currently implemented: atoi, absolute, labsolute,
-# _Exit.
+# _Exit, bsearch.
 #
 # Note on naming: `absolute` and `labsolute` correspond to the
 # C library's `abs(int)` and `labs(long)`.  They're renamed
@@ -205,3 +205,119 @@ _Exit:
         # bug; spim would execute whatever bytes happen to
         # follow.  In practice the syscall itself stops
         # execution before that matters.
+
+#--------------------------------------------------------------
+# bsearch(key, base, nel, width, cmp) — binary search a sorted
+# array; returns pointer to match or NULL.
+#
+# Adapted from musl src/stdlib/bsearch.c.
+#
+# === Two new pedagogical concepts in this function ===
+#
+# 1. The 5th argument lives ON THE STACK.
+#
+#    MIPS o32 passes args 1..4 in $a0..$a3.  Args 5+ go on the
+#    caller's stack, at offset 16 from the caller's $sp at the
+#    moment of `jal bsearch`.  bsearch reads cmp from there as
+#    its FIRST instruction, BEFORE allocating its own frame
+#    (since after `addiu $sp, $sp, -N` the caller's slot is at
+#    16+N($sp), an extra layer of arithmetic).  The caller is
+#    responsible for setting 16($sp) before the jal.
+#
+# 2. Indirect call via `jalr`.
+#
+#    Where `jal label` calls a fixed label resolved at assemble
+#    time, `jalr $reg` calls whatever address is in $reg —
+#    decided at runtime.  This is how every "callback" mechanism
+#    in C (qsort, bsearch, signal, atexit, GTK signals, vtables,
+#    ...) ultimately works.  bsearch keeps cmp in $s4 so it
+#    survives across loop iterations, and does `jalr $s4` once
+#    per iteration.
+#
+# Frame layout (32 bytes):
+#   0($sp)  $ra
+#   4($sp)  $s0 — key (pointer)
+#   8($sp)  $s1 — base (pointer, may advance)
+#   12($sp) $s2 — nel  (element count, shrinks)
+#   16($sp) $s3 — width (sizeof each element)
+#   20($sp) $s4 — cmp  (function pointer)
+#   24($sp) $s5 — try  (current candidate pointer, kept across
+#                       the cmp call so we can return it on hit
+#                       or advance past it on greater-than)
+#   28($sp) (padding — keeps 8-byte alignment habit)
+#--------------------------------------------------------------
+        .globl  bsearch
+bsearch:
+        # ── Read the 5th arg BEFORE allocating our frame ──
+        # At entry, $sp is unchanged from the caller; the caller
+        # put cmp at 16($sp).  After our frame alloc it would be
+        # at 16+32 = 48($sp), but reading now is one fewer
+        # constant to remember.
+        lw      $t0, 16($sp)        # $t0 = cmp pointer (5th arg)
+
+        # ── Prologue ──
+        addiu   $sp, $sp, -32
+        sw      $ra,  0($sp)
+        sw      $s0,  4($sp)
+        sw      $s1,  8($sp)
+        sw      $s2, 12($sp)
+        sw      $s3, 16($sp)
+        sw      $s4, 20($sp)
+        sw      $s5, 24($sp)
+
+        move    $s0, $a0            # key
+        move    $s1, $a1            # base
+        move    $s2, $a2            # nel
+        move    $s3, $a3            # width
+        move    $s4, $t0            # cmp
+
+bsearch_loop:
+        beqz    $s2, bsearch_null   # nel == 0  -> not found
+
+        # try = base + width * (nel/2)
+        srl     $t0, $s2, 1         # mid = nel/2
+        mult    $t0, $s3            # mid * width  -> HI:LO
+        mflo    $t1                 # $t1 = mid * width
+        addu    $s5, $s1, $t1       # try = base + offset  (kept in $s5)
+
+        # Call cmp(key, try).
+        move    $a0, $s0
+        move    $a1, $s5
+        jalr    $s4                 # *** the indirect call ***
+
+        # Dispatch on the sign of $v0.
+        bltz    $v0, bsearch_less
+        bgtz    $v0, bsearch_greater
+        # ── equal: return try ──
+        move    $v0, $s5
+        j       bsearch_done
+
+bsearch_less:
+        # nel = nel / 2  (key < *try, search lower half)
+        srl     $s2, $s2, 1
+        j       bsearch_loop
+
+bsearch_greater:
+        # base = try + width,  nel -= (nel/2 + 1)
+        # (key > *try, search upper half above try)
+        addu    $s1, $s5, $s3       # base = try + width
+        srl     $t0, $s2, 1         # recompute old_mid (cheap; $t* may
+                                    # have been clobbered by cmp)
+        addiu   $t0, $t0, 1
+        subu    $s2, $s2, $t0       # nel -= mid + 1
+        j       bsearch_loop
+
+bsearch_null:
+        li      $v0, 0              # NULL
+
+bsearch_done:
+        # ── Epilogue ──
+        lw      $ra,  0($sp)
+        lw      $s0,  4($sp)
+        lw      $s1,  8($sp)
+        lw      $s2, 12($sp)
+        lw      $s3, 16($sp)
+        lw      $s4, 20($sp)
+        lw      $s5, 24($sp)
+        addiu   $sp, $sp, 32
+        jr      $ra
