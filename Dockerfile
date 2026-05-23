@@ -27,6 +27,7 @@ COPY entrypoint/shell.sh /usr/local/bin
 
 RUN --mount=type=cache,target=/var/cache/libdnf5 \
     --mount=type=cache,target=/var/lib/dnf \
+    echo "keepcache=True" >> /etc/dnf/dnf.conf && \
     sed -i -e "s@tsflags=nodocs@#tsflags=nodocs@g" /etc/dnf/dnf.conf && \
     echo "keepcache=True" >> /etc/dnf/dnf.conf && \
     dnf upgrade -y && \
