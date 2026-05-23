@@ -394,7 +394,7 @@ static mem_word bad_mem_read(mem_addr addr, int mask) {
   else if (addr > data_top &&
            addr < stack_bot
            /* If more than 16 MB below stack, probably is bad data ref */
-           && addr > stack_bot - 16 * K * K) {
+           && addr > stack_bot - 16 * mega) {
     /* Grow stack segment */
     expand_stack(stack_bot - addr + 4);
     return (0);
@@ -456,7 +456,7 @@ static void bad_mem_write(mem_addr addr, mem_word value, int mask) {
   } else if (addr > data_top &&
              addr < stack_bot
              /* If more than 16 MB below stack, probably is bad data ref */
-             && addr > stack_bot - 16 * K * K) {
+             && addr > stack_bot - 16 * mega) {
     /* Grow stack segment */
     expand_stack(stack_bot - addr + 4);
     if (addr >= stack_bot) {

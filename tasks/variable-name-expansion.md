@@ -221,29 +221,24 @@ Scope: ~400 sites in `src/run.c`, ~30 in `src/explain.c`,
 **Effort:** ~1 hour for the rename; the diff is what tells you
 whether to keep it.  **Risk:** low.  Mechanical.
 
-## Phase 8 — `K` (kilo)
+## Phase 8 — `K` (kilo) → `kilo` and `mega`
 
-`include/spim.h:54`:
+`include/spim.h` previously defined `constexpr int K = 1024;`
+as a single-letter multiplier shortcut.  Per the rename
+theme, this expands to spelled-out lowercase names that
+read as English at the use site:
 
-```c
-constexpr int K = 1024;
-```
+- `constexpr int kilo = 1024;`
+- `constexpr int mega = kilo * kilo;`  (= 1 MB)
 
-Used in sizing constants: `STACK_SIZE = 64 * K`, etc.
+After: `STACK_SIZE = 64 * kilo`, `DATA_LIMIT = mega`,
+`addr > stack_bot - 16 * mega` (in `mem.c`).  Each constant
+reads as plain unit prose.
 
-Options:
+Scope: 16 sites total — 8 in `include/spim.h`, 6 in
+`src/data.c`, 2 in `src/mem.c`.
 
-- **`K` → `KIB`** (preserves the multiplier pattern).
-- **Inline the value** (`64 * 1024`) at the few call sites
-  and delete the constant.
-
-Recommendation: inline.  `K` is only referenced in ~8 sizing
-constants in `spim.h` itself.  Eliminating the indirection
-makes each constant self-documenting.
-
-Scope: 8 sites, all in `include/spim.h`.
-
-**Effort:** ~10 minutes.  **Risk:** none.
+**Effort:** ~15 minutes.  **Risk:** none.
 
 ## Phase 9 — `inst` → `instruction`
 
@@ -439,7 +434,7 @@ merge to master.
 | 5 | `CPR`/`CCR` → spelled-out | 1 hour | low |
 | 6 | `FPR`/`FGR`/`FWR` → `fp_*_view` | 1 hour | low |
 | 7 | `R` → `gpr` | 1 hour | low |
-| 8 | `K` → inline `1024` | 10 min | none |
+| 8 | `K` → `kilo` (+ `mega = kilo * kilo`) | 15 min | none |
 | 9.5 | `TOK_*_OP` → `_OPCODE`, `_DIR` → `_DIRECTIVE`, `_POP` → `_PSEUDO_OP` | 45 min | very low |
 | 10 | source file names expanded | 2 hours | low |
 | 9 | `inst` → `instruction` (optional) | 1-2 hours | low |

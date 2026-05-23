@@ -83,7 +83,8 @@ static inline int32_t sign_ex(int x) {
     (typeof(V))(_spim_v_ & ~(_spim_b_ - 1));      \
   })
 
-constexpr int K = 1024;
+constexpr int kilo = 1024;
+constexpr int mega = kilo * kilo;
 
 /* Type of a memory address.  Must be a 32-bit quantity to match MIPS.  */
 
@@ -93,20 +94,20 @@ constexpr int BYTES_PER_WORD = 4; /* On the MIPS processor */
 
 /* Sizes of memory segments. */
 
-constexpr int TEXT_SIZE = 256 * K;   /* Initial text segment.  1/4 MB */
-constexpr int K_TEXT_SIZE = 64 * K;  /* Initial k_text segment.  64 KB */
+constexpr int TEXT_SIZE = 256 * kilo;       /* Initial text segment.  1/4 MB */
+constexpr int K_TEXT_SIZE = 64 * kilo;      /* Initial k_text segment.  64 KB */
 
 /* The data segment must be larger than 64K since we immediately grab
    64K for the small data segment pointed to by $gp. The data segment is
    expanded by an sbrk system call. */
-constexpr int DATA_SIZE = 256 * K;      /* Initial data segment.  1/4 MB */
-constexpr int DATA_LIMIT = K * K;       /* Max data segment.  1 MB */
-constexpr int K_DATA_SIZE = 64 * K;     /* Initial k_data segment.  64 KB */
-constexpr int K_DATA_LIMIT = K * K;     /* Max k_data segment.  1 MB */
+constexpr int DATA_SIZE = 256 * kilo;       /* Initial data segment.  1/4 MB */
+constexpr int DATA_LIMIT = mega;            /* Max data segment.  1 MB */
+constexpr int K_DATA_SIZE = 64 * kilo;      /* Initial k_data segment.  64 KB */
+constexpr int K_DATA_LIMIT = mega;          /* Max k_data segment.  1 MB */
 
 /* The stack grows down automatically. */
-constexpr int STACK_SIZE = 64 * K;      /* Initial stack segment.  64 KB */
-constexpr int STACK_LIMIT = 256 * K;    /* Max stack segment.  1/4 MB */
+constexpr int STACK_SIZE = 64 * kilo;       /* Initial stack segment.  64 KB */
+constexpr int STACK_LIMIT = 256 * kilo;     /* Max stack segment.  1/4 MB */
 
 /* Name of the function to invoke at start up */
 
