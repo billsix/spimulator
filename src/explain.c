@@ -1474,21 +1474,6 @@ static const char* modifier_descriptions[MOD_COUNT] = {
         "          compilers to fill the delay slot more aggressively.",
 };
 
-static const char* modifier_short[MOD_COUNT] = {
-    [MOD_U_UNSIGNED_ARITH] = "unsigned (no overflow trap)",
-    [MOD_U_ZERO_EXTEND] = "unsigned (zero-extend on load)",
-    [MOD_I_IMMEDIATE] = "immediate (16-bit constant)",
-    [MOD_V_VARIABLE_SHIFT] = "variable shift count (from register)",
-    [MOD_AL_AND_LINK] = "and link (writes $ra)",
-    [MOD_L_LIKELY] = "likely (nullify delay slot if not taken)",
-    [MOD_W_WORD] = "word (32-bit)",
-    [MOD_H_HALFWORD] = "halfword (16-bit)",
-    [MOD_B_BYTE] = "byte (8-bit)",
-};
-
-static bool category_seen[CAT_COUNT];
-static bool modifier_seen[MOD_COUNT];
-
 static void lookup_classification(int op, inst_category* cat,
                                   inst_modifier mods[3], int* n_mods) {
   *n_mods = 0;
@@ -1654,24 +1639,15 @@ static void emit_category_preamble(mips_instruction* instruction) {
   if (cat == CAT_COUNT) return; /* unknown opcode; skip preamble */
 
   write_output(message_out, "  Category: %s\n", category_names[cat]);
-  if (!category_seen[cat]) {
-    write_output(message_out, "    %s\n", category_descriptions[cat]);
-    category_seen[cat] = true;
-  }
+  write_output(message_out, "    %s\n", category_descriptions[cat]);
 
   if (n_mods > 0) {
     const char* mnemonic = inst_op_name(instruction);
     write_output(message_out, "  Modifiers in `%s`:\n", mnemonic);
     for (int i = 0; i < n_mods; i++) {
       inst_modifier m = mods[i];
-      if (!modifier_seen[m]) {
-        write_output(message_out, "    %s — %s\n", modifier_letters[m],
-                     modifier_descriptions[m]);
-        modifier_seen[m] = true;
-      } else {
-        write_output(message_out, "    %s — %s\n", modifier_letters[m],
-                     modifier_short[m]);
-      }
+      write_output(message_out, "    %s — %s\n", modifier_letters[m],
+                   modifier_descriptions[m]);
     }
   }
 }
