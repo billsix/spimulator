@@ -10,6 +10,6 @@
 
 #include "spim.h"
 
-bool run_spim(mem_addr initial_PC, int steps, bool display);
+[[nodiscard]] bool run_spim(mem_addr initial_PC, int steps, bool display);
 
 #endif

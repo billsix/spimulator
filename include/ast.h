@@ -210,42 +210,42 @@ struct ast_node {
 /* source_line is captured from the scanner's global at call time.    */
 
 /* Instructions */
-ast_node* ast_make_inst_r(int op, int rd, int rs, int rt);
-ast_node* ast_make_inst_r_shift(int op, int rd, int rt, int shamt);
-ast_node* ast_make_inst_i(int op, int rt, int rs, imm_expr* imm);
-ast_node* ast_make_inst_j(int op, imm_expr* target);
-ast_node* ast_make_inst_fp_r(int op, int fd, int fs, int ft);
-ast_node* ast_make_inst_fp_compare(int op, int fs, int ft, int cc);
-ast_node* ast_make_pseudo(const char* mnemonic); /* mnemonic dup'd */
+[[nodiscard]] ast_node* ast_make_inst_r(int op, int rd, int rs, int rt);
+[[nodiscard]] ast_node* ast_make_inst_r_shift(int op, int rd, int rt, int shamt);
+[[nodiscard]] ast_node* ast_make_inst_i(int op, int rt, int rs, imm_expr* imm);
+[[nodiscard]] ast_node* ast_make_inst_j(int op, imm_expr* target);
+[[nodiscard]] ast_node* ast_make_inst_fp_r(int op, int fd, int fs, int ft);
+[[nodiscard]] ast_node* ast_make_inst_fp_compare(int op, int fs, int ft, int cc);
+[[nodiscard]] ast_node* ast_make_pseudo(const char* mnemonic); /* mnemonic dup'd */
 
 /* Data */
-ast_node* ast_make_data_byte(int count, imm_expr** exprs); /* takes ownership */
-ast_node* ast_make_data_half(int count, imm_expr** exprs);
-ast_node* ast_make_data_word(int count, imm_expr** exprs);
-ast_node* ast_make_data_float(int count, double* values); /* takes ownership */
-ast_node* ast_make_data_double(int count, double* values);
-ast_node* ast_make_data_string(const char* bytes, int length, bool null_term);
+[[nodiscard]] ast_node* ast_make_data_byte(int count, imm_expr** exprs); /* takes ownership */
+[[nodiscard]] ast_node* ast_make_data_half(int count, imm_expr** exprs);
+[[nodiscard]] ast_node* ast_make_data_word(int count, imm_expr** exprs);
+[[nodiscard]] ast_node* ast_make_data_float(int count, double* values); /* takes ownership */
+[[nodiscard]] ast_node* ast_make_data_double(int count, double* values);
+[[nodiscard]] ast_node* ast_make_data_string(const char* bytes, int length, bool null_term);
 
 /* Segment + layout */
-ast_node* ast_make_dir_text(bool has_start_addr, mem_addr start_addr);
-ast_node* ast_make_dir_data(bool has_start_addr, mem_addr start_addr);
-ast_node* ast_make_dir_ktext(bool has_start_addr, mem_addr start_addr);
-ast_node* ast_make_dir_kdata(bool has_start_addr, mem_addr start_addr);
-ast_node* ast_make_dir_align(int n);
-ast_node* ast_make_dir_space(int size);
-ast_node* ast_make_dir_globl(const char* name); /* name dup'd */
-ast_node* ast_make_dir_extern(const char* name, int size);
-ast_node* ast_make_dir_comm(const char* name, int size);
+[[nodiscard]] ast_node* ast_make_dir_text(bool has_start_addr, mem_addr start_addr);
+[[nodiscard]] ast_node* ast_make_dir_data(bool has_start_addr, mem_addr start_addr);
+[[nodiscard]] ast_node* ast_make_dir_ktext(bool has_start_addr, mem_addr start_addr);
+[[nodiscard]] ast_node* ast_make_dir_kdata(bool has_start_addr, mem_addr start_addr);
+[[nodiscard]] ast_node* ast_make_dir_align(int n);
+[[nodiscard]] ast_node* ast_make_dir_space(int size);
+[[nodiscard]] ast_node* ast_make_dir_globl(const char* name); /* name dup'd */
+[[nodiscard]] ast_node* ast_make_dir_extern(const char* name, int size);
+[[nodiscard]] ast_node* ast_make_dir_comm(const char* name, int size);
 
 /* Labels */
-ast_node* ast_make_label_normal(const char* name);
-ast_node* ast_make_label_const(const char* name, int32_t value);
+[[nodiscard]] ast_node* ast_make_label_normal(const char* name);
+[[nodiscard]] ast_node* ast_make_label_const(const char* name, int32_t value);
 
 /* File root */
-ast_node* ast_make_file(const char* source_file);
+[[nodiscard]] ast_node* ast_make_file(const char* source_file);
 
 /* Error recovery sentinel */
-ast_node* ast_make_error(const char* message);
+[[nodiscard]] ast_node* ast_make_error(const char* message);
 
 /* ------------------------------------------------------------------ */
 /* Tree manipulation                                                   */

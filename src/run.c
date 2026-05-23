@@ -70,15 +70,17 @@ static int running_in_delay_slot = 0;
     }                                            \
   }
 
-#define JUMP_INST(TARGET)                        \
-  {                                              \
-    if (delayed_branches) {                      \
-      running_in_delay_slot = 1;                 \
-      run_spim(PC + BYTES_PER_WORD, 1, display); \
-      running_in_delay_slot = 0;                 \
-    }                                            \
-    /* -4 since PC is bumped after this inst */  \
-    PC = (TARGET) - BYTES_PER_WORD;              \
+#define JUMP_INST(TARGET)                              \
+  {                                                    \
+    if (delayed_branches) {                            \
+      running_in_delay_slot = 1;                       \
+      /* Continuation flag from the delay-slot inst is \
+         discarded — the outer run_spim owns that. */  \
+      (void)run_spim(PC + BYTES_PER_WORD, 1, display); \
+      running_in_delay_slot = 0;                       \
+    }                                                  \
+    /* -4 since PC is bumped after this inst */        \
+    PC = (TARGET) - BYTES_PER_WORD;                    \
   }
 
 /* If the delayed_load flag is false, the result from a load is available

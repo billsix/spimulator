@@ -43,7 +43,7 @@ void print_undefined_symbols(void);
 label* record_label(char* name, mem_addr address, int resolve_uses);
 void record_data_uses_symbol(mem_addr location, label* sym);
 void record_inst_uses_symbol(instruction* inst, label* sym);
-char* undefined_symbol_string(void);
+[[nodiscard]] char* undefined_symbol_string(void);
 void resolve_a_label(label* sym, instruction* inst);
 void resolve_label_uses(label* sym);
 

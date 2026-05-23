@@ -35,12 +35,12 @@ name_val_val* map_int_to_name_val_val(name_val_val tbl[], int tbl_len, int num);
 name_val_val* map_string_to_name_val_val(name_val_val tbl[], int tbl_len,
                                          char* id);
 [[nodiscard]] bool read_assembly_file(char* name);
-bool run_program(mem_addr pc, int steps, bool display, bool cont_bkpt,
-                 bool* continuable);
+[[nodiscard]] bool run_program(mem_addr pc, int steps, bool display,
+                               bool cont_bkpt, bool* continuable);
 mem_addr starting_address(void);
-char* str_copy(const char* str);
+[[nodiscard]] char* str_copy(const char* str);
 void write_startup_message(void);
-void* xmalloc(int);
-void* zmalloc(int);
+[[nodiscard]] void* xmalloc(int);
+[[nodiscard]] void* zmalloc(int);
 
 #endif

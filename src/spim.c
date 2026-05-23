@@ -642,8 +642,10 @@ int main(int argc, char** argv) {
           console_to_spim();
           return spim_return_value != 0 ? spim_return_value : 1;
         }
-        run_program(find_symbol_address(DEFAULT_RUN_LOCATION),
-                    DEFAULT_RUN_STEPS, false, false, &continuable);
+        /* Batch mode: breakpoint-hit return is meaningless here (no REPL
+           to drop into); status flows out via spim_return_value. */
+        (void)run_program(find_symbol_address(DEFAULT_RUN_LOCATION),
+                          DEFAULT_RUN_STEPS, false, false, &continuable);
       }
       console_to_spim();
 

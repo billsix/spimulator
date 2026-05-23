@@ -17,7 +17,7 @@ void ss_init(str_stream* ss);
 void ss_clear(str_stream* ss);
 void ss_erase(str_stream* ss, int n);
 int ss_length(str_stream* ss);
-char* ss_to_string(str_stream* ss);
+[[nodiscard]] char* ss_to_string(str_stream* ss);
 void ss_printf(str_stream* ss, char* fmt, ...);
 
 #endif
