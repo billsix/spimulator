@@ -75,7 +75,7 @@ libstr).
   per-namespace .c+.asm library structure rather than a single
   libio.asm with everything."  The multi-`-f` recommendation
   from this doc did land — see
-  [`/spimulator/tasks/cli-multi-file-load.md`](../../../tasks/cli-multi-file-load.md).
+  [`/spimulator/tasks/cli-multi-file-load.md`](../../../tasks/archive/cli-multi-file-load.md).
 
 ## libstdlib v1 (May 2026)
 

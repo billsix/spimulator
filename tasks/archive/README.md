@@ -154,3 +154,25 @@ in its own repo).
 
 If the editor-integration grammar work actually starts,
 that's a new task (not a re-open of this one).
+
+## Single-feature landed tasks + historical handoffs (May 2026)
+
+These are smaller writeups for individual landed features
+and the per-session handoff snapshots.  Listed in a table
+rather than per-section since each one is self-explanatory
+from its filename + date — open the file for details.
+
+| File | Landed | What it covers |
+|---|---|---|
+| [`argv-command-line-handling.md`](argv-command-line-handling.md) | 2026-05-18 | spim CLI passing argv to MIPS main via `$a0`/`$a1`; fixed the multi-arg overwrite bug in `src/spim.c`'s `-f` branch. |
+| [`cli-multi-file-load.md`](cli-multi-file-load.md) | 2026-05-23 | Multiple `-f` files on the spim command line (matches REPL `load` accumulation).  ~15-line change in `src/spim.c` + new `multifile` test. |
+| [`eof-signaling.md`](eof-signaling.md) | 2026-05-18 | `read_int_from_stdin` returns -1 on EOF rather than blocking; `$a3` flag pattern documented for the corresponding spim syscall 5. |
+| [`explain-stack-frame-offsets.md`](explain-stack-frame-offsets.md) | 2026-05-23 | Added the canonical stack-frame save/restore + negative-offset locals patterns to `tt.explain.s`.  Plus cosmetic fixes (`$s8`→`$fp` in `int_reg_names`; `$rs - N` instead of `$rs + -N` in the effective-address line). |
+| [`explain-missing-load-store-families.md`](explain-missing-load-store-families.md) | 2026-05-23 | Per-instruction narration for the 10 base+offset opcodes that fell through to "no detailed explanation" (lwl/lwr/swl/swr, ll/sc, lwc1/ldc1/swc1/sdc1).  Includes the shared `say_effective_address()` helper extraction. |
+| [`octal-escape-fix.md`](octal-escape-fix.md) | 2026-05-19 | One-line `scanner.l` fix for the `.asciiz "\NNN"` octal decoder (the high digit was shifted by 3 instead of 6 bits). |
+| [`post-phase5-naming-cleanup.md`](post-phase5-naming-cleanup.md) | 2026-05-20 | Four-tier post-flex/bison-removal cleanup: dropped `hp_` prefix, renamed `Y_*` tokens to `TOK_*`, swept stale `bison`/`yyerror` comment references.  ~1430 substitutions across 11 files. |
+| [`teaching-mode.md`](teaching-mode.md) | 2026-05 (MVP) | Original spec + bug list for `-explain` mode.  MVP shipped; subsequent work (`teaching-mode-coverage.md` audit + the explain-* tasks above) extended it.  Historical reference. |
+| [`teaching-mode-coverage.md`](teaching-mode-coverage.md) | 2026-05-11 (audit) | Per-instruction audit of `-explain=1..4` opcode coverage, identifying fall-through gaps.  Most gaps closed by subsequent explain-* tasks. |
+| [`unix-process-conformance.md`](unix-process-conformance.md) | 2026-05-19 | Four-defect fix making spim behave like a real Unix process: banner on stderr, main `$v0`→exit status via syscall 17, non-zero exit on load failure, runtime exceptions exit `128+ExcCode`. |
+| [`HANDOFF-2026-05-17.md`](HANDOFF-2026-05-17.md) | 2026-05-17 | Session handoff snapshot — re-entry notes for whoever picked up next. |
+| [`HANDOFF-2026-05-22.md`](HANDOFF-2026-05-22.md) | 2026-05-22 | Session handoff snapshot — covered three strands (portability cleanup, examples reorg, AST migration). |
