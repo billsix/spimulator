@@ -9,7 +9,7 @@
 #include <stdint.h>
 
 /* Each OP() entry in op.h carries one of these tags in its third
-   argument.  Tables consuming op.h (i_opcode_tbl in inst.c,
+   argument.  Tables consuming op.h (i_opcode_tbl in instruction.c,
    keyword_tbl in scanner.c, op_type_table in parser.c) key per-
    instruction handling on the value.  uint8_t-backed — values
    fit in 0..42.

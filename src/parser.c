@@ -488,7 +488,7 @@ static void clear_labels(void) {
 
 /* Retroactive label fix-up.  Called both internally (before
    alignment-emitting directives) and externally from data.c /
-   inst.c whenever `align_data` / `align_text` advances the PC for
+   instruction.c whenever `align_data` / `align_text` advances the PC for
    alignment, so any labels recorded on the current line follow
    the PC to its aligned position. */
 void fix_current_label_address(mem_addr new_addr) {
@@ -960,7 +960,7 @@ static void parse_i2a(int op) {
   emit_i(op, rt, addr_expr_reg(addr), addr_expr_imm(addr));
   /* Bison frees the addr_expr's inner imm + the addr_expr; do the
      same.  spim runtime exposes free_imm_expr but not
-     free_addr_expr — see inst.h.  Use free() since that's what */
+     free_addr_expr — see instruction.h.  Use free() since that's what */
   free(addr_expr_imm(addr));
   free(addr);
 }

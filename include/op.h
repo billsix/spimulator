@@ -23,7 +23,7 @@
    the second column — so OP("add", TOK_ADD_OPCODE, ...) becomes
    "TOK_ADD_OPCODE," inside an enum body.  scanner.c picks the
    first three columns ({name, sym, type}) to build a keyword
-   table.  inst.c includes op.h three times with three
+   table.  instruction.c includes op.h three times with three
    different OP() definitions to build three different lookup
    tables.
 

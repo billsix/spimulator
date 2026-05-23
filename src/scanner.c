@@ -22,7 +22,7 @@
 int line_no = 1;
 scan_value_t scan_value = {};
 
-/* Register-name → register-number lookup.  Public because inst.c and
+/* Register-name → register-number lookup.  Public because instruction.c and
    explain.c also call register_name_to_number, independent of the
    scanner's internal keyword table. */
 static name_val_val register_tbl[] = {
@@ -812,7 +812,7 @@ char* erroneous_line(void) {
 }
 
 /* source_line: return a heap-allocated copy of the current source
-   line, prefixed with "NNN: " line number.  Used by inst.c to
+   line, prefixed with "NNN: " line number.  Used by instruction.c to
    annotate assembled instructions with their originating source. */
 char* source_line(void) {
   if (!current_line_saved) return nullptr;

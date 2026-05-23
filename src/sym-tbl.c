@@ -18,7 +18,7 @@
 /* Local functions: */
 
 static void get_hash(char* name, int* slot_no, label** entry);
-static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc);
+static void resolve_a_label_sub(label* sym, mips_instruction* instruction, mem_addr pc);
 
 /* Keep track of the memory location that a label represents.  If we
    see a reference to a label that is not yet defined, then record the
@@ -163,15 +163,15 @@ label* make_label_global(char* name) {
 
 /* Record that an INSTRUCTION uses the as-yet undefined SYMBOL. */
 
-void record_inst_uses_symbol(instruction* inst, label* sym) {
+void record_inst_uses_symbol(mips_instruction* instruction, label* sym) {
   label_use* u = (label_use*)xmalloc(sizeof(label_use));
 
   if (data_dir) /* Want to free up original instruction */
   {
-    u->inst = copy_inst(inst);
+    u->instruction = copy_inst(instruction);
     u->addr = current_data_pc();
   } else {
-    u->inst = inst;
+    u->instruction = instruction;
     u->addr = current_text_pc();
   }
   u->next = sym->uses;
@@ -184,7 +184,7 @@ void record_inst_uses_symbol(instruction* inst, label* sym) {
 void record_data_uses_symbol(mem_addr location, label* sym) {
   label_use* u = (label_use*)xmalloc(sizeof(label_use));
 
-  u->inst = nullptr;
+  u->instruction = nullptr;
   u->addr = location;
   u->next = sym->uses;
   sym->uses = u;
@@ -199,11 +199,11 @@ void resolve_label_uses(label* sym) {
   label_use* next_use;
 
   for (use = sym->uses; use != nullptr; use = next_use) {
-    resolve_a_label_sub(sym, use->inst, use->addr);
-    if (use->inst != nullptr && use->addr >= DATA_BOT &&
+    resolve_a_label_sub(sym, use->instruction, use->addr);
+    if (use->instruction != nullptr && use->addr >= DATA_BOT &&
         use->addr < stack_bot) {
-      mem_write_word(use->addr, inst_encode(use->inst));
-      free_inst(use->inst);
+      mem_write_word(use->addr, inst_encode(use->instruction));
+      free_inst(use->instruction);
     }
     asm_fire_forward_resolved(use->addr, sym->name, (int32_t)sym->addr);
     next_use = use->next;
@@ -214,38 +214,38 @@ void resolve_label_uses(label* sym) {
 
 /* Resolve the newly-defined label in INSTRUCTION. */
 
-void resolve_a_label(label* sym, instruction* inst) {
-  resolve_a_label_sub(sym, inst,
+void resolve_a_label(label* sym, mips_instruction* instruction) {
+  resolve_a_label_sub(sym, instruction,
                       (data_dir ? current_data_pc() : current_text_pc()));
 }
 
-static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc) {
-  if (inst == nullptr) {
+static void resolve_a_label_sub(label* sym, mips_instruction* instruction, mem_addr pc) {
+  if (instruction == nullptr) {
     /* Memory data: */
     mem_write_word(pc, sym->addr);
   } else {
     /* Instruction: */
-    if (EXPR(inst)->pc_relative)
-      EXPR(inst)->offset = 0 - pc; /* Instruction may have moved */
+    if (EXPR(instruction)->pc_relative)
+      EXPR(instruction)->offset = 0 - pc; /* Instruction may have moved */
 
-    if (EXPR(inst)->symbol == nullptr ||
-        SYMBOL_IS_DEFINED(EXPR(inst)->symbol)) {
+    if (EXPR(instruction)->symbol == nullptr ||
+        SYMBOL_IS_DEFINED(EXPR(instruction)->symbol)) {
       int32_t value;
       int32_t field_mask;
 
-      if (opcode_is_branch(OPCODE(inst))) {
+      if (opcode_is_branch(OPCODE(instruction))) {
         int val;
 
         /* Drop low two bits since instructions are on word boundaries. */
-        val = sign_ex(eval_imm_expr(EXPR(inst))); /* 16->32 bits */
+        val = sign_ex(eval_imm_expr(EXPR(instruction))); /* 16->32 bits */
         val = (val >> 2) & 0xffff;                /* right shift, 32->16 bits */
 
         if (delayed_branches) val -= 1;
 
         value = val;
         field_mask = 0xffff;
-      } else if (opcode_is_jump(OPCODE(inst))) {
-        value = eval_imm_expr(EXPR(inst));
+      } else if (opcode_is_jump(OPCODE(instruction))) {
+        value = eval_imm_expr(EXPR(instruction));
         if ((value & 0xf0000000) != (pc & 0xf0000000)) {
           error(
               "Target of jump differs in high-order 4 bits from instruction pc "
@@ -257,21 +257,21 @@ static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc) {
         value = (value & 0x0fffffff) >> 2;
         field_mask =
             0xffffffff; /* Already checked that value fits in instruction */
-      } else if (opcode_is_load_store(OPCODE(inst))) {
+      } else if (opcode_is_load_store(OPCODE(instruction))) {
         /* Label's location is an address */
-        value = eval_imm_expr(EXPR(inst));
+        value = eval_imm_expr(EXPR(instruction));
         field_mask = 0xffff;
 
         if (value & 0x8000) {
           /* LW/SW sign extends offset. Compensate by adding 1 to high 16 bits.
            */
-          instruction* prev_inst;
-          instruction* prev_prev_inst;
+          mips_instruction* prev_inst;
+          mips_instruction* prev_prev_inst;
           prev_inst = mem_read_inst(pc - BYTES_PER_WORD);
           prev_prev_inst = mem_read_inst(pc - 2 * BYTES_PER_WORD);
 
           if (prev_inst != nullptr && OPCODE(prev_inst) == TOK_LUI_OPCODE &&
-              EXPR(inst)->symbol == EXPR(prev_inst)->symbol &&
+              EXPR(instruction)->symbol == EXPR(prev_inst)->symbol &&
               IMM(prev_inst) == 0) {
             /* Check that previous instruction was LUI and it has no immediate,
                otherwise it will have compensated for sign-extension */
@@ -281,14 +281,14 @@ static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc) {
              LW/SW instruction uses an index register: skip over the ADDU. */
           else if (prev_prev_inst != nullptr &&
                    OPCODE(prev_prev_inst) == TOK_LUI_OPCODE &&
-                   EXPR(inst)->symbol == EXPR(prev_prev_inst)->symbol &&
+                   EXPR(instruction)->symbol == EXPR(prev_prev_inst)->symbol &&
                    IMM(prev_prev_inst) == 0) {
             EXPR(prev_prev_inst)->offset += 0x10000;
           }
         }
       } else {
         /* Label's location is a value */
-        value = eval_imm_expr(EXPR(inst));
+        value = eval_imm_expr(EXPR(instruction));
         field_mask = 0xffff;
       }
 
@@ -297,14 +297,14 @@ static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc) {
         error("Immediate value is too large for field: ");
         print_inst(pc);
       }
-      if (opcode_is_jump(OPCODE(inst)))
-        SET_TARGET(inst, value); /* Don't mask so it is sign-extended */
+      if (opcode_is_jump(OPCODE(instruction)))
+        SET_TARGET(instruction, value); /* Don't mask so it is sign-extended */
       else
-        SET_IMM(inst, value); /* Ditto */
-      SET_ENCODING(inst, inst_encode(inst));
+        SET_IMM(instruction, value); /* Ditto */
+      SET_ENCODING(instruction, inst_encode(instruction));
     } else
       error("Resolving undefined symbol: %s\n",
-            (EXPR(inst)->symbol == nullptr) ? "" : EXPR(inst)->symbol->name);
+            (EXPR(instruction)->symbol == nullptr) ? "" : EXPR(instruction)->symbol->name);
   }
 }
 

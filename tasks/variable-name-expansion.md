@@ -240,21 +240,69 @@ Scope: 16 sites total — 8 in `include/spim.h`, 6 in
 
 **Effort:** ~15 minutes.  **Risk:** none.
 
-## Phase 9 — `inst` → `instruction`
+## Phase 9 — `inst` → `instruction` + type rename to `mips_instruction`
 
-Optional / borderline.
+Two-part rename to spell out `inst` while avoiding shadow
+hazards:
 
-`inst` is universal across the spim source (~250 sites in
-`run.c`, `explain.c`, `inst.c`, `parser.c`, `ast.c`).  It
-abbreviates a long word, but it's *consistently* abbreviated
-and recognizable to anyone who's worked in spim for more than
-five minutes.
+1. **Variable rename**: every bare local/parameter named `inst`
+   becomes `instruction`.  ~641 sites across the codebase
+   (much higher than the original ~250 estimate — variables
+   named `inst` were even more pervasive than expected).
 
-Recommendation: **skip unless you specifically want it**.
-The cost-benefit is poor — heavy churn for marginal clarity
-gain on a name that already reads cleanly to the audience.
+2. **Type rename**: `typedef struct inst_s { ... } instruction;`
+   becomes `typedef struct inst_s { ... } mips_instruction;`.
+   Matches the existing `mips_exc_code` naming convention.
 
-If proceeding, default to `instruction` (fully spelled).
+### Why both renames are necessary together
+
+If only the variable rename were done, every function signature
+becomes `void f(instruction* instruction)` — the parameter
+shadows the typedef.  `-Wshadow` (which the project has
+enabled) would refuse to build.
+
+Worse, in declarations like
+```c
+instruction* inst = (instruction*)zmalloc(sizeof(instruction));
+```
+renaming the variable produces
+```c
+instruction* instruction = (instruction*)zmalloc(sizeof(instruction));
+```
+where the inner `sizeof(instruction)` now refers to the
+just-declared variable (a pointer), not the type — a silent
+correctness bug.  Renaming the type to `mips_instruction`
+breaks the shadow and fixes the sizeof:
+```c
+mips_instruction* instruction = (mips_instruction*)zmalloc(sizeof(mips_instruction));
+```
+
+### Mechanics
+
+1. Sed `\binst\b` → `instruction` globally.
+2. Restore `#include "instruction.h"` lines back to
+   `#include "inst.h"` (the file is still named `inst.h` until
+   phase 10).
+3. Rename the typedef in `include/inst.h`:
+   `} instruction;` → `} mips_instruction;`.
+4. Sed type-position uses globally:
+   `\binstruction\*` → `mips_instruction*`
+   `sizeof(instruction)` → `sizeof(mips_instruction)`.
+5. Clean rebuild — any missed type-use fails compilation
+   loudly with "unknown type 'instruction'".
+
+### Scope
+
+641 variable-rename sites + ~80 type-rename sites across
+all `src/*.c` and `include/*.h` files except `op.h` (X-macro
+content; doesn't reference the type).
+
+**Effort:** ~30 minutes including the design-pivot discovery
+(initial attempt had only the variable rename and surfaced the
+shadow / sizeof issues at build time).
+**Risk:** medium — the multi-step rename has more moving
+parts than the other phases.  Clean rebuild and 22/22 test
+suite confirms correctness.
 
 ## Phase 9.5 — Token suffix expansion
 
@@ -437,6 +485,6 @@ merge to master.
 | 8 | `K` → `kilo` (+ `mega = kilo * kilo`) | 15 min | none |
 | 9.5 | `TOK_*_OP` → `_OPCODE`, `_DIR` → `_DIRECTIVE`, `_POP` → `_PSEUDO_OP` | 45 min | very low |
 | 10 | source file names expanded | 2 hours | low |
-| 9 | `inst` → `instruction` (optional) | 1-2 hours | low |
+| 9 | `inst` → `instruction` + type → `mips_instruction` | 30 min | medium |
 
 **Total (phases 1-8): roughly a half-day of work.**

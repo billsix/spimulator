@@ -141,13 +141,13 @@ void format_registers(str_stream* ss, int print_gpr_hex, int print_fpr_hex) {
    memory addresses: FROM...TO. */
 
 void format_insts(str_stream* ss, mem_addr from, mem_addr to) {
-  instruction* inst;
+  mips_instruction* instruction;
   mem_addr i;
 
   for (i = from; i < to; i += 4) {
-    inst = mem_read_inst(i);
-    if (inst != nullptr) {
-      format_an_inst(ss, inst, i);
+    instruction = mem_read_inst(i);
+    if (instruction != nullptr) {
+      format_an_inst(ss, instruction, i);
     }
   }
 }

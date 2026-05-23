@@ -21,7 +21,7 @@ float* fp_single_view;  /* is possible */
 int* fp_int_view;    /* is possible */
 reg_word coprocessor_control_registers[4][32], coprocessor_registers[4][32];
 
-instruction** text_seg;
+mips_instruction** text_seg;
 bool text_modified; /* => text segment was written */
 mem_addr text_top;
 mem_word* data_seg;
@@ -34,7 +34,7 @@ mem_word* stack_seg;
 short* stack_seg_h;  /* Points to same vector as STACK_SEG */
 int8_t* stack_seg_b; /* Ditto */
 mem_addr stack_bot;
-instruction** k_text_seg;
+mips_instruction** k_text_seg;
 mem_addr k_text_top;
 mem_word* k_data_seg;
 short* k_data_seg_h;
@@ -45,9 +45,9 @@ mem_addr k_data_top;
 
 static mem_word bad_mem_read(mem_addr addr, int mask);
 static void bad_mem_write(mem_addr addr, mem_word value, int mask);
-static instruction* bad_text_read(mem_addr addr);
-static void bad_text_write(mem_addr addr, instruction* inst);
-static void free_instructions(instruction** inst, int n);
+static mips_instruction* bad_text_read(mem_addr addr);
+static void bad_text_write(mem_addr addr, mips_instruction* instruction);
+static void free_instructions(mips_instruction** instruction, int n);
 static mem_word read_memory_mapped_IO(mem_addr addr);
 static void write_memory_mapped_IO(mem_addr addr, mem_word value);
 
@@ -83,7 +83,7 @@ static int32_t data_size_limit, stack_size_limit, k_data_size_limit;
    up in case size is not a multiple of BYTES_PER_WORD.  */
 
 #define BYTES_TO_INST(N) \
-  (((N) + BYTES_PER_WORD - 1) / BYTES_PER_WORD * sizeof(instruction*))
+  (((N) + BYTES_PER_WORD - 1) / BYTES_PER_WORD * sizeof(mips_instruction*))
 
 void make_memory(int text_size, int data_size, int data_limit, int stack_size,
                  int stack_limit, int k_text_size, int k_data_size,
@@ -92,10 +92,10 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   data_size = ROUND_UP(data_size, BYTES_PER_WORD); /* Keep word aligned */
 
   if (text_seg == nullptr)
-    text_seg = (instruction**)xmalloc(BYTES_TO_INST(text_size));
+    text_seg = (mips_instruction**)xmalloc(BYTES_TO_INST(text_size));
   else {
     free_instructions(text_seg, (text_top - TEXT_BOT) / BYTES_PER_WORD);
-    text_seg = (instruction**)realloc(text_seg, BYTES_TO_INST(text_size));
+    text_seg = (mips_instruction**)realloc(text_seg, BYTES_TO_INST(text_size));
   }
   memset(text_seg, 0, BYTES_TO_INST(text_size));
   text_top = TEXT_BOT + text_size;
@@ -123,10 +123,10 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   stack_size_limit = stack_limit;
 
   if (k_text_seg == nullptr)
-    k_text_seg = (instruction**)xmalloc(BYTES_TO_INST(k_text_size));
+    k_text_seg = (mips_instruction**)xmalloc(BYTES_TO_INST(k_text_size));
   else {
     free_instructions(k_text_seg, (k_text_top - K_TEXT_BOT) / BYTES_PER_WORD);
-    k_text_seg = (instruction**)realloc(k_text_seg, BYTES_TO_INST(k_text_size));
+    k_text_seg = (mips_instruction**)realloc(k_text_seg, BYTES_TO_INST(k_text_size));
   }
   memset(k_text_seg, 0, BYTES_TO_INST(k_text_size));
   k_text_top = K_TEXT_BOT + k_text_size;
@@ -148,9 +148,9 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
 
 /* Free the storage used by the old instructions in memory. */
 
-static void free_instructions(instruction** inst, int n) {
-  for (; n > 0; n--, inst++)
-    if (*inst) free_inst(*inst);
+static void free_instructions(mips_instruction** instruction, int n) {
+  for (; n > 0; n--, instruction++)
+    if (*instruction) free_inst(*instruction);
 }
 
 /* Expand the data segment by adding N bytes. */
@@ -255,7 +255,7 @@ void* mem_reference(mem_addr addr) {
   }
 }
 
-instruction* mem_read_inst(mem_addr addr) {
+mips_instruction* mem_read_inst(mem_addr addr) {
   if ((addr >= TEXT_BOT) && (addr < text_top) && !(addr & 0x3))
     return text_seg[(addr - TEXT_BOT) >> 2];
   else if ((addr >= K_TEXT_BOT) && (addr < k_text_top) && !(addr & 0x3))
@@ -297,14 +297,14 @@ reg_word mem_read_word(mem_addr addr) {
     return bad_mem_read(addr, 0x3);
 }
 
-void mem_write_inst(mem_addr addr, instruction* inst) {
+void mem_write_inst(mem_addr addr, mips_instruction* instruction) {
   text_modified = true;
   if ((addr >= TEXT_BOT) && (addr < text_top) && !(addr & 0x3))
-    text_seg[(addr - TEXT_BOT) >> 2] = inst;
+    text_seg[(addr - TEXT_BOT) >> 2] = instruction;
   else if ((addr >= K_TEXT_BOT) && (addr < k_text_top) && !(addr & 0x3))
-    k_text_seg[(addr - K_TEXT_BOT) >> 2] = inst;
+    k_text_seg[(addr - K_TEXT_BOT) >> 2] = instruction;
   else
-    bad_text_write(addr, inst);
+    bad_text_write(addr, instruction);
 }
 
 void mem_write_byte(mem_addr addr, reg_word value) {
@@ -345,14 +345,14 @@ void mem_write_word(mem_addr addr, reg_word value) {
 
 /* Handle the infrequent and erroneous cases in memory accesses. */
 
-static instruction* bad_text_read(mem_addr addr) {
+static mips_instruction* bad_text_read(mem_addr addr) {
   RAISE_EXCEPTION(ExcCode_IBE, CP0_BadVAddr = addr);
   return (inst_decode(0));
 }
 
-static void bad_text_write(mem_addr addr, instruction* inst) {
+static void bad_text_write(mem_addr addr, mips_instruction* instruction) {
   RAISE_EXCEPTION(ExcCode_IBE, CP0_BadVAddr = addr);
-  mem_write_word(addr, ENCODING(inst));
+  mem_write_word(addr, ENCODING(instruction));
 }
 
 static mem_word bad_mem_read(mem_addr addr, int mask) {
@@ -381,11 +381,11 @@ static mem_word bad_mem_read(mem_addr addr, int mask) {
         return (0xffff & tmp);
 
       case 0x3: {
-        instruction* inst = text_seg[(addr - TEXT_BOT) >> 2];
-        if (inst == nullptr)
+        mips_instruction* instruction = text_seg[(addr - TEXT_BOT) >> 2];
+        if (instruction == nullptr)
           return 0;
         else
-          return (ENCODING(inst));
+          return (ENCODING(instruction));
       }
 
       default:

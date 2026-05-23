@@ -17,19 +17,19 @@ extern int explain_level;
 
 /* Called before the dispatch switch in run_spim. Snapshots register state and
    prints a description of the upcoming instruction. */
-void explain_before(instruction* inst, mem_addr addr);
+void explain_before(mips_instruction* instruction, mem_addr addr);
 
 /* Called after the dispatch switch. Prints a diff of register/PC state vs
    the snapshot taken in explain_before. */
-void explain_after(instruction* inst);
+void explain_after(mips_instruction* instruction);
 
 /* Emit the per-step header (legend on first call, then hr separator,
    "Stepped at PC = X:", labeled machine-view line, optional source
    line) for the instruction at `pc`. Used by explain_after at the top
    of its body, and by the default step display in run.c so the
    no-explain step output has the same shape as the explain-mode
-   header. Level-independent — `inst` is the instruction at `pc`. */
-void explain_print_step_header(mem_addr pc, instruction* inst);
+   header. Level-independent — `instruction` is the instruction at `pc`. */
+void explain_print_step_header(mem_addr pc, mips_instruction* instruction);
 
 /* Tab-completion candidates for the most recent instruction's "Try it
    yourself" hints. The list is repopulated each time explain_before runs

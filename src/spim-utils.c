@@ -333,7 +333,7 @@ bool run_program(mem_addr pc, int steps, bool display, bool cont_bkpt,
 
 typedef struct bkptrec {
   mem_addr addr;
-  instruction* inst;
+  mips_instruction* instruction;
   struct bkptrec* next;
 } bkpt;
 
@@ -347,7 +347,7 @@ void add_breakpoint(mem_addr addr) {
   rec->next = bkpts;
   rec->addr = addr;
 
-  if ((rec->inst = set_breakpoint(addr)) != nullptr)
+  if ((rec->instruction = set_breakpoint(addr)) != nullptr)
     bkpts = rec;
   else {
     if (exception_occurred)
@@ -368,7 +368,7 @@ void delete_breakpoint(mem_addr addr) {
     if (b->addr == addr) {
       bkpt* n;
 
-      mem_write_inst(addr, b->inst);
+      mem_write_inst(addr, b->instruction);
       if (p == nullptr)
         bkpts = b->next;
       else

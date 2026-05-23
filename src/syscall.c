@@ -158,7 +158,7 @@ void handle_exception(void) {
 
     case ExcCode_AdEL:
       if (!quiet)
-        error("  Unaligned address in inst/data fetch: 0x%08x\n", CP0_BadVAddr);
+        error("  Unaligned address in instruction/data fetch: 0x%08x\n", CP0_BadVAddr);
       break;
 
     case ExcCode_AdES:

@@ -47,7 +47,7 @@ void parse_error(char* s) {
 }
 
 /* ------------------------------------------------------------------ *
- * imm_op_to_op: needed by src/inst.c's pseudo-op expander.
+ * imm_op_to_op: needed by src/instruction.c's pseudo-op expander.
  * ------------------------------------------------------------------ */
 
 int imm_op_to_op(int opcode) {
@@ -82,7 +82,7 @@ int imm_op_to_op(int opcode) {
   }
 }
 
-/* Forward declarations for runtime helpers still provided by inst.c.
+/* Forward declarations for runtime helpers still provided by instruction.c.
    The instruction-emit calls (r_type_inst, i_type_inst_free, ...) come
    in via parser.h's emit_* dispatch wrappers so they participate in
    AST construction. */

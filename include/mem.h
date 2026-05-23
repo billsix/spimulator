@@ -21,7 +21,7 @@ static_assert(sizeof(mem_word) == BYTES_PER_WORD,
 
 /* The text segment and boundaries. */
 
-extern instruction** text_seg;
+extern mips_instruction** text_seg;
 
 extern bool text_modified; /* => text segment was written */
 
@@ -63,7 +63,7 @@ constexpr mem_addr STACK_TOP = 0x80000000;
 
 /* The kernel text segment and boundaries. */
 
-extern instruction** k_text_seg;
+extern mips_instruction** k_text_seg;
 
 constexpr mem_addr K_TEXT_BOT = 0x80000000;
 
@@ -114,11 +114,11 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
                  int k_data_limit);
 void* mem_reference(mem_addr addr);
 void print_mem(mem_addr addr);
-instruction* mem_read_inst(mem_addr addr);
+mips_instruction* mem_read_inst(mem_addr addr);
 reg_word mem_read_byte(mem_addr addr);
 reg_word mem_read_half(mem_addr addr);
 reg_word mem_read_word(mem_addr addr);
-void mem_write_inst(mem_addr addr, instruction* inst);
+void mem_write_inst(mem_addr addr, mips_instruction* instruction);
 void mem_write_byte(mem_addr addr, reg_word value);
 void mem_write_half(mem_addr addr, reg_word value);
 void mem_write_word(mem_addr addr, reg_word value);
