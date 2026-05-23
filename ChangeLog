@@ -56,6 +56,43 @@
 	  the multi-`-file`/multi-`-f` syntax and the
 	  symbol-table-accumulation semantics.
 
+	Repo merge: absorb the standalone /examples curriculum into
+	examples/ subdirectory.
+
+	Goal was one Dockerfile, one `meson test`, and goldens
+	enforced at container-build time (any drift between the C
+	side and the spim-asm side of a paired demo fails the build).
+	Full task writeup in tasks/merge-examples-into-spimulator.md.
+
+	* examples/: 27 commits from the standalone repo replayed
+	  with original author/email/date/message preserved (via
+	  GIT_AUTHOR_* + GIT_COMMITTER_* env vars and `git archive`
+	  for each commit's tree).  `git log examples/` shows the
+	  full history.  Pruned: book/, Dockerfile, Makefile,
+	  entrypoint/, output/, musl/ — none needed in the merged
+	  tree.
+	* meson.build: `subdir('examples/src')` at the bottom.  The
+	  inner meson.build dropped its own `project(...)` and
+	  scoped its compile/link flags per-target (so -nostdlib
+	  doesn't leak into spim's own build, which needs libc +
+	  libedit).  6 demo tests registered in the 'examples' meson
+	  suite (ctype-demo, atoi-demo, abs-demo, exit-demo,
+	  bsearch-demo, atexit-demo).  Test count: 23 → 29.
+	* examples/tests/run-demo.sh: per-demo runner that validates
+	  BOTH the C binary AND the spim-asm version against the
+	  same .expected golden, plus .expected-status where pinned.
+	  Fails fast on any mismatch.
+	* Dockerfile: added `diffutils` to dnf install (run-demo.sh
+	  uses `diff -q`); added `COPY examples/`; the existing
+	  `RUN meson test` step now covers both suites, so any
+	  drift fails the image build.
+	* tasks/README.md (new): two-surface index — tasks/ for
+	  spim-internal, examples/tasks/ for curriculum.
+	* Path-reference sweep: ~40 stale /examples/ prose
+	  references → examples/; 4 broken ../spimulator/ relative
+	  markdown links fixed; LICENSE-musl files lost their stale
+	  "Local copy /examples/musl/" lines.
+
 2026-05-20  Bill Six  <billsix@gmail.com>
 
 	Post-Phase-5 naming cleanup (four tiers):
