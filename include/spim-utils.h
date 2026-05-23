@@ -18,6 +18,14 @@ typedef struct {
   int value2;
 } name_val_val;
 
+/* Sentinel value for initialize_world's exception_file_names parameter.
+   When the parameter equals this pointer (by identity, not strcmp),
+   initialize_world loads the exception handler from bytes baked into
+   the binary via #embed instead of opening a file.  Any user-supplied
+   string (env var, -exception_file argument) has a different address
+   and is read from disk as before. */
+extern char SPIM_DEFAULT_EXCEPTIONS_SENTINEL[];
+
 /* Exported functions: */
 
 void add_breakpoint(mem_addr addr);

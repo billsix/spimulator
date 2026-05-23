@@ -39,15 +39,14 @@ if host_machine.endian() == 'big'
 endif
 
 
-# Configure config.h
-conf_data = configuration_data()
-conf_data.set_quoted('DEFAULT_EXCEPTION_HANDLER',
-                     get_option('prefix') / get_option('datadir') / 'spimulator/exceptions.s')
-
+# Configure config.h.  No build-time substitutions are needed at the
+# moment (the previous DEFAULT_EXCEPTION_HANDLER path is gone — the
+# exception handler is now #embed'd into the binary), but the
+# pipeline is kept in place for any future knobs.
 configure_file(
   input: 'include/config.h.in',
   output: 'config.h',
-  configuration: conf_data
+  configuration: configuration_data()
 )
 
 # Source files.  The hand-written parser became the sole parser in

@@ -271,7 +271,11 @@ bool delayed_loads;       /* => simulate delayed loads */
 bool accept_pseudo_insts; /* => parse pseudo instructions  */
 bool quiet;               /* => no warning messages */
 static bool assemble;     /* => assemble, disassemble to file and exit */
-char* exception_file_name = DEFAULT_EXCEPTION_HANDLER;
+/* Default to the embedded handler (see spim-utils.h).  The SPIM_EXCEPTION_HANDLER
+   env var (read in main) and -exception_file CLI flag both overwrite this with
+   a real on-disk path, at which point the dispatch in initialize_world falls
+   through to fopen() rather than the embedded bytes. */
+char* exception_file_name = SPIM_DEFAULT_EXCEPTIONS_SENTINEL;
 port message_out, console_out, console_in;
 bool mapped_io;        /* => activate memory-mapped IO */
 int spim_return_value; /* Value returned when spim exits */
