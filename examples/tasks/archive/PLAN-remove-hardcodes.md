@@ -15,7 +15,7 @@ All 6 demos in scope unhardcoded.  Verified end-to-end:
 
 New shared infrastructure added:
 
-- **`/examples/src/read-int.c`** + **`read_int_from_stdin`**
+- **`examples/src/read-int.c`** + **`read_int_from_stdin`**
   declaration in `io.h`.  C-side equivalent of spim's syscall
   5 (read_int), used by bubble-sort and binary-search.
 

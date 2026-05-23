@@ -8,7 +8,7 @@ is ephemeral; commit history + this file + `PLAN-asm-comments.md`
 
 Bill asked whether spim acts as a regular Unix process (motivated
 by the possible PGU rewrite).  Investigation in
-[`/spimulator/tasks/unix-process-conformance.md`](../../spimulator/tasks/unix-process-conformance.md);
+[`/spimulator/tasks/unix-process-conformance.md`](../../tasks/unix-process-conformance.md);
 four defects identified and fixed:
 
 1. Banner `Loaded: …` was on stdout, polluting pipelines.  Now on
@@ -54,7 +54,7 @@ The C side already returns correctly via `crt0.h` propagating
   asm.  Recommendation: Option A (`-save-temps=obj`), a
   one-line meson change.  Bill's request.
 - [`PLAN-container-cross-env.md`](PLAN-container-cross-env.md)
-  — bake clang + lld + qemu-user-static into `/examples/Dockerfile`
+  — bake clang + lld + qemu-user-static into `examples/Dockerfile`
   so the multiarch shim is verifiable in-container.
   Recommendation: Option A (clang+lld, no GNU cross gcc),
   ~150 MB.  Unblocks the multiarch-shim verification step and
@@ -136,17 +136,17 @@ and others were untouched.
 Audit: only two `.asciiz` octal escapes anywhere in the trees
 (`\033` in clear, `\134` in od); no workarounds had been
 added to compensate.  See
-[`/spimulator/tasks/octal-escape-fix.md`](../../spimulator/tasks/octal-escape-fix.md)
+[`/spimulator/tasks/octal-escape-fix.md`](../../tasks/octal-escape-fix.md)
 and ChangeLog 2026-05-19 entry.
 
 ### Files touched this session
 
-- `/examples/src/{28..39}-*/*.{c,asm}` — 12 new demo pairs
-- `/examples/src/meson.build` — 12 new build entries
-- `/examples/src/{06,07,08,09,22,27}-*/*.{c,asm}` — argv/stdin
-- `/examples/src/{read-int.c, io.h}` — `read_int_from_stdin` helper
-- `/examples/READING-ORDER.md` — Part 7 + concept index
-- `/examples/PLAN-tier1-tier2-tools.md`, `PLAN-remove-hardcodes.md` — marked landed
+- `examples/src/{28..39}-*/*.{c,asm}` — 12 new demo pairs
+- `examples/src/meson.build` — 12 new build entries
+- `examples/src/{06,07,08,09,22,27}-*/*.{c,asm}` — argv/stdin
+- `examples/src/{read-int.c, io.h}` — `read_int_from_stdin` helper
+- `examples/READING-ORDER.md` — Part 7 + concept index
+- `examples/PLAN-tier1-tier2-tools.md`, `PLAN-remove-hardcodes.md` — marked landed
 - `/spimulator/src/scanner.l:493` — octal-escape fix
 - `/spimulator/tests/tt.octal_escape.s` — regression test
 - `/spimulator/tasks/octal-escape-fix.md` — bug writeup

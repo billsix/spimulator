@@ -3,7 +3,7 @@
 ## Goal
 
 Port a focused set of `<string.h>` functions from musl as a
-teaching library at `/examples/src/lib/libstr/`.  The MIPS
+teaching library at `examples/src/lib/libstr/`.  The MIPS
 asm side trades musl's optimization tricks (alignment-aware
 word-at-a-time loops, SIMD, Two-Way string matching) for naive
 implementations that read on one screen and illustrate the
@@ -53,12 +53,12 @@ care about tail-call optimization, so just `jr $ra` at the end.
 
 ## Consolidation with existing helpers
 
-`/examples/src/count-chars.c` already implements `strlen`
+`examples/src/count-chars.c` already implements `strlen`
 (under the name `count_chars`).  The libstr port should
 **absorb** it:
 
 - Rename `count_chars` → `strlen` in the new library.
-- Delete `/examples/src/count-chars.c` and update its 1-2 demo
+- Delete `examples/src/count-chars.c` and update its 1-2 demo
   consumers to call `strlen` from libstr instead.
 - The MIPS asm side of strlen is already familiar pattern
   from existing demos (cksum, wc, etc.) — codify it.
@@ -87,7 +87,7 @@ No other existing helpers overlap with this libstr scope.
 ## Structure
 
 ```
-/examples/src/lib/libstr/
+examples/src/lib/libstr/
     libstr.h            # C declarations
     libstr.c            # C implementations (naive, mirroring asm)
     libstr.asm          # MIPS implementations
@@ -133,7 +133,7 @@ same operation.
 
 ## Test/demo
 
-`str-demo.{c,asm}` at `/examples/src/lib/libstr-demo/`:
+`str-demo.{c,asm}` at `examples/src/lib/libstr-demo/`:
 
 - Hardcoded inputs covering: equal/unequal/prefix string
   pairs, single-byte chars to search for, memcpy with various

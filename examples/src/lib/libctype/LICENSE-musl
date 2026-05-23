@@ -8,7 +8,6 @@ from musl libc's src/ctype/ subtree.
 
 Source       https://musl.libc.org/
 Repository   https://git.musl-libc.org/cgit/musl/tree/src/ctype
-Local copy   /examples/musl/
 
 musl is distributed under the MIT license, reproduced below
 verbatim from the musl COPYRIGHT file.

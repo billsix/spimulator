@@ -3,7 +3,7 @@
 ## Goal
 
 Port a focused set of `<stdlib.h>` functions from musl as a
-teaching library at `/examples/src/lib/libstdlib/`.  The library
+teaching library at `examples/src/lib/libstdlib/`.  The library
 is small (5 functions) but pedagogically important because it's
 the first one that **composes** other libraries — `atoi` calls
 into libctype's `isspace` and `isdigit`, demonstrating the
@@ -52,7 +52,7 @@ in a "library" context (rather than a one-off demo).
 
 ## Consolidation with existing helpers
 
-`/examples/src/string-to-int.c` already implements `atoi`
+`examples/src/string-to-int.c` already implements `atoi`
 (under the name `parse_int`).  The libstdlib port should
 **absorb** it:
 
@@ -87,7 +87,7 @@ in a "library" context (rather than a one-off demo).
 ## Structure
 
 ```
-/examples/src/lib/libstdlib/
+examples/src/lib/libstdlib/
     libstdlib.h         # C declarations
     libstdlib.c         # C implementations
     libstdlib.asm       # MIPS implementations
@@ -164,7 +164,7 @@ syscall 10 ignores `$a0`, syscall 17 honors it.
 
 ## Test/demo
 
-`stdlib-demo.{c,asm}` at `/examples/src/lib/libstdlib-demo/`:
+`stdlib-demo.{c,asm}` at `examples/src/lib/libstdlib-demo/`:
 
 - atoi: feed various strings ("42", "  -17  ", "0", "abc",
   empty), print expected and actual side by side.
@@ -228,7 +228,7 @@ sweep are open.
 
 ### atoi (landed 2026-05-23)
 
-`/examples/src/lib/libstdlib/`:
+`examples/src/lib/libstdlib/`:
 - `libstdlib.h` — public declarations (just `atoi` for now;
   others appended as they land)
 - `libstdlib.c` — atoi mirroring musl's algorithm (skip
@@ -242,7 +242,7 @@ sweep are open.
   trick for constant multiplication.
 - `LICENSE-musl` — full MIT text + per-file derivation notes
 
-`/examples/src/lib/libstdlib-demo/`:
+`examples/src/lib/libstdlib-demo/`:
 - `atoi-demo.c` — exercises 12 representative cases (positive,
   negative, leading whitespace, leading '+', stops at first
   non-digit, empty input, INT_MIN, INT_MAX, multi-whitespace
@@ -251,7 +251,7 @@ sweep are open.
   pointers, looped through; private `_ps`/`_pi` print helpers
 - `atoi-demo.expected` — pinned 12-line golden
 
-`/examples/src/meson.build`:
+`examples/src/meson.build`:
 - `libstdlib_lib` static lib (links libctype headers for the C
   side's `isspace`/`isdigit` includes)
 - `atoi-demo` executable wired to link both libs
@@ -270,7 +270,7 @@ Library functions for what the C standard library calls
 `abs(int)` and `labs(long)`.  Renamed to longer self-documenting
 names — see the "naming gotcha" note below.
 
-`/examples/src/lib/libstdlib/`:
+`examples/src/lib/libstdlib/`:
 - `libstdlib.{h,c}` — `absolute(int)` and `labsolute(long)`.
   C-side implementations mirror musl directly
   (`return x > 0 ? x : -x;`).  On MIPS32 `long == int` so
@@ -283,7 +283,7 @@ names — see the "naming gotcha" note below.
   primary; branchless `sra`+`xor`+`subu` shown in the comment
   block as a sidebar.
 
-`/examples/src/lib/libstdlib-demo/`:
+`examples/src/lib/libstdlib-demo/`:
 - `abs-demo.{c,asm}` — 8 cases covering 0, ±1, ±100, ±INT_MAX,
   and the INT_MIN edge case where -INT_MIN overflows to itself
 - `abs-demo.expected` — pinned 8-line golden
@@ -305,7 +305,7 @@ names so the relationship is clear.
 Simplest possible library function — terminates the program
 with a host-shell-visible exit status.
 
-`/examples/src/lib/libstdlib/`:
+`examples/src/lib/libstdlib/`:
 - `libstdlib.{h,c}` — `__attribute__((noreturn)) void _Exit(int)`.
   C-side wraps `os_exit(status)` from os.h, which already does
   the per-arch Linux syscall.
@@ -316,7 +316,7 @@ with a host-shell-visible exit status.
   with status 99 in case syscall 17 somehow returned (it never
   does).
 
-`/examples/src/lib/libstdlib-demo/`:
+`examples/src/lib/libstdlib-demo/`:
 - `exit-demo.{c,asm}` — print `"calling _Exit(42)\n"` then call
   `_Exit(42)`.  Verifies both stdout content AND that the
   parent shell sees exit status 42.
@@ -328,7 +328,7 @@ AND both propagate exit 42 to the host shell.
 
 ### bsearch (landed 2026-05-23)
 
-`/examples/src/lib/libstdlib/`:
+`examples/src/lib/libstdlib/`:
 - `libstdlib.{h,c}` — `void *bsearch(key, base, nel, width, cmp)`
   matching musl's algorithm.  `unsigned` substituted for `size_t`
   to avoid `<stddef.h>` in the freestanding build.
@@ -341,7 +341,7 @@ AND both propagate exit 42 to the host shell.
      curriculum.  cmp lives in `$s4` so it survives across loop
      iterations.
 
-`/examples/src/lib/libstdlib-demo/`:
+`examples/src/lib/libstdlib-demo/`:
 - `bsearch-demo.{c,asm}` — sorted 10-int array, 9 search keys
   covering: first/last/middle present, near-front/back present,
   three between-element absents (50, 13), below-range (0), and
@@ -368,7 +368,7 @@ All planned functions for libstdlib v1 have landed.  Future
 extensions (qsort, strtol, the float-aware variants, etc.) can
 be filed as separate tasks if pedagogically warranted.
 - **parse_int kept; atoi available alongside**: 27 demo files in
-  `/examples/src/` call `parse_int` (defined in
+  `examples/src/` call `parse_int` (defined in
   `string-to-int.c`).  After discussion 2026-05-23: Bill keeps
   `parse_int` as the simple teaching helper for clean argv
   strings (no whitespace skip, no `+`, no INT_MIN safety

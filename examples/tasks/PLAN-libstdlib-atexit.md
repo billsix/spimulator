@@ -141,7 +141,7 @@ students reading both forms.
 
 ## Test/demo
 
-`/examples/src/lib/libstdlib-demo/atexit-demo.{c,asm}`:
+`examples/src/lib/libstdlib-demo/atexit-demo.{c,asm}`:
 
 - Register 3 handlers (`h1`, `h2`, `h3`) that each print a
   distinct line ("handler 1 ran", etc.).
@@ -186,7 +186,7 @@ output AND both propagate exit 42 to the host shell.
 
 ### What landed
 
-`/examples/src/lib/libstdlib/`:
+`examples/src/lib/libstdlib/`:
 - `libstdlib.h` — declarations + the "vs. real libc" notes
   (musl exit also runs C++ destructors, stdio flush, etc.;
   _Exit deliberately bypasses the chain; main return doesn't
@@ -200,7 +200,7 @@ output AND both propagate exit 42 to the host shell.
   registered handler in a loop, then tail-calls `_Exit` with
   `j _Exit` (no return).
 
-`/examples/src/lib/libstdlib-demo/`:
+`examples/src/lib/libstdlib-demo/`:
 - `atexit-demo.{c,asm}` — three handlers (h1, h2, h3)
   registered in that order; output demonstrates they run as
   h3 → h2 → h1 (LIFO).  Then `exit(42)`.

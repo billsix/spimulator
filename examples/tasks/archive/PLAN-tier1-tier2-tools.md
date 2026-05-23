@@ -13,7 +13,7 @@ Notable defects found and resolved during smoke-testing:
   which surfaced a real spim bug (scanner.l's `copy_str`
   shifted the first octal digit by 3 instead of 6 bits, so
   `\134` decoded to `$` instead of `\`).  See
-  [`/spimulator/tasks/octal-escape-fix.md`](../../../spimulator/tasks/octal-escape-fix.md);
+  [`/spimulator/tasks/octal-escape-fix.md`](../../../tasks/octal-escape-fix.md);
   fixed in scanner.l line 493 and guarded by
   `tests/tt.octal_escape.s`.
 - **base64** had an emit_char subroutine that clobbered
@@ -51,7 +51,7 @@ What landed:
 
 Add 12 new Unix-tool demos to the curriculum, each pairing a
 freestanding C version with a MIPS asm port.  Inspired by
-`/examples/sbase/` (which has reference implementations for
+`examples/sbase/` (which has reference implementations for
 most) and authored from scratch where sbase doesn't cover.
 
 The 12 demos cover the asm patterns the current curriculum is

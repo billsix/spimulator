@@ -155,32 +155,58 @@ Suggested commit message:
 
 ## Phase 3 — Cross-reference sweep
 
-Update relative paths now that the curriculum tree lives one
-level deeper inside /spimulator:
+**Status: STAGED 2026-05-23 (awaiting commit outside container).**
 
-- `../spimulator/tasks/...` → `../../tasks/...` (going up
-  two: from `examples/tasks/foo.md` → `examples/` → `/spimulator/`
-  → `tasks/`).  Or simpler: drop the `..` traversal entirely
-  by using absolute-from-repo-root.
-- `/spimulator/...` absolute paths in moved files → relative
-  to the merged tree.  E.g., from inside
-  `examples/tasks/PLAN-libstdlib-atexit.md`,
-  `/spimulator/tasks/cli-multi-file-load.md` becomes
-  `../../tasks/cli-multi-file-load.md`.
-- Invocation examples throughout `READING-ORDER.md`,
-  `SESSION_NOTES.md`, and `examples/tasks/PLAN-*.md`:
-  `spimulator -f /spimulator/.../libctype.asm` →
-  `spimulator -f examples/src/lib/libctype/libctype.asm`
-  (or whatever's natural relative to expected cwd).
-- Per-file `.asm` and `.c` header comments that show
-  invocation patterns — verify each.
+Three classes of fixes landed:
 
-Tooling: `grep -rln '/spimulator/' examples/`,
-`grep -rln '\.\./spimulator/' examples/`, manual fix-up pass.
+1. **Broken markdown links** (4 instances).  After the move,
+   `../spimulator/...` and `../../spimulator/...` relative
+   links no longer resolve (the parent /examples dir was a
+   sibling of /spimulator; now examples lives INSIDE
+   /spimulator).  Fixed:
+   - `examples/tasks/SESSION_NOTES.md` (2 links):
+     `../../spimulator/tasks/X.md` → `../../tasks/X.md`
+   - `examples/tasks/archive/README.md` (1 link):
+     `../../../spimulator/tasks/X.md` → `../../../tasks/X.md`
+   - `examples/tasks/archive/PLAN-tier1-tier2-tools.md`
+     (1 link): same shape as the archive README.
 
-One commit per file area (one commit each for READING-ORDER,
-SESSION_NOTES, the tasks dir sweep, the demo source sweep).
-Or one big commit if the changes are mechanical.
+2. **Stale `/examples/` prose references** (~40 instances
+   across 15 files).  `/examples` doesn't exist post-merge.
+   Bulk sed: `/examples/X` → `examples/X`.  These are prose
+   mentions in plan docs and a few `.asm`/`.h` comments
+   describing file locations.
+
+3. **LICENSE-musl files** (2 files).  Both had a
+   `Local copy   /examples/musl/` line pointing at the
+   vendored upstream source that was deleted before the
+   merge.  Removed the line; left the Source + Repository
+   URLs intact for attribution.
+
+4. **READING-ORDER.md invocation example**.  Bumped from
+   `spimulator -f src/...` to `spimulator -f examples/src/...`
+   and added a "(paths relative to /spimulator root)" cwd
+   hint, so readers don't have to guess.
+
+Left as-is (out of scope for this sweep):
+- `/spimulator/...` absolute paths in prose comments and plan
+  docs.  These still resolve correctly post-merge (the
+  absolute paths are unchanged); rewriting them to relative
+  would be stylistic cleanup that can come later if wanted.
+- The `/spimulator/...` references match the convention in
+  the spim-side `/spimulator/tasks/` docs, so there's
+  consistency value in keeping them absolute.
+
+Files touched: 15 (1 .md doc + 14 task/license files).
+
+Suggested commit message:
+> "Cross-reference sweep post-/examples merge.
+>  Fix 4 broken relative markdown links; replace ~40 `/examples/`
+>  prose references with relative `examples/`; drop stale
+>  `Local copy /examples/musl/` lines from the two LICENSE-musl
+>  files (musl was deleted pre-merge); update READING-ORDER's
+>  invocation example to use the post-merge path with an
+>  explicit cwd hint."
 
 ---
 

@@ -84,7 +84,7 @@ already cares about:
 Each of those is a subroutine **that does something the
 student would recognise as useful**.  mxPlusB is not.
 
-The 07 demos are preserved as `/examples/src/subrountines/`
+The 07 demos are preserved as `examples/src/subrountines/`
 for the curious reader; an appendix page could explain "this
 is how subroutine linkage used to be spelled out before the
 jal/jr $ra convention," and a student who wants the deep dive
@@ -307,7 +307,7 @@ invocation would overwrite the same register).
 
 1. Validate this order on real students (Bill knows the
    class).
-2. Produce `READING-ORDER.md` at `/examples/` root, just the
+2. Produce `READING-ORDER.md` at `examples/` root, just the
    ordered list of demos with one-line rationale per entry.
 3. (Eventually) write the Sphinx book chapters from this
    skeleton.

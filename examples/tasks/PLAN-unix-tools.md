@@ -1,6 +1,6 @@
 # Plan: porting sbase/ubase tools into the examples tree
 
-The `/examples/sbase` and `/examples/ubase` checkouts are suckless'
+The `examples/sbase` and `examples/ubase` checkouts are suckless'
 small Unix utilities.  Many are short enough that their core
 algorithm — stripped of libc, argv flag parsing, error helpers,
 and edge-case handling — fits the freestanding pgu-style C used
@@ -391,7 +391,7 @@ gains argv loading.
   directory names.  Bill to decide before the first port.
 * **Where do the originals live?**  sbase/ubase trees are large.
   After porting we may want to move the originals out of the
-  example tree (e.g. into `/examples/upstream/`) so they don't
+  example tree (e.g. into `examples/upstream/`) so they don't
   show up in tab-completion when working on demos.
 * **`os_read` / `os_write` with explicit fd in `.asm`.**  Today's
   asm tree only uses syscalls 4 (print_string) and 11/12 (per-

@@ -214,7 +214,7 @@ done
 
 ## Dockerfile changes
 
-The current `/examples/Dockerfile` is the Sphinx-book builder.
+The current `examples/Dockerfile` is the Sphinx-book builder.
 Adding the asm matrix needs:
 
 ```dockerfile
@@ -310,7 +310,7 @@ generated, the toolchain doesn't need to ride in the image.
   pedagogy.  The `.s` is the artifact.
 - Real cross-arch execution (qemu-user, etc).  Same reason.
 - Non-Linux targets (FreeBSD, macOS).
-- The `.asm` files in `/examples/src/*/*.asm` — those are
+- The `.asm` files in `examples/src/*/*.asm` — those are
   hand-written for spim and are not part of this matrix.
 - Optimization-level studies (`-O0` vs `-O2`).  Stay at `-O0`
   for readability.  A later `book/` chapter could compare

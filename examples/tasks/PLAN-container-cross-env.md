@@ -46,7 +46,7 @@ Three reasons:
 
 ## State of the world today
 
-`/examples/Dockerfile` installs only: aspell, git, make, sphinx,
+`examples/Dockerfile` installs only: aspell, git, make, sphinx,
 texlive.  No compilers, no qemu.  The actual build environment
 this session has been using (Fedora 43 with meson, clang,
 flex/bison, qemu-user-static) is a richer container that
@@ -198,7 +198,7 @@ env is good.
 ### Step 2 — cross-compile a representative argv demo
 
 ```sh
-cd /examples/src
+cd examples/src
 clang --target=aarch64-linux-gnu -static -nostdlib \
       -ffreestanding -fuse-ld=lld -I. \
       echo/echo.c read-int.c <other io-lib sources as needed> \
@@ -232,7 +232,7 @@ easier once the in-container env is provisioned.
 ## Order of work
 
 1. Add `dnf install -y clang lld qemu-user-static` to
-   `/examples/Dockerfile`.  Single-line change.
+   `examples/Dockerfile`.  Single-line change.
 2. (Optional but recommended) Pin the package versions so the
    container build is reproducible:
    `dnf install -y clang-22.x.y lld-22.x.y qemu-user-static-X.Y.Z`.

@@ -42,16 +42,16 @@ A few demos that show a bug-and-fix pair (or a longhand /
 idiomatic pair) have two asm variants per single C source:
 `<demo-name>-1.asm` and `<demo-name>-2.asm`.
 
-To run a demo on the asm side:
+To run a demo on the asm side (paths relative to /spimulator root):
 
 ```sh
-spimulator -f src/<topic>/<demo-name>/<demo-name>.asm   # plus any argv it takes
+spimulator -f examples/src/<topic>/<demo-name>/<demo-name>.asm   # plus any argv it takes
 ```
 
 To run the C side natively (Linux):
 
 ```sh
-cd src && meson compile -C builddir
+cd examples/src && meson compile -C builddir
 ./builddir/<demo-name>                          # plus any argv
 ```
 

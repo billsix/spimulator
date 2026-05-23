@@ -3,7 +3,7 @@
 ## Goal
 
 Port 8 `<ctype.h>` functions from musl as a teaching library at
-`/examples/src/lib/libctype/`.  Each function pairs a tiny C
+`examples/src/lib/libctype/`.  Each function pairs a tiny C
 source (mirroring musl's ASCII-only version) with a hand-written
 MIPS asm implementation, documented with a calling-convention
 header block.  This is the simplest library — all functions are
@@ -23,7 +23,7 @@ range checks, no `.data`, no `jal` inside, pure leaf functions.
 | `tolower`  | `int tolower(int c)`  | lowercase if uppercase else c unchanged |
 
 ASCII-only.  No locale, no wide-char variants (`iswalpha`,
-etc.).  musl's source under `/examples/musl/src/ctype/` for
+etc.).  musl's source under `examples/musl/src/ctype/` for
 each is 2-6 lines; the porting is mechanical.
 
 ## Calling-convention contract
@@ -64,7 +64,7 @@ libstr starts chaining calls.
 ## Structure
 
 ```
-/examples/src/lib/libctype/
+examples/src/lib/libctype/
     libctype.h          # C-side public declarations
     libctype.c          # C-side implementations (musl-style)
     libctype.asm        # MIPS-side implementations
@@ -101,7 +101,7 @@ discover the trick by reading musl's source.
 ## Test/demo
 
 One demo program `ctype-demo.{c,asm}` at
-`/examples/src/lib/libctype-demo/`:
+`examples/src/lib/libctype-demo/`:
 
 - Loops `c = 0..127`, calls all 8 classifiers + 2 converters,
   prints a row per byte like:
@@ -161,7 +161,7 @@ output (95 rows covering printable-ASCII 32..126); diffed via
 
 ### What landed
 
-`/examples/src/lib/libctype/`:
+`examples/src/lib/libctype/`:
 - `libctype.h` — public declarations + calling-convention contract
 - `libctype.c` — all 8 functions in one consolidated file
   (initially per-function .c files; consolidated to one file to
@@ -172,13 +172,13 @@ output (95 rows covering printable-ASCII 32..126); diffed via
   semantics
 - `LICENSE-musl` — full MIT text + per-file derivation notes
 
-`/examples/src/lib/libctype-demo/`:
+`examples/src/lib/libctype-demo/`:
 - `ctype-demo.c` — loops 32..126, prints one row per byte
 - `ctype-demo.asm` — same loop in MIPS; private `_ps`/`_pi`/`_pc`
   print helpers at the bottom (factor into libio.asm later)
 - `ctype-demo.expected` — pinned 95-line golden output
 
-`/examples/src/meson.build`:
+`examples/src/meson.build`:
 - `libctype_lib` static lib
 - `lib_demos` foreach pattern wiring the demo to link against
   libctype + io_lib
