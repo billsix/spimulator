@@ -181,6 +181,31 @@ follow-up work on libstr.
 
 ## Status
 
-Not started.  Estimated effort: ~half a day (C + asm + demo +
-golden + meson wiring).  Smaller than atoi (no inter-library
-dependencies; uses _Exit which is already in libstdlib).
+Landed 2026-05-23.  C and asm produce byte-identical 4-line
+output AND both propagate exit 42 to the host shell.
+
+### What landed
+
+`/examples/src/lib/libstdlib/`:
+- `libstdlib.h` — declarations + the "vs. real libc" notes
+  (musl exit also runs C++ destructors, stdio flush, etc.;
+  _Exit deliberately bypasses the chain; main return doesn't
+  walk it either).
+- `libstdlib.c` — `MAX_ATEXIT = 32`; `handlers[]` array +
+  `handler_count`.  `atexit` appends; `exit` walks reverse
+  + calls `_Exit`.
+- `libstdlib.asm` — handlers[] + handler_count in `.data`.
+  `atexit` is a pure leaf (no jal, no frame).  `exit` is the
+  second `jalr` lesson — uses `jalr $t1` to invoke each
+  registered handler in a loop, then tail-calls `_Exit` with
+  `j _Exit` (no return).
+
+`/examples/src/lib/libstdlib-demo/`:
+- `atexit-demo.{c,asm}` — three handlers (h1, h2, h3)
+  registered in that order; output demonstrates they run as
+  h3 → h2 → h1 (LIFO).  Then `exit(42)`.
+- `atexit-demo.expected` — pinned 4-line stdout
+- `atexit-demo.expected-status` — 42
+
+**Verified**: stdout byte-identical between C and asm; both
+exit 42.

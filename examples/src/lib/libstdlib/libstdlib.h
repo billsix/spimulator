@@ -86,4 +86,28 @@ void *bsearch(const void *key, const void *base, unsigned nel,
               unsigned width,
               int (*cmp)(const void *, const void *));
 
+/* atexit(fn) — register fn to be called when the program exits
+ * normally (via exit() or a return from main).  Up to 32 handlers
+ * can be registered; returns 0 on success, -1 if full.
+ *
+ * exit(status) — walk the atexit list in reverse-registration
+ * order (LIFO, as POSIX specifies), call each handler, then call
+ * _Exit(status).  exit is non-leaf — it uses `jalr` to invoke
+ * each registered handler.  This is the second `jalr` lesson in
+ * this curriculum after bsearch — same indirect-call mechanism,
+ * but now iterated over a function-pointer table.
+ *
+ * Notes vs. real libc:
+ * - musl's exit() also runs C++ destructors, thread-local
+ *   cleanup, and the stdio-flush chain.  We have none of those
+ *   in this freestanding teaching lib.
+ * - _Exit() does NOT run handlers (that's the whole point of
+ *   the _Exit/exit split).
+ * - A `return N;` from main does NOT walk this chain — main's
+ *   $v0 goes straight to spim's __start which calls syscall 17.
+ *   To benefit from the chain you must explicitly call exit().
+ */
+int atexit(void (*fn)(void));
+__attribute__((noreturn)) void exit(int status);
+
 #endif

@@ -169,3 +169,10 @@ executable('bsearch-demo',
   link_with: [io_lib, libstdlib_lib, libctype_lib],
   install: true,
 )
+
+executable('atexit-demo',
+  'lib/libstdlib-demo/atexit-demo.c',
+  include_directories: [inc, libstdlib_inc, libctype_inc],
+  link_with: [io_lib, libstdlib_lib, libctype_lib],
+  install: true,
+)

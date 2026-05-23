@@ -108,3 +108,32 @@ void *bsearch(const void *key, const void *base, unsigned nel,
   }
   return 0;
 }
+
+/* atexit / exit — the cleanup-on-exit chain.
+ *
+ * Adapted from musl src/exit/atexit.c + exit.c.  musl's versions
+ * are much heavier — they manage locks, weak aliases, thread-
+ * local data, the __cxa_atexit chain, and the stdio flush hook.
+ * None of that exists in this freestanding lib; what's left is
+ * the LIFO function-pointer table plus a walk that calls each
+ * entry via `jalr` (the asm side's pedagogical hook).
+ *
+ * MAX_ATEXIT = 32 is the C99 minimum portable count.  Plenty
+ * for any teaching demo. */
+#define MAX_ATEXIT 32
+static void (*handlers[MAX_ATEXIT])(void);
+static int handler_count = 0;
+
+int atexit(void (*fn)(void)) {
+  if (handler_count >= MAX_ATEXIT) return -1;
+  handlers[handler_count++] = fn;
+  return 0;
+}
+
+__attribute__((noreturn)) void exit(int status) {
+  /* POSIX: handlers run in reverse registration order (LIFO). */
+  for (int i = handler_count - 1; i >= 0; i--) {
+    handlers[i]();
+  }
+  _Exit(status);
+}

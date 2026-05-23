@@ -13,7 +13,7 @@
 #   $ra      — preserved by the library
 #
 # Functions currently implemented: atoi, absolute, labsolute,
-# _Exit, bsearch.
+# _Exit, bsearch, atexit, exit.
 #
 # Note on naming: `absolute` and `labsolute` correspond to the
 # C library's `abs(int)` and `labs(long)`.  They're renamed
@@ -321,3 +321,108 @@ bsearch_done:
         lw      $s5, 24($sp)
         addiu   $sp, $sp, 32
         jr      $ra
+
+#==============================================================
+# atexit + exit — the cleanup-on-exit chain.
+#
+# This is the second `jalr` lesson in the curriculum (after
+# bsearch).  Where bsearch jalr's a single comparator once per
+# iteration, exit walks a TABLE of function pointers in reverse
+# order, jalr'ing each entry.  Same indirect-call primitive,
+# now applied to a callback registry.
+#
+# Library state lives in .data:
+#   handlers[]      — array of MAX_ATEXIT function pointers
+#   handler_count   — how many have been registered
+#==============================================================
+        .data
+        .align  2
+        .globl  handlers
+handlers:        .space 128         # MAX_ATEXIT (32) * 4 bytes
+        .globl  handler_count
+handler_count:   .word  0
+
+        .text
+
+#--------------------------------------------------------------
+# atexit(fn) — append fn to handlers[]; return 0 on success,
+# -1 if the table is full.
+#
+# Pure leaf — no jal, no $ra save, no $s* touched.
+#--------------------------------------------------------------
+        .globl  atexit
+atexit:
+        lw      $t0, handler_count
+        li      $t1, 32             # MAX_ATEXIT
+        bge     $t0, $t1, atexit_full
+        # handlers[count] = fn
+        sll     $t2, $t0, 2         # offset = count * 4
+        la      $t3, handlers
+        addu    $t3, $t3, $t2
+        sw      $a0, 0($t3)
+        # count++
+        addiu   $t0, $t0, 1
+        sw      $t0, handler_count
+        li      $v0, 0
+        jr      $ra
+atexit_full:
+        li      $v0, -1
+        jr      $ra
+
+#--------------------------------------------------------------
+# exit(status) — walk handlers[] in reverse-registration order,
+# call each, then jump to _Exit(status).
+#
+# Non-leaf: we `jalr` each handler in a loop.  Loop state ($s0
+# = current index, $s1 = saved status, $s2 = base of handlers
+# table) must survive across each call, so it lives in $s regs.
+#
+# Frame layout (20 bytes):
+#   0($sp)  $ra            (so we can be jal'd in turn, even though
+#                           the trailing _Exit means we never restore)
+#   4($sp)  $s0  (i)
+#   8($sp)  $s1  (status)
+#   12($sp) $s2  (handlers base)
+#   16($sp) (padding for 8-byte alignment habit)
+#
+# At exit_done we tail-call _Exit via `j _Exit` rather than `jal`
+# — saves one entry of `jal` overhead since _Exit never returns
+# (it transfers to the kernel via syscall 17).  We deliberately
+# DON'T restore the $s* regs in the tail-call path: there's no
+# caller waiting to read them.
+#--------------------------------------------------------------
+        .globl  exit
+exit:
+        # ── Prologue ──
+        addiu   $sp, $sp, -20
+        sw      $ra,  0($sp)
+        sw      $s0,  4($sp)
+        sw      $s1,  8($sp)
+        sw      $s2, 12($sp)
+
+        move    $s1, $a0            # remember status
+        lw      $s0, handler_count
+        addiu   $s0, $s0, -1        # i = count - 1
+        la      $s2, handlers
+
+exit_loop:
+        bltz    $s0, exit_done      # i < 0 — chain exhausted
+
+        # fn = handlers[i]
+        sll     $t0, $s0, 2
+        addu    $t0, $s2, $t0
+        lw      $t1, 0($t0)         # $t1 = handlers[i]
+
+        # call fn() via the function pointer
+        jalr    $t1                 # *** the indirect call ***
+
+        addiu   $s0, $s0, -1
+        j       exit_loop
+
+exit_done:
+        # Tail-call _Exit($s1).  No frame teardown — we're not
+        # returning, so the saved $s* regs and $ra never get
+        # restored (and don't need to be: the syscall in _Exit
+        # transfers control to the kernel).
+        move    $a0, $s1
+        j       _Exit

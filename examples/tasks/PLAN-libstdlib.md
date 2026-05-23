@@ -356,11 +356,17 @@ args go in `$a0..$a3` per call.
 
 **Verified**: C and asm produce byte-identical 9-line output.
 
-### Open follow-ups (in plan but not in this turn)
-- **atexit + exit**: second `jalr` lesson (function-pointer
-  table walked in reverse).  Filed separately at
-  [`PLAN-libstdlib-atexit.md`](PLAN-libstdlib-atexit.md).  To be
-  done next now that bsearch has landed.
+### atexit + exit (landed 2026-05-23)
+
+The second `jalr` lesson (function-pointer table walked in
+reverse).  Implementation details in the dedicated plan doc:
+[`PLAN-libstdlib-atexit.md`](PLAN-libstdlib-atexit.md).
+
+### libstdlib status — complete
+
+All planned functions for libstdlib v1 have landed.  Future
+extensions (qsort, strtol, the float-aware variants, etc.) can
+be filed as separate tasks if pedagogically warranted.
 - **parse_int kept; atoi available alongside**: 27 demo files in
   `/examples/src/` call `parse_int` (defined in
   `string-to-int.c`).  After discussion 2026-05-23: Bill keeps
