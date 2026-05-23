@@ -305,23 +305,42 @@ Suggested commit message:
 
 ## Phase 6 — Dockerfile rewrite
 
-`/spimulator/Dockerfile` becomes the canonical one:
+**Status: STAGED 2026-05-23 (awaiting commit outside container).**
 
-- Existing spim deps: gcc, meson, ninja-build, flex, bison,
-  libedit-devel (Fedora 44)
-- Add: `diffutils` (run-demo.sh uses `diff -q`)
-- Build spim first, `meson install` so the binary is on PATH
-- Build the example demos (implicit via the unified meson
-  setup, once subdir is wired)
-- Run `meson test -C builddir` — image build FAILS if anything
-  drifts.  **The 6 demo tests in that run each validate that
-  the C-compiled binary AND the spim-asm version BOTH produce
-  output matching the same `<demo>.expected` golden file (and
-  matching `<demo>.expected-status` for the two
-  exit-status-pinned demos).  Any drift on either side —
-  C-side regression, asm-side regression, or the two diverging
-  from each other — fails the Docker build at this step.**
-  This is the load-bearing guarantee.
+Minimal changes — the existing `/spimulator/Dockerfile`
+already builds spim via meson, installs to `/usr/local`, and
+runs `meson test`.  Phase 5's `subdir('examples/src')` wiring
+means the same `meson test` invocation now ALSO runs the 6
+examples-suite demo tests, with no Dockerfile changes
+needed for the test step itself.
+
+Three actual edits:
+
+1. **Added `diffutils` to the dnf install list.**  `run-demo.sh`
+   uses `diff -q` to compare stdout against goldens.  Fedora's
+   base image doesn't ship `diff` by default.
+2. **Added `COPY examples/ ${SPIM_SRC_DIR}/examples`** alongside
+   the other COPY commands (src/, include/, tests/,
+   Documentation/) so the meson setup can see the examples
+   tree.
+3. **Updated the comment above the `meson test` step** to
+   describe both suites:
+   - `regression` (spim itself, driven by tests/run-test.sh)
+   - `examples` (curriculum demos, driven by
+     examples/tests/run-demo.sh — each validates both C AND
+     asm against the same .expected golden, plus
+     .expected-status for exit-demo and atexit-demo)
+
+   The "any drift fails the build" guarantee from the goal
+   section is now spelled out in the Dockerfile itself.
+
+`/spimulator/examples/Dockerfile` was already removed in
+phase 2 (it was the book-builder).
+
+Not run in this container (podman builds fail here for
+rootless-namespace reasons, per the historical
+/examples/SESSION_NOTES).  Verify outside the container with
+`podman build -t spimulator /spimulator`.
 
 Drop `/spimulator/examples/Dockerfile` (was the book builder;
 already removed in phase 2).
