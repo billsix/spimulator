@@ -91,28 +91,37 @@ Scope: `src/run.c` `TOK_MULT_OP`, `TOK_MULTU_OP`, `TOK_MADD_OP`,
 **Effort:** ~15 minutes.  **Risk:** very low.  The blocks are
 small and each one is self-contained.
 
-## Phase 4 — Local `vs`/`vt` in arithmetic operands
+## Phase 4 — Local `vs`/`vt` in arithmetic operands (no-op)
 
-Inside the `switch (OPCODE(inst))` dispatch in `src/run.c`, the
-common pattern is:
+Originally targeted the `vs` / `vt` / `imm` locals in the
+`TOK_ADD_OP`, `TOK_ADDI_OP`, `TOK_SUB_OP` case bodies — short
+identifiers whose meaning ("value of RS", "value of RT")
+required context to decode.
+
+That work is already done as a side-effect of the C23
+`<stdckdint.h>` migration (C23 phase 10).  The overflow-trapping
+arithmetic instructions were rewritten to pass
+`R[RS(inst)]` / `R[RT(inst)]` directly into `ckd_add` / `ckd_sub`
+rather than capturing them into named locals first:
 
 ```c
 case TOK_ADD_OP: {
-  reg_word vs = R[RS(inst)], vt = R[RT(inst)];
-  ...
+  reg_word sum;
+  if (ckd_add(&sum, R[RS(inst)], R[RT(inst)]))
+    RAISE_EXCEPTION(ExcCode_Ov, break);
+  R[RD(inst)] = sum;
+  break;
 }
 ```
 
-`vs` = "value of RS", `vt` = "value of RT".  The abbreviation
-is non-obvious without context.  Moderate-form rename:
+No `vs` / `vt` / `imm` locals remain in `src/run.c`.
 
-- `vs` → `rs_val`
-- `vt` → `rt_val`
-- `imm` (when paired with vs/vt) → `imm_val`
+The other "value extracted from a register" locals in the file
+(`val`, `reg`, `word`, `tmp` in store/shift/branch case bodies)
+have descriptive-enough names already — leaving alone.
 
-Scope: ~40 sites in `src/run.c`, all inside switch case bodies.
-
-**Effort:** ~30 minutes.  **Risk:** very low.
+**Effort:** zero, work already done.  Phase kept in the plan
+for traceability.
 
 ## Phase 5 — `CPR` and `CCR` (coprocessor register arrays)
 
@@ -372,7 +381,7 @@ merge to master.
 | 1 | `BIN_SA`, `IDISP` macro renames | 10 min | none |
 | 2 | `lab` → `label` | 30 min | none |
 | 3 | local `hi`/`lo` → `product_high`/`product_low` | 15 min | very low |
-| 4 | local `vs`/`vt` → `rs_val`/`rt_val` | 30 min | very low |
+| 4 | local `vs`/`vt` → `rs_val`/`rt_val` | done by C23 | none |
 | 5 | `CPR`/`CCR` → spelled-out | 1 hour | low |
 | 6 | `FPR`/`FGR`/`FWR` → `fp_*_view` | 1 hour | low |
 | 7 | `R` → `gpr` | 1 hour | low |
