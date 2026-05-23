@@ -689,16 +689,23 @@ case TOK_CLZ_OP: {
 }
 ```
 
-C23's `<stdbit.h>` adds `stdc_leading_zeros_ui32` and
-`stdc_leading_ones_ui32`:
+C23's `<stdbit.h>` provides count-leading-* functions:
 
 ```c
 // AFTER
 #include <stdbit.h>
 case TOK_CLZ_OP:
-  R[RD(inst)] = stdc_leading_zeros_ui32(R[RS(inst)]);
+  R[RD(inst)] = (reg_word)stdc_leading_zeros((uint32_t)R[RS(inst)]);
   break;
 ```
+
+The plan originally said `stdc_leading_zeros_ui32`, but GCC 16's
+`<stdbit.h>` only ships variants suffixed by C type
+(`_uc`/`_us`/`_ui`/`_ul`/`_ull`) — there's no `_ui32`/`_ui64`
+suffix series.  Use the type-generic form `stdc_leading_zeros(x)`
+which dispatches based on argument type; works for any
+fixed-width unsigned type without depending on host `sizeof`s
+to pick the right suffix.
 
 **Why it's better:** Reads as a one-liner that names the
 operation.  Compiles to a single `lzcnt` (x86-64) or `clz`

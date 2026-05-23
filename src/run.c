@@ -10,6 +10,7 @@
 
 #include <errno.h>
 #include <stdbit.h>
+#include <stdckdint.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/time.h>
@@ -37,10 +38,13 @@ static void signed_multiply(reg_word v1, reg_word v2);
 static void start_CP0_timer(void);
 static void unsigned_multiply(reg_word v1, reg_word v2);
 
+/* SIGN_BIT extracts bit 31 — used by the sign-aware branch
+   instructions (bgez/bgtz/blez/bltz and their AL/L variants).
+   ARITH_OVFL was a hand-rolled signed-overflow detector for
+   add/addi/sub; it has been replaced by <stdckdint.h>'s
+   ckd_add/ckd_sub, which avoid the signed-overflow UB hazard
+   that lurked in the wrapping-add-then-check pattern. */
 #define SIGN_BIT(X) ((X) & 0x80000000)
-
-#define ARITH_OVFL(RESULT, OP1, OP2) \
-  (SIGN_BIT(OP1) == SIGN_BIT(OP2) && SIGN_BIT(OP1) != SIGN_BIT(RESULT))
 
 /* True when delayed_branches is true and instruction is executing in delay
 slot of another instruction. */
@@ -206,19 +210,17 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
       switch (OPCODE(inst)) {
         case TOK_ADD_OP: {
-          reg_word vs = R[RS(inst)], vt = R[RT(inst)];
-          reg_word sum = vs + vt;
-
-          if (ARITH_OVFL(sum, vs, vt)) RAISE_EXCEPTION(ExcCode_Ov, break);
+          reg_word sum;
+          if (ckd_add(&sum, R[RS(inst)], R[RT(inst)]))
+            RAISE_EXCEPTION(ExcCode_Ov, break);
           R[RD(inst)] = sum;
           break;
         }
 
         case TOK_ADDI_OP: {
-          reg_word vs = R[RS(inst)], imm = (short)IMM(inst);
-          reg_word sum = vs + imm;
-
-          if (ARITH_OVFL(sum, vs, imm)) RAISE_EXCEPTION(ExcCode_Ov, break);
+          reg_word sum;
+          if (ckd_add(&sum, R[RS(inst)], (reg_word)(short)IMM(inst)))
+            RAISE_EXCEPTION(ExcCode_Ov, break);
           R[RT(inst)] = sum;
           break;
         }
@@ -805,10 +807,8 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         }
 
         case TOK_SUB_OP: {
-          reg_word vs = R[RS(inst)], vt = R[RT(inst)];
-          reg_word diff = vs - vt;
-
-          if (SIGN_BIT(vs) != SIGN_BIT(vt) && SIGN_BIT(vs) != SIGN_BIT(diff))
+          reg_word diff;
+          if (ckd_sub(&diff, R[RS(inst)], R[RT(inst)]))
             RAISE_EXCEPTION(ExcCode_Ov, break);
           R[RD(inst)] = diff;
           break;
