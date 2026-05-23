@@ -13,7 +13,7 @@ Notable defects found and resolved during smoke-testing:
   which surfaced a real spim bug (scanner.l's `copy_str`
   shifted the first octal digit by 3 instead of 6 bits, so
   `\134` decoded to `$` instead of `\`).  See
-  [`/spimulator/tasks/octal-escape-fix.md`](../../spimulator/tasks/octal-escape-fix.md);
+  [`/spimulator/tasks/octal-escape-fix.md`](../../../spimulator/tasks/octal-escape-fix.md);
   fixed in scanner.l line 493 and guarded by
   `tests/tt.octal_escape.s`.
 - **base64** had an emit_char subroutine that clobbered

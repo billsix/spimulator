@@ -8,7 +8,7 @@ is ephemeral; commit history + this file + `PLAN-asm-comments.md`
 
 Bill asked whether spim acts as a regular Unix process (motivated
 by the possible PGU rewrite).  Investigation in
-[`/spimulator/tasks/unix-process-conformance.md`](../spimulator/tasks/unix-process-conformance.md);
+[`/spimulator/tasks/unix-process-conformance.md`](../../spimulator/tasks/unix-process-conformance.md);
 four defects identified and fixed:
 
 1. Banner `Loaded: …` was on stdout, polluting pipelines.  Now on
@@ -96,7 +96,7 @@ Three plans closed out this session.  Snapshot for the next session:
 `cp`, `uniq`, `nl`, `cut`, `od`, `tac`, `tail`, `comm`, `base64`.
 Each has paired C + asm; smoke-tested with C-vs-spim diff and,
 where applicable, against the real system tool (`factor`, `od -c`,
-`base64`, `comm`).  See [`PLAN-tier1-tier2-tools.md`](PLAN-tier1-tier2-tools.md).
+`base64`, `comm`).  See [`archive/PLAN-tier1-tier2-tools.md`](archive/PLAN-tier1-tier2-tools.md).
 
 Two non-obvious defects fixed during smoke-test:
 
@@ -136,7 +136,7 @@ and others were untouched.
 Audit: only two `.asciiz` octal escapes anywhere in the trees
 (`\033` in clear, `\134` in od); no workarounds had been
 added to compensate.  See
-[`/spimulator/tasks/octal-escape-fix.md`](../spimulator/tasks/octal-escape-fix.md)
+[`/spimulator/tasks/octal-escape-fix.md`](../../spimulator/tasks/octal-escape-fix.md)
 and ChangeLog 2026-05-19 entry.
 
 ### Files touched this session

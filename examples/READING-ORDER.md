@@ -19,7 +19,7 @@ live in seven topic folders under `src/`:
 
 The Parts below give the engagement-first reading sequence
 across those topics.  See
-[`PLAN-curriculum-order.md`](PLAN-curriculum-order.md) for the
+[`tasks/PLAN-curriculum-order.md`](tasks/PLAN-curriculum-order.md) for the
 rationale.
 
 Once you've worked through enough demos to be comfortable writing
@@ -203,7 +203,7 @@ and forces you to think about a specific asm pattern.
 ## Extras (not in the main reading order)
 
 These exist on disk but the curriculum doesn't include them
-in the main path.  See `PLAN-curriculum-order.md` for the
+in the main path.  See `tasks/PLAN-curriculum-order.md` for the
 reasoning.
 
 - **`print-out-ascii`** — signed -128..127 walk.  Useful
