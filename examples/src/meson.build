@@ -1,25 +1,25 @@
-project('spimulator-examples', 'c',
-  version: '1.0',
-  default_options: [
-    'c_std=c11',
-    'warning_level=1',
-    'optimization=0',
-  ]
-)
+# examples/src — paired C + MIPS-asm teaching demos.  Invoked
+# via `subdir('examples/src')` from /spimulator/meson.build.
+# Standalone build is no longer supported; the merged project
+# is the canonical entry point.
 
 # Educational flags — keep the generated .s book-readable.
 # No frame pointer, no CFI/unwind tables, no stack canaries.
+# Scoped per-target (NOT add_project_arguments) so they don't
+# leak into spim's compile, which has its own warning/std flags.
 edu_args = [
+  '-O0',
   '-fomit-frame-pointer',
   '-fno-asynchronous-unwind-tables',
   '-fno-unwind-tables',
   '-fno-stack-protector',
 ]
-add_project_arguments(edu_args, language: 'c')
 
 # Each demo is freestanding — no libc, defines its own `_start`,
 # reaches the kernel through inline-asm syscalls in os.h.
-add_project_link_arguments('-nostdlib', language: 'c')
+# Same scoping discipline: per-target, not project-wide
+# (spim itself links against libc + libedit).
+edu_link_args = ['-nostdlib']
 
 # Static lib of the small IO helpers shared across every demo.
 io_lib = static_library('examples_io',
@@ -34,12 +34,14 @@ io_lib = static_library('examples_io',
     'read-char.c',
     'read-int.c',
   ),
+  c_args: edu_args,
 )
 
 # libctype — ASCII character classification + case conversion.
 # Adapted from musl libc src/ctype/.  See src/lib/libctype/LICENSE-musl.
 libctype_lib = static_library('libctype',
   files('lib/libctype/libctype.c'),
+  c_args: edu_args,
 )
 libctype_inc = include_directories('lib/libctype')
 
@@ -49,6 +51,7 @@ libctype_inc = include_directories('lib/libctype')
 libstdlib_lib = static_library('libstdlib',
   files('lib/libstdlib/libstdlib.c'),
   include_directories: libctype_inc,
+  c_args: edu_args,
 )
 libstdlib_inc = include_directories('lib/libstdlib')
 
@@ -118,6 +121,8 @@ foreach demo : demos
     demo[1],
     include_directories: inc,
     link_with: io_lib,
+    c_args: edu_args,
+    link_args: edu_link_args,
     install: true,
   )
 endforeach
@@ -133,6 +138,8 @@ foreach demo : lib_demos
     demo[1],
     include_directories: [inc, demo[3]],
     link_with: [io_lib, demo[2]],
+    c_args: edu_args,
+    link_args: edu_link_args,
     install: true,
   )
 endforeach
@@ -143,6 +150,8 @@ executable('atoi-demo',
   'lib/libstdlib-demo/atoi-demo.c',
   include_directories: [inc, libstdlib_inc, libctype_inc],
   link_with: [io_lib, libstdlib_lib, libctype_lib],
+  c_args: edu_args,
+  link_args: edu_link_args,
   install: true,
 )
 
@@ -153,6 +162,8 @@ executable('abs-demo',
   'lib/libstdlib-demo/abs-demo.c',
   include_directories: [inc, libstdlib_inc, libctype_inc],
   link_with: [io_lib, libstdlib_lib, libctype_lib],
+  c_args: edu_args,
+  link_args: edu_link_args,
   install: true,
 )
 
@@ -160,6 +171,8 @@ executable('exit-demo',
   'lib/libstdlib-demo/exit-demo.c',
   include_directories: [inc, libstdlib_inc, libctype_inc],
   link_with: [io_lib, libstdlib_lib, libctype_lib],
+  c_args: edu_args,
+  link_args: edu_link_args,
   install: true,
 )
 
@@ -167,6 +180,8 @@ executable('bsearch-demo',
   'lib/libstdlib-demo/bsearch-demo.c',
   include_directories: [inc, libstdlib_inc, libctype_inc],
   link_with: [io_lib, libstdlib_lib, libctype_lib],
+  c_args: edu_args,
+  link_args: edu_link_args,
   install: true,
 )
 
@@ -174,5 +189,34 @@ executable('atexit-demo',
   'lib/libstdlib-demo/atexit-demo.c',
   include_directories: [inc, libstdlib_inc, libctype_inc],
   link_with: [io_lib, libstdlib_lib, libctype_lib],
+  c_args: edu_args,
+  link_args: edu_link_args,
   install: true,
 )
+
+# ---------------------------------------------------------------------------
+# Library-demo tests.  Each test runs both the C binary AND the asm version
+# under spim, diffs both stdouts against the pinned `.expected` golden, and
+# (for exit-demo and atexit-demo) checks the host shell exit status against
+# `.expected-status`.  Mirrors the pattern in /spimulator/tests/.
+# ---------------------------------------------------------------------------
+demo_test_runner = files('../tests/run-demo.sh')
+
+# `spimulator_exe` and `exception_file` come from the parent project's
+# meson.build via subdir scope.
+lib_demo_tests = [
+  'ctype-demo', 'atoi-demo', 'abs-demo', 'exit-demo', 'bsearch-demo',
+  'atexit-demo',
+]
+foreach name : lib_demo_tests
+  test(name,
+    demo_test_runner,
+    args: [
+      meson.current_build_dir(),
+      spimulator_exe.full_path(),
+      exception_file,
+      name,
+    ],
+    suite: 'examples',
+  )
+endforeach

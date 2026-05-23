@@ -125,3 +125,8 @@ foreach name : regression_tests
        args: [spimulator_exe.full_path(), exception_file, name],
        suite: 'regression')
 endforeach
+
+# --- Examples curriculum (paired C + MIPS-asm teaching demos) -----------
+# Builds the demos and registers `examples`-suite tests that validate
+# both the C and asm sides against pinned `.expected` goldens.
+subdir('examples/src')

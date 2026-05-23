@@ -255,32 +255,51 @@ No file moves, no renames in either tasks/ tree.
 
 ## Phase 5 — Build integration
 
-- `/spimulator/meson.build` adds `subdir('examples/src')` so
-  `meson compile -C builddir` from /spimulator root builds
-  the demos too.  Likely needs to convert
-  `examples/src/meson.build`'s top-of-file `project(...)`
-  declaration to a continuation (drop the project line; the
-  parent project owns it).
-- The orphan `tests/run-demo.sh` from /examples lands here.
-  Goes into `/spimulator/examples/tests/run-demo.sh`,
-  preserved as-is.  **For each demo, the script runs both
-  the C executable AND `spimulator -f <libs...> -f <demo>.asm`,
-  diffs both stdouts against the same `<demo>.expected` file,
-  and (for exit-demo and atexit-demo) verifies both exit
-  statuses match `<demo>.expected-status`.**  The script
-  fails fast on any mismatch — that's what makes the goldens
-  load-bearing.
-- Demo `test()` entries: 6 tests today
-  (ctype-demo, atoi-demo, abs-demo, exit-demo, bsearch-demo,
-  atexit-demo).  Registered in the merged
-  `examples/src/meson.build`.  Each `test()` invokes
-  `run-demo.sh` with the demo's name; the script handles
-  the both-sides-against-golden contract.
-- `meson test -C builddir` from /spimulator root now runs:
-  - spim's 23 existing regression tests
-  - the 6 demo tests — each of which validates **both
-    C and asm** against the pinned `.expected` golden
-  - = 29 total
+**Status: STAGED 2026-05-23 (awaiting commit outside container).**
+
+What landed:
+
+- **`/spimulator/meson.build`** gained a `subdir('examples/src')`
+  at the bottom.  One line.
+- **`/spimulator/examples/src/meson.build`** restructured to
+  work as a subdir (not a standalone project):
+  - Dropped `project('spimulator-examples', ...)` declaration
+  - Dropped `add_project_arguments(edu_args, ...)` and
+    `add_project_link_arguments('-nostdlib', ...)` —
+    project-wide flags would have leaked into spim's compile,
+    where `-nostdlib` would break the libedit + libc link
+  - Added `c_args: edu_args` to all 3 static_library calls
+    (io_lib, libctype_lib, libstdlib_lib) and `c_args: edu_args,
+    link_args: edu_link_args` to all 7 executable calls
+    (foreach demos, foreach lib_demos, atoi-demo, abs-demo,
+    exit-demo, bsearch-demo, atexit-demo) — flags now scoped
+    per-target
+  - Added `-O0` to `edu_args` (was implicit via the dropped
+    `default_options: ['optimization=0']`)
+  - Appended a test()-registration block for 6 demo tests
+    (suite='examples'): ctype-demo, atoi-demo, abs-demo,
+    exit-demo, bsearch-demo, atexit-demo.  Uses
+    `spimulator_exe` and `exception_file` from parent project
+    via subdir scope.
+- **`/spimulator/examples/tests/run-demo.sh`** copied in from
+  the orphan at /examples/tests/.  Added the missing
+  `atexit-demo` case (the orphan was written before atexit-
+  demo existed).
+- **`meson test -C builddir` from /spimulator root** now runs
+  29 tests: 23 spim regressions + 6 examples demos.  Each
+  examples-suite test validates BOTH the C binary AND the
+  spim-asm version against the same `.expected` golden, and
+  (for exit-demo and atexit-demo) checks `.expected-status`
+  matches in both runs.  Tested locally — 29/29 green.
+
+Suggested commit message:
+> "Build integration: subdir examples/src into spim's meson tree.
+>  Scope examples' compile/link flags per-target so -nostdlib
+>  doesn't leak into spim's build.  Register 6 demo tests in
+>  the 'examples' meson suite — each validates C and asm sides
+>  against the same .expected golden + .expected-status where
+>  pinned.  Bring in run-demo.sh (with atexit-demo case added)
+>  from the abandoned earlier attempt.  29/29 tests green."
 
 ---
 
