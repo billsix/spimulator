@@ -18,7 +18,7 @@ typedef struct inst_t {
       unsigned int op : 6;
     } f;
   };
-} inst;
+} instruction;
 
 /* Pull rows from op.h's X-macro list, keeping only the mnemonic (a)
    and the binary encoding (d).  This utility doesn't need the token
@@ -27,11 +27,11 @@ typedef struct inst_t {
    pattern. */
 #define OP(a, b, c, d) {a, d},
 
-inst ops[] = {
-#include "op.h"
+instruction ops[] = {
+#include "opcodes.h"
 };
 
-int compare_ops(inst* p1, inst* p2) {
+int compare_ops(mips_instruction* p1, mips_instruction* p2) {
   if (p1->f.op < p2->f.op)
     return (-1);
   else if (p1->f.op > p2->f.op)

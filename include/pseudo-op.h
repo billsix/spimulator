@@ -9,7 +9,7 @@
 #define HP_PSEUDO_OP_H
 
 #include "spim.h"
-#include "inst.h"
+#include "instruction.h"
 
 /* Pseudo-op expansion — each emits a sequence of real R/I-type
    instructions that implements the user-visible pseudo-op. */

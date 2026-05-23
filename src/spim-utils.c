@@ -12,15 +12,15 @@
 #include "version.h"
 #include "string-stream.h"
 #include "spim-utils.h"
-#include "inst.h"
+#include "instruction.h"
 #include "data.h"
-#include "reg.h"
-#include "mem.h"
+#include "registers.h"
+#include "memory.h"
 #include "scanner.h"
 #include "parser.h"
 #include "tokens.h"
 #include "run.h"
-#include "sym-tbl.h"
+#include "symbol-table.h"
 
 /* Internal functions: */
 
@@ -72,7 +72,8 @@ mem_addr initial_k_data_limit = K_DATA_LIMIT;
 
 void initialize_world(char* exception_file_names, bool print_message) {
   /* Allocate the floating point registers */
-  if (FGR == nullptr) FPR = (double*)xmalloc(FPR_LENGTH * sizeof(double));
+  if (fp_single_view == nullptr)
+    fp_double_view = (double*)xmalloc(FPR_LENGTH * sizeof(double));
   /* Allocate the memory */
   make_memory(initial_text_size, initial_data_size, initial_data_limit,
               initial_stack_size, initial_stack_limit, initial_k_text_size,
@@ -140,12 +141,12 @@ void write_startup_message(void) {
 }
 
 void initialize_registers(void) {
-  memset(FPR, 0, FPR_LENGTH * sizeof(double));
-  FGR = (float*)FPR;
-  FWR = (int*)FPR;
+  memset(fp_double_view, 0, FPR_LENGTH * sizeof(double));
+  fp_single_view = (float*)fp_double_view;
+  fp_int_view = (int*)fp_double_view;
 
-  memset(R, 0, R_LENGTH * sizeof(reg_word));
-  R[REG_SP] = STACK_TOP - BYTES_PER_WORD - 4096; /* Initialize $sp */
+  memset(gpr, 0, R_LENGTH * sizeof(reg_word));
+  gpr[REG_SP] = STACK_TOP - BYTES_PER_WORD - 4096; /* Initialize $sp */
   HI = LO = 0;
   PC = 0;
 
@@ -254,7 +255,7 @@ void initialize_run_stack(int argc, char** argv) {
   int i, j = 0, env_j;
   mem_addr addrs[10000];
 
-  R[REG_SP] = STACK_TOP - 1; /* Initialize $sp */
+  gpr[REG_SP] = STACK_TOP - 1; /* Initialize $sp */
 
   /* Put strings on stack: */
   /* env: */
@@ -265,38 +266,38 @@ void initialize_run_stack(int argc, char** argv) {
   for (i = 0; i < argc; i++) addrs[j++] = copy_str_to_stack(argv[i]);
 
   /* Align stack pointer for word-size data */
-  R[REG_SP] = R[REG_SP] & ~3;  /* Round down to nearest word */
-  R[REG_SP] -= BYTES_PER_WORD; /* First free word on stack */
-  R[REG_SP] = R[REG_SP] & ~7;  /* Double-word align stack-pointer*/
+  gpr[REG_SP] = gpr[REG_SP] & ~3; /* Round down to nearest word */
+  gpr[REG_SP] -= BYTES_PER_WORD;  /* First free word on stack */
+  gpr[REG_SP] = gpr[REG_SP] & ~7; /* Double-word align stack-pointer*/
 
   /* Build vectors on stack: */
   /* env: */
   (void)copy_int_to_stack(0); /* Null-terminate vector */
-  for (i = env_j - 1; i >= 0; i--) R[REG_A2] = copy_int_to_stack(addrs[i]);
+  for (i = env_j - 1; i >= 0; i--) gpr[REG_A2] = copy_int_to_stack(addrs[i]);
 
   /* argv: */
   (void)copy_int_to_stack(0); /* Null-terminate vector */
-  for (i = j - 1; i >= env_j; i--) R[REG_A1] = copy_int_to_stack(addrs[i]);
+  for (i = j - 1; i >= env_j; i--) gpr[REG_A1] = copy_int_to_stack(addrs[i]);
 
   /* argc: */
-  R[REG_A0] = argc;
-  mem_write_word(R[REG_SP], argc); /* Leave argc on stack */
+  gpr[REG_A0] = argc;
+  mem_write_word(gpr[REG_SP], argc); /* Leave argc on stack */
 }
 
 static mem_addr copy_str_to_stack(char* s) {
   int i = (int)strlen(s);
   while (i >= 0) {
-    mem_write_byte(R[REG_SP], s[i]);
-    R[REG_SP] -= 1;
+    mem_write_byte(gpr[REG_SP], s[i]);
+    gpr[REG_SP] -= 1;
     i -= 1;
   }
-  return ((mem_addr)R[REG_SP] + 1); /* Leaves stack pointer byte-aligned!! */
+  return ((mem_addr)gpr[REG_SP] + 1); /* Leaves stack pointer byte-aligned!! */
 }
 
 static mem_addr copy_int_to_stack(int n) {
-  mem_write_word(R[REG_SP], n);
-  R[REG_SP] -= BYTES_PER_WORD;
-  return ((mem_addr)R[REG_SP] + BYTES_PER_WORD);
+  mem_write_word(gpr[REG_SP], n);
+  gpr[REG_SP] -= BYTES_PER_WORD;
+  return ((mem_addr)gpr[REG_SP] + BYTES_PER_WORD);
 }
 
 /* Run the program, starting at PC, for STEPS instructions. Display each
@@ -333,7 +334,7 @@ bool run_program(mem_addr pc, int steps, bool display, bool cont_bkpt,
 
 typedef struct bkptrec {
   mem_addr addr;
-  instruction* inst;
+  mips_instruction* instruction;
   struct bkptrec* next;
 } bkpt;
 
@@ -347,7 +348,7 @@ void add_breakpoint(mem_addr addr) {
   rec->next = bkpts;
   rec->addr = addr;
 
-  if ((rec->inst = set_breakpoint(addr)) != nullptr)
+  if ((rec->instruction = set_breakpoint(addr)) != nullptr)
     bkpts = rec;
   else {
     if (exception_occurred)
@@ -368,7 +369,7 @@ void delete_breakpoint(mem_addr addr) {
     if (b->addr == addr) {
       bkpt* n;
 
-      mem_write_inst(addr, b->inst);
+      mem_write_inst(addr, b->instruction);
       if (p == nullptr)
         bkpts = b->next;
       else

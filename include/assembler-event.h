@@ -99,7 +99,7 @@ typedef void (*asm_event_observer)(const asm_event* e);
    previous observer so callers can chain or restore. */
 asm_event_observer asm_set_observer(asm_event_observer obs);
 
-/* Fire helpers — called by the action functions in inst.c, data.c,
+/* Fire helpers — called by the action functions in instruction.c, data.c,
    sym-tbl.c.  Each is a thin wrapper that builds the event struct
    from the current line_no / input_file_name_get() and the per-kind
    payload, then calls the installed observer (no-op fast path if

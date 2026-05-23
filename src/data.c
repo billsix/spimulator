@@ -6,14 +6,14 @@
 #include "spim.h"
 #include "string-stream.h"
 #include "spim-utils.h"
-#include "inst.h"
-#include "reg.h"
-#include "mem.h"
-#include "sym-tbl.h"
+#include "instruction.h"
+#include "registers.h"
+#include "memory.h"
+#include "symbol-table.h"
 #include "parser.h"
 #include "run.h"
 #include "data.h"
-#include "asm_event.h"
+#include "assembler-event.h"
 
 /* The first 64K of the data segment are dedicated to small data
    segment, which is pointed to by $gp. This register points to the
@@ -53,9 +53,9 @@ void data_begins_at_point(mem_addr addr) {
     next_data_pc = addr;
   else {
     next_gp_item_addr = addr;
-    gp_midpoint = addr + 32 * K;
-    R[REG_GP] = gp_midpoint;
-    next_data_pc = addr + 64 * K;
+    gp_midpoint = addr + 32 * kilo;
+    gpr[REG_GP] = gp_midpoint;
+    next_data_pc = addr + 64 * kilo;
   }
 }
 
@@ -108,11 +108,11 @@ void increment_data_pc(int delta) {
   if (in_kernel) {
     next_k_data_pc += delta;
     if (k_data_top <= next_k_data_pc)
-      expand_k_data(ROUND_UP(next_k_data_pc - k_data_top + 1, 64 * K));
+      expand_k_data(ROUND_UP(next_k_data_pc - k_data_top + 1, 64 * kilo));
   } else {
     next_data_pc += delta;
     if (data_top <= next_data_pc)
-      expand_data(ROUND_UP(next_data_pc - data_top + 1, 64 * K));
+      expand_data(ROUND_UP(next_data_pc - data_top + 1, 64 * kilo));
   }
 }
 
@@ -123,7 +123,7 @@ void extern_directive(char* name, int size) {
 
   if (!bare_machine && !sym->gp_flag  // Not already a global symbol
       && size > 0 && size <= SMALL_DATA_SEG_MAX_SIZE &&
-      next_gp_item_addr + size < gp_midpoint + 32 * K) {
+      next_gp_item_addr + size < gp_midpoint + 32 * kilo) {
     sym->gp_flag = 1;
     sym->addr = next_gp_item_addr;
     next_gp_item_addr += size;
@@ -134,7 +134,7 @@ void extern_directive(char* name, int size) {
 
 void lcomm_directive(char* name, int size) {
   if (!bare_machine && size > 0 && size <= SMALL_DATA_SEG_MAX_SIZE &&
-      next_gp_item_addr + size < gp_midpoint + 32 * K) {
+      next_gp_item_addr + size < gp_midpoint + 32 * kilo) {
     label* sym = record_label(name, next_gp_item_addr, 1);
     sym->gp_flag = 1;
 

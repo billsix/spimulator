@@ -6,12 +6,12 @@
 #include "spim.h"
 #include "string-stream.h"
 #include "spim-utils.h"
-#include "inst.h"
+#include "instruction.h"
 #include "data.h"
-#include "reg.h"
-#include "mem.h"
+#include "registers.h"
+#include "memory.h"
 #include "run.h"
-#include "sym-tbl.h"
+#include "symbol-table.h"
 
 char* int_reg_names[32] = {"r0", "at", "v0", "v1", "a0", "a1", "a2", "a3",
                            "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
@@ -43,13 +43,13 @@ void format_registers(str_stream* ss, int print_gpr_hex, int print_fpr_hex) {
 
   ss_printf(ss, "\t\t\t\t General Registers\n");
   for (i = 0; i < 8; i++) {
-    ss_printf(ss, grstr, i, int_reg_names[i], R[i]);
+    ss_printf(ss, grstr, i, int_reg_names[i], gpr[i]);
     ss_printf(ss, grfill);
-    ss_printf(ss, grstr, i + 8, int_reg_names[i + 8], R[i + 8]);
+    ss_printf(ss, grstr, i + 8, int_reg_names[i + 8], gpr[i + 8]);
     ss_printf(ss, grfill);
-    ss_printf(ss, grstr, i + 16, int_reg_names[i + 16], R[i + 16]);
+    ss_printf(ss, grstr, i + 16, int_reg_names[i + 16], gpr[i + 16]);
     ss_printf(ss, grfill);
-    ss_printf(ss, grstr, i + 24, int_reg_names[i + 24], R[i + 24]);
+    ss_printf(ss, grstr, i + 24, int_reg_names[i + 24], gpr[i + 24]);
     ss_printf(ss, "\n");
   }
 
@@ -69,35 +69,35 @@ void format_registers(str_stream* ss, int print_gpr_hex, int print_fpr_hex) {
 
       /* Use pointers to cast to ints without invoking float->int conversion
          so we can just print the bits. */
-      r1 = (int*)&FPR[i];
+      r1 = (int*)&fp_double_view[i];
       r2 = r1 + 1;
       ss_printf(ss, fpstr, 2 * i, *r1, *r2);
       ss_printf(ss, fpfill);
 
-      r1 = (int*)&FPR[i + 4];
+      r1 = (int*)&fp_double_view[i + 4];
       r2 = r1 + 1;
       ss_printf(ss, fpstr, 2 * i + 8, *r1, *r2);
       ss_printf(ss, fpfill);
 
-      r1 = (int*)&FPR[i + 8];
+      r1 = (int*)&fp_double_view[i + 8];
       r2 = r1 + 1;
       ss_printf(ss, fpstr, 2 * i + 16, *r1, *r2);
       ss_printf(ss, fpfill);
 
-      r1 = (int*)&FPR[i + 12];
+      r1 = (int*)&fp_double_view[i + 12];
       r2 = r1 + 1;
       ss_printf(ss, fpstr, 2 * i + 24, *r1, *r2);
       ss_printf(ss, "\n");
     }
   else
     for (i = 0; i < 4; i += 1) {
-      ss_printf(ss, fpstr, 2 * i, FPR[i]);
+      ss_printf(ss, fpstr, 2 * i, fp_double_view[i]);
       ss_printf(ss, fpfill);
-      ss_printf(ss, fpstr, 2 * i + 8, FPR[i + 4]);
+      ss_printf(ss, fpstr, 2 * i + 8, fp_double_view[i + 4]);
       ss_printf(ss, fpfill);
-      ss_printf(ss, fpstr, 2 * i + 16, FPR[i + 8]);
+      ss_printf(ss, fpstr, 2 * i + 16, fp_double_view[i + 8]);
       ss_printf(ss, fpfill);
-      ss_printf(ss, fpstr, 2 * i + 24, FPR[i + 12]);
+      ss_printf(ss, fpstr, 2 * i + 24, fp_double_view[i + 12]);
       ss_printf(ss, "\n");
     }
 
@@ -141,13 +141,13 @@ void format_registers(str_stream* ss, int print_gpr_hex, int print_fpr_hex) {
    memory addresses: FROM...TO. */
 
 void format_insts(str_stream* ss, mem_addr from, mem_addr to) {
-  instruction* inst;
+  mips_instruction* instruction;
   mem_addr i;
 
   for (i = from; i < to; i += 4) {
-    inst = mem_read_inst(i);
-    if (inst != nullptr) {
-      format_an_inst(ss, inst, i);
+    instruction = mem_read_inst(i);
+    if (instruction != nullptr) {
+      format_an_inst(ss, instruction, i);
     }
   }
 }
@@ -160,7 +160,7 @@ void format_data_segs(str_stream* ss) {
   format_mem(ss, DATA_BOT, data_top);
 
   ss_printf(ss, "\n\tSTACK\n");
-  format_mem(ss, ROUND_DOWN(R[29], BYTES_PER_WORD), STACK_TOP);
+  format_mem(ss, ROUND_DOWN(gpr[29], BYTES_PER_WORD), STACK_TOP);
 
   ss_printf(ss, "\n\tKERNEL DATA\n");
   format_mem(ss, K_DATA_BOT, k_data_top);

@@ -7,24 +7,24 @@
 #define SYM_TBL_H
 
 #include "spim.h"
-#include "inst.h"
+#include "instruction.h"
 
-typedef struct lab_use {
-  instruction* inst; /* nullptr => Data, not code */
+typedef struct label_use {
+  mips_instruction* instruction; /* nullptr => Data, not code */
   mem_addr addr;
-  struct lab_use* next;
+  struct label_use* next;
 } label_use;
 
 /* Symbol table information on a label. */
 
-typedef struct lab {
+typedef struct label {
   char* name;               /* Name of label */
   long addr;                /* Address of label or 0 if not yet defined */
   unsigned global_flag : 1; /* Non-zero => declared global */
   unsigned gp_flag : 1;     /* Non-zero => referenced off gp */
   unsigned const_flag : 1;  /* Non-zero => constant value (in addr) */
-  struct lab* next;         /* Hash table link */
-  struct lab* next_local;   /* Link in list of local labels */
+  struct label* next;       /* Hash table link */
+  struct label* next_local; /* Link in list of local labels */
   label_use* uses;          /* List of instructions that reference */
 } label;                    /* label that has not yet been defined */
 
@@ -42,9 +42,9 @@ void print_symbols(void);
 void print_undefined_symbols(void);
 label* record_label(char* name, mem_addr address, int resolve_uses);
 void record_data_uses_symbol(mem_addr location, label* sym);
-void record_inst_uses_symbol(instruction* inst, label* sym);
+void record_inst_uses_symbol(mips_instruction* instruction, label* sym);
 [[nodiscard]] char* undefined_symbol_string(void);
-void resolve_a_label(label* sym, instruction* inst);
+void resolve_a_label(label* sym, mips_instruction* instruction);
 void resolve_label_uses(label* sym);
 
 /* Iterate over every currently-defined symbol in the table, invoking

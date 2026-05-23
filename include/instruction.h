@@ -13,10 +13,10 @@
 #include "string-stream.h"
 
 typedef struct immexpr {
-  int offset;         /* Offset from symbol */
-  struct lab* symbol; /* Symbolic label */
-  short bits;         /* > 0 => 31..16, < 0 => 15..0 */
-  bool pc_relative;   /* => offset from label in code */
+  int offset;           /* Offset from symbol */
+  struct label* symbol; /* Symbolic label */
+  short bits;           /* > 0 => 31..16, < 0 => 15..0 */
+  bool pc_relative;     /* => offset from label in code */
 } imm_expr;
 
 /* Representation of the expression that produce an address for an
@@ -57,7 +57,7 @@ typedef struct inst_s {
   int32_t encoding;
   imm_expr* expr;
   char* source_line;
-} instruction;
+} mips_instruction;
 
 #define OPCODE(INST) (INST)->opcode
 #define SET_OPCODE(INST, VAL) (INST)->opcode = (short)(VAL)
@@ -91,7 +91,7 @@ typedef struct inst_s {
 
 #define IOFFSET(INST) IMM(INST)
 #define SET_IOFFSET(INST, VAL) SET_IMM(INST, VAL)
-#define IDISP(INST) (sign_ex(IOFFSET(INST) << 2))
+#define BRANCH_OFFSET(INST) (sign_ex(IOFFSET(INST) << 2))
 
 #define COND(INST) RS(INST)
 #define SET_COND(INST, VAL) SET_RS(INST, VAL)
@@ -150,10 +150,10 @@ extern int first_bad_exception;
     MISC;                             \
   }
 
-#define RAISE_INTERRUPT(LEVEL)                        \
-  do {                                                \
-    /* Set IP (pending) bit for interrupt level. */   \
-    CP0_Cause |= (1 << ((LEVEL) + 8));                \
+#define RAISE_INTERRUPT(LEVEL)                      \
+  do {                                              \
+    /* Set IP (pending) bit for interrupt level. */ \
+    CP0_Cause |= (1 << ((LEVEL) + 8));              \
   } while (0)
 
 #define CLEAR_INTERRUPT(LEVEL)                        \
@@ -193,7 +193,7 @@ typedef enum mips_exc_code : uint8_t {
 #define BIN_RS(V) (BIN_REG(V, 21))
 #define BIN_RT(V) (BIN_REG(V, 16))
 #define BIN_RD(V) (BIN_REG(V, 11))
-#define BIN_SA(V) (BIN_REG(V, 6))
+#define BIN_SHAMT(V) (BIN_REG(V, 6))
 
 #define BIN_BASE(V) (BIN_REG(V, 21))
 #define BIN_FT(V) (BIN_REG(V, 16))
@@ -206,21 +206,22 @@ imm_expr* addr_expr_imm(addr_expr* expr);
 int addr_expr_reg(addr_expr* expr);
 void align_text(int alignment);
 [[nodiscard]] imm_expr* const_imm_expr(int32_t value);
-[[nodiscard]] instruction* copy_inst(instruction* inst);
+[[nodiscard]] mips_instruction* copy_inst(mips_instruction* instruction);
 mem_addr current_text_pc(void);
 int32_t eval_imm_expr(imm_expr* expr);
-void format_an_inst(str_stream* ss, instruction* inst, mem_addr addr);
-void free_inst(instruction* inst);
+void format_an_inst(str_stream* ss, mips_instruction* instruction,
+                    mem_addr addr);
+void free_inst(mips_instruction* instruction);
 void i_type_inst(int opcode, int rt, int rs, imm_expr* expr);
 void i_type_inst_free(int opcode, int rt, int rs, imm_expr* expr);
 [[nodiscard]] imm_expr* incr_expr_offset(imm_expr* expr, int32_t value);
 void initialize_inst_tables(void);
-[[nodiscard]] instruction* inst_decode(int32_t value);
-int32_t inst_encode(instruction* inst);
+[[nodiscard]] mips_instruction* inst_decode(int32_t value);
+int32_t inst_encode(mips_instruction* instruction);
 bool inst_is_breakpoint(mem_addr addr);
-const char* inst_op_name(instruction* inst);
+const char* inst_op_name(mips_instruction* instruction);
 /* Lookup mnemonic for a raw opcode token (TOK_*_OP, TOK_*_POP).
-   Returned pointer is owned by inst.c's static name_tbl. */
+   Returned pointer is owned by instruction.c's static name_tbl. */
 const char* op_token_name(int op_token);
 void j_type_inst(int opcode, imm_expr* target);
 void k_text_begins_at_point(mem_addr addr);
@@ -238,8 +239,8 @@ void r_cond_type_inst(int opcode, int fs, int ft, int cc);
 void r_sh_type_inst(int opcode, int rd, int rt, int shamt);
 void r_type_inst(int opcode, int rd, int rs, int rt);
 void raise_exception(mips_exc_code excode);
-[[nodiscard]] instruction* set_breakpoint(mem_addr addr);
-void test_assembly(instruction* inst);
+[[nodiscard]] mips_instruction* set_breakpoint(mem_addr addr);
+void test_assembly(mips_instruction* instruction);
 void text_begins_at_point(mem_addr addr);
 void user_kernel_text_segment(bool to_kernel);
 bool is_zero_imm(imm_expr* expr);

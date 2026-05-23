@@ -23,7 +23,7 @@ import sys
 
 
 def short_name(kind):
-    """Map op.h kind name to grammar.js category name."""
+    """Map opcodes.h kind name to grammar.js category name."""
     if kind.endswith('_TYPE_INST'):
         return kind[: -len('_TYPE_INST')]
     if kind == 'PSEUDO_OP':
@@ -40,7 +40,7 @@ def main():
         data = json.load(f)
 
     out_lines = [
-        '/* Generated from spim include/op.h via',
+        '/* Generated from spim include/opcodes.h via',
         ' * scripts/build-keyword-lists.py — do not edit by hand. */',
         '',
         'module.exports = {',

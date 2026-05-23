@@ -31,9 +31,9 @@ if libedit_dep.found()
 endif
 
 # Host endianness.  The simulator's mem_word is the host's int32_t, so
-# byte-extraction shifts in mem.c / data.c / run.c (LWL/LWR/SWL/SWR) depend
-# on the host's byte order.  Auto-detect rather than requiring the user to
-# pass -DSPIM_BIGENDIAN by hand.
+# byte-extraction shifts in memory.c / data.c / run.c (LWL/LWR/SWL/SWR)
+# depend on the host's byte order.  Auto-detect rather than requiring
+# the user to pass -DSPIM_BIGENDIAN by hand.
 if host_machine.endian() == 'big'
   add_project_arguments('-DSPIM_BIGENDIAN', language: 'c')
 endif
@@ -54,18 +54,18 @@ configure_file(
 source_files = files(
   'src/spim-utils.c',
   'src/run.c',
-  'src/mem.c',
-  'src/inst.c',
+  'src/memory.c',
+  'src/instruction.c',
   'src/data.c',
-  'src/sym-tbl.c',
+  'src/symbol-table.c',
   'src/syscall.c',
   'src/display-utils.c',
   'src/string-stream.c',
   'src/explain.c',
   'src/scanner.c',
   'src/parser.c',
-  'src/pseudo_op.c',
-  'src/asm_event.c',
+  'src/pseudo-op.c',
+  'src/assembler-event.c',
   'src/ast.c'
 )
 

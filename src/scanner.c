@@ -11,18 +11,18 @@
 #include <stdlib.h>
 
 #include "spim.h"
-#include "spim-utils.h" /* name_val_val, str_copy, xmalloc */
-#include "reg.h"        /* R_LENGTH */
-#include "sym-tbl.h"    /* label_is_defined */
-#include "scanner.h"    /* scan_value, line_no */
-#include "tokens.h"     /* TOK_* token values */
-#include "op-types.h"   /* op_type tag enumerators (ASM_DIR, R3_TYPE_INST, ...) */
+#include "spim-utils.h"   /* name_val_val, str_copy, xmalloc */
+#include "registers.h"    /* R_LENGTH */
+#include "symbol-table.h" /* label_is_defined */
+#include "scanner.h"      /* scan_value, line_no */
+#include "tokens.h"       /* TOK_* token values */
+#include "opcode-types.h" /* op_type tag enumerators (ASM_DIR, R3_TYPE_INST, ...) */
 
 /* Runtime-visible globals. */
 int line_no = 1;
 scan_value_t scan_value = {};
 
-/* Register-name → register-number lookup.  Public because inst.c and
+/* Register-name → register-number lookup.  Public because instruction.c and
    explain.c also call register_name_to_number, independent of the
    scanner's internal keyword table. */
 static name_val_val register_tbl[] = {
@@ -59,7 +59,7 @@ int register_name_to_number(char* name) {
 static name_val_val keyword_tbl[] = {
 #undef OP
 #define OP(NAME, OPCODE, TYPE, R_OPCODE) {NAME, OPCODE, TYPE},
-#include "op.h"
+#include "opcodes.h"
 };
 
 static int check_keyword(char* id, int allow_pseudo_ops) {
@@ -812,7 +812,7 @@ char* erroneous_line(void) {
 }
 
 /* source_line: return a heap-allocated copy of the current source
-   line, prefixed with "NNN: " line number.  Used by inst.c to
+   line, prefixed with "NNN: " line number.  Used by instruction.c to
    annotate assembled instructions with their originating source. */
 char* source_line(void) {
   if (!current_line_saved) return nullptr;

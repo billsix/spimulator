@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Extract keyword surface from spim's include/op.h into JSON.
+"""Extract keyword surface from spim's include/opcodes.h into JSON.
 
 Each OP(NAME, TOKEN, TYPE, ENCODING) entry becomes one record.  Output
 groups keywords by category so grammar.js can build choice() rules
 without re-walking the file.
 
 Usage:
-    extract-keywords.py /path/to/spim/include/op.h > keywords.json
+    extract-keywords.py /path/to/spim/include/opcodes.h > keywords.json
 """
 
 import json
@@ -25,7 +25,7 @@ OP_RE = re.compile(
 
 def main():
     if len(sys.argv) != 2:
-        print("usage: extract-keywords.py <op.h>", file=sys.stderr)
+        print("usage: extract-keywords.py <opcodes.h>", file=sys.stderr)
         sys.exit(2)
 
     by_kind = {}

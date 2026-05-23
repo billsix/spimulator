@@ -15,7 +15,7 @@ typedef uint32_t u_reg_word;
 /* General purpose registers: */
 constexpr int R_LENGTH = 32;
 
-extern reg_word R[R_LENGTH];
+extern reg_word gpr[R_LENGTH];
 
 extern reg_word HI, LO;
 
@@ -41,25 +41,26 @@ extern char* int_reg_names[];
 
 /* Coprocessor registers: */
 
-extern reg_word CCR[4][32], CPR[4][32];
+extern reg_word coprocessor_control_registers[4][32],
+    coprocessor_registers[4][32];
 
 /* Exception handling registers (Coprocessor 0): */
 
 /* BadVAddr register: */
 constexpr int CP0_BadVAddr_Reg = 8;
-#define CP0_BadVAddr (CPR[0][CP0_BadVAddr_Reg])
+#define CP0_BadVAddr (coprocessor_registers[0][CP0_BadVAddr_Reg])
 
 /* Count register: */
 constexpr int CP0_Count_Reg = 9;
-#define CP0_Count (CPR[0][CP0_Count_Reg]) /* ToDo */
+#define CP0_Count (coprocessor_registers[0][CP0_Count_Reg]) /* ToDo */
 
 /* Compare register: */
 constexpr int CP0_Compare_Reg = 11;
-#define CP0_Compare (CPR[0][CP0_Compare_Reg]) /* ToDo */
+#define CP0_Compare (coprocessor_registers[0][CP0_Compare_Reg]) /* ToDo */
 
 /* Status register: */
 constexpr int CP0_Status_Reg = 12;
-#define CP0_Status (CPR[0][CP0_Status_Reg])
+#define CP0_Status (coprocessor_registers[0][CP0_Status_Reg])
 /* Implemented fields: */
 constexpr uint32_t CP0_Status_CU = 0xf0000000;
 constexpr uint32_t CP0_Status_IM = 0x0000ff00;
@@ -74,13 +75,13 @@ constexpr uint32_t CP0_Status_IM0 = 0x00000100; /* SW Int 0 */
 constexpr uint32_t CP0_Status_UM = 0x00000010;
 constexpr uint32_t CP0_Status_EXL = 0x00000002;
 constexpr uint32_t CP0_Status_IE = 0x00000001;
-constexpr uint32_t CP0_Status_Mask =
-    CP0_Status_CU | CP0_Status_UM | CP0_Status_IM | CP0_Status_EXL |
-    CP0_Status_IE;
+constexpr uint32_t CP0_Status_Mask = CP0_Status_CU | CP0_Status_UM |
+                                     CP0_Status_IM | CP0_Status_EXL |
+                                     CP0_Status_IE;
 
 /* Cause register: */
 constexpr int CP0_Cause_Reg = 13;
-#define CP0_Cause (CPR[0][CP0_Cause_Reg])
+#define CP0_Cause (coprocessor_registers[0][CP0_Cause_Reg])
 /* Implemented fields: */
 constexpr uint32_t CP0_Cause_BD = 0x80000000;
 constexpr uint32_t CP0_Cause_IP = 0x0000ff00;
@@ -101,11 +102,11 @@ constexpr uint32_t CP0_Cause_Mask =
 
 /* EPC register: */
 constexpr int CP0_EPC_Reg = 14;
-#define CP0_EPC (CPR[0][CP0_EPC_Reg])
+#define CP0_EPC (coprocessor_registers[0][CP0_EPC_Reg])
 
 /* Config register: */
 constexpr int CP0_Config_Reg = 16;
-#define CP0_Config (CPR[0][CP0_Config_Reg])
+#define CP0_Config (coprocessor_registers[0][CP0_Config_Reg])
 /* Implemented fields: */
 constexpr uint32_t CP0_Config_BE = 0x000080000;
 constexpr uint32_t CP0_Config_AT = 0x000060000;
@@ -124,39 +125,39 @@ constexpr uint32_t CP0_Config_Mask =
 constexpr int FGR_LENGTH = 32;
 constexpr int FPR_LENGTH = 16;
 
-extern double* FPR; /* Dynamically allocate so overlay */
-extern float* FGR;  /* is possible */
-extern int* FWR;    /* is possible */
+extern double* fp_double_view; /* Dynamically allocate so overlay */
+extern float* fp_single_view;  /* is possible */
+extern int* fp_int_view;       /* is possible */
 
-#define FPR_S(REGNO) (FGR[REGNO])
+#define FPR_S(REGNO) (fp_single_view[REGNO])
 
 #define FPR_D(REGNO)                                                     \
   (((REGNO) & 0x1) ? (run_error("Odd FP double register number\n"), 0.0) \
-                   : FPR[(REGNO) / 2])
+                   : fp_double_view[(REGNO) / 2])
 
-#define FPR_W(REGNO) (FWR[REGNO])
+#define FPR_W(REGNO) (fp_int_view[REGNO])
 
-#define SET_FPR_S(REGNO, VALUE)  \
-  {                              \
-    FGR[REGNO] = (float)(VALUE); \
+#define SET_FPR_S(REGNO, VALUE)             \
+  {                                         \
+    fp_single_view[REGNO] = (float)(VALUE); \
   }
 
-#define SET_FPR_D(REGNO, VALUE)                     \
-  {                                                 \
-    if ((REGNO) & 0x1)                              \
-      run_error("Odd FP double register number\n"); \
-    else                                            \
-      FPR[(REGNO) / 2] = (double)(VALUE);           \
+#define SET_FPR_D(REGNO, VALUE)                      \
+  {                                                  \
+    if ((REGNO) & 0x1)                               \
+      run_error("Odd FP double register number\n");  \
+    else                                             \
+      fp_double_view[(REGNO) / 2] = (double)(VALUE); \
   }
 
-#define SET_FPR_W(REGNO, VALUE)    \
-  {                                \
-    FWR[REGNO] = (int32_t)(VALUE); \
+#define SET_FPR_W(REGNO, VALUE)            \
+  {                                        \
+    fp_int_view[REGNO] = (int32_t)(VALUE); \
   }
 
 /* Floating point control registers: */
 
-#define FCR (CPR[1])
+#define FCR (coprocessor_registers[1])
 
 constexpr int FIR_REG = 0;
 #define FIR (FCR[FIR_REG])
