@@ -443,24 +443,42 @@ controlled statement.  The `else` is now orphaned.
 
 `do { ... } while (0)` consumes the trailing semicolon as
 part of its own syntax and behaves like a single statement
-in every context:
+in every context.  Costs zero at runtime — the compiler
+eliminates the loop — and the if/else chain stays intact.
+Standard C idiom since the 1980s; not C23-specific, just
+overdue.
 
-```c
-#define RAISE_EXCEPTION(EXCODE, MISC) \
-  do {                                \
-    raise_exception(EXCODE);          \
-    MISC;                             \
-  } while (0)
-```
+**Important exception (found during Phase 4 work):**
+`RAISE_EXCEPTION(EXCODE, MISC)` *cannot* be wrapped in
+`do { } while (0)`.  Its `MISC` parameter is a statement
+injected at the call site's enclosing scope, often
+`break;` (to terminate a switch case in `run_spim`) or
+`return true;` (early return).  If the macro becomes a
+do-while, `break` would scope to the do-while loop instead
+of the enclosing switch, silently leaving the case body
+running.  That's exactly the kind of bug the wrap is
+supposed to prevent — but for this macro the bare-brace
+design *is* correct.  Recorded in a comment at the macro
+definition.
 
-Costs zero at runtime — the compiler eliminates the loop —
-and the if/else chain stays intact.  Standard C idiom since
-the 1980s; not C23-specific, just overdue.
+The wrap-safe macros are:
 
-The spimulator codebase happens not to use these macros in
-the dangerous pattern today (a quick grep shows they're all
-inside switch case bodies with explicit braces).  But the
-shape is a landmine for future edits.
+- `include/inst.h`: `RAISE_INTERRUPT`, `CLEAR_INTERRUPT`
+- `src/run.c`: `BRANCH_INST`, `JUMP_INST`, `LOAD_INST`,
+  `LOAD_INST_BASE`, `DO_DELAYED_UPDATE`
+
+`DO_DELAYED_UPDATE` was previously a bare `if () { }`
+without even the surrounding braces — the most dangerous
+form, and the one that benefits most from the wrap.
+
+A future cleanup worth considering: eliminate
+`RAISE_EXCEPTION` entirely and have call sites write
+`raise_exception(X); break;` directly.  The macro adds no
+abstraction beyond textual brevity, and the explicit form
+reads cleaner in modern C.  21 call sites in `run.c`;
+mechanical replacement.  Defer until after Phase 6
+(enum-tag sweep) so the type-checking on the exception
+code argument lands at the same time.
 
 ### 7. `[[fallthrough]]` annotation in switches
 

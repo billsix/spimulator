@@ -133,23 +133,31 @@ typedef struct inst_s {
 extern int exception_occurred;
 extern int first_bad_exception;
 
+/* The MISC arg is injected as-is into the macro body and is expected to
+   transfer control out of the enclosing context — most commonly `break`
+   (terminate the switch case in run_spim) or `return true` (early-return
+   from run_spim).  That requires the macro to expand to a bare brace
+   block: `do { ... } while (0)` would scope the `break` to the do-while
+   itself, which would silently leave the switch case running.  The
+   trailing-semicolon hazard in if/else chains is mitigated by the
+   convention that every call site puts its own `;` at the end. */
 #define RAISE_EXCEPTION(EXCODE, MISC) \
   {                                   \
     raise_exception(EXCODE);          \
     MISC;                             \
   }
 
-#define RAISE_INTERRUPT(LEVEL)                      \
-  {                                                 \
-    /* Set IP (pending) bit for interrupt level. */ \
-    CP0_Cause |= (1 << ((LEVEL) + 8));              \
-  }
+#define RAISE_INTERRUPT(LEVEL)                        \
+  do {                                                \
+    /* Set IP (pending) bit for interrupt level. */   \
+    CP0_Cause |= (1 << ((LEVEL) + 8));                \
+  } while (0)
 
 #define CLEAR_INTERRUPT(LEVEL)                        \
-  {                                                   \
+  do {                                                \
     /* Clear IP (pending) bit for interrupt level. */ \
     CP0_Cause &= ~(1 << ((LEVEL) + 8));               \
-  }
+  } while (0)
 
 /* Recognized exceptions: */
 

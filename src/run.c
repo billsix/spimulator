@@ -55,23 +55,23 @@ static int running_in_delay_slot = 0;
    we execute the second branch. */
 
 #define BRANCH_INST(TEST, TARGET, NULLIFY)       \
-  {                                              \
+  do {                                           \
     if (TEST) {                                  \
       mem_addr target = (TARGET);                \
       if (delayed_branches) {                    \
         /* +4 since jump in delay slot */        \
         target += BYTES_PER_WORD;                \
       }                                          \
-      JUMP_INST(target)                          \
+      JUMP_INST(target);                         \
     } else if (NULLIFY) {                        \
       /* If test fails and nullify bit set, skip \
          instruction in delay slot. */           \
       PC += BYTES_PER_WORD;                      \
     }                                            \
-  }
+  } while (0)
 
 #define JUMP_INST(TARGET)                              \
-  {                                                    \
+  do {                                                 \
     if (delayed_branches) {                            \
       running_in_delay_slot = 1;                       \
       /* Continuation flag from the delay-slot inst is \
@@ -81,7 +81,7 @@ static int running_in_delay_slot = 0;
     }                                                  \
     /* -4 since PC is bumped after this inst */        \
     PC = (TARGET) - BYTES_PER_WORD;                    \
-  }
+  } while (0)
 
 /* If the delayed_load flag is false, the result from a load is available
    immediate.  If the delayed_load flag is true, the result from a load is
@@ -90,28 +90,31 @@ static int running_in_delay_slot = 0;
    destination, as the instruction following the load can itself be a load
    instruction. */
 
-#define LOAD_INST(DEST_A, LD, MASK) {LOAD_INST_BASE(DEST_A, (LD & (MASK)))}
+#define LOAD_INST(DEST_A, LD, MASK) \
+  do { LOAD_INST_BASE(DEST_A, (LD & (MASK))); } while (0)
 
 #define LOAD_INST_BASE(DEST_A, VALUE) \
-  {                                   \
+  do {                                \
     if (delayed_loads) {              \
       delayed_load_addr1 = (DEST_A);  \
       delayed_load_value1 = (VALUE);  \
     } else {                          \
       *(DEST_A) = (VALUE);            \
     }                                 \
-  }
+  } while (0)
 
-#define DO_DELAYED_UPDATE()                      \
-  if (delayed_loads) {                           \
-    /* Check for delayed updates */              \
-    if (delayed_load_addr2 != nullptr) {         \
-      *delayed_load_addr2 = delayed_load_value2; \
-    }                                            \
-    delayed_load_addr2 = delayed_load_addr1;     \
-    delayed_load_value2 = delayed_load_value1;   \
-    delayed_load_addr1 = nullptr;                \
-  }
+#define DO_DELAYED_UPDATE()                        \
+  do {                                             \
+    if (delayed_loads) {                           \
+      /* Check for delayed updates */              \
+      if (delayed_load_addr2 != nullptr) {         \
+        *delayed_load_addr2 = delayed_load_value2; \
+      }                                            \
+      delayed_load_addr2 = delayed_load_addr1;     \
+      delayed_load_value2 = delayed_load_value1;   \
+      delayed_load_addr1 = nullptr;                \
+    }                                              \
+  } while (0)
 
 /* Run the program stored in memory, starting at address PC for
    STEPS_TO_RUN instruction executions.  If flag DISPLAY is true, print
