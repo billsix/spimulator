@@ -1672,7 +1672,8 @@ static void do_parse_pseudo(int op) {
     case TOK_BNEZ_PSEUDO_OP: {
       int rs = parse_register();
       imm_expr* target = parse_label();
-      int real_op = (op == TOK_BEQZ_PSEUDO_OP) ? TOK_BEQ_OPCODE : TOK_BNE_OPCODE;
+      int real_op =
+          (op == TOK_BEQZ_PSEUDO_OP) ? TOK_BEQ_OPCODE : TOK_BNE_OPCODE;
       emit_i_free(real_op, 0, rs, target);
       break;
     }
@@ -1681,7 +1682,8 @@ static void do_parse_pseudo(int op) {
     case TOK_B_PSEUDO_OP:
     case TOK_BAL_PSEUDO_OP: {
       imm_expr* target = parse_label();
-      int real_op = (op == TOK_BAL_PSEUDO_OP) ? TOK_BGEZAL_OPCODE : TOK_BGEZ_OPCODE;
+      int real_op =
+          (op == TOK_BAL_PSEUDO_OP) ? TOK_BGEZAL_OPCODE : TOK_BGEZ_OPCODE;
       emit_i_free(real_op, 0, 0, target);
       break;
     }
@@ -1693,7 +1695,8 @@ static void do_parse_pseudo(int op) {
       if (scanner_peek() == TOK_REG) {
         int rt = parse_register();
         imm_expr* target = parse_label();
-        emit_r(op == TOK_BGT_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, 1, rt, rs);
+        emit_r(op == TOK_BGT_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, 1,
+               rt, rs);
         emit_i_free(TOK_BNE_OPCODE, 0, 1, target);
       } else {
         /* Immediate form — see */
@@ -1722,12 +1725,14 @@ static void do_parse_pseudo(int op) {
       if (scanner_peek() == TOK_REG) {
         int rt = parse_register();
         imm_expr* target = parse_label();
-        emit_r(op == TOK_BGE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, 1, rs, rt);
+        emit_r(op == TOK_BGE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, 1,
+               rs, rt);
         emit_i_free(TOK_BEQ_OPCODE, 0, 1, target);
       } else {
         imm_expr* imm = parse_imm32();
         imm_expr* target = parse_label();
-        emit_i(op == TOK_BGE_PSEUDO_OP ? TOK_SLTI_OPCODE : TOK_SLTIU_OPCODE, 1, rs, imm);
+        emit_i(op == TOK_BGE_PSEUDO_OP ? TOK_SLTI_OPCODE : TOK_SLTIU_OPCODE, 1,
+               rs, imm);
         emit_i_free(TOK_BEQ_OPCODE, 0, 1, target);
         free(imm);
       }
@@ -1741,12 +1746,14 @@ static void do_parse_pseudo(int op) {
       if (scanner_peek() == TOK_REG) {
         int rt = parse_register();
         imm_expr* target = parse_label();
-        emit_r(op == TOK_BLT_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, 1, rs, rt);
+        emit_r(op == TOK_BLT_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, 1,
+               rs, rt);
         emit_i_free(TOK_BNE_OPCODE, 0, 1, target);
       } else {
         imm_expr* imm = parse_imm32();
         imm_expr* target = parse_label();
-        emit_i(op == TOK_BLT_PSEUDO_OP ? TOK_SLTI_OPCODE : TOK_SLTIU_OPCODE, 1, rs, imm);
+        emit_i(op == TOK_BLT_PSEUDO_OP ? TOK_SLTI_OPCODE : TOK_SLTIU_OPCODE, 1,
+               rs, imm);
         emit_i_free(TOK_BNE_OPCODE, 0, 1, target);
         free(imm);
       }
@@ -1760,7 +1767,8 @@ static void do_parse_pseudo(int op) {
       if (scanner_peek() == TOK_REG) {
         int rt = parse_register();
         imm_expr* target = parse_label();
-        emit_r(op == TOK_BLE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, 1, rt, rs);
+        emit_r(op == TOK_BLE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, 1,
+               rt, rs);
         emit_i_free(TOK_BEQ_OPCODE, 0, 1, target);
       } else {
         imm_expr* imm = parse_imm32();
@@ -1860,8 +1868,9 @@ static void parse_asm_code(void) {
         parse_error_at("Expected operand for div/mult");
         break;
       }
-      if (op == TOK_TEQ_OPCODE || op == TOK_TGE_OPCODE || op == TOK_TGEU_OPCODE ||
-          op == TOK_TLT_OPCODE || op == TOK_TLTU_OPCODE || op == TOK_TNE_OPCODE) {
+      if (op == TOK_TEQ_OPCODE || op == TOK_TGE_OPCODE ||
+          op == TOK_TGEU_OPCODE || op == TOK_TLT_OPCODE ||
+          op == TOK_TLTU_OPCODE || op == TOK_TNE_OPCODE) {
         /* BINARY_TRAP_OPS: <op> SRC1 SRC2 → emit_r(op, 0, r1, r2)
          */
         int r2 = parse_register();

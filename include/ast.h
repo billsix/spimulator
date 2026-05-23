@@ -211,26 +211,36 @@ struct ast_node {
 
 /* Instructions */
 [[nodiscard]] ast_node* ast_make_inst_r(int op, int rd, int rs, int rt);
-[[nodiscard]] ast_node* ast_make_inst_r_shift(int op, int rd, int rt, int shamt);
+[[nodiscard]] ast_node* ast_make_inst_r_shift(int op, int rd, int rt,
+                                              int shamt);
 [[nodiscard]] ast_node* ast_make_inst_i(int op, int rt, int rs, imm_expr* imm);
 [[nodiscard]] ast_node* ast_make_inst_j(int op, imm_expr* target);
 [[nodiscard]] ast_node* ast_make_inst_fp_r(int op, int fd, int fs, int ft);
-[[nodiscard]] ast_node* ast_make_inst_fp_compare(int op, int fs, int ft, int cc);
-[[nodiscard]] ast_node* ast_make_pseudo(const char* mnemonic); /* mnemonic dup'd */
+[[nodiscard]] ast_node* ast_make_inst_fp_compare(int op, int fs, int ft,
+                                                 int cc);
+[[nodiscard]] ast_node* ast_make_pseudo(
+    const char* mnemonic); /* mnemonic dup'd */
 
 /* Data */
-[[nodiscard]] ast_node* ast_make_data_byte(int count, imm_expr** exprs); /* takes ownership */
+[[nodiscard]] ast_node* ast_make_data_byte(
+    int count, imm_expr** exprs); /* takes ownership */
 [[nodiscard]] ast_node* ast_make_data_half(int count, imm_expr** exprs);
 [[nodiscard]] ast_node* ast_make_data_word(int count, imm_expr** exprs);
-[[nodiscard]] ast_node* ast_make_data_float(int count, double* values); /* takes ownership */
+[[nodiscard]] ast_node* ast_make_data_float(
+    int count, double* values); /* takes ownership */
 [[nodiscard]] ast_node* ast_make_data_double(int count, double* values);
-[[nodiscard]] ast_node* ast_make_data_string(const char* bytes, int length, bool null_term);
+[[nodiscard]] ast_node* ast_make_data_string(const char* bytes, int length,
+                                             bool null_term);
 
 /* Segment + layout */
-[[nodiscard]] ast_node* ast_make_dir_text(bool has_start_addr, mem_addr start_addr);
-[[nodiscard]] ast_node* ast_make_dir_data(bool has_start_addr, mem_addr start_addr);
-[[nodiscard]] ast_node* ast_make_dir_ktext(bool has_start_addr, mem_addr start_addr);
-[[nodiscard]] ast_node* ast_make_dir_kdata(bool has_start_addr, mem_addr start_addr);
+[[nodiscard]] ast_node* ast_make_dir_text(bool has_start_addr,
+                                          mem_addr start_addr);
+[[nodiscard]] ast_node* ast_make_dir_data(bool has_start_addr,
+                                          mem_addr start_addr);
+[[nodiscard]] ast_node* ast_make_dir_ktext(bool has_start_addr,
+                                           mem_addr start_addr);
+[[nodiscard]] ast_node* ast_make_dir_kdata(bool has_start_addr,
+                                           mem_addr start_addr);
 [[nodiscard]] ast_node* ast_make_dir_align(int n);
 [[nodiscard]] ast_node* ast_make_dir_space(int size);
 [[nodiscard]] ast_node* ast_make_dir_globl(const char* name); /* name dup'd */

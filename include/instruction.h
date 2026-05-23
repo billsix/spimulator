@@ -13,10 +13,10 @@
 #include "string-stream.h"
 
 typedef struct immexpr {
-  int offset;         /* Offset from symbol */
+  int offset;           /* Offset from symbol */
   struct label* symbol; /* Symbolic label */
-  short bits;         /* > 0 => 31..16, < 0 => 15..0 */
-  bool pc_relative;   /* => offset from label in code */
+  short bits;           /* > 0 => 31..16, < 0 => 15..0 */
+  bool pc_relative;     /* => offset from label in code */
 } imm_expr;
 
 /* Representation of the expression that produce an address for an
@@ -150,10 +150,10 @@ extern int first_bad_exception;
     MISC;                             \
   }
 
-#define RAISE_INTERRUPT(LEVEL)                        \
-  do {                                                \
-    /* Set IP (pending) bit for interrupt level. */   \
-    CP0_Cause |= (1 << ((LEVEL) + 8));                \
+#define RAISE_INTERRUPT(LEVEL)                      \
+  do {                                              \
+    /* Set IP (pending) bit for interrupt level. */ \
+    CP0_Cause |= (1 << ((LEVEL) + 8));              \
   } while (0)
 
 #define CLEAR_INTERRUPT(LEVEL)                        \
@@ -209,7 +209,8 @@ void align_text(int alignment);
 [[nodiscard]] mips_instruction* copy_inst(mips_instruction* instruction);
 mem_addr current_text_pc(void);
 int32_t eval_imm_expr(imm_expr* expr);
-void format_an_inst(str_stream* ss, mips_instruction* instruction, mem_addr addr);
+void format_an_inst(str_stream* ss, mips_instruction* instruction,
+                    mem_addr addr);
 void free_inst(mips_instruction* instruction);
 void i_type_inst(int opcode, int rt, int rs, imm_expr* expr);
 void i_type_inst_free(int opcode, int rt, int rs, imm_expr* expr);

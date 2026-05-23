@@ -41,7 +41,8 @@ extern char* int_reg_names[];
 
 /* Coprocessor registers: */
 
-extern reg_word coprocessor_control_registers[4][32], coprocessor_registers[4][32];
+extern reg_word coprocessor_control_registers[4][32],
+    coprocessor_registers[4][32];
 
 /* Exception handling registers (Coprocessor 0): */
 
@@ -74,9 +75,9 @@ constexpr uint32_t CP0_Status_IM0 = 0x00000100; /* SW Int 0 */
 constexpr uint32_t CP0_Status_UM = 0x00000010;
 constexpr uint32_t CP0_Status_EXL = 0x00000002;
 constexpr uint32_t CP0_Status_IE = 0x00000001;
-constexpr uint32_t CP0_Status_Mask =
-    CP0_Status_CU | CP0_Status_UM | CP0_Status_IM | CP0_Status_EXL |
-    CP0_Status_IE;
+constexpr uint32_t CP0_Status_Mask = CP0_Status_CU | CP0_Status_UM |
+                                     CP0_Status_IM | CP0_Status_EXL |
+                                     CP0_Status_IE;
 
 /* Cause register: */
 constexpr int CP0_Cause_Reg = 13;
@@ -126,7 +127,7 @@ constexpr int FPR_LENGTH = 16;
 
 extern double* fp_double_view; /* Dynamically allocate so overlay */
 extern float* fp_single_view;  /* is possible */
-extern int* fp_int_view;    /* is possible */
+extern int* fp_int_view;       /* is possible */
 
 #define FPR_S(REGNO) (fp_single_view[REGNO])
 
@@ -136,21 +137,21 @@ extern int* fp_int_view;    /* is possible */
 
 #define FPR_W(REGNO) (fp_int_view[REGNO])
 
-#define SET_FPR_S(REGNO, VALUE)  \
-  {                              \
+#define SET_FPR_S(REGNO, VALUE)             \
+  {                                         \
     fp_single_view[REGNO] = (float)(VALUE); \
   }
 
-#define SET_FPR_D(REGNO, VALUE)                     \
-  {                                                 \
-    if ((REGNO) & 0x1)                              \
-      run_error("Odd FP double register number\n"); \
-    else                                            \
-      fp_double_view[(REGNO) / 2] = (double)(VALUE);           \
+#define SET_FPR_D(REGNO, VALUE)                      \
+  {                                                  \
+    if ((REGNO) & 0x1)                               \
+      run_error("Odd FP double register number\n");  \
+    else                                             \
+      fp_double_view[(REGNO) / 2] = (double)(VALUE); \
   }
 
-#define SET_FPR_W(REGNO, VALUE)    \
-  {                                \
+#define SET_FPR_W(REGNO, VALUE)            \
+  {                                        \
     fp_int_view[REGNO] = (int32_t)(VALUE); \
   }
 

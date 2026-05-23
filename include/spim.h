@@ -35,9 +35,7 @@ static inline bool streq(const char* a, const char* b) {
 
 /* Sign-extend the low 16 bits of x to a 32-bit signed integer.
    Casting through int16_t lets the compiler emit a single movsx. */
-static inline int32_t sign_ex(int x) {
-  return (int32_t)(int16_t)x;
-}
+static inline int32_t sign_ex(int x) { return (int32_t)(int16_t)x; }
 
 /* MIN/MAX/ROUND macros use C23-standardized typeof to capture each
    argument into a local before comparing, so the arguments are
@@ -54,33 +52,33 @@ static inline int32_t sign_ex(int x) {
 #ifdef MAX
 #undef MAX
 #endif
-#define MIN(A, B)                \
-  __extension__ ({               \
-    typeof(A) _spim_a_ = (A);    \
-    typeof(B) _spim_b_ = (B);    \
+#define MIN(A, B)                              \
+  __extension__({                              \
+    typeof(A) _spim_a_ = (A);                  \
+    typeof(B) _spim_b_ = (B);                  \
     _spim_a_ < _spim_b_ ? _spim_a_ : _spim_b_; \
   })
 
-#define MAX(A, B)                \
-  __extension__ ({               \
-    typeof(A) _spim_a_ = (A);    \
-    typeof(B) _spim_b_ = (B);    \
+#define MAX(A, B)                              \
+  __extension__({                              \
+    typeof(A) _spim_a_ = (A);                  \
+    typeof(B) _spim_b_ = (B);                  \
     _spim_a_ > _spim_b_ ? _spim_a_ : _spim_b_; \
   })
 
 /* Round V to next greatest B boundary (B must be a power of two). */
-#define ROUND_UP(V, B)                                          \
-  __extension__ ({                                              \
-    typeof(V) _spim_v_ = (V);                                   \
-    typeof(B) _spim_b_ = (B);                                   \
-    (typeof(V))((_spim_v_ + _spim_b_ - 1) & ~(_spim_b_ - 1));   \
+#define ROUND_UP(V, B)                                        \
+  __extension__({                                             \
+    typeof(V) _spim_v_ = (V);                                 \
+    typeof(B) _spim_b_ = (B);                                 \
+    (typeof(V))((_spim_v_ + _spim_b_ - 1) & ~(_spim_b_ - 1)); \
   })
 
-#define ROUND_DOWN(V, B)                          \
-  __extension__ ({                                \
-    typeof(V) _spim_v_ = (V);                     \
-    typeof(B) _spim_b_ = (B);                     \
-    (typeof(V))(_spim_v_ & ~(_spim_b_ - 1));      \
+#define ROUND_DOWN(V, B)                     \
+  __extension__({                            \
+    typeof(V) _spim_v_ = (V);                \
+    typeof(B) _spim_b_ = (B);                \
+    (typeof(V))(_spim_v_ & ~(_spim_b_ - 1)); \
   })
 
 constexpr int kilo = 1024;
@@ -94,20 +92,20 @@ constexpr int BYTES_PER_WORD = 4; /* On the MIPS processor */
 
 /* Sizes of memory segments. */
 
-constexpr int TEXT_SIZE = 256 * kilo;       /* Initial text segment.  1/4 MB */
-constexpr int K_TEXT_SIZE = 64 * kilo;      /* Initial k_text segment.  64 KB */
+constexpr int TEXT_SIZE = 256 * kilo;  /* Initial text segment.  1/4 MB */
+constexpr int K_TEXT_SIZE = 64 * kilo; /* Initial k_text segment.  64 KB */
 
 /* The data segment must be larger than 64K since we immediately grab
    64K for the small data segment pointed to by $gp. The data segment is
    expanded by an sbrk system call. */
-constexpr int DATA_SIZE = 256 * kilo;       /* Initial data segment.  1/4 MB */
-constexpr int DATA_LIMIT = mega;            /* Max data segment.  1 MB */
-constexpr int K_DATA_SIZE = 64 * kilo;      /* Initial k_data segment.  64 KB */
-constexpr int K_DATA_LIMIT = mega;          /* Max k_data segment.  1 MB */
+constexpr int DATA_SIZE = 256 * kilo;  /* Initial data segment.  1/4 MB */
+constexpr int DATA_LIMIT = mega;       /* Max data segment.  1 MB */
+constexpr int K_DATA_SIZE = 64 * kilo; /* Initial k_data segment.  64 KB */
+constexpr int K_DATA_LIMIT = mega;     /* Max k_data segment.  1 MB */
 
 /* The stack grows down automatically. */
-constexpr int STACK_SIZE = 64 * kilo;       /* Initial stack segment.  64 KB */
-constexpr int STACK_LIMIT = 256 * kilo;     /* Max stack segment.  1/4 MB */
+constexpr int STACK_SIZE = 64 * kilo;   /* Initial stack segment.  64 KB */
+constexpr int STACK_LIMIT = 256 * kilo; /* Max stack segment.  1/4 MB */
 
 /* Name of the function to invoke at start up */
 

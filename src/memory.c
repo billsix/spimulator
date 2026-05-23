@@ -18,7 +18,7 @@ int HI_present, LO_present;
 mem_addr PC, nPC;
 double* fp_double_view; /* Dynamically allocate so overlay */
 float* fp_single_view;  /* is possible */
-int* fp_int_view;    /* is possible */
+int* fp_int_view;       /* is possible */
 reg_word coprocessor_control_registers[4][32], coprocessor_registers[4][32];
 
 mips_instruction** text_seg;
@@ -126,7 +126,8 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
     k_text_seg = (mips_instruction**)xmalloc(BYTES_TO_INST(k_text_size));
   else {
     free_instructions(k_text_seg, (k_text_top - K_TEXT_BOT) / BYTES_PER_WORD);
-    k_text_seg = (mips_instruction**)realloc(k_text_seg, BYTES_TO_INST(k_text_size));
+    k_text_seg =
+        (mips_instruction**)realloc(k_text_seg, BYTES_TO_INST(k_text_size));
   }
   memset(k_text_seg, 0, BYTES_TO_INST(k_text_size));
   k_text_top = K_TEXT_BOT + k_text_size;

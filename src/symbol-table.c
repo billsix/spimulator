@@ -18,7 +18,8 @@
 /* Local functions: */
 
 static void get_hash(char* name, int* slot_no, label** entry);
-static void resolve_a_label_sub(label* sym, mips_instruction* instruction, mem_addr pc);
+static void resolve_a_label_sub(label* sym, mips_instruction* instruction,
+                                mem_addr pc);
 
 /* Keep track of the memory location that a label represents.  If we
    see a reference to a label that is not yet defined, then record the
@@ -219,7 +220,8 @@ void resolve_a_label(label* sym, mips_instruction* instruction) {
                       (data_dir ? current_data_pc() : current_text_pc()));
 }
 
-static void resolve_a_label_sub(label* sym, mips_instruction* instruction, mem_addr pc) {
+static void resolve_a_label_sub(label* sym, mips_instruction* instruction,
+                                mem_addr pc) {
   if (instruction == nullptr) {
     /* Memory data: */
     mem_write_word(pc, sym->addr);
@@ -238,7 +240,7 @@ static void resolve_a_label_sub(label* sym, mips_instruction* instruction, mem_a
 
         /* Drop low two bits since instructions are on word boundaries. */
         val = sign_ex(eval_imm_expr(EXPR(instruction))); /* 16->32 bits */
-        val = (val >> 2) & 0xffff;                /* right shift, 32->16 bits */
+        val = (val >> 2) & 0xffff; /* right shift, 32->16 bits */
 
         if (delayed_branches) val -= 1;
 
@@ -304,7 +306,9 @@ static void resolve_a_label_sub(label* sym, mips_instruction* instruction, mem_a
       SET_ENCODING(instruction, inst_encode(instruction));
     } else
       error("Resolving undefined symbol: %s\n",
-            (EXPR(instruction)->symbol == nullptr) ? "" : EXPR(instruction)->symbol->name);
+            (EXPR(instruction)->symbol == nullptr)
+                ? ""
+                : EXPR(instruction)->symbol->name);
   }
 }
 

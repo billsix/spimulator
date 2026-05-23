@@ -72,7 +72,8 @@ mem_addr initial_k_data_limit = K_DATA_LIMIT;
 
 void initialize_world(char* exception_file_names, bool print_message) {
   /* Allocate the floating point registers */
-  if (fp_single_view == nullptr) fp_double_view = (double*)xmalloc(FPR_LENGTH * sizeof(double));
+  if (fp_single_view == nullptr)
+    fp_double_view = (double*)xmalloc(FPR_LENGTH * sizeof(double));
   /* Allocate the memory */
   make_memory(initial_text_size, initial_data_size, initial_data_limit,
               initial_stack_size, initial_stack_limit, initial_k_text_size,
@@ -265,9 +266,9 @@ void initialize_run_stack(int argc, char** argv) {
   for (i = 0; i < argc; i++) addrs[j++] = copy_str_to_stack(argv[i]);
 
   /* Align stack pointer for word-size data */
-  gpr[REG_SP] = gpr[REG_SP] & ~3;  /* Round down to nearest word */
-  gpr[REG_SP] -= BYTES_PER_WORD; /* First free word on stack */
-  gpr[REG_SP] = gpr[REG_SP] & ~7;  /* Double-word align stack-pointer*/
+  gpr[REG_SP] = gpr[REG_SP] & ~3; /* Round down to nearest word */
+  gpr[REG_SP] -= BYTES_PER_WORD;  /* First free word on stack */
+  gpr[REG_SP] = gpr[REG_SP] & ~7; /* Double-word align stack-pointer*/
 
   /* Build vectors on stack: */
   /* env: */

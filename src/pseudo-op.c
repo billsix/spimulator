@@ -13,8 +13,8 @@
 #include "spim.h"
 #include "instruction.h"
 #include "symbol-table.h" /* SYMBOL_IS_DEFINED */
-#include "tokens.h"  /* Y_*_OP, Y_*_POP token values */
-#include "parser.h"  /* emit_r, emit_r_shift, emit_i_free, ... */
+#include "tokens.h"       /* Y_*_OP, Y_*_POP token values */
+#include "parser.h"       /* emit_r, emit_r_shift, emit_i_free, ... */
 #include "pseudo-op.h"
 
 extern int line_no;                /* from scanner */
@@ -175,11 +175,13 @@ void set_le_inst(int op, int rd, int rs, int rt) {
   emit_i_free(TOK_ORI_OPCODE, rd, 0, const_imm_expr(1));
   emit_i_free(TOK_BEQ_OPCODE, 0, 0, branch_offset(3));
   nop_inst();
-  emit_r((op == TOK_SLE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE), rd, rs, rt);
+  emit_r((op == TOK_SLE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE), rd, rs,
+         rt);
 }
 
 void set_gt_inst(int op, int rd, int rs, int rt) {
-  emit_r(op == TOK_SGT_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, rd, rt, rs);
+  emit_r(op == TOK_SGT_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, rd, rt,
+         rs);
 }
 
 void set_ge_inst(int op, int rd, int rs, int rt) {
@@ -187,7 +189,8 @@ void set_ge_inst(int op, int rd, int rs, int rt) {
   emit_i_free(TOK_ORI_OPCODE, rd, 0, const_imm_expr(1));
   emit_i_free(TOK_BEQ_OPCODE, 0, 0, branch_offset(3));
   nop_inst();
-  emit_r(op == TOK_SGE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, rd, rt, rs);
+  emit_r(op == TOK_SGE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, rd, rt,
+         rs);
 }
 
 void set_eq_inst(int op, int rd, int rs, int rt) {

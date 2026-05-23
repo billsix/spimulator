@@ -113,7 +113,8 @@ int do_syscall(void) {
       return (0);
 
     case OPEN_SYSCALL: {
-      gpr[REG_RES] = open((char*)mem_reference(gpr[REG_A0]), gpr[REG_A1], gpr[REG_A2]);
+      gpr[REG_RES] =
+          open((char*)mem_reference(gpr[REG_A0]), gpr[REG_A1], gpr[REG_A2]);
       break;
     }
 
@@ -128,7 +129,8 @@ int do_syscall(void) {
     case WRITE_SYSCALL: {
       /* Test if address is valid */
       (void)mem_reference(gpr[REG_A1] + gpr[REG_A2] - 1);
-      gpr[REG_RES] = write(gpr[REG_A0], mem_reference(gpr[REG_A1]), gpr[REG_A2]);
+      gpr[REG_RES] =
+          write(gpr[REG_A0], mem_reference(gpr[REG_A1]), gpr[REG_A2]);
       break;
     }
 
@@ -158,7 +160,8 @@ void handle_exception(void) {
 
     case ExcCode_AdEL:
       if (!quiet)
-        error("  Unaligned address in instruction/data fetch: 0x%08x\n", CP0_BadVAddr);
+        error("  Unaligned address in instruction/data fetch: 0x%08x\n",
+              CP0_BadVAddr);
       break;
 
     case ExcCode_AdES:

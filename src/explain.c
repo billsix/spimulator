@@ -565,8 +565,8 @@ static void subst_field_regs(char* dst, size_t cap, const char* src, int rs,
   dst[i] = '\0';
 }
 
-static void tpl_r3_arith(int level, mips_instruction* instruction, const char* op_label,
-                         const char* op_text) {
+static void tpl_r3_arith(int level, mips_instruction* instruction,
+                         const char* op_label, const char* op_text) {
   int rs = RS(instruction), rt = RT(instruction), rd = RD(instruction);
   char buf[512];
   subst_field_regs(buf, sizeof(buf), op_text, rs, rt, rd);
@@ -585,8 +585,8 @@ static void tpl_r3_arith(int level, mips_instruction* instruction, const char* o
   }
 }
 
-static void tpl_i2_arith(int level, mips_instruction* instruction, const char* op_label,
-                         const char* op_text) {
+static void tpl_i2_arith(int level, mips_instruction* instruction,
+                         const char* op_label, const char* op_text) {
   int rs = RS(instruction), rt = RT(instruction);
   short imm = (short)IMM(instruction);
   char buf[512];
@@ -608,8 +608,8 @@ static void tpl_i2_arith(int level, mips_instruction* instruction, const char* o
   }
 }
 
-static void tpl_shift(int level, mips_instruction* instruction, const char* op_label,
-                      const char* op_text) {
+static void tpl_shift(int level, mips_instruction* instruction,
+                      const char* op_label, const char* op_text) {
   int rt = RT(instruction), rd = RD(instruction), sh = SHAMT(instruction);
   char buf[512];
   subst_field_regs(buf, sizeof(buf), op_text, -1, rt, rd);
@@ -627,8 +627,8 @@ static void tpl_shift(int level, mips_instruction* instruction, const char* op_l
   }
 }
 
-static void tpl_load(int level, mips_instruction* instruction, const char* op_label,
-                     const char* op_text, int width) {
+static void tpl_load(int level, mips_instruction* instruction,
+                     const char* op_label, const char* op_text, int width) {
   int rt = RT(instruction), base = BASE(instruction);
   short off = (short)IOFFSET(instruction);
   /* Effective address uses snapshot base — the value the instruction
@@ -672,8 +672,8 @@ static void tpl_load(int level, mips_instruction* instruction, const char* op_la
   }
 }
 
-static void tpl_store(int level, mips_instruction* instruction, const char* op_label,
-                      const char* op_text, int width) {
+static void tpl_store(int level, mips_instruction* instruction,
+                      const char* op_label, const char* op_text, int width) {
   int rt = RT(instruction), base = BASE(instruction);
   short off = (short)IOFFSET(instruction);
   mem_addr ea = (mem_addr)(snap_R[base] + off);
@@ -702,8 +702,9 @@ static void tpl_store(int level, mips_instruction* instruction, const char* op_l
   }
 }
 
-static void tpl_branch_2reg(int level, mips_instruction* instruction, const char* op_label,
-                            const char* op_symbol, bool taken) {
+static void tpl_branch_2reg(int level, mips_instruction* instruction,
+                            const char* op_label, const char* op_symbol,
+                            bool taken) {
   int rs = RS(instruction), rt = RT(instruction);
   /* Target is computed from the instruction's own PC (snap_PC) plus 4 +
      displacement. Live PC has already advanced past this instruction. */
@@ -725,8 +726,9 @@ static void tpl_branch_2reg(int level, mips_instruction* instruction, const char
   }
 }
 
-static void tpl_branch_1reg(int level, mips_instruction* instruction, const char* op_label,
-                            const char* op_symbol, bool taken) {
+static void tpl_branch_1reg(int level, mips_instruction* instruction,
+                            const char* op_label, const char* op_symbol,
+                            bool taken) {
   int rs = RS(instruction);
   mem_addr target = snap_PC + 4 + BRANCH_OFFSET(instruction);
   write_output(message_out, "  What it did:\n");
@@ -1677,7 +1679,8 @@ static void render_dispatch(int level, mips_instruction* instruction) {
                    "computed the bitwise XOR of $rs and $rt");
       break;
     case TOK_NOR_OPCODE:
-      tpl_r3_arith(level, instruction, "Bitwise NOR", "computed NOT($rs OR $rt)");
+      tpl_r3_arith(level, instruction, "Bitwise NOR",
+                   "computed NOT($rs OR $rt)");
       break;
     case TOK_SLT_OPCODE:
       tpl_r3_arith(level, instruction, "Set on Less Than (signed)",
@@ -1746,7 +1749,8 @@ static void render_dispatch(int level, mips_instruction* instruction) {
 
     /* Shifts */
     case TOK_SLL_OPCODE:
-      if (RD(instruction) == 0 && RT(instruction) == 0 && SHAMT(instruction) == 0) {
+      if (RD(instruction) == 0 && RT(instruction) == 0 &&
+          SHAMT(instruction) == 0) {
         /* nop = sll $0, $0, 0 */
         write_output(message_out, "  What it did:\n");
         write_output(message_out,
@@ -1779,18 +1783,20 @@ static void render_dispatch(int level, mips_instruction* instruction) {
       tpl_load(level, instruction, "Load Word", "a 32-bit word", 4);
       break;
     case TOK_LB_OPCODE:
-      tpl_load(level, instruction, "Load Byte (signed)", "one byte, sign-extended", 1);
+      tpl_load(level, instruction, "Load Byte (signed)",
+               "one byte, sign-extended", 1);
       break;
     case TOK_LBU_OPCODE:
-      tpl_load(level, instruction, "Load Byte Unsigned", "one byte, zero-extended", 1);
+      tpl_load(level, instruction, "Load Byte Unsigned",
+               "one byte, zero-extended", 1);
       break;
     case TOK_LH_OPCODE:
-      tpl_load(level, instruction, "Load Halfword (signed)", "16 bits, sign-extended",
-               2);
+      tpl_load(level, instruction, "Load Halfword (signed)",
+               "16 bits, sign-extended", 2);
       break;
     case TOK_LHU_OPCODE:
-      tpl_load(level, instruction, "Load Halfword Unsigned", "16 bits, zero-extended",
-               2);
+      tpl_load(level, instruction, "Load Halfword Unsigned",
+               "16 bits, zero-extended", 2);
       break;
 
     /* Stores */
