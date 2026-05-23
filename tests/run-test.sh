@@ -60,6 +60,17 @@ case "$NAME" in
     "$SPIM" -exception_file "$EF" -f tt.argv.s alpha beta gamma >"$out" 2>&1
     expect_sentinel
     ;;
+  multifile)
+    # Multi-`-f` accumulates files into one symbol table.  Run in both
+    # orders to confirm cross-file forward references resolve either
+    # way — load-order shouldn't matter.
+    "$SPIM" -exception_file "$EF" \
+      -f tt.multifile.helper.s -f tt.multifile.s >"$out" 2>&1
+    expect_sentinel
+    "$SPIM" -exception_file "$EF" \
+      -f tt.multifile.s -f tt.multifile.helper.s >"$out" 2>&1
+    expect_sentinel
+    ;;
   read_int_eof)
     printf '5\n7\n' | "$SPIM" -exception_file "$EF" -f tt.read_int_eof.s >"$out" 2>&1
     expect_sentinel

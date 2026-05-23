@@ -21,7 +21,7 @@ spim \- A MIPS32 Simulator
 	\fI-lstack size\fP
 	\fI-lkdata size\fP
 .br
-\fI-file file <args>\fP \fI-execute file <args>\fP \|]
+\fI-file file\fP [\fI-file file\fP ...] \fI<args>\fP \fI-execute file <args>\fP \|]
 
 .SH DESCRIPTION
 SPIM is a simulator that runs programs written for MIPS32 computers. SPIM can read and
@@ -174,8 +174,16 @@ code uses the same stack as the program.  For example, the pair of arguments \fI
 Sets the limit on how large memory segment \fIseg\fP can grow to be \fIsize\fP bytes.  The
 memory segments that can grow are \fIdata\fP, \fIstack\fP, and \fIkdata\fP.
 
-.IP "\fB-file file <args>\fP" 10
+.IP "\fB-file file\fP [\fB-file file\fP ...] \fB<args>\fP" 10
 Load and execute the assembly code in the file with arguments \fB<args>\fP.
+\fB-file\fP (or its short form \fB-f\fP) may be specified multiple times; each
+file's text, data, and symbols accumulate into one symbol table, with
+forward references resolving across files.  Load order does not matter for
+correctness; it does affect the address layout of the text and data
+segments.  This mirrors the REPL's \fBload\fP command behavior — there is
+no separate linker step.  When multiple files are loaded, argv[0] for the
+running program is the last file specified; subsequent positional arguments
+become argv[1..].
 
 .IP "\fB-execute file <args>\fP" 10
 Load and execute the MIPS \fIexecutable\fP (a.out) file with arguments \fB<args>\fP. Only works
