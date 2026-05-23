@@ -9,6 +9,14 @@ then unify the build / test / container story so:
 - One Dockerfile (in /spimulator) builds spim AND the example
   demos AND runs the full test suite — image build FAILS if
   anything drifts.
+- **The `.expected` (and `.expected-status`) golden files are
+  the per-demo contract.  For every demo, the Dockerfile
+  validates that BOTH the C side AND the spim-asm side
+  produce byte-identical output matching the same golden —
+  and where pinned, both produce the same exit status.  If
+  either side drifts from the golden, the Docker build
+  fails.**  This is what makes the golden files load-bearing
+  instead of aspirational documentation.
 - `meson test -C builddir` from /spimulator root runs every
   test, including the C-vs-asm goldens for the library demos
   (libctype, libstdlib, future libstr).
@@ -176,16 +184,23 @@ reader expectations.  No file moves, no renames.  Just:
   parent project owns it).
 - The orphan `tests/run-demo.sh` from /examples lands here.
   Goes into `/spimulator/examples/tests/run-demo.sh`,
-  preserved as-is.  Already encodes the right per-demo
-  invocation patterns (libctype + libstdlib load order,
-  exit-status check for exit-demo and atexit-demo).
+  preserved as-is.  **For each demo, the script runs both
+  the C executable AND `spimulator -f <libs...> -f <demo>.asm`,
+  diffs both stdouts against the same `<demo>.expected` file,
+  and (for exit-demo and atexit-demo) verifies both exit
+  statuses match `<demo>.expected-status`.**  The script
+  fails fast on any mismatch — that's what makes the goldens
+  load-bearing.
 - Demo `test()` entries: 6 tests today
   (ctype-demo, atoi-demo, abs-demo, exit-demo, bsearch-demo,
   atexit-demo).  Registered in the merged
-  `examples/src/meson.build`.
+  `examples/src/meson.build`.  Each `test()` invokes
+  `run-demo.sh` with the demo's name; the script handles
+  the both-sides-against-golden contract.
 - `meson test -C builddir` from /spimulator root now runs:
   - spim's 23 existing regression tests
-  - the 6 demo tests
+  - the 6 demo tests — each of which validates **both
+    C and asm** against the pinned `.expected` golden
   - = 29 total
 
 ---
@@ -201,7 +216,14 @@ reader expectations.  No file moves, no renames.  Just:
 - Build the example demos (implicit via the unified meson
   setup, once subdir is wired)
 - Run `meson test -C builddir` — image build FAILS if anything
-  drifts.
+  drifts.  **The 6 demo tests in that run each validate that
+  the C-compiled binary AND the spim-asm version BOTH produce
+  output matching the same `<demo>.expected` golden file (and
+  matching `<demo>.expected-status` for the two
+  exit-status-pinned demos).  Any drift on either side —
+  C-side regression, asm-side regression, or the two diverging
+  from each other — fails the Docker build at this step.**
+  This is the load-bearing guarantee.
 
 Drop `/spimulator/examples/Dockerfile` (was the book builder;
 already removed in phase 2).
