@@ -38,12 +38,10 @@ static void signed_multiply(reg_word v1, reg_word v2);
 static void start_CP0_timer(void);
 static void unsigned_multiply(reg_word v1, reg_word v2);
 
-/* SIGN_BIT extracts bit 31 — used by the sign-aware branch
-   instructions (bgez/bgtz/blez/bltz and their AL/L variants).
-   ARITH_OVFL was a hand-rolled signed-overflow detector for
-   add/addi/sub; it has been replaced by <stdckdint.h>'s
-   ckd_add/ckd_sub, which avoid the signed-overflow UB hazard
-   that lurked in the wrapping-add-then-check pattern. */
+/* Extract bit 31 — used by the sign-aware branch instructions
+   (bgez/bgtz/blez/bltz and their AL/L variants).  For arithmetic
+   overflow detection on add/addi/sub, see ckd_add/ckd_sub from
+   <stdckdint.h> at the relevant case bodies. */
 #define SIGN_BIT(X) ((X) & 0x80000000)
 
 /* True when delayed_branches is true and instruction is executing in delay

@@ -1238,8 +1238,11 @@ static void parse_dir_asciiz(void) {
 
 /* ---------------- top-level dispatch ---------------- */
 
-/* Look up an opcode's TYPE field (from op.h's X-macro).  We
-   rebuild a small table here keyed on opcode-token value. */
+/* Look up an opcode token's operand-shape type tag.
+
+   Built from the X-macro list in op.h: each OP(name, sym, type, enc)
+   row expands here to {sym, type}, dropping the name and encoding
+   columns.  See op.h's top-of-file comment for the X-macro pattern. */
 
 typedef struct {
   int op;
@@ -1252,9 +1255,10 @@ static op_type_entry op_type_table[] = {
 };
 
 /* Returns -1 when `op` isn't in the table.  Caller switches treat the
-   missing case via `default:` (parse_error_at).  We return `int` (not
-   `op_type`) so the -1 sentinel is representable; case labels in the
-   caller's switch still compare against the typed enumerators. */
+   missing case via `default:` (parse_error_at).  Return type is `int`
+   so the -1 sentinel is representable; case labels in the caller's
+   switch compare against the typed `op_type` enumerators via the
+   usual int/enum conversions. */
 static int find_op_type(int op) {
   /* Linear scan is fine — table is small relative to anything
      else this parser does per source line. */

@@ -91,11 +91,7 @@ typedef uint32_t mem_addr;
 
 constexpr int BYTES_PER_WORD = 4; /* On the MIPS processor */
 
-/* Sizes of memory segments.
-   The historical #ifndef X / #define X guards have been dropped —
-   no caller in the build system was using the override path.  If a
-   future need arises, prefer a meson_options.txt entry that the
-   build can feed in. */
+/* Sizes of memory segments. */
 
 constexpr int TEXT_SIZE = 256 * K;   /* Initial text segment.  1/4 MB */
 constexpr int K_TEXT_SIZE = 64 * K;  /* Initial k_text segment.  64 KB */
@@ -123,9 +119,9 @@ constexpr int STACK_LIMIT = 256 * K;    /* Max stack segment.  1/4 MB */
 /* Default number of instructions to execute. */
 constexpr int DEFAULT_RUN_STEPS = 2147483647;
 
-/* Address to branch to when exception occurs.  Stays a macro because
-   the #ifdef MIPS1 branch selects between two values at preprocessing
-   time, which constexpr can't participate in. */
+/* Address to branch to when exception occurs.  Macro rather than
+   constexpr so the #ifdef MIPS1 branch can select between values at
+   preprocessing time. */
 #ifdef MIPS1
 /* MIPS R2000 */
 #define EXCEPTION_ADDR 0x80000080

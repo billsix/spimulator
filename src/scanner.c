@@ -51,7 +51,10 @@ int register_name_to_number(char* name) {
 }
 
 /* --- keyword table ---------------------------------------- */
-/* Built from op.h's X-macro pattern. */
+/* Maps a recognized keyword string to its (token, type) pair.  Built
+   from the X-macro list in op.h: each OP(name, sym, type, enc) row
+   expands here to {name, sym, type}, dropping the binary-encoding
+   column.  See op.h's top-of-file comment for the X-macro pattern. */
 
 static name_val_val keyword_tbl[] = {
 #undef OP

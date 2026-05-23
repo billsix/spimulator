@@ -4,6 +4,24 @@ Plan docs from completed migrations.  Kept for historical context
 (decisions, rationale, alternatives considered) but no longer
 actionable.
 
+## C23 modernization (May 2026)
+
+Consumption of the C23 features the project had already opted into
+via `c_std=gnu23`.  Twelve numbered commits on the
+`c23modernization` branch deliver `[[noreturn]]`, `[[nodiscard]]`,
+`[[fallthrough]]` with `-Wimplicit-fallthrough=5`, `enum E : T`
+underlying types, two `#define` clusters promoted to enums
+(`op_type`, `mips_exc_code`), `constexpr` for ~85 typed
+constants, `static inline` / `typeof` macros for `MIN`/`MAX`/
+`streq`/`sign_ex`, `<stdbit.h>` for CLO/CLZ, `<stdckdint.h>`
+for arithmetic overflow detection, `#embed` for the default
+exception handler, and `= {}` empty initializers.
+
+- **`c23-modernization.md`** — final-state summary covering
+  what's in use, design decisions worth knowing (especially the
+  op.h X-macro split and the `RAISE_EXCEPTION` carve-out), and
+  followup items.
+
 ## AST migration (May–June 2026)
 
 Migration of spim's parser from syntax-directed translation to an

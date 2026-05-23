@@ -1,9 +1,6 @@
 #ifndef _config_h_
 #define _config_h_
 
-/* Reserved for future build-time configuration knobs.  The previous
-   DEFAULT_EXCEPTION_HANDLER path is no longer needed — the default
-   exception handler is now baked into the binary via C23 #embed
-   (see spim-utils.c). */
+/* Reserved for future build-time configuration knobs. */
 
 #endif

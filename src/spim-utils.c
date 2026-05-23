@@ -34,11 +34,10 @@ static bool load_embedded_exception_handler(bool print_message);
    the address matters for the dispatch check inside initialize_world. */
 char SPIM_DEFAULT_EXCEPTIONS_SENTINEL[] = "<embedded exceptions.s>";
 
-/* Default exception handler, baked into the binary at compile time via
-   C23 #embed.  Avoids needing to find exceptions.s on disk when running
-   uninstalled (e.g. straight from a build tree) and removes the runtime
-   bootstrap hazard of the compiled-in install path being wrong.
-   Override path: SPIM_EXCEPTION_HANDLER env var, or -exception_file. */
+/* Default exception handler bytes, baked into the binary at compile
+   time via C23 #embed.  Used when neither the SPIM_EXCEPTION_HANDLER
+   env var nor the -exception_file CLI flag is set; see the dispatch
+   in initialize_world. */
 static const unsigned char embedded_exceptions_bytes[] = {
 #embed "exceptions.s"
 };

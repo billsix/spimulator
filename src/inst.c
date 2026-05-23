@@ -494,7 +494,13 @@ void initialize_inst_tables(void) {
   sort_a_opcode_table();
 }
 
-/* Map from opcode -> name/type. */
+/* Map from token -> (name, type).  Used by inst_op_name() and similar
+   to render an opcode back to its mnemonic string at disassembly time.
+
+   First of three op.h inclusions in this file.  Each one defines OP()
+   differently to extract the columns that table needs from the same
+   380-row instruction list.  See op.h's top-of-file comment for the
+   X-macro pattern. */
 
 static name_val_val name_tbl[] = {
 #undef OP
@@ -1042,7 +1048,11 @@ int addr_expr_reg(addr_expr* expr) { return (expr->reg_no); }
    opcode (a_opcode).  Table must be sorted before first use since its
    entries are alphabetical on name, not ordered by opcode. */
 
-/* Map from internal opcode -> real opcode */
+/* Map from internal opcode -> real opcode.
+
+   Second of three op.h inclusions in this file.  This one keeps the
+   binary encoding in the third slot — used to look up "what bits do I
+   emit for this token?"  See op.h for the X-macro pattern. */
 
 static name_val_val i_opcode_tbl[] = {
 #undef OP
@@ -1165,7 +1175,11 @@ int32_t inst_encode(instruction* inst) {
    Table must be sorted before first use since its entries are
    alphabetical on name, not ordered by opcode. */
 
-/* Map from internal opcode -> real opcode */
+/* Map from real opcode -> internal opcode (reverse of i_opcode_tbl).
+
+   Third of three op.h inclusions in this file.  Same row data, fields
+   swapped — used to look up "what token decodes this binary
+   encoding?" during disassembly.  See op.h for the X-macro pattern. */
 
 static name_val_val a_opcode_tbl[] = {
 #undef OP
