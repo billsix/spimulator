@@ -449,6 +449,7 @@ Stepped at PC = 0x00400048:
     $at = 0x10010000  (decimal 268500992)
     $t2 = 0x0000000c  (decimal 12)
     offset = 4  (0x0004)
+    memory at 0x10010004 = 0x00000000
   Wrote to memory:
     0x10010004:  0x00000000  →  0x0000000c
   Try it yourself:
@@ -731,6 +732,7 @@ Stepped at PC = 0x00400074:
     $sp = 0x7fffffd4  (decimal 2147483604)
     $t7 = 0x12345678  (decimal 305419896)
     offset = 4  (0x0004)
+    memory at 0x7fffffd8 = 0x00000000
   Wrote to memory:
     0x7fffffd8:  0x00000000  →  0x12345678
   Try it yourself:
@@ -1381,6 +1383,7 @@ Stepped at PC = 0x004000e4:
     $t7 = 0x10010004  (decimal 268500996)
     $t8 = 0x000000ab  (decimal 171)
     offset = 0  (0x0000)
+    memory at 0x10010004 = 0x0000000c
   Wrote to memory:
     0x10010004:  0x0000000c  →  0x000000ab
   Try it yourself:
@@ -1443,6 +1446,7 @@ Stepped at PC = 0x004000ec:
     $t7 = 0x10010004  (decimal 268500996)
     $t8 = 0x0000cdef  (decimal 52719)
     offset = 2  (0x0002)
+    memory at 0x10010006 = 0x00000000
   Wrote to memory:
     0x10010006:  0x00000000  →  0x0000cdef
   Try it yourself:

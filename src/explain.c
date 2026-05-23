@@ -741,6 +741,15 @@ static void tpl_store(int level, mips_instruction* instruction,
     say_input_reg(rt);
     write_output(message_out, "    offset = %d  (0x%04x)\n", off,
                  off & 0xffff);
+    /* Mirror the load template's "memory at addr = X" line — shows
+       what's being overwritten, masked to the store width so a byte
+       store shows the byte that's being clobbered, not the full word. */
+    if (snap_has_mem) {
+      uint32_t mask =
+          (width == 1) ? 0xff : (width == 2) ? 0xffff : 0xffffffffu;
+      write_output(message_out, "    memory at 0x%08x = 0x%08x\n", ea,
+                   ((uint32_t)snap_mem_val) & mask);
+    }
     say_wrote_mem(width);
     say_try_regs(base, rt, 0, 0);
     char buf2[64];
