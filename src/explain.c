@@ -1487,14 +1487,10 @@ static const char* modifier_letters[MOD_COUNT] = {
 static const char* modifier_descriptions[MOD_COUNT] = {
     [MOD_U_UNSIGNED_ARITH] =
         "unsigned: no trap on overflow. The plain (no-`u`) form\n"
-        "          traps on overflow; the `u` form silently wraps.\n"
-        "          Note: `u` means different things in different\n"
-        "          contexts — see the load modifiers.",
+        "          traps on overflow; the `u` form silently wraps.",
     [MOD_U_ZERO_EXTEND] =
         "unsigned: zero-extend the loaded value to 32 bits. The\n"
-        "          plain (no-`u`) load sign-extends instead. Affects\n"
-        "          how `lbu`/`lhu` interpret the high bit of the\n"
-        "          byte/halfword they read.",
+        "          plain (no-`u`) load sign-extends instead.",
     [MOD_I_IMMEDIATE] =
         "immediate form: one operand is a 16-bit constant baked\n"
         "          into the instruction word, not a register. Lets\n"
@@ -1514,14 +1510,11 @@ static const char* modifier_descriptions[MOD_COUNT] = {
         "          effective address must be a multiple of 4.",
     [MOD_H_HALFWORD] =
         "halfword width: the load/store transfers 16 bits.  The\n"
-        "          effective address must be a multiple of 2.  Plain\n"
-        "          (no-`u`) loads sign-extend the high bit to fill\n"
-        "          the register.",
+        "          effective address must be a multiple of 2.",
     [MOD_B_BYTE] =
         "byte width: the load/store transfers 8 bits — the smallest\n"
         "          addressable unit on MIPS.  No alignment\n"
-        "          requirement.  Plain (no-`u`) loads sign-extend\n"
-        "          the high bit to fill the register.",
+        "          requirement.",
     [MOD_L_LIKELY] =
         "likely: if the branch is not taken, the instruction in the\n"
         "          delay slot is NOT executed (\"nullified\").  The\n"

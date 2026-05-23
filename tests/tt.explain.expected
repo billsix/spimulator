@@ -95,8 +95,6 @@ Stepped at PC = 0x00400004:
           load.
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
-          Note: `u` means different things in different
-          contexts — see the load modifiers.
   What it did:
     Add Immediate Unsigned — computed $sp + sign-extended immediate, no overflow trap; the result was placed in $a1.
   Inputs (before this step):
@@ -125,8 +123,6 @@ Stepped at PC = 0x00400008:
           load.
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
-          Note: `u` means different things in different
-          contexts — see the load modifiers.
   What it did:
     Add Immediate Unsigned — computed $a1 + sign-extended immediate, no overflow trap; the result was placed in $a2.
   Inputs (before this step):
@@ -172,8 +168,6 @@ Stepped at PC = 0x00400010:
   Modifiers in `addu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
-          Note: `u` means different things in different
-          contexts — see the load modifiers.
   What it did:
     Add Unsigned — computed $a2 + $v0 with no overflow trap; the result was placed in $a2.
   Inputs (before this step):
@@ -637,8 +631,7 @@ Stepped at PC = 0x0040006c:
   Modifiers in `lb`:
     `b` — byte width: the load/store transfers 8 bits — the smallest
           addressable unit on MIPS.  No alignment
-          requirement.  Plain (no-`u`) loads sign-extend
-          the high bit to fill the register.
+          requirement.
   What it did:
     Load Byte (signed) — read one byte, sign-extended from memory at the effective address; placed the result in $t8.
     Effective address = $t6 + 0  =  0x10010000 + 0  =  0x10010000.
@@ -670,8 +663,6 @@ Stepped at PC = 0x00400070:
           load.
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
-          Note: `u` means different things in different
-          contexts — see the load modifiers.
   What it did:
     Add Immediate Unsigned — computed $sp + sign-extended immediate, no overflow trap; the result was placed in $sp.
   Inputs (before this step):
@@ -761,8 +752,6 @@ Stepped at PC = 0x0040007c:
           load.
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
-          Note: `u` means different things in different
-          contexts — see the load modifiers.
   What it did:
     Add Immediate Unsigned — computed $sp + sign-extended immediate, no overflow trap; the result was placed in $sp.
   Inputs (before this step):
@@ -787,8 +776,6 @@ Stepped at PC = 0x00400080:
   Modifiers in `addu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
-          Note: `u` means different things in different
-          contexts — see the load modifiers.
   What it did:
     Add Unsigned — computed $t0 + $t1 with no overflow trap; the result was placed in $s0.
   Inputs (before this step):
@@ -813,8 +800,6 @@ Stepped at PC = 0x00400084:
   Modifiers in `subu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
-          Note: `u` means different things in different
-          contexts — see the load modifiers.
   What it did:
     Subtract Unsigned — computed $t1 - $t0 with no overflow trap; the result was placed in $s1.
   Inputs (before this step):
@@ -1009,8 +994,6 @@ Stepped at PC = 0x004000a4:
   Modifiers in `sltu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
-          Note: `u` means different things in different
-          contexts — see the load modifiers.
   What it did:
     Set on Less Than (unsigned) — set the destination to 1 if $t0 < $t1 (unsigned), else 0; the result was placed in $t4.
   Inputs (before this step):
@@ -1040,8 +1023,6 @@ Stepped at PC = 0x004000a8:
           load.
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
-          Note: `u` means different things in different
-          contexts — see the load modifiers.
   What it did:
     Set Less Than Immediate (unsigned) — set destination to 1 if $t0 < imm (unsigned); the result was placed in $t5.
   Inputs (before this step):
@@ -1324,8 +1305,7 @@ Stepped at PC = 0x004000e4:
   Modifiers in `sb`:
     `b` — byte width: the load/store transfers 8 bits — the smallest
           addressable unit on MIPS.  No alignment
-          requirement.  Plain (no-`u`) loads sign-extend
-          the high bit to fill the register.
+          requirement.
   What it did:
     Store Byte — wrote the low 8 bits from $t8 into memory at the effective address.
     Effective address = $t7 + 0  =  0x10010004 + 0  =  0x10010004.
@@ -1384,9 +1364,7 @@ Stepped at PC = 0x004000ec:
     (COD §2.3, §2.9.)
   Modifiers in `sh`:
     `h` — halfword width: the load/store transfers 16 bits.  The
-          effective address must be a multiple of 2.  Plain
-          (no-`u`) loads sign-extend the high bit to fill
-          the register.
+          effective address must be a multiple of 2.
   What it did:
     Store Halfword — wrote the low 16 bits from $t8 into memory at the effective address.
     Effective address = $t7 + 2  =  0x10010004 + 2  =  0x10010006.
@@ -1770,8 +1748,6 @@ Stepped at PC = 0x00400128:
   Modifiers in `addu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
-          Note: `u` means different things in different
-          contexts — see the load modifiers.
   What it did:
     Add Unsigned — computed $s2 + $t2 with no overflow trap; the result was placed in $s2.
   Inputs (before this step):
@@ -1844,8 +1820,6 @@ Stepped at PC = 0x00400128:
   Modifiers in `addu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
-          Note: `u` means different things in different
-          contexts — see the load modifiers.
   What it did:
     Add Unsigned — computed $s2 + $t2 with no overflow trap; the result was placed in $s2.
   Inputs (before this step):
@@ -1918,8 +1892,6 @@ Stepped at PC = 0x00400128:
   Modifiers in `addu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
-          Note: `u` means different things in different
-          contexts — see the load modifiers.
   What it did:
     Add Unsigned — computed $s2 + $t2 with no overflow trap; the result was placed in $s2.
   Inputs (before this step):
@@ -2162,8 +2134,6 @@ Stepped at PC = 0x00400150:
   Modifiers in `multu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
-          Note: `u` means different things in different
-          contexts — see the load modifiers.
   What it did:
     Multiply Unsigned — computed $t0 * $t1 as a 64-bit unsigned result.
     The high 32 bits went to HI; the low 32 bits went to LO.
@@ -2233,8 +2203,6 @@ Stepped at PC = 0x0040015c:
   Modifiers in `divu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
-          Note: `u` means different things in different
-          contexts — see the load modifiers.
   What it did:
     Divide Unsigned — computed $t0 / $t1, treating both operands as unsigned.
     Quotient went to LO; remainder went to HI.
@@ -2365,8 +2333,7 @@ Stepped at PC = 0x00400170:
   Modifiers in `lb`:
     `b` — byte width: the load/store transfers 8 bits — the smallest
           addressable unit on MIPS.  No alignment
-          requirement.  Plain (no-`u`) loads sign-extend
-          the high bit to fill the register.
+          requirement.
   What it did:
     Load Byte (signed) — read one byte, sign-extended from memory at the effective address; placed the result in $s6.
     Effective address = $t0 + 0  =  0x10010004 + 0  =  0x10010004.
@@ -2396,12 +2363,9 @@ Stepped at PC = 0x00400174:
   Modifiers in `lbu`:
     `b` — byte width: the load/store transfers 8 bits — the smallest
           addressable unit on MIPS.  No alignment
-          requirement.  Plain (no-`u`) loads sign-extend
-          the high bit to fill the register.
+          requirement.
     `u` — unsigned: zero-extend the loaded value to 32 bits. The
-          plain (no-`u`) load sign-extends instead. Affects
-          how `lbu`/`lhu` interpret the high bit of the
-          byte/halfword they read.
+          plain (no-`u`) load sign-extends instead.
   What it did:
     Load Byte Unsigned — read one byte, zero-extended from memory at the effective address; placed the result in $s7.
     Effective address = $t0 + 0  =  0x10010004 + 0  =  0x10010004.
@@ -2430,9 +2394,7 @@ Stepped at PC = 0x00400178:
     (COD §2.3, §2.9.)
   Modifiers in `lh`:
     `h` — halfword width: the load/store transfers 16 bits.  The
-          effective address must be a multiple of 2.  Plain
-          (no-`u`) loads sign-extend the high bit to fill
-          the register.
+          effective address must be a multiple of 2.
   What it did:
     Load Halfword (signed) — read 16 bits, sign-extended from memory at the effective address; placed the result in $t2.
     Effective address = $t0 + 2  =  0x10010004 + 2  =  0x10010006.
@@ -2461,13 +2423,9 @@ Stepped at PC = 0x0040017c:
     (COD §2.3, §2.9.)
   Modifiers in `lhu`:
     `h` — halfword width: the load/store transfers 16 bits.  The
-          effective address must be a multiple of 2.  Plain
-          (no-`u`) loads sign-extend the high bit to fill
-          the register.
+          effective address must be a multiple of 2.
     `u` — unsigned: zero-extend the loaded value to 32 bits. The
-          plain (no-`u`) load sign-extends instead. Affects
-          how `lbu`/`lhu` interpret the high bit of the
-          byte/halfword they read.
+          plain (no-`u`) load sign-extends instead.
   What it did:
     Load Halfword Unsigned — read 16 bits, zero-extended from memory at the effective address; placed the result in $t3.
     Effective address = $t0 + 2  =  0x10010004 + 2  =  0x10010006.
@@ -2812,8 +2770,6 @@ Stepped at PC = 0x004001a0:
   Modifiers in `addu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
-          Note: `u` means different things in different
-          contexts — see the load modifiers.
   What it did:
     Add Unsigned — computed $v0 + $r0 with no overflow trap; the result was placed in $a0.
   Inputs (before this step):
@@ -3035,8 +2991,6 @@ Stepped at PC = 0x004001c0:
   Modifiers in `addu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
-          Note: `u` means different things in different
-          contexts — see the load modifiers.
   What it did:
     Add Unsigned — computed $r0 + $t0 with no overflow trap; the result was placed in $s0.
   Inputs (before this step):
