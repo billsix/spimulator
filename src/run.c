@@ -552,7 +552,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
         case TOK_MADD_OP:
         case TOK_MADDU_OP: {
-          reg_word lo = LO, hi = HI;
+          reg_word product_low = LO, product_high = HI;
           reg_word tmp;
           if (OPCODE(inst) == TOK_MADD_OP) {
             signed_multiply(R[RS(inst)], R[RT(inst)]);
@@ -560,13 +560,14 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           {
             unsigned_multiply(R[RS(inst)], R[RT(inst)]);
           }
-          tmp = lo + LO;
-          if ((unsigned)tmp < (unsigned)LO || (unsigned)tmp < (unsigned)lo) {
+          tmp = product_low + LO;
+          if ((unsigned)tmp < (unsigned)LO ||
+              (unsigned)tmp < (unsigned)product_low) {
             /* Addition of low-order word overflows */
-            hi += 1;
+            product_high += 1;
           }
           LO = tmp;
-          HI = hi + HI;
+          HI = product_high + HI;
           break;
         }
 
@@ -596,7 +597,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
         case TOK_MSUB_OP:
         case TOK_MSUBU_OP: {
-          reg_word lo = LO, hi = HI;
+          reg_word product_low = LO, product_high = HI;
           reg_word tmp;
 
           if (OPCODE(inst) == TOK_MSUB_OP) {
@@ -606,13 +607,13 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
             unsigned_multiply(R[RS(inst)], R[RT(inst)]);
           }
 
-          tmp = lo - LO;
-          if ((unsigned)LO > (unsigned)lo) {
+          tmp = product_low - LO;
+          if ((unsigned)LO > (unsigned)product_low) {
             /* Subtraction of low-order word borrows */
-            hi -= 1;
+            product_high -= 1;
           }
           LO = tmp;
-          HI = hi - HI;
+          HI = product_high - HI;
           break;
         }
 
