@@ -56,10 +56,9 @@ Stepped at PC = 0x00400000:
     source line 183: 	lw $a0 0($sp)		# argc
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   Modifiers in `lw`:
     `w` — word width: the load/store transfers 32 bits — one full
           register's worth.  MIPS is word-aligned, so the
@@ -88,8 +87,7 @@ Stepped at PC = 0x00400004:
     source line 184: 	addiu $a1 $sp 4		# argv
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   Modifiers in `addiu`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -119,8 +117,7 @@ Stepped at PC = 0x00400008:
     source line 185: 	addiu $a2 $a1 4		# envp
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   Modifiers in `addiu`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -150,8 +147,7 @@ Stepped at PC = 0x0040000c:
     source line 186: 	sll $v0 $a0 2
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   What it did:
     Shift Left Logical — shifted $a0 left, filling with 0 by 2 bits; the result was placed in $v0.
   Inputs (before this step):
@@ -172,8 +168,7 @@ Stepped at PC = 0x00400010:
     source line 187: 	addu $a2 $a2 $v0
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   Modifiers in `addu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
@@ -199,9 +194,7 @@ Stepped at PC = 0x00400014:
     source line 188: 	jal main
 
   Category: Unconditional jump
-    Transfer PC unconditionally — no condition test. Includes
-    direct jumps, register-indirect jumps, and the and-link
-    variants used for subroutine calls. (COD §2.8.)
+    Transfer PC unconditionally — no condition test. (COD §2.8.)
   Modifiers in `jal`:
     `al` — and link: save the return address (PC+4, or PC+8 with
           delayed branches) into $ra. Turns the
@@ -231,8 +224,7 @@ Stepped at PC = 0x00400028:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -261,8 +253,7 @@ Stepped at PC = 0x0040002c:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -287,8 +278,7 @@ Stepped at PC = 0x00400030:
     source line 35:         add     $t2, $t0, $t1       # R-type signed add
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   What it did:
     Add — computed $t0 + $t1 as a signed sum; trapped on overflow; the result was placed in $t2.
   Inputs (before this step):
@@ -309,8 +299,7 @@ Stepped at PC = 0x00400034:
     source line 36:         and     $t3, $t0, $t1       # R-type logical
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   What it did:
     Bitwise AND — computed the bitwise AND of $t0 and $t1; the result was placed in $t3.
   Inputs (before this step):
@@ -331,8 +320,7 @@ Stepped at PC = 0x00400038:
     source line 37:         sll     $t4, $t2, 2         # shift
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   What it did:
     Shift Left Logical — shifted $t2 left, filling with 0 by 2 bits; the result was placed in $t4.
   Inputs (before this step):
@@ -353,10 +341,9 @@ Stepped at PC = 0x0040003c:
     source line 38:         lw      $t5, src            # load from data segment
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   What it did:
     Load Upper Immediate — placed the 16-bit immediate into the
     upper 16 bits of $at, zeroing the lower 16. Often paired with
@@ -378,10 +365,9 @@ Stepped at PC = 0x00400040:
     source line 38:         lw      $t5, src            # load from data segment
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   Modifiers in `lw`:
     `w` — word width: the load/store transfers 32 bits — one full
           register's worth.  MIPS is word-aligned, so the
@@ -409,10 +395,9 @@ Stepped at PC = 0x00400044:
     source line 39:         sw      $t2, dst            # store to data segment
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   What it did:
     Load Upper Immediate — placed the 16-bit immediate into the
     upper 16 bits of $at, zeroing the lower 16. Often paired with
@@ -434,10 +419,9 @@ Stepped at PC = 0x00400048:
     source line 39:         sw      $t2, dst            # store to data segment
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   Modifiers in `sw`:
     `w` — word width: the load/store transfers 32 bits — one full
           register's worth.  MIPS is word-aligned, so the
@@ -467,8 +451,7 @@ Stepped at PC = 0x0040004c:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   What it did:
     Branch if Equal — would transfer to 0x00400058 if ($t0 == $t1).
   Comparison:
@@ -490,8 +473,7 @@ Stepped at PC = 0x00400050:
     source line 41:         addi    $t6, $t0, 1         # falls through
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   Modifiers in `addi`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -518,8 +500,7 @@ Stepped at PC = 0x00400054:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   What it did:
     Branch if Not Equal — would transfer to 0x00400060 if ($t0 != $t1).
   Comparison:
@@ -541,10 +522,9 @@ Stepped at PC = 0x0040005c:
     source line 44: done:   la      $a0, hello          # pseudo-op for address load
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   What it did:
     Load Upper Immediate — placed the 16-bit immediate into the
     upper 16 bits of $at, zeroing the lower 16. Often paired with
@@ -566,8 +546,7 @@ Stepped at PC = 0x00400060:
     source line 44: done:   la      $a0, hello          # pseudo-op for address load
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -598,10 +577,9 @@ Stepped at PC = 0x00400064:
   This was the first real instruction the assembler emitted for it.
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   What it did:
     Load Upper Immediate — placed the 16-bit immediate into the
     upper 16 bits of $t6, zeroing the lower 16. Often paired with
@@ -623,10 +601,9 @@ Stepped at PC = 0x00400068:
     source line 51:         lw      $t7, 0($t6)         # load with zero offset
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   Modifiers in `lw`:
     `w` — word width: the load/store transfers 32 bits — one full
           register's worth.  MIPS is word-aligned, so the
@@ -654,10 +631,9 @@ Stepped at PC = 0x0040006c:
     source line 52:         lb      $t8, 0($t6)         # byte load via base+offset
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   Modifiers in `lb`:
     `b` — byte width: the load/store transfers 8 bits — the smallest
           addressable unit on MIPS.  No alignment
@@ -686,8 +662,7 @@ Stepped at PC = 0x00400070:
     source line 53:         addiu   $sp, $sp, -8        # allocate an 8-byte stack frame
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   Modifiers in `addiu`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -717,10 +692,9 @@ Stepped at PC = 0x00400074:
     source line 54:         sw      $t7, 4($sp)         # store with non-zero offset into frame
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   Modifiers in `sw`:
     `w` — word width: the load/store transfers 32 bits — one full
           register's worth.  MIPS is word-aligned, so the
@@ -749,10 +723,9 @@ Stepped at PC = 0x00400078:
     source line 55:         lw      $t9, 4($sp)         # load back from the frame slot
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   Modifiers in `lw`:
     `w` — word width: the load/store transfers 32 bits — one full
           register's worth.  MIPS is word-aligned, so the
@@ -780,8 +753,7 @@ Stepped at PC = 0x0040007c:
     source line 56:         addiu   $sp, $sp, 8         # tear down the frame
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   Modifiers in `addiu`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -811,8 +783,7 @@ Stepped at PC = 0x00400080:
     source line 59:         addu    $s0, $t0, $t1       # unsigned add
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   Modifiers in `addu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
@@ -838,8 +809,7 @@ Stepped at PC = 0x00400084:
     source line 60:         subu    $s1, $t1, $t0       # unsigned sub
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   Modifiers in `subu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
@@ -865,8 +835,7 @@ Stepped at PC = 0x00400088:
     source line 63:         andi    $s2, $t0, 0x0f      # AND with 16-bit immediate
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `andi`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -892,8 +861,7 @@ Stepped at PC = 0x0040008c:
     source line 64:         ori     $s3, $t0, 0xf0      # OR  with 16-bit immediate
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -919,8 +887,7 @@ Stepped at PC = 0x00400090:
     source line 65:         xori    $s4, $t0, 0xff      # XOR with 16-bit immediate
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `xori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -946,8 +913,7 @@ Stepped at PC = 0x00400094:
     source line 66:         srl     $s5, $t2, 1         # logical shift right (zero fill)
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   What it did:
     Shift Right Logical — shifted $t2 right, filling with 0 by 1 bit; the result was placed in $s5.
   Inputs (before this step):
@@ -968,8 +934,7 @@ Stepped at PC = 0x00400098:
     source line 67:         sra     $s6, $t2, 1         # arithmetic shift right (sign fill)
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   What it did:
     Shift Right Arithmetic — shifted $t2 right, filling with the sign bit by 1 bit; the result was placed in $s6.
   Inputs (before this step):
@@ -991,8 +956,7 @@ Stepped at PC = 0x0040009c:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   What it did:
     Set on Less Than (signed) — set the destination to 1 if $t0 < $t1 (signed), else 0; the result was placed in $s7.
   Inputs (before this step):
@@ -1014,8 +978,7 @@ Stepped at PC = 0x004000a0:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   Modifiers in `slti`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -1042,8 +1005,7 @@ Stepped at PC = 0x004000a4:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   Modifiers in `sltu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
@@ -1070,8 +1032,7 @@ Stepped at PC = 0x004000a8:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   Modifiers in `sltiu`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -1105,8 +1066,7 @@ Stepped at PC = 0x004000ac:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -1132,8 +1092,7 @@ Stepped at PC = 0x004000b0:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   What it did:
     Branch if Greater Than Zero — would transfer to 0x004000bc if ($t6 > 0).
   Comparison:
@@ -1155,8 +1114,7 @@ Stepped at PC = 0x004000b8:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   What it did:
     Branch if Greater or Equal Zero — would transfer to 0x004000c4 if ($t6 >= 0).
   Comparison:
@@ -1177,10 +1135,9 @@ Stepped at PC = 0x004000c0:
     source line 81: zb2:    li      $t6, -1
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   What it did:
     Load Upper Immediate — placed the 16-bit immediate into the
     upper 16 bits of $at, zeroing the lower 16. Often paired with
@@ -1202,8 +1159,7 @@ Stepped at PC = 0x004000c4:
     source line 81: zb2:    li      $t6, -1
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -1230,8 +1186,7 @@ Stepped at PC = 0x004000c8:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   What it did:
     Branch if Less Than Zero — would transfer to 0x004000d4 if ($t6 < 0).
   Comparison:
@@ -1253,8 +1208,7 @@ Stepped at PC = 0x004000d0:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   What it did:
     Branch if Less or Equal Zero — would transfer to 0x004000dc if ($t6 <= 0).
   Comparison:
@@ -1280,10 +1234,9 @@ Stepped at PC = 0x004000d8:
   This was the first real instruction the assembler emitted for it.
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   What it did:
     Load Upper Immediate — placed the 16-bit immediate into the
     upper 16 bits of $at, zeroing the lower 16. Often paired with
@@ -1310,8 +1263,7 @@ Stepped at PC = 0x004000dc:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -1341,8 +1293,7 @@ Stepped at PC = 0x004000e0:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -1367,10 +1318,9 @@ Stepped at PC = 0x004000e4:
     source line 91:         sb      $t8, 0($t7)         # byte store
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   Modifiers in `sb`:
     `b` — byte width: the load/store transfers 8 bits — the smallest
           addressable unit on MIPS.  No alignment
@@ -1404,8 +1354,7 @@ Stepped at PC = 0x004000e8:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -1430,10 +1379,9 @@ Stepped at PC = 0x004000ec:
     source line 93:         sh      $t8, 2($t7)         # halfword store at offset 2
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   Modifiers in `sh`:
     `h` — halfword width: the load/store transfers 16 bits.  The
           effective address must be a multiple of 2.  Plain
@@ -1463,10 +1411,9 @@ Stepped at PC = 0x004000f0:
     source line 97:         lui     $t9, 0xdead
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   What it did:
     Load Upper Immediate — placed the 16-bit immediate into the
     upper 16 bits of $t9, zeroing the lower 16. Often paired with
@@ -1488,8 +1435,7 @@ Stepped at PC = 0x004000f4:
     source line 98:         ori     $t9, $t9, 0xbeef    # $t9 now = 0xdeadbeef
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -1519,8 +1465,7 @@ Stepped at PC = 0x004000f8:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -1549,8 +1494,7 @@ Stepped at PC = 0x004000fc:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -1575,8 +1519,7 @@ Stepped at PC = 0x00400100:
     source line 103:         mult    $t0, $t1            # HI:LO = 7 * 6
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   What it did:
     Multiply (signed) — computed $t0 * $t1 as a 64-bit result.
     The high 32 bits went to HI; the low 32 bits went to LO.
@@ -1600,8 +1543,7 @@ Stepped at PC = 0x00400104:
     source line 104:         mflo    $s0                 # $s0 = 42 (low word)
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   What it did:
     Move From LO — copied the special LO register into $s0.
     LO holds the low half of a multiplication, or the quotient of a division.
@@ -1622,8 +1564,7 @@ Stepped at PC = 0x00400108:
     source line 105:         mfhi    $s1                 # $s1 = 0  (high word)
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   What it did:
     Move From HI — copied the special HI register into $s1.
     HI holds the high half of a multiplication, or the remainder of a division.
@@ -1648,8 +1589,7 @@ Stepped at PC = 0x0040010c:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -1678,8 +1618,7 @@ Stepped at PC = 0x00400110:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -1704,8 +1643,7 @@ Stepped at PC = 0x00400114:
     source line 108:         div     $t0, $t1            # LO = quotient, HI = remainder
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   What it did:
     Divide (signed) — computed $t0 / $t1.
     Quotient went to LO; remainder went to HI.
@@ -1728,8 +1666,7 @@ Stepped at PC = 0x00400118:
     source line 109:         mflo    $s0                 # $s0 = 14
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   What it did:
     Move From LO — copied the special LO register into $s0.
     LO holds the low half of a multiplication, or the quotient of a division.
@@ -1750,8 +1687,7 @@ Stepped at PC = 0x0040011c:
     source line 110:         mfhi    $s1                 # $s1 = 2
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   What it did:
     Move From HI — copied the special HI register into $s1.
     HI holds the high half of a multiplication, or the remainder of a division.
@@ -1776,8 +1712,7 @@ Stepped at PC = 0x00400120:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -1806,8 +1741,7 @@ Stepped at PC = 0x00400124:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -1832,8 +1766,7 @@ Stepped at PC = 0x00400128:
     source line 117: loop:   addu    $s2, $s2, $t2       # accumulator += counter
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   Modifiers in `addu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
@@ -1859,8 +1792,7 @@ Stepped at PC = 0x0040012c:
     source line 118:         addi    $t2, $t2, -1
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   Modifiers in `addi`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -1887,8 +1819,7 @@ Stepped at PC = 0x00400130:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   What it did:
     Branch if Not Equal — would transfer to 0x0040012c if ($t2 != $r0).
   Comparison:
@@ -1909,8 +1840,7 @@ Stepped at PC = 0x00400128:
     source line 117: loop:   addu    $s2, $s2, $t2       # accumulator += counter
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   Modifiers in `addu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
@@ -1936,8 +1866,7 @@ Stepped at PC = 0x0040012c:
     source line 118:         addi    $t2, $t2, -1
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   Modifiers in `addi`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -1964,8 +1893,7 @@ Stepped at PC = 0x00400130:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   What it did:
     Branch if Not Equal — would transfer to 0x0040012c if ($t2 != $r0).
   Comparison:
@@ -1986,8 +1914,7 @@ Stepped at PC = 0x00400128:
     source line 117: loop:   addu    $s2, $s2, $t2       # accumulator += counter
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   Modifiers in `addu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
@@ -2013,8 +1940,7 @@ Stepped at PC = 0x0040012c:
     source line 118:         addi    $t2, $t2, -1
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   Modifiers in `addi`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -2041,8 +1967,7 @@ Stepped at PC = 0x00400130:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   What it did:
     Branch if Not Equal — would transfer to 0x0040012c if ($t2 != $r0).
   Comparison:
@@ -2063,8 +1988,7 @@ Stepped at PC = 0x00400134:
     source line 124:         or      $s0, $t0, $t1       # bitwise OR
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   What it did:
     Bitwise OR — computed the bitwise OR of $t0 and $t1; the result was placed in $s0.
   Inputs (before this step):
@@ -2085,8 +2009,7 @@ Stepped at PC = 0x00400138:
     source line 125:         xor     $s1, $t0, $t1       # bitwise XOR
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   What it did:
     Bitwise XOR — computed the bitwise XOR of $t0 and $t1; the result was placed in $s1.
   Inputs (before this step):
@@ -2107,8 +2030,7 @@ Stepped at PC = 0x0040013c:
     source line 126:         nor     $s2, $t0, $zero     # bitwise NOT of $t0 via NOR with $zero
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   What it did:
     Bitwise NOR — computed NOT($t0 OR $r0); the result was placed in $s2.
   Inputs (before this step):
@@ -2128,8 +2050,7 @@ Stepped at PC = 0x00400140:
     source line 129:         sub     $s3, $t1, $t0       # 7 - 5 = 2 (well within range, no trap)
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   What it did:
     Subtract — computed $t1 - $t0 as a signed difference; trapped on overflow; the result was placed in $s3.
   Inputs (before this step):
@@ -2154,10 +2075,9 @@ Stepped at PC = 0x00400144:
   This was the first real instruction the assembler emitted for it.
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   What it did:
     Load Upper Immediate — placed the 16-bit immediate into the
     upper 16 bits of $at, zeroing the lower 16. Often paired with
@@ -2183,8 +2103,7 @@ Stepped at PC = 0x00400148:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -2214,8 +2133,7 @@ Stepped at PC = 0x0040014c:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -2240,8 +2158,7 @@ Stepped at PC = 0x00400150:
     source line 136:         multu   $t0, $t1            # 64-bit unsigned product
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   Modifiers in `multu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
@@ -2270,8 +2187,7 @@ Stepped at PC = 0x00400154:
     source line 137:         mflo    $s4
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   What it did:
     Move From LO — copied the special LO register into $s4.
     LO holds the low half of a multiplication, or the quotient of a division.
@@ -2292,8 +2208,7 @@ Stepped at PC = 0x00400158:
     source line 138:         mfhi    $s5
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   What it did:
     Move From HI — copied the special HI register into $s5.
     HI holds the high half of a multiplication, or the remainder of a division.
@@ -2314,8 +2229,7 @@ Stepped at PC = 0x0040015c:
     source line 139:         divu    $t0, $t1            # unsigned divide
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   Modifiers in `divu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
@@ -2343,8 +2257,7 @@ Stepped at PC = 0x00400160:
     source line 140:         mflo    $s4
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   What it did:
     Move From LO — copied the special LO register into $s4.
     LO holds the low half of a multiplication, or the quotient of a division.
@@ -2365,8 +2278,7 @@ Stepped at PC = 0x00400164:
     source line 141:         mfhi    $s5
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   What it did:
     Move From HI — copied the special HI register into $s5.
     HI holds the high half of a multiplication, or the remainder of a division.
@@ -2392,10 +2304,9 @@ Stepped at PC = 0x00400168:
   This was the first real instruction the assembler emitted for it.
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   What it did:
     Load Upper Immediate — placed the 16-bit immediate into the
     upper 16 bits of $at, zeroing the lower 16. Often paired with
@@ -2422,8 +2333,7 @@ Stepped at PC = 0x0040016c:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -2449,10 +2359,9 @@ Stepped at PC = 0x00400170:
     source line 148:         lb      $s6, 0($t0)         # 0xab → 0xffffffab  (signed -85)
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   Modifiers in `lb`:
     `b` — byte width: the load/store transfers 8 bits — the smallest
           addressable unit on MIPS.  No alignment
@@ -2481,10 +2390,9 @@ Stepped at PC = 0x00400174:
     source line 149:         lbu     $s7, 0($t0)         # 0xab → 0x000000ab  (unsigned 171)
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   Modifiers in `lbu`:
     `b` — byte width: the load/store transfers 8 bits — the smallest
           addressable unit on MIPS.  No alignment
@@ -2517,10 +2425,9 @@ Stepped at PC = 0x00400178:
     source line 150:         lh      $t2, 2($t0)         # halfword 0xcdef → 0xffffcdef
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   Modifiers in `lh`:
     `h` — halfword width: the load/store transfers 16 bits.  The
           effective address must be a multiple of 2.  Plain
@@ -2549,10 +2456,9 @@ Stepped at PC = 0x0040017c:
     source line 151:         lhu     $t3, 2($t0)         # halfword 0xcdef → 0x0000cdef
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   Modifiers in `lhu`:
     `h` — halfword width: the load/store transfers 16 bits.  The
           effective address must be a multiple of 2.  Plain
@@ -2585,9 +2491,7 @@ Stepped at PC = 0x00400180:
     source line 154:         j       afterj
 
   Category: Unconditional jump
-    Transfer PC unconditionally — no condition test. Includes
-    direct jumps, register-indirect jumps, and the and-link
-    variants used for subroutine calls. (COD §2.8.)
+    Transfer PC unconditionally — no condition test. (COD §2.8.)
   What it did:
     Jump — jumped unconditionally to 0x00400188.
   Inputs (before this step):
@@ -2609,8 +2513,7 @@ Stepped at PC = 0x00400188:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -2635,9 +2538,7 @@ Stepped at PC = 0x0040018c:
     source line 160:         jal     square              # call helper; result in $v0 = 25
 
   Category: Unconditional jump
-    Transfer PC unconditionally — no condition test. Includes
-    direct jumps, register-indirect jumps, and the and-link
-    variants used for subroutine calls. (COD §2.8.)
+    Transfer PC unconditionally — no condition test. (COD §2.8.)
   Modifiers in `jal`:
     `al` — and link: save the return address (PC+4, or PC+8 with
           delayed branches) into $ra. Turns the
@@ -2663,8 +2564,7 @@ Stepped at PC = 0x00400218:
     source line 221: square: mult    $a0, $a0
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   What it did:
     Multiply (signed) — computed $a0 * $a0 as a 64-bit result.
     The high 32 bits went to HI; the low 32 bits went to LO.
@@ -2688,8 +2588,7 @@ Stepped at PC = 0x0040021c:
     source line 222:         mflo    $v0
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   What it did:
     Move From LO — copied the special LO register into $v0.
     LO holds the low half of a multiplication, or the quotient of a division.
@@ -2710,9 +2609,7 @@ Stepped at PC = 0x00400220:
     source line 223:         jr      $ra
 
   Category: Unconditional jump
-    Transfer PC unconditionally — no condition test. Includes
-    direct jumps, register-indirect jumps, and the and-link
-    variants used for subroutine calls. (COD §2.8.)
+    Transfer PC unconditionally — no condition test. (COD §2.8.)
   What it did:
     Jump Register — jumped to the address held in $ra.
     (Used to return from a subroutine when $rs == $ra.)
@@ -2737,10 +2634,9 @@ Stepped at PC = 0x00400190:
   This was the first real instruction the assembler emitted for it.
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   What it did:
     Load Upper Immediate — placed the 16-bit immediate into the
     upper 16 bits of $at, zeroing the lower 16. Often paired with
@@ -2767,8 +2663,7 @@ Stepped at PC = 0x00400194:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -2798,8 +2693,7 @@ Stepped at PC = 0x00400198:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -2824,9 +2718,7 @@ Stepped at PC = 0x0040019c:
     source line 165:         jalr    $t9                 # call $t9; return address goes to $ra
 
   Category: Unconditional jump
-    Transfer PC unconditionally — no condition test. Includes
-    direct jumps, register-indirect jumps, and the and-link
-    variants used for subroutine calls. (COD §2.8.)
+    Transfer PC unconditionally — no condition test. (COD §2.8.)
   Modifiers in `jalr`:
     `al` — and link: save the return address (PC+4, or PC+8 with
           delayed branches) into $ra. Turns the
@@ -2851,8 +2743,7 @@ Stepped at PC = 0x00400218:
     source line 221: square: mult    $a0, $a0
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   What it did:
     Multiply (signed) — computed $a0 * $a0 as a 64-bit result.
     The high 32 bits went to HI; the low 32 bits went to LO.
@@ -2876,8 +2767,7 @@ Stepped at PC = 0x0040021c:
     source line 222:         mflo    $v0
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   What it did:
     Move From LO — copied the special LO register into $v0.
     LO holds the low half of a multiplication, or the quotient of a division.
@@ -2898,9 +2788,7 @@ Stepped at PC = 0x00400220:
     source line 223:         jr      $ra
 
   Category: Unconditional jump
-    Transfer PC unconditionally — no condition test. Includes
-    direct jumps, register-indirect jumps, and the and-link
-    variants used for subroutine calls. (COD §2.8.)
+    Transfer PC unconditionally — no condition test. (COD §2.8.)
   What it did:
     Jump Register — jumped to the address held in $ra.
     (Used to return from a subroutine when $rs == $ra.)
@@ -2920,8 +2808,7 @@ Stepped at PC = 0x004001a0:
     source line 169:         addu    $a0, $v0, $zero     # $a0 = 64 (the squared result)
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   Modifiers in `addu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
@@ -2950,8 +2837,7 @@ Stepped at PC = 0x004001a4:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -2977,8 +2863,7 @@ Stepped at PC = 0x004001a8:
    same source line, this was the next real instruction emitted)
 
   Category: System / coprocessor
-    Operating-system services and miscellaneous control. The
-    `syscall` instruction in particular dispatches on $v0.
+    Operating-system services and miscellaneous control.
   What it did:
     System Call — invoked the kernel.  The call number was in $v0;
     arguments were in $a0..$a3 (and $f12 for floats).
@@ -3005,8 +2890,7 @@ Stepped at PC = 0x004001ac:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -3035,8 +2919,7 @@ Stepped at PC = 0x004001b0:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -3063,8 +2946,7 @@ Stepped at PC = 0x004001b4:
    same source line, this was the next real instruction emitted)
 
   Category: System / coprocessor
-    Operating-system services and miscellaneous control. The
-    `syscall` instruction in particular dispatches on $v0.
+    Operating-system services and miscellaneous control.
   What it did:
     System Call — invoked the kernel.  The call number was in $v0;
     arguments were in $a0..$a3 (and $f12 for floats).
@@ -3091,8 +2973,7 @@ Stepped at PC = 0x004001b8:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -3121,8 +3002,7 @@ Stepped at PC = 0x004001bc:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -3151,8 +3031,7 @@ Stepped at PC = 0x004001c0:
   This was the single real instruction the assembler emitted for it.
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   Modifiers in `addu`:
     `u` — unsigned: no trap on overflow. The plain (no-`u`) form
           traps on overflow; the `u` form silently wraps.
@@ -3181,8 +3060,7 @@ Stepped at PC = 0x004001c4:
   This was the single real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   What it did:
     Bitwise NOR — computed NOT($t0 OR $r0); the result was placed in $s1.
   Inputs (before this step):
@@ -3206,8 +3084,7 @@ Stepped at PC = 0x004001c8:
   This was the single real instruction the assembler emitted for it.
 
   Category: Arithmetic
-    Integer math on registers. Includes add/sub/mul/div and
-    their immediate variants. (COD §2.2.)
+    Integer math on registers. (COD §2.2.)
   What it did:
     Subtract — computed $r0 - $t0 as a signed difference; trapped on overflow; the result was placed in $s2.
   Inputs (before this step):
@@ -3226,8 +3103,7 @@ Stepped at PC = 0x004001cc:
     memory[0x004001cc] = 0x00000000   →   nop
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   What it did:
     No Operation. The processor took one cycle and did nothing.
     (Encoded as `sll $0, $0, 0` — a shift of $zero with no destination.)
@@ -3253,8 +3129,7 @@ Stepped at PC = 0x004001d0:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   What it did:
     Branch if Equal — would transfer to 0x004001dc if ($r0 == $r0).
   Comparison:
@@ -3275,8 +3150,7 @@ Stepped at PC = 0x004001d8:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   What it did:
     Branch if Not Equal — would transfer to 0x004001e4 if ($t0 != $r0).
   Comparison:
@@ -3298,8 +3172,7 @@ Stepped at PC = 0x004001e0:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   What it did:
     Set on Less Than (signed) — set the destination to 1 if $t0 < $t1 (signed), else 0; the result was placed in $at.
   Inputs (before this step):
@@ -3321,8 +3194,7 @@ Stepped at PC = 0x004001e4:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   What it did:
     Branch if Not Equal — would transfer to 0x004001f0 if ($at != $r0).
   Comparison:
@@ -3344,8 +3216,7 @@ Stepped at PC = 0x004001ec:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   What it did:
     Set on Less Than (signed) — set the destination to 1 if $t1 < $t0 (signed), else 0; the result was placed in $at.
   Inputs (before this step):
@@ -3367,8 +3238,7 @@ Stepped at PC = 0x004001f0:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   What it did:
     Branch if Equal — would transfer to 0x004001fc if ($at == $r0).
   Comparison:
@@ -3390,8 +3260,7 @@ Stepped at PC = 0x004001f8:
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
-    Also includes the set-less-than family (slt/slti) used to
-    build compound comparisons. (COD §2.7.)
+    (COD §2.7.)
   What it did:
     Branch if Greater or Equal Zero — would transfer to 0x00400204 if ($r0 >= 0).
   Comparison:
@@ -3416,10 +3285,9 @@ Stepped at PC = 0x00400200:
   This was the first real instruction the assembler emitted for it.
 
   Category: Data transfer
-    Move data between registers and memory. MIPS is a load/store
-    architecture — math never operates on memory directly.
-    Includes `lui` for constructing 32-bit constants and
-    addresses. (COD §2.3 and §2.9.)
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
   What it did:
     Load Upper Immediate — placed the 16-bit immediate into the
     upper 16 bits of $at, zeroing the lower 16. Often paired with
@@ -3446,8 +3314,7 @@ Stepped at PC = 0x00400204:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -3477,8 +3344,7 @@ Stepped at PC = 0x00400208:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets
@@ -3505,8 +3371,7 @@ Stepped at PC = 0x0040020c:
    same source line, this was the next real instruction emitted)
 
   Category: System / coprocessor
-    Operating-system services and miscellaneous control. The
-    `syscall` instruction in particular dispatches on $v0.
+    Operating-system services and miscellaneous control.
   What it did:
     System Call — invoked the kernel.  The call number was in $v0;
     arguments were in $a0..$a3 (and $f12 for floats).
@@ -3534,8 +3399,7 @@ Stepped at PC = 0x00400210:
   This was the first real instruction the assembler emitted for it.
 
   Category: Logical
-    Bitwise operations (AND, OR, XOR, NOR) and shifts (left,
-    right-logical, right-arithmetic). (COD §2.6.)
+    Bitwise operations and shifts. (COD §2.6.)
   Modifiers in `ori`:
     `i` — immediate form: one operand is a 16-bit constant baked
           into the instruction word, not a register. Lets

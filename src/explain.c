@@ -1454,29 +1454,26 @@ static const char* category_names[CAT_COUNT] = {
     [CAT_SYSTEM] = "System / coprocessor",
 };
 
+/* Category descriptions are intentionally short — they say what
+   defines the family, not which instructions are in it.  Listing
+   members (e.g. "Includes direct jumps, register-indirect jumps...")
+   was useful when these were shown once per session, but Phase C
+   made the category preamble always-on, and the member enumeration
+   becomes noise on every specific instruction the student looks at.
+   Keep each description one conceptual sentence. */
 static const char* category_descriptions[CAT_COUNT] = {
-    [CAT_ARITHMETIC] =
-        "Integer math on registers. Includes add/sub/mul/div and\n"
-        "    their immediate variants. (COD §2.2.)",
-    [CAT_LOGICAL] =
-        "Bitwise operations (AND, OR, XOR, NOR) and shifts (left,\n"
-        "    right-logical, right-arithmetic). (COD §2.6.)",
+    [CAT_ARITHMETIC] = "Integer math on registers. (COD §2.2.)",
+    [CAT_LOGICAL] = "Bitwise operations and shifts. (COD §2.6.)",
     [CAT_DATA_TRANSFER] =
-        "Move data between registers and memory. MIPS is a load/store\n"
-        "    architecture — math never operates on memory directly.\n"
-        "    Includes `lui` for constructing 32-bit constants and\n"
-        "    addresses. (COD §2.3 and §2.9.)",
+        "Move data between registers and memory.  MIPS is\n"
+        "    load/store — math never operates on memory directly.\n"
+        "    (COD §2.3, §2.9.)",
     [CAT_COND_BRANCH] =
         "Test a condition; if true, transfer PC to a labeled target.\n"
-        "    Also includes the set-less-than family (slt/slti) used to\n"
-        "    build compound comparisons. (COD §2.7.)",
+        "    (COD §2.7.)",
     [CAT_UNCOND_JUMP] =
-        "Transfer PC unconditionally — no condition test. Includes\n"
-        "    direct jumps, register-indirect jumps, and the and-link\n"
-        "    variants used for subroutine calls. (COD §2.8.)",
-    [CAT_SYSTEM] =
-        "Operating-system services and miscellaneous control. The\n"
-        "    `syscall` instruction in particular dispatches on $v0.",
+        "Transfer PC unconditionally — no condition test. (COD §2.8.)",
+    [CAT_SYSTEM] = "Operating-system services and miscellaneous control.",
 };
 
 static const char* modifier_letters[MOD_COUNT] = {
