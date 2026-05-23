@@ -961,9 +961,8 @@ static void render_hex_bin_table(uint32_t enc) {
       "    │ bin │%s │%s │%s │%s │%s │%s │%s │%s │\n"
       "    └─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘\n",
       (enc >> 28) & 0xf, (enc >> 24) & 0xf, (enc >> 20) & 0xf,
-      (enc >> 16) & 0xf, (enc >> 12) & 0xf, (enc >> 8) & 0xf,
-      (enc >> 4) & 0xf, enc & 0xf,
-      n[0], n[1], n[2], n[3], n[4], n[5], n[6], n[7]);
+      (enc >> 16) & 0xf, (enc >> 12) & 0xf, (enc >> 8) & 0xf, (enc >> 4) & 0xf,
+      enc & 0xf, n[0], n[1], n[2], n[3], n[4], n[5], n[6], n[7]);
 }
 
 static void render_r_layout(uint32_t enc, const char* mnemonic) {
@@ -1023,8 +1022,8 @@ static void render_i_layout(uint32_t enc, const char* mnemonic) {
                "      opcode    rs      rt        immediate (16-bit)\n"
                "      = 0x%02x  = $%-4s = $%-4s   = %d  (signed) / 0x%04x\n"
                "    -> opcode=0x%02x selects the `%s` instruction.\n",
-               b_op, b_rs, b_rt, b_im, op, int_reg_names[rs],
-               int_reg_names[rt], (int)imm_s, imm_u, op, mnemonic);
+               b_op, b_rs, b_rt, b_im, op, int_reg_names[rs], int_reg_names[rt],
+               (int)imm_s, imm_u, op, mnemonic);
 }
 
 static void render_j_layout(uint32_t enc, const char* mnemonic) {
@@ -1045,8 +1044,8 @@ static void render_j_layout(uint32_t enc, const char* mnemonic) {
                "      = 0x%02x  = 0x%07x  ->  jump addr = (PC[31:28] | "
                "target<<2) = 0x%08x\n"
                "    -> opcode=0x%02x selects the `%s` instruction.\n",
-               b_op, b_tg, op, target,
-               (snap_PC & 0xf0000000u) | (target << 2), op, mnemonic);
+               b_op, b_tg, op, target, (snap_PC & 0xf0000000u) | (target << 2),
+               op, mnemonic);
 }
 
 static void explain_bit_layout(mips_instruction* instruction) {
