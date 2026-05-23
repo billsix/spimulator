@@ -155,3 +155,10 @@ executable('abs-demo',
   link_with: [io_lib, libstdlib_lib, libctype_lib],
   install: true,
 )
+
+executable('exit-demo',
+  'lib/libstdlib-demo/exit-demo.c',
+  include_directories: [inc, libstdlib_inc, libctype_inc],
+  link_with: [io_lib, libstdlib_lib, libctype_lib],
+  install: true,
+)

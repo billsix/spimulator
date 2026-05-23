@@ -43,4 +43,22 @@ int atoi(const char *s);
 int absolute(int x);
 long labsolute(long x);
 
+/* _Exit(status) — terminate the program immediately with the
+ * given exit status visible to the parent process (the shell's
+ * `$?`).  Standard C99 name (note the underscore + capital E).
+ *
+ * Unlike `exit()`, _Exit does NOT run atexit handlers or flush
+ * stdio buffers — it goes straight to the kernel's exit syscall.
+ * In this freestanding curriculum we have no stdio buffers and
+ * no atexit chain, so the distinction is academic; _Exit is just
+ * the right name for "exit, no cleanup."
+ *
+ * On the spim side this issues syscall 17 (exit2) so the host
+ * shell's `$?` reflects `status`.  Syscall 10 (the plain `exit`
+ * syscall in spim) ignores its argument and always exits 0 —
+ * don't use it from library code.  See
+ * /spimulator/tasks/unix-process-conformance.md.
+ */
+__attribute__((noreturn)) void _Exit(int status);
+
 #endif

@@ -12,7 +12,8 @@
 #   $t*      — clobbered freely
 #   $ra      — preserved by the library
 #
-# Functions currently implemented: atoi, absolute, labsolute.
+# Functions currently implemented: atoi, absolute, labsolute,
+# _Exit.
 #
 # Note on naming: `absolute` and `labsolute` correspond to the
 # C library's `abs(int)` and `labs(long)`.  They're renamed
@@ -173,3 +174,34 @@ absolute:
 absolute_pos:
         move    $v0, $a0
         jr      $ra
+
+#--------------------------------------------------------------
+# _Exit(status) — terminate the program immediately with the
+# given exit status visible to the parent process (the shell's
+# `$?`).
+#
+# Adapted from musl src/exit/_Exit.c (which on Linux is a
+# one-line syscall wrapper).
+#
+# Uses spim's syscall 17 (exit2), which honors $a0 as the
+# status.  spim ALSO has syscall 10 ("exit") but that one
+# ignores $a0 and always returns 0 to the host shell — broken
+# for any pipeline that wants to see a meaningful status code.
+# See /spimulator/tasks/unix-process-conformance.md for the
+# fix that made __start translate main's $v0 through syscall
+# 17 automatically.  Library functions should always use
+# syscall 17 directly.
+#
+# Calling-convention note: _Exit never returns, so we don't
+# need to preserve $ra or any $s* — just set up the syscall
+# and fire.  The simplest possible library function.
+#--------------------------------------------------------------
+        .globl  _Exit
+_Exit:
+        li      $v0, 17             # syscall: exit2 ($a0 = status)
+        syscall
+        # No `jr $ra` — control transfers to the kernel and
+        # never comes back.  Falling through here would be a
+        # bug; spim would execute whatever bytes happen to
+        # follow.  In practice the syscall itself stops
+        # execution before that matters.

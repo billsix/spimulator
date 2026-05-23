@@ -8,6 +8,7 @@
 
 #include "libstdlib.h"
 #include "libctype.h"
+#include "os.h"
 
 /* atoi(s) — parse a leading optional sign and decimal digits
  * from s; return the int value.
@@ -66,3 +67,16 @@ int absolute(int x) { return x > 0 ? x : -x; }
  *
  * Adapted from musl src/stdlib/labs.c. */
 long labsolute(long x) { return x > 0 ? x : -x; }
+
+/* _Exit(status) — terminate immediately with the given exit status.
+ *
+ * Adapted from musl src/exit/_Exit.c (which on Linux is essentially
+ * a one-line syscall wrapper).  In this freestanding curriculum we
+ * route through os_exit() from os.h — that hides the per-arch
+ * inline-asm details (x86_64 uses syscall #60, i386 uses int 0x80
+ * with eax=1, etc.) behind a single portable name.  os_exit is
+ * itself __attribute__((noreturn)), so the compiler can verify
+ * that we never fall off the end of _Exit. */
+__attribute__((noreturn)) void _Exit(int status) {
+  os_exit(status);
+}

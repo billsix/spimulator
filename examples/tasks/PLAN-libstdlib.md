@@ -300,10 +300,40 @@ names so the relationship is clear.
 
 **Verified**: C and asm produce byte-identical 8-line output.
 
+### _Exit (landed 2026-05-23)
+
+Simplest possible library function — terminates the program
+with a host-shell-visible exit status.
+
+`/examples/src/lib/libstdlib/`:
+- `libstdlib.{h,c}` — `__attribute__((noreturn)) void _Exit(int)`.
+  C-side wraps `os_exit(status)` from os.h, which already does
+  the per-arch Linux syscall.
+- `libstdlib.asm` — `_Exit`: two instructions
+  (`li $v0, 17; syscall`).  Deliberately uses spim's syscall 17
+  (exit2) — syscall 10 ignores its argument and always exits 0,
+  which would break any pipeline.  Belt-and-braces fall-through
+  with status 99 in case syscall 17 somehow returned (it never
+  does).
+
+`/examples/src/lib/libstdlib-demo/`:
+- `exit-demo.{c,asm}` — print `"calling _Exit(42)\n"` then call
+  `_Exit(42)`.  Verifies both stdout content AND that the
+  parent shell sees exit status 42.
+- `exit-demo.expected` — pinned 1-line stdout golden
+- `exit-demo.expected-status` — pinned expected `$?` (42)
+
+**Verified**: C and asm versions produce byte-identical stdout
+AND both propagate exit 42 to the host shell.
+
 ### Open follow-ups (in plan but not in this turn)
 - **bsearch**: function pointer via `jalr` — first indirect-call
   demo in the curriculum.
-- **_Exit**: thin wrapper over syscall 17.
+- **atexit + exit**: second `jalr` lesson (function-pointer
+  table walked in reverse).  Filed separately at
+  [`PLAN-libstdlib-atexit.md`](PLAN-libstdlib-atexit.md).  To be
+  done after bsearch so students see the indirect-call lesson
+  in a focused single-call context first.
 - **parse_int kept; atoi available alongside**: 27 demo files in
   `/examples/src/` call `parse_int` (defined in
   `string-to-int.c`).  After discussion 2026-05-23: Bill keeps
