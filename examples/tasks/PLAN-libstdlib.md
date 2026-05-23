@@ -264,17 +264,42 @@ minus on character literals (`-'0'` fails with "Expected
 integer").  Wrote `-48` directly in the asm.  Worth a small
 spim follow-up if `-'X'` should be supported.
 
-### Open follow-ups (in plan but not in this turn)
+### abs / labs (landed 2026-05-23)
 
-- **abs, labs**: trivial; branchless `sra`+`xor` variant
-  pedagogically interesting.
+`/examples/src/lib/libstdlib/`:
+- `libstdlib.{h,c}` — `abs` and `labs` added.  C-side implementations
+  mirror musl directly (`return x > 0 ? x : -x;`).  On MIPS32
+  `long == int` so labs is structurally identical to abs.
+- `libstdlib.asm` — exports `labs` only (NOT `abs`).  Branching
+  version (`bgez` + `subu`) as the primary; branchless
+  `sra`+`xor`+`subu` shown in the comment block as a sidebar.
+
+`/examples/src/lib/libstdlib-demo/`:
+- `abs-demo.{c,asm}` — 8 cases covering 0, ±1, ±100, ±INT_MAX,
+  and the INT_MIN edge case where -INT_MIN overflows to itself
+- `abs-demo.expected` — pinned 8-line golden
+
+**Gotcha discovered**: spim reserves `abs` as a built-in MIPS
+pseudoinstruction (`abs $rd, $rs`).  Cannot use `abs` as a
+label in spim asm at all.  Workaround: asm side exports only
+`labs`; C side still has both names; document the conflict in
+both files' header blocks.  Asm callers wanting "abs" call
+`labs` (identical semantics on MIPS32).
+
+**Verified**: C and asm produce byte-identical 8-line output.
+
+### Open follow-ups (in plan but not in this turn)
 - **bsearch**: function pointer via `jalr` — first indirect-call
   demo in the curriculum.
 - **_Exit**: thin wrapper over syscall 17.
-- **parse_int → atoi migration**: 27 demo files in `/examples/src/`
-  call `parse_int` (defined in `string-to-int.c`).  Migration
-  would rename to `atoi`, drop `string-to-int.c`, update
-  `io.h`/`io_lib`.  Behavior differences: atoi now skips
-  whitespace (no-op for clean argv input) and accepts leading
-  '+' (previously silently returned 0).  Unlikely to break
-  anything but worth a curriculum sweep.
+- **parse_int kept; atoi available alongside**: 27 demo files in
+  `/examples/src/` call `parse_int` (defined in
+  `string-to-int.c`).  After discussion 2026-05-23: Bill keeps
+  `parse_int` as the simple teaching helper for clean argv
+  strings (no whitespace skip, no `+`, no INT_MIN safety
+  required for typical demo inputs).  `atoi` from libstdlib is
+  the strict-libc version available for demos that want INT_MIN
+  safety, whitespace skipping, or `+` acceptance.  No
+  curriculum-wide migration sweep planned.  (Also unrelated:
+  `read_int_from_stdin` in `read-int.c` is the stdin-reading
+  helper, NOT a string parser — it stays put regardless.)

@@ -27,5 +27,7 @@
 #define LIBSTDLIB_H
 
 int atoi(const char *s);
+int abs(int x);
+long labs(long x);
 
 #endif

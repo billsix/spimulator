@@ -145,3 +145,13 @@ executable('atoi-demo',
   link_with: [io_lib, libstdlib_lib, libctype_lib],
   install: true,
 )
+
+# abs/labs don't depend on libctype — leaf functions — but link
+# both libs for consistency with atoi-demo and any future
+# composite demo.
+executable('abs-demo',
+  'lib/libstdlib-demo/abs-demo.c',
+  include_directories: [inc, libstdlib_inc, libctype_inc],
+  link_with: [io_lib, libstdlib_lib, libctype_lib],
+  install: true,
+)

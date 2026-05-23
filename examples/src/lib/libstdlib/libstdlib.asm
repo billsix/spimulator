@@ -12,7 +12,7 @@
 #   $t*      — clobbered freely
 #   $ra      — preserved by the library
 #
-# Functions currently implemented: atoi.
+# Functions currently implemented: atoi, abs, labs.
 #
 # Load order: libctype.asm must be loaded alongside this file
 # (or before it).  Each spim invocation looks like
@@ -120,4 +120,51 @@ atoi_done:
         lw      $s1, 8($sp)
         lw      $s2, 12($sp)
         addiu   $sp, $sp, 20
+        jr      $ra
+
+#--------------------------------------------------------------
+# labs(x) — absolute value of a long.
+#
+# Adapted from musl src/stdlib/labs.c (and src/stdlib/abs.c).
+# C: return x > 0 ? x : -x;
+#
+# On MIPS32, `long` is 32 bits (same as int), so abs(int) and
+# labs(long) are byte-identical.  One label, used for both.
+#
+# === Why "labs" and not "abs"? ===
+# spim treats `abs` as a built-in MIPS pseudoinstruction
+# (`abs $rd, $rs` expands to a signed-conditional sequence),
+# so `abs` is a reserved word in spim's parser and CANNOT be
+# used as a label.  We export only `labs` from this asm file;
+# asm callers that want "abs" should `jal labs` (the semantics
+# are identical on MIPS32).  The C side of libstdlib still
+# exposes both `abs` and `labs` because the C compiler has no
+# such conflict.
+#
+# Leaf function: no $ra save, no frame, no $s* touched.
+#
+# INT_MIN edge case (-2147483648): both C and asm return
+# INT_MIN unchanged because `-(-2^31)` overflows to itself in
+# two's complement.  Standard C calls this UB; spim/MIPS are
+# two's complement so the behavior is predictable.
+#
+# --- Sidebar: branchless alternative ---
+# A common compiler trick for abs without a branch:
+#     sra   $t0, $a0, 31        # $t0 = sign-extended mask (0 or -1)
+#     xor   $t1, $a0, $t0       # one's complement of $a0 if neg
+#     subu  $v0, $t1, $t0       # adds 1 (via -(-1)) if neg
+#     jr    $ra
+# Pre-pipelined CPUs preferred this to avoid a branch stall;
+# modern CPUs with good branch prediction don't care.  spim has
+# no microarchitecture model, so both versions take the same
+# "time" — the branchless variant is here for educational
+# contrast only.
+#--------------------------------------------------------------
+        .globl  labs
+labs:
+        bgez    $a0, labs_pos       # $a0 >= 0 -> already non-negative
+        subu    $v0, $zero, $a0     # $v0 = -$a0
+        jr      $ra
+labs_pos:
+        move    $v0, $a0
         jr      $ra
