@@ -72,7 +72,7 @@ mem_addr initial_k_data_limit = K_DATA_LIMIT;
 
 void initialize_world(char* exception_file_names, bool print_message) {
   /* Allocate the floating point registers */
-  if (FGR == nullptr) FPR = (double*)xmalloc(FPR_LENGTH * sizeof(double));
+  if (fp_single_view == nullptr) fp_double_view = (double*)xmalloc(FPR_LENGTH * sizeof(double));
   /* Allocate the memory */
   make_memory(initial_text_size, initial_data_size, initial_data_limit,
               initial_stack_size, initial_stack_limit, initial_k_text_size,
@@ -140,9 +140,9 @@ void write_startup_message(void) {
 }
 
 void initialize_registers(void) {
-  memset(FPR, 0, FPR_LENGTH * sizeof(double));
-  FGR = (float*)FPR;
-  FWR = (int*)FPR;
+  memset(fp_double_view, 0, FPR_LENGTH * sizeof(double));
+  fp_single_view = (float*)fp_double_view;
+  fp_int_view = (int*)fp_double_view;
 
   memset(R, 0, R_LENGTH * sizeof(reg_word));
   R[REG_SP] = STACK_TOP - BYTES_PER_WORD - 4096; /* Initialize $sp */

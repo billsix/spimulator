@@ -16,9 +16,9 @@ reg_word R[R_LENGTH];
 reg_word HI, LO;
 int HI_present, LO_present;
 mem_addr PC, nPC;
-double* FPR; /* Dynamically allocate so overlay */
-float* FGR;  /* is possible */
-int* FWR;    /* is possible */
+double* fp_double_view; /* Dynamically allocate so overlay */
+float* fp_single_view;  /* is possible */
+int* fp_int_view;    /* is possible */
 reg_word coprocessor_control_registers[4][32], coprocessor_registers[4][32];
 
 instruction** text_seg;

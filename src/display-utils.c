@@ -69,35 +69,35 @@ void format_registers(str_stream* ss, int print_gpr_hex, int print_fpr_hex) {
 
       /* Use pointers to cast to ints without invoking float->int conversion
          so we can just print the bits. */
-      r1 = (int*)&FPR[i];
+      r1 = (int*)&fp_double_view[i];
       r2 = r1 + 1;
       ss_printf(ss, fpstr, 2 * i, *r1, *r2);
       ss_printf(ss, fpfill);
 
-      r1 = (int*)&FPR[i + 4];
+      r1 = (int*)&fp_double_view[i + 4];
       r2 = r1 + 1;
       ss_printf(ss, fpstr, 2 * i + 8, *r1, *r2);
       ss_printf(ss, fpfill);
 
-      r1 = (int*)&FPR[i + 8];
+      r1 = (int*)&fp_double_view[i + 8];
       r2 = r1 + 1;
       ss_printf(ss, fpstr, 2 * i + 16, *r1, *r2);
       ss_printf(ss, fpfill);
 
-      r1 = (int*)&FPR[i + 12];
+      r1 = (int*)&fp_double_view[i + 12];
       r2 = r1 + 1;
       ss_printf(ss, fpstr, 2 * i + 24, *r1, *r2);
       ss_printf(ss, "\n");
     }
   else
     for (i = 0; i < 4; i += 1) {
-      ss_printf(ss, fpstr, 2 * i, FPR[i]);
+      ss_printf(ss, fpstr, 2 * i, fp_double_view[i]);
       ss_printf(ss, fpfill);
-      ss_printf(ss, fpstr, 2 * i + 8, FPR[i + 4]);
+      ss_printf(ss, fpstr, 2 * i + 8, fp_double_view[i + 4]);
       ss_printf(ss, fpfill);
-      ss_printf(ss, fpstr, 2 * i + 16, FPR[i + 8]);
+      ss_printf(ss, fpstr, 2 * i + 16, fp_double_view[i + 8]);
       ss_printf(ss, fpfill);
-      ss_printf(ss, fpstr, 2 * i + 24, FPR[i + 12]);
+      ss_printf(ss, fpstr, 2 * i + 24, fp_double_view[i + 12]);
       ss_printf(ss, "\n");
     }
 

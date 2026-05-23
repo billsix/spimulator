@@ -39,7 +39,7 @@ int do_syscall(void) {
     }
 
     case PRINT_DOUBLE_SYSCALL:
-      write_output(console_out, "%.18g", FPR[REG_FA0 / 2]);
+      write_output(console_out, "%.18g", fp_double_view[REG_FA0 / 2]);
       break;
 
     case PRINT_STRING_SYSCALL:
@@ -67,7 +67,7 @@ int do_syscall(void) {
       static char str[256];
 
       read_input(str, 256);
-      FPR[REG_FRES] = atof(str);
+      fp_double_view[REG_FRES] = atof(str);
       break;
     }
 

@@ -124,21 +124,21 @@ constexpr uint32_t CP0_Config_Mask =
 constexpr int FGR_LENGTH = 32;
 constexpr int FPR_LENGTH = 16;
 
-extern double* FPR; /* Dynamically allocate so overlay */
-extern float* FGR;  /* is possible */
-extern int* FWR;    /* is possible */
+extern double* fp_double_view; /* Dynamically allocate so overlay */
+extern float* fp_single_view;  /* is possible */
+extern int* fp_int_view;    /* is possible */
 
-#define FPR_S(REGNO) (FGR[REGNO])
+#define FPR_S(REGNO) (fp_single_view[REGNO])
 
 #define FPR_D(REGNO)                                                     \
   (((REGNO) & 0x1) ? (run_error("Odd FP double register number\n"), 0.0) \
-                   : FPR[(REGNO) / 2])
+                   : fp_double_view[(REGNO) / 2])
 
-#define FPR_W(REGNO) (FWR[REGNO])
+#define FPR_W(REGNO) (fp_int_view[REGNO])
 
 #define SET_FPR_S(REGNO, VALUE)  \
   {                              \
-    FGR[REGNO] = (float)(VALUE); \
+    fp_single_view[REGNO] = (float)(VALUE); \
   }
 
 #define SET_FPR_D(REGNO, VALUE)                     \
@@ -146,12 +146,12 @@ extern int* FWR;    /* is possible */
     if ((REGNO) & 0x1)                              \
       run_error("Odd FP double register number\n"); \
     else                                            \
-      FPR[(REGNO) / 2] = (double)(VALUE);           \
+      fp_double_view[(REGNO) / 2] = (double)(VALUE);           \
   }
 
 #define SET_FPR_W(REGNO, VALUE)    \
   {                                \
-    FWR[REGNO] = (int32_t)(VALUE); \
+    fp_int_view[REGNO] = (int32_t)(VALUE); \
   }
 
 /* Floating point control registers: */
