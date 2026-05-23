@@ -77,8 +77,8 @@ introduce `xrealloc` once and use it everywhere.
 
 ### A8. Drop the 46 duplicate `extern` declarations at `src/parser.c:101-150`
 
-These re-declare functions that `inst.h` already declares — and
-parser.c already `#include`s inst.h.  ~50 lines of redundant
+These re-declare functions that `instruction.h` already declares — and
+parser.c already `#include`s instruction.h.  ~50 lines of redundant
 forward-decl noise that becomes a maintenance hazard if any
 signature ever changes (the duplicates would silently diverge).
 Mechanical delete + rebuild to confirm.
@@ -104,7 +104,7 @@ Untracked directory cluttering `git status`.  Already-built artefact.
 
 ### B1. Settle `read_mem_*` vs `set_mem_*` verb asymmetry
 
-`src/mem.c:297-374` exposes `read_mem_byte`/`read_mem_half`/
+`src/memory.c:297-374` exposes `read_mem_byte`/`read_mem_half`/
 `read_mem_word`/`read_mem_inst` as getters, but the setters
 are `set_mem_byte`/`set_mem_half`/`set_mem_word`.  Two choices:
 
@@ -132,7 +132,7 @@ Recommend the first — `strdup` is standard and shorter.
 
 `r_type_inst`, `i_type_inst`, `j_type_inst` end in `_inst`.  But
 they're emitting instructions, and so do `store_word`,
-`store_half`, `store_byte` (`inst.h:232-235`) which don't.
+`store_half`, `store_byte` (`instruction.h:232-235`) which don't.
 Either:
 
 - All instruction-emit functions get `_inst` suffix
@@ -164,10 +164,10 @@ declarations, exported globals, and platform shims.  Split into:
 Reduces inclusion blast radius: a TU that only needs `mem_addr`
 shouldn't pull in stdio + termios shims.
 
-### C2. Audit which `inst.h`-declared functions are only used in inst.c
+### C2. Audit which `instruction.h`-declared functions are only used in instruction.c
 
-Survey claims `eval_imm_expr` is only used inside `inst.c`.
-Verify, and if true, drop the declaration from `inst.h` and mark
+Survey claims `eval_imm_expr` is only used inside `instruction.c`.
+Verify, and if true, drop the declaration from `instruction.h` and mark
 the definition `static`.  Repeat for any other internal-only
 function that leaked into the public header.
 
@@ -213,14 +213,14 @@ several that emerged during execution):
 - D1. `NULL` → `nullptr` — already done in earlier portability work.
 - D2. `<stdbool.h>` removal — already done in earlier portability work.
 - D3. `[[nodiscard]]` — applied to 41 heap-allocators and status-return
-  functions across `ast.h`, `inst.h`, `sym-tbl.h`, `spim-utils.h`,
+  functions across `ast.h`, `instruction.h`, `symbol-table.h`, `spim-utils.h`,
   `string-stream.h`, `run.h`.  Wider sweep than the original three
   the plan named.
 - D4. `[[maybe_unused]]` on macro-only parameters — not needed; no
   unused-parameter warnings remained after the sweep.
-- D5. `static_assert` — already in place at `include/mem.h:19`.
-- D6. `constexpr` — applied to ~85 constants across spim.h, mem.h,
-  inst.h, reg.h.  Includes register-array lengths, memory-segment
+- D5. `static_assert` — already in place at `include/memory.h:19`.
+- D6. `constexpr` — applied to ~85 constants across spim.h, memory.h,
+  instruction.h, registers.h.  Includes register-array lengths, memory-segment
   addresses, immediate bounds, register-number selectors, and the
   CP0/FCSR bitmask families.
 - D7. Warning flags — `-Wpedantic`, `-Wshadow`, `-Wunused-function`
@@ -331,14 +331,14 @@ Counts of `static` per file:
 - `parser.c`: 62
 - `explain.c`: 62
 - `scanner.c`: 35
-- `inst.c`: 35
-- `mem.c`: 21
+- `instruction.c`: 35
+- `memory.c`: 21
 
 That's a lot of implicit state.  For parser.c specifically,
 gather the related statics (token lookahead, error flags,
 labels-on-current-line, file name) into a `parser_state`
 struct and pass it down explicitly.  Same for scanner.c,
-explain.c, mem.c.
+explain.c, memory.c.
 
 **Benefit**: testable — you can instantiate two parsers in one
 process for parity testing.  Re-entrant.  Easier to reason about.
@@ -351,7 +351,7 @@ if the win doesn't feel proportional to the churn.
 
 ### F2. Define the memory model as an opaque type
 
-Today `mem.c` exposes `extern mem_word *text_seg, *data_seg`,
+Today `memory.c` exposes `extern mem_word *text_seg, *data_seg`,
 etc. as globals.  Wrap in a `struct mips_memory`.  Pass to
 read/write functions.  Same benefits as F1.
 
@@ -368,9 +368,9 @@ navigation.
 sub-switches).  ~1 week.  Risk of subtle dispatch ordering
 issues.
 
-### F4. Move the `*_DIR` / `*_OP` / `*_POP` taxonomy out of `op.h`
+### F4. Move the `*_DIR` / `*_OP` / `*_POP` taxonomy out of `opcodes.h`
 
-`op.h` currently mixes assembler directives (`.alias`, `.data`),
+`opcodes.h` currently mixes assembler directives (`.alias`, `.data`),
 real opcodes (`add`, `ori`), and pseudo-ops (`la`, `li`) into
 one giant X-macro list.  Split into three smaller files
 (`directives.h`, `opcodes.h`, `pseudo_ops.h`), each with its own
@@ -397,7 +397,7 @@ The SIGINT-escape path in `spim.c` is the only `longjmp` user.
 Three landing pads.  Works.  Alternatives (panic/recover-style
 unwinding via flags) end up uglier.  Don't.
 
-### G2. Code generation for op.h's X-macro
+### G2. Code generation for opcodes.h's X-macro
 
 The "X-macro requires code gen" friction the Go-port survey
 identified is real if you port to Go, but in C the X-macro IS
@@ -412,7 +412,7 @@ adds dependency for marginal benefit.
 
 ### G4. Bitfield struct refactor
 
-`dump_ops.c` uses bitfields to overlay the MIPS instruction
+`dump-opcodes.c` uses bitfields to overlay the MIPS instruction
 encoding.  This is exactly what bitfields are for.  Leave it.
 
 ### G5. Removing the static globals entirely
@@ -453,7 +453,7 @@ day, ~150 lines deleted, zero risk.
 - Cross-platform support — Windows / AIX cruft removal is
   Tier C5 but the rest of the platform conditional logic
   should stay.
-- The X-macro pattern in op.h — see G2.
+- The X-macro pattern in opcodes.h — see G2.
 
 ## First concrete step
 

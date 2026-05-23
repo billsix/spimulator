@@ -556,14 +556,16 @@ static void say_try_finish(void) {
     try_lines_emitted++;
   }
   if (try_lines_emitted < 3) {
-    write_output(message_out,
-                 "    step                   # advance to the next instruction\n");
+    write_output(
+        message_out,
+        "    step                   # advance to the next instruction\n");
     add_suggestion("step");
     try_lines_emitted++;
   }
   if (try_lines_emitted < 3) {
-    write_output(message_out,
-                 "    continue               # run until the next breakpoint\n");
+    write_output(
+        message_out,
+        "    continue               # run until the next breakpoint\n");
     add_suggestion("continue");
     try_lines_emitted++;
   }
@@ -698,8 +700,7 @@ static void tpl_load(int level, mips_instruction* instruction,
   if (level >= 2) {
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_reg(base);
-    write_output(message_out, "    offset = %d  (0x%04x)\n", off,
-                 off & 0xffff);
+    write_output(message_out, "    offset = %d  (0x%04x)\n", off, off & 0xffff);
     /* Loads don't modify memory, so peek_word post-execute returns the
        same value the instruction read. */
     reg_word cur = 0;
@@ -739,14 +740,12 @@ static void tpl_store(int level, mips_instruction* instruction,
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_reg(base);
     say_input_reg(rt);
-    write_output(message_out, "    offset = %d  (0x%04x)\n", off,
-                 off & 0xffff);
+    write_output(message_out, "    offset = %d  (0x%04x)\n", off, off & 0xffff);
     /* Mirror the load template's "memory at addr = X" line — shows
        what's being overwritten, masked to the store width so a byte
        store shows the byte that's being clobbered, not the full word. */
     if (snap_has_mem) {
-      uint32_t mask =
-          (width == 1) ? 0xff : (width == 2) ? 0xffff : 0xffffffffu;
+      uint32_t mask = (width == 1) ? 0xff : (width == 2) ? 0xffff : 0xffffffffu;
       write_output(message_out, "    memory at 0x%08x = 0x%08x\n", ea,
                    ((uint32_t)snap_mem_val) & mask);
     }
@@ -2151,9 +2150,8 @@ void explain_after(mips_instruction* instruction) {
         /* L1 compact form: single line, no verbose description.  Keeps
            every L1 instruction block roughly uniform in height while
            still signaling "you wrote a pseudo-op here." */
-        write_output(message_out,
-                     "  Pseudo-op: `%s` (%s real instruction)\n", p->name,
-                     p->may_be_multi ? "first" : "single");
+        write_output(message_out, "  Pseudo-op: `%s` (%s real instruction)\n",
+                     p->name, p->may_be_multi ? "first" : "single");
       }
       pending_pseudo_name = p->name;
       pending_pseudo_multi = p->may_be_multi;
@@ -2170,8 +2168,8 @@ void explain_after(mips_instruction* instruction) {
                    pending_pseudo_name);
     } else {
       /* L1 compact form of the continuation hint. */
-      write_output(message_out,
-                   "  Pseudo-op: `%s` (continuation)\n", pending_pseudo_name);
+      write_output(message_out, "  Pseudo-op: `%s` (continuation)\n",
+                   pending_pseudo_name);
     }
   }
   write_output(message_out, "\n");

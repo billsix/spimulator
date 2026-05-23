@@ -9,8 +9,8 @@ Quick orientation for the next session. Detailed history lives in
 Five connected changes that overhauled how each instruction is presented:
 
 1. **ENCODING was always 0** — root-caused to a `#ifndef OP_H` guard in
-   `include/op.h` wrapping its X-macro entries. `inst.c` includes
-   `op.h` three times to build three tables, but only the first
+   `include/opcodes.h` wrapping its X-macro entries. `instruction.c` includes
+   `opcodes.h` three times to build three tables, but only the first
    inclusion expanded. Fix: split the guard to cover only the
    type-macro definitions (renamed `OP_H_TYPES`); leave the `OP()`
    list outside. After fix, `inst_encode()` works, every disassembly
@@ -22,7 +22,7 @@ Five connected changes that overhauled how each instruction is presented:
    names (`sw $t2, 4($at)` not `sw $10, 4($1)`), and the "What it
    does" line substitutes `$rs`/`$rt`/`$rd` placeholders with the
    concrete register names of the current instance.
-5. Helpers added: `inst_op_name()` in `src/inst.c`, `subst_field_regs()`
+5. Helpers added: `inst_op_name()` in `src/instruction.c`, `subst_field_regs()`
    and `write_bits()` / three `render_*_layout()` in `src/explain.c`.
 
 A typical instruction's output is now: disassembly line (ABI names) →
@@ -72,9 +72,9 @@ something changed.
   loads in the post-step diff, shift instructions mis-rendered as `nop`
 - Smoke test (`tests/tt.explain.s`) covering every category of the
   above end-to-end, ~220 lines
-- **ENCODING-zero root-cause fix** (`include/op.h`): the X-macro file
+- **ENCODING-zero root-cause fix** (`include/opcodes.h`): the X-macro file
   had an `#ifndef OP_H` guard wrapping the `OP(...)` entries, so the
-  second and third `#include "op.h"` in `inst.c` (for `i_opcode_tbl`
+  second and third `#include "opcodes.h"` in `instruction.c` (for `i_opcode_tbl`
   and `a_opcode_tbl`) silently expanded to nothing. `inst_encode()`
   therefore failed every lookup and returned 0, leaving `ENCODING(inst)`
   zero for all source-assembled instructions. Fix: scope the guard to
@@ -95,7 +95,7 @@ something changed.
   `(PC[31:28] | target<<2)`. Smoke output grew from 2814 to ~3724
   lines; still exit 0, still zero "no detailed explanation"
   fallthroughs.
-- **ABI register names in the disassembler** (`src/inst.c`
+- **ABI register names in the disassembler** (`src/instruction.c`
   `format_an_inst`). Previously every disassembled line printed raw
   register numbers (`sw $10, 4($1)`) while the source comment used
   ABI names (`sw $t2, 4($at)`) — two different vocabularies in the
@@ -112,8 +112,8 @@ something changed.
   (SPECIAL) tells the CPU to look at funct; funct=0x21 selects the
   `addu` instruction." For I-type and J-type: "opcode=0xNN selects
   the `<mnemonic>` instruction." Requires a small helper
-  `inst_op_name(instruction*)` added to `src/inst.c` (exposed in
-  `include/inst.h`) that returns the canonical mnemonic via the
+  `inst_op_name(instruction*)` added to `src/instruction.c` (exposed in
+  `include/instruction.h`) that returns the canonical mnemonic via the
   existing `name_tbl` lookup.
 - **Concrete-register substitution in template text** —
   `subst_field_regs()` in `explain.c` rewrites the generic
@@ -136,8 +136,9 @@ something changed.
   table-driven approach (Option B in `teaching-mode.md`).
 - Runtime REPL toggle (`explain` / `noexplain` commands) — needs
   scanner.l / parser.y changes (flex/bison regen).
-- Golden expected-output file (`tests/tt.explain.expected`) — easy
-  regression test now that the format has stabilized.
+- ~~Golden expected-output file (`tests/tt.explain.expected`)~~ —
+  done; landed alongside the AST migration's regression suite
+  expansion, now wired as the `explain` meson test.
 - ABI register **role** annotations ("$a0 (argument register)", "$ra
   (return address)", "$s0..$s7 (callee-saved)") in the per-template
   prose. **Note**: the disassembly half of the line and the
@@ -161,16 +162,13 @@ If picking up cold:
 1. **ABI annotations + syscall string dump + stack-frame hint** —
    bundle these three as a "polish pass." Maybe a day's work total.
    High pedagogical clarity per line of code.
-2. **Golden expected-output file** — cheap regression test. Pin the
-   current `/tmp/explain6.out` shape (or re-run and capture) as
-   `tests/tt.explain.expected`, add a meson test target.
-3. **FP support (Gap 1 P8)** — the biggest single add. Best done
-   table-driven: extend the X-macro in `op.h` (or add a parallel table
+2. **FP support (Gap 1 P8)** — the biggest single add. Best done
+   table-driven: extend the X-macro in `opcodes.h` (or add a parallel table
    in explain.c) to carry the FP-instruction type tag so a small driver
    can format add.s / sub.s / mul.s / c.lt.s / cvt.* uniformly without
    70 hand-written cases. Some hand-writing still needed for mfc1/mtc1
    and the branch-on-FP-flag (bc1t/bc1f).
-4. **REPL toggle (`explain` / `noexplain`)** — only if you have an
+3. **REPL toggle (`explain` / `noexplain`)** — only if you have an
    audience of teachers running interactive sessions.
 
 ## Files touched, summary
@@ -180,7 +178,7 @@ If picking up cold:
   flush_to_newline gobbling the next command after a peek.
 - `src/run.c` — two hook calls (`explain_before` after the pre-execute
   setup, `explain_after` after `PC += BYTES_PER_WORD`).
-- `src/inst.c` — three things:
+- `src/instruction.c` — three things:
   (1) shift-disassembly nop bug fix (~3 lines around R2sh_TYPE_INST
       in `format_an_inst`),
   (2) ABI-name conversion of the disassembler — every integer
@@ -189,8 +187,8 @@ If picking up cold:
       FP_I2a base, FP_R2ts integer, MOVC) plus the addr-expr
       `($N)` formatter now uses `$%s` with `int_reg_names[]`,
   (3) `inst_op_name(instruction*)` helper using the existing
-      `name_tbl` lookup; declared in `include/inst.h`.
-- `include/op.h` — header-guard scope fix. Type-macro definitions
+      `name_tbl` lookup; declared in `include/instruction.h`.
+- `include/opcodes.h` — header-guard scope fix. Type-macro definitions
   (ASM_DIR, R3_TYPE_INST, etc.) live inside `#ifndef OP_H_TYPES`; the
   `OP(...)` X-macro list lives outside any guard so it can be
   re-included by each table builder.
@@ -219,8 +217,8 @@ If picking up cold:
 
 - `ENCODING(inst)` is now correctly populated for source-assembled
   instructions. The previous "uniformly zero" symptom was caused by an
-  `#ifndef OP_H` header guard in `include/op.h` that wrapped the X-macro
-  `OP(...)` entries — `inst.c` includes `op.h` three times (once each
+  `#ifndef OP_H` header guard in `include/opcodes.h` that wrapped the X-macro
+  `OP(...)` entries — `instruction.c` includes `opcodes.h` three times (once each
   for `name_tbl`, `i_opcode_tbl`, `a_opcode_tbl`), and the guard meant
   only the first include actually populated a table. With the guard
   scoped to just the type-macro definitions (now `OP_H_TYPES`), all
@@ -260,8 +258,8 @@ If picking up cold:
   consulted it — `size=0` was the smoking gun. Reading code alone
   had not been enough; the X-macro header guard hid the empty-table
   failure mode from inspection.
-- Each compilation unit gets its own copy of `#include "op.h"`
-  expansions. The current per-TU setup is: `inst.c` builds three
+- Each compilation unit gets its own copy of `#include "opcodes.h"`
+  expansions. The current per-TU setup is: `instruction.c` builds three
   tables (name_tbl, i_opcode_tbl, a_opcode_tbl), `scanner.l`
   builds one (keyword_tbl), `dump_ops.c` builds one. If you ever
   add a fourth table in any TU, remember to `#undef OP` and

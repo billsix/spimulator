@@ -4,6 +4,46 @@ Plan docs from completed migrations.  Kept for historical context
 (decisions, rationale, alternatives considered) but no longer
 actionable.
 
+## Explain-mode consistency audit (May 2026)
+
+Per-instruction consistency audit of the `-explain=1` through
+`-explain=4` narration, with five phases of targeted fixes.
+Branch `explainModeConsistency`.
+
+Addressed seven concrete inconsistencies including the `j`-opcode
+missing-prefix, zero-offset omission in load/store inputs, uneven
+modifier description verbosity, the reading-order dependency
+created by the show-once first-encounter logic, sparse try-it
+blocks, the store-side memory-snapshot asymmetry, and the L1
+pseudo-op header being 4× the size of plain instruction blocks.
+
+- **`explain-mode-consistency-audit.md`** — final-state summary
+  covering the seven items, what fixed each, the per-level
+  spread numbers before and after (L1 hit the 1.5× target;
+  L2-L4 modestly improved), and the deferred cross-mnemonic
+  template-shape normalization.
+
+Files updated: `src/explain.c` and `tests/tt.explain.expected`.
+
+## Variable name expansion (May 2026)
+
+Renamed ~2500 identifier sites and 9 source files to expand
+non-MIPS-spec abbreviations.  Eleven phases on the
+`renameVariables` branch.
+
+- **`variable-name-expansion.md`** — final-state summary
+  covering naming policy (MIPS-spec names stayed abbreviated,
+  rarely-used names got fully spelled, high-frequency names got
+  moderate forms), phase-by-phase deliverables, and the design
+  details (e.g. the `inst` → `instruction` + `instruction`
+  type → `mips_instruction` two-part rename forced by C's
+  shadow rules and a subtle `sizeof()` correctness bug).
+
+Files renamed include `src/sym-tbl.{c,h}` → `src/symbol-table.{c,h}`,
+`src/mem.{c,h}` → `src/memory.{c,h}`, `include/reg.h` →
+`include/registers.h`, `include/op.h` → `include/opcodes.h`,
+and several others.
+
 ## C23 modernization (May 2026)
 
 Consumption of the C23 features the project had already opted into
