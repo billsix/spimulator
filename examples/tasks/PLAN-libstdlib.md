@@ -222,8 +222,59 @@ character classification.
 
 ## Status
 
-Not started.  Estimated effort: ~one day for the 5 functions
-+ demo + golden + meson wiring + the string-to-int.c
-consolidation sweep.  Less raw code than libstr but more
-moving pieces (inter-library calls, indirect dispatch via
-bsearch's `jalr`).
+Partial — atoi landed 2026-05-23.  Remaining functions (abs,
+labs, bsearch, _Exit) and the `parse_int` → `atoi` consolidation
+sweep are open.
+
+### atoi (landed 2026-05-23)
+
+`/examples/src/lib/libstdlib/`:
+- `libstdlib.h` — public declarations (just `atoi` for now;
+  others appended as they land)
+- `libstdlib.c` — atoi mirroring musl's algorithm (skip
+  whitespace, optional sign, accumulate as a NEGATIVE int to
+  avoid INT_MIN overflow)
+- `libstdlib.asm` — atoi as the curriculum's first non-leaf
+  library function.  20-byte frame saves $ra + $s0..$s2; uses
+  `jal isspace` and `jal isdigit` (cross-file calls into
+  libctype, resolved via spim's multi-`-f` symbol-table
+  accumulation).  Uses the `10n = (n<<3) + (n<<1)` shift+add
+  trick for constant multiplication.
+- `LICENSE-musl` — full MIT text + per-file derivation notes
+
+`/examples/src/lib/libstdlib-demo/`:
+- `atoi-demo.c` — exercises 12 representative cases (positive,
+  negative, leading whitespace, leading '+', stops at first
+  non-digit, empty input, INT_MIN, INT_MAX, multi-whitespace
+  with tab + newline)
+- `atoi-demo.asm` — same cases as a `.data` table of input
+  pointers, looped through; private `_ps`/`_pi` print helpers
+- `atoi-demo.expected` — pinned 12-line golden
+
+`/examples/src/meson.build`:
+- `libstdlib_lib` static lib (links libctype headers for the C
+  side's `isspace`/`isdigit` includes)
+- `atoi-demo` executable wired to link both libs
+
+**Verified**: C version and asm version under spim produce
+byte-identical 12-line output (`diff -q` says nothing).
+
+**Gotcha discovered**: spim's parser does NOT accept the unary
+minus on character literals (`-'0'` fails with "Expected
+integer").  Wrote `-48` directly in the asm.  Worth a small
+spim follow-up if `-'X'` should be supported.
+
+### Open follow-ups (in plan but not in this turn)
+
+- **abs, labs**: trivial; branchless `sra`+`xor` variant
+  pedagogically interesting.
+- **bsearch**: function pointer via `jalr` — first indirect-call
+  demo in the curriculum.
+- **_Exit**: thin wrapper over syscall 17.
+- **parse_int → atoi migration**: 27 demo files in `/examples/src/`
+  call `parse_int` (defined in `string-to-int.c`).  Migration
+  would rename to `atoi`, drop `string-to-int.c`, update
+  `io.h`/`io_lib`.  Behavior differences: atoi now skips
+  whitespace (no-op for clean argv input) and accepts leading
+  '+' (previously silently returned 0).  Unlikely to break
+  anything but worth a curriculum sweep.

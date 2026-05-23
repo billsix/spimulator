@@ -43,6 +43,15 @@ libctype_lib = static_library('libctype',
 )
 libctype_inc = include_directories('lib/libctype')
 
+# libstdlib — atoi (and, growing: abs, labs, bsearch, _Exit).
+# Adapted from musl libc src/stdlib/ and src/exit/.
+# See src/lib/libstdlib/LICENSE-musl.
+libstdlib_lib = static_library('libstdlib',
+  files('lib/libstdlib/libstdlib.c'),
+  include_directories: libctype_inc,
+)
+libstdlib_inc = include_directories('lib/libstdlib')
+
 # Demos can find io.h / os.h here.
 inc = include_directories('.')
 
@@ -127,3 +136,12 @@ foreach demo : lib_demos
     install: true,
   )
 endforeach
+
+# libstdlib demos need both libstdlib AND libctype linked
+# (atoi calls into isspace/isdigit).
+executable('atoi-demo',
+  'lib/libstdlib-demo/atoi-demo.c',
+  include_directories: [inc, libstdlib_inc, libctype_inc],
+  link_with: [io_lib, libstdlib_lib, libctype_lib],
+  install: true,
+)
