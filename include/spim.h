@@ -51,69 +51,34 @@ typedef union {
 #include <stdlib.h>
 #include <string.h>
 
-#define K 1024
+constexpr int K = 1024;
 
 /* Type of a memory address.  Must be a 32-bit quantity to match MIPS.  */
 
 typedef uint32_t mem_addr;
 
-#define BYTES_PER_WORD 4 /* On the MIPS processor */
+constexpr int BYTES_PER_WORD = 4; /* On the MIPS processor */
 
-/* Sizes of memory segments. */
+/* Sizes of memory segments.
+   The historical #ifndef X / #define X guards have been dropped —
+   no caller in the build system was using the override path.  If a
+   future need arises, prefer a meson_options.txt entry that the
+   build can feed in. */
 
-/* Initial size of text segment. */
+constexpr int TEXT_SIZE = 256 * K;   /* Initial text segment.  1/4 MB */
+constexpr int K_TEXT_SIZE = 64 * K;  /* Initial k_text segment.  64 KB */
 
-#ifndef TEXT_SIZE
-#define TEXT_SIZE (256 * K) /* 1/4 MB */
-#endif
-
-/* Initial size of k_text segment. */
-
-#ifndef K_TEXT_SIZE
-#define K_TEXT_SIZE (64 * K) /* 64 KB */
-#endif
-
-/* The data segment must be larger than 64K since we immediate grab
+/* The data segment must be larger than 64K since we immediately grab
    64K for the small data segment pointed to by $gp. The data segment is
    expanded by an sbrk system call. */
-
-/* Initial size of data segment. */
-
-#ifndef DATA_SIZE
-#define DATA_SIZE (256 * K) /* 1/4 MB */
-#endif
-
-/* Maximum size of data segment. */
-
-#ifndef DATA_LIMIT
-#define DATA_LIMIT (K * K) /* 1 MB */
-#endif
-
-/* Initial size of k_data segment. */
-
-#ifndef K_DATA_SIZE
-#define K_DATA_SIZE (64 * K) /* 64 KB */
-#endif
-
-/* Maximum size of k_data segment. */
-
-#ifndef K_DATA_LIMIT
-#define K_DATA_LIMIT (K * K) /* 1 MB */
-#endif
+constexpr int DATA_SIZE = 256 * K;      /* Initial data segment.  1/4 MB */
+constexpr int DATA_LIMIT = K * K;       /* Max data segment.  1 MB */
+constexpr int K_DATA_SIZE = 64 * K;     /* Initial k_data segment.  64 KB */
+constexpr int K_DATA_LIMIT = K * K;     /* Max k_data segment.  1 MB */
 
 /* The stack grows down automatically. */
-
-/* Initial size of stack segment. */
-
-#ifndef STACK_SIZE
-#define STACK_SIZE (64 * K) /* 64 KB */
-#endif
-
-/* Maximum size of stack segment. */
-
-#ifndef STACK_LIMIT
-#define STACK_LIMIT (256 * K) /* 1/4 MB */
-#endif
+constexpr int STACK_SIZE = 64 * K;      /* Initial stack segment.  64 KB */
+constexpr int STACK_LIMIT = 256 * K;    /* Max stack segment.  1/4 MB */
 
 /* Name of the function to invoke at start up */
 
@@ -124,10 +89,11 @@ typedef uint32_t mem_addr;
 #define END_OF_TRAP_HANDLER_SYMBOL "__eoth"
 
 /* Default number of instructions to execute. */
+constexpr int DEFAULT_RUN_STEPS = 2147483647;
 
-#define DEFAULT_RUN_STEPS 2147483647
-
-/* Address to branch to when exception occurs */
+/* Address to branch to when exception occurs.  Stays a macro because
+   the #ifdef MIPS1 branch selects between two values at preprocessing
+   time, which constexpr can't participate in. */
 #ifdef MIPS1
 /* MIPS R2000 */
 #define EXCEPTION_ADDR 0x80000080
@@ -137,32 +103,25 @@ typedef uint32_t mem_addr;
 #endif
 
 /* Maximum size of object stored in the small data segment pointed to by $gp */
+constexpr int SMALL_DATA_SEG_MAX_SIZE = 8;
 
-#define SMALL_DATA_SEG_MAX_SIZE 8
-
-#ifndef DIRECT_MAPPED
-#define DIRECT_MAPPED 0
-#define TWO_WAY_SET 1
-#endif
+constexpr int DIRECT_MAPPED = 0;
+constexpr int TWO_WAY_SET = 1;
 
 /* Interval (in instructions) at which memory-mapped IO registers are
    checked and updated. (This is to reduce overhead from making system calls
    to check for IO. It can be set as low as 1.) */
-
-#define IO_INTERVAL 100
+constexpr int IO_INTERVAL = 100;
 
 /* Number of IO_INTERVALs that a character remains in receiver buffer,
    even if another character is available. */
-
-#define RECV_INTERVAL 100
+constexpr int RECV_INTERVAL = 100;
 
 /* Number of IO_INTERVALs that it takes to write a character. */
+constexpr int TRANS_LATENCY = 100;
 
-#define TRANS_LATENCY 100
-
-/* Iterval (milliseconds) for the hardware timer in CP0. */
-
-#define TIMER_TICK_MS 10 /* 100 times per second */
+/* Interval (milliseconds) for the hardware timer in CP0. */
+constexpr int TIMER_TICK_MS = 10; /* 100 times per second */
 
 /* A port is either a Unix file descriptor (an int) or a FILE* pointer. */
 

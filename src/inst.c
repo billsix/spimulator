@@ -219,8 +219,8 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
     int32_t offset;
 
     if (expr->symbol != nullptr && expr->symbol->gp_flag && rs == 0 &&
-        (int32_t)IMM_MIN <= (offset = expr->symbol->addr + expr->offset) &&
-        offset <= (int32_t)IMM_MAX) {
+        IMM_MIN <= (offset = expr->symbol->addr + expr->offset) &&
+        offset <= IMM_MAX) {
       i_type_inst_free(opcode, rt, REG_GP,
                        make_imm_expr(offset, nullptr, false));
     } else if (value_known) {
@@ -267,8 +267,8 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
     int offset;
 
     if (expr->symbol != nullptr && expr->symbol->gp_flag && rs == 0 &&
-        (int32_t)IMM_MIN <= (offset = expr->symbol->addr + expr->offset) &&
-        offset <= (int32_t)IMM_MAX) {
+        IMM_MIN <= (offset = expr->symbol->addr + expr->offset) &&
+        offset <= IMM_MAX) {
       i_type_inst_free((opcode == TOK_LUI_OP ? TOK_ADDIU_OP : opcode), rt,
                        REG_GP, make_imm_expr(offset, nullptr, false));
     } else {

@@ -25,13 +25,12 @@ extern instruction** text_seg;
 
 extern bool text_modified; /* => text segment was written */
 
-#define TEXT_BOT ((mem_addr)0x400000)
+constexpr mem_addr TEXT_BOT = 0x400000;
 
 extern mem_addr text_top;
 
 /* Amount to grow text segment when we run out of space for instructions. */
-
-#define TEXT_CHUNK_SIZE 4096
+constexpr int TEXT_CHUNK_SIZE = 4096;
 
 /* The data segment and boundaries. */
 
@@ -43,7 +42,7 @@ extern short* data_seg_h; /* Points to same vector as DATA_SEG */
 
 extern int8_t* data_seg_b; /* Ditto */
 
-#define DATA_BOT ((mem_addr)0x10000000)
+constexpr mem_addr DATA_BOT = 0x10000000;
 
 extern mem_addr data_top;
 
@@ -60,14 +59,13 @@ extern int8_t* stack_seg_b; /* Ditto */
 extern mem_addr stack_bot;
 
 /* Exclusive, but include 4K at top of stack. */
-
-#define STACK_TOP ((mem_addr)0x80000000)
+constexpr mem_addr STACK_TOP = 0x80000000;
 
 /* The kernel text segment and boundaries. */
 
 extern instruction** k_text_seg;
 
-#define K_TEXT_BOT ((mem_addr)0x80000000)
+constexpr mem_addr K_TEXT_BOT = 0x80000000;
 
 extern mem_addr k_text_top;
 
@@ -79,31 +77,31 @@ extern short* k_data_seg_h;
 
 extern int8_t* k_data_seg_b;
 
-#define K_DATA_BOT ((mem_addr)0x90000000)
+constexpr mem_addr K_DATA_BOT = 0x90000000;
 
 extern mem_addr k_data_top;
 
 /* Memory-mapped IO area: */
-#define MM_IO_BOT ((mem_addr)0xffff0000)
-#define MM_IO_TOP ((mem_addr)0xffffffff)
+constexpr mem_addr MM_IO_BOT = 0xffff0000;
+constexpr mem_addr MM_IO_TOP = 0xffffffff;
 
 /* Read from console: */
-#define RECV_CTRL_ADDR ((mem_addr)0xffff0000)
-#define RECV_BUFFER_ADDR ((mem_addr)0xffff0004)
+constexpr mem_addr RECV_CTRL_ADDR = 0xffff0000;
+constexpr mem_addr RECV_BUFFER_ADDR = 0xffff0004;
 
-#define RECV_READY 0x1
-#define RECV_INT_ENABLE 0x2
+constexpr uint32_t RECV_READY = 0x1;
+constexpr uint32_t RECV_INT_ENABLE = 0x2;
 
-#define RECV_INT_LEVEL 3 /* HW Interrupt 1 */
+constexpr int RECV_INT_LEVEL = 3; /* HW Interrupt 1 */
 
 /* Write to console: */
-#define TRANS_CTRL_ADDR ((mem_addr)0xffff0008)
-#define TRANS_BUFFER_ADDR ((mem_addr)0xffff000c)
+constexpr mem_addr TRANS_CTRL_ADDR = 0xffff0008;
+constexpr mem_addr TRANS_BUFFER_ADDR = 0xffff000c;
 
-#define TRANS_READY 0x1
-#define TRANS_INT_ENABLE 0x2
+constexpr uint32_t TRANS_READY = 0x1;
+constexpr uint32_t TRANS_INT_ENABLE = 0x2;
 
-#define TRANS_INT_LEVEL 2 /* HW Interrupt 0 */
+constexpr int TRANS_INT_LEVEL = 2; /* HW Interrupt 0 */
 
 /* Exported functions: */
 

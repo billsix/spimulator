@@ -116,17 +116,20 @@ typedef struct inst_s {
 #define SOURCE(INST) (INST)->source_line
 #define SET_SOURCE(INST, VAL) (INST)->source_line = (char*)(VAL)
 
-#define COND_UN 0x1
-#define COND_EQ 0x2
-#define COND_LT 0x4
-#define COND_IN 0x8
+/* FP-compare condition flag bits, OR'd together to build the
+   condition field of c.cond.fmt instructions. */
+constexpr uint32_t COND_UN = 0x1;
+constexpr uint32_t COND_EQ = 0x2;
+constexpr uint32_t COND_LT = 0x4;
+constexpr uint32_t COND_IN = 0x8;
 
-/* Minimum and maximum values that fit in instruction's imm field */
-#define IMM_MIN 0xffff8000
-#define IMM_MAX 0x00007fff
+/* Minimum and maximum values that fit in instruction's imm field
+   (signed 16-bit and unsigned 16-bit respectively). */
+constexpr int32_t IMM_MIN = -0x8000;
+constexpr int32_t IMM_MAX = 0x7fff;
 
-#define UIMM_MIN (unsigned)0
-#define UIMM_MAX ((unsigned)((1 << 16) - 1))
+constexpr uint32_t UIMM_MIN = 0;
+constexpr uint32_t UIMM_MAX = 0xffff;
 
 /* Raise an exception! */
 
