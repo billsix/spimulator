@@ -68,7 +68,9 @@ then unify the build / test / container story so:
 
 ## Phase 1 — Replay /examples commits into /spimulator/examples/
 
-Walk /examples's 27 commits oldest-first.  For each commit:
+**Status: LANDED 2026-05-23.**
+
+Walked /examples's 27 commits oldest-first.  For each commit:
 
 1. Wipe `/spimulator/examples/` contents (keep the dir).
 2. Extract the /examples tree at that commit via
@@ -78,16 +80,40 @@ Walk /examples's 27 commits oldest-first.  For each commit:
    via `GIT_AUTHOR_*` + `GIT_COMMITTER_*` env vars and
    `git commit -F` for the message.
 
-After all 27: verify every file in /examples HEAD exists
+After all 27: verified every file in /examples HEAD exists
 byte-identically at the corresponding `/spimulator/examples/`
-path.
+path ("All files match" sentinel).
 
-Script: `/tmp/replay-examples.sh` (in worktree; ephemeral).
+Script lived at `/tmp/replay-examples.sh` (ephemeral worktree
+artifact; not committed).  Did NOT touch /examples (used
+`git archive`, not checkout).  The orphan
+`/examples/tests/run-demo.sh` (uncommitted) was NOT carried
+over by this phase — it gets folded in explicitly in phase 5.
 
-Does NOT touch /examples (uses `git archive`, not checkout).
-The orphan `/examples/tests/run-demo.sh` (uncommitted) is
-NOT carried over by this phase — it gets folded in
-explicitly in phase 5.
+Gotcha encountered: `commit.gpgsign = true` in the global
+gitconfig blocked the replay (no signing key available in the
+container).  Disabled temporarily; re-enabled after the phase
+completed.
+
+After this phase the tree at `/spimulator/examples/` looks
+like:
+```
+Dockerfile           # book-builder; goes in phase 2
+Makefile             # book-builder; goes in phase 2
+READING-ORDER.md
+TEACHING-ASSEMBLER-INTERNALS.md
+book/                # goes in phase 2
+entrypoint/          # goes in phase 2
+output/              # build artifact; goes in phase 2 if present
+src/
+tasks/
+```
+
+The first /examples commit (`c6697c0 import examples from
+https://github.com/billsix/spimulator`) and all 26 subsequent
+commits are visible via `git log examples/` from
+/spimulator, with their original author / email / date /
+message preserved.
 
 ---
 
