@@ -939,6 +939,33 @@ static void write_bits(char* out, uint32_t val, int hi, int lo) {
   out[width] = '\0';
 }
 
+/* Render an 8-column hex/binary table showing the 32-bit encoding
+   broken into nibbles.  Row 1 is the hex digit, row 2 is its 4-bit
+   binary equivalent.  Helps students trace `0x0c10000a` back to
+   the bits the CPU's decoder actually sees.
+
+   The nibble boundaries don't align with MIPS field boundaries
+   (e.g. the 6-bit opcode crosses two nibbles); the field-layout box
+   below this table shows the field-aligned grouping. */
+static void render_hex_bin_table(uint32_t enc) {
+  char n[8][5];
+  for (int i = 0; i < 8; i++) {
+    int hi = 31 - 4 * i;
+    write_bits(n[i], enc, hi, hi - 3);
+  }
+  write_output(
+      message_out,
+      "    ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┐\n"
+      "    │ hex │  %x  │  %x  │  %x  │  %x  │  %x  │  %x  │  %x  │  %x  │\n"
+      "    ├─────┼─────┼─────┼─────┼─────┼─────┼─────┼─────┼─────┤\n"
+      "    │ bin │%s │%s │%s │%s │%s │%s │%s │%s │\n"
+      "    └─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘\n",
+      (enc >> 28) & 0xf, (enc >> 24) & 0xf, (enc >> 20) & 0xf,
+      (enc >> 16) & 0xf, (enc >> 12) & 0xf, (enc >> 8) & 0xf,
+      (enc >> 4) & 0xf, enc & 0xf,
+      n[0], n[1], n[2], n[3], n[4], n[5], n[6], n[7]);
+}
+
 static void render_r_layout(uint32_t enc, const char* mnemonic) {
   char b_op[7], b_rs[6], b_rt[6], b_rd[6], b_sh[6], b_fn[7];
   write_bits(b_op, enc, 31, 26);
@@ -958,8 +985,9 @@ static void render_r_layout(uint32_t enc, const char* mnemonic) {
                       : (op == 0x1f) ? "SPECIAL3"
                                      : "?";
 
+  write_output(message_out, "  Bit layout (R-type, encoding 0x%08x):\n", enc);
+  render_hex_bin_table(enc);
   write_output(message_out,
-               "  Bit layout (R-type, encoding 0x%08x):\n"
                "     31    26 25  21 20  16 15  11 10   6 5     0\n"
                "    ┌────────┬───────┬───────┬───────┬───────┬────────┐\n"
                "    │ %s │ %s │ %s │ %s │ %s │ %s │\n"
@@ -968,7 +996,7 @@ static void render_r_layout(uint32_t enc, const char* mnemonic) {
                "       = %-2d   = $%-4s = $%-4s = $%-4s   = %-2d    = 0x%02x\n"
                "    -> opcode=0x%02x (%s) tells the CPU to look at funct;\n"
                "       funct=0x%02x selects the `%s` instruction.\n",
-               enc, b_op, b_rs, b_rt, b_rd, b_sh, b_fn, op, int_reg_names[rs],
+               b_op, b_rs, b_rt, b_rd, b_sh, b_fn, op, int_reg_names[rs],
                int_reg_names[rt], int_reg_names[rd], shamt, funct, op, group,
                funct, mnemonic);
 }
@@ -985,8 +1013,9 @@ static void render_i_layout(uint32_t enc, const char* mnemonic) {
   int16_t imm_s = (int16_t)(enc & 0xffff);
   uint16_t imm_u = (uint16_t)(enc & 0xffff);
 
+  write_output(message_out, "  Bit layout (I-type, encoding 0x%08x):\n", enc);
+  render_hex_bin_table(enc);
   write_output(message_out,
-               "  Bit layout (I-type, encoding 0x%08x):\n"
                "     31    26 25  21 20  16 15                 0\n"
                "    ┌────────┬───────┬───────┬──────────────────┐\n"
                "    │ %s │ %s │ %s │ %s │\n"
@@ -994,7 +1023,7 @@ static void render_i_layout(uint32_t enc, const char* mnemonic) {
                "      opcode    rs      rt        immediate (16-bit)\n"
                "      = 0x%02x  = $%-4s = $%-4s   = %d  (signed) / 0x%04x\n"
                "    -> opcode=0x%02x selects the `%s` instruction.\n",
-               enc, b_op, b_rs, b_rt, b_im, op, int_reg_names[rs],
+               b_op, b_rs, b_rt, b_im, op, int_reg_names[rs],
                int_reg_names[rt], (int)imm_s, imm_u, op, mnemonic);
 }
 
@@ -1005,8 +1034,9 @@ static void render_j_layout(uint32_t enc, const char* mnemonic) {
   int op = (enc >> 26) & 0x3f;
   uint32_t target = enc & 0x03ffffff;
 
+  write_output(message_out, "  Bit layout (J-type, encoding 0x%08x):\n", enc);
+  render_hex_bin_table(enc);
   write_output(message_out,
-               "  Bit layout (J-type, encoding 0x%08x):\n"
                "     31    26 25                          0\n"
                "    ┌────────┬────────────────────────────┐\n"
                "    │ %s │ %s │\n"
@@ -1015,7 +1045,7 @@ static void render_j_layout(uint32_t enc, const char* mnemonic) {
                "      = 0x%02x  = 0x%07x  ->  jump addr = (PC[31:28] | "
                "target<<2) = 0x%08x\n"
                "    -> opcode=0x%02x selects the `%s` instruction.\n",
-               enc, b_op, b_tg, op, target,
+               b_op, b_tg, op, target,
                (snap_PC & 0xf0000000u) | (target << 2), op, mnemonic);
 }
 
@@ -1339,7 +1369,9 @@ static void explain_decoding_steps(mips_instruction* instruction) {
   const char* mnemonic = inst_op_name(instruction);
   int op = (enc >> 26) & 0x3f;
 
-  write_output(message_out, "  Decoding 0x%08x step by step:\n\n", enc);
+  write_output(message_out, "  Decoding 0x%08x step by step:\n", enc);
+  render_hex_bin_table(enc);
+  write_output(message_out, "\n");
 
   if (op == 0x00 || op == 0x1c || op == 0x1f) {
     const char* group = (op == 0x00)   ? "SPECIAL"
