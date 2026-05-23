@@ -36,6 +36,22 @@ io_lib = static_library('examples_io',
   ),
 )
 
+# libctype — ASCII character classification + case conversion.
+# Adapted from musl libc src/ctype/.  See src/lib/libctype/LICENSE-musl.
+libctype_lib = static_library('libctype',
+  files(
+    'lib/libctype/isdigit.c',
+    'lib/libctype/isalpha.c',
+    'lib/libctype/isalnum.c',
+    'lib/libctype/isupper.c',
+    'lib/libctype/islower.c',
+    'lib/libctype/isspace.c',
+    'lib/libctype/toupper.c',
+    'lib/libctype/tolower.c',
+  ),
+)
+libctype_inc = include_directories('lib/libctype')
+
 # Demos can find io.h / os.h here.
 inc = include_directories('.')
 
@@ -102,6 +118,21 @@ foreach demo : demos
     demo[1],
     include_directories: inc,
     link_with: io_lib,
+    install: true,
+  )
+endforeach
+
+# Library demos — pair a tiny demo program with its library.
+# Each entry: [target_name, source_path, link_with_lib, extra_includes]
+lib_demos = [
+  ['ctype-demo', 'lib/libctype-demo/ctype-demo.c', libctype_lib, libctype_inc],
+]
+
+foreach demo : lib_demos
+  executable(demo[0],
+    demo[1],
+    include_directories: [inc, demo[3]],
+    link_with: [io_lib, demo[2]],
     install: true,
   )
 endforeach
