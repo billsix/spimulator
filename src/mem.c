@@ -19,7 +19,7 @@ mem_addr PC, nPC;
 double* FPR; /* Dynamically allocate so overlay */
 float* FGR;  /* is possible */
 int* FWR;    /* is possible */
-reg_word CCR[4][32], CPR[4][32];
+reg_word coprocessor_control_registers[4][32], coprocessor_registers[4][32];
 
 instruction** text_seg;
 bool text_modified; /* => text segment was written */

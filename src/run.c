@@ -328,7 +328,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break; /* Memory details not implemented */
 
         case TOK_CFC0_OP:
-          R[RT(inst)] = CCR[0][RD(inst)];
+          R[RT(inst)] = coprocessor_control_registers[0][RD(inst)];
           break;
 
         case TOK_CFC2_OP:
@@ -348,7 +348,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
 
         case TOK_CTC0_OP:
-          CCR[0][RD(inst)] = R[RT(inst)];
+          coprocessor_control_registers[0][RD(inst)] = R[RT(inst)];
           break;
 
         case TOK_CTC2_OP:
@@ -572,7 +572,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         }
 
         case TOK_MFC0_OP:
-          R[RT(inst)] = CPR[0][FS(inst)];
+          R[RT(inst)] = coprocessor_registers[0][FS(inst)];
           break;
 
         case TOK_MFC2_OP:
@@ -618,7 +618,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         }
 
         case TOK_MTC0_OP:
-          CPR[0][FS(inst)] = R[RT(inst)];
+          coprocessor_registers[0][FS(inst)] = R[RT(inst)];
           switch (FS(inst)) {
             case CP0_Compare_Reg:
               CP0_Cause &= ~CP0_Cause_IP7; /* Writing clears HW interrupt 5 */
@@ -630,11 +630,11 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
               break;
 
             case CP0_Cause_Reg:
-              CPR[0][FS(inst)] &= CP0_Cause_Mask;
+              coprocessor_registers[0][FS(inst)] &= CP0_Cause_Mask;
               break;
 
             case CP0_Config_Reg:
-              CPR[0][FS(inst)] &= CP0_Config_Mask;
+              coprocessor_registers[0][FS(inst)] &= CP0_Config_Mask;
               break;
 
             default:
