@@ -98,10 +98,10 @@ the trace makes those absolute numbers concretely visible.
 ### Register-name discipline
 
 All `.asm` files use the ABI name the source line uses.  The
-disassembler emits `$s8` for
-register 30; we always write `$fp` because that's what the source
-says.  Same for `$r0` → `$0`.  The numbered aliases live in
-`REFERENCE-encodings.md` and nowhere else.
+disassembler now emits `$fp` for register 30 (it used to emit
+`$s8`, the older callee-save name — see `REFERENCE-encodings.md`).
+The one remaining inconsistency: register 0 prints as `$r0` in
+disassembly even though sources usually write `$0` or `$zero`.
 
 ### The "set `$v0` before `jr $ra`" lesson lives in exit
 

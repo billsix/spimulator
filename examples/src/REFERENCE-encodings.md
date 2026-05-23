@@ -19,7 +19,7 @@ seen in the demos:
 
 | Source                 | Real instruction       | Hex word    |
 |------------------------|------------------------|-------------|
-| `move $fp, $sp`        | `addu $s8, $0, $sp`    | `0x001df021`|
+| `move $fp, $sp`        | `addu $fp, $0, $sp`    | `0x001df021`|
 | `mult $a1, $a0`        | `mult $a1, $a0`        | `0x00850018`|
 | `mflo $v0`             | `mflo $v0`             | `0x00001012`|
 | `addu $v0, $a2, $v0`   | `addu $v0, $a2, $v0`   | `0x00c21021`|
@@ -43,12 +43,12 @@ and the lower half is zero.  Examples:
 
 | Source                | Real instruction        | Hex word    |
 |-----------------------|-------------------------|-------------|
-| `addi $fp, $fp, -4`   | `addi $s8, $s8, -4`     | `0x23defffc`|
+| `addi $fp, $fp, -4`   | `addi $fp, $fp, -4`     | `0x23defffc`|
 | `li $t0, 0`           | `ori $t0, $0, 0`        | `0x34080000`|
 | `li $v0, 4`           | `ori $v0, $0, 4`        | `0x34020004`|
 | `la $a0, helloworld`* | `lui $a0, 0x1001`       | `0x3c041001`|
-| `lw $v0, 0($fp)`      | `lw $v0, 0($s8)`        | `0x8fc20000`|
-| `sw $t0, 0($fp)`      | `sw $t0, 0($s8)`        | `0xafc80000`|
+| `lw $v0, 0($fp)`      | `lw $v0, 0($fp)`        | `0x8fc20000`|
+| `sw $t0, 0($fp)`      | `sw $t0, 0($fp)`        | `0xafc80000`|
 | `beq $t0, 'a', label` | `beq $t0, ..., offset`  | varies      |
 
 \* `la` is a one-word encoding only when the symbol's low 16 bits
@@ -84,13 +84,13 @@ address of the next instruction) into `$ra` before jumping.
 
 ## Register name ↔ number cheat sheet
 
-The disassembler emits the ABI register names in some places
-(`$sp`, `$ra`, `$fp`, `$a0`) and the numbered forms in others
-(`$s8`, `$r0`).  They're the same registers:
+The disassembler emits ABI names everywhere (`$sp`, `$ra`, `$fp`,
+`$a0`, etc.), with one quirk: register 0 prints as `$r0` rather
+than the more conventional `$zero` or `$0`.
 
 | Number | ABI name | Use                            |
 |--------|----------|--------------------------------|
-| `$0`   | `$zero`  | hard-wired zero                |
+| `$0`   | `$zero` (`$r0`) | hard-wired zero         |
 | `$1`   | `$at`    | assembler temporary            |
 | `$2`–`$3` | `$v0`,`$v1` | return values             |
 | `$4`–`$7` | `$a0`–`$a3` | first 4 args              |
@@ -98,12 +98,12 @@ The disassembler emits the ABI register names in some places
 | `$16`–`$23` | `$s0`–`$s7` | callee-save regs          |
 | `$28`  | `$gp`    | global pointer                 |
 | `$29`  | `$sp`    | stack pointer                  |
-| `$30`  | `$s8`    | **also `$fp`** — frame pointer |
+| `$30`  | `$fp`    | frame pointer (a.k.a. `$s8`)   |
 | `$31`  | `$ra`    | return address                 |
 
-The disassembled `addu $s8, $0, $sp` and the source `move $fp, $sp`
-are the same instruction — `$fp` is just the assembler's name for
-register 30.
+The scanner also accepts `$s8` as input for register 30 — it's
+the older callee-save name for the same register — but the
+disassembler prints it as `$fp` everywhere.
 
 ## How to read the trace output
 
