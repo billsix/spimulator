@@ -65,7 +65,7 @@ void initialize_symbol_table(void) {
 static void get_hash(char* name, int* slot_no, label** entry) {
   int hi;
   int i;
-  label* lab;
+  label* cursor;
   int len;
 
   /* Compute length of name in len.  */
@@ -80,9 +80,9 @@ static void get_hash(char* name, int* slot_no, label** entry) {
 
   *slot_no = hi;
   /* Search table for entry */
-  for (lab = label_hash_table[hi]; lab; lab = lab->next)
-    if (streq(lab->name, name)) {
-      *entry = lab; /* <-- return if found */
+  for (cursor = label_hash_table[hi]; cursor; cursor = cursor->next)
+    if (streq(cursor->name, name)) {
+      *entry = cursor; /* <-- return if found */
       return;
     }
   *entry = nullptr;
@@ -105,24 +105,24 @@ label* label_is_defined(char* name) {
 
 label* lookup_label(char* name) {
   int hi;
-  label *entry, *lab;
+  label *entry, *new_entry;
 
   get_hash(name, &hi, &entry);
 
   if (entry != nullptr) return (entry);
 
   /* Not found, create one, add to chain */
-  lab = (label*)xmalloc(sizeof(label));
-  lab->name = str_copy(name);
-  lab->addr = 0;
-  lab->global_flag = 0;
-  lab->const_flag = 0;
-  lab->gp_flag = 0;
-  lab->uses = nullptr;
+  new_entry = (label*)xmalloc(sizeof(label));
+  new_entry->name = str_copy(name);
+  new_entry->addr = 0;
+  new_entry->global_flag = 0;
+  new_entry->const_flag = 0;
+  new_entry->gp_flag = 0;
+  new_entry->uses = nullptr;
 
-  lab->next = label_hash_table[hi];
-  label_hash_table[hi] = lab;
-  return lab; /* <-- return if created */
+  new_entry->next = label_hash_table[hi];
+  label_hash_table[hi] = new_entry;
+  return new_entry; /* <-- return if created */
 }
 
 /* Record that the label named NAME refers to ADDRESS.	If RESOLVE_USES is
@@ -315,16 +315,17 @@ void flush_local_labels(int issue_undef_warnings) {
 
   for (l = local_labels; l != nullptr; l = l->next_local) {
     int hi;
-    label *entry, *lab, *p;
+    label *entry, *cursor, *prev;
 
     get_hash(l->name, &hi, &entry);
 
-    for (lab = label_hash_table[hi], p = nullptr; lab; p = lab, lab = lab->next)
-      if (lab == entry) {
-        if (p == nullptr)
-          label_hash_table[hi] = lab->next;
+    for (cursor = label_hash_table[hi], prev = nullptr; cursor;
+         prev = cursor, cursor = cursor->next)
+      if (cursor == entry) {
+        if (prev == nullptr)
+          label_hash_table[hi] = cursor->next;
         else
-          p->next = lab->next;
+          prev->next = cursor->next;
         if (issue_undef_warnings && entry->addr == 0 && !entry->const_flag)
           error("Warning: local symbol %s was not defined\n", entry->name);
         /* Can't free label since IMM_EXPR's still reference it */

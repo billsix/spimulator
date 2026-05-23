@@ -14,7 +14,7 @@
 
 typedef struct immexpr {
   int offset;         /* Offset from symbol */
-  struct lab* symbol; /* Symbolic label */
+  struct label* symbol; /* Symbolic label */
   short bits;         /* > 0 => 31..16, < 0 => 15..0 */
   bool pc_relative;   /* => offset from label in code */
 } imm_expr;

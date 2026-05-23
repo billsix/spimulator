@@ -459,7 +459,7 @@ static void emit_dir_seg(ast_kind kind, bool kernel, bool has_addr,
    addresses via fix_current_label_address. */
 
 typedef struct label_cell {
-  label* lab;
+  label* label;
   struct label_cell* next;
 } label_cell;
 
@@ -471,7 +471,7 @@ static bool auto_align = true;
 
 static void cons_label(label* l) {
   label_cell* c = (label_cell*)xmalloc(sizeof(label_cell));
-  c->lab = l;
+  c->label = l;
   c->next = this_line_labels;
   this_line_labels = c;
 }
@@ -480,7 +480,7 @@ static void cons_label(label* l) {
 static void clear_labels(void) {
   while (this_line_labels != nullptr) {
     label_cell* next = this_line_labels->next;
-    resolve_label_uses(this_line_labels->lab);
+    resolve_label_uses(this_line_labels->label);
     free(this_line_labels);
     this_line_labels = next;
   }
@@ -493,7 +493,7 @@ static void clear_labels(void) {
    the PC to its aligned position. */
 void fix_current_label_address(mem_addr new_addr) {
   for (label_cell* c = this_line_labels; c != nullptr; c = c->next) {
-    c->lab->addr = new_addr;
+    c->label->addr = new_addr;
   }
 }
 /* Internal call sites kept under the old name to minimise churn. */

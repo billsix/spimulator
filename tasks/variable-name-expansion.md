@@ -252,6 +252,84 @@ gain on a name that already reads cleanly to the audience.
 
 If proceeding, default to `instruction` (fully spelled).
 
+## Phase 10 — Source file name expansion
+
+Rename the source files whose names are abbreviated.  Touches
+the meson source list and every `#include` of the affected
+headers across the rest of the tree.
+
+### Renames
+
+| Current | Proposed | Reason |
+|---|---|---|
+| `src/sym-tbl.{c,h}` | `src/symbol-table.{c,h}` | Two words abbreviated: `sym` + `tbl`.  Saves no real space; loses readability. |
+| `src/inst.{c,h}` | `src/instruction.{c,h}` | Aligns with Phase 9 if taken.  Skip this rename if Phase 9 is skipped. |
+| `src/reg.{c,h}` | `src/registers.{c,h}` | `reg` is fine in code; less so as a filename. |
+| `src/mem.{c,h}` | `src/memory.{c,h}` | Same shape. |
+| `include/op.h` | `include/opcodes.h` | "op" is ambiguous (operation? operand? opcode?).  Spelling clarifies. |
+| `include/op-types.h` | `include/opcode-types.h` | Same. |
+| `src/asm_event.{c,h}` | `src/assembler-event.{c,h}` | Also normalizes `_` → `-` to match the project's predominant separator (see "Style note" below). |
+| `src/pseudo_op.{c,h}` | `src/pseudo-op.{c,h}` | Separator normalization only — `pseudo-op` reads fine. |
+| `src/dump_ops.c` | `src/dump-opcodes.c` | Both the word expansion and separator normalization.  This file is a standalone utility not in the regular build, so the rename touches only one file. |
+
+### Style note: `-` vs `_` in filenames
+
+The project currently mixes both:
+
+- `-`: `display-utils`, `op-types`, `spim-syscall`, `spim-utils`, `string-stream`, `sym-tbl` (6 files)
+- `_`: `asm_event`, `pseudo_op`, `dump_ops` (3 files)
+
+Project leans `-`.  Phase 10 normalizes the `_` files to `-`
+alongside their word expansion.
+
+### Files left alone
+
+These are already single-word and clear:
+
+- `ast`, `data`, `explain`, `parser`, `run`, `scanner`, `spim`,
+  `syscall`, `tokens`, `version`
+- The `-` files that already use full words:
+  `display-utils`, `string-stream`, `spim-syscall`, `spim-utils`
+
+### Mechanics
+
+Per file:
+
+1. `git mv old.c new.c` (and the `.h` partner) — preserves git
+   history detection.
+2. Update `meson.build`'s `source_files = files(...)` list.
+3. `grep -rln '#include "old.h"' src include` then sed-rename
+   every `#include` site.
+4. Build, test.
+5. If the renamed file is a header that consumers reference by
+   a relative path (e.g. inside `tasks/archive/` doc snippets),
+   update those too — minor.
+
+Order within the phase: do one rename at a time and rebuild
+between each, so any missed `#include` site fails the build
+loudly rather than getting buried in a multi-file mass rename.
+
+### Scope
+
+- 9 file pairs to rename = ~14 actual files (some are .c-only).
+- Each rename touches the meson list + 2-8 `#include` sites.
+- Total `#include` rewrites: ~40-50.
+
+### Effort
+
+~2 hours for the mechanical work + verification.  Could be
+faster (one big sed) but the one-at-a-time pace makes
+catching missed sites trivial.
+
+**Risk:** low — the build immediately fails on any missed
+`#include`, no silent breakage possible.
+
+### Pairs with Phase 9
+
+If Phase 9 (`inst` → `instruction`) is skipped, also skip the
+`src/inst.{c,h}` → `src/instruction.{c,h}` line of Phase 10.
+The other 8 file renames stand on their own.
+
 ## What's intentionally left alone
 
 These names look abbreviated but are actually MIPS-standard;
@@ -278,7 +356,9 @@ Phase 3-4 surface the multiply-shadow footgun which is the
 single most concrete win in the plan; Phase 5-6 are the
 biggest readability wins (CPR/CCR/FPR-family alphabet soup);
 Phase 7 is the judgment call (commit, look at the diff,
-decide); Phase 8 is cosmetic; Phase 9 is optional.
+decide); Phase 8 is cosmetic; Phase 9 is optional; Phase 10
+(file renames) lands last so it can incorporate any Phase 9
+outcome.
 
 Each phase is one commit on a single rename branch (say
 `variable-name-expansion`), matching the per-phase-commit
@@ -297,6 +377,7 @@ merge to master.
 | 6 | `FPR`/`FGR`/`FWR` → `fp_*_view` | 1 hour | low |
 | 7 | `R` → `gpr` | 1 hour | low |
 | 8 | `K` → inline `1024` | 10 min | none |
+| 10 | source file names expanded | 2 hours | low |
 | 9 | `inst` → `instruction` (optional) | 1-2 hours | low |
 
 **Total (phases 1-8): roughly a half-day of work.**

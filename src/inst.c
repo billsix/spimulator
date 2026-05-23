@@ -1025,11 +1025,12 @@ bool is_zero_imm(imm_expr* expr) {
 
 addr_expr* make_addr_expr(int offs, char* sym, int reg_no) {
   addr_expr* expr = (addr_expr*)xmalloc(sizeof(addr_expr));
-  label* lab;
+  label* looked_up;
 
-  if (reg_no == 0 && sym != nullptr && (lab = lookup_label(sym))->gp_flag) {
+  if (reg_no == 0 && sym != nullptr && (looked_up = lookup_label(sym))->gp_flag) {
     expr->reg_no = REG_GP;
-    expr->imm = make_imm_expr(offs + lab->addr - gp_midpoint, nullptr, false);
+    expr->imm =
+        make_imm_expr(offs + looked_up->addr - gp_midpoint, nullptr, false);
   } else {
     expr->reg_no = (unsigned char)reg_no;
     expr->imm = make_imm_expr(offs, (sym ? str_copy(sym) : sym), false);
