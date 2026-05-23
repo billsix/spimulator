@@ -349,16 +349,67 @@ already removed in phase 2).
 
 ## Phase 7 — Final verification
 
-- `meson test -C builddir` from /spimulator root: 29/29 pass.
-- `podman build -t spimulator .` succeeds end-to-end.
-- Spot-check a few demos by hand:
-  - `spimulator -f examples/src/lib/libctype/libctype.asm
-       -f examples/src/lib/libctype-demo/ctype-demo.asm`
-  - Same for atoi/abs/bsearch/exit/atexit
-- `git log examples/` shows the 27 historical /examples
-  commits plus the post-merge cleanup commits.
-- After all the above passes: tell Bill it's done so he can
-  delete the standalone /examples repo.
+**Status: LANDED 2026-05-23.  Merge complete; standalone
+/examples can be deleted whenever Bill is ready.**
+
+All checks pass:
+
+- ✅ **`meson test -C builddir` passes** — 29/29 (23 spim
+  regression + 6 examples-suite).  Verified locally.
+- ✅ **`podman build -t spimulator .` succeeds end-to-end**
+  (Bill ran this outside the container).  Because line 95 of
+  the Dockerfile is `RUN meson test -C ${SPIM_BUILD_DIR}
+  --print-errorlogs`, a successful build means every test
+  inside the build passed — including all 6 examples-suite
+  demos with their dual-side goldens enforced.
+- ✅ **Spot-checked 3 demos by hand with the post-merge
+  paths**:
+  ```
+  spimulator -f examples/src/lib/libctype/libctype.asm \
+             -f examples/src/lib/libctype-demo/ctype-demo.asm
+  ```
+  Produced 95-line printable-ASCII table.
+  ```
+  spimulator -f examples/src/lib/libctype/libctype.asm \
+             -f examples/src/lib/libstdlib/libstdlib.asm \
+             -f examples/src/lib/libstdlib-demo/bsearch-demo.asm
+  ```
+  Produced 9 lines (5 hits + 4 misses).
+  ```
+  spimulator -f examples/src/lib/libctype/libctype.asm \
+             -f examples/src/lib/libstdlib/libstdlib.asm \
+             -f examples/src/lib/libstdlib-demo/atexit-demo.asm
+  ```
+  Produced 4 lines in LIFO order, exit status 42.
+- ✅ **`git log examples/`** shows 45 commits touching the
+  examples tree, including the 27 historical /examples
+  commits (preserved with original author/email/date/message
+  via phase 1's manual replay) and the post-merge cleanup
+  commits (phases 2-6).
+
+---
+
+## Overall task status
+
+**LANDED 2026-05-23.**
+
+7 phases across one day:
+1. Replay /examples commits (27 commits, original metadata)
+2. Prune book/Sphinx/Makefile/Dockerfile/output (10 paths)
+3. Cross-reference sweep (15 files updated)
+4. Task/plan merger (13 files + new tasks/README.md)
+5. Build integration (subdir, scoped flags, 6 demo tests in
+   examples meson suite; orphan run-demo.sh folded in)
+6. Dockerfile rewrite (3 small edits: diffutils, examples
+   COPY, comment refresh)
+7. Final verification (this section)
+
+Bill can now safely delete the standalone /examples repo.
+The merge preserves full history; nothing is lost.
+
+Candidate for `tasks/archive/` since the work is done;
+left at top level for now in case useful while
+deleting /examples or onboarding a future contributor.
 
 ---
 
