@@ -227,11 +227,11 @@ Both are common patterns in projects that use tree-sitter.
 
 | Phase | Description | Effort |
 |---|---|---|
-| 0 | Write a minimal `grammar.js` covering integer R/I/J + .data/.text/.word/.asciiz + labels.  Test against /examples/01-helloworld.asm. | ~3 days |
+| 0 | Write a minimal `grammar.js` covering integer R/I/J + .data/.text/.word/.asciiz + labels.  Test against examples/01-helloworld.asm. | ~3 days |
 | 1 | Extend grammar to cover the full keyword surface (390 entries from op.h).  Mostly mechanical; needs a small generator to convert op.h to grammar terminals. | ~3 days |
 | 2 | Write the tree walker that drives spim's runtime emit functions.  Most cases mirror `parse_asm_code`. | ~5 days |
 | 3 | Add to meson.build, decide commit-vs-regenerate, document in README, add Node to Dockerfile. | ~2 days |
-| 4 | Build a parity harness comparing hand-parser to tree-sitter-walker output for every `/examples/*.asm` and `tests/tt.*.s`.  Iterate until byte-clean. | ~5 days |
+| 4 | Build a parity harness comparing hand-parser to tree-sitter-walker output for every `examples/*.asm` and `tests/tt.*.s`.  Iterate until byte-clean. | ~5 days |
 | 5 | Cutover: flip the default parser, keep hand parser as `-parser=hand` fallback for a settling period (echoing Phase 5 of the bison migration), then remove. | ~3 days work + ~2 weeks wall clock |
 | **Total** | | **~3-4 weeks of active work** |
 
@@ -379,7 +379,7 @@ If use case A is the answer:
    `grammar.js` token list.
 3. Write `grammar.js` rules for the 25 instruction-type
    discriminations + 14 real-semantic directives.  Iterate against
-   `/examples/01-helloworld.asm` first.
+   `examples/01-helloworld.asm` first.
 4. `tree-sitter test` against the corpus in `tests/`.
 5. Publish.
 

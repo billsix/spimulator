@@ -30,7 +30,7 @@ in two of the three places one might expect to find it.
 
 ## Why this surfaced
 
-`/examples/src/35-od/35-od.asm` (od -c demo) needs to print
+`examples/src/35-od/35-od.asm` (od -c demo) needs to print
 a literal `\` character.  spim's copy_str supports `\n`,
 `\t`, `\"`, and the `\NNN` octal form, but **not** `\\`
 (double-backslash falls into the `default:` branch, which

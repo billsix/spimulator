@@ -23,7 +23,7 @@ Today, the `/examples` curriculum can only port stdin-only sbase
 tools because spimulator's command-line parser silently drops all
 but the last user argument.  `cat <file>`, `echo <args>`,
 `head -n N <file>`, `tee`, `mkfifo`, and friends are blocked.
-With argv working, Phase 4 of `/examples/PLAN-unix-tools.md`
+With argv working, Phase 4 of `examples/PLAN-unix-tools.md`
 becomes implementable, and several `PLAN-cs-demos.md` entries
 (GCD with command-line operands, factorial with N from argv,
 fizzbuzz with arbitrary upper bound) become natural rather than

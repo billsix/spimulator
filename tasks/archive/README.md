@@ -100,6 +100,6 @@ See:
   the interfaces.
 - `src/parser.c`, `src/ast.c`, `src/asm_event.c` for the
   implementations.
-- `/examples/TEACHING-ASSEMBLER-INTERNALS.md` for a student-facing
+- `examples/TEACHING-ASSEMBLER-INTERNALS.md` for a student-facing
   tour of the teaching surfaces (`-print-ast`, `-show-expansion`,
   `-listing`, `-explain`).

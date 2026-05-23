@@ -321,7 +321,7 @@ The full per-alternative list lives at `parser.y` lines
 - `J_OPS`
 - `NULLARY_OPS` (syscall)
 
-That subset matches what `/examples/src/01-helloworld.asm`
+That subset matches what `examples/src/01-helloworld.asm`
 needs.  Get that file's parity test green before expanding.
 
 ### ASM_DIRECTIVE (47 alternatives, lines 2123-2413)

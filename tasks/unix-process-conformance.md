@@ -64,7 +64,7 @@ inherit whatever was last loaded into `$v0` — typically the
 syscall number of the final operation (4 for the demos whose
 last act is `print_string`, 11 for `print_char`, etc.).
 
-Sweep of `/examples/src` shows several demos affected:
+Sweep of `examples/src` shows several demos affected:
 01, 02, 16, 32 happen to exit 0 (last-syscall is `read` etc.);
 03 → 2, 06-fizzbuzz → 4, 21-gcd → 11, 26-hanoi → 1,
 36-tac → 3, etc.
@@ -323,6 +323,6 @@ four defects above are fixed:
 - `tasks/octal-escape-fix.md` — recent example of a small
   spim-correctness fix.  This task is similar in spirit but
   larger in surface area.
-- `/examples/READING-ORDER.md` — once Defect 2 lands, the
+- `examples/READING-ORDER.md` — once Defect 2 lands, the
   curriculum's C side could `return 0` / `return N` from
   `my_main` and have it Just Work.

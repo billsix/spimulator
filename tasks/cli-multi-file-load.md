@@ -19,7 +19,7 @@ command-line parser at `src/spim.c:486-510` artificially blocks
 this by guarding with `if (assembly_file_loaded) continue;` and
 then `break;`-ing out of the arg loop after the first file.
 
-A new `/examples/` direction (a teaching libc — see
+A new `examples/` direction (a teaching libc — see
 `PLAN-libctype.md`, `PLAN-libstr.md`, `PLAN-libstdlib.md`)
 wants a clean CLI shape that matches real linker UX (`gcc a.o
 b.o c.o`) so demos can be invoked the same way with or without

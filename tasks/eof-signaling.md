@@ -243,14 +243,14 @@ existing `tt.argv.s` / `tt.args-cmd.s` lines.
 
 ### Existing-curriculum smoke tests
 
-After the spim change, every byte-loop demo in `/examples/`
+After the spim change, every byte-loop demo in `examples/`
 should still produce identical output to its current
 behavior (since they all terminate on `'~'`/`'z'` and never
 reach the actual EOF path).  Verify by running the existing
 docker test invocations:
 
 ```sh
-echo "Hello, World!~" | spimulator -f /examples/src/14-rot13/14-rot13.asm
+echo "Hello, World!~" | spimulator -f examples/src/14-rot13/14-rot13.asm
 # expected: Uryyb, Jbeyq!
 ```
 
@@ -269,7 +269,7 @@ echo "Hello, World!" | spimulator -f tests/tt.eof_char_loop.s
 
 ## Curriculum update — /examples
 
-After the spim change ships, six demos in `/examples/src/`
+After the spim change ships, six demos in `examples/src/`
 currently use sentinel characters as EOF workarounds.  All
 six should be updated to use real EOF detection:
 
@@ -329,7 +329,7 @@ A + B applied to spim source:
 - New tests `tests/tt.read_char_eof.s` and
   `tests/tt.read_int_eof.s` cover the new signals; wired
   into the Dockerfile test block.
-- Curriculum (in `/examples/src/`): 10-wc, 11-head,
+- Curriculum (in `examples/src/`): 10-wc, 11-head,
   12-rev, 13-tr, 14-rot13, 15-expand, and 31-comma-and-
   period-counter switched from sentinel-character (`z` /
   `~`) to `bltz $tN, done` EOF detection.  Sentinel

@@ -833,7 +833,7 @@ The pilot proves the model.  Cover:
 - `.data`, `.text`, `.globl`, `.word`, `.byte`, `.asciiz`,
   `.space`, `.align`
 
-That subset assembles all of `/examples/src/01-helloworld.asm`
+That subset assembles all of `examples/src/01-helloworld.asm`
 and most of `02-print1through10.asm`.
 
 Plus: the **parity-comparison harness** (Phase 2's gate).
@@ -851,7 +851,7 @@ A small program that:
 5. Returns 0 on identical, 1 on diff.
 
 Wrapped in a meson test target that runs the harness across
-every `tests/tt.*.s` AND every `/examples/src/*/*.asm` once
+every `tests/tt.*.s` AND every `examples/src/*/*.asm` once
 those files are within the pilot's covered subset.
 
 ## What Phase 2 does NOT cover
@@ -893,7 +893,7 @@ The remaining ~75% of the grammar.  Risks concentrate here.
 | Coproc/TLB/cache productions | 2 |
 | Remaining 35 directives (most are no-ops) | 1 |
 | Parity coverage of all `tt.*.s` | 5 |
-| Parity coverage of all `/examples/src/*/*.asm` | 3 |
+| Parity coverage of all `examples/src/*/*.asm` | 3 |
 | **Phase 3 total** | **~20 days = ~4 weeks** |
 
 ## Open design questions

@@ -2,7 +2,7 @@
 
 ## Goal
 
-Absorb `/examples/` (the paired C + MIPS assembly teaching
+Absorb `examples/` (the paired C + MIPS assembly teaching
 curriculum) into `/spimulator/examples/` as a literal mirror,
 then unify the build / test / container story so:
 
@@ -50,8 +50,8 @@ then unify the build / test / container story so:
 | Open question | Decision |
 |---|---|
 | Standalone /examples persistence | Interim only.  Deleted after merge. |
-| `/examples/musl/` vendoring | Already deleted from /examples; no port needed. |
-| Sphinx book pipeline (`/examples/book/`) | Drop — book not needed in merged tree. |
+| `examples/musl/` vendoring | Already deleted from /examples; no port needed. |
+| Sphinx book pipeline (`examples/book/`) | Drop — book not needed in merged tree. |
 | Target path within /spimulator | Literal mirror — `/spimulator/examples/`. |
 | Multi-`-f` doc paths | Update in phase 3 cross-reference sweep. |
 | Task/plan layout | Two surfaces by domain: `/spimulator/tasks/` for spim-internal, `/spimulator/examples/tasks/` for curriculum.  No naming churn (PLAN- prefix stays for curriculum tasks). |
@@ -87,7 +87,7 @@ path ("All files match" sentinel).
 Script lived at `/tmp/replay-examples.sh` (ephemeral worktree
 artifact; not committed).  Did NOT touch /examples (used
 `git archive`, not checkout).  The orphan
-`/examples/tests/run-demo.sh` (uncommitted) was NOT carried
+`examples/tests/run-demo.sh` (uncommitted) was NOT carried
 over by this phase — it gets folded in explicitly in phase 5.
 
 Gotcha encountered: `commit.gpgsign = true` in the global
@@ -171,14 +171,14 @@ Three classes of fixes landed:
    - `examples/tasks/archive/PLAN-tier1-tier2-tools.md`
      (1 link): same shape as the archive README.
 
-2. **Stale `/examples/` prose references** (~40 instances
+2. **Stale `examples/` prose references** (~40 instances
    across 15 files).  `/examples` doesn't exist post-merge.
-   Bulk sed: `/examples/X` → `examples/X`.  These are prose
+   Bulk sed: `examples/X` → `examples/X`.  These are prose
    mentions in plan docs and a few `.asm`/`.h` comments
    describing file locations.
 
 3. **LICENSE-musl files** (2 files).  Both had a
-   `Local copy   /examples/musl/` line pointing at the
+   `Local copy   examples/musl/` line pointing at the
    vendored upstream source that was deleted before the
    merge.  Removed the line; left the Source + Repository
    URLs intact for attribution.
@@ -201,9 +201,9 @@ Files touched: 15 (1 .md doc + 14 task/license files).
 
 Suggested commit message:
 > "Cross-reference sweep post-/examples merge.
->  Fix 4 broken relative markdown links; replace ~40 `/examples/`
+>  Fix 4 broken relative markdown links; replace ~40 `examples/`
 >  prose references with relative `examples/`; drop stale
->  `Local copy /examples/musl/` lines from the two LICENSE-musl
+>  `Local copy examples/musl/` lines from the two LICENSE-musl
 >  files (musl was deleted pre-merge); update READING-ORDER's
 >  invocation example to use the post-merge path with an
 >  explicit cwd hint."
@@ -212,31 +212,44 @@ Suggested commit message:
 
 ## Phase 4 — Task & plan merger
 
-Layout after merge:
+**Status: STAGED 2026-05-23 (awaiting commit outside container).**
+
+Layout after merge (unchanged from plan):
 ```
 /spimulator/
     tasks/                  (spim-internal tasks)
         archive/
+        README.md           (new — points at examples/tasks)
     examples/
         tasks/              (curriculum tasks: PLAN-*.md)
             archive/
 ```
 
-Two surfaces by domain — different review burden, different
-reader expectations.  No file moves, no renames.  Just:
+What landed:
 
-- Update `/spimulator/tasks/merge-examples-into-spimulator.md`
-  status → landed.
-- Update `/spimulator/tasks/NEXT-SESSION.md` open queue to
-  reference `examples/` paths (was `/examples/`).
-- Update `/spimulator/tasks/HANDOFF-2026-05-22.md` only if
-  worth keeping current; otherwise leave as historical.
-- Optional: a one-line index in
-  `/spimulator/tasks/README.md` (or similar) pointing at
-  `examples/tasks/` for curriculum tasks.
-- Cross-references between the two task surfaces become
-  normal relative paths (`../tasks/...` from inside
-  `examples/tasks/`).
+- **Bulk `/examples/` → `examples/` sweep** across 13
+  `/spimulator/tasks/` files (and `archive/` sub-files).
+  These were prose references to the formerly-sibling
+  /examples repo; post-merge the relative path `examples/`
+  is correct.  `NEXT-SESSION.md` didn't have any /examples/
+  refs, so no change there.
+- **New `/spimulator/tasks/README.md`** — short index
+  pointing readers at the two task surfaces (spim-internal
+  here; curriculum at `../examples/tasks/`) plus a note on
+  naming conventions.
+- **`HANDOFF-2026-05-22.md`** — got the same path sweep.
+  Left content otherwise untouched as historical record.
+
+Sed gotcha: the bulk replacement `s|/examples/|examples/|g`
+also matched inside `/spimulator/examples/...` strings,
+turning them into `/spimulatorexamples/...` — corrupted
+THIS doc only (other tasks didn't have post-merge
+`/spimulator/examples/` paths because they were written
+pre-merge).  Caught and reverted in the same phase.  Future
+bulk seds against this kind of substring should use a more
+anchored pattern.
+
+No file moves, no renames in either tasks/ tree.
 
 ---
 
