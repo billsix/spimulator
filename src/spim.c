@@ -37,7 +37,7 @@
 #include <editline/readline.h>
 #include <stdlib.h>
 #include <string.h>
-static char history_path[1024] = {0};
+static char history_path[1024] = {};
 static void save_history_at_exit(void) {
   if (history_path[0] != '\0') write_history(history_path);
 }
@@ -271,7 +271,11 @@ bool delayed_loads;       /* => simulate delayed loads */
 bool accept_pseudo_insts; /* => parse pseudo instructions  */
 bool quiet;               /* => no warning messages */
 static bool assemble;     /* => assemble, disassemble to file and exit */
-char* exception_file_name = DEFAULT_EXCEPTION_HANDLER;
+/* Sentinel pointer routes initialize_world to the embedded handler;
+   the SPIM_EXCEPTION_HANDLER env var or -exception_file CLI flag
+   replace it with an on-disk path that gets opened with fopen.
+   See include/spim-utils.h. */
+char* exception_file_name = SPIM_DEFAULT_EXCEPTIONS_SENTINEL;
 port message_out, console_out, console_in;
 bool mapped_io;        /* => activate memory-mapped IO */
 int spim_return_value; /* Value returned when spim exits */
@@ -642,8 +646,10 @@ int main(int argc, char** argv) {
           console_to_spim();
           return spim_return_value != 0 ? spim_return_value : 1;
         }
-        run_program(find_symbol_address(DEFAULT_RUN_LOCATION),
-                    DEFAULT_RUN_STEPS, false, false, &continuable);
+        /* Batch mode: breakpoint-hit return is meaningless here (no REPL
+           to drop into); status flows out via spim_return_value. */
+        (void)run_program(find_symbol_address(DEFAULT_RUN_LOCATION),
+                          DEFAULT_RUN_STEPS, false, false, &continuable);
       }
       console_to_spim();
 
@@ -664,7 +670,7 @@ int main(int argc, char** argv) {
 
 /* Top-level read-eval-print loop for SPIM. */
 
-_Noreturn static void top_level(void) {
+[[noreturn]] static void top_level(void) {
   bool redo = false; /* => reexecute last command */
 
   (void)signal(SIGINT, control_c_seen);
@@ -790,7 +796,7 @@ _Noreturn static void top_level(void) {
   }
 }
 
-_Noreturn static void control_c_seen(int arg) {
+[[noreturn]] static void control_c_seen(int arg) {
   (void)arg;  // this line is to suppress compiler warnings
   console_to_spim();
   write_output(message_out, "\nExecution interrupted\n");
@@ -1436,7 +1442,7 @@ void fatal_error(char* fmt, ...) {
 
 /* Print an error message and return to top level. */
 
-_Noreturn void run_error(char* fmt, ...) {
+[[noreturn]] void run_error(char* fmt, ...) {
   va_list args;
 
   va_start(args, fmt);

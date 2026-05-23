@@ -6,10 +6,18 @@ project('spimulator', 'c',
 # -Wno-zero-length-array: spim uses flexible array members.
 # -Wunused-function: catches dead static fns like the late parse_br_imm32.
 # -Wshadow: prevents inner-scope rebinding bugs.
+# -Wimplicit-fallthrough=5: surfaces unannotated switch fallthroughs.
+#   Level 5 means ONLY the C23 [[fallthrough]]; attribute is
+#   accepted as an annotation — comment-style "/* fall through */"
+#   doesn't count.  Fits the C23 modernization direction and
+#   means there's one true way to express "I meant to flow into
+#   the next case."  Anything without a break/return/goto/
+#   [[fallthrough]] is a likely bug.
 add_project_arguments(
   '-Wno-zero-length-array',
   '-Wunused-function',
   '-Wshadow',
+  '-Wimplicit-fallthrough=5',
   language: 'c'
 )
 
@@ -31,15 +39,12 @@ if host_machine.endian() == 'big'
 endif
 
 
-# Configure config.h
-conf_data = configuration_data()
-conf_data.set_quoted('DEFAULT_EXCEPTION_HANDLER',
-                     get_option('prefix') / get_option('datadir') / 'spimulator/exceptions.s')
-
+# Generate config.h from config.h.in.  Currently no substitutions
+# are performed; the call is scaffolding for future build-time knobs.
 configure_file(
   input: 'include/config.h.in',
   output: 'config.h',
-  configuration: conf_data
+  configuration: configuration_data()
 )
 
 # Source files.  The hand-written parser became the sole parser in
@@ -80,11 +85,6 @@ spimulator_exe = executable('spimulator',
   include_directories: inc,
   dependencies: link_libraries + [libedit_dep],
   install: true
-)
-
-# Install data files
-install_data('src/exceptions.s',
-  install_dir: get_option('datadir') / 'spimulator'
 )
 
 # Install the man page. Meson uses the filename's trailing digit as the

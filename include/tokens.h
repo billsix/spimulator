@@ -10,7 +10,9 @@
 #ifndef TOKENS_H
 #define TOKENS_H
 
-enum {
+#include <stdint.h>
+
+enum : int32_t {
   /* Structural / literal tokens.  Start at 256 so they don't collide
      with single-character punctuation tokens like '+', ',', '(' which
      the scanner returns as their own ASCII value. */
@@ -23,6 +25,12 @@ enum {
   TOK_STR,
   TOK_FP,
 
+  /* The remaining ~380 enumerators (TOK_ADD_OP, TOK_ADDI_OP, ...) are
+     produced by the X-macro expansion below.  Each OP(name, sym, type,
+     enc) row in op.h becomes `sym,` here — adding one enumerator per
+     keyword.  See op.h's top-of-file comment for the X-macro pattern;
+     the #include is intentionally inside the enum body so the OP()
+     rows expand directly between commas.  */
 #define OP(_name, sym, _kind, _opcode) sym,
 #include "op.h"
 #undef OP

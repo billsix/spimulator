@@ -20,6 +20,11 @@ typedef struct inst_t {
   };
 } inst;
 
+/* Pull rows from op.h's X-macro list, keeping only the mnemonic (a)
+   and the binary encoding (d).  This utility doesn't need the token
+   symbol (b) or the operand-shape type tag (c), so OP_TYPES_H from
+   op-types.h isn't required either.  See op.h for the X-macro
+   pattern. */
 #define OP(a, b, c, d) {a, d},
 
 inst ops[] = {

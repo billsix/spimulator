@@ -1,6 +1,6 @@
 #ifndef _config_h_
 #define _config_h_
 
+/* Reserved for future build-time configuration knobs. */
 
-#mesondefine DEFAULT_EXCEPTION_HANDLER
 #endif

@@ -13,8 +13,7 @@ typedef int32_t reg_word;
 typedef uint32_t u_reg_word;
 
 /* General purpose registers: */
-
-#define R_LENGTH 32
+constexpr int R_LENGTH = 32;
 
 extern reg_word R[R_LENGTH];
 
@@ -23,23 +22,20 @@ extern reg_word HI, LO;
 extern mem_addr PC, nPC;
 
 /* Argument passing registers */
+constexpr int REG_V0 = 2;
+constexpr int REG_A0 = 4;
+constexpr int REG_A1 = 5;
+constexpr int REG_A2 = 6;
+constexpr int REG_A3 = 7;
+constexpr int REG_FA0 = 12;
+constexpr int REG_SP = 29;
 
-#define REG_V0 2
-#define REG_A0 4
-#define REG_A1 5
-#define REG_A2 6
-#define REG_A3 7
-#define REG_FA0 12
-#define REG_SP 29
+/* Result registers (REG_RES aliases REG_V0; REG_FRES is $f0). */
+constexpr int REG_RES = 2;
+constexpr int REG_FRES = 0;
 
-/* Result registers */
-
-#define REG_RES 2
-#define REG_FRES 0
-
-/* $gp registers */
-
-#define REG_GP 28
+/* $gp register */
+constexpr int REG_GP = 28;
 
 extern char* int_reg_names[];
 
@@ -47,76 +43,76 @@ extern char* int_reg_names[];
 
 extern reg_word CCR[4][32], CPR[4][32];
 
-/* Exeception handling registers (Coprocessor 0): */
+/* Exception handling registers (Coprocessor 0): */
 
 /* BadVAddr register: */
-#define CP0_BadVAddr_Reg 8
+constexpr int CP0_BadVAddr_Reg = 8;
 #define CP0_BadVAddr (CPR[0][CP0_BadVAddr_Reg])
 
 /* Count register: */
-#define CP0_Count_Reg 9
+constexpr int CP0_Count_Reg = 9;
 #define CP0_Count (CPR[0][CP0_Count_Reg]) /* ToDo */
 
 /* Compare register: */
-#define CP0_Compare_Reg 11
+constexpr int CP0_Compare_Reg = 11;
 #define CP0_Compare (CPR[0][CP0_Compare_Reg]) /* ToDo */
 
 /* Status register: */
-#define CP0_Status_Reg 12
+constexpr int CP0_Status_Reg = 12;
 #define CP0_Status (CPR[0][CP0_Status_Reg])
 /* Implemented fields: */
-#define CP0_Status_CU 0xf0000000
-#define CP0_Status_IM 0x0000ff00
-#define CP0_Status_IM7 0x00008000 /* HW Int 5 */
-#define CP0_Status_IM6 0x00004000 /* HW Int 4 */
-#define CP0_Status_IM5 0x00002000 /* HW Int 3 */
-#define CP0_Status_IM4 0x00001000 /* HW Int 2 */
-#define CP0_Status_IM3 0x00000800 /* HW Int 1 */
-#define CP0_Status_IM2 0x00000400 /* HW Int 0 */
-#define CP0_Status_IM1 0x00000200 /* SW Int 1 */
-#define CP0_Status_IM0 0x00000100 /* SW Int 0 */
-#define CP0_Status_UM 0x00000010
-#define CP0_Status_EXL 0x00000002
-#define CP0_Status_IE 0x00000001
-#define CP0_Status_Mask                                             \
-  (CP0_Status_CU | CP0_Status_UM | CP0_Status_IM | CP0_Status_EXL | \
-   CP0_Status_IE)
+constexpr uint32_t CP0_Status_CU = 0xf0000000;
+constexpr uint32_t CP0_Status_IM = 0x0000ff00;
+constexpr uint32_t CP0_Status_IM7 = 0x00008000; /* HW Int 5 */
+constexpr uint32_t CP0_Status_IM6 = 0x00004000; /* HW Int 4 */
+constexpr uint32_t CP0_Status_IM5 = 0x00002000; /* HW Int 3 */
+constexpr uint32_t CP0_Status_IM4 = 0x00001000; /* HW Int 2 */
+constexpr uint32_t CP0_Status_IM3 = 0x00000800; /* HW Int 1 */
+constexpr uint32_t CP0_Status_IM2 = 0x00000400; /* HW Int 0 */
+constexpr uint32_t CP0_Status_IM1 = 0x00000200; /* SW Int 1 */
+constexpr uint32_t CP0_Status_IM0 = 0x00000100; /* SW Int 0 */
+constexpr uint32_t CP0_Status_UM = 0x00000010;
+constexpr uint32_t CP0_Status_EXL = 0x00000002;
+constexpr uint32_t CP0_Status_IE = 0x00000001;
+constexpr uint32_t CP0_Status_Mask =
+    CP0_Status_CU | CP0_Status_UM | CP0_Status_IM | CP0_Status_EXL |
+    CP0_Status_IE;
 
 /* Cause register: */
-#define CP0_Cause_Reg 13
+constexpr int CP0_Cause_Reg = 13;
 #define CP0_Cause (CPR[0][CP0_Cause_Reg])
 /* Implemented fields: */
-#define CP0_Cause_BD 0x80000000
-#define CP0_Cause_IP 0x0000ff00
-#define CP0_Cause_IP7 0x00008000 /* HW Int 5 */
-#define CP0_Cause_IP6 0x00004000 /* HW Int 4 */
-#define CP0_Cause_IP5 0x00002000 /* HW Int 3 */
-#define CP0_Cause_IP4 0x00001000 /* HW Int 2 */
-#define CP0_Cause_IP3 0x00000800 /* HW Int 1 */
-#define CP0_Cause_IP2 0x00000400 /* HW Int 0 */
-#define CP0_Cause_IP1 0x00000200 /* SW Int 1 */
-#define CP0_Cause_IP0 0x00000100 /* SW Int 0 */
-#define CP0_Cause_ExcCode 0x0000007c
-#define CP0_Cause_Mask                                             \
-  (CP0_Cause_BD | CP0_Cause_IP | CP0_Cause_IP7 | CP0_Cause_IP6 |   \
-   CP0_Cause_IP5 | CP0_Cause_IP4 | CP0_Cause_IP3 | CP0_Cause_IP2 | \
-   CP0_Cause_ExcCode)
+constexpr uint32_t CP0_Cause_BD = 0x80000000;
+constexpr uint32_t CP0_Cause_IP = 0x0000ff00;
+constexpr uint32_t CP0_Cause_IP7 = 0x00008000; /* HW Int 5 */
+constexpr uint32_t CP0_Cause_IP6 = 0x00004000; /* HW Int 4 */
+constexpr uint32_t CP0_Cause_IP5 = 0x00002000; /* HW Int 3 */
+constexpr uint32_t CP0_Cause_IP4 = 0x00001000; /* HW Int 2 */
+constexpr uint32_t CP0_Cause_IP3 = 0x00000800; /* HW Int 1 */
+constexpr uint32_t CP0_Cause_IP2 = 0x00000400; /* HW Int 0 */
+constexpr uint32_t CP0_Cause_IP1 = 0x00000200; /* SW Int 1 */
+constexpr uint32_t CP0_Cause_IP0 = 0x00000100; /* SW Int 0 */
+constexpr uint32_t CP0_Cause_ExcCode = 0x0000007c;
+constexpr uint32_t CP0_Cause_Mask =
+    CP0_Cause_BD | CP0_Cause_IP | CP0_Cause_IP7 | CP0_Cause_IP6 |
+    CP0_Cause_IP5 | CP0_Cause_IP4 | CP0_Cause_IP3 | CP0_Cause_IP2 |
+    CP0_Cause_ExcCode;
 #define CP0_ExCode ((CP0_Cause & CP0_Cause_ExcCode) >> 2)
 
 /* EPC register: */
-#define CP0_EPC_Reg 14
+constexpr int CP0_EPC_Reg = 14;
 #define CP0_EPC (CPR[0][CP0_EPC_Reg])
 
 /* Config register: */
-#define CP0_Config_Reg 16
+constexpr int CP0_Config_Reg = 16;
 #define CP0_Config (CPR[0][CP0_Config_Reg])
 /* Implemented fields: */
-#define CP0_Config_BE 0x000080000
-#define CP0_Config_AT 0x000060000
-#define CP0_Config_AR 0x00001c000
-#define CP0_Config_MT 0x000000380
-#define CP0_Config_Mask \
-  (CP0_Config_BE | CP0_Config_AT | CP0_Config_AR | CP0_Config_MT)
+constexpr uint32_t CP0_Config_BE = 0x000080000;
+constexpr uint32_t CP0_Config_AT = 0x000060000;
+constexpr uint32_t CP0_Config_AR = 0x00001c000;
+constexpr uint32_t CP0_Config_MT = 0x000000380;
+constexpr uint32_t CP0_Config_Mask =
+    CP0_Config_BE | CP0_Config_AT | CP0_Config_AR | CP0_Config_MT;
 
 /* Floating Point Coprocessor (1) registers.
 
@@ -125,8 +121,8 @@ extern reg_word CCR[4][32], CPR[4][32];
    The MIPS32, Revision 2 or MIPS64 register set has 32 of each type of
    register. */
 
-#define FGR_LENGTH 32
-#define FPR_LENGTH 16
+constexpr int FGR_LENGTH = 32;
+constexpr int FPR_LENGTH = 16;
 
 extern double* FPR; /* Dynamically allocate so overlay */
 extern float* FGR;  /* is possible */
@@ -162,23 +158,23 @@ extern int* FWR;    /* is possible */
 
 #define FCR (CPR[1])
 
-#define FIR_REG 0
+constexpr int FIR_REG = 0;
 #define FIR (FCR[FIR_REG])
 
 /* Implemented fields: */
-#define FIR_W 0x0008000
-#define FIR_D 0x0001000
-#define FIR_S 0x0000800
-#define FIR_MASK (FIR_W | FIR_D | FIR_S)
+constexpr uint32_t FIR_W = 0x0008000;
+constexpr uint32_t FIR_D = 0x0001000;
+constexpr uint32_t FIR_S = 0x0000800;
+constexpr uint32_t FIR_MASK = FIR_W | FIR_D | FIR_S;
 
-#define FCSR_REG 31
+constexpr int FCSR_REG = 31;
 #define FCSR (FCR[FCSR_REG])
 
 /* Implemented fields: */
-#define FCSR_FCC 0xfe800000
-#define FCSR_MASK (FCSR_FCC)
-#define CC0_bit 23
-#define CC1_bit 25
+constexpr uint32_t FCSR_FCC = 0xfe800000;
+constexpr uint32_t FCSR_MASK = FCSR_FCC;
+constexpr int CC0_bit = 23;
+constexpr int CC1_bit = 25;
 #define CC_mask(n) \
   ((((n) == 0) || ((n) > 7)) ? (1 << CC0_bit) : (1 << (CC1_bit + (n) - 1)))
 #define FCC(n) (((FCSR & CC_mask(n)) == 0) ? 0 : 1)
@@ -190,23 +186,23 @@ extern int* FWR;    /* is possible */
   }
 
 /* Floating point Cause (not implemented): */
-#define FCSR_Cause_E 0x00020000
-#define FCSR_Cause_V 0x00010000
-#define FCSR_Cause_Z 0x00008000
-#define FCSR_Cause_O 0x00004000
-#define FCSR_Cause_U 0x00002000
-#define FCSR_Cause_I 0x00001000
+constexpr uint32_t FCSR_Cause_E = 0x00020000;
+constexpr uint32_t FCSR_Cause_V = 0x00010000;
+constexpr uint32_t FCSR_Cause_Z = 0x00008000;
+constexpr uint32_t FCSR_Cause_O = 0x00004000;
+constexpr uint32_t FCSR_Cause_U = 0x00002000;
+constexpr uint32_t FCSR_Cause_I = 0x00001000;
 /* Floating point Enables (not implemented): */
-#define FCSR_Enable_V 0x00000800
-#define FCSR_Enable_Z 0x00000400
-#define FCSR_Enable_O 0x00000200
-#define FCSR_Enable_U 0x00000100
-#define FCSR_Enable_I 0x00000080
+constexpr uint32_t FCSR_Enable_V = 0x00000800;
+constexpr uint32_t FCSR_Enable_Z = 0x00000400;
+constexpr uint32_t FCSR_Enable_O = 0x00000200;
+constexpr uint32_t FCSR_Enable_U = 0x00000100;
+constexpr uint32_t FCSR_Enable_I = 0x00000080;
 /* Floating point Flags (not implemented): */
-#define FCSR_Flag_V 0x00000040
-#define FCSR_Flag_Z 0x00000020
-#define FCSR_Flag_O 0x00000010
-#define FCSR_Flag_U 0x00000008
-#define FCSR_Flag_I 0x00000004
+constexpr uint32_t FCSR_Flag_V = 0x00000040;
+constexpr uint32_t FCSR_Flag_Z = 0x00000020;
+constexpr uint32_t FCSR_Flag_O = 0x00000010;
+constexpr uint32_t FCSR_Flag_U = 0x00000008;
+constexpr uint32_t FCSR_Flag_I = 0x00000004;
 
 #endif

@@ -237,7 +237,7 @@ static void resolve_a_label_sub(label* sym, instruction* inst, mem_addr pc) {
         int val;
 
         /* Drop low two bits since instructions are on word boundaries. */
-        val = SIGN_EX(eval_imm_expr(EXPR(inst))); /* 16->32 bits */
+        val = sign_ex(eval_imm_expr(EXPR(inst))); /* 16->32 bits */
         val = (val >> 2) & 0xffff;                /* right shift, 32->16 bits */
 
         if (delayed_branches) val -= 1;

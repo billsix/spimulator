@@ -9,6 +9,8 @@
 #include <stdio.h>
 
 #include <errno.h>
+#include <stdbit.h>
+#include <stdckdint.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/time.h>
@@ -36,10 +38,11 @@ static void signed_multiply(reg_word v1, reg_word v2);
 static void start_CP0_timer(void);
 static void unsigned_multiply(reg_word v1, reg_word v2);
 
+/* Extract bit 31 — used by the sign-aware branch instructions
+   (bgez/bgtz/blez/bltz and their AL/L variants).  For arithmetic
+   overflow detection on add/addi/sub, see ckd_add/ckd_sub from
+   <stdckdint.h> at the relevant case bodies. */
 #define SIGN_BIT(X) ((X) & 0x80000000)
-
-#define ARITH_OVFL(RESULT, OP1, OP2) \
-  (SIGN_BIT(OP1) == SIGN_BIT(OP2) && SIGN_BIT(OP1) != SIGN_BIT(RESULT))
 
 /* True when delayed_branches is true and instruction is executing in delay
 slot of another instruction. */
@@ -55,31 +58,33 @@ static int running_in_delay_slot = 0;
    we execute the second branch. */
 
 #define BRANCH_INST(TEST, TARGET, NULLIFY)       \
-  {                                              \
+  do {                                           \
     if (TEST) {                                  \
       mem_addr target = (TARGET);                \
       if (delayed_branches) {                    \
         /* +4 since jump in delay slot */        \
         target += BYTES_PER_WORD;                \
       }                                          \
-      JUMP_INST(target)                          \
+      JUMP_INST(target);                         \
     } else if (NULLIFY) {                        \
       /* If test fails and nullify bit set, skip \
          instruction in delay slot. */           \
       PC += BYTES_PER_WORD;                      \
     }                                            \
-  }
+  } while (0)
 
-#define JUMP_INST(TARGET)                        \
-  {                                              \
-    if (delayed_branches) {                      \
-      running_in_delay_slot = 1;                 \
-      run_spim(PC + BYTES_PER_WORD, 1, display); \
-      running_in_delay_slot = 0;                 \
-    }                                            \
-    /* -4 since PC is bumped after this inst */  \
-    PC = (TARGET) - BYTES_PER_WORD;              \
-  }
+#define JUMP_INST(TARGET)                              \
+  do {                                                 \
+    if (delayed_branches) {                            \
+      running_in_delay_slot = 1;                       \
+      /* Continuation flag from the delay-slot inst is \
+         discarded — the outer run_spim owns that. */  \
+      (void)run_spim(PC + BYTES_PER_WORD, 1, display); \
+      running_in_delay_slot = 0;                       \
+    }                                                  \
+    /* -4 since PC is bumped after this inst */        \
+    PC = (TARGET) - BYTES_PER_WORD;                    \
+  } while (0)
 
 /* If the delayed_load flag is false, the result from a load is available
    immediate.  If the delayed_load flag is true, the result from a load is
@@ -88,28 +93,31 @@ static int running_in_delay_slot = 0;
    destination, as the instruction following the load can itself be a load
    instruction. */
 
-#define LOAD_INST(DEST_A, LD, MASK) {LOAD_INST_BASE(DEST_A, (LD & (MASK)))}
+#define LOAD_INST(DEST_A, LD, MASK) \
+  do { LOAD_INST_BASE(DEST_A, (LD & (MASK))); } while (0)
 
 #define LOAD_INST_BASE(DEST_A, VALUE) \
-  {                                   \
+  do {                                \
     if (delayed_loads) {              \
       delayed_load_addr1 = (DEST_A);  \
       delayed_load_value1 = (VALUE);  \
     } else {                          \
       *(DEST_A) = (VALUE);            \
     }                                 \
-  }
+  } while (0)
 
-#define DO_DELAYED_UPDATE()                      \
-  if (delayed_loads) {                           \
-    /* Check for delayed updates */              \
-    if (delayed_load_addr2 != nullptr) {         \
-      *delayed_load_addr2 = delayed_load_value2; \
-    }                                            \
-    delayed_load_addr2 = delayed_load_addr1;     \
-    delayed_load_value2 = delayed_load_value1;   \
-    delayed_load_addr1 = nullptr;                \
-  }
+#define DO_DELAYED_UPDATE()                        \
+  do {                                             \
+    if (delayed_loads) {                           \
+      /* Check for delayed updates */              \
+      if (delayed_load_addr2 != nullptr) {         \
+        *delayed_load_addr2 = delayed_load_value2; \
+      }                                            \
+      delayed_load_addr2 = delayed_load_addr1;     \
+      delayed_load_value2 = delayed_load_value1;   \
+      delayed_load_addr1 = nullptr;                \
+    }                                              \
+  } while (0)
 
 /* Run the program stored in memory, starting at address PC for
    STEPS_TO_RUN instruction executions.  If flag DISPLAY is true, print
@@ -200,19 +208,17 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
       switch (OPCODE(inst)) {
         case TOK_ADD_OP: {
-          reg_word vs = R[RS(inst)], vt = R[RT(inst)];
-          reg_word sum = vs + vt;
-
-          if (ARITH_OVFL(sum, vs, vt)) RAISE_EXCEPTION(ExcCode_Ov, break);
+          reg_word sum;
+          if (ckd_add(&sum, R[RS(inst)], R[RT(inst)]))
+            RAISE_EXCEPTION(ExcCode_Ov, break);
           R[RD(inst)] = sum;
           break;
         }
 
         case TOK_ADDI_OP: {
-          reg_word vs = R[RS(inst)], imm = (short)IMM(inst);
-          reg_word sum = vs + imm;
-
-          if (ARITH_OVFL(sum, vs, imm)) RAISE_EXCEPTION(ExcCode_Ov, break);
+          reg_word sum;
+          if (ckd_add(&sum, R[RS(inst)], (reg_word)(short)IMM(inst)))
+            RAISE_EXCEPTION(ExcCode_Ov, break);
           R[RT(inst)] = sum;
           break;
         }
@@ -329,25 +335,13 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
           break;
 
-        case TOK_CLO_OP: {
-          reg_word val = R[RS(inst)];
-          int i;
-          for (i = 31; 0 <= i; i -= 1)
-            if (((val >> i) & 0x1) == 0) break;
-
-          R[RD(inst)] = 31 - i;
+        case TOK_CLO_OP:
+          R[RD(inst)] = (reg_word)stdc_leading_ones((uint32_t)R[RS(inst)]);
           break;
-        }
 
-        case TOK_CLZ_OP: {
-          reg_word val = R[RS(inst)];
-          int i;
-          for (i = 31; 0 <= i; i -= 1)
-            if (((val >> i) & 0x1) == 1) break;
-
-          R[RD(inst)] = 31 - i;
+        case TOK_CLZ_OP:
+          R[RD(inst)] = (reg_word)stdc_leading_zeros((uint32_t)R[RS(inst)]);
           break;
-        }
 
         case TOK_COP2_OP:
           RAISE_EXCEPTION(ExcCode_CpU, {}); /* No Coprocessor 2 */
@@ -811,10 +805,8 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         }
 
         case TOK_SUB_OP: {
-          reg_word vs = R[RS(inst)], vt = R[RT(inst)];
-          reg_word diff = vs - vt;
-
-          if (SIGN_BIT(vs) != SIGN_BIT(vt) && SIGN_BIT(vs) != SIGN_BIT(diff))
+          reg_word diff;
+          if (ckd_sub(&diff, R[RS(inst)], R[RT(inst)]))
             RAISE_EXCEPTION(ExcCode_Ov, break);
           R[RD(inst)] = diff;
           break;
@@ -1505,7 +1497,7 @@ static void set_fpu_cc(int cond, int cc, int less, int equal, int unordered) {
   SET_FCC(cc, result);
 }
 
-void raise_exception(int excode) {
+void raise_exception(mips_exc_code excode) {
   if (ExcCode_Int != excode ||
       ((CP0_Status & CP0_Status_IE) /* Allow interrupt if IE and !EXL */
        && !(CP0_Status & CP0_Status_EXL))) {

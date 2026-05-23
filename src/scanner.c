@@ -16,10 +16,11 @@
 #include "sym-tbl.h"    /* label_is_defined */
 #include "scanner.h"    /* scan_value, line_no */
 #include "tokens.h"     /* TOK_* token values */
+#include "op-types.h"   /* op_type tag enumerators (ASM_DIR, R3_TYPE_INST, ...) */
 
 /* Runtime-visible globals. */
 int line_no = 1;
-scan_value_t scan_value = {0};
+scan_value_t scan_value = {};
 
 /* Register-name → register-number lookup.  Public because inst.c and
    explain.c also call register_name_to_number, independent of the
@@ -50,7 +51,10 @@ int register_name_to_number(char* name) {
 }
 
 /* --- keyword table ---------------------------------------- */
-/* Built from op.h's X-macro pattern. */
+/* Maps a recognized keyword string to its (token, type) pair.  Built
+   from the X-macro list in op.h: each OP(name, sym, type, enc) row
+   expands here to {name, sym, type}, dropping the binary-encoding
+   column.  See op.h's top-of-file comment for the X-macro pattern. */
 
 static name_val_val keyword_tbl[] = {
 #undef OP

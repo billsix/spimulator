@@ -26,7 +26,7 @@
    Both produce byte-identical memory contents for the same input.
    Set via the -parser= command-line flag (or implicitly by any of
    the AST-inspecting flags). */
-typedef enum {
+typedef enum : uint8_t {
   PARSE_DIRECT = 0,
   PARSE_AST = 1,
 } parse_mode_t;

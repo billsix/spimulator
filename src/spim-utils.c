@@ -27,6 +27,20 @@
 static mem_addr copy_int_to_stack(int n);
 static mem_addr copy_str_to_stack(char* s);
 static void delete_all_breakpoints(void);
+static bool load_embedded_exception_handler(bool print_message);
+
+/* Sentinel object — see spim-utils.h for the design rationale.  The
+   string content is purely for diagnostic / debugger inspection; only
+   the address matters for the dispatch check inside initialize_world. */
+char SPIM_DEFAULT_EXCEPTIONS_SENTINEL[] = "<embedded exceptions.s>";
+
+/* Default exception handler bytes, baked into the binary at compile
+   time via C23 #embed.  Used when neither the SPIM_EXCEPTION_HANDLER
+   env var nor the -exception_file CLI flag is set; see the dispatch
+   in initialize_world. */
+static const unsigned char embedded_exceptions_bytes[] = {
+#embed "exceptions.s"
+};
 
 int exception_occurred;
 
@@ -74,27 +88,34 @@ void initialize_world(char* exception_file_names, bool print_message) {
   if (exception_file_names != nullptr) {
     bool old_bare = bare_machine;
     bool old_accept = accept_pseudo_insts;
-    char* filename;
-    char* files;
 
     /* Save machine state */
     bare_machine = false; /* Exception handler uses extended machine */
     accept_pseudo_insts = true;
 
-    /* strtok modifies the string, so we must back up the string prior to use.
-     */
-    if ((files = str_copy(exception_file_names)) == nullptr)
-      fatal_error("Insufficient memory to complete.\n");
+    if (exception_file_names == SPIM_DEFAULT_EXCEPTIONS_SENTINEL) {
+      /* No user override — load the #embed'd default. */
+      if (!load_embedded_exception_handler(print_message))
+        fatal_error("Cannot parse embedded exception handler\n");
+    } else {
+      char* filename;
+      char* files;
 
-    for (filename = strtok(files, ";"); filename != nullptr;
-         filename = strtok(nullptr, ";")) {
-      if (!read_assembly_file(filename))
-        fatal_error("Cannot read exception handler: %s\n", filename);
+      /* strtok modifies the string, so we must back up the string prior to
+         use. */
+      if ((files = str_copy(exception_file_names)) == nullptr)
+        fatal_error("Insufficient memory to complete.\n");
 
-      if (print_message) write_output(message_out, "Loaded: %s\n", filename);
+      for (filename = strtok(files, ";"); filename != nullptr;
+           filename = strtok(nullptr, ";")) {
+        if (!read_assembly_file(filename))
+          fatal_error("Cannot read exception handler: %s\n", filename);
+
+        if (print_message) write_output(message_out, "Loaded: %s\n", filename);
+      }
+
+      free(files);
     }
-
-    free(files);
 
     /* Restore machine state */
     bare_machine = old_bare;
@@ -162,6 +183,26 @@ bool read_assembly_file(char* name) {
     end_of_assembly_file();
     return true;
   }
+}
+
+/* Run the parser over the #embed'd default exception handler bytes by
+   wrapping them in a memstream via fmemopen.  Same parse path as a
+   real file — just no fopen.  Returns false only if fmemopen itself
+   fails (effectively never on Linux). */
+static bool load_embedded_exception_handler(bool print_message) {
+  FILE* file = fmemopen((void*)embedded_exceptions_bytes,
+                        sizeof(embedded_exceptions_bytes), "rt");
+  if (file == nullptr) return false;
+
+  parser_init(file, "<embedded exceptions.s>");
+  (void)parse_file();
+  fclose(file);
+  flush_local_labels(!parse_error_occurred);
+  end_of_assembly_file();
+
+  if (print_message)
+    write_output(message_out, "Loaded: <embedded exceptions.s>\n");
+  return true;
 }
 
 mem_addr starting_address(void) {

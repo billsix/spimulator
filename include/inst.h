@@ -91,7 +91,7 @@ typedef struct inst_s {
 
 #define IOFFSET(INST) IMM(INST)
 #define SET_IOFFSET(INST, VAL) SET_IMM(INST, VAL)
-#define IDISP(INST) (SIGN_EX(IOFFSET(INST) << 2))
+#define IDISP(INST) (sign_ex(IOFFSET(INST) << 2))
 
 #define COND(INST) RS(INST)
 #define SET_COND(INST, VAL) SET_RS(INST, VAL)
@@ -116,63 +116,76 @@ typedef struct inst_s {
 #define SOURCE(INST) (INST)->source_line
 #define SET_SOURCE(INST, VAL) (INST)->source_line = (char*)(VAL)
 
-#define COND_UN 0x1
-#define COND_EQ 0x2
-#define COND_LT 0x4
-#define COND_IN 0x8
+/* FP-compare condition flag bits, OR'd together to build the
+   condition field of c.cond.fmt instructions. */
+constexpr uint32_t COND_UN = 0x1;
+constexpr uint32_t COND_EQ = 0x2;
+constexpr uint32_t COND_LT = 0x4;
+constexpr uint32_t COND_IN = 0x8;
 
-/* Minimum and maximum values that fit in instruction's imm field */
-#define IMM_MIN 0xffff8000
-#define IMM_MAX 0x00007fff
+/* Minimum and maximum values that fit in instruction's imm field
+   (signed 16-bit and unsigned 16-bit respectively). */
+constexpr int32_t IMM_MIN = -0x8000;
+constexpr int32_t IMM_MAX = 0x7fff;
 
-#define UIMM_MIN (unsigned)0
-#define UIMM_MAX ((unsigned)((1 << 16) - 1))
+constexpr uint32_t UIMM_MIN = 0;
+constexpr uint32_t UIMM_MAX = 0xffff;
 
 /* Raise an exception! */
 
 extern int exception_occurred;
 extern int first_bad_exception;
 
+/* The MISC arg is injected as-is into the macro body and is expected to
+   transfer control out of the enclosing context — most commonly `break`
+   (terminate the switch case in run_spim) or `return true` (early-return
+   from run_spim).  That requires the macro to expand to a bare brace
+   block: `do { ... } while (0)` would scope the `break` to the do-while
+   itself, which would silently leave the switch case running.  The
+   trailing-semicolon hazard in if/else chains is mitigated by the
+   convention that every call site puts its own `;` at the end. */
 #define RAISE_EXCEPTION(EXCODE, MISC) \
   {                                   \
     raise_exception(EXCODE);          \
     MISC;                             \
   }
 
-#define RAISE_INTERRUPT(LEVEL)                      \
-  {                                                 \
-    /* Set IP (pending) bit for interrupt level. */ \
-    CP0_Cause |= (1 << ((LEVEL) + 8));              \
-  }
+#define RAISE_INTERRUPT(LEVEL)                        \
+  do {                                                \
+    /* Set IP (pending) bit for interrupt level. */   \
+    CP0_Cause |= (1 << ((LEVEL) + 8));                \
+  } while (0)
 
 #define CLEAR_INTERRUPT(LEVEL)                        \
-  {                                                   \
+  do {                                                \
     /* Clear IP (pending) bit for interrupt level. */ \
     CP0_Cause &= ~(1 << ((LEVEL) + 8));               \
-  }
+  } while (0)
 
-/* Recognized exceptions: */
-
-#define ExcCode_Int 0       /* Interrupt */
-#define ExcCode_Mod 1       /* TLB modification (not implemented) */
-#define ExcCode_TLBL 2      /* TLB exception (not implemented) */
-#define ExcCode_TLBS 3      /* TLB exception (not implemented) */
-#define ExcCode_AdEL 4      /* Address error (load/fetch) */
-#define ExcCode_AdES 5      /* Address error (store) */
-#define ExcCode_IBE 6       /* Bus error, instruction fetch */
-#define ExcCode_DBE 7       /* Bus error, data reference */
-#define ExcCode_Sys 8       /* Syscall exception */
-#define ExcCode_Bp 9        /* Breakpoint exception */
-#define ExcCode_RI 10       /* Reserve instruction */
-#define ExcCode_CpU 11      /* Coprocessor unusable */
-#define ExcCode_Ov 12       /* Arithmetic overflow */
-#define ExcCode_Tr 13       /* Trap */
-#define ExcCode_FPE 15      /* Floating point */
-#define ExcCode_C2E 18      /* Coprocessor 2 (not impelemented) */
-#define ExcCode_MDMX 22     /* MDMX unusable (not implemented) */
-#define ExcCode_WATCH 23    /* Reference to Watch (not impelemented) */
-#define ExcCode_MCheck 24   /* Machine check (not implemented) */
-#define ExcCode_CacheErr 30 /* Cache error (not impelemented) */
+/* Recognized exceptions.  Values from the MIPS32 Cause register's
+   ExcCode field, sparse 0..30.  uint8_t-backed since values fit. */
+typedef enum mips_exc_code : uint8_t {
+  ExcCode_Int = 0,       /* Interrupt */
+  ExcCode_Mod = 1,       /* TLB modification (not implemented) */
+  ExcCode_TLBL = 2,      /* TLB exception (not implemented) */
+  ExcCode_TLBS = 3,      /* TLB exception (not implemented) */
+  ExcCode_AdEL = 4,      /* Address error (load/fetch) */
+  ExcCode_AdES = 5,      /* Address error (store) */
+  ExcCode_IBE = 6,       /* Bus error, instruction fetch */
+  ExcCode_DBE = 7,       /* Bus error, data reference */
+  ExcCode_Sys = 8,       /* Syscall exception */
+  ExcCode_Bp = 9,        /* Breakpoint exception */
+  ExcCode_RI = 10,       /* Reserve instruction */
+  ExcCode_CpU = 11,      /* Coprocessor unusable */
+  ExcCode_Ov = 12,       /* Arithmetic overflow */
+  ExcCode_Tr = 13,       /* Trap */
+  ExcCode_FPE = 15,      /* Floating point */
+  ExcCode_C2E = 18,      /* Coprocessor 2 (not implemented) */
+  ExcCode_MDMX = 22,     /* MDMX unusable (not implemented) */
+  ExcCode_WATCH = 23,    /* Reference to Watch (not implemented) */
+  ExcCode_MCheck = 24,   /* Machine check (not implemented) */
+  ExcCode_CacheErr = 30, /* Cache error (not implemented) */
+} mips_exc_code;
 
 /* Fields in binary representation of instructions: */
 
@@ -192,17 +205,17 @@ extern int first_bad_exception;
 imm_expr* addr_expr_imm(addr_expr* expr);
 int addr_expr_reg(addr_expr* expr);
 void align_text(int alignment);
-imm_expr* const_imm_expr(int32_t value);
-instruction* copy_inst(instruction* inst);
+[[nodiscard]] imm_expr* const_imm_expr(int32_t value);
+[[nodiscard]] instruction* copy_inst(instruction* inst);
 mem_addr current_text_pc(void);
 int32_t eval_imm_expr(imm_expr* expr);
 void format_an_inst(str_stream* ss, instruction* inst, mem_addr addr);
 void free_inst(instruction* inst);
 void i_type_inst(int opcode, int rt, int rs, imm_expr* expr);
 void i_type_inst_free(int opcode, int rt, int rs, imm_expr* expr);
-imm_expr* incr_expr_offset(imm_expr* expr, int32_t value);
+[[nodiscard]] imm_expr* incr_expr_offset(imm_expr* expr, int32_t value);
 void initialize_inst_tables(void);
-instruction* inst_decode(int32_t value);
+[[nodiscard]] instruction* inst_decode(int32_t value);
 int32_t inst_encode(instruction* inst);
 bool inst_is_breakpoint(mem_addr addr);
 const char* inst_op_name(instruction* inst);
@@ -211,21 +224,21 @@ const char* inst_op_name(instruction* inst);
 const char* op_token_name(int op_token);
 void j_type_inst(int opcode, imm_expr* target);
 void k_text_begins_at_point(mem_addr addr);
-addr_expr* make_addr_expr(int offs, char* sym, int reg_no);
-imm_expr* make_imm_expr(int offs, char* sym, bool is_pc_relative);
+[[nodiscard]] addr_expr* make_addr_expr(int offs, char* sym, int reg_no);
+[[nodiscard]] imm_expr* make_imm_expr(int offs, char* sym, bool is_pc_relative);
 bool opcode_is_branch(int opcode);
 bool opcode_is_nullified_branch(int opcode);
 bool opcode_is_true_branch(int opcode);
 bool opcode_is_jump(int opcode);
 bool opcode_is_load_store(int opcode);
 void print_inst(mem_addr addr);
-char* inst_to_string(mem_addr addr);
+[[nodiscard]] char* inst_to_string(mem_addr addr);
 void r_co_type_inst(int opcode, int fd, int fs, int ft);
 void r_cond_type_inst(int opcode, int fs, int ft, int cc);
 void r_sh_type_inst(int opcode, int rd, int rt, int shamt);
 void r_type_inst(int opcode, int rd, int rs, int rt);
-void raise_exception(int excode);
-instruction* set_breakpoint(mem_addr addr);
+void raise_exception(mips_exc_code excode);
+[[nodiscard]] instruction* set_breakpoint(mem_addr addr);
 void test_assembly(instruction* inst);
 void text_begins_at_point(mem_addr addr);
 void user_kernel_text_segment(bool to_kernel);

@@ -201,77 +201,47 @@ Unless someone is actually building this on AIX in 2026, delete.
 
 ---
 
-## Tier D — C23 modernization (1 week, low risk)
+## Tier D — C23 modernization (DONE)
 
-The codebase opted into `gnu23` but uses almost no C23 features.
-This is low-hanging fruit.
+Landed May 2026 across twelve numbered commits on the
+`c23modernization` branch.  Final-state writeup:
+[`archive/c23-modernization.md`](archive/c23-modernization.md).
 
-### D1. `NULL` → `nullptr` everywhere
+What this delivered (Tier D items in the original plan, plus
+several that emerged during execution):
 
-~201 occurrences.  `nullptr` is a typed keyword in C23, catches
-real bugs (passing `NULL` to a non-pointer variadic, etc.).
-Mechanical sed.  One commit.
+- D1. `NULL` → `nullptr` — already done in earlier portability work.
+- D2. `<stdbool.h>` removal — already done in earlier portability work.
+- D3. `[[nodiscard]]` — applied to 41 heap-allocators and status-return
+  functions across `ast.h`, `inst.h`, `sym-tbl.h`, `spim-utils.h`,
+  `string-stream.h`, `run.h`.  Wider sweep than the original three
+  the plan named.
+- D4. `[[maybe_unused]]` on macro-only parameters — not needed; no
+  unused-parameter warnings remained after the sweep.
+- D5. `static_assert` — already in place at `include/mem.h:19`.
+- D6. `constexpr` — applied to ~85 constants across spim.h, mem.h,
+  inst.h, reg.h.  Includes register-array lengths, memory-segment
+  addresses, immediate bounds, register-number selectors, and the
+  CP0/FCSR bitmask families.
+- D7. Warning flags — `-Wpedantic`, `-Wshadow`, `-Wunused-function`
+  already on.  This work added `-Wimplicit-fallthrough=5`.
+- D8. `auto` — skipped (deferred as readability-harm risk).
 
-### D2. `#include <stdbool.h>` → delete (bool/true/false are keywords in C23)
+Additional C23 features adopted that weren't in the original list:
 
-Drop all `#include <stdbool.h>` lines.  `bool` / `true` / `false`
-work without the header.  ~12 files.
-
-### D3. `[[nodiscard]]` on error-returning functions
-
-Functions whose return value carries the "did this fail" signal
-should be `[[nodiscard]]`:
-
-- `parse_file()` in `parser.h:46` (returns error count)
-- `read_assembly_file()` in `spim-utils.h` (returns bool)
-- `lookup_label()` in `sym-tbl.h:67` (returns NULL on miss)
-
-Compiler will warn if any caller silently drops the result.
-Catches latent bugs.
-
-### D4. `[[maybe_unused]]` on parameters used only in macros
-
-E.g. `addr` parameter of `bad_text_read()` in `mem.c:378` is
-only consumed by the `RAISE_EXCEPTION(addr, ...)` macro, which
-makes clang think the parameter is unused.  Marking it cleans
-the warning honestly.
-
-### D5. `static_assert(...)` for layout invariants
-
-`inst.c` and `mem.c` quietly assume things like
-`sizeof(mem_word) == 4` and `sizeof(instruction) == sizeof(uint32_t)`.
-Add `static_assert` at file scope so a future port to a 64-bit-
-int platform fails to compile loudly rather than miscomputing.
-C23 lets you write `static_assert` without the underscore.
-
-### D6. `constexpr int` for typed compile-time constants where it matters
-
-The `#define` macros for register counts (`R_LENGTH`, etc.) are
-type-less, so `R[R_LENGTH]` works but `sizeof(R) / R_LENGTH`
-doesn't always do what you want.  `constexpr int R_LENGTH = 32;`
-fixes this.  Pick the few constants that benefit; the others
-can stay as `#define`.
-
-### D7. Enable more warnings
-
-Add to `meson.build`:
-- `-Wunused-function` (would have flagged `parse_br_imm32` years ago)
-- `-Wpedantic` (catches GCC-isms that would break on Clang/MSVC)
-- `-Wshadow` (catches inner-scope variable shadowing)
-
-Be ready for a flood of one-time noise; suppress per-file with
-`[[maybe_unused]]` where the noise is legitimate.
-
-### D8 (optional). `auto` for obvious type inference
-
-```c
-auto entry = map_string_to_name_val_val(...);  // instead of: name_val_val* entry = ...
-```
-
-Cosmetic; controversial.  Don't bother unless the team likes it.
-
-**Total Tier D effort: 1 week.  Net diff: ~minor; mostly
-modernisation.**
+- `[[noreturn]]` for the four `_Noreturn` functions.
+- `enum E : T` underlying types on every named enum (uint8_t for
+  most; int32_t for tokens.h's TOK_* family).
+- Two `#define` clusters promoted to enums (`op_type`,
+  `mips_exc_code`).
+- `static inline` for `streq`, `sign_ex`; `typeof`-based macros for
+  `MIN`/`MAX`/`ROUND_*` (kills double-evaluation).
+- `<stdbit.h>` for CLO/CLZ.
+- `<stdckdint.h>` for `add`/`addi`/`sub` overflow detection (closes
+  a signed-overflow UB hole at `-O2`).
+- `#embed` for the default exception handler (binary is now
+  self-contained — no on-disk lookup needed).
+- `= {}` empty initializers.
 
 ---
 

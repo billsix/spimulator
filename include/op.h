@@ -1,53 +1,55 @@
 /* SPIM S20 MIPS simulator.
-   This file describes the MIPS instructions, the assembler pseudo
-   instructions, the assembler pseudo-ops, and the spim commands.
+   Master list of MIPS instructions, assembler pseudo-instructions,
+   assembler directives, and spim REPL commands — the single source
+   of truth that every keyword table in the rest of spim derives from.
    SPDX-License-Identifier: BSD-3-Clause
-   See LICENSE in the project root for full text. */
+   See LICENSE in the project root for full text.
 
-/* op.h is intentionally an X-macro: it must be re-includable so a single
-   translation unit can build several different tables (name_tbl,
-   i_opcode_tbl, a_opcode_tbl) by redefining OP() each time. The type-macro
-   definitions below are guarded so they don't redefine on subsequent
-   includes; the OP() list itself is left outside the guard. */
+   ============================================================
+   X-macro file.  If you haven't seen this pattern before:
+   ============================================================
 
-#ifndef OP_H_TYPES
-#define OP_H_TYPES
+   Each line below is a call to a macro named OP() with four
+   arguments — the textual mnemonic, the token symbol, an
+   operand-shape type tag, and the binary encoding.  OP() is NOT
+   defined in this file.  Each consumer defines its own OP()
+   before #including this file, so each row expands into
+   whatever shape that consumer wants.  Typical pattern:
 
-/* Type of each entry: */
+       #define OP(name, sym, type, enc) sym,
+       #include "op.h"
 
-#define ASM_DIR 0
-#define PSEUDO_OP 1
+   That expansion (used in tokens.h) turns each row into just
+   the second column — so OP("add", TOK_ADD_OP, ...) becomes
+   "TOK_ADD_OP," inside an enum body.  scanner.c picks the
+   first three columns ({name, sym, type}) to build a keyword
+   table.  inst.c includes op.h three times with three
+   different OP() definitions to build three different lookup
+   tables.
 
-#define BC_TYPE_INST 10
-#define B1_TYPE_INST 11
-#define I1s_TYPE_INST 12
-#define I1t_TYPE_INST 13
-#define I2_TYPE_INST 14
-#define B2_TYPE_INST 15
-#define I2a_TYPE_INST 16
+   The 380-row instruction list lives in one place and every
+   dependent table updates together when a row is added.
 
-#define R1s_TYPE_INST 20
-#define R1d_TYPE_INST 21
-#define R2st_TYPE_INST 22
-#define R2ds_TYPE_INST 23
-#define R2td_TYPE_INST 24
-#define R2sh_TYPE_INST 25
-#define R3_TYPE_INST 26
-#define R3sh_TYPE_INST 27
+   ============================================================
+   Constraints this file MUST respect:
+   ============================================================
 
-#define FP_I2a_TYPE_INST 30
-#define FP_R2ds_TYPE_INST 31
-#define FP_R2ts_TYPE_INST 32
-#define FP_CMP_TYPE_INST 33
-#define FP_R3_TYPE_INST 34
-#define FP_R4_TYPE_INST 35
-#define FP_MOVC_TYPE_INST 36
-#define MOVC_TYPE_INST 37
+   1. No header guard.  Each TU re-includes the file multiple
+      times with different OP() definitions to build different
+      tables.
 
-#define J_TYPE_INST 40
-#define NOARG_TYPE_INST 42
+   2. No typedefs, no preprocessor directives other than the
+      OP() rows.  This file is #include'd INSIDE another enum
+      body in tokens.h, so anything that isn't a
+      comma-terminated expression is a syntax error.
 
-#endif /* OP_H_TYPES */
+   3. The type-tag identifiers in the third column
+      (BC_TYPE_INST, R3_TYPE_INST, etc.) are defined in
+      op-types.h.  Consumers that need those names visible must
+      include op-types.h at file scope before any OP() use.
+
+   Adding a new instruction: insert one row in alphabetical
+   order.  Don't add anything else to this file. */
 
 /* Information on each keyword token that can be read by spim.	Must be
    sorted in alphabetical order. */
