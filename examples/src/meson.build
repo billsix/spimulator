@@ -13,6 +13,14 @@ edu_args = [
   '-fno-asynchronous-unwind-tables',
   '-fno-unwind-tables',
   '-fno-stack-protector',
+  # Emit a .s alongside each .o so students can compare the
+  # compiler's translation of their C against the hand-written
+  # MIPS .asm.  Lands at builddir/examples/src/<demo>.p/<demo>.c.s.
+  # -fverbose-asm adds C-source variable-name annotations next to
+  # each instruction — slight noise, big pedagogical gain.
+  # See tasks/archive/PLAN-asm-listings.md.
+  '-save-temps=obj',
+  '-fverbose-asm',
 ]
 
 # Each demo is freestanding — no libc, defines its own `_start`,

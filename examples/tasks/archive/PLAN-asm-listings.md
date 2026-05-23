@@ -233,3 +233,23 @@ Option A.  Hours if Option B.
   source/asm interleaving (like `objdump -S` does) is post-link
   and belongs with the disassembly artifact, not the .s
   artifact.
+
+## Status
+
+Landed 2026-05-23.  Option A (`-save-temps=obj`) added to
+`edu_args` in `examples/src/meson.build`, alongside
+`-fverbose-asm` for C-source-variable annotations.
+
+After `meson compile -C builddir` from /spimulator root, every
+example demo's compiler-generated assembly lands at
+`builddir/examples/src/<demo>.p/<munged>.c.s` — and the
+preprocessed `.i` lands beside it as a free side effect.
+
+Spot-checked: helloworld.c.s reads cleanly with source-line
+comments (`# .../helloworld.c:32:   print_string(...)`) and
+register-comment variable names (`#, status`).  Some
+`.cfi_*` debug-info noise remains (from the `--buildtype=debug`
+setup); skippable but worth a follow-up if it bothers
+students — would need `-g0` scoped to examples only.
+
+29/29 tests still pass after the change.

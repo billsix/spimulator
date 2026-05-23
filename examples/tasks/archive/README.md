@@ -110,3 +110,25 @@ demos under `src/lib/libstdlib-demo/` (atoi, abs, exit,
 bsearch, atexit — each with C+asm+golden, plus
 .expected-status for exit and atexit).  Wired into the
 unified meson tests via the post-merge subdir setup.
+
+## Compiler-generated .s listings (May 2026)
+
+Every C demo's compiler-generated assembly is now kept on
+disk as a viewable build artifact, so students can compare
+"what the C compiles to natively" against the hand-written
+MIPS `.asm` for spim.
+
+- **[`PLAN-asm-listings.md`](PLAN-asm-listings.md)** — covers
+  the three implementation options considered
+  (`-save-temps=obj` project-wide flag vs. per-demo
+  `custom_target` vs. dedicated `run_target`), the
+  recommendation (Option A: one-line flag), the `-fverbose-asm`
+  decision (worth it for the source-variable annotations),
+  and the test plan.
+
+Landed via two flags in `examples/src/meson.build`'s scoped
+`edu_args`: `-save-temps=obj` (emits `.s` and `.i` alongside
+each `.o`) and `-fverbose-asm` (annotates each instruction
+with the C-level variable name where determinable).  After
+`meson compile`, every demo has a readable `.s` at
+`builddir/examples/src/<demo>.p/<munged>.c.s`.

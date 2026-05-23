@@ -55,6 +55,22 @@ cd examples/src && meson compile -C builddir
 ./builddir/<demo-name>                          # plus any argv
 ```
 
+## Comparing the C compiler's translation
+
+Every demo's C source is also compiled to a viewable assembly
+listing as a build artifact, so you can compare your hand-
+written MIPS `.asm` against what gcc/clang generates from the
+same `.c`.  After `meson compile`, look at:
+
+```
+builddir/examples/src/<demo>.p/<munged>.c.s
+```
+
+For example, `helloworld.c.s` shows the native x86 assembly
+gcc generated, annotated with C-source line numbers and
+variable names (`-fverbose-asm`).  The MIPS `.asm` next to
+the C source is the hand-written equivalent for spim.
+
 ## Real-Unix argv convention
 
 The filter demos (`wc`, `head`, `rev`, `expand`, `cat`,
