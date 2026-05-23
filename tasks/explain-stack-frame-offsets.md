@@ -149,17 +149,24 @@ tests green.  Templates rendered correctly without code change:
 the `tpl_load` / `tpl_store` "Effective address" line works for
 positive and (sign-extended) negative immediates alike.
 
-### Minor cosmetic findings (not addressed here)
+### Cosmetic fixes folded in (same session)
 
-Both are pre-existing and worth their own follow-ups if anyone
-cares — they're outside this task's offset-diversity scope.
+Surfaced by the negative-offset block; small enough to fix
+inline.
 
-- The disassembler prints `$s8` rather than `$fp` (same
-  register, different canonical name in `int_reg_names[]`).
-  Pedagogically the frame-pointer role makes `$fp` the
-  preferable display name when the program uses it as one.
-- The effective-address line for negative offsets reads
-  `$rs + -N` (e.g. `$s8 + -4 = 0x7fffffdc + -4 = 0x7fffffd8`)
-  rather than `$rs - N`.  Readable, but `$rs - 4` would parse
-  more naturally.  Conditional formatting in `tpl_load` /
-  `tpl_store` would do it.
+- **`s8` → `fp` in `int_reg_names[]`** (`src/display-utils.c:19`).
+  Register 30's canonical display name is now `$fp`.  The
+  scanner already accepted both `fp` and `s8` as input, so this
+  is a display-only change.  All disassembly, narration, and
+  `print` hints now consistently say `$fp`.
+- **`+ -N` → `- N` for negative offsets** in `tpl_load` /
+  `tpl_store` (`src/explain.c` around lines 691/735).  Sign of
+  `off` is extracted once; the effective-address format string
+  uses `%s %d` for the separator+magnitude so it reads
+  `$fp - 4 = 0x7fffffdc - 4 = 0x7fffffd8` instead of
+  `$fp + -4 = 0x7fffffdc + -4 = 0x7fffffd8`.  Other places that
+  echo the raw immediate (`offset = -4 (0xfffc)`, the `print
+  -4($fp)` REPL hint) were left as-is — they're showing the
+  literal field / the syntax the student wrote, both correct.
+
+Golden re-regenerated after these fixes; still 22/22 green.

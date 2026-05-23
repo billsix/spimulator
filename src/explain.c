@@ -689,14 +689,17 @@ static void tpl_load(int level, mips_instruction* instruction,
      legal), the post-execute gpr[base] is the loaded value, not the
      pre-execute base. */
   mem_addr ea = (mem_addr)(snap_R[base] + off);
+  const char* sign = (off < 0) ? "-" : "+";
+  int absoff = (off < 0) ? -off : off;
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — read %s from memory at the effective address; "
                "placed the result in $%s.\n",
                op_label, op_text, int_reg_names[rt]);
   write_output(message_out,
-               "    Effective address = $%s + %d  =  0x%08x + %d  =  0x%08x.\n",
-               int_reg_names[base], off, snap_R[base], off, ea);
+               "    Effective address = $%s %s %d  =  0x%08x %s %d  =  0x%08x.\n",
+               int_reg_names[base], sign, absoff,
+               snap_R[base], sign, absoff, ea);
   if (level >= 2) {
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_reg(base);
@@ -728,14 +731,17 @@ static void tpl_store(int level, mips_instruction* instruction,
   int rt = RT(instruction), base = BASE(instruction);
   short off = (short)IOFFSET(instruction);
   mem_addr ea = (mem_addr)(snap_R[base] + off);
+  const char* sign = (off < 0) ? "-" : "+";
+  int absoff = (off < 0) ? -off : off;
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — wrote %s from $%s into memory at the effective "
                "address.\n",
                op_label, op_text, int_reg_names[rt]);
   write_output(message_out,
-               "    Effective address = $%s + %d  =  0x%08x + %d  =  0x%08x.\n",
-               int_reg_names[base], off, snap_R[base], off, ea);
+               "    Effective address = $%s %s %d  =  0x%08x %s %d  =  0x%08x.\n",
+               int_reg_names[base], sign, absoff,
+               snap_R[base], sign, absoff, ea);
   if (level >= 2) {
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_reg(base);
