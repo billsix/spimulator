@@ -1379,6 +1379,7 @@ typedef enum {
   MOD_I_IMMEDIATE,      /* `i` suffix: 16-bit constant in instruction */
   MOD_V_VARIABLE_SHIFT, /* `v` suffix: shift count from a register */
   MOD_AL_AND_LINK,      /* `al` suffix: write $ra (subroutine call) */
+  MOD_L_LIKELY,         /* `l` suffix: branch-likely (delay-slot nullify) */
   MOD_W_WORD,           /* word-width memory access (32 bits) */
   MOD_H_HALFWORD,       /* halfword-width memory access (16 bits) */
   MOD_B_BYTE,           /* byte-width memory access (8 bits) */
@@ -1422,8 +1423,9 @@ static const char* category_descriptions[CAT_COUNT] = {
 static const char* modifier_letters[MOD_COUNT] = {
     [MOD_U_UNSIGNED_ARITH] = "`u`", [MOD_U_ZERO_EXTEND] = "`u`",
     [MOD_I_IMMEDIATE] = "`i`",      [MOD_V_VARIABLE_SHIFT] = "`v`",
-    [MOD_AL_AND_LINK] = "`al`",     [MOD_W_WORD] = "`w`",
-    [MOD_H_HALFWORD] = "`h`",       [MOD_B_BYTE] = "`b`",
+    [MOD_AL_AND_LINK] = "`al`",     [MOD_L_LIKELY] = "`l`",
+    [MOD_W_WORD] = "`w`",           [MOD_H_HALFWORD] = "`h`",
+    [MOD_B_BYTE] = "`b`",
 };
 
 static const char* modifier_descriptions[MOD_COUNT] = {
@@ -1450,9 +1452,26 @@ static const char* modifier_descriptions[MOD_COUNT] = {
         "and link: save the return address (PC+4, or PC+8 with\n"
         "          delayed branches) into $ra. Turns the\n"
         "          branch/jump into a subroutine call.",
-    [MOD_W_WORD] = "word width: 32 bits (full register width).",
-    [MOD_H_HALFWORD] = "halfword width: 16 bits.",
-    [MOD_B_BYTE] = "byte width: 8 bits.",
+    [MOD_W_WORD] =
+        "word width: the load/store transfers 32 bits — one full\n"
+        "          register's worth.  MIPS is word-aligned, so the\n"
+        "          effective address must be a multiple of 4.",
+    [MOD_H_HALFWORD] =
+        "halfword width: the load/store transfers 16 bits.  The\n"
+        "          effective address must be a multiple of 2.  Plain\n"
+        "          (no-`u`) loads sign-extend the high bit to fill\n"
+        "          the register.",
+    [MOD_B_BYTE] =
+        "byte width: the load/store transfers 8 bits — the smallest\n"
+        "          addressable unit on MIPS.  No alignment\n"
+        "          requirement.  Plain (no-`u`) loads sign-extend\n"
+        "          the high bit to fill the register.",
+    [MOD_L_LIKELY] =
+        "likely: if the branch is not taken, the instruction in the\n"
+        "          delay slot is NOT executed (\"nullified\").  The\n"
+        "          plain (no-`l`) branch always executes the delay\n"
+        "          slot regardless of the branch outcome.  Used by\n"
+        "          compilers to fill the delay slot more aggressively.",
 };
 
 static const char* modifier_short[MOD_COUNT] = {
@@ -1461,6 +1480,7 @@ static const char* modifier_short[MOD_COUNT] = {
     [MOD_I_IMMEDIATE] = "immediate (16-bit constant)",
     [MOD_V_VARIABLE_SHIFT] = "variable shift count (from register)",
     [MOD_AL_AND_LINK] = "and link (writes $ra)",
+    [MOD_L_LIKELY] = "likely (nullify delay slot if not taken)",
     [MOD_W_WORD] = "word (32-bit)",
     [MOD_H_HALFWORD] = "halfword (16-bit)",
     [MOD_B_BYTE] = "byte (8-bit)",
@@ -1590,6 +1610,21 @@ static void lookup_classification(int op, inst_category* cat,
     case TOK_BLTZAL_OPCODE:
       *cat = CAT_COND_BRANCH;
       mods[(*n_mods)++] = MOD_AL_AND_LINK;
+      break;
+    case TOK_BEQL_OPCODE:
+    case TOK_BNEL_OPCODE:
+    case TOK_BGEZL_OPCODE:
+    case TOK_BGTZL_OPCODE:
+    case TOK_BLEZL_OPCODE:
+    case TOK_BLTZL_OPCODE:
+      *cat = CAT_COND_BRANCH;
+      mods[(*n_mods)++] = MOD_L_LIKELY;
+      break;
+    case TOK_BGEZALL_OPCODE:
+    case TOK_BLTZALL_OPCODE:
+      *cat = CAT_COND_BRANCH;
+      mods[(*n_mods)++] = MOD_AL_AND_LINK;
+      mods[(*n_mods)++] = MOD_L_LIKELY;
       break;
 
     /* Unconditional jump */

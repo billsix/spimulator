@@ -47,7 +47,9 @@ Stepped at PC = 0x00400000:
     Includes `lui` for constructing 32-bit constants and
     addresses. (COD §2.3 and §2.9.)
   Modifiers in `lw`:
-    `w` — word width: 32 bits (full register width).
+    `w` — word width: the load/store transfers 32 bits — one full
+          register's worth.  MIPS is word-aligned, so the
+          effective address must be a multiple of 4.
   What it did:
     Load Word — read a 32-bit word from memory at the effective address; placed the result in $a0.
     Effective address = $sp + 0  =  0x7fffffdc + 0  =  0x7fffffdc.
@@ -561,7 +563,10 @@ Stepped at PC = 0x0040006c:
 
   Category: Data transfer
   Modifiers in `lb`:
-    `b` — byte width: 8 bits.
+    `b` — byte width: the load/store transfers 8 bits — the smallest
+          addressable unit on MIPS.  No alignment
+          requirement.  Plain (no-`u`) loads sign-extend
+          the high bit to fill the register.
   What it did:
     Load Byte (signed) — read one byte, sign-extended from memory at the effective address; placed the result in $t8.
     Effective address = $t6 + 0  =  0x10010000 + 0  =  0x10010000.
@@ -1192,7 +1197,10 @@ Stepped at PC = 0x004000ec:
 
   Category: Data transfer
   Modifiers in `sh`:
-    `h` — halfword width: 16 bits.
+    `h` — halfword width: the load/store transfers 16 bits.  The
+          effective address must be a multiple of 2.  Plain
+          (no-`u`) loads sign-extend the high bit to fill
+          the register.
   What it did:
     Store Halfword — wrote the low 16 bits from $t8 into memory at the effective address.
     Effective address = $t7 + 2  =  0x10010004 + 2  =  0x10010006.
