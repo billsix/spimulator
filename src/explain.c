@@ -2138,13 +2138,23 @@ void explain_after(mips_instruction* instruction) {
   if (accept_pseudo_insts && SOURCE(instruction) != nullptr) {
     const struct pseudo_info* p = find_pseudo_in_source(SOURCE(instruction));
     if (p != nullptr) {
-      write_output(message_out,
-                   "  Pseudo-instruction `%s` (as written in source):\n"
-                   "    %s\n"
-                   "  This was the %s real instruction the assembler "
-                   "emitted for it.\n",
-                   p->name, p->what_it_means,
-                   p->may_be_multi ? "first" : "single");
+      if (level >= 2) {
+        /* Full 4-line block: header + description + footer. */
+        write_output(message_out,
+                     "  Pseudo-instruction `%s` (as written in source):\n"
+                     "    %s\n"
+                     "  This was the %s real instruction the assembler "
+                     "emitted for it.\n",
+                     p->name, p->what_it_means,
+                     p->may_be_multi ? "first" : "single");
+      } else {
+        /* L1 compact form: single line, no verbose description.  Keeps
+           every L1 instruction block roughly uniform in height while
+           still signaling "you wrote a pseudo-op here." */
+        write_output(message_out,
+                     "  Pseudo-op: `%s` (%s real instruction)\n", p->name,
+                     p->may_be_multi ? "first" : "single");
+      }
       pending_pseudo_name = p->name;
       pending_pseudo_multi = p->may_be_multi;
     } else {
@@ -2152,11 +2162,17 @@ void explain_after(mips_instruction* instruction) {
       pending_pseudo_multi = false;
     }
   } else if (pending_pseudo_name != nullptr && pending_pseudo_multi) {
-    write_output(message_out,
-                 "  (continuation of the `%s` pseudo-op expansion above —\n"
-                 "   same source line, this was the next real instruction "
-                 "emitted)\n",
-                 pending_pseudo_name);
+    if (level >= 2) {
+      write_output(message_out,
+                   "  (continuation of the `%s` pseudo-op expansion above —\n"
+                   "   same source line, this was the next real instruction "
+                   "emitted)\n",
+                   pending_pseudo_name);
+    } else {
+      /* L1 compact form of the continuation hint. */
+      write_output(message_out,
+                   "  Pseudo-op: `%s` (continuation)\n", pending_pseudo_name);
+    }
   }
   write_output(message_out, "\n");
 
