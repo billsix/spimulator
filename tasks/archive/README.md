@@ -103,3 +103,54 @@ See:
 - `examples/TEACHING-ASSEMBLER-INTERNALS.md` for a student-facing
   tour of the teaching surfaces (`-print-ast`, `-show-expansion`,
   `-listing`, `-explain`).
+
+## Merge /examples into /spimulator (May 2026)
+
+7-phase repo restructuring that absorbed the standalone
+`/examples` curriculum into `/spimulator/examples/` as a
+literal mirror, then unified the build / test / container
+story.  After the merge: one Dockerfile, one `meson test`,
+and goldens enforced at container-build time (any drift
+between the C side and the spim-asm side of a paired demo
+fails the build).
+
+- **[`merge-examples-into-spimulator.md`](merge-examples-into-spimulator.md)**
+  — full plan + phase-by-phase status writeup.  Covers the
+  decisions (literal mirror, no subtree, manual commit replay
+  preserving original author/email/date/message), the prune
+  list (book, Dockerfile, Makefile, entrypoint, output, musl
+  — none needed in the merged tree), the meson surgery
+  (subdir + per-target flag scoping so -nostdlib doesn't leak
+  into spim's libc-needing build), the Dockerfile changes
+  (diffutils, COPY examples/, dual-suite test step), and the
+  sed gotcha when bulk-replacing `/examples/` substrings.
+
+Files updated: many.  Net effect: `/spimulator/examples/`
+contains the full curriculum with 45 historical commits in
+`git log examples/`, the 6 library-demo tests run under both
+the C and asm sides at every container build, and the
+standalone `/examples` repo can be deleted.
+
+## Investigate tree-sitter for parser replacement (May 2026)
+
+Investigation task — assessed whether the hand-written
+recursive-descent parser (~1700 lines in `src/parser.c`)
+could profitably be replaced by a tree-sitter grammar.
+Conclusion: NOT for the simulator's runtime parser (the
+hand-written version is fine for what it does); MAYBE as a
+separate editor-integration grammar (`tree-sitter-mips-spim`
+in its own repo).
+
+- **[`investigate-tree-sitter.md`](investigate-tree-sitter.md)**
+  — covers the three use-cases considered (A: editor
+  integration, B: runtime replacement, C: education tool),
+  the trade-offs in each direction, the "what's hard"
+  section (preprocessor-like include handling, span
+  computation across token kinds), and a "first concrete
+  step" recommendation IF use case A is the chosen direction
+  (start a separate `tree-sitter-mips-spim` repo, write
+  a 50-line op.h→grammar.js converter, iterate from
+  `examples/01-helloworld.asm`).
+
+If the editor-integration grammar work actually starts,
+that's a new task (not a re-open of this one).

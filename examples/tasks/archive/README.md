@@ -76,3 +76,37 @@ libstr).
   libio.asm with everything."  The multi-`-f` recommendation
   from this doc did land — see
   [`/spimulator/tasks/cli-multi-file-load.md`](../../../tasks/cli-multi-file-load.md).
+
+## libstdlib v1 (May 2026)
+
+Second teaching libc in the trilogy (libctype → libstdlib →
+libstr).  7 functions: `atoi`, `absolute` / `labsolute`,
+`_Exit`, `bsearch`, `atexit` + `exit`.  Pedagogically the
+biggest single library — introduces the first non-leaf
+functions (atoi calls into libctype), the first indirect
+call via `jalr` (bsearch's comparator), and the second
+indirect call as a function-pointer table walk (exit's
+handler chain).
+
+- **[`PLAN-libstdlib.md`](PLAN-libstdlib.md)** — umbrella
+  plan covering all 7 functions, the calling-convention
+  contract, the worked atoi example, the `absolute` /
+  `labsolute` naming gotcha (spim reserves `abs` as a
+  built-in pseudoinstruction), and the parse_int-vs-atoi
+  coexistence decision (parse_int stays as a simple
+  teaching helper; atoi is the strict-libc alternative
+  with no curriculum-wide migration planned).
+- **[`PLAN-libstdlib-atexit.md`](PLAN-libstdlib-atexit.md)**
+  — focused sub-plan for the cleanup-on-exit chain.
+  Documents the deliberate scope choice (atexit/exit only,
+  NOT POSIX signal handling — spim's single-threaded
+  simulator can't honestly implement async signals; the
+  honest message is "go take an OS class"), the LIFO
+  handler-order lesson (POSIX vs. naive FIFO intuition),
+  and the tail-call into `_Exit` rather than `jal _Exit`.
+
+Files added: `src/lib/libstdlib/` (library) and 5 paired
+demos under `src/lib/libstdlib-demo/` (atoi, abs, exit,
+bsearch, atexit — each with C+asm+golden, plus
+.expected-status for exit and atexit).  Wired into the
+unified meson tests via the post-merge subdir setup.
