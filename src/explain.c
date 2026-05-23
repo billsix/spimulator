@@ -92,6 +92,20 @@ static void emit_legend(void) {
       "        `ori` — the source line appears once but two real\n"
       "        instructions get narrated).\n"
       "\n"
+      "Placeholder notation in pseudo-op descriptions and structural\n"
+      "explanations:\n"
+      "\n"
+      "  $rs, $rt, $rd, shamt\n"
+      "        Field names from the MIPS instruction encoding —\n"
+      "        $rs = first source register, $rt = second source or\n"
+      "        target register, $rd = destination register, shamt =\n"
+      "        shift amount.  When you see these in a pseudo-op's\n"
+      "        general-form description (e.g. \"set $rd to ...\"),\n"
+      "        they refer to whatever registers you wrote in YOUR\n"
+      "        source line.  The disassembled \"What it did\" lines\n"
+      "        substitute the concrete register names in place of\n"
+      "        these placeholders.\n"
+      "\n"
       "(This header is shown once per session. Higher `-explain`\n"
       "levels add per-instruction narration after the header.)\n");
 }
@@ -485,13 +499,24 @@ static void say_wrote_mem(int width) {
                ((uint32_t)snap_mem_val) & mask, ((uint32_t)now) & mask);
 }
 
+/* Per-block state for "Try it yourself" emission.  `try_block_active`
+   is set when `say_try_regs` opens a block, cleared by
+   `say_try_finish`; `try_lines_emitted` counts lines so the finish
+   call knows how many generic-suggestion padding lines to add. */
+static bool try_block_active;
+static int try_lines_emitted;
+
 /* Emit "Try it yourself" lines for up to four registers. Pass 0 (=$zero) to
    skip a slot; duplicates are skipped automatically. Each emitted line is
-   also added to the tab-completion suggestions list. */
+   also added to the tab-completion suggestions list.
+
+   `say_try_finish` is called by the dispatch wrapper at the end of each
+   instruction's render to pad the block to a 3-line minimum. */
 static void say_try_regs(int a, int b, int c, int d) {
   int regs[4] = {a, b, c, d};
   write_output(message_out, "  Try it yourself:\n");
-  bool any = false;
+  try_block_active = true;
+  try_lines_emitted = 0;
   char cmd[64];
   for (int i = 0; i < 4; i++) {
     int r = regs[i];
@@ -503,11 +528,7 @@ static void say_try_regs(int a, int b, int c, int d) {
     snprintf(cmd, sizeof cmd, "print $%s", int_reg_names[r]);
     write_output(message_out, "    %s\n", cmd);
     add_suggestion(cmd);
-    any = true;
-  }
-  if (!any) {
-    write_output(message_out, "    print_all_regs   # show every register\n");
-    add_suggestion("print_all_regs");
+    try_lines_emitted++;
   }
 }
 
@@ -517,6 +538,36 @@ static void say_try_regs(int a, int b, int c, int d) {
 static void say_try(const char* cmd, const char* why) {
   write_output(message_out, "    %-22s # %s\n", cmd, why);
   add_suggestion(cmd);
+  try_lines_emitted++;
+}
+
+/* Close out the "Try it yourself" block.  If fewer than 3 lines have
+   been emitted (e.g. for `j` which has no register operands, or `mfhi`
+   with one), pad with generic suggestions (`print_all_regs`, `step`)
+   so every block is uniformly substantive.  Templates that emit more
+   than 3 operand-specific lines (loads/stores) skip the padding.
+   No-op if no try block was opened by this instruction. */
+static void say_try_finish(void) {
+  if (!try_block_active) return;
+  if (try_lines_emitted < 3) {
+    write_output(message_out,
+                 "    print_all_regs         # show every register\n");
+    add_suggestion("print_all_regs");
+    try_lines_emitted++;
+  }
+  if (try_lines_emitted < 3) {
+    write_output(message_out,
+                 "    step                   # advance to the next instruction\n");
+    add_suggestion("step");
+    try_lines_emitted++;
+  }
+  if (try_lines_emitted < 3) {
+    write_output(message_out,
+                 "    continue               # run until the next breakpoint\n");
+    add_suggestion("continue");
+    try_lines_emitted++;
+  }
+  try_block_active = false;
 }
 
 /* ------------ per-opcode templates ------------
@@ -2041,8 +2092,6 @@ static void render_dispatch(int level, mips_instruction* instruction) {
                    "see the disassembly above)\n");
       break;
   }
-
-  write_output(message_out, "\n");
 }
 
 /* explain_after runs immediately after the dispatch switch (and PC
@@ -2114,6 +2163,12 @@ void explain_after(mips_instruction* instruction) {
 
     /* Per-opcode narration. */
     render_dispatch(level, instruction);
+
+    /* Pad the "Try it yourself" block to a 3-line minimum if the
+       template opened one.  No-op for L1 (no try block at all) and
+       for templates whose specific suggestions already reach the
+       minimum. */
+    say_try_finish();
 
     /* Load destination annotation: if a load completed but its
        destination register value didn't change (loaded the same value
