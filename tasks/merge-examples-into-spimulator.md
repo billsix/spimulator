@@ -2,20 +2,22 @@
 
 ## Goal
 
-Pull `/examples/` (the paired C + MIPS assembly teaching
-curriculum) into `/spimulator/` as a subdirectory, then unify
-the build / test / container story so:
+Absorb `/examples/` (the paired C + MIPS assembly teaching
+curriculum) into `/spimulator/examples/` as a literal mirror,
+then unify the build / test / container story so:
 
-- One Dockerfile builds spim AND the example demos AND runs the
-  full test suite (spim's regression tests + the
-  example-demo-pair tests) — the image build FAILS if anything
-  drifts.
-- `meson test -C builddir` from the spim repo root runs every
+- One Dockerfile (in /spimulator) builds spim AND the example
+  demos AND runs the full test suite — image build FAILS if
+  anything drifts.
+- `meson test -C builddir` from /spimulator root runs every
   test, including the C-vs-asm goldens for the library demos
   (libctype, libstdlib, future libstr).
-- The example .asm files can `-f`-load spim's library .asm
-  files using relative paths within the same repo, no more
-  `/spimulator/...` absolute references in /examples/ docs.
+- Example .asm files use relative paths within the merged
+  tree; no more `/spimulator/...` absolute references in
+  /examples docs.
+- `git log examples/` from /spimulator shows the full
+  original /examples commit history with original
+  authors/dates/messages preserved.
 
 ## Why
 
@@ -27,112 +29,228 @@ the build / test / container story so:
   surfacing real-world papercuts).
 - Today the test wiring across the two is manual: spim has
   meson tests; examples has none.  The library port
-  (libctype + libstdlib + planned libstr) has accumulated 5
-  paired demos with pinned `.expected` files but no automated
-  pipeline to enforce them.
+  (libctype + libstdlib v1 complete; libstr planned) has
+  accumulated 6 paired demos with pinned `.expected` files but
+  no automated pipeline to enforce them.
 - One Dockerfile + one `meson test` is much easier to keep
   honest than two coordinated builds.
+- Standalone /examples gets deleted after the merge — only
+  one source of truth going forward.
 
-## Why now
+## Decisions (locked 2026-05-23)
 
-This task is filed 2026-05-23 after a failed first pass at
-building separate test infrastructure inside `/examples/` (a
-`tests/run-demo.sh` runner + per-demo `test()` entries in
-`/examples/src/meson.build`).  The infra worked (5/5 green
-locally) but Bill flagged that combining repos is the cleaner
-direction.  The orphan `/examples/tests/run-demo.sh` from
-that pass should be folded into the merged setup; the script
-already encodes the right per-demo invocation patterns
-(libctype + libstdlib load order, exit-status verification
-for exit-demo, etc.).
+| Open question | Decision |
+|---|---|
+| Standalone /examples persistence | Interim only.  Deleted after merge. |
+| `/examples/musl/` vendoring | Already deleted from /examples; no port needed. |
+| Sphinx book pipeline (`/examples/book/`) | Drop — book not needed in merged tree. |
+| Target path within /spimulator | Literal mirror — `/spimulator/examples/`. |
+| Multi-`-f` doc paths | Update in phase 3 cross-reference sweep. |
+| Task/plan layout | Two surfaces by domain: `/spimulator/tasks/` for spim-internal, `/spimulator/examples/tasks/` for curriculum.  No naming churn (PLAN- prefix stays for curriculum tasks). |
+| Git history approach | Manual commit-by-commit replay (NOT subtree).  Preserves original author/email/date/message on every replayed commit. |
 
-## Proposed shape (sketch — refine on landing)
+## Pre-flight (already verified)
 
-1. **Copy** `/examples/{src, book, entrypoint, tests, tasks,
-   READING-ORDER.md, TEACHING-ASSEMBLER-INTERNALS.md, …}` into
-   `/spimulator/examples/`.  (Decide: hard copy, git subtree,
-   or symlink during transition — see Open questions.)
-2. **Update internal cross-refs.**  Files moved one level
-   deeper, so `../spimulator/...` references become
-   `..` (sibling-dir).  Run a sweep for `/examples/`,
-   `/spimulator/`, `../spimulator/`, and similar bare absolute
-   paths.
-3. **Merge meson.build.**  The example demos become additional
-   subdirectories of the spim build:
-   - `subdir('examples/src')` in the top-level
-     `/spimulator/meson.build`, OR
-   - keep `/spimulator/examples/src/meson.build` as its own
-     project pulled in via `meson.add_install_script` or a
-     subprojects-style include.
-   The library-demo tests defined in the orphaned
-   `/examples/tests/run-demo.sh` get registered as
-   `test()` entries.
-4. **Update spim's `tests/run-test.sh`** to know about the
-   library-demo tests, OR add a separate
-   `examples/tests/run-demo.sh` (the existing orphan) that
-   spim's meson.build invokes for those tests specifically.
-5. **Rewrite the Dockerfile.**  Take spim's existing Fedora-44
-   Dockerfile (or examples' Sphinx-aware one — see Open
-   questions) and combine into one that:
-   - installs gcc, meson, ninja, flex, bison, libedit-devel,
-     diffutils (already in spim's)
-   - PLUS: sphinx, texlive, aspell (currently in examples'
-     Dockerfile for the book build)
-   - PLUS: maybe `make` for the book makefile
-   - builds spim first (so the example asm tests can find it
-     at `/usr/local/bin/spimulator` after install)
-   - then builds the example demos
-   - then runs `meson test -C builddir` — image build FAILS
-     if anything drifts.
+- /spimulator is on branch `inlineExamples`, clean working tree.
+- /examples has 27 commits on `master`, only untracked state
+  is the orphan `tests/` dir from an earlier abandoned attempt.
+- Replay script ready at `/tmp/replay-examples.sh`.
 
-## Open questions (decide on landing)
+---
 
-- **Does the standalone /examples repo persist?**  If yes (as a
-  mirror or for separate publication), the merge becomes a
-  one-way copy that's re-synced periodically.  If no, /examples
-  becomes the deprecated home and everything moves.
-- **What about `/examples/musl/`?**  Vendored upstream source,
-  ~10 MB, used as reference for the libc port.  Options: copy
-  in (keeps everything together); .gitignore + document how
-  to fetch (smaller commits); add as a git submodule pointing
-  at upstream musl.
-- **What about `/examples/book/` and the Sphinx pipeline?**
-  Currently the examples Dockerfile's only job is `make html`
-  in /book/.  After merge: does the book still build in the
-  same image, or split into a separate documentation-build
-  pass?
-- **Path within /spimulator/:**  `/spimulator/examples/`
-  (literal mirror) vs. `/spimulator/curriculum/` (semantic
-  rename) vs. `/spimulator/teaching/` (broader umbrella).
-  Bill's call.
-- **Multi-`-f` paths become relative.**  Currently invocations
-  look like `spimulator -f /spimulator/.../libctype.asm -f ...`
-  in /examples docs.  After merge, with a sibling examples/
-  dir, these become `spimulator -f examples/src/lib/...` or
-  similar.  Cleaner; update the docs.
+## Phase 1 — Replay /examples commits into /spimulator/examples/
+
+Walk /examples's 27 commits oldest-first.  For each commit:
+
+1. Wipe `/spimulator/examples/` contents (keep the dir).
+2. Extract the /examples tree at that commit via
+   `git -C /examples archive --format=tar <sha> | tar -xC /spimulator/examples`.
+3. `git add -A examples` in /spimulator.
+4. Commit with the original author/email/date/message preserved
+   via `GIT_AUTHOR_*` + `GIT_COMMITTER_*` env vars and
+   `git commit -F` for the message.
+
+After all 27: verify every file in /examples HEAD exists
+byte-identically at the corresponding `/spimulator/examples/`
+path.
+
+Script: `/tmp/replay-examples.sh` (in worktree; ephemeral).
+
+Does NOT touch /examples (uses `git archive`, not checkout).
+The orphan `/examples/tests/run-demo.sh` (uncommitted) is
+NOT carried over by this phase — it gets folded in
+explicitly in phase 5.
+
+---
+
+## Phase 2 — Prune what's not wanted
+
+Delete from the new `/spimulator/examples/`:
+
+- `book/` — Sphinx book pipeline (not needed)
+- `entrypoint/` — book-build script (not needed)
+- `Makefile` — book build orchestration (not needed)
+- `Dockerfile` — book-only image (replaced by /spimulator/Dockerfile)
+- `output/` — build artifact, if present
+- `musl/` — should not be present (was deleted from /examples
+  before merge), but verify and clean up any stragglers
+
+Keep: `src/`, `tasks/`, `tests/` (the orphan run-demo.sh
+arrives in phase 5), `READING-ORDER.md`,
+`TEACHING-ASSEMBLER-INTERNALS.md`, `SESSION_NOTES.md` (if at
+top level), `.gitignore`.
+
+One commit titled something like "Drop book pipeline + other
+unused trees post-merge."
+
+---
+
+## Phase 3 — Cross-reference sweep
+
+Update relative paths now that the curriculum tree lives one
+level deeper inside /spimulator:
+
+- `../spimulator/tasks/...` → `../../tasks/...` (going up
+  two: from `examples/tasks/foo.md` → `examples/` → `/spimulator/`
+  → `tasks/`).  Or simpler: drop the `..` traversal entirely
+  by using absolute-from-repo-root.
+- `/spimulator/...` absolute paths in moved files → relative
+  to the merged tree.  E.g., from inside
+  `examples/tasks/PLAN-libstdlib-atexit.md`,
+  `/spimulator/tasks/cli-multi-file-load.md` becomes
+  `../../tasks/cli-multi-file-load.md`.
+- Invocation examples throughout `READING-ORDER.md`,
+  `SESSION_NOTES.md`, and `examples/tasks/PLAN-*.md`:
+  `spimulator -f /spimulator/.../libctype.asm` →
+  `spimulator -f examples/src/lib/libctype/libctype.asm`
+  (or whatever's natural relative to expected cwd).
+- Per-file `.asm` and `.c` header comments that show
+  invocation patterns — verify each.
+
+Tooling: `grep -rln '/spimulator/' examples/`,
+`grep -rln '\.\./spimulator/' examples/`, manual fix-up pass.
+
+One commit per file area (one commit each for READING-ORDER,
+SESSION_NOTES, the tasks dir sweep, the demo source sweep).
+Or one big commit if the changes are mechanical.
+
+---
+
+## Phase 4 — Task & plan merger
+
+Layout after merge:
+```
+/spimulator/
+    tasks/                  (spim-internal tasks)
+        archive/
+    examples/
+        tasks/              (curriculum tasks: PLAN-*.md)
+            archive/
+```
+
+Two surfaces by domain — different review burden, different
+reader expectations.  No file moves, no renames.  Just:
+
+- Update `/spimulator/tasks/merge-examples-into-spimulator.md`
+  status → landed.
+- Update `/spimulator/tasks/NEXT-SESSION.md` open queue to
+  reference `examples/` paths (was `/examples/`).
+- Update `/spimulator/tasks/HANDOFF-2026-05-22.md` only if
+  worth keeping current; otherwise leave as historical.
+- Optional: a one-line index in
+  `/spimulator/tasks/README.md` (or similar) pointing at
+  `examples/tasks/` for curriculum tasks.
+- Cross-references between the two task surfaces become
+  normal relative paths (`../tasks/...` from inside
+  `examples/tasks/`).
+
+---
+
+## Phase 5 — Build integration
+
+- `/spimulator/meson.build` adds `subdir('examples/src')` so
+  `meson compile -C builddir` from /spimulator root builds
+  the demos too.  Likely needs to convert
+  `examples/src/meson.build`'s top-of-file `project(...)`
+  declaration to a continuation (drop the project line; the
+  parent project owns it).
+- The orphan `tests/run-demo.sh` from /examples lands here.
+  Goes into `/spimulator/examples/tests/run-demo.sh`,
+  preserved as-is.  Already encodes the right per-demo
+  invocation patterns (libctype + libstdlib load order,
+  exit-status check for exit-demo and atexit-demo).
+- Demo `test()` entries: 6 tests today
+  (ctype-demo, atoi-demo, abs-demo, exit-demo, bsearch-demo,
+  atexit-demo).  Registered in the merged
+  `examples/src/meson.build`.
+- `meson test -C builddir` from /spimulator root now runs:
+  - spim's 23 existing regression tests
+  - the 6 demo tests
+  - = 29 total
+
+---
+
+## Phase 6 — Dockerfile rewrite
+
+`/spimulator/Dockerfile` becomes the canonical one:
+
+- Existing spim deps: gcc, meson, ninja-build, flex, bison,
+  libedit-devel (Fedora 44)
+- Add: `diffutils` (run-demo.sh uses `diff -q`)
+- Build spim first, `meson install` so the binary is on PATH
+- Build the example demos (implicit via the unified meson
+  setup, once subdir is wired)
+- Run `meson test -C builddir` — image build FAILS if anything
+  drifts.
+
+Drop `/spimulator/examples/Dockerfile` (was the book builder;
+already removed in phase 2).
+
+---
+
+## Phase 7 — Final verification
+
+- `meson test -C builddir` from /spimulator root: 29/29 pass.
+- `podman build -t spimulator .` succeeds end-to-end.
+- Spot-check a few demos by hand:
+  - `spimulator -f examples/src/lib/libctype/libctype.asm
+       -f examples/src/lib/libctype-demo/ctype-demo.asm`
+  - Same for atoi/abs/bsearch/exit/atexit
+- `git log examples/` shows the 27 historical /examples
+  commits plus the post-merge cleanup commits.
+- After all the above passes: tell Bill it's done so he can
+  delete the standalone /examples repo.
+
+---
+
+## What could go wrong
+
+- **Phase 1 replay**: a commit message containing `%H` or
+  similar git format specifiers could break shell quoting.
+  The script uses `-F file` (heredoc-style via file) to avoid
+  this, but heads-up.
+- **Phase 5 meson surgery**: `subdir(...)` requires
+  `examples/src/meson.build` to NOT have its own `project()`
+  call.  Easy fix — drop the line — but worth confirming.
+- **Phase 6 Dockerfile**: the build assumes spim's `meson
+  install` puts the binary at a path the example tests can
+  find.  Currently the install target is `/usr/local/bin/`
+  by default; verify before relying on it.
+- **The standalone /examples user-side**: Bill needs to NOT
+  delete /examples until phase 7 verification confirms
+  everything works.  Keep both around until the merge is
+  proven.
 
 ## Out of scope
 
-- Any code refactor of spim itself or the library implementations.
-  This is purely a layout + build-pipeline change.
-- New example demos.  The libstr libraries that aren't done
-  yet can land before OR after this merge; either way works.
-
-## When to do this
-
-After libstdlib's last open function (`atexit + exit`, filed at
-`/examples/tasks/PLAN-libstdlib-atexit.md`) is landed.  No
-point reorganizing while function-by-function work is still
-churning the file tree.
-
-If libstr starts first, do the merge between libstdlib
-finishing and libstr starting — fewest files in flight.
+- New library functions (libstr) — can land before OR after
+  this merge.
+- Any code refactor of spim itself or the library
+  implementations.
 
 ## Status
 
-Not started.  Filed 2026-05-23.  Estimated effort: ~1 day
-(physical copy + meson surgery + Dockerfile rewrite +
-cross-reference sweep + verifying everything still passes).
-Open questions above need answers first; some are
-architectural (musl vendoring, book pipeline) and worth
-deciding before touching code.
+Plan written 2026-05-23.  Awaiting Bill's confirmation to
+proceed with phase 1.  Will execute phase-by-phase, with
+verification between phases (so each phase can be reviewed
+or backed out independently).
