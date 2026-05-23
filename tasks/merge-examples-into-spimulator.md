@@ -119,23 +119,37 @@ message preserved.
 
 ## Phase 2 — Prune what's not wanted
 
-Delete from the new `/spimulator/examples/`:
+**Status: STAGED 2026-05-23 (awaiting commit outside container).**
 
-- `book/` — Sphinx book pipeline (not needed)
-- `entrypoint/` — book-build script (not needed)
-- `Makefile` — book build orchestration (not needed)
-- `Dockerfile` — book-only image (replaced by /spimulator/Dockerfile)
-- `output/` — build artifact, if present
-- `musl/` — should not be present (was deleted from /examples
-  before merge), but verify and clean up any stragglers
+10 paths deleted from the new `/spimulator/examples/`:
 
-Keep: `src/`, `tasks/`, `tests/` (the orphan run-demo.sh
-arrives in phase 5), `READING-ORDER.md`,
-`TEACHING-ASSEMBLER-INTERNALS.md`, `SESSION_NOTES.md` (if at
-top level), `.gitignore`.
+- `book/` (6 files — entire Sphinx tree)
+- `entrypoint/entrypoint.sh` (book-build script)
+- `Makefile` (book orchestration)
+- `Dockerfile` (book-only image; replaced by /spimulator/Dockerfile in phase 6)
+- `output/.keep` (build-artifact placeholder)
 
-One commit titled something like "Drop book pipeline + other
-unused trees post-merge."
+`musl/` was confirmed absent — never carried over by phase 1
+because it had been deleted from /examples before the merge.
+
+Resulting `examples/` tree:
+```
+examples/
+    READING-ORDER.md
+    TEACHING-ASSEMBLER-INTERNALS.md
+    src/
+    tasks/
+```
+
+The orphan `tests/run-demo.sh` from the abandoned earlier
+attempt has not been added yet — that's phase 5.
+
+Suggested commit message:
+> "Drop book pipeline + other unused trees post-merge.
+>  Sphinx book + Dockerfile + Makefile + entrypoint were the
+>  standalone /examples publishing pipeline; not needed in the
+>  merged /spimulator tree where the unified Dockerfile (phase
+>  6) handles build + test."
 
 ---
 
