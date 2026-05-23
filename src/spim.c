@@ -383,6 +383,8 @@ int main(int argc, char** argv) {
   bool assembly_file_loaded = false;
   bool assembly_file_attempted =
       false; /* -file was given (even if load failed) */
+  bool world_initialized = false; /* initialize_world() called yet? */
+  int last_file_i = -1;           /* argv index of the last loaded -f file */
   int print_usage_msg = 0;
 
   console_out.f = stdout;
@@ -488,26 +490,54 @@ int main(int argc, char** argv) {
                /* Assume this argument is a program's file name and everything
                   following are arguments to the program */
                || (argv[i][0] != '-')) {
-      /* Without this guard, every program arg after the .asm filename
-         re-enters this branch (via the `|| (argv[i][0] != '-')`
-         disjunct) and overwrites program_argc/argv to a progressively
-         smaller slice — leaving the runtime with argc=1 and
-         argv=["<last>"].  See tasks/argv-command-line-handling.md. */
-      if (assembly_file_loaded) continue;
+      /* Two shapes share this branch:
+         - explicit `-f file.asm`: may repeat; each file accumulates
+           into one symbol table the same way REPL `load` does.
+         - positional bare-arg shortcut (`spim main.asm args...`):
+           one-shot — the bare arg is both the file and argv[0],
+           subsequent bare args become program argv. */
+      bool is_explicit_f = (argv[i][0] == '-');
 
-      int program_i = (argv[i][0] == '-') ? (i + 1) : i;
-      program_argc = argc - program_i;
-      program_argv = &argv[program_i];
+      /* If a file already loaded and we hit a bare arg, that bare arg
+         starts the program's argv — stop parsing spim flags.  Also
+         catches the single-positional-shortcut case via the break
+         below (we won't return here). */
+      if (!is_explicit_f && assembly_file_loaded) {
+        break;
+      }
 
-      initialize_world(load_exception_handler ? exception_file_name : nullptr,
-                       !quiet);
-      initialize_run_stack(program_argc, program_argv);
+      int file_i = is_explicit_f ? (i + 1) : i;
+
+      /* Lazy-init the simulator world the first time we load a file.
+         Multiple loads accumulate into the same world. */
+      if (!world_initialized) {
+        initialize_world(load_exception_handler ? exception_file_name : nullptr,
+                         !quiet);
+        world_initialized = true;
+      }
+
       assembly_file_attempted = true;
-      assembly_file_loaded = read_assembly_file(argv[program_i]);
+      if (!read_assembly_file(argv[file_i])) {
+        /* fopen failure (error already printed by read_assembly_file).
+           Leave assembly_file_loaded false so the post-loop check
+           returns non-zero. */
+        break;
+      }
+      assembly_file_loaded = true;
+      last_file_i = file_i;
 
-      /* Remaining tokens belong to the program (they're now in
-         program_argv).  Don't let them keep matching spim flags. */
-      break;
+      if (is_explicit_f) {
+        /* Skip past the filename arg; the for-loop's i++ then advances
+           to the token after it. */
+        i = file_i;
+        continue;
+      } else {
+        /* Positional shortcut: argv[file_i] is both the file and
+           argv[0]; everything after is program argv. */
+        program_argc = argc - file_i;
+        program_argv = &argv[file_i];
+        break;
+      }
     } else if (streq(argv[i], "-assemble")) {
       assemble = true;
     } else if (streq(argv[i], "-parser=ast")) {
@@ -564,6 +594,15 @@ int main(int argc, char** argv) {
     }
   }
 
+  /* Multi-`-f` path: if files loaded via explicit `-f` but no
+     trailing positional args set program_argc/argv, argv[0] is the
+     last loaded file by convention.  (Positional-shortcut case
+     already set program_argc/argv inside the loop.) */
+  if (assembly_file_loaded && program_argc == 0) {
+    program_argc = argc - last_file_i;
+    program_argv = &argv[last_file_i];
+  }
+
   if (print_usage_msg) {
     error(
         "Usage: spim\n\
@@ -584,7 +623,10 @@ int main(int argc, char** argv) {
 	-noexplain		Disable teaching mode (default)\n\
 	-mapped_io		Enable memory-mapped IO\n\
 	-nomapped_io		Do not enable memory-mapped IO (default)\n\
-	-file <file> <args>	Assembly code file and arguments to program\n\
+	-file <file> [-file <file> ...] <args>\n\
+				Assembly code file(s) and arguments to program.\n\
+				Multiple -file (or -f) options accumulate into one\n\
+				symbol table; forward references resolve across files.\n\
 	-assemble		Write assembled code to <file>.out\n\
 	-listing <file>		Write assemble-time event trace to <file> (use - for stderr)\n\
 	-parser=sdt|ast		Choose parser mode (sdt = inline emit, default; ast = build tree first)\n\

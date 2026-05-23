@@ -36,6 +36,26 @@
 	  3940 to 4534 lines; zero `(no detailed explanation)`
 	  fallthroughs remain in the tt.explain.s run.
 
+	CLI: support multiple `-f` files on the command line.
+
+	* src/spim.c: `-f` can now be specified repeatedly; each file
+	  accumulates into one symbol table the same way the REPL's
+	  `load` command does (forward references resolve across
+	  files).  Hoisted `initialize_world` out of the per-file
+	  branch with a lazy-init guard; replaced `break` with
+	  `continue` for explicit `-f`; positional bare-arg shortcut
+	  retained as a one-shot for backwards compat.  Post-loop
+	  fixup sets `program_argc/argv` from the last loaded file
+	  when no positional program args follow the `-f` files.
+	* tests/tt.multifile.s, tests/tt.multifile.helper.s: new
+	  regression — two-file program tested in both load orders to
+	  confirm cross-file forward references resolve.
+	* tests/run-test.sh, meson.build: new `multifile` test
+	  registered (test count: 22 → 23).
+	* Documentation/spim.1, src/spim.c (usage string): document
+	  the multi-`-file`/multi-`-f` syntax and the
+	  symbol-table-accumulation semantics.
+
 2026-05-20  Bill Six  <billsix@gmail.com>
 
 	Post-Phase-5 naming cleanup (four tiers):
