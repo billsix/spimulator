@@ -1,4 +1,4 @@
-/* Generated from spim include/op.h via
+/* Generated from spim include/opcodes.h via
  * scripts/build-keyword-lists.py — do not edit by hand. */
 
 module.exports = {

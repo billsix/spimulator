@@ -88,7 +88,7 @@ Must match the `name:` field in grammar.js."
 ;;   $a0-$a3, $t0-$t9, $s0-$s8, $sp/$gp/$fp/$ra, $k0/$k1, plus the
 ;;   raw $0-$31 forms and the FP $f0-$f31.  Closed set, no dabbrev
 ;;   backend can guess these from buffer content.
-;; - Directives (after `.`): the 41 ASM_DIRs from op.h.
+;; - Directives (after `.`): the 41 ASM_DIRs from opcodes.h.
 ;; - Opcodes (otherwise at start of statement): ~300 mnemonics.
 ;;
 ;; The grammar's keyword surface and the scanner's register table
@@ -118,10 +118,10 @@ Must match the `name:` field in grammar.js."
     ".half" ".kdata" ".ktext" ".label" ".lcomm" ".livereg" ".loc"
     ".mask" ".noalias" ".option" ".rdata" ".repeat" ".sdata" ".set"
     ".space" ".struct" ".text" ".verstamp" ".vreg" ".word")
-  "Assembler directives spim accepts (matches op.h ASM_DIR entries).")
+  "Assembler directives spim accepts (matches opcodes.h ASM_DIR entries).")
 
 (defconst mips-spim-ts--opcodes
-  ;; Real instructions + pseudo-ops from op.h, excluding directives.
+  ;; Real instructions + pseudo-ops from opcodes.h, excluding directives.
   ;; Loosely sorted by frequency-of-use in a teaching context, then
   ;; alphabetical within each tier so the completion popup orders
   ;; useful things first.

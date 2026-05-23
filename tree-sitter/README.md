@@ -7,7 +7,7 @@ Six's [spimulator](https://github.com/billsix/spimulator) fork.
 
 This grammar lives as a subdirectory of the spimulator repo
 (`tree-sitter/`) so the keyword surface stays in lockstep with
-`include/op.h`.  It's for **editor integration only** — syntax
+`include/opcodes.h`.  It's for **editor integration only** — syntax
 highlighting, structural navigation, code folds in editors that
 support tree-sitter (Helix, Neovim 0.5+, Zed, Emacs 29+ via
 `treesit.el`, VS Code via wasm).  It does NOT replace the
@@ -49,17 +49,17 @@ the `queries/highlights.scm` query.
 
 The grammar's keyword list (381 entries: 41 directives, 49
 pseudo-ops, 291 real opcodes across 25 instruction-type
-categories) is generated from spim's `include/op.h` X-macro
+categories) is generated from spim's `include/opcodes.h` X-macro
 table via `scripts/extract-keywords.py` → `scripts/keywords.json`
 → `scripts/build-keyword-lists.py` → `scripts/keyword-lists.js`.
 
-To regenerate after `../include/op.h` changes:
+To regenerate after `../include/opcodes.h` changes:
 
 ```sh
 make    # extract-keywords → keyword-lists → tree-sitter generate → tree-sitter test
 ```
 
-The Makefile hardcodes `../include/op.h` as the source of truth.
+The Makefile hardcodes `../include/opcodes.h` as the source of truth.
 
 ## Grammar shape
 
