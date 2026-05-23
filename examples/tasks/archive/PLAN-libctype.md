@@ -155,5 +155,44 @@ This is library #1 in the proposed sequence
 
 ## Status
 
-Not started.  Estimated effort: ~half a day for ports + demo
-+ golden + meson wiring.
+Landed 2026-05-23.  C side and asm side produce byte-identical
+output (95 rows covering printable-ASCII 32..126); diffed via
+`diff -q` with no output.
+
+### What landed
+
+`/examples/src/lib/libctype/`:
+- `libctype.h` — public declarations + calling-convention contract
+- `libctype.c` — all 8 functions in one consolidated file
+  (initially per-function .c files; consolidated to one file to
+  mirror the .asm side and reduce clutter)
+- `libctype.asm` — all 8 MIPS implementations in one file,
+  leaf-function-only discipline; isalnum/toupper/tolower inline
+  the helper checks rather than `jal` to keep no-$ra-save
+  semantics
+- `LICENSE-musl` — full MIT text + per-file derivation notes
+
+`/examples/src/lib/libctype-demo/`:
+- `ctype-demo.c` — loops 32..126, prints one row per byte
+- `ctype-demo.asm` — same loop in MIPS; private `_ps`/`_pi`/`_pc`
+  print helpers at the bottom (factor into libio.asm later)
+- `ctype-demo.expected` — pinned 95-line golden output
+
+`/examples/src/meson.build`:
+- `libctype_lib` static lib
+- `lib_demos` foreach pattern wiring the demo to link against
+  libctype + io_lib
+
+### Attribution
+
+Every C and asm file carries a 4-line block citing musl, URL,
+license, and the LICENSE-musl pointer.
+
+### Open follow-ups
+
+- Wire the demo into a real meson test that runs both sides and
+  diffs against the golden (today, verification is manual via
+  the `diff -q` shown above).  Needs an /examples test
+  infrastructure that doesn't exist yet.
+- READING-ORDER.md gets a "Part 8 — libraries" pointer once
+  libstr + libstdlib also land.

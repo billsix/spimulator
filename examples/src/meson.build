@@ -39,16 +39,7 @@ io_lib = static_library('examples_io',
 # libctype — ASCII character classification + case conversion.
 # Adapted from musl libc src/ctype/.  See src/lib/libctype/LICENSE-musl.
 libctype_lib = static_library('libctype',
-  files(
-    'lib/libctype/isdigit.c',
-    'lib/libctype/isalpha.c',
-    'lib/libctype/isalnum.c',
-    'lib/libctype/isupper.c',
-    'lib/libctype/islower.c',
-    'lib/libctype/isspace.c',
-    'lib/libctype/toupper.c',
-    'lib/libctype/tolower.c',
-  ),
+  files('lib/libctype/libctype.c'),
 )
 libctype_inc = include_directories('lib/libctype')
 
