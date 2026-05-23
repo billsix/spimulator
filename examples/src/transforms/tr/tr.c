@@ -33,8 +33,7 @@
 __attribute__((noreturn)) void _start(void) {
   int ch = read_char();
   while (ch != -1) {
-    if (ch >= 'a' && ch <= 'z')
-      ch = ch - ('a' - 'A');           /* 'a' - 'A' = 32 */
+    if (ch >= 'a' && ch <= 'z') ch = ch - ('a' - 'A'); /* 'a' - 'A' = 32 */
     print_char((char)ch);
     ch = read_char();
   }

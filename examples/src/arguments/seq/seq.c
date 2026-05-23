@@ -36,7 +36,7 @@
 #include "io.h"
 #include "crt0.h"
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   int m, n;
   if (argc == 2) {
     m = 1;

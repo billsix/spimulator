@@ -38,7 +38,7 @@
 
 #define DEFAULT_N 10
 
-static int str_eq(const char *a, const char *b) {
+static int str_eq(const char* a, const char* b) {
   while (*a == *b) {
     if (*a == 0) return 1;
     a++;
@@ -47,25 +47,23 @@ static int str_eq(const char *a, const char *b) {
   return 0;
 }
 
-static int is_dash(const char *s) {
-  return s[0] == '-' && s[1] == 0;
-}
+static int is_dash(const char* s) { return s[0] == '-' && s[1] == 0; }
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   int fd = STDIN;
   int n = DEFAULT_N;
-  const char *file_arg = 0;
+  const char* file_arg = 0;
 
   /* Parse argv.  The shape is:  [-n N] [FILE|-] */
   if (argc == 1) {
     /* head : stdin, N=10 */
   } else if (argc == 2) {
-    file_arg = argv[1];                /* "-" or filename */
+    file_arg = argv[1]; /* "-" or filename */
   } else if (argc == 3 && str_eq(argv[1], "-n")) {
-    n = parse_int(argv[2]);            /* head -n N : stdin */
+    n = parse_int(argv[2]); /* head -n N : stdin */
   } else if (argc == 4 && str_eq(argv[1], "-n")) {
     n = parse_int(argv[2]);
-    file_arg = argv[3];                /* head -n N FILE|- */
+    file_arg = argv[3]; /* head -n N FILE|- */
   } else {
     print_string("usage: head [-n N] [FILE|-]\n");
     return 1;

@@ -14,14 +14,10 @@
 #include "libstdlib.h"
 
 static const int cases[] = {
-    0,
-    1,
-    -1,
-    100,
-    -100,
-    2147483647,    /* INT_MAX */
-    -2147483647,   /* INT_MAX flipped — abs returns +INT_MAX */
-    -2147483648,   /* INT_MIN — abs returns INT_MIN (UB in C; OK on two's complement) */
+    0,           1, -1, 100, -100, 2147483647, /* INT_MAX */
+    -2147483647, /* INT_MAX flipped — abs returns +INT_MAX */
+    -2147483648, /* INT_MIN — abs returns INT_MIN (UB in C; OK on two's
+                    complement) */
 };
 
 #define N_CASES ((int)(sizeof cases / sizeof cases[0]))

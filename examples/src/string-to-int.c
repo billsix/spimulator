@@ -13,16 +13,16 @@
 
 #include "io.h"
 
-int parse_int(const char *s) {
-    int sign = 1;
-    if (*s == '-') {
-        sign = -1;
-        s++;
-    }
-    int value = 0;
-    while (*s >= '0' && *s <= '9') {
-        value = value * 10 + (*s - '0');
-        s++;
-    }
-    return sign * value;
+int parse_int(const char* s) {
+  int sign = 1;
+  if (*s == '-') {
+    sign = -1;
+    s++;
+  }
+  int value = 0;
+  while (*s >= '0' && *s <= '9') {
+    value = value * 10 + (*s - '0');
+    s++;
+  }
+  return sign * value;
 }

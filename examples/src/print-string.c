@@ -7,7 +7,7 @@
 
 #include "io.h"
 
-void print_string(const char *s) {
-    int len = count_chars(s);
-    os_write(STDOUT, s, len);
+void print_string(const char* s) {
+  int len = count_chars(s);
+  os_write(STDOUT, s, len);
 }

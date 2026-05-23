@@ -26,7 +26,7 @@
 #ifndef LIBSTDLIB_H
 #define LIBSTDLIB_H
 
-int atoi(const char *s);
+int atoi(const char* s);
 
 /* absolute / labsolute: this library exposes these functions
  * under longer names instead of the standard C library's
@@ -82,9 +82,8 @@ __attribute__((noreturn)) void _Exit(int status);
  * call in this curriculum.  Function pointers in libc happen
  * surprisingly often (qsort, bsearch, signal, atexit, ...);
  * jalr is the gateway. */
-void *bsearch(const void *key, const void *base, unsigned nel,
-              unsigned width,
-              int (*cmp)(const void *, const void *));
+void* bsearch(const void* key, const void* base, unsigned nel, unsigned width,
+              int (*cmp)(const void*, const void*));
 
 /* atexit(fn) — register fn to be called when the program exits
  * normally (via exit() or a return from main).  Up to 32 handlers

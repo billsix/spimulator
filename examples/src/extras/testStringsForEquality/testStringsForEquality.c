@@ -28,7 +28,7 @@
 
 #include "io.h"
 
-int str_eq(const char *s1, const char *s2) {
+int str_eq(const char* s1, const char* s2) {
   while (*s1 == *s2) {
     /* end of both strings reached together => equal */
     if (*s1 == 0) return 0;
@@ -40,9 +40,9 @@ int str_eq(const char *s1, const char *s2) {
 }
 
 __attribute__((noreturn)) void _start(void) {
-  const char *str1 = "str1";
-  const char *str2 = "str2";
-  const char *str3 = "str1";
+  const char* str1 = "str1";
+  const char* str2 = "str2";
+  const char* str3 = "str1";
 
   print_string("str1 compared to str2 is ");
   print_int(str_eq(str1, str2));

@@ -28,7 +28,7 @@ static char line_b[LINEMAX];
 /* Read one line from fd into buf (up to cap-1 chars + NUL).
  * Returns line length on success, -1 on EOF before any byte.
  * Strips the trailing '\n'. */
-static int read_line(int fd, char *buf, int cap) {
+static int read_line(int fd, char* buf, int cap) {
   int len = 0;
   char c;
   long n;
@@ -39,25 +39,39 @@ static int read_line(int fd, char *buf, int cap) {
     }
     if (len < cap - 1) buf[len++] = c;
   }
-  if (len == 0) return -1;           /* EOF and nothing in buffer */
+  if (len == 0) return -1; /* EOF and nothing in buffer */
   buf[len] = 0;
   return len;
 }
 
-static int line_cmp(const char *a, const char *b) {
-  while (*a && *a == *b) { a++; b++; }
+static int line_cmp(const char* a, const char* b) {
+  while (*a && *a == *b) {
+    a++;
+    b++;
+  }
   return (unsigned char)*a - (unsigned char)*b;
 }
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   if (argc != 3) {
     print_string("usage: comm A B\n");
     return 1;
   }
   int fa = (int)os_open(argv[1], OS_O_RDONLY, 0);
-  if (fa < 0) { print_string("comm: cannot open "); print_string(argv[1]); print_char('\n'); return 1; }
+  if (fa < 0) {
+    print_string("comm: cannot open ");
+    print_string(argv[1]);
+    print_char('\n');
+    return 1;
+  }
   int fb = (int)os_open(argv[2], OS_O_RDONLY, 0);
-  if (fb < 0) { print_string("comm: cannot open "); print_string(argv[2]); print_char('\n'); os_close(fa); return 1; }
+  if (fb < 0) {
+    print_string("comm: cannot open ");
+    print_string(argv[2]);
+    print_char('\n');
+    os_close(fa);
+    return 1;
+  }
 
   int la = read_line(fa, line_a, LINEMAX);
   int lb = read_line(fb, line_b, LINEMAX);

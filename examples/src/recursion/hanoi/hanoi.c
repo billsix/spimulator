@@ -61,7 +61,7 @@
  */
 
 #include "io.h"
-#include "crt0.h"   /* provides _start; calls my_main(argc, argv) */
+#include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 
 static void hanoi(int n, char src, char dst, char tmp) {
   if (n == 0) return;
@@ -74,7 +74,7 @@ static void hanoi(int n, char src, char dst, char tmp) {
   hanoi(n - 1, tmp, dst, src);
 }
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   if (argc != 2) {
     print_string("usage: hanoi N\n");
     return 1;

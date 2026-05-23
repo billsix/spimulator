@@ -41,7 +41,7 @@
 
 #include "io.h"
 
-#include "crt0.h"   /* provides _start; calls my_main(argc, argv) */
+#include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 
 static unsigned int factorial(int n) {
   unsigned int result = 1;
@@ -52,7 +52,7 @@ static unsigned int factorial(int n) {
   return result;
 }
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   if (argc != 2) {
     print_string("usage: factorial N\n");
     return 1;

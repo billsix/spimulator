@@ -11,19 +11,19 @@
 #include "io.h"
 #include "libstdlib.h"
 
-static const char *cases[] = {
+static const char* cases[] = {
     "42",
     "-42",
     "+42",
     "0",
-    "   17",          /* leading whitespace */
-    "  -8",           /* whitespace then sign */
-    "123abc",         /* digits then garbage — stops at 'a' */
-    "abc",            /* no leading digits at all -> 0 */
-    "",               /* empty -> 0 */
-    "-2147483648",    /* INT_MIN — the overflow-safe-accumulator test */
-    "2147483647",     /* INT_MAX */
-    " \t \n  99",     /* multi-whitespace including tab and newline */
+    "   17",       /* leading whitespace */
+    "  -8",        /* whitespace then sign */
+    "123abc",      /* digits then garbage — stops at 'a' */
+    "abc",         /* no leading digits at all -> 0 */
+    "",            /* empty -> 0 */
+    "-2147483648", /* INT_MIN — the overflow-safe-accumulator test */
+    "2147483647",  /* INT_MAX */
+    " \t \n  99",  /* multi-whitespace including tab and newline */
 };
 
 #define N_CASES ((int)(sizeof cases / sizeof cases[0]))

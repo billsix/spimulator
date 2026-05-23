@@ -382,7 +382,7 @@ int main(int argc, char** argv) {
   int i;
   bool assembly_file_loaded = false;
   bool assembly_file_attempted =
-      false; /* -file was given (even if load failed) */
+      false;                      /* -file was given (even if load failed) */
   bool world_initialized = false; /* initialize_world() called yet? */
   int last_file_i = -1;           /* argv index of the last loaded -f file */
   int print_usage_msg = 0;

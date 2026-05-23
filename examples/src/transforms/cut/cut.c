@@ -25,23 +25,28 @@ static char line[LINEMAX];
 
 /* Parse "N-M" into *lo, *hi.  Returns 0 on success, -1 on
  * parse error.  Both halves required. */
-static int parse_range(const char *s, int *lo, int *hi) {
+static int parse_range(const char* s, int* lo, int* hi) {
   int v = 0;
   if (*s < '0' || *s > '9') return -1;
-  while (*s >= '0' && *s <= '9') { v = v * 10 + (*s++ - '0'); }
+  while (*s >= '0' && *s <= '9') {
+    v = v * 10 + (*s++ - '0');
+  }
   *lo = v;
   if (*s != '-') return -1;
   s++;
   if (*s < '0' || *s > '9') return -1;
   v = 0;
-  while (*s >= '0' && *s <= '9') { v = v * 10 + (*s++ - '0'); }
+  while (*s >= '0' && *s <= '9') {
+    v = v * 10 + (*s++ - '0');
+  }
   *hi = v;
   return 0;
 }
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   /* Require: cut -c N-M [FILE|-] */
-  if (argc < 3 || argc > 4 || argv[1][0] != '-' || argv[1][1] != 'c' || argv[1][2] != 0) {
+  if (argc < 3 || argc > 4 || argv[1][0] != '-' || argv[1][1] != 'c' ||
+      argv[1][2] != 0) {
     print_string("usage: cut -c N-M [FILE|-]\n");
     return 1;
   }
@@ -54,7 +59,12 @@ int my_main(int argc, char **argv) {
   int fd = STDIN;
   if (argc == 4 && !(argv[3][0] == '-' && argv[3][1] == 0)) {
     fd = (int)os_open(argv[3], OS_O_RDONLY, 0);
-    if (fd < 0) { print_string("cut: cannot open "); print_string(argv[3]); print_char('\n'); return 1; }
+    if (fd < 0) {
+      print_string("cut: cannot open ");
+      print_string(argv[3]);
+      print_char('\n');
+      return 1;
+    }
   }
 
   int len = 0;

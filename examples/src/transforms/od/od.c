@@ -38,13 +38,34 @@ static void print_offset(int off) {
 static void print_byte_c(unsigned char b) {
   /* 3-char representation, right-aligned to 3 chars when possible.
      This is what `od -c` does. */
-  if (b == '\0')      { print_string("  \\0"); return; }
-  if (b == '\b')      { print_string("  \\b"); return; }
-  if (b == '\t')      { print_string("  \\t"); return; }
-  if (b == '\n')      { print_string("  \\n"); return; }
-  if (b == '\v')      { print_string("  \\v"); return; }
-  if (b == '\f')      { print_string("  \\f"); return; }
-  if (b == '\r')      { print_string("  \\r"); return; }
+  if (b == '\0') {
+    print_string("  \\0");
+    return;
+  }
+  if (b == '\b') {
+    print_string("  \\b");
+    return;
+  }
+  if (b == '\t') {
+    print_string("  \\t");
+    return;
+  }
+  if (b == '\n') {
+    print_string("  \\n");
+    return;
+  }
+  if (b == '\v') {
+    print_string("  \\v");
+    return;
+  }
+  if (b == '\f') {
+    print_string("  \\f");
+    return;
+  }
+  if (b == '\r') {
+    print_string("  \\r");
+    return;
+  }
   if (b >= 0x20 && b < 0x7f) {
     print_char(' ');
     print_char(' ');
@@ -59,12 +80,20 @@ static void print_byte_c(unsigned char b) {
   print_char('0' + (b & 7));
 }
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   int fd = STDIN;
-  if (argc > 2) { print_string("usage: od [FILE|-]\n"); return 1; }
+  if (argc > 2) {
+    print_string("usage: od [FILE|-]\n");
+    return 1;
+  }
   if (argc == 2 && !(argv[1][0] == '-' && argv[1][1] == 0)) {
     fd = (int)os_open(argv[1], OS_O_RDONLY, 0);
-    if (fd < 0) { print_string("od: cannot open "); print_string(argv[1]); print_char('\n'); return 1; }
+    if (fd < 0) {
+      print_string("od: cannot open ");
+      print_string(argv[1]);
+      print_char('\n');
+      return 1;
+    }
   }
 
   int offset = 0;

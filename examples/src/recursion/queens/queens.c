@@ -50,9 +50,9 @@ static int N_global;
 static int safe(int row, int col) {
   for (int i = 0; i < row; i++) {
     int c = columns[i];
-    if (c == col) return 0;             // same column
-    if (c - col == row - i) return 0;   // one diagonal
-    if (col - c == row - i) return 0;   // the other diagonal
+    if (c == col) return 0;            // same column
+    if (c - col == row - i) return 0;  // one diagonal
+    if (col - c == row - i) return 0;  // the other diagonal
   }
   return 1;
 }
@@ -78,7 +78,7 @@ static void solve(int row) {
   }
 }
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   N_global = DEFAULT_N;
   if (argc == 2) {
     N_global = parse_int(argv[1]);

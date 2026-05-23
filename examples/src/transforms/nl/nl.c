@@ -26,17 +26,28 @@ static void print_padded(int n, int width) {
   /* count digits */
   int digits = 1;
   int t = n;
-  while (t >= 10) { digits++; t /= 10; }
+  while (t >= 10) {
+    digits++;
+    t /= 10;
+  }
   for (int i = 0; i < width - digits; i++) print_char(' ');
   print_int(n);
 }
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   int fd = STDIN;
-  if (argc > 2) { print_string("usage: nl [FILE|-]\n"); return 1; }
+  if (argc > 2) {
+    print_string("usage: nl [FILE|-]\n");
+    return 1;
+  }
   if (argc == 2 && !(argv[1][0] == '-' && argv[1][1] == 0)) {
     fd = (int)os_open(argv[1], OS_O_RDONLY, 0);
-    if (fd < 0) { print_string("nl: cannot open "); print_string(argv[1]); print_char('\n'); return 1; }
+    if (fd < 0) {
+      print_string("nl: cannot open ");
+      print_string(argv[1]);
+      print_char('\n');
+      return 1;
+    }
   }
 
   int line_num = 1;

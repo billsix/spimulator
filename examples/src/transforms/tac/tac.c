@@ -27,16 +27,24 @@
 
 #define GROW_BY 4096
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   int fd = STDIN;
-  if (argc > 2) { print_string("usage: tac [FILE|-]\n"); return 1; }
+  if (argc > 2) {
+    print_string("usage: tac [FILE|-]\n");
+    return 1;
+  }
   if (argc == 2 && !(argv[1][0] == '-' && argv[1][1] == 0)) {
     fd = (int)os_open(argv[1], OS_O_RDONLY, 0);
-    if (fd < 0) { print_string("tac: cannot open "); print_string(argv[1]); print_char('\n'); return 1; }
+    if (fd < 0) {
+      print_string("tac: cannot open ");
+      print_string(argv[1]);
+      print_char('\n');
+      return 1;
+    }
   }
 
   /* Read everything into a sbrk'd buffer. */
-  char *buf = (char *)os_brk(0);
+  char* buf = (char*)os_brk(0);
   long total = 0;
   long capacity = 0;
 

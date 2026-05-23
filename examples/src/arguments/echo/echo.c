@@ -37,15 +37,14 @@
  */
 
 #include "io.h"
-#include "crt0.h"   /* provides _start; calls my_main(argc, argv).
+#include "crt0.h" /* provides _start; calls my_main(argc, argv).
                        See crt0.h for the per-arch
                        kernel-stack -> my_main conventions. */
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   for (int i = 1; i < argc; i++) {
     print_string(argv[i]);
-    if (i + 1 < argc)
-      print_char(' ');
+    if (i + 1 < argc) print_char(' ');
   }
   print_char('\n');
   return 0;

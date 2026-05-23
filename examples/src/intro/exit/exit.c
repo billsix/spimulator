@@ -42,7 +42,5 @@
 // doc-region-end include
 
 // doc-region-begin start
-__attribute__((noreturn)) void _start(void) {
-  os_exit(0);
-}
+__attribute__((noreturn)) void _start(void) { os_exit(0); }
 // doc-region-end start

@@ -10,10 +10,10 @@
 #include "io.h"
 
 int read_char(void) {
-    unsigned char c;
-    long n = os_read(STDIN, &c, 1);
-    if (n <= 0) {
-        return -1;
-    }
-    return c;
+  unsigned char c;
+  long n = os_read(STDIN, &c, 1);
+  if (n <= 0) {
+    return -1;
+  }
+  return c;
 }

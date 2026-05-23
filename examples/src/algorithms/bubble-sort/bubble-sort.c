@@ -50,7 +50,7 @@
 
 static int data[MAX_N];
 
-static void bubble_sort(int *a, int n) {
+static void bubble_sort(int* a, int n) {
   for (int i = 0; i < n - 1; i++) {
     for (int j = 0; j < n - 1 - i; j++) {
       if (a[j] > a[j + 1]) {
@@ -62,7 +62,7 @@ static void bubble_sort(int *a, int n) {
   }
 }
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   (void)argv;
   if (argc != 1) {
     print_string("usage: bubble-sort   (reads ints from stdin)\n");

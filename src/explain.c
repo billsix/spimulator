@@ -686,10 +686,10 @@ static void tpl_shift(int level, mips_instruction* instruction,
 static void say_effective_address(int base, short off, mem_addr ea) {
   const char* sign = (off < 0) ? "-" : "+";
   int absoff = (off < 0) ? -off : off;
-  write_output(message_out,
-               "    Effective address = $%s %s %d  =  0x%08x %s %d  =  0x%08x.\n",
-               int_reg_names[base], sign, absoff,
-               snap_R[base], sign, absoff, ea);
+  write_output(
+      message_out,
+      "    Effective address = $%s %s %d  =  0x%08x %s %d  =  0x%08x.\n",
+      int_reg_names[base], sign, absoff, snap_R[base], sign, absoff, ea);
 }
 
 static void tpl_load(int level, mips_instruction* instruction,
@@ -794,8 +794,8 @@ static void tpl_load_unaligned(int level, mips_instruction* instruction,
     write_output(message_out, "    offset = %d  (0x%04x)\n", off, off & 0xffff);
     mem_addr word_addr = ea & ~3u;
     write_output(message_out,
-                 "    memory at 0x%08x (containing word) = 0x%08x\n",
-                 word_addr, (uint32_t)peek_word(word_addr));
+                 "    memory at 0x%08x (containing word) = 0x%08x\n", word_addr,
+                 (uint32_t)peek_word(word_addr));
     write_output(message_out, "  Wrote:\n");
     say_wrote_reg(rt);
     say_try_regs(base, rt, 0, 0);
@@ -940,10 +940,9 @@ static void tpl_load_fp(int level, mips_instruction* instruction,
                    "single-precision float, or as a raw 32-bit int).\n",
                    ft);
     } else {
-      write_output(
-          message_out,
-          "    memory at 0x%08x = 0x%08x 0x%08x  (low / high words)\n", ea,
-          (uint32_t)peek_word(ea), (uint32_t)peek_word(ea + 4));
+      write_output(message_out,
+                   "    memory at 0x%08x = 0x%08x 0x%08x  (low / high words)\n",
+                   ea, (uint32_t)peek_word(ea), (uint32_t)peek_word(ea + 4));
       write_output(message_out, "  Wrote:\n");
       write_output(message_out,
                    "    $f%d / $f%d  ← loaded 8 bytes (typically interpreted "
@@ -988,9 +987,10 @@ static void tpl_store_fp(int level, mips_instruction* instruction,
     if (width == 4) {
       write_output(message_out, "    0x%08x  ← 4 bytes from $f%d\n", ea, ft);
     } else {
-      write_output(message_out,
-                   "    0x%08x  ← 8 bytes from $f%d / $f%d (low / high words)\n",
-                   ea, ft, ft + 1);
+      write_output(
+          message_out,
+          "    0x%08x  ← 8 bytes from $f%d / $f%d (low / high words)\n", ea, ft,
+          ft + 1);
     }
     say_try_regs(base, 0, 0, 0);
   }

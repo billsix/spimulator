@@ -26,21 +26,25 @@
 #define LINEMAX 1024
 
 static char ring[MAX_N][LINEMAX];
-static int  ring_len[MAX_N];
-static int  cur_line_len = 0;
+static int ring_len[MAX_N];
+static int cur_line_len = 0;
 static char cur_line[LINEMAX];
 
-static int str_eq(const char *a, const char *b) {
-  while (*a == *b) { if (*a == 0) return 1; a++; b++; }
+static int str_eq(const char* a, const char* b) {
+  while (*a == *b) {
+    if (*a == 0) return 1;
+    a++;
+    b++;
+  }
   return 0;
 }
 
-static int is_dash(const char *s) { return s[0] == '-' && s[1] == 0; }
+static int is_dash(const char* s) { return s[0] == '-' && s[1] == 0; }
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   int n = 10;
   int fd = STDIN;
-  const char *file_arg = 0;
+  const char* file_arg = 0;
 
   /* Parse [-n N] [FILE|-] */
   if (argc == 1) {
@@ -64,11 +68,16 @@ int my_main(int argc, char **argv) {
 
   if (file_arg && !is_dash(file_arg)) {
     fd = (int)os_open(file_arg, OS_O_RDONLY, 0);
-    if (fd < 0) { print_string("tail: cannot open "); print_string(file_arg); print_char('\n'); return 1; }
+    if (fd < 0) {
+      print_string("tail: cannot open ");
+      print_string(file_arg);
+      print_char('\n');
+      return 1;
+    }
   }
 
-  int slot = 0;                      /* next write slot in the ring */
-  int total = 0;                     /* total complete lines seen */
+  int slot = 0;  /* next write slot in the ring */
+  int total = 0; /* total complete lines seen */
   char c;
   while (os_read(fd, &c, 1) > 0) {
     if (c == '\n') {

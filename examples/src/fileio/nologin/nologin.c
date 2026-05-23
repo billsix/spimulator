@@ -38,8 +38,7 @@ __attribute__((noreturn)) void _start(void) {
   int fd = (int)os_open("/etc/nologin.txt", OS_O_RDONLY, 0);
   if (fd >= 0) {
     long n;
-    while ((n = os_read(fd, buf, sizeof(buf))) > 0)
-      os_write(STDOUT, buf, n);
+    while ((n = os_read(fd, buf, sizeof(buf))) > 0) os_write(STDOUT, buf, n);
     os_close(fd);
   } else {
     static const char alt[] = "The account is currently unavailable.\n";

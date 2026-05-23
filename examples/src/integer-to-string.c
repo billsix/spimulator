@@ -14,20 +14,20 @@
  * digits in reverse.
  */
 
-void integer2string(int value, char *buffer) {
-    char digits[16];
-    int count = 0;
+void integer2string(int value, char* buffer) {
+  char digits[16];
+  int count = 0;
 
-    do {
-        digits[count] = (value % 10) + '0';
-        count++;
-        value = value / 10;
-    } while (value != 0);
+  do {
+    digits[count] = (value % 10) + '0';
+    count++;
+    value = value / 10;
+  } while (value != 0);
 
-    while (count > 0) {
-        count--;
-        *buffer = digits[count];
-        buffer++;
-    }
-    *buffer = '\0';
+  while (count > 0) {
+    count--;
+    *buffer = digits[count];
+    buffer++;
+  }
+  *buffer = '\0';
 }

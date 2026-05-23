@@ -4,7 +4,8 @@
  * against the asm-side run under spim.
  *
  * Format per row:
- *   c=NNN '<char>'  alpha=X alnum=X digit=X upper=X lower=X space=X  up='<char>' lo='<char>'
+ *   c=NNN '<char>'  alpha=X alnum=X digit=X upper=X lower=X space=X up='<char>'
+ * lo='<char>'
  *
  * Skips 0..31 and 127 (non-printable) so print_char doesn't emit
  * control bytes into the golden — exercises the functions just

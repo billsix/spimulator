@@ -57,7 +57,7 @@
  */
 
 #include "io.h"
-#include "crt0.h"   /* provides _start; calls my_main(argc, argv) */
+#include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 
 static int fib_iter(int n) {
   int a = 0, b = 1;
@@ -74,7 +74,7 @@ static int fib_rec(int n) {
   return fib_rec(n - 1) + fib_rec(n - 2);
 }
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   if (argc != 2) {
     print_string("usage: fibonacci N\n");
     return 1;

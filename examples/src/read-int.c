@@ -31,13 +31,13 @@
 
 #include "io.h"
 
-int read_int_from_stdin(int *out) {
+int read_int_from_stdin(int* out) {
   int ch;
 
   /* Skip leading whitespace, including any blank lines. */
   do {
     ch = read_char();
-    if (ch < 0) return -1;          /* EOF before any digit */
+    if (ch < 0) return -1; /* EOF before any digit */
   } while (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r');
 
   int sign = 1;
@@ -48,13 +48,13 @@ int read_int_from_stdin(int *out) {
     ch = read_char();
   }
 
-  if (ch < '0' || ch > '9') return -1;  /* not a number */
+  if (ch < '0' || ch > '9') return -1; /* not a number */
 
   int value = 0;
   while (ch >= '0' && ch <= '9') {
     value = value * 10 + (ch - '0');
     ch = read_char();
-    if (ch < 0) break;              /* EOF after digits is OK */
+    if (ch < 0) break; /* EOF after digits is OK */
   }
   *out = sign * value;
   return 0;

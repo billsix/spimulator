@@ -27,7 +27,7 @@
  * - Stop at the first non-digit; no error reporting (matches the
  *   C99 spec for atoi).
  */
-int atoi(const char *s) {
+int atoi(const char* s) {
   int n = 0, neg = 0;
   while (isspace(*s)) s++;
   switch (*s) {
@@ -77,9 +77,7 @@ long labsolute(long x) { return x > 0 ? x : -x; }
  * with eax=1, etc.) behind a single portable name.  os_exit is
  * itself __attribute__((noreturn)), so the compiler can verify
  * that we never fall off the end of _Exit. */
-__attribute__((noreturn)) void _Exit(int status) {
-  os_exit(status);
-}
+__attribute__((noreturn)) void _Exit(int status) { os_exit(status); }
 
 /* bsearch(key, base, nel, width, cmp) — classic binary search.
  *
@@ -91,16 +89,15 @@ __attribute__((noreturn)) void _Exit(int status) {
  * exactly O(log2 nel) times.  Behavior with duplicate keys is
  * implementation-defined (POSIX): you get a pointer to ONE of
  * the matching elements, not necessarily the first or last. */
-void *bsearch(const void *key, const void *base, unsigned nel,
-              unsigned width,
-              int (*cmp)(const void *, const void *)) {
+void* bsearch(const void* key, const void* base, unsigned nel, unsigned width,
+              int (*cmp)(const void*, const void*)) {
   while (nel > 0) {
-    void *try = (char *)base + width * (nel / 2);
+    void* try = (char*)base + width * (nel / 2);
     int sign = cmp(key, try);
     if (sign < 0) {
       nel /= 2;
     } else if (sign > 0) {
-      base = (char *)try + width;
+      base = (char*)try + width;
       nel -= nel / 2 + 1;
     } else {
       return try;

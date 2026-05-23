@@ -41,7 +41,7 @@
 
 #include "io.h"
 
-#include "crt0.h"   /* provides _start; calls my_main(argc, argv) */
+#include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 
 static int gcd(int a, int b) {
   while (b != 0) {
@@ -52,7 +52,7 @@ static int gcd(int a, int b) {
   return a;
 }
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   if (argc != 3) {
     print_string("usage: gcd A B\n");
     return 1;

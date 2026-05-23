@@ -34,7 +34,7 @@
 
 #define TAB_WIDTH 8
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   int fd = STDIN;
 
   if (argc > 2) {
@@ -56,8 +56,7 @@ int my_main(int argc, char **argv) {
   while (os_read(fd, &c, 1) > 0) {
     if (c == '\t') {
       int spaces = TAB_WIDTH - (col % TAB_WIDTH);
-      for (int i = 0; i < spaces; i++)
-        print_char(' ');
+      for (int i = 0; i < spaces; i++) print_char(' ');
       col = col + spaces;
     } else if (c == '\n') {
       print_char('\n');

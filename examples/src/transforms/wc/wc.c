@@ -31,9 +31,9 @@
  */
 
 #include "io.h"
-#include "crt0.h"   /* provides _start; calls my_main(argc, argv) */
+#include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   int fd = STDIN;
 
   if (argc > 2) {

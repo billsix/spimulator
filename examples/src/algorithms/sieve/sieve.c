@@ -47,7 +47,7 @@
 
 #define DEFAULT_LIMIT 100
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   int limit = DEFAULT_LIMIT;
   if (argc == 2) {
     limit = parse_int(argv[1]);
@@ -62,7 +62,7 @@ int my_main(int argc, char **argv) {
 
   /* Allocate LIMIT+1 bytes via brk.  The kernel zero-fills new
    * pages, so the flags start at "no number is yet composite". */
-  unsigned char *sieve = (unsigned char *)os_brk(0);
+  unsigned char* sieve = (unsigned char*)os_brk(0);
   os_brk(sieve + limit + 1);
 
   for (int i = 2; i * i <= limit; i++) {

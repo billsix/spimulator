@@ -32,6 +32,5 @@
 #include "io.h"
 
 __attribute__((noreturn)) void _start(void) {
-  for (;;)
-    print_string("y\n");
+  for (;;) print_string("y\n");
 }

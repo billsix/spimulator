@@ -13,14 +13,14 @@
 #include "io.h"
 
 void print_uint(unsigned int value) {
-    char buf[16];
-    int pos = (int)sizeof(buf);
+  char buf[16];
+  int pos = (int)sizeof(buf);
 
-    do {
-        pos--;
-        buf[pos] = (char)('0' + (value % 10u));
-        value /= 10u;
-    } while (value != 0);
+  do {
+    pos--;
+    buf[pos] = (char)('0' + (value % 10u));
+    value /= 10u;
+  } while (value != 0);
 
-    os_write(STDOUT, &buf[pos], (size_t)((int)sizeof(buf) - pos));
+  os_write(STDOUT, &buf[pos], (size_t)((int)sizeof(buf) - pos));
 }

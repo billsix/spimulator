@@ -20,11 +20,11 @@
 
 #include "os.h"
 
-int count_chars(const char *s);
-void integer2string(int value, char *buffer);
-int parse_int(const char *s);
+int count_chars(const char* s);
+void integer2string(int value, char* buffer);
+int parse_int(const char* s);
 
-void print_string(const char *s);
+void print_string(const char* s);
 void print_int(int value);
 void print_uint(unsigned int value);
 void print_char(char c);
@@ -37,6 +37,6 @@ int read_char(void);
  * value into *out and returns 0.  Returns -1 on EOF before any
  * digit is seen.  Matches the spim asm-side `read_int` (syscall
  * 5) which sets $a3 on EOF — same API shape. */
-int read_int_from_stdin(int *out);
+int read_int_from_stdin(int* out);
 
 #endif /* IO_H */

@@ -22,7 +22,7 @@
 
 #define BUFSIZE 4096
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   if (argc != 3) {
     print_string("usage: cp SRC DST\n");
     return 1;
@@ -47,8 +47,7 @@ int my_main(int argc, char **argv) {
 
   static char buf[BUFSIZE];
   long n;
-  while ((n = os_read(src, buf, sizeof(buf))) > 0)
-    os_write(dst, buf, n);
+  while ((n = os_read(src, buf, sizeof(buf))) > 0) os_write(dst, buf, n);
 
   os_close(src);
   os_close(dst);

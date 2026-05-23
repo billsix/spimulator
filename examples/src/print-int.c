@@ -13,28 +13,28 @@
 #include "io.h"
 
 void print_int(int value) {
-    char buf[16];
-    int pos = (int)sizeof(buf);   /* write digits right-to-left */
-    int is_negative = 0;
-    unsigned int u;
+  char buf[16];
+  int pos = (int)sizeof(buf); /* write digits right-to-left */
+  int is_negative = 0;
+  unsigned int u;
 
-    if (value < 0) {
-        is_negative = 1;
-        u = (unsigned int)(-(value + 1)) + 1u;   /* INT_MIN-safe abs */
-    } else {
-        u = (unsigned int)value;
-    }
+  if (value < 0) {
+    is_negative = 1;
+    u = (unsigned int)(-(value + 1)) + 1u; /* INT_MIN-safe abs */
+  } else {
+    u = (unsigned int)value;
+  }
 
-    do {
-        pos--;
-        buf[pos] = (char)('0' + (u % 10u));
-        u /= 10u;
-    } while (u != 0);
+  do {
+    pos--;
+    buf[pos] = (char)('0' + (u % 10u));
+    u /= 10u;
+  } while (u != 0);
 
-    if (is_negative) {
-        pos--;
-        buf[pos] = '-';
-    }
+  if (is_negative) {
+    pos--;
+    buf[pos] = '-';
+  }
 
-    os_write(STDOUT, &buf[pos], (size_t)((int)sizeof(buf) - pos));
+  os_write(STDOUT, &buf[pos], (size_t)((int)sizeof(buf) - pos));
 }

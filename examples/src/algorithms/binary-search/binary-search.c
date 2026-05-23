@@ -56,7 +56,7 @@
  */
 
 #include "io.h"
-#include "crt0.h"   /* provides _start; calls my_main(argc, argv) */
+#include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 
 static const int data[] = {3, 7, 11, 19, 23, 31, 41, 53, 67, 71};
 #define DATA_LEN ((int)(sizeof(data) / sizeof(data[0])))
@@ -73,20 +73,24 @@ static int binary_search(int target) {
   while (lo <= hi) {
     int mid = (lo + hi) / 2;
     if (data[mid] == target) return mid;
-    if (data[mid] < target) lo = mid + 1;
-    else                    hi = mid - 1;
+    if (data[mid] < target)
+      lo = mid + 1;
+    else
+      hi = mid - 1;
   }
   return -1;
 }
 
-static void print_result(const char *prefix, int idx) {
+static void print_result(const char* prefix, int idx) {
   print_string(prefix);
-  if (idx < 0) print_string("not found");
-  else         print_int(idx);
+  if (idx < 0)
+    print_string("not found");
+  else
+    print_int(idx);
   print_char('\n');
 }
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   if (argc != 2) {
     print_string("usage: binary-search TARGET\n");
     return 1;

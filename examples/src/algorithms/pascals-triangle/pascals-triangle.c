@@ -45,7 +45,7 @@
 /* MAX_ROWS+1 cells so the last row's rightmost value lands. */
 static int row[MAX_ROWS + 1] = {1};
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   int rows = DEFAULT_ROWS;
   if (argc == 2) {
     rows = parse_int(argv[1]);

@@ -67,44 +67,44 @@
 #define _NR_CLOSE 6
 #define _NR_BRK 45
 
-ALWAYS_INLINE static inline long os_write(int fd, const void *buf, size_t len) {
-    long ret;
-    __asm__ volatile("int $0x80"
-                     : "=a"(ret)
-                     : "0"(_NR_WRITE), "b"(fd), "c"(buf), "d"(len)
-                     : "memory");
-    return ret;
+ALWAYS_INLINE static inline long os_write(int fd, const void* buf, size_t len) {
+  long ret;
+  __asm__ volatile("int $0x80"
+                   : "=a"(ret)
+                   : "0"(_NR_WRITE), "b"(fd), "c"(buf), "d"(len)
+                   : "memory");
+  return ret;
 }
-ALWAYS_INLINE static inline long os_read(int fd, void *buf, size_t len) {
-    long ret;
-    __asm__ volatile("int $0x80"
-                     : "=a"(ret)
-                     : "0"(_NR_READ), "b"(fd), "c"(buf), "d"(len)
-                     : "memory");
-    return ret;
+ALWAYS_INLINE static inline long os_read(int fd, void* buf, size_t len) {
+  long ret;
+  __asm__ volatile("int $0x80"
+                   : "=a"(ret)
+                   : "0"(_NR_READ), "b"(fd), "c"(buf), "d"(len)
+                   : "memory");
+  return ret;
 }
-ALWAYS_INLINE static inline long os_open(const char *path, int flags,
+ALWAYS_INLINE static inline long os_open(const char* path, int flags,
                                          int mode) {
-    long ret;
-    __asm__ volatile("int $0x80"
-                     : "=a"(ret)
-                     : "0"(_NR_OPEN), "b"(path), "c"(flags), "d"(mode)
-                     : "memory");
-    return ret;
+  long ret;
+  __asm__ volatile("int $0x80"
+                   : "=a"(ret)
+                   : "0"(_NR_OPEN), "b"(path), "c"(flags), "d"(mode)
+                   : "memory");
+  return ret;
 }
 ALWAYS_INLINE static inline long os_close(int fd) {
-    long ret;
-    __asm__ volatile("int $0x80" : "=a"(ret) : "0"(_NR_CLOSE), "b"(fd));
-    return ret;
+  long ret;
+  __asm__ volatile("int $0x80" : "=a"(ret) : "0"(_NR_CLOSE), "b"(fd));
+  return ret;
 }
 __attribute__((noreturn)) ALWAYS_INLINE static inline void os_exit(int status) {
-    __asm__ volatile("int $0x80" : : "a"(_NR_EXIT), "b"(status));
-    __builtin_unreachable();
+  __asm__ volatile("int $0x80" : : "a"(_NR_EXIT), "b"(status));
+  __builtin_unreachable();
 }
-ALWAYS_INLINE static inline void *os_brk(void *addr) {
-    long ret;
-    __asm__ volatile("int $0x80" : "=a"(ret) : "0"(_NR_BRK), "b"(addr));
-    return (void *)ret;
+ALWAYS_INLINE static inline void* os_brk(void* addr) {
+  long ret;
+  __asm__ volatile("int $0x80" : "=a"(ret) : "0"(_NR_BRK), "b"(addr));
+  return (void*)ret;
 }
 
 /* ================================================================
@@ -122,51 +122,51 @@ ALWAYS_INLINE static inline void *os_brk(void *addr) {
 #define _NR_BRK 12
 #define _NR_EXIT 60
 
-ALWAYS_INLINE static inline long os_write(int fd, const void *buf, size_t len) {
-    long ret;
-    __asm__ volatile("syscall"
-                     : "=a"(ret)
-                     : "0"((long)_NR_WRITE), "D"((long)fd), "S"(buf), "d"(len)
-                     : "rcx", "r11", "memory");
-    return ret;
+ALWAYS_INLINE static inline long os_write(int fd, const void* buf, size_t len) {
+  long ret;
+  __asm__ volatile("syscall"
+                   : "=a"(ret)
+                   : "0"((long)_NR_WRITE), "D"((long)fd), "S"(buf), "d"(len)
+                   : "rcx", "r11", "memory");
+  return ret;
 }
-ALWAYS_INLINE static inline long os_read(int fd, void *buf, size_t len) {
-    long ret;
-    __asm__ volatile("syscall"
-                     : "=a"(ret)
-                     : "0"((long)_NR_READ), "D"((long)fd), "S"(buf), "d"(len)
-                     : "rcx", "r11", "memory");
-    return ret;
+ALWAYS_INLINE static inline long os_read(int fd, void* buf, size_t len) {
+  long ret;
+  __asm__ volatile("syscall"
+                   : "=a"(ret)
+                   : "0"((long)_NR_READ), "D"((long)fd), "S"(buf), "d"(len)
+                   : "rcx", "r11", "memory");
+  return ret;
 }
-ALWAYS_INLINE static inline long os_open(const char *path, int flags,
+ALWAYS_INLINE static inline long os_open(const char* path, int flags,
                                          int mode) {
-    long ret;
-    __asm__ volatile("syscall"
-                     : "=a"(ret)
-                     : "0"((long)_NR_OPEN), "D"(path), "S"((long)flags),
-                       "d"((long)mode)
-                     : "rcx", "r11", "memory");
-    return ret;
+  long ret;
+  __asm__ volatile("syscall"
+                   : "=a"(ret)
+                   : "0"((long)_NR_OPEN), "D"(path), "S"((long)flags),
+                     "d"((long)mode)
+                   : "rcx", "r11", "memory");
+  return ret;
 }
 ALWAYS_INLINE static inline long os_close(int fd) {
-    long ret;
-    __asm__ volatile("syscall"
-                     : "=a"(ret)
-                     : "0"((long)_NR_CLOSE), "D"((long)fd)
-                     : "rcx", "r11", "memory");
-    return ret;
+  long ret;
+  __asm__ volatile("syscall"
+                   : "=a"(ret)
+                   : "0"((long)_NR_CLOSE), "D"((long)fd)
+                   : "rcx", "r11", "memory");
+  return ret;
 }
 __attribute__((noreturn)) ALWAYS_INLINE static inline void os_exit(int status) {
-    __asm__ volatile("syscall" : : "a"((long)_NR_EXIT), "D"((long)status));
-    __builtin_unreachable();
+  __asm__ volatile("syscall" : : "a"((long)_NR_EXIT), "D"((long)status));
+  __builtin_unreachable();
 }
-ALWAYS_INLINE static inline void *os_brk(void *addr) {
-    long ret;
-    __asm__ volatile("syscall"
-                     : "=a"(ret)
-                     : "0"((long)_NR_BRK), "D"(addr)
-                     : "rcx", "r11", "memory");
-    return (void *)ret;
+ALWAYS_INLINE static inline void* os_brk(void* addr) {
+  long ret;
+  __asm__ volatile("syscall"
+                   : "=a"(ret)
+                   : "0"((long)_NR_BRK), "D"(addr)
+                   : "rcx", "r11", "memory");
+  return (void*)ret;
 }
 
 /* ================================================================
@@ -184,57 +184,57 @@ ALWAYS_INLINE static inline void *os_brk(void *addr) {
 #define _NR_CLOSE 6
 #define _NR_BRK 45
 
-ALWAYS_INLINE static inline long os_write(int fd, const void *buf, size_t len) {
-    register long _r0 __asm__("r0") = fd;
-    register long _r1 __asm__("r1") = (long)buf;
-    register long _r2 __asm__("r2") = len;
-    register long _r7 __asm__("r7") = _NR_WRITE;
-    __asm__ volatile("svc #0"
-                     : "+r"(_r0)
-                     : "r"(_r1), "r"(_r2), "r"(_r7)
-                     : "memory");
-    return _r0;
+ALWAYS_INLINE static inline long os_write(int fd, const void* buf, size_t len) {
+  register long _r0 __asm__("r0") = fd;
+  register long _r1 __asm__("r1") = (long)buf;
+  register long _r2 __asm__("r2") = len;
+  register long _r7 __asm__("r7") = _NR_WRITE;
+  __asm__ volatile("svc #0"
+                   : "+r"(_r0)
+                   : "r"(_r1), "r"(_r2), "r"(_r7)
+                   : "memory");
+  return _r0;
 }
-ALWAYS_INLINE static inline long os_read(int fd, void *buf, size_t len) {
-    register long _r0 __asm__("r0") = fd;
-    register long _r1 __asm__("r1") = (long)buf;
-    register long _r2 __asm__("r2") = len;
-    register long _r7 __asm__("r7") = _NR_READ;
-    __asm__ volatile("svc #0"
-                     : "+r"(_r0)
-                     : "r"(_r1), "r"(_r2), "r"(_r7)
-                     : "memory");
-    return _r0;
+ALWAYS_INLINE static inline long os_read(int fd, void* buf, size_t len) {
+  register long _r0 __asm__("r0") = fd;
+  register long _r1 __asm__("r1") = (long)buf;
+  register long _r2 __asm__("r2") = len;
+  register long _r7 __asm__("r7") = _NR_READ;
+  __asm__ volatile("svc #0"
+                   : "+r"(_r0)
+                   : "r"(_r1), "r"(_r2), "r"(_r7)
+                   : "memory");
+  return _r0;
 }
-ALWAYS_INLINE static inline long os_open(const char *path, int flags,
+ALWAYS_INLINE static inline long os_open(const char* path, int flags,
                                          int mode) {
-    register long _r0 __asm__("r0") = (long)path;
-    register long _r1 __asm__("r1") = flags;
-    register long _r2 __asm__("r2") = mode;
-    register long _r7 __asm__("r7") = _NR_OPEN;
-    __asm__ volatile("svc #0"
-                     : "+r"(_r0)
-                     : "r"(_r1), "r"(_r2), "r"(_r7)
-                     : "memory");
-    return _r0;
+  register long _r0 __asm__("r0") = (long)path;
+  register long _r1 __asm__("r1") = flags;
+  register long _r2 __asm__("r2") = mode;
+  register long _r7 __asm__("r7") = _NR_OPEN;
+  __asm__ volatile("svc #0"
+                   : "+r"(_r0)
+                   : "r"(_r1), "r"(_r2), "r"(_r7)
+                   : "memory");
+  return _r0;
 }
 ALWAYS_INLINE static inline long os_close(int fd) {
-    register long _r0 __asm__("r0") = fd;
-    register long _r7 __asm__("r7") = _NR_CLOSE;
-    __asm__ volatile("svc #0" : "+r"(_r0) : "r"(_r7) : "memory");
-    return _r0;
+  register long _r0 __asm__("r0") = fd;
+  register long _r7 __asm__("r7") = _NR_CLOSE;
+  __asm__ volatile("svc #0" : "+r"(_r0) : "r"(_r7) : "memory");
+  return _r0;
 }
 __attribute__((noreturn)) ALWAYS_INLINE static inline void os_exit(int status) {
-    register long _r0 __asm__("r0") = status;
-    register long _r7 __asm__("r7") = _NR_EXIT;
-    __asm__ volatile("svc #0" : : "r"(_r0), "r"(_r7));
-    __builtin_unreachable();
+  register long _r0 __asm__("r0") = status;
+  register long _r7 __asm__("r7") = _NR_EXIT;
+  __asm__ volatile("svc #0" : : "r"(_r0), "r"(_r7));
+  __builtin_unreachable();
 }
-ALWAYS_INLINE static inline void *os_brk(void *addr) {
-    register long _r0 __asm__("r0") = (long)addr;
-    register long _r7 __asm__("r7") = _NR_BRK;
-    __asm__ volatile("svc #0" : "+r"(_r0) : "r"(_r7) : "memory");
-    return (void *)_r0;
+ALWAYS_INLINE static inline void* os_brk(void* addr) {
+  register long _r0 __asm__("r0") = (long)addr;
+  register long _r7 __asm__("r7") = _NR_BRK;
+  __asm__ volatile("svc #0" : "+r"(_r0) : "r"(_r7) : "memory");
+  return (void*)_r0;
 }
 
 /* ================================================================
@@ -253,58 +253,58 @@ ALWAYS_INLINE static inline void *os_brk(void *addr) {
 #define _NR_BRK 214
 #define _AT_FDCWD (-100)
 
-ALWAYS_INLINE static inline long os_write(int fd, const void *buf, size_t len) {
-    register long _x0 __asm__("x0") = fd;
-    register long _x1 __asm__("x1") = (long)buf;
-    register long _x2 __asm__("x2") = len;
-    register long _x8 __asm__("x8") = _NR_WRITE;
-    __asm__ volatile("svc #0"
-                     : "+r"(_x0)
-                     : "r"(_x1), "r"(_x2), "r"(_x8)
-                     : "memory");
-    return _x0;
+ALWAYS_INLINE static inline long os_write(int fd, const void* buf, size_t len) {
+  register long _x0 __asm__("x0") = fd;
+  register long _x1 __asm__("x1") = (long)buf;
+  register long _x2 __asm__("x2") = len;
+  register long _x8 __asm__("x8") = _NR_WRITE;
+  __asm__ volatile("svc #0"
+                   : "+r"(_x0)
+                   : "r"(_x1), "r"(_x2), "r"(_x8)
+                   : "memory");
+  return _x0;
 }
-ALWAYS_INLINE static inline long os_read(int fd, void *buf, size_t len) {
-    register long _x0 __asm__("x0") = fd;
-    register long _x1 __asm__("x1") = (long)buf;
-    register long _x2 __asm__("x2") = len;
-    register long _x8 __asm__("x8") = _NR_READ;
-    __asm__ volatile("svc #0"
-                     : "+r"(_x0)
-                     : "r"(_x1), "r"(_x2), "r"(_x8)
-                     : "memory");
-    return _x0;
+ALWAYS_INLINE static inline long os_read(int fd, void* buf, size_t len) {
+  register long _x0 __asm__("x0") = fd;
+  register long _x1 __asm__("x1") = (long)buf;
+  register long _x2 __asm__("x2") = len;
+  register long _x8 __asm__("x8") = _NR_READ;
+  __asm__ volatile("svc #0"
+                   : "+r"(_x0)
+                   : "r"(_x1), "r"(_x2), "r"(_x8)
+                   : "memory");
+  return _x0;
 }
-ALWAYS_INLINE static inline long os_open(const char *path, int flags,
+ALWAYS_INLINE static inline long os_open(const char* path, int flags,
                                          int mode) {
-    register long _x0 __asm__("x0") = _AT_FDCWD;
-    register long _x1 __asm__("x1") = (long)path;
-    register long _x2 __asm__("x2") = flags;
-    register long _x3 __asm__("x3") = mode;
-    register long _x8 __asm__("x8") = _NR_OPENAT;
-    __asm__ volatile("svc #0"
-                     : "+r"(_x0)
-                     : "r"(_x1), "r"(_x2), "r"(_x3), "r"(_x8)
-                     : "memory");
-    return _x0;
+  register long _x0 __asm__("x0") = _AT_FDCWD;
+  register long _x1 __asm__("x1") = (long)path;
+  register long _x2 __asm__("x2") = flags;
+  register long _x3 __asm__("x3") = mode;
+  register long _x8 __asm__("x8") = _NR_OPENAT;
+  __asm__ volatile("svc #0"
+                   : "+r"(_x0)
+                   : "r"(_x1), "r"(_x2), "r"(_x3), "r"(_x8)
+                   : "memory");
+  return _x0;
 }
 ALWAYS_INLINE static inline long os_close(int fd) {
-    register long _x0 __asm__("x0") = fd;
-    register long _x8 __asm__("x8") = _NR_CLOSE;
-    __asm__ volatile("svc #0" : "+r"(_x0) : "r"(_x8) : "memory");
-    return _x0;
+  register long _x0 __asm__("x0") = fd;
+  register long _x8 __asm__("x8") = _NR_CLOSE;
+  __asm__ volatile("svc #0" : "+r"(_x0) : "r"(_x8) : "memory");
+  return _x0;
 }
 __attribute__((noreturn)) ALWAYS_INLINE static inline void os_exit(int status) {
-    register long _x0 __asm__("x0") = status;
-    register long _x8 __asm__("x8") = _NR_EXIT;
-    __asm__ volatile("svc #0" : : "r"(_x0), "r"(_x8));
-    __builtin_unreachable();
+  register long _x0 __asm__("x0") = status;
+  register long _x8 __asm__("x8") = _NR_EXIT;
+  __asm__ volatile("svc #0" : : "r"(_x0), "r"(_x8));
+  __builtin_unreachable();
 }
-ALWAYS_INLINE static inline void *os_brk(void *addr) {
-    register long _x0 __asm__("x0") = (long)addr;
-    register long _x8 __asm__("x8") = _NR_BRK;
-    __asm__ volatile("svc #0" : "+r"(_x0) : "r"(_x8) : "memory");
-    return (void *)_x0;
+ALWAYS_INLINE static inline void* os_brk(void* addr) {
+  register long _x0 __asm__("x0") = (long)addr;
+  register long _x8 __asm__("x8") = _NR_BRK;
+  __asm__ volatile("svc #0" : "+r"(_x0) : "r"(_x8) : "memory");
+  return (void*)_x0;
 }
 
 /* ================================================================
@@ -326,72 +326,72 @@ ALWAYS_INLINE static inline void *os_brk(void *addr) {
 #define _NR_CLOSE (_NR_BASE + 6)
 #define _NR_BRK (_NR_BASE + 45)
 
-#define _MIPS_CLOBBERS                                                   \
-    "memory", "$1", "$3", "$8", "$9", "$10", "$11", "$12", "$13", "$14", \
-        "$15", "$24", "$25", "hi", "lo"
+#define _MIPS_CLOBBERS                                                        \
+  "memory", "$1", "$3", "$8", "$9", "$10", "$11", "$12", "$13", "$14", "$15", \
+      "$24", "$25", "hi", "lo"
 
-ALWAYS_INLINE static inline long os_write(int fd, const void *buf, size_t len) {
-    register long _v0 __asm__("$2") = _NR_WRITE;
-    register long _a0 __asm__("$4") = fd;
-    register long _a1 __asm__("$5") = (long)buf;
-    register long _a2 __asm__("$6") = len;
-    register long _a3 __asm__("$7");
-    __asm__ volatile("syscall"
-                     : "+r"(_v0), "=r"(_a3)
-                     : "r"(_a0), "r"(_a1), "r"(_a2)
-                     : _MIPS_CLOBBERS);
-    return _a3 ? -_v0 : _v0;
+ALWAYS_INLINE static inline long os_write(int fd, const void* buf, size_t len) {
+  register long _v0 __asm__("$2") = _NR_WRITE;
+  register long _a0 __asm__("$4") = fd;
+  register long _a1 __asm__("$5") = (long)buf;
+  register long _a2 __asm__("$6") = len;
+  register long _a3 __asm__("$7");
+  __asm__ volatile("syscall"
+                   : "+r"(_v0), "=r"(_a3)
+                   : "r"(_a0), "r"(_a1), "r"(_a2)
+                   : _MIPS_CLOBBERS);
+  return _a3 ? -_v0 : _v0;
 }
-ALWAYS_INLINE static inline long os_read(int fd, void *buf, size_t len) {
-    register long _v0 __asm__("$2") = _NR_READ;
-    register long _a0 __asm__("$4") = fd;
-    register long _a1 __asm__("$5") = (long)buf;
-    register long _a2 __asm__("$6") = len;
-    register long _a3 __asm__("$7");
-    __asm__ volatile("syscall"
-                     : "+r"(_v0), "=r"(_a3)
-                     : "r"(_a0), "r"(_a1), "r"(_a2)
-                     : _MIPS_CLOBBERS);
-    return _a3 ? -_v0 : _v0;
+ALWAYS_INLINE static inline long os_read(int fd, void* buf, size_t len) {
+  register long _v0 __asm__("$2") = _NR_READ;
+  register long _a0 __asm__("$4") = fd;
+  register long _a1 __asm__("$5") = (long)buf;
+  register long _a2 __asm__("$6") = len;
+  register long _a3 __asm__("$7");
+  __asm__ volatile("syscall"
+                   : "+r"(_v0), "=r"(_a3)
+                   : "r"(_a0), "r"(_a1), "r"(_a2)
+                   : _MIPS_CLOBBERS);
+  return _a3 ? -_v0 : _v0;
 }
-ALWAYS_INLINE static inline long os_open(const char *path, int flags,
+ALWAYS_INLINE static inline long os_open(const char* path, int flags,
                                          int mode) {
-    register long _v0 __asm__("$2") = _NR_OPEN;
-    register long _a0 __asm__("$4") = (long)path;
-    register long _a1 __asm__("$5") = flags;
-    register long _a2 __asm__("$6") = mode;
-    register long _a3 __asm__("$7");
-    __asm__ volatile("syscall"
-                     : "+r"(_v0), "=r"(_a3)
-                     : "r"(_a0), "r"(_a1), "r"(_a2)
-                     : _MIPS_CLOBBERS);
-    return _a3 ? -_v0 : _v0;
+  register long _v0 __asm__("$2") = _NR_OPEN;
+  register long _a0 __asm__("$4") = (long)path;
+  register long _a1 __asm__("$5") = flags;
+  register long _a2 __asm__("$6") = mode;
+  register long _a3 __asm__("$7");
+  __asm__ volatile("syscall"
+                   : "+r"(_v0), "=r"(_a3)
+                   : "r"(_a0), "r"(_a1), "r"(_a2)
+                   : _MIPS_CLOBBERS);
+  return _a3 ? -_v0 : _v0;
 }
 ALWAYS_INLINE static inline long os_close(int fd) {
-    register long _v0 __asm__("$2") = _NR_CLOSE;
-    register long _a0 __asm__("$4") = fd;
-    register long _a3 __asm__("$7");
-    __asm__ volatile("syscall"
-                     : "+r"(_v0), "=r"(_a3)
-                     : "r"(_a0)
-                     : _MIPS_CLOBBERS);
-    return _a3 ? -_v0 : _v0;
+  register long _v0 __asm__("$2") = _NR_CLOSE;
+  register long _a0 __asm__("$4") = fd;
+  register long _a3 __asm__("$7");
+  __asm__ volatile("syscall"
+                   : "+r"(_v0), "=r"(_a3)
+                   : "r"(_a0)
+                   : _MIPS_CLOBBERS);
+  return _a3 ? -_v0 : _v0;
 }
 __attribute__((noreturn)) ALWAYS_INLINE static inline void os_exit(int status) {
-    register long _v0 __asm__("$2") = _NR_EXIT;
-    register long _a0 __asm__("$4") = status;
-    __asm__ volatile("syscall" : : "r"(_v0), "r"(_a0));
-    __builtin_unreachable();
+  register long _v0 __asm__("$2") = _NR_EXIT;
+  register long _a0 __asm__("$4") = status;
+  __asm__ volatile("syscall" : : "r"(_v0), "r"(_a0));
+  __builtin_unreachable();
 }
-ALWAYS_INLINE static inline void *os_brk(void *addr) {
-    register long _v0 __asm__("$2") = _NR_BRK;
-    register long _a0 __asm__("$4") = (long)addr;
-    register long _a3 __asm__("$7");
-    __asm__ volatile("syscall"
-                     : "+r"(_v0), "=r"(_a3)
-                     : "r"(_a0)
-                     : _MIPS_CLOBBERS);
-    return _a3 ? (void *)-1 : (void *)_v0;
+ALWAYS_INLINE static inline void* os_brk(void* addr) {
+  register long _v0 __asm__("$2") = _NR_BRK;
+  register long _a0 __asm__("$4") = (long)addr;
+  register long _a3 __asm__("$7");
+  __asm__ volatile("syscall"
+                   : "+r"(_v0), "=r"(_a3)
+                   : "r"(_a0)
+                   : _MIPS_CLOBBERS);
+  return _a3 ? (void*)-1 : (void*)_v0;
 }
 
 #else

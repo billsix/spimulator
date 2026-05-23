@@ -35,7 +35,7 @@
 
 #define BUFSIZE 4096
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   int fd = STDIN;
 
   if (argc > 2) {
@@ -54,8 +54,7 @@ int my_main(int argc, char **argv) {
 
   static char buf[BUFSIZE];
   long n;
-  while ((n = os_read(fd, buf, sizeof(buf))) > 0)
-    os_write(STDOUT, buf, n);
+  while ((n = os_read(fd, buf, sizeof(buf))) > 0) os_write(STDOUT, buf, n);
 
   if (fd != STDIN) os_close(fd);
   return n < 0 ? 1 : 0;

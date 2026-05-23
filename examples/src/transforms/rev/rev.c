@@ -39,12 +39,11 @@
 static char buf[BUFSIZE];
 
 static void flush_reversed(int len) {
-  for (int i = len - 1; i >= 0; i--)
-    print_char(buf[i]);
+  for (int i = len - 1; i >= 0; i--) print_char(buf[i]);
   print_char('\n');
 }
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   int fd = STDIN;
 
   if (argc > 2) {

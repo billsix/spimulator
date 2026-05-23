@@ -50,9 +50,9 @@
 #define BUFSIZE 4096
 #define MAX_OUT 8
 
-#include "crt0.h"   /* provides _start; calls my_main(argc, argv) */
+#include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 
-int my_main(int argc, char **argv) {
+int my_main(int argc, char** argv) {
   if (argc - 1 > MAX_OUT) {
     print_string("tee: too many output files\n");
     return 1;
@@ -61,8 +61,7 @@ int my_main(int argc, char **argv) {
   int fds[MAX_OUT];
   int nfds = 0;
   for (int i = 1; i < argc; i++) {
-    int fd =
-        (int)os_open(argv[i], OS_O_WRONLY | OS_O_CREAT | OS_O_TRUNC, 0644);
+    int fd = (int)os_open(argv[i], OS_O_WRONLY | OS_O_CREAT | OS_O_TRUNC, 0644);
     if (fd < 0) {
       print_string("tee: cannot open ");
       print_string(argv[i]);
