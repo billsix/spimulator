@@ -91,7 +91,7 @@ typedef struct inst_s {
 
 #define IOFFSET(INST) IMM(INST)
 #define SET_IOFFSET(INST, VAL) SET_IMM(INST, VAL)
-#define IDISP(INST) (sign_ex(IOFFSET(INST) << 2))
+#define BRANCH_OFFSET(INST) (sign_ex(IOFFSET(INST) << 2))
 
 #define COND(INST) RS(INST)
 #define SET_COND(INST, VAL) SET_RS(INST, VAL)
@@ -193,7 +193,7 @@ typedef enum mips_exc_code : uint8_t {
 #define BIN_RS(V) (BIN_REG(V, 21))
 #define BIN_RT(V) (BIN_REG(V, 16))
 #define BIN_RD(V) (BIN_REG(V, 11))
-#define BIN_SA(V) (BIN_REG(V, 6))
+#define BIN_SHAMT(V) (BIN_REG(V, 6))
 
 #define BIN_BASE(V) (BIN_REG(V, 21))
 #define BIN_FT(V) (BIN_REG(V, 16))

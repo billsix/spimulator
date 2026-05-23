@@ -707,7 +707,7 @@ static void tpl_branch_2reg(int level, instruction* inst, const char* op_label,
   int rs = RS(inst), rt = RT(inst);
   /* Target is computed from the instruction's own PC (snap_PC) plus 4 +
      displacement. Live PC has already advanced past this instruction. */
-  mem_addr target = snap_PC + 4 + IDISP(inst);
+  mem_addr target = snap_PC + 4 + BRANCH_OFFSET(inst);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — would transfer to 0x%08x if ($%s %s $%s).\n", op_label,
@@ -728,7 +728,7 @@ static void tpl_branch_2reg(int level, instruction* inst, const char* op_label,
 static void tpl_branch_1reg(int level, instruction* inst, const char* op_label,
                             const char* op_symbol, bool taken) {
   int rs = RS(inst);
-  mem_addr target = snap_PC + 4 + IDISP(inst);
+  mem_addr target = snap_PC + 4 + BRANCH_OFFSET(inst);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — would transfer to 0x%08x if ($%s %s 0).\n", op_label,

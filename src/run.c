@@ -247,75 +247,75 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
 
         case TOK_BEQ_OP:
-          BRANCH_INST(R[RS(inst)] == R[RT(inst)], PC + IDISP(inst), 0);
+          BRANCH_INST(R[RS(inst)] == R[RT(inst)], PC + BRANCH_OFFSET(inst), 0);
           break;
 
         case TOK_BEQL_OP:
-          BRANCH_INST(R[RS(inst)] == R[RT(inst)], PC + IDISP(inst), 1);
+          BRANCH_INST(R[RS(inst)] == R[RT(inst)], PC + BRANCH_OFFSET(inst), 1);
           break;
 
         case TOK_BGEZ_OP:
-          BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + IDISP(inst), 0);
+          BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + BRANCH_OFFSET(inst), 0);
           break;
 
         case TOK_BGEZL_OP:
-          BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + IDISP(inst), 1);
+          BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + BRANCH_OFFSET(inst), 1);
           break;
 
         case TOK_BGEZAL_OP:
           R[31] = PC + (delayed_branches ? 2 * BYTES_PER_WORD : BYTES_PER_WORD);
-          BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + IDISP(inst), 0);
+          BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + BRANCH_OFFSET(inst), 0);
           break;
 
         case TOK_BGEZALL_OP:
           R[31] = PC + (delayed_branches ? 2 * BYTES_PER_WORD : BYTES_PER_WORD);
-          BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + IDISP(inst), 1);
+          BRANCH_INST(SIGN_BIT(R[RS(inst)]) == 0, PC + BRANCH_OFFSET(inst), 1);
           break;
 
         case TOK_BGTZ_OP:
           BRANCH_INST(R[RS(inst)] != 0 && SIGN_BIT(R[RS(inst)]) == 0,
-                      PC + IDISP(inst), 0);
+                      PC + BRANCH_OFFSET(inst), 0);
           break;
 
         case TOK_BGTZL_OP:
           BRANCH_INST(R[RS(inst)] != 0 && SIGN_BIT(R[RS(inst)]) == 0,
-                      PC + IDISP(inst), 1);
+                      PC + BRANCH_OFFSET(inst), 1);
           break;
 
         case TOK_BLEZ_OP:
           BRANCH_INST(R[RS(inst)] == 0 || SIGN_BIT(R[RS(inst)]) != 0,
-                      PC + IDISP(inst), 0);
+                      PC + BRANCH_OFFSET(inst), 0);
           break;
 
         case TOK_BLEZL_OP:
           BRANCH_INST(R[RS(inst)] == 0 || SIGN_BIT(R[RS(inst)]) != 0,
-                      PC + IDISP(inst), 1);
+                      PC + BRANCH_OFFSET(inst), 1);
           break;
 
         case TOK_BLTZ_OP:
-          BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + IDISP(inst), 0);
+          BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + BRANCH_OFFSET(inst), 0);
           break;
 
         case TOK_BLTZL_OP:
-          BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + IDISP(inst), 1);
+          BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + BRANCH_OFFSET(inst), 1);
           break;
 
         case TOK_BLTZAL_OP:
           R[31] = PC + (delayed_branches ? 2 * BYTES_PER_WORD : BYTES_PER_WORD);
-          BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + IDISP(inst), 0);
+          BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + BRANCH_OFFSET(inst), 0);
           break;
 
         case TOK_BLTZALL_OP:
           R[31] = PC + (delayed_branches ? 2 * BYTES_PER_WORD : BYTES_PER_WORD);
-          BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + IDISP(inst), 1);
+          BRANCH_INST(SIGN_BIT(R[RS(inst)]) != 0, PC + BRANCH_OFFSET(inst), 1);
           break;
 
         case TOK_BNE_OP:
-          BRANCH_INST(R[RS(inst)] != R[RT(inst)], PC + IDISP(inst), 0);
+          BRANCH_INST(R[RS(inst)] != R[RT(inst)], PC + BRANCH_OFFSET(inst), 0);
           break;
 
         case TOK_BNEL_OP:
-          BRANCH_INST(R[RS(inst)] != R[RT(inst)], PC + IDISP(inst), 1);
+          BRANCH_INST(R[RS(inst)] != R[RT(inst)], PC + BRANCH_OFFSET(inst), 1);
           break;
 
         case TOK_BREAK_OP:
@@ -1030,7 +1030,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           int cc = CC(inst);
           int nd = ND(inst); /* 1 => nullify */
           int tf = TF(inst); /* 0 => BC1F, 1 => BC1T */
-          BRANCH_INST(FCC(cc) == tf, PC + IDISP(inst), nd);
+          BRANCH_INST(FCC(cc) == tf, PC + BRANCH_OFFSET(inst), nd);
           break;
         }
 

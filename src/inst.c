@@ -601,11 +601,11 @@ void format_an_inst(str_stream* ss, instruction* inst, mem_addr addr) {
   ss_printf(ss, "0x%08x  %s", (uint32_t)ENCODING(inst), entry->name);
   switch (entry->value2) {
     case BC_TYPE_INST:
-      ss_printf(ss, "%d %d", CC(inst), IDISP(inst));
+      ss_printf(ss, "%d %d", CC(inst), BRANCH_OFFSET(inst));
       break;
 
     case B1_TYPE_INST:
-      ss_printf(ss, " $%s %d", int_reg_names[RS(inst)], IDISP(inst));
+      ss_printf(ss, " $%s %d", int_reg_names[RS(inst)], BRANCH_OFFSET(inst));
       break;
 
     case I1s_TYPE_INST:
@@ -623,7 +623,7 @@ void format_an_inst(str_stream* ss, instruction* inst, mem_addr addr) {
 
     case B2_TYPE_INST:
       ss_printf(ss, " $%s, $%s, %d", int_reg_names[RS(inst)],
-                int_reg_names[RT(inst)], IDISP(inst));
+                int_reg_names[RT(inst)], BRANCH_OFFSET(inst));
       break;
 
     case I2a_TYPE_INST:
@@ -1263,7 +1263,7 @@ instruction* inst_decode(int32_t val) {
 
     case R2sh_TYPE_INST:
       return (
-          mk_r_inst(val, i_opcode, 0, BIN_RT(val), BIN_RD(val), BIN_SA(val)));
+          mk_r_inst(val, i_opcode, 0, BIN_RT(val), BIN_RD(val), BIN_SHAMT(val)));
 
     case R3_TYPE_INST:
       return (
