@@ -7,7 +7,7 @@
 #define PARSER_H
 
 #include "spim.h"
-#include "inst.h" /* for imm_expr in the emit_* signatures */
+#include "instruction.h" /* for imm_expr in the emit_* signatures */
 
 /* Exported functions. */
 

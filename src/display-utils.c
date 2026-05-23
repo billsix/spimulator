@@ -6,12 +6,12 @@
 #include "spim.h"
 #include "string-stream.h"
 #include "spim-utils.h"
-#include "inst.h"
+#include "instruction.h"
 #include "data.h"
-#include "reg.h"
-#include "mem.h"
+#include "registers.h"
+#include "memory.h"
 #include "run.h"
-#include "sym-tbl.h"
+#include "symbol-table.h"
 
 char* int_reg_names[32] = {"r0", "at", "v0", "v1", "a0", "a1", "a2", "a3",
                            "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",

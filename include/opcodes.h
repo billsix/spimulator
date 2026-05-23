@@ -17,7 +17,7 @@
    whatever shape that consumer wants.  Typical pattern:
 
        #define OP(name, sym, type, enc) sym,
-       #include "op.h"
+       #include "opcodes.h"
 
    That expansion (used in tokens.h) turns each row into just
    the second column — so OP("add", TOK_ADD_OPCODE, ...) becomes

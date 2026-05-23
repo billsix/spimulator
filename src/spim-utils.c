@@ -12,15 +12,15 @@
 #include "version.h"
 #include "string-stream.h"
 #include "spim-utils.h"
-#include "inst.h"
+#include "instruction.h"
 #include "data.h"
-#include "reg.h"
-#include "mem.h"
+#include "registers.h"
+#include "memory.h"
 #include "scanner.h"
 #include "parser.h"
 #include "tokens.h"
 #include "run.h"
-#include "sym-tbl.h"
+#include "symbol-table.h"
 
 /* Internal functions: */
 

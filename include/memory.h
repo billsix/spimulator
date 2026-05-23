@@ -7,8 +7,8 @@
 #define MEM_H
 
 #include "spim.h"
-#include "inst.h"
-#include "reg.h"
+#include "instruction.h"
+#include "registers.h"
 
 /* A note on directions:  "Bottom" of memory is the direction of
    decreasing addresses.  "Top" is the direction of increasing addresses.*/

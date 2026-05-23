@@ -6,9 +6,9 @@
 #include "spim.h"
 #include "string-stream.h"
 #include "spim-utils.h"
-#include "inst.h"
-#include "reg.h"
-#include "mem.h"
+#include "instruction.h"
+#include "registers.h"
+#include "memory.h"
 
 /* Exported Variables: */
 

@@ -12,11 +12,11 @@
 
 #include "spim.h"
 #include "spim-utils.h" /* name_val_val, str_copy, xmalloc */
-#include "reg.h"        /* R_LENGTH */
-#include "sym-tbl.h"    /* label_is_defined */
+#include "registers.h"        /* R_LENGTH */
+#include "symbol-table.h"    /* label_is_defined */
 #include "scanner.h"    /* scan_value, line_no */
 #include "tokens.h"     /* TOK_* token values */
-#include "op-types.h"   /* op_type tag enumerators (ASM_DIR, R3_TYPE_INST, ...) */
+#include "opcode-types.h"   /* op_type tag enumerators (ASM_DIR, R3_TYPE_INST, ...) */
 
 /* Runtime-visible globals. */
 int line_no = 1;
@@ -59,7 +59,7 @@ int register_name_to_number(char* name) {
 static name_val_val keyword_tbl[] = {
 #undef OP
 #define OP(NAME, OPCODE, TYPE, R_OPCODE) {NAME, OPCODE, TYPE},
-#include "op.h"
+#include "opcodes.h"
 };
 
 static int check_keyword(char* id, int allow_pseudo_ops) {

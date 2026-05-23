@@ -10,16 +10,16 @@
 #include "spim.h"
 #include "string-stream.h"
 #include "spim-utils.h"
-#include "inst.h"
-#include "reg.h"
-#include "mem.h"
-#include "sym-tbl.h"
+#include "instruction.h"
+#include "registers.h"
+#include "memory.h"
+#include "symbol-table.h"
 #include "parser.h"
 #include "scanner.h"
 #include "tokens.h"
-#include "op-types.h"
+#include "opcode-types.h"
 #include "data.h"
-#include "asm_event.h"
+#include "assembler-event.h"
 
 /* Local functions: */
 
@@ -505,7 +505,7 @@ void initialize_inst_tables(void) {
 static name_val_val name_tbl[] = {
 #undef OP
 #define OP(NAME, OPCODE, TYPE, R_OPCODE) {NAME, OPCODE, TYPE},
-#include "op.h"
+#include "opcodes.h"
 };
 
 /* Sort the opcode table on their key (the opcode value). */
@@ -1058,7 +1058,7 @@ int addr_expr_reg(addr_expr* expr) { return (expr->reg_no); }
 static name_val_val i_opcode_tbl[] = {
 #undef OP
 #define OP(NAME, I_OPCODE, TYPE, A_OPCODE) {NAME, I_OPCODE, (int)A_OPCODE},
-#include "op.h"
+#include "opcodes.h"
 };
 
 /* Sort the opcode table on their key (the interal opcode value). */
@@ -1185,7 +1185,7 @@ int32_t inst_encode(mips_instruction* instruction) {
 static name_val_val a_opcode_tbl[] = {
 #undef OP
 #define OP(NAME, I_OPCODE, TYPE, A_OPCODE) {NAME, (int)A_OPCODE, (int)I_OPCODE},
-#include "op.h"
+#include "opcodes.h"
 };
 
 /* Sort the opcode table on their key (the interal opcode value). */

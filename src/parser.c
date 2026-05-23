@@ -9,16 +9,16 @@
 #include <string.h>
 
 #include "spim.h"
-#include "inst.h"
+#include "instruction.h"
 #include "data.h"
-#include "sym-tbl.h"
+#include "symbol-table.h"
 #include "scanner.h"
 #include "parser.h"
 #include "tokens.h"
-#include "op-types.h"
+#include "opcode-types.h"
 #include "spim-utils.h"
 #include "parser.h"
-#include "pseudo_op.h"
+#include "pseudo-op.h"
 #include "ast.h"
 
 extern int scanner_peek(void);
@@ -1251,7 +1251,7 @@ typedef struct {
 
 static op_type_entry op_type_table[] = {
 #define OP(NAME, OPCODE, TYPE, R_OPCODE) {OPCODE, TYPE},
-#include "op.h"
+#include "opcodes.h"
 };
 
 /* Returns -1 when `op` isn't in the table.  Caller switches treat the

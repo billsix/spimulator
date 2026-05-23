@@ -32,7 +32,7 @@ enum : int32_t {
      the #include is intentionally inside the enum body so the OP()
      rows expand directly between commas.  */
 #define OP(_name, sym, _kind, _opcode) sym,
-#include "op.h"
+#include "opcodes.h"
 #undef OP
 };
 

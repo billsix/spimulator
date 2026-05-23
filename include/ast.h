@@ -34,7 +34,7 @@
 #include <stdio.h>
 
 #include "spim.h"
-#include "inst.h" /* for imm_expr, addr_expr */
+#include "instruction.h" /* for imm_expr, addr_expr */
 
 /* ------------------------------------------------------------------ */
 /* Node kinds                                                          */

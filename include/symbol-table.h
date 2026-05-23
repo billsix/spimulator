@@ -7,7 +7,7 @@
 #define SYM_TBL_H
 
 #include "spim.h"
-#include "inst.h"
+#include "instruction.h"
 
 typedef struct label_use {
   mips_instruction* instruction; /* nullptr => Data, not code */

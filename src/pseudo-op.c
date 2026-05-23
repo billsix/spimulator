@@ -11,11 +11,11 @@
 #include <stdio.h>
 
 #include "spim.h"
-#include "inst.h"
-#include "sym-tbl.h" /* SYMBOL_IS_DEFINED */
+#include "instruction.h"
+#include "symbol-table.h" /* SYMBOL_IS_DEFINED */
 #include "tokens.h"  /* Y_*_OP, Y_*_POP token values */
 #include "parser.h"  /* emit_r, emit_r_shift, emit_i_free, ... */
-#include "pseudo_op.h"
+#include "pseudo-op.h"
 
 extern int line_no;                /* from scanner */
 extern char* erroneous_line(void); /* from scanner.c */

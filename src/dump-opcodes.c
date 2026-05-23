@@ -28,7 +28,7 @@ typedef struct inst_t {
 #define OP(a, b, c, d) {a, d},
 
 instruction ops[] = {
-#include "op.h"
+#include "opcodes.h"
 };
 
 int compare_ops(mips_instruction* p1, mips_instruction* p2) {

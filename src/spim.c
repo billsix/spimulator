@@ -22,16 +22,16 @@
 #include "spim.h"
 #include "string-stream.h"
 #include "spim-utils.h"
-#include "inst.h"
-#include "reg.h"
-#include "mem.h"
+#include "instruction.h"
+#include "registers.h"
+#include "memory.h"
 #include "parser.h"
-#include "sym-tbl.h"
+#include "symbol-table.h"
 #include "scanner.h"
 #include "tokens.h"
 #include "data.h"
 #include "explain.h"
-#include "asm_event.h"
+#include "assembler-event.h"
 
 #ifdef HAVE_LIBEDIT
 #include <editline/readline.h>

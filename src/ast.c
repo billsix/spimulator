@@ -22,7 +22,7 @@
 #include "ast.h"
 #include "spim-utils.h" /* xmalloc, str_copy           */
 #include "scanner.h"    /* line_no                      */
-#include "sym-tbl.h"    /* struct label definition      */
+#include "symbol-table.h"    /* struct label definition      */
 #include "tokens.h"     /* TOK_*_OP names for ast_print */
 
 /* ------------------------------------------------------------------ */

@@ -4,7 +4,7 @@
 #define EXPLAIN_H
 
 #include "spim.h"
-#include "inst.h"
+#include "instruction.h"
 
 /* Teaching detail level:
      0 — off (no narration; baseline spim behavior)

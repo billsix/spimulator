@@ -12,10 +12,10 @@
 
 #include "spim.h"
 #include "string-stream.h"
-#include "inst.h"
-#include "reg.h"
-#include "mem.h"
-#include "sym-tbl.h"
+#include "instruction.h"
+#include "registers.h"
+#include "memory.h"
+#include "symbol-table.h"
 #include "syscall.h"
 
 /* Decides which syscall to execute or simulate.  Returns zero upon

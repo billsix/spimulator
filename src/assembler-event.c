@@ -9,7 +9,7 @@
 
    SPDX-License-Identifier: BSD-3-Clause */
 
-#include "asm_event.h"
+#include "assembler-event.h"
 #include "scanner.h"
 #include "parser.h"
 
