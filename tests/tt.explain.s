@@ -55,6 +55,38 @@ done:   la      $a0, hello          # pseudo-op for address load
         lw      $t9, 4($sp)         # load back from the frame slot
         addiu   $sp, $sp, 8         # tear down the frame
 
+        # --- canonical multi-slot stack-frame save/restore ---
+        # Frame layout: $sp+0 reserved as the outgoing-args slot,
+        # then four save slots at $sp+4, +8, +12, +16. Four
+        # different positive offsets exercised in sequence — the
+        # pattern every real MIPS function uses to spill $ra and
+        # the incoming-arg registers it needs across a call.
+        addiu   $sp, $sp, -20       # 5-word frame (slot 0 = arg area)
+        sw      $a0,  4($sp)        # save arg 0
+        sw      $a1,  8($sp)        # save arg 1
+        sw      $a2, 12($sp)        # save arg 2
+        sw      $ra, 16($sp)        # save return address
+        lw      $a0,  4($sp)        # restore arg 0
+        lw      $a1,  8($sp)        # restore arg 1
+        lw      $a2, 12($sp)        # restore arg 2
+        lw      $ra, 16($sp)        # restore return address
+        addiu   $sp, $sp, 20        # tear down frame
+
+        # --- negative-offset local-variable access ---
+        # Locals at -4($fp) / -8($fp) — $fp points to the TOP of
+        # the locals area, so they're addressed via a sign-extended
+        # negative immediate. (No $fp save/restore — main doesn't
+        # need $fp preserved.)
+        move    $fp, $sp            # remember the top of frame
+        addiu   $sp, $sp, -8        # carve out 2 words of locals
+        li      $t1, 111
+        sw      $t1, -4($fp)        # store local 0 (signed immediate)
+        li      $t2, 222
+        sw      $t2, -8($fp)        # store local 1
+        lw      $t3, -4($fp)        # load local 0
+        lw      $t4, -8($fp)        # load local 1
+        addiu   $sp, $sp, 8         # release locals
+
         # --- unsigned arithmetic variants (no overflow trap) ---
         addu    $s0, $t0, $t1       # unsigned add
         subu    $s1, $t1, $t0       # unsigned sub

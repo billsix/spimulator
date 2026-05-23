@@ -138,4 +138,28 @@ ambiguously for negative values; if so, file a small follow-up.
 
 ## Status
 
-Not started.
+Landed 2026-05-23.  Two blocks appended to `tests/tt.explain.s`
+after the existing base+offset section (around line 56):
+
+- 4-slot stack-frame save/restore at $sp+4/+8/+12/+16
+- Negative-offset locals at -4($fp) / -8($fp)
+
+Golden file regenerated: 3373 → 3940 lines (+567).  22/22 meson
+tests green.  Templates rendered correctly without code change:
+the `tpl_load` / `tpl_store` "Effective address" line works for
+positive and (sign-extended) negative immediates alike.
+
+### Minor cosmetic findings (not addressed here)
+
+Both are pre-existing and worth their own follow-ups if anyone
+cares — they're outside this task's offset-diversity scope.
+
+- The disassembler prints `$s8` rather than `$fp` (same
+  register, different canonical name in `int_reg_names[]`).
+  Pedagogically the frame-pointer role makes `$fp` the
+  preferable display name when the program uses it as one.
+- The effective-address line for negative offsets reads
+  `$rs + -N` (e.g. `$s8 + -4 = 0x7fffffdc + -4 = 0x7fffffd8`)
+  rather than `$rs - N`.  Readable, but `$rs - 4` would parse
+  more naturally.  Conditional formatting in `tpl_load` /
+  `tpl_store` would do it.
