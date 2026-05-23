@@ -54,7 +54,7 @@ void data_begins_at_point(mem_addr addr) {
   else {
     next_gp_item_addr = addr;
     gp_midpoint = addr + 32 * K;
-    R[REG_GP] = gp_midpoint;
+    gpr[REG_GP] = gp_midpoint;
     next_data_pc = addr + 64 * K;
   }
 }

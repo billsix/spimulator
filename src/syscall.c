@@ -26,9 +26,9 @@ int do_syscall(void) {
      use than the real syscall and are portable to non-MIPS operating
      systems. */
 
-  switch (R[REG_V0]) {
+  switch (gpr[REG_V0]) {
     case PRINT_INT_SYSCALL:
-      write_output(console_out, "%d", R[REG_A0]);
+      write_output(console_out, "%d", gpr[REG_A0]);
       break;
 
     case PRINT_FLOAT_SYSCALL: {
@@ -43,15 +43,15 @@ int do_syscall(void) {
       break;
 
     case PRINT_STRING_SYSCALL:
-      write_output(console_out, "%s", mem_reference(R[REG_A0]));
+      write_output(console_out, "%s", mem_reference(gpr[REG_A0]));
       break;
 
     case READ_INT_SYSCALL: {
       static char str[256];
 
       int n = read_input(str, 256);
-      R[REG_RES] = atol(str);
-      R[REG_A3] = (n == 0) ? 1 : 0; /* EOF flag: 0 = success, 1 = EOF */
+      gpr[REG_RES] = atol(str);
+      gpr[REG_A3] = (n == 0) ? 1 : 0; /* EOF flag: 0 = success, 1 = EOF */
       break;
     }
 
@@ -72,22 +72,22 @@ int do_syscall(void) {
     }
 
     case READ_STRING_SYSCALL: {
-      int n = read_input((char*)mem_reference(R[REG_A0]), R[REG_A1]);
-      R[REG_A3] = (n == 0) ? 1 : 0; /* EOF flag */
+      int n = read_input((char*)mem_reference(gpr[REG_A0]), gpr[REG_A1]);
+      gpr[REG_A3] = (n == 0) ? 1 : 0; /* EOF flag */
       data_modified = true;
       break;
     }
 
     case SBRK_SYSCALL: {
       mem_addr x = data_top;
-      expand_data(R[REG_A0]);
-      R[REG_RES] = x;
+      expand_data(gpr[REG_A0]);
+      gpr[REG_RES] = x;
       data_modified = true;
       break;
     }
 
     case PRINT_CHARACTER_SYSCALL:
-      write_output(console_out, "%c", R[REG_A0]);
+      write_output(console_out, "%c", gpr[REG_A0]);
       break;
 
     case READ_CHARACTER_SYSCALL: {
@@ -95,11 +95,11 @@ int do_syscall(void) {
 
       int n = read_input(str, 2);
       if (n == 0) {
-        R[REG_RES] = -1; /* EOF -- matches getchar()'s convention */
+        gpr[REG_RES] = -1; /* EOF -- matches getchar()'s convention */
       } else {
         /* Treat the byte as unsigned (0..255) so bytes >= 0x80 don't
            alias with the -1 EOF sentinel via sign extension. */
-        R[REG_RES] = (long)(unsigned char)str[0];
+        gpr[REG_RES] = (long)(unsigned char)str[0];
       }
       break;
     }
@@ -109,36 +109,36 @@ int do_syscall(void) {
       return (0);
 
     case EXIT2_SYSCALL:
-      spim_return_value = R[REG_A0]; /* value passed to spim's exit() call */
+      spim_return_value = gpr[REG_A0]; /* value passed to spim's exit() call */
       return (0);
 
     case OPEN_SYSCALL: {
-      R[REG_RES] = open((char*)mem_reference(R[REG_A0]), R[REG_A1], R[REG_A2]);
+      gpr[REG_RES] = open((char*)mem_reference(gpr[REG_A0]), gpr[REG_A1], gpr[REG_A2]);
       break;
     }
 
     case READ_SYSCALL: {
       /* Test if address is valid */
-      (void)mem_reference(R[REG_A1] + R[REG_A2] - 1);
-      R[REG_RES] = read(R[REG_A0], mem_reference(R[REG_A1]), R[REG_A2]);
+      (void)mem_reference(gpr[REG_A1] + gpr[REG_A2] - 1);
+      gpr[REG_RES] = read(gpr[REG_A0], mem_reference(gpr[REG_A1]), gpr[REG_A2]);
       data_modified = true;
       break;
     }
 
     case WRITE_SYSCALL: {
       /* Test if address is valid */
-      (void)mem_reference(R[REG_A1] + R[REG_A2] - 1);
-      R[REG_RES] = write(R[REG_A0], mem_reference(R[REG_A1]), R[REG_A2]);
+      (void)mem_reference(gpr[REG_A1] + gpr[REG_A2] - 1);
+      gpr[REG_RES] = write(gpr[REG_A0], mem_reference(gpr[REG_A1]), gpr[REG_A2]);
       break;
     }
 
     case CLOSE_SYSCALL: {
-      R[REG_RES] = close(R[REG_A0]);
+      gpr[REG_RES] = close(gpr[REG_A0]);
       break;
     }
 
     default:
-      run_error("Unknown system call: %d\n", R[REG_V0]);
+      run_error("Unknown system call: %d\n", gpr[REG_V0]);
       break;
   }
 

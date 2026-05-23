@@ -43,13 +43,13 @@ void format_registers(str_stream* ss, int print_gpr_hex, int print_fpr_hex) {
 
   ss_printf(ss, "\t\t\t\t General Registers\n");
   for (i = 0; i < 8; i++) {
-    ss_printf(ss, grstr, i, int_reg_names[i], R[i]);
+    ss_printf(ss, grstr, i, int_reg_names[i], gpr[i]);
     ss_printf(ss, grfill);
-    ss_printf(ss, grstr, i + 8, int_reg_names[i + 8], R[i + 8]);
+    ss_printf(ss, grstr, i + 8, int_reg_names[i + 8], gpr[i + 8]);
     ss_printf(ss, grfill);
-    ss_printf(ss, grstr, i + 16, int_reg_names[i + 16], R[i + 16]);
+    ss_printf(ss, grstr, i + 16, int_reg_names[i + 16], gpr[i + 16]);
     ss_printf(ss, grfill);
-    ss_printf(ss, grstr, i + 24, int_reg_names[i + 24], R[i + 24]);
+    ss_printf(ss, grstr, i + 24, int_reg_names[i + 24], gpr[i + 24]);
     ss_printf(ss, "\n");
   }
 
@@ -160,7 +160,7 @@ void format_data_segs(str_stream* ss) {
   format_mem(ss, DATA_BOT, data_top);
 
   ss_printf(ss, "\n\tSTACK\n");
-  format_mem(ss, ROUND_DOWN(R[29], BYTES_PER_WORD), STACK_TOP);
+  format_mem(ss, ROUND_DOWN(gpr[29], BYTES_PER_WORD), STACK_TOP);
 
   ss_printf(ss, "\n\tKERNEL DATA\n");
   format_mem(ss, K_DATA_BOT, k_data_top);

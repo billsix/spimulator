@@ -12,7 +12,7 @@
 
 /* Exported Variables: */
 
-reg_word R[R_LENGTH];
+reg_word gpr[R_LENGTH];
 reg_word HI, LO;
 int HI_present, LO_present;
 mem_addr PC, nPC;

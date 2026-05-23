@@ -144,8 +144,8 @@ void initialize_registers(void) {
   fp_single_view = (float*)fp_double_view;
   fp_int_view = (int*)fp_double_view;
 
-  memset(R, 0, R_LENGTH * sizeof(reg_word));
-  R[REG_SP] = STACK_TOP - BYTES_PER_WORD - 4096; /* Initialize $sp */
+  memset(gpr, 0, R_LENGTH * sizeof(reg_word));
+  gpr[REG_SP] = STACK_TOP - BYTES_PER_WORD - 4096; /* Initialize $sp */
   HI = LO = 0;
   PC = 0;
 
@@ -254,7 +254,7 @@ void initialize_run_stack(int argc, char** argv) {
   int i, j = 0, env_j;
   mem_addr addrs[10000];
 
-  R[REG_SP] = STACK_TOP - 1; /* Initialize $sp */
+  gpr[REG_SP] = STACK_TOP - 1; /* Initialize $sp */
 
   /* Put strings on stack: */
   /* env: */
@@ -265,38 +265,38 @@ void initialize_run_stack(int argc, char** argv) {
   for (i = 0; i < argc; i++) addrs[j++] = copy_str_to_stack(argv[i]);
 
   /* Align stack pointer for word-size data */
-  R[REG_SP] = R[REG_SP] & ~3;  /* Round down to nearest word */
-  R[REG_SP] -= BYTES_PER_WORD; /* First free word on stack */
-  R[REG_SP] = R[REG_SP] & ~7;  /* Double-word align stack-pointer*/
+  gpr[REG_SP] = gpr[REG_SP] & ~3;  /* Round down to nearest word */
+  gpr[REG_SP] -= BYTES_PER_WORD; /* First free word on stack */
+  gpr[REG_SP] = gpr[REG_SP] & ~7;  /* Double-word align stack-pointer*/
 
   /* Build vectors on stack: */
   /* env: */
   (void)copy_int_to_stack(0); /* Null-terminate vector */
-  for (i = env_j - 1; i >= 0; i--) R[REG_A2] = copy_int_to_stack(addrs[i]);
+  for (i = env_j - 1; i >= 0; i--) gpr[REG_A2] = copy_int_to_stack(addrs[i]);
 
   /* argv: */
   (void)copy_int_to_stack(0); /* Null-terminate vector */
-  for (i = j - 1; i >= env_j; i--) R[REG_A1] = copy_int_to_stack(addrs[i]);
+  for (i = j - 1; i >= env_j; i--) gpr[REG_A1] = copy_int_to_stack(addrs[i]);
 
   /* argc: */
-  R[REG_A0] = argc;
-  mem_write_word(R[REG_SP], argc); /* Leave argc on stack */
+  gpr[REG_A0] = argc;
+  mem_write_word(gpr[REG_SP], argc); /* Leave argc on stack */
 }
 
 static mem_addr copy_str_to_stack(char* s) {
   int i = (int)strlen(s);
   while (i >= 0) {
-    mem_write_byte(R[REG_SP], s[i]);
-    R[REG_SP] -= 1;
+    mem_write_byte(gpr[REG_SP], s[i]);
+    gpr[REG_SP] -= 1;
     i -= 1;
   }
-  return ((mem_addr)R[REG_SP] + 1); /* Leaves stack pointer byte-aligned!! */
+  return ((mem_addr)gpr[REG_SP] + 1); /* Leaves stack pointer byte-aligned!! */
 }
 
 static mem_addr copy_int_to_stack(int n) {
-  mem_write_word(R[REG_SP], n);
-  R[REG_SP] -= BYTES_PER_WORD;
-  return ((mem_addr)R[REG_SP] + BYTES_PER_WORD);
+  mem_write_word(gpr[REG_SP], n);
+  gpr[REG_SP] -= BYTES_PER_WORD;
+  return ((mem_addr)gpr[REG_SP] + BYTES_PER_WORD);
 }
 
 /* Run the program, starting at PC, for STEPS instructions. Display each

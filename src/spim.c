@@ -952,7 +952,7 @@ static bool parse_spim_command(bool redo) {
             if (reg < 0 || close != ')') {
               error("expected $reg) after '(' in print N($reg) form\n");
             } else {
-              loc = R[reg] + int_val;
+              loc = gpr[reg] + int_val;
               print_mem((mem_addr)loc);
             }
           } else {
@@ -1306,8 +1306,8 @@ static void flush_to_newline(void) { while (read_token() != TOK_NL); }
 /* Print register number N. */
 
 static void print_reg(int reg_no) {
-  write_output(message_out, "Reg %d = 0x%08x (%d)\n", reg_no, R[reg_no],
-               R[reg_no]);
+  write_output(message_out, "Reg %d = 0x%08x (%d)\n", reg_no, gpr[reg_no],
+               gpr[reg_no]);
 }
 
 static int print_fp_reg(int reg_no) {

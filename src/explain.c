@@ -26,7 +26,7 @@ int explain_level = 0;
    itself runs from explain_after() (so every line reads in past tense by
    the time the user sees it), which means input-side reads come from
    snap_R / snap_HI / snap_LO / snap_PC and result-side reads come from
-   the live R / HI / LO / PC. Stores also need a pre-execute memory
+   the live gpr / HI / LO / PC. Stores also need a pre-execute memory
    snapshot, since by the time explain_after runs the write has happened
    and peek_word would return the new value. */
 static reg_word snap_R[R_LENGTH];
@@ -435,7 +435,7 @@ static void hr(void) {
 }
 
 /* Input-side reads: always from snap_R, since templates run after the
-   dispatch and R[] now holds post-execute values. */
+   dispatch and gpr[] now holds post-execute values. */
 static void say_input_reg(int r) {
   if (r == 0) return; /* $zero is always 0; saying so is noise */
   write_output(message_out, "    $%s = 0x%08x  (decimal %d)\n",
@@ -454,7 +454,7 @@ static void say_input_imm(int imm_signed) {
 static void say_wrote_reg(int r) {
   if (r == 0) return; /* writes to $zero are discarded; nothing to show */
   write_output(message_out, "    $%s:  0x%08x  →  0x%08x   (decimal %d)\n",
-               int_reg_names[r], snap_R[r], R[r], R[r]);
+               int_reg_names[r], snap_R[r], gpr[r], gpr[r]);
   touched_reg[r] = true;
 }
 
@@ -633,7 +633,7 @@ static void tpl_load(int level, instruction* inst, const char* op_label,
   short off = (short)IOFFSET(inst);
   /* Effective address uses snapshot base — the value the instruction
      actually used. If this load's rt happens to equal base (rare but
-     legal), the post-execute R[base] is the loaded value, not the
+     legal), the post-execute gpr[base] is the loaded value, not the
      pre-execute base. */
   mem_addr ea = (mem_addr)(snap_R[base] + off);
   write_output(message_out, "  What it did:\n");
@@ -749,7 +749,7 @@ static void tpl_branch_1reg(int level, instruction* inst, const char* op_label,
 
 static void explain_syscall(int level) {
   /* Call number is the pre-execute $v0. syscall 5 (read_int) overwrites
-     $v0 with the read integer, so post-execute R[REG_V0] would be wrong. */
+     $v0 with the read integer, so post-execute gpr[REG_V0] would be wrong. */
   reg_word v0 = snap_R[REG_V0];
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
@@ -1322,7 +1322,7 @@ void explain_before(instruction* inst, mem_addr addr) {
   explain_clear_suggestions();
 
   /* Snapshot of architectural state for the post-execute templates. */
-  memcpy(snap_R, R, sizeof(snap_R));
+  memcpy(snap_R, gpr, sizeof(snap_R));
   snap_HI = HI;
   snap_LO = LO;
   snap_PC = addr;
@@ -1337,7 +1337,7 @@ void explain_before(instruction* inst, mem_addr addr) {
     case TOK_SB_OPCODE: {
       int base = BASE(inst);
       short off = (short)IOFFSET(inst);
-      snap_mem_addr = (mem_addr)(R[base] + off);
+      snap_mem_addr = (mem_addr)(gpr[base] + off);
       snap_mem_val = peek_word(snap_mem_addr);
       snap_has_mem = true;
       break;
@@ -1643,7 +1643,7 @@ static void emit_category_preamble(instruction* inst) {
 /* render_dispatch: walks the opcode switch and emits each template's
    per-opcode "What it did / Inputs / Wrote / Try it yourself" content.
    Called from explain_after only. Reads inputs from snap_R[], outputs
-   from live R[]. */
+   from live gpr[]. */
 static void render_dispatch(int level, instruction* inst) {
   switch (OPCODE(inst)) {
     /* Arithmetic, R-type */
@@ -2111,7 +2111,7 @@ void explain_after(instruction* inst) {
       case TOK_LH_OPCODE:
       case TOK_LHU_OPCODE: {
         int rt = RT(inst);
-        if (rt != 0 && snap_R[rt] == R[rt]) {
+        if (rt != 0 && snap_R[rt] == gpr[rt]) {
           write_output(message_out,
                        "    (the load did happen — the memory value matched "
                        "the prior register value)\n");
@@ -2125,7 +2125,7 @@ void explain_after(instruction* inst) {
        paths, templates that don't yet cover all of an op's writes). */
     bool header_done = false;
     for (int i = 1; i < R_LENGTH; i++) {
-      if (R[i] != snap_R[i] && !touched_reg[i]) {
+      if (gpr[i] != snap_R[i] && !touched_reg[i]) {
         if (!header_done) {
           write_output(message_out,
                        "  Side effects (changed but not named above):\n");
@@ -2133,7 +2133,7 @@ void explain_after(instruction* inst) {
         }
         write_output(message_out,
                      "    $%s:  0x%08x  →  0x%08x   (decimal %d)\n",
-                     int_reg_names[i], snap_R[i], R[i], R[i]);
+                     int_reg_names[i], snap_R[i], gpr[i], gpr[i]);
       }
     }
     if (HI != snap_HI && !touched_hi) {

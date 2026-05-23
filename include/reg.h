@@ -15,7 +15,7 @@ typedef uint32_t u_reg_word;
 /* General purpose registers: */
 constexpr int R_LENGTH = 32;
 
-extern reg_word R[R_LENGTH];
+extern reg_word gpr[R_LENGTH];
 
 extern reg_word HI, LO;
 
