@@ -16,7 +16,25 @@
 	  prints "$rs - N" instead of "$rs + -N" for negative
 	  immediates.  Example: a `lw $t3, -4($fp)` now reads
 	  "Effective address = $fp - 4 = 0x7fffffdc - 4 = 0x7fffffd8."
-	* tests/tt.explain.expected: regenerated.
+
+	Teaching mode: narration for the rest of MIPS's base+offset
+	load/store families.
+
+	* src/explain.c: six new templates and a shared
+	  `say_effective_address()` helper.  Wired into the opcode
+	  switch for 10 previously-undocumented opcodes:
+	  - lwl, lwr, swl, swr (unaligned word access)
+	  - ll, sc (atomic primitives — narration explains the real
+	    multiprocessor semantics spim doesn't model)
+	  - lwc1, ldc1, swc1, sdc1 (coprocessor-1 FP loads/stores)
+	  Pre-refactor of tpl_load/tpl_store is byte-identical
+	  (verified with zero-diff before new templates landed).
+	* tests/tt.explain.s: added an 8-byte-aligned data buffer
+	  `ubuf` and four test blocks (one per family above)
+	  exercising every new opcode.
+	* tests/tt.explain.expected: regenerated.  Output grew from
+	  3940 to 4534 lines; zero `(no detailed explanation)`
+	  fallthroughs remain in the tt.explain.s run.
 
 2026-05-20  Bill Six  <billsix@gmail.com>
 

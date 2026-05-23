@@ -211,7 +211,7 @@ Stepped at PC = 0x00400014:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400028:
     memory[0x00400028] = 0x34080005   →   ori $t0, $r0, 5
-    source line 33:         li      $t0, 5              # I-type immediate (addiu)
+    source line 35:         li      $t0, 5              # I-type immediate (addiu)
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -240,7 +240,7 @@ Stepped at PC = 0x00400028:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x0040002c:
     memory[0x0040002c] = 0x34090007   →   ori $t1, $r0, 7
-    source line 34:         li      $t1, 7
+    source line 36:         li      $t1, 7
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -269,7 +269,7 @@ Stepped at PC = 0x0040002c:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400030:
     memory[0x00400030] = 0x01095020   →   add $t2, $t0, $t1
-    source line 35:         add     $t2, $t0, $t1       # R-type signed add
+    source line 37:         add     $t2, $t0, $t1       # R-type signed add
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -290,7 +290,7 @@ Stepped at PC = 0x00400030:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400034:
     memory[0x00400034] = 0x01095824   →   and $t3, $t0, $t1
-    source line 36:         and     $t3, $t0, $t1       # R-type logical
+    source line 38:         and     $t3, $t0, $t1       # R-type logical
 
   Category: Logical
     Bitwise operations and shifts. (COD §2.6.)
@@ -311,7 +311,7 @@ Stepped at PC = 0x00400034:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400038:
     memory[0x00400038] = 0x000a6080   →   sll $t4, $t2, 2
-    source line 37:         sll     $t4, $t2, 2         # shift
+    source line 39:         sll     $t4, $t2, 2         # shift
 
   Category: Logical
     Bitwise operations and shifts. (COD §2.6.)
@@ -332,7 +332,7 @@ Stepped at PC = 0x00400038:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x0040003c:
     memory[0x0040003c] = 0x3c011001   →   lui $at, 4097
-    source line 38:         lw      $t5, src            # load from data segment
+    source line 40:         lw      $t5, src            # load from data segment
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -356,7 +356,7 @@ Stepped at PC = 0x0040003c:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400040:
     memory[0x00400040] = 0x8c2d0000   →   lw $t5, 0($at)
-    source line 38:         lw      $t5, src            # load from data segment
+    source line 40:         lw      $t5, src            # load from data segment
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -386,7 +386,7 @@ Stepped at PC = 0x00400040:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400044:
     memory[0x00400044] = 0x3c011001   →   lui $at, 4097
-    source line 39:         sw      $t2, dst            # store to data segment
+    source line 41:         sw      $t2, dst            # store to data segment
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -410,7 +410,7 @@ Stepped at PC = 0x00400044:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400048:
     memory[0x00400048] = 0xac2a0004   →   sw $t2, 4($at)
-    source line 39:         sw      $t2, dst            # store to data segment
+    source line 41:         sw      $t2, dst            # store to data segment
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -441,7 +441,7 @@ Stepped at PC = 0x00400048:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x0040004c:
     memory[0x0040004c] = 0x11090002   →   beq $t0, $t1, 8 [skip-0x0040004c]
-    source line 40:         beq     $t0, $t1, skip      # branch (not taken)
+    source line 42:         beq     $t0, $t1, skip      # branch (not taken)
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
@@ -464,7 +464,7 @@ Stepped at PC = 0x0040004c:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400050:
     memory[0x00400050] = 0x210e0001   →   addi $t6, $t0, 1
-    source line 41:         addi    $t6, $t0, 1         # falls through
+    source line 43:         addi    $t6, $t0, 1         # falls through
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -490,7 +490,7 @@ Stepped at PC = 0x00400050:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400054:
     memory[0x00400054] = 0x15090002   →   bne $t0, $t1, 8 [done-0x00400054]
-    source line 42: skip:   bne     $t0, $t1, done      # branch (taken)
+    source line 44: skip:   bne     $t0, $t1, done      # branch (taken)
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
@@ -513,7 +513,7 @@ Stepped at PC = 0x00400054:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x0040005c:
     memory[0x0040005c] = 0x3c011001   →   lui $at, 4097 [hello]
-    source line 44: done:   la      $a0, hello          # pseudo-op for address load
+    source line 46: done:   la      $a0, hello          # pseudo-op for address load
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -537,7 +537,7 @@ Stepped at PC = 0x0040005c:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400060:
     memory[0x00400060] = 0x34240008   →   ori $a0, $at, 8 [hello]
-    source line 44: done:   la      $a0, hello          # pseudo-op for address load
+    source line 46: done:   la      $a0, hello          # pseudo-op for address load
 
   Category: Logical
     Bitwise operations and shifts. (COD §2.6.)
@@ -563,7 +563,7 @@ Stepped at PC = 0x00400060:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400064:
     memory[0x00400064] = 0x3c0e1001   →   lui $t6, 4097 [src]
-    source line 50:         la      $t6, src            # $t6 points into .data
+    source line 52:         la      $t6, src            # $t6 points into .data
   Pseudo-instruction `la` (as written in source):
     Load Address — set $rd to the 32-bit address of a label. Typically
     expands to `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)` (or just
@@ -592,7 +592,7 @@ Stepped at PC = 0x00400064:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400068:
     memory[0x00400068] = 0x8dcf0000   →   lw $t7, 0($t6)
-    source line 51:         lw      $t7, 0($t6)         # load with zero offset
+    source line 53:         lw      $t7, 0($t6)         # load with zero offset
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -622,7 +622,7 @@ Stepped at PC = 0x00400068:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x0040006c:
     memory[0x0040006c] = 0x81d80000   →   lb $t8, 0($t6)
-    source line 52:         lb      $t8, 0($t6)         # byte load via base+offset
+    source line 54:         lb      $t8, 0($t6)         # byte load via base+offset
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -652,7 +652,7 @@ Stepped at PC = 0x0040006c:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400070:
     memory[0x00400070] = 0x27bdfff8   →   addiu $sp, $sp, -8
-    source line 53:         addiu   $sp, $sp, -8        # allocate an 8-byte stack frame
+    source line 55:         addiu   $sp, $sp, -8        # allocate an 8-byte stack frame
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -680,7 +680,7 @@ Stepped at PC = 0x00400070:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400074:
     memory[0x00400074] = 0xafaf0004   →   sw $t7, 4($sp)
-    source line 54:         sw      $t7, 4($sp)         # store with non-zero offset into frame
+    source line 56:         sw      $t7, 4($sp)         # store with non-zero offset into frame
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -711,7 +711,7 @@ Stepped at PC = 0x00400074:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400078:
     memory[0x00400078] = 0x8fb90004   →   lw $t9, 4($sp)
-    source line 55:         lw      $t9, 4($sp)         # load back from the frame slot
+    source line 57:         lw      $t9, 4($sp)         # load back from the frame slot
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -741,7 +741,7 @@ Stepped at PC = 0x00400078:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x0040007c:
     memory[0x0040007c] = 0x27bd0008   →   addiu $sp, $sp, 8
-    source line 56:         addiu   $sp, $sp, 8         # tear down the frame
+    source line 58:         addiu   $sp, $sp, 8         # tear down the frame
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -769,7 +769,7 @@ Stepped at PC = 0x0040007c:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400080:
     memory[0x00400080] = 0x27bdffec   →   addiu $sp, $sp, -20
-    source line 64:         addiu   $sp, $sp, -20       # 5-word frame (slot 0 = arg area)
+    source line 66:         addiu   $sp, $sp, -20       # 5-word frame (slot 0 = arg area)
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -797,7 +797,7 @@ Stepped at PC = 0x00400080:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400084:
     memory[0x00400084] = 0xafa40004   →   sw $a0, 4($sp)
-    source line 65:         sw      $a0,  4($sp)        # save arg 0
+    source line 67:         sw      $a0,  4($sp)        # save arg 0
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -828,7 +828,7 @@ Stepped at PC = 0x00400084:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400088:
     memory[0x00400088] = 0xafa50008   →   sw $a1, 8($sp)
-    source line 66:         sw      $a1,  8($sp)        # save arg 1
+    source line 68:         sw      $a1,  8($sp)        # save arg 1
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -859,7 +859,7 @@ Stepped at PC = 0x00400088:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x0040008c:
     memory[0x0040008c] = 0xafa6000c   →   sw $a2, 12($sp)
-    source line 67:         sw      $a2, 12($sp)        # save arg 2
+    source line 69:         sw      $a2, 12($sp)        # save arg 2
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -890,7 +890,7 @@ Stepped at PC = 0x0040008c:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400090:
     memory[0x00400090] = 0xafbf0010   →   sw $ra, 16($sp)
-    source line 68:         sw      $ra, 16($sp)        # save return address
+    source line 70:         sw      $ra, 16($sp)        # save return address
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -921,7 +921,7 @@ Stepped at PC = 0x00400090:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400094:
     memory[0x00400094] = 0x8fa40004   →   lw $a0, 4($sp)
-    source line 69:         lw      $a0,  4($sp)        # restore arg 0
+    source line 71:         lw      $a0,  4($sp)        # restore arg 0
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -952,7 +952,7 @@ Stepped at PC = 0x00400094:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x00400098:
     memory[0x00400098] = 0x8fa50008   →   lw $a1, 8($sp)
-    source line 70:         lw      $a1,  8($sp)        # restore arg 1
+    source line 72:         lw      $a1,  8($sp)        # restore arg 1
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -983,7 +983,7 @@ Stepped at PC = 0x00400098:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x0040009c:
     memory[0x0040009c] = 0x8fa6000c   →   lw $a2, 12($sp)
-    source line 71:         lw      $a2, 12($sp)        # restore arg 2
+    source line 73:         lw      $a2, 12($sp)        # restore arg 2
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -1014,7 +1014,7 @@ Stepped at PC = 0x0040009c:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x004000a0:
     memory[0x004000a0] = 0x8fbf0010   →   lw $ra, 16($sp)
-    source line 72:         lw      $ra, 16($sp)        # restore return address
+    source line 74:         lw      $ra, 16($sp)        # restore return address
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -1045,7 +1045,7 @@ Stepped at PC = 0x004000a0:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x004000a4:
     memory[0x004000a4] = 0x27bd0014   →   addiu $sp, $sp, 20
-    source line 73:         addiu   $sp, $sp, 20        # tear down frame
+    source line 75:         addiu   $sp, $sp, 20        # tear down frame
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -1073,7 +1073,7 @@ Stepped at PC = 0x004000a4:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x004000a8:
     memory[0x004000a8] = 0x001df021   →   addu $fp, $r0, $sp
-    source line 80:         move    $fp, $sp            # remember the top of frame
+    source line 82:         move    $fp, $sp            # remember the top of frame
   Pseudo-instruction `move` (as written in source):
     Move — copy $rs into $rd. Encoded as `addu $rd, $0, $rs` (adding $zero
     is the simplest way to copy a register).
@@ -1100,7 +1100,7 @@ Stepped at PC = 0x004000a8:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x004000ac:
     memory[0x004000ac] = 0x27bdfff8   →   addiu $sp, $sp, -8
-    source line 81:         addiu   $sp, $sp, -8        # carve out 2 words of locals
+    source line 83:         addiu   $sp, $sp, -8        # carve out 2 words of locals
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -1128,7 +1128,7 @@ Stepped at PC = 0x004000ac:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x004000b0:
     memory[0x004000b0] = 0x3409006f   →   ori $t1, $r0, 111
-    source line 82:         li      $t1, 111
+    source line 84:         li      $t1, 111
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -1157,7 +1157,7 @@ Stepped at PC = 0x004000b0:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x004000b4:
     memory[0x004000b4] = 0xafc9fffc   →   sw $t1, -4($fp)
-    source line 83:         sw      $t1, -4($fp)        # store local 0 (signed immediate)
+    source line 85:         sw      $t1, -4($fp)        # store local 0 (signed immediate)
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -1188,7 +1188,7 @@ Stepped at PC = 0x004000b4:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x004000b8:
     memory[0x004000b8] = 0x340a00de   →   ori $t2, $r0, 222
-    source line 84:         li      $t2, 222
+    source line 86:         li      $t2, 222
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -1217,7 +1217,7 @@ Stepped at PC = 0x004000b8:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x004000bc:
     memory[0x004000bc] = 0xafcafff8   →   sw $t2, -8($fp)
-    source line 85:         sw      $t2, -8($fp)        # store local 1
+    source line 87:         sw      $t2, -8($fp)        # store local 1
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -1248,7 +1248,7 @@ Stepped at PC = 0x004000bc:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x004000c0:
     memory[0x004000c0] = 0x8fcbfffc   →   lw $t3, -4($fp)
-    source line 86:         lw      $t3, -4($fp)        # load local 0
+    source line 88:         lw      $t3, -4($fp)        # load local 0
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -1278,7 +1278,7 @@ Stepped at PC = 0x004000c0:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x004000c4:
     memory[0x004000c4] = 0x8fccfff8   →   lw $t4, -8($fp)
-    source line 87:         lw      $t4, -8($fp)        # load local 1
+    source line 89:         lw      $t4, -8($fp)        # load local 1
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -1308,7 +1308,7 @@ Stepped at PC = 0x004000c4:
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x004000c8:
     memory[0x004000c8] = 0x27bd0008   →   addiu $sp, $sp, 8
-    source line 88:         addiu   $sp, $sp, 8         # release locals
+    source line 90:         addiu   $sp, $sp, 8         # release locals
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -1335,8 +1335,602 @@ Stepped at PC = 0x004000c8:
 
 ──────────────────────────────────────────────────────────
 Stepped at PC = 0x004000cc:
-    memory[0x004000cc] = 0x01098021   →   addu $s0, $t0, $t1
-    source line 91:         addu    $s0, $t0, $t1       # unsigned add
+    memory[0x004000cc] = 0x3c011001   →   lui $at, 4097 [ubuf]
+    source line 97:         la      $t0, ubuf
+  Pseudo-instruction `la` (as written in source):
+    Load Address — set $rd to the 32-bit address of a label. Typically
+    expands to `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)` (or just
+    `addiu` for relocations that fit in 16 bits).
+  This was the first real instruction the assembler emitted for it.
+
+  Category: Data transfer
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
+  What it did:
+    Load Upper Immediate — placed the 16-bit immediate into the
+    upper 16 bits of $at, zeroing the lower 16. Often paired with
+    `ori` to construct a full 32-bit constant.
+  Inputs (before this step):
+    immediate = 4097  (0x1001)
+  Wrote:
+    $at:  0x10010000  →  0x10010000   (decimal 268500992)
+  Try it yourself:
+    print $at
+    print_all_regs         # show every register
+    step                   # advance to the next instruction
+  PC:  0x004000cc  →  0x004000d0
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x004000d0:
+    memory[0x004000d0] = 0x34280010   →   ori $t0, $at, 16 [ubuf]
+    source line 97:         la      $t0, ubuf
+  Pseudo-instruction `la` (as written in source):
+    Load Address — set $rd to the 32-bit address of a label. Typically
+    expands to `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)` (or just
+    `addiu` for relocations that fit in 16 bits).
+  This was the first real instruction the assembler emitted for it.
+
+  Category: Logical
+    Bitwise operations and shifts. (COD §2.6.)
+  Modifiers in `ori`:
+    `i` — immediate form: one operand is a 16-bit constant baked
+          into the instruction word, not a register. Lets
+          small constants be supplied without a separate
+          load.
+  What it did:
+    OR Immediate — computed $at OR zero-extended immediate; the result was placed in $t0.
+  Inputs (before this step):
+    $at = 0x10010000  (decimal 268500992)
+    immediate = 16  (0x0010)
+  Wrote:
+    $t0:  0x00000005  →  0x10010010   (decimal 268501008)
+  Try it yourself:
+    print $at
+    print $t0
+    print_all_regs         # show every register
+  PC:  0x004000d0  →  0x004000d4
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x004000d4:
+    memory[0x004000d4] = 0x3c01aaaa   →   lui $at, -21846
+    source line 98:         li      $t1, 0xaaaaaaaa     # garbage in destination
+  Pseudo-instruction `li` (as written in source):
+    Load Immediate — set $rd to a 32-bit constant. Small constants emit
+    one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
+  This was the first real instruction the assembler emitted for it.
+
+  Category: Data transfer
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
+  What it did:
+    Load Upper Immediate — placed the 16-bit immediate into the
+    upper 16 bits of $at, zeroing the lower 16. Often paired with
+    `ori` to construct a full 32-bit constant.
+  Inputs (before this step):
+    immediate = -21846  (0xaaaa)
+  Wrote:
+    $at:  0x10010000  →  0xaaaa0000   (decimal -1431699456)
+  Try it yourself:
+    print $at
+    print_all_regs         # show every register
+    step                   # advance to the next instruction
+  PC:  0x004000d4  →  0x004000d8
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x004000d8:
+    memory[0x004000d8] = 0x3429aaaa   →   ori $t1, $at, -21846
+    source line 98:         li      $t1, 0xaaaaaaaa     # garbage in destination
+  Pseudo-instruction `li` (as written in source):
+    Load Immediate — set $rd to a 32-bit constant. Small constants emit
+    one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
+  This was the first real instruction the assembler emitted for it.
+
+  Category: Logical
+    Bitwise operations and shifts. (COD §2.6.)
+  Modifiers in `ori`:
+    `i` — immediate form: one operand is a 16-bit constant baked
+          into the instruction word, not a register. Lets
+          small constants be supplied without a separate
+          load.
+  What it did:
+    OR Immediate — computed $at OR zero-extended immediate; the result was placed in $t1.
+  Inputs (before this step):
+    $at = 0xaaaa0000  (decimal -1431699456)
+    immediate = -21846  (0xaaaa)
+  Wrote:
+    $t1:  0x0000006f  →  0xaaaaaaaa   (decimal -1431655766)
+  Try it yourself:
+    print $at
+    print $t1
+    print_all_regs         # show every register
+  PC:  0x004000d8  →  0x004000dc
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x004000dc:
+    memory[0x004000dc] = 0x89090004   →   lwl $t1, 4($t0)
+    source line 99:         lwl     $t1, 4($t0)         # merge high bytes
+
+  What it did:
+    Load Word Left — merged the high bytes of the addressed word into $t1; preserved the other bytes already there.
+    Effective address = $t0 + 4  =  0x10010010 + 4  =  0x10010014.
+    Typically paired with the matching opcode to assemble a full word from a potentially-misaligned address.
+  Inputs (before this step):
+    $t0 = 0x10010010  (decimal 268501008)
+    $t1 = 0xaaaaaaaa  (decimal -1431655766)
+    offset = 4  (0x0004)
+    memory at 0x10010014 (containing word) = 0x55667788
+  Wrote:
+    $t1:  0xaaaaaaaa  →  0x88aaaaaa   (decimal -2002081110)
+  Try it yourself:
+    print $t0
+    print $t1
+    print_all_regs         # show every register
+  PC:  0x004000dc  →  0x004000e0
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x004000e0:
+    memory[0x004000e0] = 0x99090001   →   lwr $t1, 1($t0)
+    source line 100:         lwr     $t1, 1($t0)         # merge low bytes
+
+  What it did:
+    Load Word Right — merged the low bytes of the addressed word into $t1; preserved the other bytes already there.
+    Effective address = $t0 + 1  =  0x10010010 + 1  =  0x10010011.
+    Typically paired with the matching opcode to assemble a full word from a potentially-misaligned address.
+  Inputs (before this step):
+    $t0 = 0x10010010  (decimal 268501008)
+    $t1 = 0x88aaaaaa  (decimal -2002081110)
+    offset = 1  (0x0001)
+    memory at 0x10010010 (containing word) = 0x11223344
+  Wrote:
+    $t1:  0x88aaaaaa  →  0x88112233   (decimal -2012143053)
+  Try it yourself:
+    print $t0
+    print $t1
+    print_all_regs         # show every register
+  PC:  0x004000e0  →  0x004000e4
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x004000e4:
+    memory[0x004000e4] = 0x3c019988   →   lui $at, -26232
+    source line 101:         li      $t2, 0x99887766     # word to spill
+  Pseudo-instruction `li` (as written in source):
+    Load Immediate — set $rd to a 32-bit constant. Small constants emit
+    one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
+  This was the first real instruction the assembler emitted for it.
+
+  Category: Data transfer
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
+  What it did:
+    Load Upper Immediate — placed the 16-bit immediate into the
+    upper 16 bits of $at, zeroing the lower 16. Often paired with
+    `ori` to construct a full 32-bit constant.
+  Inputs (before this step):
+    immediate = -26232  (0x9988)
+  Wrote:
+    $at:  0xaaaa0000  →  0x99880000   (decimal -1719140352)
+  Try it yourself:
+    print $at
+    print_all_regs         # show every register
+    step                   # advance to the next instruction
+  PC:  0x004000e4  →  0x004000e8
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x004000e8:
+    memory[0x004000e8] = 0x342a7766   →   ori $t2, $at, 30566
+    source line 101:         li      $t2, 0x99887766     # word to spill
+  Pseudo-instruction `li` (as written in source):
+    Load Immediate — set $rd to a 32-bit constant. Small constants emit
+    one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
+  This was the first real instruction the assembler emitted for it.
+
+  Category: Logical
+    Bitwise operations and shifts. (COD §2.6.)
+  Modifiers in `ori`:
+    `i` — immediate form: one operand is a 16-bit constant baked
+          into the instruction word, not a register. Lets
+          small constants be supplied without a separate
+          load.
+  What it did:
+    OR Immediate — computed $at OR zero-extended immediate; the result was placed in $t2.
+  Inputs (before this step):
+    $at = 0x99880000  (decimal -1719140352)
+    immediate = 30566  (0x7766)
+  Wrote:
+    $t2:  0x000000de  →  0x99887766   (decimal -1719109786)
+  Try it yourself:
+    print $at
+    print $t2
+    print_all_regs         # show every register
+  PC:  0x004000e8  →  0x004000ec
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x004000ec:
+    memory[0x004000ec] = 0xa90a0004   →   swl $t2, 4($t0)
+    source line 102:         swl     $t2, 4($t0)         # spill high bytes
+
+  What it did:
+    Store Word Left — wrote the high bytes of $rt from $t2 into the word containing the effective address; preserved the other bytes of that word.
+    Effective address = $t0 + 4  =  0x10010010 + 4  =  0x10010014.
+    Typically paired with the matching opcode to store a full word to a potentially-misaligned address.
+  Inputs (before this step):
+    $t0 = 0x10010010  (decimal 268501008)
+    $t2 = 0x99887766  (decimal -1719109786)
+    offset = 4  (0x0004)
+  Try it yourself:
+    print $t0
+    print $t2
+    print_all_regs         # show every register
+  PC:  0x004000ec  →  0x004000f0
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x004000f0:
+    memory[0x004000f0] = 0xb90a0001   →   swr $t2, 1($t0)
+    source line 103:         swr     $t2, 1($t0)         # spill low bytes
+
+  What it did:
+    Store Word Right — wrote the low bytes of $rt from $t2 into the word containing the effective address; preserved the other bytes of that word.
+    Effective address = $t0 + 1  =  0x10010010 + 1  =  0x10010011.
+    Typically paired with the matching opcode to store a full word to a potentially-misaligned address.
+  Inputs (before this step):
+    $t0 = 0x10010010  (decimal 268501008)
+    $t2 = 0x99887766  (decimal -1719109786)
+    offset = 1  (0x0001)
+  Try it yourself:
+    print $t0
+    print $t2
+    print_all_regs         # show every register
+  PC:  0x004000f0  →  0x004000f4
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x004000f4:
+    memory[0x004000f4] = 0x3c011001   →   lui $at, 4097 [ubuf]
+    source line 110:         la      $t0, ubuf
+  Pseudo-instruction `la` (as written in source):
+    Load Address — set $rd to the 32-bit address of a label. Typically
+    expands to `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)` (or just
+    `addiu` for relocations that fit in 16 bits).
+  This was the first real instruction the assembler emitted for it.
+
+  Category: Data transfer
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
+  What it did:
+    Load Upper Immediate — placed the 16-bit immediate into the
+    upper 16 bits of $at, zeroing the lower 16. Often paired with
+    `ori` to construct a full 32-bit constant.
+  Inputs (before this step):
+    immediate = 4097  (0x1001)
+  Wrote:
+    $at:  0x99880000  →  0x10010000   (decimal 268500992)
+  Try it yourself:
+    print $at
+    print_all_regs         # show every register
+    step                   # advance to the next instruction
+  PC:  0x004000f4  →  0x004000f8
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x004000f8:
+    memory[0x004000f8] = 0x34280010   →   ori $t0, $at, 16 [ubuf]
+    source line 110:         la      $t0, ubuf
+  Pseudo-instruction `la` (as written in source):
+    Load Address — set $rd to the 32-bit address of a label. Typically
+    expands to `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)` (or just
+    `addiu` for relocations that fit in 16 bits).
+  This was the first real instruction the assembler emitted for it.
+
+  Category: Logical
+    Bitwise operations and shifts. (COD §2.6.)
+  Modifiers in `ori`:
+    `i` — immediate form: one operand is a 16-bit constant baked
+          into the instruction word, not a register. Lets
+          small constants be supplied without a separate
+          load.
+  What it did:
+    OR Immediate — computed $at OR zero-extended immediate; the result was placed in $t0.
+  Inputs (before this step):
+    $at = 0x10010000  (decimal 268500992)
+    immediate = 16  (0x0010)
+  Wrote:
+    $t0:  0x10010010  →  0x10010010   (decimal 268501008)
+  Try it yourself:
+    print $at
+    print $t0
+    print_all_regs         # show every register
+  PC:  0x004000f8  →  0x004000fc
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x004000fc:
+    memory[0x004000fc] = 0xc1090000   →   ll $t1, 0($t0)
+    source line 111:         ll      $t1, 0($t0)
+
+  What it did:
+    Load Linked — read a 32-bit word from memory at the effective address; placed the result in $t1.
+    Effective address = $t0 + 0  =  0x10010010 + 0  =  0x10010010.
+    On real multiprocessor MIPS, ll also tags a link register so a subsequent sc can detect intervening writes.  In spim's single-threaded model, ll is just a plain word load.
+  Inputs (before this step):
+    $t0 = 0x10010010  (decimal 268501008)
+    offset = 0  (0x0000)
+    memory at 0x10010010 = 0x88776644
+  Wrote:
+    $t1:  0x88112233  →  0x88776644   (decimal -2005440956)
+  Try it yourself:
+    print $t0
+    print $t1
+    print_all_regs         # show every register
+  PC:  0x004000fc  →  0x00400100
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x00400100:
+    memory[0x00400100] = 0x21290001   →   addi $t1, $t1, 1
+    source line 112:         addi    $t1, $t1, 1         # the increment-via-CAS idiom
+
+  Category: Arithmetic
+    Integer math on registers. (COD §2.2.)
+  Modifiers in `addi`:
+    `i` — immediate form: one operand is a 16-bit constant baked
+          into the instruction word, not a register. Lets
+          small constants be supplied without a separate
+          load.
+  What it did:
+    Add Immediate — computed $t1 + immediate; trapped on overflow; the result was placed in $t1.
+  Inputs (before this step):
+    $t1 = 0x88776644  (decimal -2005440956)
+    immediate = 1  (0x0001)
+  Wrote:
+    $t1:  0x88776644  →  0x88776645   (decimal -2005440955)
+  Try it yourself:
+    print $t1
+    print_all_regs         # show every register
+    step                   # advance to the next instruction
+  PC:  0x00400100  →  0x00400104
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x00400104:
+    memory[0x00400104] = 0xe1090000   →   sc $t1, 0($t0)
+    source line 113:         sc      $t1, 0($t0)
+
+  What it did:
+    Store Conditional — wrote the 32-bit value from $t1 into memory at the effective address.
+    Effective address = $t0 + 0  =  0x10010010 + 0  =  0x10010010.
+    On real multiprocessor MIPS, sc only succeeds if no intervening write happened since the matching ll, and writes 1 (success) or 0 (failure) to $t1.  In spim, sc always succeeds and does NOT update $t1.
+  Inputs (before this step):
+    $t0 = 0x10010010  (decimal 268501008)
+    $t1 = 0x88776645  (decimal -2005440955)
+    offset = 0  (0x0000)
+  Try it yourself:
+    print $t0
+    print $t1
+    print_all_regs         # show every register
+  PC:  0x00400104  →  0x00400108
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x00400108:
+    memory[0x00400108] = 0x3c011001   →   lui $at, 4097 [ubuf]
+    source line 117:         la      $t0, ubuf
+  Pseudo-instruction `la` (as written in source):
+    Load Address — set $rd to the 32-bit address of a label. Typically
+    expands to `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)` (or just
+    `addiu` for relocations that fit in 16 bits).
+  This was the first real instruction the assembler emitted for it.
+
+  Category: Data transfer
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
+  What it did:
+    Load Upper Immediate — placed the 16-bit immediate into the
+    upper 16 bits of $at, zeroing the lower 16. Often paired with
+    `ori` to construct a full 32-bit constant.
+  Inputs (before this step):
+    immediate = 4097  (0x1001)
+  Wrote:
+    $at:  0x10010000  →  0x10010000   (decimal 268500992)
+  Try it yourself:
+    print $at
+    print_all_regs         # show every register
+    step                   # advance to the next instruction
+  PC:  0x00400108  →  0x0040010c
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x0040010c:
+    memory[0x0040010c] = 0x34280010   →   ori $t0, $at, 16 [ubuf]
+    source line 117:         la      $t0, ubuf
+  Pseudo-instruction `la` (as written in source):
+    Load Address — set $rd to the 32-bit address of a label. Typically
+    expands to `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)` (or just
+    `addiu` for relocations that fit in 16 bits).
+  This was the first real instruction the assembler emitted for it.
+
+  Category: Logical
+    Bitwise operations and shifts. (COD §2.6.)
+  Modifiers in `ori`:
+    `i` — immediate form: one operand is a 16-bit constant baked
+          into the instruction word, not a register. Lets
+          small constants be supplied without a separate
+          load.
+  What it did:
+    OR Immediate — computed $at OR zero-extended immediate; the result was placed in $t0.
+  Inputs (before this step):
+    $at = 0x10010000  (decimal 268500992)
+    immediate = 16  (0x0010)
+  Wrote:
+    $t0:  0x10010010  →  0x10010010   (decimal 268501008)
+  Try it yourself:
+    print $at
+    print $t0
+    print_all_regs         # show every register
+  PC:  0x0040010c  →  0x00400110
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x00400110:
+    memory[0x00400110] = 0xc5000000   →   lwc1 $f0, 0($t0)
+    source line 118:         lwc1    $f0, 0($t0)         # load word into $f0
+
+  What it did:
+    Load Word Coprocessor 1 — read 4 bytes from memory at the effective address; placed the result in FP register $f0.
+    Effective address = $t0 + 0  =  0x10010010 + 0  =  0x10010010.
+  Inputs (before this step):
+    $t0 = 0x10010010  (decimal 268501008)
+    offset = 0  (0x0000)
+    memory at 0x10010010 = 0x88776645
+  Wrote:
+    $f0  ← loaded 4 bytes (typically interpreted as a single-precision float, or as a raw 32-bit int).
+  Try it yourself:
+    print $t0
+    print_all_regs         # show every register
+    step                   # advance to the next instruction
+  PC:  0x00400110  →  0x00400114
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x00400114:
+    memory[0x00400114] = 0xe5000004   →   swc1 $f0, 4($t0)
+    source line 119:         swc1    $f0, 4($t0)         # store $f0 at $t0+4
+
+  What it did:
+    Store Word Coprocessor 1 — wrote 4 bytes from FP register $f0 into memory at the effective address.
+    Effective address = $t0 + 4  =  0x10010010 + 4  =  0x10010014.
+  Inputs (before this step):
+    $t0 = 0x10010010  (decimal 268501008)
+    offset = 4  (0x0004)
+  Wrote to memory:
+    0x10010014  ← 4 bytes from $f0
+  Try it yourself:
+    print $t0
+    print_all_regs         # show every register
+    step                   # advance to the next instruction
+  PC:  0x00400114  →  0x00400118
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x00400118:
+    memory[0x00400118] = 0x3c011001   →   lui $at, 4097 [ubuf]
+    source line 125:         la      $t0, ubuf
+  Pseudo-instruction `la` (as written in source):
+    Load Address — set $rd to the 32-bit address of a label. Typically
+    expands to `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)` (or just
+    `addiu` for relocations that fit in 16 bits).
+  This was the first real instruction the assembler emitted for it.
+
+  Category: Data transfer
+    Move data between registers and memory.  MIPS is
+    load/store — math never operates on memory directly.
+    (COD §2.3, §2.9.)
+  What it did:
+    Load Upper Immediate — placed the 16-bit immediate into the
+    upper 16 bits of $at, zeroing the lower 16. Often paired with
+    `ori` to construct a full 32-bit constant.
+  Inputs (before this step):
+    immediate = 4097  (0x1001)
+  Wrote:
+    $at:  0x10010000  →  0x10010000   (decimal 268500992)
+  Try it yourself:
+    print $at
+    print_all_regs         # show every register
+    step                   # advance to the next instruction
+  PC:  0x00400118  →  0x0040011c
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x0040011c:
+    memory[0x0040011c] = 0x34280010   →   ori $t0, $at, 16 [ubuf]
+    source line 125:         la      $t0, ubuf
+  Pseudo-instruction `la` (as written in source):
+    Load Address — set $rd to the 32-bit address of a label. Typically
+    expands to `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)` (or just
+    `addiu` for relocations that fit in 16 bits).
+  This was the first real instruction the assembler emitted for it.
+
+  Category: Logical
+    Bitwise operations and shifts. (COD §2.6.)
+  Modifiers in `ori`:
+    `i` — immediate form: one operand is a 16-bit constant baked
+          into the instruction word, not a register. Lets
+          small constants be supplied without a separate
+          load.
+  What it did:
+    OR Immediate — computed $at OR zero-extended immediate; the result was placed in $t0.
+  Inputs (before this step):
+    $at = 0x10010000  (decimal 268500992)
+    immediate = 16  (0x0010)
+  Wrote:
+    $t0:  0x10010010  →  0x10010010   (decimal 268501008)
+  Try it yourself:
+    print $at
+    print $t0
+    print_all_regs         # show every register
+  PC:  0x0040011c  →  0x00400120
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x00400120:
+    memory[0x00400120] = 0xd5020000   →   ldc1 $f2, 0($t0)
+    source line 126:         ldc1    $f2, 0($t0)         # load 8 bytes into $f2/$f3 pair
+
+  What it did:
+    Load Double Coprocessor 1 — read 8 bytes from memory at the effective address; placed them in the FP register pair $f2 / $f3.
+    Effective address = $t0 + 0  =  0x10010010 + 0  =  0x10010010.
+    ldc1 in spim requires 4-byte alignment; real MIPS requires 8-byte alignment.
+  Inputs (before this step):
+    $t0 = 0x10010010  (decimal 268501008)
+    offset = 0  (0x0000)
+    memory at 0x10010010 = 0x88776645 0x88776645  (low / high words)
+  Wrote:
+    $f2 / $f3  ← loaded 8 bytes (typically interpreted as a double-precision float).
+  Try it yourself:
+    print $t0
+    print_all_regs         # show every register
+    step                   # advance to the next instruction
+  PC:  0x00400120  →  0x00400124
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x00400124:
+    memory[0x00400124] = 0xf5020000   →   sdc1 $f2, 0($t0)
+    source line 127:         sdc1    $f2, 0($t0)         # store them back
+
+  What it did:
+    Store Double Coprocessor 1 — wrote 8 bytes from the FP register pair $f2 / $f3 into memory at the effective address.
+    Effective address = $t0 + 0  =  0x10010010 + 0  =  0x10010010.
+    sdc1 in spim requires 4-byte alignment; real MIPS requires 8-byte alignment.
+  Inputs (before this step):
+    $t0 = 0x10010010  (decimal 268501008)
+    offset = 0  (0x0000)
+  Wrote to memory:
+    0x10010010  ← 8 bytes from $f2 / $f3 (low / high words)
+  Try it yourself:
+    print $t0
+    print_all_regs         # show every register
+    step                   # advance to the next instruction
+  PC:  0x00400124  →  0x00400128
+
+
+──────────────────────────────────────────────────────────
+Stepped at PC = 0x00400128:
+    memory[0x00400128] = 0x01098021   →   addu $s0, $t0, $t1
+    source line 130:         addu    $s0, $t0, $t1       # unsigned add
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -1346,21 +1940,21 @@ Stepped at PC = 0x004000cc:
   What it did:
     Add Unsigned — computed $t0 + $t1 with no overflow trap; the result was placed in $s0.
   Inputs (before this step):
-    $t0 = 0x00000005  (decimal 5)
-    $t1 = 0x0000006f  (decimal 111)
+    $t0 = 0x10010010  (decimal 268501008)
+    $t1 = 0x88776645  (decimal -2005440955)
   Wrote:
-    $s0:  0x00000000  →  0x00000074   (decimal 116)
+    $s0:  0x00000000  →  0x98786655   (decimal -1736939947)
   Try it yourself:
     print $t0
     print $t1
     print $s0
-  PC:  0x004000cc  →  0x004000d0
+  PC:  0x00400128  →  0x0040012c
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004000d0:
-    memory[0x004000d0] = 0x01288823   →   subu $s1, $t1, $t0
-    source line 92:         subu    $s1, $t1, $t0       # unsigned sub
+Stepped at PC = 0x0040012c:
+    memory[0x0040012c] = 0x01288823   →   subu $s1, $t1, $t0
+    source line 131:         subu    $s1, $t1, $t0       # unsigned sub
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -1370,21 +1964,21 @@ Stepped at PC = 0x004000d0:
   What it did:
     Subtract Unsigned — computed $t1 - $t0 with no overflow trap; the result was placed in $s1.
   Inputs (before this step):
-    $t1 = 0x0000006f  (decimal 111)
-    $t0 = 0x00000005  (decimal 5)
+    $t1 = 0x88776645  (decimal -2005440955)
+    $t0 = 0x10010010  (decimal 268501008)
   Wrote:
-    $s1:  0x00000000  →  0x0000006a   (decimal 106)
+    $s1:  0x00000000  →  0x78766635   (decimal 2021025333)
   Try it yourself:
     print $t1
     print $t0
     print $s1
-  PC:  0x004000d0  →  0x004000d4
+  PC:  0x0040012c  →  0x00400130
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004000d4:
-    memory[0x004000d4] = 0x3112000f   →   andi $s2, $t0, 15
-    source line 95:         andi    $s2, $t0, 0x0f      # AND with 16-bit immediate
+Stepped at PC = 0x00400130:
+    memory[0x00400130] = 0x3112000f   →   andi $s2, $t0, 15
+    source line 134:         andi    $s2, $t0, 0x0f      # AND with 16-bit immediate
 
   Category: Logical
     Bitwise operations and shifts. (COD §2.6.)
@@ -1396,21 +1990,21 @@ Stepped at PC = 0x004000d4:
   What it did:
     AND Immediate — computed $t0 AND zero-extended immediate; the result was placed in $s2.
   Inputs (before this step):
-    $t0 = 0x00000005  (decimal 5)
+    $t0 = 0x10010010  (decimal 268501008)
     immediate = 15  (0x000f)
   Wrote:
-    $s2:  0x00000000  →  0x00000005   (decimal 5)
+    $s2:  0x00000000  →  0x00000000   (decimal 0)
   Try it yourself:
     print $t0
     print $s2
     print_all_regs         # show every register
-  PC:  0x004000d4  →  0x004000d8
+  PC:  0x00400130  →  0x00400134
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004000d8:
-    memory[0x004000d8] = 0x351300f0   →   ori $s3, $t0, 240
-    source line 96:         ori     $s3, $t0, 0xf0      # OR  with 16-bit immediate
+Stepped at PC = 0x00400134:
+    memory[0x00400134] = 0x351300f0   →   ori $s3, $t0, 240
+    source line 135:         ori     $s3, $t0, 0xf0      # OR  with 16-bit immediate
 
   Category: Logical
     Bitwise operations and shifts. (COD §2.6.)
@@ -1422,21 +2016,21 @@ Stepped at PC = 0x004000d8:
   What it did:
     OR Immediate — computed $t0 OR zero-extended immediate; the result was placed in $s3.
   Inputs (before this step):
-    $t0 = 0x00000005  (decimal 5)
+    $t0 = 0x10010010  (decimal 268501008)
     immediate = 240  (0x00f0)
   Wrote:
-    $s3:  0x00000000  →  0x000000f5   (decimal 245)
+    $s3:  0x00000000  →  0x100100f0   (decimal 268501232)
   Try it yourself:
     print $t0
     print $s3
     print_all_regs         # show every register
-  PC:  0x004000d8  →  0x004000dc
+  PC:  0x00400134  →  0x00400138
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004000dc:
-    memory[0x004000dc] = 0x391400ff   →   xori $s4, $t0, 255
-    source line 97:         xori    $s4, $t0, 0xff      # XOR with 16-bit immediate
+Stepped at PC = 0x00400138:
+    memory[0x00400138] = 0x391400ff   →   xori $s4, $t0, 255
+    source line 136:         xori    $s4, $t0, 0xff      # XOR with 16-bit immediate
 
   Category: Logical
     Bitwise operations and shifts. (COD §2.6.)
@@ -1448,63 +2042,63 @@ Stepped at PC = 0x004000dc:
   What it did:
     XOR Immediate — computed $t0 XOR zero-extended immediate; the result was placed in $s4.
   Inputs (before this step):
-    $t0 = 0x00000005  (decimal 5)
+    $t0 = 0x10010010  (decimal 268501008)
     immediate = 255  (0x00ff)
   Wrote:
-    $s4:  0x00000000  →  0x000000fa   (decimal 250)
+    $s4:  0x00000000  →  0x100100ef   (decimal 268501231)
   Try it yourself:
     print $t0
     print $s4
     print_all_regs         # show every register
-  PC:  0x004000dc  →  0x004000e0
+  PC:  0x00400138  →  0x0040013c
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004000e0:
-    memory[0x004000e0] = 0x000aa842   →   srl $s5, $t2, 1
-    source line 98:         srl     $s5, $t2, 1         # logical shift right (zero fill)
+Stepped at PC = 0x0040013c:
+    memory[0x0040013c] = 0x000aa842   →   srl $s5, $t2, 1
+    source line 137:         srl     $s5, $t2, 1         # logical shift right (zero fill)
 
   Category: Logical
     Bitwise operations and shifts. (COD §2.6.)
   What it did:
     Shift Right Logical — shifted $t2 right, filling with 0 by 1 bit; the result was placed in $s5.
   Inputs (before this step):
-    $t2 = 0x000000de  (decimal 222)
+    $t2 = 0x99887766  (decimal -1719109786)
     shift amount = 1
   Wrote:
-    $s5:  0x00000000  →  0x0000006f   (decimal 111)
+    $s5:  0x00000000  →  0x4cc43bb3   (decimal 1287928755)
   Try it yourself:
     print $t2
     print $s5
     print_all_regs         # show every register
-  PC:  0x004000e0  →  0x004000e4
+  PC:  0x0040013c  →  0x00400140
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004000e4:
-    memory[0x004000e4] = 0x000ab043   →   sra $s6, $t2, 1
-    source line 99:         sra     $s6, $t2, 1         # arithmetic shift right (sign fill)
+Stepped at PC = 0x00400140:
+    memory[0x00400140] = 0x000ab043   →   sra $s6, $t2, 1
+    source line 138:         sra     $s6, $t2, 1         # arithmetic shift right (sign fill)
 
   Category: Logical
     Bitwise operations and shifts. (COD §2.6.)
   What it did:
     Shift Right Arithmetic — shifted $t2 right, filling with the sign bit by 1 bit; the result was placed in $s6.
   Inputs (before this step):
-    $t2 = 0x000000de  (decimal 222)
+    $t2 = 0x99887766  (decimal -1719109786)
     shift amount = 1
   Wrote:
-    $s6:  0x00000000  →  0x0000006f   (decimal 111)
+    $s6:  0x00000000  →  0xccc43bb3   (decimal -859554893)
   Try it yourself:
     print $t2
     print $s6
     print_all_regs         # show every register
-  PC:  0x004000e4  →  0x004000e8
+  PC:  0x00400140  →  0x00400144
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004000e8:
-    memory[0x004000e8] = 0x0109b82a   →   slt $s7, $t0, $t1
-    source line 102:         slt     $s7, $t0, $t1       # signed:    ($t0 < $t1) ? 1 : 0
+Stepped at PC = 0x00400144:
+    memory[0x00400144] = 0x0109b82a   →   slt $s7, $t0, $t1
+    source line 141:         slt     $s7, $t0, $t1       # signed:    ($t0 < $t1) ? 1 : 0
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
@@ -1512,21 +2106,21 @@ Stepped at PC = 0x004000e8:
   What it did:
     Set on Less Than (signed) — set the destination to 1 if $t0 < $t1 (signed), else 0; the result was placed in $s7.
   Inputs (before this step):
-    $t0 = 0x00000005  (decimal 5)
-    $t1 = 0x0000006f  (decimal 111)
+    $t0 = 0x10010010  (decimal 268501008)
+    $t1 = 0x88776645  (decimal -2005440955)
   Wrote:
-    $s7:  0x00000000  →  0x00000001   (decimal 1)
+    $s7:  0x00000000  →  0x00000000   (decimal 0)
   Try it yourself:
     print $t0
     print $t1
     print $s7
-  PC:  0x004000e8  →  0x004000ec
+  PC:  0x00400144  →  0x00400148
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004000ec:
-    memory[0x004000ec] = 0x290b0064   →   slti $t3, $t0, 100
-    source line 103:         slti    $t3, $t0, 100       # signed immediate
+Stepped at PC = 0x00400148:
+    memory[0x00400148] = 0x290b0064   →   slti $t3, $t0, 100
+    source line 142:         slti    $t3, $t0, 100       # signed immediate
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
@@ -1539,21 +2133,21 @@ Stepped at PC = 0x004000ec:
   What it did:
     Set Less Than Immediate (signed) — set destination to 1 if $t0 < imm (signed); the result was placed in $t3.
   Inputs (before this step):
-    $t0 = 0x00000005  (decimal 5)
+    $t0 = 0x10010010  (decimal 268501008)
     immediate = 100  (0x0064)
   Wrote:
-    $t3:  0x0000006f  →  0x00000001   (decimal 1)
+    $t3:  0x0000006f  →  0x00000000   (decimal 0)
   Try it yourself:
     print $t0
     print $t3
     print_all_regs         # show every register
-  PC:  0x004000ec  →  0x004000f0
+  PC:  0x00400148  →  0x0040014c
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004000f0:
-    memory[0x004000f0] = 0x0109602b   →   sltu $t4, $t0, $t1
-    source line 104:         sltu    $t4, $t0, $t1       # unsigned compare
+Stepped at PC = 0x0040014c:
+    memory[0x0040014c] = 0x0109602b   →   sltu $t4, $t0, $t1
+    source line 143:         sltu    $t4, $t0, $t1       # unsigned compare
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
@@ -1564,21 +2158,21 @@ Stepped at PC = 0x004000f0:
   What it did:
     Set on Less Than (unsigned) — set the destination to 1 if $t0 < $t1 (unsigned), else 0; the result was placed in $t4.
   Inputs (before this step):
-    $t0 = 0x00000005  (decimal 5)
-    $t1 = 0x0000006f  (decimal 111)
+    $t0 = 0x10010010  (decimal 268501008)
+    $t1 = 0x88776645  (decimal -2005440955)
   Wrote:
     $t4:  0x000000de  →  0x00000001   (decimal 1)
   Try it yourself:
     print $t0
     print $t1
     print $t4
-  PC:  0x004000f0  →  0x004000f4
+  PC:  0x0040014c  →  0x00400150
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004000f4:
-    memory[0x004000f4] = 0x2d0d0064   →   sltiu $t5, $t0, 100
-    source line 105:         sltiu   $t5, $t0, 100       # unsigned immediate
+Stepped at PC = 0x00400150:
+    memory[0x00400150] = 0x2d0d0064   →   sltiu $t5, $t0, 100
+    source line 144:         sltiu   $t5, $t0, 100       # unsigned immediate
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
@@ -1593,21 +2187,21 @@ Stepped at PC = 0x004000f4:
   What it did:
     Set Less Than Immediate (unsigned) — set destination to 1 if $t0 < imm (unsigned); the result was placed in $t5.
   Inputs (before this step):
-    $t0 = 0x00000005  (decimal 5)
+    $t0 = 0x10010010  (decimal 268501008)
     immediate = 100  (0x0064)
   Wrote:
-    $t5:  0x12345678  →  0x00000001   (decimal 1)
+    $t5:  0x12345678  →  0x00000000   (decimal 0)
   Try it yourself:
     print $t0
     print $t5
     print_all_regs         # show every register
-  PC:  0x004000f4  →  0x004000f8
+  PC:  0x00400150  →  0x00400154
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004000f8:
-    memory[0x004000f8] = 0x340e0001   →   ori $t6, $r0, 1
-    source line 108:         li      $t6, 1
+Stepped at PC = 0x00400154:
+    memory[0x00400154] = 0x340e0001   →   ori $t6, $r0, 1
+    source line 147:         li      $t6, 1
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -1630,57 +2224,57 @@ Stepped at PC = 0x004000f8:
     print $t6
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x004000f8  →  0x004000fc
+  PC:  0x00400154  →  0x00400158
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004000fc:
-    memory[0x004000fc] = 0x1dc00002   →   bgtz $t6 8 [zb1-0x004000fc]
-    source line 109:         bgtz    $t6, zb1            # 1 > 0
+Stepped at PC = 0x00400158:
+    memory[0x00400158] = 0x1dc00002   →   bgtz $t6 8 [zb1-0x00400158]
+    source line 148:         bgtz    $t6, zb1            # 1 > 0
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
     (COD §2.7.)
   What it did:
-    Branch if Greater Than Zero — would transfer to 0x00400108 if ($t6 > 0).
+    Branch if Greater Than Zero — would transfer to 0x00400164 if ($t6 > 0).
   Comparison:
     1 > 0  →  true  →  branch was taken
   Inputs (before this step):
     $t6 = 0x00000001  (decimal 1)
-    branch target = 0x00400108
+    branch target = 0x00400164
   Try it yourself:
     print $t6
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x004000fc  →  0x00400104
+  PC:  0x00400158  →  0x00400160
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400104:
-    memory[0x00400104] = 0x05c10002   →   bgez $t6 8 [zb2-0x00400104]
-    source line 111: zb1:    bgez    $t6, zb2            # 1 >= 0
+Stepped at PC = 0x00400160:
+    memory[0x00400160] = 0x05c10002   →   bgez $t6 8 [zb2-0x00400160]
+    source line 150: zb1:    bgez    $t6, zb2            # 1 >= 0
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
     (COD §2.7.)
   What it did:
-    Branch if Greater or Equal Zero — would transfer to 0x00400110 if ($t6 >= 0).
+    Branch if Greater or Equal Zero — would transfer to 0x0040016c if ($t6 >= 0).
   Comparison:
     1 >= 0  →  true  →  branch was taken
   Inputs (before this step):
     $t6 = 0x00000001  (decimal 1)
-    branch target = 0x00400110
+    branch target = 0x0040016c
   Try it yourself:
     print $t6
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400104  →  0x0040010c
+  PC:  0x00400160  →  0x00400168
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040010c:
-    memory[0x0040010c] = 0x3c01ffff   →   lui $at, -1
-    source line 113: zb2:    li      $t6, -1
+Stepped at PC = 0x00400168:
+    memory[0x00400168] = 0x3c01ffff   →   lui $at, -1
+    source line 152: zb2:    li      $t6, -1
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -1698,13 +2292,13 @@ Stepped at PC = 0x0040010c:
     print $at
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x0040010c  →  0x00400110
+  PC:  0x00400168  →  0x0040016c
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400110:
-    memory[0x00400110] = 0x342effff   →   ori $t6, $at, -1
-    source line 113: zb2:    li      $t6, -1
+Stepped at PC = 0x0040016c:
+    memory[0x0040016c] = 0x342effff   →   ori $t6, $at, -1
+    source line 152: zb2:    li      $t6, -1
 
   Category: Logical
     Bitwise operations and shifts. (COD §2.6.)
@@ -1724,57 +2318,57 @@ Stepped at PC = 0x00400110:
     print $at
     print $t6
     print_all_regs         # show every register
-  PC:  0x00400110  →  0x00400114
+  PC:  0x0040016c  →  0x00400170
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400114:
-    memory[0x00400114] = 0x05c00002   →   bltz $t6 8 [zb3-0x00400114]
-    source line 114:         bltz    $t6, zb3            # -1 < 0
+Stepped at PC = 0x00400170:
+    memory[0x00400170] = 0x05c00002   →   bltz $t6 8 [zb3-0x00400170]
+    source line 153:         bltz    $t6, zb3            # -1 < 0
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
     (COD §2.7.)
   What it did:
-    Branch if Less Than Zero — would transfer to 0x00400120 if ($t6 < 0).
+    Branch if Less Than Zero — would transfer to 0x0040017c if ($t6 < 0).
   Comparison:
     -1 < 0  →  true  →  branch was taken
   Inputs (before this step):
     $t6 = 0xffffffff  (decimal -1)
-    branch target = 0x00400120
+    branch target = 0x0040017c
   Try it yourself:
     print $t6
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400114  →  0x0040011c
+  PC:  0x00400170  →  0x00400178
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040011c:
-    memory[0x0040011c] = 0x19c00002   →   blez $t6 8 [zb4-0x0040011c]
-    source line 116: zb3:    blez    $t6, zb4            # -1 <= 0
+Stepped at PC = 0x00400178:
+    memory[0x00400178] = 0x19c00002   →   blez $t6 8 [zb4-0x00400178]
+    source line 155: zb3:    blez    $t6, zb4            # -1 <= 0
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
     (COD §2.7.)
   What it did:
-    Branch if Less or Equal Zero — would transfer to 0x00400128 if ($t6 <= 0).
+    Branch if Less or Equal Zero — would transfer to 0x00400184 if ($t6 <= 0).
   Comparison:
     -1 <= 0  →  true  →  branch was taken
   Inputs (before this step):
     $t6 = 0xffffffff  (decimal -1)
-    branch target = 0x00400128
+    branch target = 0x00400184
   Try it yourself:
     print $t6
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x0040011c  →  0x00400124
+  PC:  0x00400178  →  0x00400180
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400124:
-    memory[0x00400124] = 0x3c011001   →   lui $at, 4097 [dst]
-    source line 121:         la      $t7, dst
+Stepped at PC = 0x00400180:
+    memory[0x00400180] = 0x3c011001   →   lui $at, 4097 [dst]
+    source line 160:         la      $t7, dst
   Pseudo-instruction `la` (as written in source):
     Load Address — set $rd to the 32-bit address of a label. Typically
     expands to `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)` (or just
@@ -1797,13 +2391,13 @@ Stepped at PC = 0x00400124:
     print $at
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400124  →  0x00400128
+  PC:  0x00400180  →  0x00400184
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400128:
-    memory[0x00400128] = 0x342f0004   →   ori $t7, $at, 4 [dst]
-    source line 121:         la      $t7, dst
+Stepped at PC = 0x00400184:
+    memory[0x00400184] = 0x342f0004   →   ori $t7, $at, 4 [dst]
+    source line 160:         la      $t7, dst
   Pseudo-instruction `la` (as written in source):
     Load Address — set $rd to the 32-bit address of a label. Typically
     expands to `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)` (or just
@@ -1828,13 +2422,13 @@ Stepped at PC = 0x00400128:
     print $at
     print $t7
     print_all_regs         # show every register
-  PC:  0x00400128  →  0x0040012c
+  PC:  0x00400184  →  0x00400188
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040012c:
-    memory[0x0040012c] = 0x341800ab   →   ori $t8, $r0, 171
-    source line 122:         li      $t8, 0xab
+Stepped at PC = 0x00400188:
+    memory[0x00400188] = 0x341800ab   →   ori $t8, $r0, 171
+    source line 161:         li      $t8, 0xab
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -1857,13 +2451,13 @@ Stepped at PC = 0x0040012c:
     print $t8
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x0040012c  →  0x00400130
+  PC:  0x00400188  →  0x0040018c
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400130:
-    memory[0x00400130] = 0xa1f80000   →   sb $t8, 0($t7)
-    source line 123:         sb      $t8, 0($t7)         # byte store
+Stepped at PC = 0x0040018c:
+    memory[0x0040018c] = 0xa1f80000   →   sb $t8, 0($t7)
+    source line 162:         sb      $t8, 0($t7)         # byte store
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -1888,13 +2482,13 @@ Stepped at PC = 0x00400130:
     print $t8
     print 0x10010004       # inspect that memory
     print 0($t7)           # same memory, using the N($reg) form you wrote
-  PC:  0x00400130  →  0x00400134
+  PC:  0x0040018c  →  0x00400190
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400134:
-    memory[0x00400134] = 0x3418cdef   →   ori $t8, $r0, -12817
-    source line 124:         li      $t8, 0xcdef
+Stepped at PC = 0x00400190:
+    memory[0x00400190] = 0x3418cdef   →   ori $t8, $r0, -12817
+    source line 163:         li      $t8, 0xcdef
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -1917,13 +2511,13 @@ Stepped at PC = 0x00400134:
     print $t8
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400134  →  0x00400138
+  PC:  0x00400190  →  0x00400194
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400138:
-    memory[0x00400138] = 0xa5f80002   →   sh $t8, 2($t7)
-    source line 125:         sh      $t8, 2($t7)         # halfword store at offset 2
+Stepped at PC = 0x00400194:
+    memory[0x00400194] = 0xa5f80002   →   sh $t8, 2($t7)
+    source line 164:         sh      $t8, 2($t7)         # halfword store at offset 2
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -1947,13 +2541,13 @@ Stepped at PC = 0x00400138:
     print $t8
     print 0x10010006       # inspect that memory
     print 2($t7)           # same memory, using the N($reg) form you wrote
-  PC:  0x00400138  →  0x0040013c
+  PC:  0x00400194  →  0x00400198
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040013c:
-    memory[0x0040013c] = 0x3c19dead   →   lui $t9, -8531
-    source line 129:         lui     $t9, 0xdead
+Stepped at PC = 0x00400198:
+    memory[0x00400198] = 0x3c19dead   →   lui $t9, -8531
+    source line 168:         lui     $t9, 0xdead
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -1971,13 +2565,13 @@ Stepped at PC = 0x0040013c:
     print $t9
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x0040013c  →  0x00400140
+  PC:  0x00400198  →  0x0040019c
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400140:
-    memory[0x00400140] = 0x3739beef   →   ori $t9, $t9, -16657
-    source line 130:         ori     $t9, $t9, 0xbeef    # $t9 now = 0xdeadbeef
+Stepped at PC = 0x0040019c:
+    memory[0x0040019c] = 0x3739beef   →   ori $t9, $t9, -16657
+    source line 169:         ori     $t9, $t9, 0xbeef    # $t9 now = 0xdeadbeef
 
   Category: Logical
     Bitwise operations and shifts. (COD §2.6.)
@@ -1997,13 +2591,13 @@ Stepped at PC = 0x00400140:
     print $t9
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400140  →  0x00400144
+  PC:  0x0040019c  →  0x004001a0
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400144:
-    memory[0x00400144] = 0x34080007   →   ori $t0, $r0, 7
-    source line 133:         li      $t0, 7
+Stepped at PC = 0x004001a0:
+    memory[0x004001a0] = 0x34080007   →   ori $t0, $r0, 7
+    source line 172:         li      $t0, 7
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -2021,18 +2615,18 @@ Stepped at PC = 0x00400144:
   Inputs (before this step):
     immediate = 7  (0x0007)
   Wrote:
-    $t0:  0x00000005  →  0x00000007   (decimal 7)
+    $t0:  0x10010010  →  0x00000007   (decimal 7)
   Try it yourself:
     print $t0
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400144  →  0x00400148
+  PC:  0x004001a0  →  0x004001a4
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400148:
-    memory[0x00400148] = 0x34090006   →   ori $t1, $r0, 6
-    source line 134:         li      $t1, 6
+Stepped at PC = 0x004001a4:
+    memory[0x004001a4] = 0x34090006   →   ori $t1, $r0, 6
+    source line 173:         li      $t1, 6
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -2050,18 +2644,18 @@ Stepped at PC = 0x00400148:
   Inputs (before this step):
     immediate = 6  (0x0006)
   Wrote:
-    $t1:  0x0000006f  →  0x00000006   (decimal 6)
+    $t1:  0x88776645  →  0x00000006   (decimal 6)
   Try it yourself:
     print $t1
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400148  →  0x0040014c
+  PC:  0x004001a4  →  0x004001a8
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040014c:
-    memory[0x0040014c] = 0x01090018   →   mult $t0, $t1
-    source line 135:         mult    $t0, $t1            # HI:LO = 7 * 6
+Stepped at PC = 0x004001a8:
+    memory[0x004001a8] = 0x01090018   →   mult $t0, $t1
+    source line 174:         mult    $t0, $t1            # HI:LO = 7 * 6
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -2079,13 +2673,13 @@ Stepped at PC = 0x0040014c:
     print $t0
     print $t1
     print_all_regs         # show every register
-  PC:  0x0040014c  →  0x00400150
+  PC:  0x004001a8  →  0x004001ac
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400150:
-    memory[0x00400150] = 0x00008012   →   mflo $s0
-    source line 136:         mflo    $s0                 # $s0 = 42 (low word)
+Stepped at PC = 0x004001ac:
+    memory[0x004001ac] = 0x00008012   →   mflo $s0
+    source line 175:         mflo    $s0                 # $s0 = 42 (low word)
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -2095,18 +2689,18 @@ Stepped at PC = 0x00400150:
   Inputs (before this step):
     LO = 0x0000002a
   Wrote:
-    $s0:  0x00000074  →  0x0000002a   (decimal 42)
+    $s0:  0x98786655  →  0x0000002a   (decimal 42)
   Try it yourself:
     print $s0
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400150  →  0x00400154
+  PC:  0x004001ac  →  0x004001b0
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400154:
-    memory[0x00400154] = 0x00008810   →   mfhi $s1
-    source line 137:         mfhi    $s1                 # $s1 = 0  (high word)
+Stepped at PC = 0x004001b0:
+    memory[0x004001b0] = 0x00008810   →   mfhi $s1
+    source line 176:         mfhi    $s1                 # $s1 = 0  (high word)
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -2116,18 +2710,18 @@ Stepped at PC = 0x00400154:
   Inputs (before this step):
     HI = 0x00000000
   Wrote:
-    $s1:  0x0000006a  →  0x00000000   (decimal 0)
+    $s1:  0x78766635  →  0x00000000   (decimal 0)
   Try it yourself:
     print $s1
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400154  →  0x00400158
+  PC:  0x004001b0  →  0x004001b4
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400158:
-    memory[0x00400158] = 0x34080064   →   ori $t0, $r0, 100
-    source line 138:         li      $t0, 100
+Stepped at PC = 0x004001b4:
+    memory[0x004001b4] = 0x34080064   →   ori $t0, $r0, 100
+    source line 177:         li      $t0, 100
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -2150,13 +2744,13 @@ Stepped at PC = 0x00400158:
     print $t0
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400158  →  0x0040015c
+  PC:  0x004001b4  →  0x004001b8
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040015c:
-    memory[0x0040015c] = 0x34090007   →   ori $t1, $r0, 7
-    source line 139:         li      $t1, 7
+Stepped at PC = 0x004001b8:
+    memory[0x004001b8] = 0x34090007   →   ori $t1, $r0, 7
+    source line 178:         li      $t1, 7
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -2179,13 +2773,13 @@ Stepped at PC = 0x0040015c:
     print $t1
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x0040015c  →  0x00400160
+  PC:  0x004001b8  →  0x004001bc
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400160:
-    memory[0x00400160] = 0x0109001a   →   div $t0, $t1
-    source line 140:         div     $t0, $t1            # LO = quotient, HI = remainder
+Stepped at PC = 0x004001bc:
+    memory[0x004001bc] = 0x0109001a   →   div $t0, $t1
+    source line 179:         div     $t0, $t1            # LO = quotient, HI = remainder
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -2202,13 +2796,13 @@ Stepped at PC = 0x00400160:
     print $t0
     print $t1
     print_all_regs         # show every register
-  PC:  0x00400160  →  0x00400164
+  PC:  0x004001bc  →  0x004001c0
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400164:
-    memory[0x00400164] = 0x00008012   →   mflo $s0
-    source line 141:         mflo    $s0                 # $s0 = 14
+Stepped at PC = 0x004001c0:
+    memory[0x004001c0] = 0x00008012   →   mflo $s0
+    source line 180:         mflo    $s0                 # $s0 = 14
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -2223,13 +2817,13 @@ Stepped at PC = 0x00400164:
     print $s0
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400164  →  0x00400168
+  PC:  0x004001c0  →  0x004001c4
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400168:
-    memory[0x00400168] = 0x00008810   →   mfhi $s1
-    source line 142:         mfhi    $s1                 # $s1 = 2
+Stepped at PC = 0x004001c4:
+    memory[0x004001c4] = 0x00008810   →   mfhi $s1
+    source line 181:         mfhi    $s1                 # $s1 = 2
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -2244,13 +2838,13 @@ Stepped at PC = 0x00400168:
     print $s1
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400168  →  0x0040016c
+  PC:  0x004001c4  →  0x004001c8
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040016c:
-    memory[0x0040016c] = 0x340a0003   →   ori $t2, $r0, 3
-    source line 147:         li      $t2, 3
+Stepped at PC = 0x004001c8:
+    memory[0x004001c8] = 0x340a0003   →   ori $t2, $r0, 3
+    source line 186:         li      $t2, 3
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -2268,18 +2862,18 @@ Stepped at PC = 0x0040016c:
   Inputs (before this step):
     immediate = 3  (0x0003)
   Wrote:
-    $t2:  0x000000de  →  0x00000003   (decimal 3)
+    $t2:  0x99887766  →  0x00000003   (decimal 3)
   Try it yourself:
     print $t2
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x0040016c  →  0x00400170
+  PC:  0x004001c8  →  0x004001cc
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400170:
-    memory[0x00400170] = 0x34120000   →   ori $s2, $r0, 0
-    source line 148:         li      $s2, 0
+Stepped at PC = 0x004001cc:
+    memory[0x004001cc] = 0x34120000   →   ori $s2, $r0, 0
+    source line 187:         li      $s2, 0
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -2297,18 +2891,18 @@ Stepped at PC = 0x00400170:
   Inputs (before this step):
     immediate = 0  (0x0000)
   Wrote:
-    $s2:  0x00000005  →  0x00000000   (decimal 0)
+    $s2:  0x00000000  →  0x00000000   (decimal 0)
   Try it yourself:
     print $s2
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400170  →  0x00400174
+  PC:  0x004001cc  →  0x004001d0
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400174:
-    memory[0x00400174] = 0x024a9021   →   addu $s2, $s2, $t2
-    source line 149: loop:   addu    $s2, $s2, $t2       # accumulator += counter
+Stepped at PC = 0x004001d0:
+    memory[0x004001d0] = 0x024a9021   →   addu $s2, $s2, $t2
+    source line 188: loop:   addu    $s2, $s2, $t2       # accumulator += counter
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -2326,13 +2920,13 @@ Stepped at PC = 0x00400174:
     print $s2
     print $t2
     print_all_regs         # show every register
-  PC:  0x00400174  →  0x00400178
+  PC:  0x004001d0  →  0x004001d4
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400178:
-    memory[0x00400178] = 0x214affff   →   addi $t2, $t2, -1
-    source line 150:         addi    $t2, $t2, -1
+Stepped at PC = 0x004001d4:
+    memory[0x004001d4] = 0x214affff   →   addi $t2, $t2, -1
+    source line 189:         addi    $t2, $t2, -1
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -2352,35 +2946,35 @@ Stepped at PC = 0x00400178:
     print $t2
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400178  →  0x0040017c
+  PC:  0x004001d4  →  0x004001d8
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040017c:
-    memory[0x0040017c] = 0x1540fffe   →   bne $t2, $r0, -8 [loop-0x0040017c]
-    source line 151:         bne     $t2, $zero, loop    # iterate while counter != 0
+Stepped at PC = 0x004001d8:
+    memory[0x004001d8] = 0x1540fffe   →   bne $t2, $r0, -8 [loop-0x004001d8]
+    source line 190:         bne     $t2, $zero, loop    # iterate while counter != 0
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
     (COD §2.7.)
   What it did:
-    Branch if Not Equal — would transfer to 0x00400178 if ($t2 != $r0).
+    Branch if Not Equal — would transfer to 0x004001d4 if ($t2 != $r0).
   Comparison:
     2 != 0  →  true  →  branch was taken
   Inputs (before this step):
     $t2 = 0x00000002  (decimal 2)
-    branch target = 0x00400178
+    branch target = 0x004001d4
   Try it yourself:
     print $t2
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x0040017c  →  0x00400174
+  PC:  0x004001d8  →  0x004001d0
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400174:
-    memory[0x00400174] = 0x024a9021   →   addu $s2, $s2, $t2
-    source line 149: loop:   addu    $s2, $s2, $t2       # accumulator += counter
+Stepped at PC = 0x004001d0:
+    memory[0x004001d0] = 0x024a9021   →   addu $s2, $s2, $t2
+    source line 188: loop:   addu    $s2, $s2, $t2       # accumulator += counter
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -2398,13 +2992,13 @@ Stepped at PC = 0x00400174:
     print $s2
     print $t2
     print_all_regs         # show every register
-  PC:  0x00400174  →  0x00400178
+  PC:  0x004001d0  →  0x004001d4
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400178:
-    memory[0x00400178] = 0x214affff   →   addi $t2, $t2, -1
-    source line 150:         addi    $t2, $t2, -1
+Stepped at PC = 0x004001d4:
+    memory[0x004001d4] = 0x214affff   →   addi $t2, $t2, -1
+    source line 189:         addi    $t2, $t2, -1
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -2424,35 +3018,35 @@ Stepped at PC = 0x00400178:
     print $t2
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400178  →  0x0040017c
+  PC:  0x004001d4  →  0x004001d8
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040017c:
-    memory[0x0040017c] = 0x1540fffe   →   bne $t2, $r0, -8 [loop-0x0040017c]
-    source line 151:         bne     $t2, $zero, loop    # iterate while counter != 0
+Stepped at PC = 0x004001d8:
+    memory[0x004001d8] = 0x1540fffe   →   bne $t2, $r0, -8 [loop-0x004001d8]
+    source line 190:         bne     $t2, $zero, loop    # iterate while counter != 0
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
     (COD §2.7.)
   What it did:
-    Branch if Not Equal — would transfer to 0x00400178 if ($t2 != $r0).
+    Branch if Not Equal — would transfer to 0x004001d4 if ($t2 != $r0).
   Comparison:
     1 != 0  →  true  →  branch was taken
   Inputs (before this step):
     $t2 = 0x00000001  (decimal 1)
-    branch target = 0x00400178
+    branch target = 0x004001d4
   Try it yourself:
     print $t2
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x0040017c  →  0x00400174
+  PC:  0x004001d8  →  0x004001d0
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400174:
-    memory[0x00400174] = 0x024a9021   →   addu $s2, $s2, $t2
-    source line 149: loop:   addu    $s2, $s2, $t2       # accumulator += counter
+Stepped at PC = 0x004001d0:
+    memory[0x004001d0] = 0x024a9021   →   addu $s2, $s2, $t2
+    source line 188: loop:   addu    $s2, $s2, $t2       # accumulator += counter
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -2470,13 +3064,13 @@ Stepped at PC = 0x00400174:
     print $s2
     print $t2
     print_all_regs         # show every register
-  PC:  0x00400174  →  0x00400178
+  PC:  0x004001d0  →  0x004001d4
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400178:
-    memory[0x00400178] = 0x214affff   →   addi $t2, $t2, -1
-    source line 150:         addi    $t2, $t2, -1
+Stepped at PC = 0x004001d4:
+    memory[0x004001d4] = 0x214affff   →   addi $t2, $t2, -1
+    source line 189:         addi    $t2, $t2, -1
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -2496,35 +3090,35 @@ Stepped at PC = 0x00400178:
     print $t2
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400178  →  0x0040017c
+  PC:  0x004001d4  →  0x004001d8
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040017c:
-    memory[0x0040017c] = 0x1540fffe   →   bne $t2, $r0, -8 [loop-0x0040017c]
-    source line 151:         bne     $t2, $zero, loop    # iterate while counter != 0
+Stepped at PC = 0x004001d8:
+    memory[0x004001d8] = 0x1540fffe   →   bne $t2, $r0, -8 [loop-0x004001d8]
+    source line 190:         bne     $t2, $zero, loop    # iterate while counter != 0
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
     (COD §2.7.)
   What it did:
-    Branch if Not Equal — would transfer to 0x00400178 if ($t2 != $r0).
+    Branch if Not Equal — would transfer to 0x004001d4 if ($t2 != $r0).
   Comparison:
     0 != 0  →  false  →  branch was NOT taken
   Inputs (before this step):
     $t2 = 0x00000000  (decimal 0)
-    branch target = 0x00400178
+    branch target = 0x004001d4
   Try it yourself:
     print $t2
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x0040017c  →  0x00400180
+  PC:  0x004001d8  →  0x004001dc
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400180:
-    memory[0x00400180] = 0x01098025   →   or $s0, $t0, $t1
-    source line 156:         or      $s0, $t0, $t1       # bitwise OR
+Stepped at PC = 0x004001dc:
+    memory[0x004001dc] = 0x01098025   →   or $s0, $t0, $t1
+    source line 195:         or      $s0, $t0, $t1       # bitwise OR
 
   Category: Logical
     Bitwise operations and shifts. (COD §2.6.)
@@ -2539,13 +3133,13 @@ Stepped at PC = 0x00400180:
     print $t0
     print $t1
     print $s0
-  PC:  0x00400180  →  0x00400184
+  PC:  0x004001dc  →  0x004001e0
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400184:
-    memory[0x00400184] = 0x01098826   →   xor $s1, $t0, $t1
-    source line 157:         xor     $s1, $t0, $t1       # bitwise XOR
+Stepped at PC = 0x004001e0:
+    memory[0x004001e0] = 0x01098826   →   xor $s1, $t0, $t1
+    source line 196:         xor     $s1, $t0, $t1       # bitwise XOR
 
   Category: Logical
     Bitwise operations and shifts. (COD §2.6.)
@@ -2560,13 +3154,13 @@ Stepped at PC = 0x00400184:
     print $t0
     print $t1
     print $s1
-  PC:  0x00400184  →  0x00400188
+  PC:  0x004001e0  →  0x004001e4
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400188:
-    memory[0x00400188] = 0x01009027   →   nor $s2, $t0, $r0
-    source line 158:         nor     $s2, $t0, $zero     # bitwise NOT of $t0 via NOR with $zero
+Stepped at PC = 0x004001e4:
+    memory[0x004001e4] = 0x01009027   →   nor $s2, $t0, $r0
+    source line 197:         nor     $s2, $t0, $zero     # bitwise NOT of $t0 via NOR with $zero
 
   Category: Logical
     Bitwise operations and shifts. (COD §2.6.)
@@ -2580,13 +3174,13 @@ Stepped at PC = 0x00400188:
     print $t0
     print $s2
     print_all_regs         # show every register
-  PC:  0x00400188  →  0x0040018c
+  PC:  0x004001e4  →  0x004001e8
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040018c:
-    memory[0x0040018c] = 0x01289822   →   sub $s3, $t1, $t0
-    source line 161:         sub     $s3, $t1, $t0       # 7 - 5 = 2 (well within range, no trap)
+Stepped at PC = 0x004001e8:
+    memory[0x004001e8] = 0x01289822   →   sub $s3, $t1, $t0
+    source line 200:         sub     $s3, $t1, $t0       # 7 - 5 = 2 (well within range, no trap)
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -2596,18 +3190,18 @@ Stepped at PC = 0x0040018c:
     $t1 = 0x00000007  (decimal 7)
     $t0 = 0x00000064  (decimal 100)
   Wrote:
-    $s3:  0x000000f5  →  0xffffffa3   (decimal -93)
+    $s3:  0x100100f0  →  0xffffffa3   (decimal -93)
   Try it yourself:
     print $t1
     print $t0
     print $s3
-  PC:  0x0040018c  →  0x00400190
+  PC:  0x004001e8  →  0x004001ec
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400190:
-    memory[0x00400190] = 0x3c01ffff   →   lui $at, -1
-    source line 166:         li      $t0, 0xfffffffe
+Stepped at PC = 0x004001ec:
+    memory[0x004001ec] = 0x3c01ffff   →   lui $at, -1
+    source line 205:         li      $t0, 0xfffffffe
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -2629,13 +3223,13 @@ Stepped at PC = 0x00400190:
     print $at
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400190  →  0x00400194
+  PC:  0x004001ec  →  0x004001f0
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400194:
-    memory[0x00400194] = 0x3428fffe   →   ori $t0, $at, -2
-    source line 166:         li      $t0, 0xfffffffe
+Stepped at PC = 0x004001f0:
+    memory[0x004001f0] = 0x3428fffe   →   ori $t0, $at, -2
+    source line 205:         li      $t0, 0xfffffffe
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -2659,13 +3253,13 @@ Stepped at PC = 0x00400194:
     print $at
     print $t0
     print_all_regs         # show every register
-  PC:  0x00400194  →  0x00400198
+  PC:  0x004001f0  →  0x004001f4
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400198:
-    memory[0x00400198] = 0x34090003   →   ori $t1, $r0, 3
-    source line 167:         li      $t1, 3
+Stepped at PC = 0x004001f4:
+    memory[0x004001f4] = 0x34090003   →   ori $t1, $r0, 3
+    source line 206:         li      $t1, 3
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -2688,13 +3282,13 @@ Stepped at PC = 0x00400198:
     print $t1
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400198  →  0x0040019c
+  PC:  0x004001f4  →  0x004001f8
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040019c:
-    memory[0x0040019c] = 0x01090019   →   multu $t0, $t1
-    source line 168:         multu   $t0, $t1            # 64-bit unsigned product
+Stepped at PC = 0x004001f8:
+    memory[0x004001f8] = 0x01090019   →   multu $t0, $t1
+    source line 207:         multu   $t0, $t1            # 64-bit unsigned product
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -2715,13 +3309,13 @@ Stepped at PC = 0x0040019c:
     print $t0
     print $t1
     print_all_regs         # show every register
-  PC:  0x0040019c  →  0x004001a0
+  PC:  0x004001f8  →  0x004001fc
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001a0:
-    memory[0x004001a0] = 0x0000a012   →   mflo $s4
-    source line 169:         mflo    $s4
+Stepped at PC = 0x004001fc:
+    memory[0x004001fc] = 0x0000a012   →   mflo $s4
+    source line 208:         mflo    $s4
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -2731,18 +3325,18 @@ Stepped at PC = 0x004001a0:
   Inputs (before this step):
     LO = 0xfffffffa
   Wrote:
-    $s4:  0x000000fa  →  0xfffffffa   (decimal -6)
+    $s4:  0x100100ef  →  0xfffffffa   (decimal -6)
   Try it yourself:
     print $s4
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x004001a0  →  0x004001a4
+  PC:  0x004001fc  →  0x00400200
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001a4:
-    memory[0x004001a4] = 0x0000a810   →   mfhi $s5
-    source line 170:         mfhi    $s5
+Stepped at PC = 0x00400200:
+    memory[0x00400200] = 0x0000a810   →   mfhi $s5
+    source line 209:         mfhi    $s5
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -2752,18 +3346,18 @@ Stepped at PC = 0x004001a4:
   Inputs (before this step):
     HI = 0x00000002
   Wrote:
-    $s5:  0x0000006f  →  0x00000002   (decimal 2)
+    $s5:  0x4cc43bb3  →  0x00000002   (decimal 2)
   Try it yourself:
     print $s5
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x004001a4  →  0x004001a8
+  PC:  0x00400200  →  0x00400204
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001a8:
-    memory[0x004001a8] = 0x0109001b   →   divu $t0, $t1
-    source line 171:         divu    $t0, $t1            # unsigned divide
+Stepped at PC = 0x00400204:
+    memory[0x00400204] = 0x0109001b   →   divu $t0, $t1
+    source line 210:         divu    $t0, $t1            # unsigned divide
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -2783,13 +3377,13 @@ Stepped at PC = 0x004001a8:
     print $t0
     print $t1
     print_all_regs         # show every register
-  PC:  0x004001a8  →  0x004001ac
+  PC:  0x00400204  →  0x00400208
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001ac:
-    memory[0x004001ac] = 0x0000a012   →   mflo $s4
-    source line 172:         mflo    $s4
+Stepped at PC = 0x00400208:
+    memory[0x00400208] = 0x0000a012   →   mflo $s4
+    source line 211:         mflo    $s4
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -2804,13 +3398,13 @@ Stepped at PC = 0x004001ac:
     print $s4
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x004001ac  →  0x004001b0
+  PC:  0x00400208  →  0x0040020c
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001b0:
-    memory[0x004001b0] = 0x0000a810   →   mfhi $s5
-    source line 173:         mfhi    $s5
+Stepped at PC = 0x0040020c:
+    memory[0x0040020c] = 0x0000a810   →   mfhi $s5
+    source line 212:         mfhi    $s5
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -2825,13 +3419,13 @@ Stepped at PC = 0x004001b0:
     print $s5
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x004001b0  →  0x004001b4
+  PC:  0x0040020c  →  0x00400210
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001b4:
-    memory[0x004001b4] = 0x3c011001   →   lui $at, 4097 [dst]
-    source line 179:         la      $t0, dst
+Stepped at PC = 0x00400210:
+    memory[0x00400210] = 0x3c011001   →   lui $at, 4097 [dst]
+    source line 218:         la      $t0, dst
   Pseudo-instruction `la` (as written in source):
     Load Address — set $rd to the 32-bit address of a label. Typically
     expands to `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)` (or just
@@ -2854,13 +3448,13 @@ Stepped at PC = 0x004001b4:
     print $at
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x004001b4  →  0x004001b8
+  PC:  0x00400210  →  0x00400214
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001b8:
-    memory[0x004001b8] = 0x34280004   →   ori $t0, $at, 4 [dst]
-    source line 179:         la      $t0, dst
+Stepped at PC = 0x00400214:
+    memory[0x00400214] = 0x34280004   →   ori $t0, $at, 4 [dst]
+    source line 218:         la      $t0, dst
   Pseudo-instruction `la` (as written in source):
     Load Address — set $rd to the 32-bit address of a label. Typically
     expands to `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)` (or just
@@ -2885,13 +3479,13 @@ Stepped at PC = 0x004001b8:
     print $at
     print $t0
     print_all_regs         # show every register
-  PC:  0x004001b8  →  0x004001bc
+  PC:  0x00400214  →  0x00400218
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001bc:
-    memory[0x004001bc] = 0x81160000   →   lb $s6, 0($t0)
-    source line 180:         lb      $s6, 0($t0)         # 0xab → 0xffffffab  (signed -85)
+Stepped at PC = 0x00400218:
+    memory[0x00400218] = 0x81160000   →   lb $s6, 0($t0)
+    source line 219:         lb      $s6, 0($t0)         # 0xab → 0xffffffab  (signed -85)
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -2909,19 +3503,19 @@ Stepped at PC = 0x004001bc:
     offset = 0  (0x0000)
     memory at 0x10010004 = 0x000000ab
   Wrote:
-    $s6:  0x0000006f  →  0xffffffab   (decimal -85)
+    $s6:  0xccc43bb3  →  0xffffffab   (decimal -85)
   Try it yourself:
     print $t0
     print $s6
     print 0x10010004       # inspect that memory
     print 0($t0)           # same memory, using the N($reg) form you wrote
-  PC:  0x004001bc  →  0x004001c0
+  PC:  0x00400218  →  0x0040021c
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001c0:
-    memory[0x004001c0] = 0x91170000   →   lbu $s7, 0($t0)
-    source line 181:         lbu     $s7, 0($t0)         # 0xab → 0x000000ab  (unsigned 171)
+Stepped at PC = 0x0040021c:
+    memory[0x0040021c] = 0x91170000   →   lbu $s7, 0($t0)
+    source line 220:         lbu     $s7, 0($t0)         # 0xab → 0x000000ab  (unsigned 171)
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -2941,19 +3535,19 @@ Stepped at PC = 0x004001c0:
     offset = 0  (0x0000)
     memory at 0x10010004 = 0x000000ab
   Wrote:
-    $s7:  0x00000001  →  0x000000ab   (decimal 171)
+    $s7:  0x00000000  →  0x000000ab   (decimal 171)
   Try it yourself:
     print $t0
     print $s7
     print 0x10010004       # inspect that memory
     print 0($t0)           # same memory, using the N($reg) form you wrote
-  PC:  0x004001c0  →  0x004001c4
+  PC:  0x0040021c  →  0x00400220
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001c4:
-    memory[0x004001c4] = 0x850a0002   →   lh $t2, 2($t0)
-    source line 182:         lh      $t2, 2($t0)         # halfword 0xcdef → 0xffffcdef
+Stepped at PC = 0x00400220:
+    memory[0x00400220] = 0x850a0002   →   lh $t2, 2($t0)
+    source line 221:         lh      $t2, 2($t0)         # halfword 0xcdef → 0xffffcdef
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -2976,13 +3570,13 @@ Stepped at PC = 0x004001c4:
     print $t2
     print 0x10010006       # inspect that memory
     print 2($t0)           # same memory, using the N($reg) form you wrote
-  PC:  0x004001c4  →  0x004001c8
+  PC:  0x00400220  →  0x00400224
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001c8:
-    memory[0x004001c8] = 0x950b0002   →   lhu $t3, 2($t0)
-    source line 183:         lhu     $t3, 2($t0)         # halfword 0xcdef → 0x0000cdef
+Stepped at PC = 0x00400224:
+    memory[0x00400224] = 0x950b0002   →   lhu $t3, 2($t0)
+    source line 222:         lhu     $t3, 2($t0)         # halfword 0xcdef → 0x0000cdef
 
   Category: Data transfer
     Move data between registers and memory.  MIPS is
@@ -3001,37 +3595,37 @@ Stepped at PC = 0x004001c8:
     offset = 2  (0x0002)
     memory at 0x10010006 = 0x0000cdef
   Wrote:
-    $t3:  0x00000001  →  0x0000cdef   (decimal 52719)
+    $t3:  0x00000000  →  0x0000cdef   (decimal 52719)
   Try it yourself:
     print $t0
     print $t3
     print 0x10010006       # inspect that memory
     print 2($t0)           # same memory, using the N($reg) form you wrote
-  PC:  0x004001c8  →  0x004001cc
+  PC:  0x00400224  →  0x00400228
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001cc:
-    memory[0x004001cc] = 0x08100075   →   j 0x004001d4 [afterj]
-    source line 186:         j       afterj
+Stepped at PC = 0x00400228:
+    memory[0x00400228] = 0x0810008c   →   j 0x00400230 [afterj]
+    source line 225:         j       afterj
 
   Category: Unconditional jump
     Transfer PC unconditionally — no condition test. (COD §2.8.)
   What it did:
-    Jump — jumped unconditionally to 0x004001d4.
+    Jump — jumped unconditionally to 0x00400230.
   Inputs (before this step):
     (none)
   Try it yourself:
     print_all_regs         # show every register
     step                   # advance to the next instruction
     continue               # run until the next breakpoint
-  PC:  0x004001cc  →  0x004001d4
+  PC:  0x00400228  →  0x00400230
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001d4:
-    memory[0x004001d4] = 0x34040005   →   ori $a0, $r0, 5
-    source line 191:         li      $a0, 5
+Stepped at PC = 0x00400230:
+    memory[0x00400230] = 0x34040005   →   ori $a0, $r0, 5
+    source line 230:         li      $a0, 5
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -3054,13 +3648,13 @@ Stepped at PC = 0x004001d4:
     print $a0
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x004001d4  →  0x004001d8
+  PC:  0x00400230  →  0x00400234
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001d8:
-    memory[0x004001d8] = 0x0c100099   →   jal 0x00400264 [square]
-    source line 192:         jal     square              # call helper; result in $v0 = 25
+Stepped at PC = 0x00400234:
+    memory[0x00400234] = 0x0c1000b0   →   jal 0x004002c0 [square]
+    source line 231:         jal     square              # call helper; result in $v0 = 25
 
   Category: Unconditional jump
     Transfer PC unconditionally — no condition test. (COD §2.8.)
@@ -3070,23 +3664,23 @@ Stepped at PC = 0x004001d8:
           branch/jump into a subroutine call.
   What it did:
     Jump and Link — saved the return address into $ra,
-    then jumped to 0x00400264.
+    then jumped to 0x004002c0.
     (Standard subroutine call: $ra holds the return address.)
   Inputs (before this step):
     (none)
   Wrote:
-    $ra:  0x00400018  →  0x004001dc   (decimal 4194780)
+    $ra:  0x00400018  →  0x00400238   (decimal 4194872)
   Try it yourself:
     print $ra
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x004001d8  →  0x00400264
+  PC:  0x00400234  →  0x004002c0
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400264:
-    memory[0x00400264] = 0x00840018   →   mult $a0, $a0
-    source line 253: square: mult    $a0, $a0
+Stepped at PC = 0x004002c0:
+    memory[0x004002c0] = 0x00840018   →   mult $a0, $a0
+    source line 292: square: mult    $a0, $a0
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -3104,13 +3698,13 @@ Stepped at PC = 0x00400264:
     print $a0
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400264  →  0x00400268
+  PC:  0x004002c0  →  0x004002c4
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400268:
-    memory[0x00400268] = 0x00001012   →   mflo $v0
-    source line 254:         mflo    $v0
+Stepped at PC = 0x004002c4:
+    memory[0x004002c4] = 0x00001012   →   mflo $v0
+    source line 293:         mflo    $v0
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -3125,33 +3719,33 @@ Stepped at PC = 0x00400268:
     print $v0
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400268  →  0x0040026c
+  PC:  0x004002c4  →  0x004002c8
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040026c:
-    memory[0x0040026c] = 0x03e00008   →   jr $ra
-    source line 255:         jr      $ra
+Stepped at PC = 0x004002c8:
+    memory[0x004002c8] = 0x03e00008   →   jr $ra
+    source line 294:         jr      $ra
 
   Category: Unconditional jump
     Transfer PC unconditionally — no condition test. (COD §2.8.)
   What it did:
     Jump Register — jumped to the address held in $ra.
     (Used to return from a subroutine when $rs == $ra.)
-    Destination = 0x004001dc.
+    Destination = 0x00400238.
   Inputs (before this step):
-    $ra = 0x004001dc  (decimal 4194780)
+    $ra = 0x00400238  (decimal 4194872)
   Try it yourself:
     print $ra
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x0040026c  →  0x004001dc
+  PC:  0x004002c8  →  0x00400238
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001dc:
-    memory[0x004001dc] = 0x3c010040   →   lui $at, 64 [square]
-    source line 195:         la      $t9, square
+Stepped at PC = 0x00400238:
+    memory[0x00400238] = 0x3c010040   →   lui $at, 64 [square]
+    source line 234:         la      $t9, square
   Pseudo-instruction `la` (as written in source):
     Load Address — set $rd to the 32-bit address of a label. Typically
     expands to `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)` (or just
@@ -3174,13 +3768,13 @@ Stepped at PC = 0x004001dc:
     print $at
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x004001dc  →  0x004001e0
+  PC:  0x00400238  →  0x0040023c
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001e0:
-    memory[0x004001e0] = 0x34390264   →   ori $t9, $at, 612 [square]
-    source line 195:         la      $t9, square
+Stepped at PC = 0x0040023c:
+    memory[0x0040023c] = 0x343902c0   →   ori $t9, $at, 704 [square]
+    source line 234:         la      $t9, square
   Pseudo-instruction `la` (as written in source):
     Load Address — set $rd to the 32-bit address of a label. Typically
     expands to `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)` (or just
@@ -3198,20 +3792,20 @@ Stepped at PC = 0x004001e0:
     OR Immediate — computed $at OR zero-extended immediate; the result was placed in $t9.
   Inputs (before this step):
     $at = 0x00400000  (decimal 4194304)
-    immediate = 612  (0x0264)
+    immediate = 704  (0x02c0)
   Wrote:
-    $t9:  0xdeadbeef  →  0x00400264   (decimal 4194916)
+    $t9:  0xdeadbeef  →  0x004002c0   (decimal 4195008)
   Try it yourself:
     print $at
     print $t9
     print_all_regs         # show every register
-  PC:  0x004001e0  →  0x004001e4
+  PC:  0x0040023c  →  0x00400240
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001e4:
-    memory[0x004001e4] = 0x34040008   →   ori $a0, $r0, 8
-    source line 196:         li      $a0, 8
+Stepped at PC = 0x00400240:
+    memory[0x00400240] = 0x34040008   →   ori $a0, $r0, 8
+    source line 235:         li      $a0, 8
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -3234,13 +3828,13 @@ Stepped at PC = 0x004001e4:
     print $a0
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x004001e4  →  0x004001e8
+  PC:  0x00400240  →  0x00400244
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001e8:
-    memory[0x004001e8] = 0x0320f809   →   jalr $ra, $t9
-    source line 197:         jalr    $t9                 # call $t9; return address goes to $ra
+Stepped at PC = 0x00400244:
+    memory[0x00400244] = 0x0320f809   →   jalr $ra, $t9
+    source line 236:         jalr    $t9                 # call $t9; return address goes to $ra
 
   Category: Unconditional jump
     Transfer PC unconditionally — no condition test. (COD §2.8.)
@@ -3250,22 +3844,22 @@ Stepped at PC = 0x004001e8:
           branch/jump into a subroutine call.
   What it did:
     Jump and Link Register — saved the return address into $ra,
-    then jumped to the address in $t9 (0x00400264).
+    then jumped to the address in $t9 (0x004002c0).
   Inputs (before this step):
-    $t9 = 0x00400264  (decimal 4194916)
+    $t9 = 0x004002c0  (decimal 4195008)
   Wrote:
-    $ra:  0x004001dc  →  0x004001ec   (decimal 4194796)
+    $ra:  0x00400238  →  0x00400248   (decimal 4194888)
   Try it yourself:
     print $t9
     print $ra
     print_all_regs         # show every register
-  PC:  0x004001e8  →  0x00400264
+  PC:  0x00400244  →  0x004002c0
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400264:
-    memory[0x00400264] = 0x00840018   →   mult $a0, $a0
-    source line 253: square: mult    $a0, $a0
+Stepped at PC = 0x004002c0:
+    memory[0x004002c0] = 0x00840018   →   mult $a0, $a0
+    source line 292: square: mult    $a0, $a0
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -3283,13 +3877,13 @@ Stepped at PC = 0x00400264:
     print $a0
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400264  →  0x00400268
+  PC:  0x004002c0  →  0x004002c4
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400268:
-    memory[0x00400268] = 0x00001012   →   mflo $v0
-    source line 254:         mflo    $v0
+Stepped at PC = 0x004002c4:
+    memory[0x004002c4] = 0x00001012   →   mflo $v0
+    source line 293:         mflo    $v0
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -3304,33 +3898,33 @@ Stepped at PC = 0x00400268:
     print $v0
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400268  →  0x0040026c
+  PC:  0x004002c4  →  0x004002c8
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040026c:
-    memory[0x0040026c] = 0x03e00008   →   jr $ra
-    source line 255:         jr      $ra
+Stepped at PC = 0x004002c8:
+    memory[0x004002c8] = 0x03e00008   →   jr $ra
+    source line 294:         jr      $ra
 
   Category: Unconditional jump
     Transfer PC unconditionally — no condition test. (COD §2.8.)
   What it did:
     Jump Register — jumped to the address held in $ra.
     (Used to return from a subroutine when $rs == $ra.)
-    Destination = 0x004001ec.
+    Destination = 0x00400248.
   Inputs (before this step):
-    $ra = 0x004001ec  (decimal 4194796)
+    $ra = 0x00400248  (decimal 4194888)
   Try it yourself:
     print $ra
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x0040026c  →  0x004001ec
+  PC:  0x004002c8  →  0x00400248
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001ec:
-    memory[0x004001ec] = 0x00402021   →   addu $a0, $v0, $r0
-    source line 201:         addu    $a0, $v0, $zero     # $a0 = 64 (the squared result)
+Stepped at PC = 0x00400248:
+    memory[0x00400248] = 0x00402021   →   addu $a0, $v0, $r0
+    source line 240:         addu    $a0, $v0, $zero     # $a0 = 64 (the squared result)
 
   Category: Arithmetic
     Integer math on registers. (COD §2.2.)
@@ -3347,13 +3941,13 @@ Stepped at PC = 0x004001ec:
     print $v0
     print $a0
     print_all_regs         # show every register
-  PC:  0x004001ec  →  0x004001f0
+  PC:  0x00400248  →  0x0040024c
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001f0:
-    memory[0x004001f0] = 0x34020001   →   ori $v0, $r0, 1
-    source line 202:         li      $v0, 1              # syscall: print_int
+Stepped at PC = 0x0040024c:
+    memory[0x0040024c] = 0x34020001   →   ori $v0, $r0, 1
+    source line 241:         li      $v0, 1              # syscall: print_int
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -3376,12 +3970,12 @@ Stepped at PC = 0x004001f0:
     print $v0
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x004001f0  →  0x004001f4
+  PC:  0x0040024c  →  0x00400250
 
 64
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001f4:
-    memory[0x004001f4] = 0x0000000c   →   syscall
+Stepped at PC = 0x00400250:
+    memory[0x00400250] = 0x0000000c   →   syscall
   (continuation of the `li` pseudo-op expansion above —
    same source line, this was the next real instruction emitted)
 
@@ -3400,13 +3994,13 @@ Stepped at PC = 0x004001f4:
     print $v0
     print $a0
     print_all_regs         # show every register
-  PC:  0x004001f4  →  0x004001f8
+  PC:  0x00400250  →  0x00400254
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001f8:
-    memory[0x004001f8] = 0x3404000a   →   ori $a0, $r0, 10
-    source line 206:         li      $a0, 0x0a           # ASCII newline
+Stepped at PC = 0x00400254:
+    memory[0x00400254] = 0x3404000a   →   ori $a0, $r0, 10
+    source line 245:         li      $a0, 0x0a           # ASCII newline
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -3429,13 +4023,13 @@ Stepped at PC = 0x004001f8:
     print $a0
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x004001f8  →  0x004001fc
+  PC:  0x00400254  →  0x00400258
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x004001fc:
-    memory[0x004001fc] = 0x3402000b   →   ori $v0, $r0, 11
-    source line 207:         li      $v0, 11             # syscall: print_char
+Stepped at PC = 0x00400258:
+    memory[0x00400258] = 0x3402000b   →   ori $v0, $r0, 11
+    source line 246:         li      $v0, 11             # syscall: print_char
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -3458,13 +4052,13 @@ Stepped at PC = 0x004001fc:
     print $v0
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x004001fc  →  0x00400200
+  PC:  0x00400258  →  0x0040025c
 
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400200:
-    memory[0x00400200] = 0x0000000c   →   syscall
+Stepped at PC = 0x0040025c:
+    memory[0x0040025c] = 0x0000000c   →   syscall
   (continuation of the `li` pseudo-op expansion above —
    same source line, this was the next real instruction emitted)
 
@@ -3483,13 +4077,13 @@ Stepped at PC = 0x00400200:
     print $v0
     print $a0
     print_all_regs         # show every register
-  PC:  0x00400200  →  0x00400204
+  PC:  0x0040025c  →  0x00400260
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400204:
-    memory[0x00400204] = 0x34080005   →   ori $t0, $r0, 5
-    source line 215:         li      $t0, 5
+Stepped at PC = 0x00400260:
+    memory[0x00400260] = 0x34080005   →   ori $t0, $r0, 5
+    source line 254:         li      $t0, 5
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -3512,13 +4106,13 @@ Stepped at PC = 0x00400204:
     print $t0
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400204  →  0x00400208
+  PC:  0x00400260  →  0x00400264
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400208:
-    memory[0x00400208] = 0x34090007   →   ori $t1, $r0, 7
-    source line 216:         li      $t1, 7
+Stepped at PC = 0x00400264:
+    memory[0x00400264] = 0x34090007   →   ori $t1, $r0, 7
+    source line 255:         li      $t1, 7
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -3541,13 +4135,13 @@ Stepped at PC = 0x00400208:
     print $t1
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400208  →  0x0040020c
+  PC:  0x00400264  →  0x00400268
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040020c:
-    memory[0x0040020c] = 0x00088021   →   addu $s0, $r0, $t0
-    source line 217:         move    $s0, $t0            # single-inst pseudo-op (→ addu)
+Stepped at PC = 0x00400268:
+    memory[0x00400268] = 0x00088021   →   addu $s0, $r0, $t0
+    source line 256:         move    $s0, $t0            # single-inst pseudo-op (→ addu)
   Pseudo-instruction `move` (as written in source):
     Move — copy $rs into $rd. Encoded as `addu $rd, $0, $rs` (adding $zero
     is the simplest way to copy a register).
@@ -3568,13 +4162,13 @@ Stepped at PC = 0x0040020c:
     print $t0
     print $s0
     print_all_regs         # show every register
-  PC:  0x0040020c  →  0x00400210
+  PC:  0x00400268  →  0x0040026c
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400210:
-    memory[0x00400210] = 0x01008827   →   nor $s1, $t0, $r0
-    source line 218:         not     $s1, $t0            # single-inst pseudo-op (→ nor with $0)
+Stepped at PC = 0x0040026c:
+    memory[0x0040026c] = 0x01008827   →   nor $s1, $t0, $r0
+    source line 257:         not     $s1, $t0            # single-inst pseudo-op (→ nor with $0)
   Pseudo-instruction `not` (as written in source):
     Bitwise NOT — set $rd to the one's complement of $rs. Encoded as
     `nor $rd, $rs, $0` (NOR with $zero is logical NOT).
@@ -3592,13 +4186,13 @@ Stepped at PC = 0x00400210:
     print $t0
     print $s1
     print_all_regs         # show every register
-  PC:  0x00400210  →  0x00400214
+  PC:  0x0040026c  →  0x00400270
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400214:
-    memory[0x00400214] = 0x00089022   →   sub $s2, $r0, $t0
-    source line 219:         neg     $s2, $t0            # single-inst pseudo-op (→ sub from $0)
+Stepped at PC = 0x00400270:
+    memory[0x00400270] = 0x00089022   →   sub $s2, $r0, $t0
+    source line 258:         neg     $s2, $t0            # single-inst pseudo-op (→ sub from $0)
   Pseudo-instruction `neg` (as written in source):
     Negate (signed; traps on overflow) — set $rd = -$rs. Encoded as
     `sub $rd, $0, $rs`.
@@ -3616,12 +4210,12 @@ Stepped at PC = 0x00400214:
     print $t0
     print $s2
     print_all_regs         # show every register
-  PC:  0x00400214  →  0x00400218
+  PC:  0x00400270  →  0x00400274
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400218:
-    memory[0x00400218] = 0x00000000   →   nop
+Stepped at PC = 0x00400274:
+    memory[0x00400274] = 0x00000000   →   nop
 
   Category: Logical
     Bitwise operations and shifts. (COD §2.6.)
@@ -3636,13 +4230,13 @@ Stepped at PC = 0x00400218:
     print_all_regs         # show every register
     step                   # advance to the next instruction
     continue               # run until the next breakpoint
-  PC:  0x00400218  →  0x0040021c
+  PC:  0x00400274  →  0x00400278
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040021c:
-    memory[0x0040021c] = 0x10000002   →   beq $r0, $r0, 8 [ps_b1-0x0040021c]
-    source line 221:         beqz    $zero, ps_b1        # single-inst zero-compare pseudo-op
+Stepped at PC = 0x00400278:
+    memory[0x00400278] = 0x10000002   →   beq $r0, $r0, 8 [ps_b1-0x00400278]
+    source line 260:         beqz    $zero, ps_b1        # single-inst zero-compare pseudo-op
   Pseudo-instruction `beqz` (as written in source):
     Branch if Equal to Zero — branch if $rs == 0. Encoded as
     `beq $rs, $0, label`.
@@ -3652,44 +4246,44 @@ Stepped at PC = 0x0040021c:
     Test a condition; if true, transfer PC to a labeled target.
     (COD §2.7.)
   What it did:
-    Branch if Equal — would transfer to 0x00400228 if ($r0 == $r0).
+    Branch if Equal — would transfer to 0x00400284 if ($r0 == $r0).
   Comparison:
     0 == 0  →  true  →  branch was taken
   Inputs (before this step):
-    branch target = 0x00400228
+    branch target = 0x00400284
   Try it yourself:
     print_all_regs         # show every register
     step                   # advance to the next instruction
     continue               # run until the next breakpoint
-  PC:  0x0040021c  →  0x00400224
+  PC:  0x00400278  →  0x00400280
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400224:
-    memory[0x00400224] = 0x15000002   →   bne $t0, $r0, 8 [ps_b2-0x00400224]
-    source line 223: ps_b1:  bnez    $t0, ps_b2          # taken (5 != 0)
+Stepped at PC = 0x00400280:
+    memory[0x00400280] = 0x15000002   →   bne $t0, $r0, 8 [ps_b2-0x00400280]
+    source line 262: ps_b1:  bnez    $t0, ps_b2          # taken (5 != 0)
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
     (COD §2.7.)
   What it did:
-    Branch if Not Equal — would transfer to 0x00400230 if ($t0 != $r0).
+    Branch if Not Equal — would transfer to 0x0040028c if ($t0 != $r0).
   Comparison:
     5 != 0  →  true  →  branch was taken
   Inputs (before this step):
     $t0 = 0x00000005  (decimal 5)
-    branch target = 0x00400230
+    branch target = 0x0040028c
   Try it yourself:
     print $t0
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400224  →  0x0040022c
+  PC:  0x00400280  →  0x00400288
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040022c:
-    memory[0x0040022c] = 0x0109082a   →   slt $at, $t0, $t1
-    source line 225: ps_b2:  blt     $t0, $t1, ps_b3     # multi-inst pseudo-op (→ slt + bne)
+Stepped at PC = 0x00400288:
+    memory[0x00400288] = 0x0109082a   →   slt $at, $t0, $t1
+    source line 264: ps_b2:  blt     $t0, $t1, ps_b3     # multi-inst pseudo-op (→ slt + bne)
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
@@ -3705,35 +4299,35 @@ Stepped at PC = 0x0040022c:
     print $t0
     print $t1
     print $at
-  PC:  0x0040022c  →  0x00400230
+  PC:  0x00400288  →  0x0040028c
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400230:
-    memory[0x00400230] = 0x14200002   →   bne $at, $r0, 8 [ps_b3-0x00400230]
-    source line 225: ps_b2:  blt     $t0, $t1, ps_b3     # multi-inst pseudo-op (→ slt + bne)
+Stepped at PC = 0x0040028c:
+    memory[0x0040028c] = 0x14200002   →   bne $at, $r0, 8 [ps_b3-0x0040028c]
+    source line 264: ps_b2:  blt     $t0, $t1, ps_b3     # multi-inst pseudo-op (→ slt + bne)
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
     (COD §2.7.)
   What it did:
-    Branch if Not Equal — would transfer to 0x0040023c if ($at != $r0).
+    Branch if Not Equal — would transfer to 0x00400298 if ($at != $r0).
   Comparison:
     1 != 0  →  true  →  branch was taken
   Inputs (before this step):
     $at = 0x00000001  (decimal 1)
-    branch target = 0x0040023c
+    branch target = 0x00400298
   Try it yourself:
     print $at
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400230  →  0x00400238
+  PC:  0x0040028c  →  0x00400294
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400238:
-    memory[0x00400238] = 0x0128082a   →   slt $at, $t1, $t0
-    source line 227: ps_b3:  bge     $t1, $t0, ps_b4     # multi-inst pseudo-op (→ slt + beq)
+Stepped at PC = 0x00400294:
+    memory[0x00400294] = 0x0128082a   →   slt $at, $t1, $t0
+    source line 266: ps_b3:  bge     $t1, $t0, ps_b4     # multi-inst pseudo-op (→ slt + beq)
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
@@ -3749,56 +4343,56 @@ Stepped at PC = 0x00400238:
     print $t1
     print $t0
     print $at
-  PC:  0x00400238  →  0x0040023c
+  PC:  0x00400294  →  0x00400298
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040023c:
-    memory[0x0040023c] = 0x10200002   →   beq $at, $r0, 8 [ps_b4-0x0040023c]
-    source line 227: ps_b3:  bge     $t1, $t0, ps_b4     # multi-inst pseudo-op (→ slt + beq)
+Stepped at PC = 0x00400298:
+    memory[0x00400298] = 0x10200002   →   beq $at, $r0, 8 [ps_b4-0x00400298]
+    source line 266: ps_b3:  bge     $t1, $t0, ps_b4     # multi-inst pseudo-op (→ slt + beq)
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
     (COD §2.7.)
   What it did:
-    Branch if Equal — would transfer to 0x00400248 if ($at == $r0).
+    Branch if Equal — would transfer to 0x004002a4 if ($at == $r0).
   Comparison:
     0 == 0  →  true  →  branch was taken
   Inputs (before this step):
     $at = 0x00000000  (decimal 0)
-    branch target = 0x00400248
+    branch target = 0x004002a4
   Try it yourself:
     print $at
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x0040023c  →  0x00400244
+  PC:  0x00400298  →  0x004002a0
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400244:
-    memory[0x00400244] = 0x04010002   →   bgez $r0 8 [ps_end-0x00400244]
-    source line 229: ps_b4:  b       ps_end              # unconditional branch pseudo-op (→ beq $0,$0)
+Stepped at PC = 0x004002a0:
+    memory[0x004002a0] = 0x04010002   →   bgez $r0 8 [ps_end-0x004002a0]
+    source line 268: ps_b4:  b       ps_end              # unconditional branch pseudo-op (→ beq $0,$0)
 
   Category: Conditional branch
     Test a condition; if true, transfer PC to a labeled target.
     (COD §2.7.)
   What it did:
-    Branch if Greater or Equal Zero — would transfer to 0x00400250 if ($r0 >= 0).
+    Branch if Greater or Equal Zero — would transfer to 0x004002ac if ($r0 >= 0).
   Comparison:
     0 >= 0  →  true  →  branch was taken
   Inputs (before this step):
-    branch target = 0x00400250
+    branch target = 0x004002ac
   Try it yourself:
     print_all_regs         # show every register
     step                   # advance to the next instruction
     continue               # run until the next breakpoint
-  PC:  0x00400244  →  0x0040024c
+  PC:  0x004002a0  →  0x004002a8
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040024c:
-    memory[0x0040024c] = 0x3c011001   →   lui $at, 4097 [hello]
-    source line 245:         la      $a0, hello          # reload (jal arg clobbered it)
+Stepped at PC = 0x004002a8:
+    memory[0x004002a8] = 0x3c011001   →   lui $at, 4097 [hello]
+    source line 284:         la      $a0, hello          # reload (jal arg clobbered it)
   Pseudo-instruction `la` (as written in source):
     Load Address — set $rd to the 32-bit address of a label. Typically
     expands to `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)` (or just
@@ -3821,13 +4415,13 @@ Stepped at PC = 0x0040024c:
     print $at
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x0040024c  →  0x00400250
+  PC:  0x004002a8  →  0x004002ac
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400250:
-    memory[0x00400250] = 0x34240008   →   ori $a0, $at, 8 [hello]
-    source line 245:         la      $a0, hello          # reload (jal arg clobbered it)
+Stepped at PC = 0x004002ac:
+    memory[0x004002ac] = 0x34240008   →   ori $a0, $at, 8 [hello]
+    source line 284:         la      $a0, hello          # reload (jal arg clobbered it)
   Pseudo-instruction `la` (as written in source):
     Load Address — set $rd to the 32-bit address of a label. Typically
     expands to `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)` (or just
@@ -3852,13 +4446,13 @@ Stepped at PC = 0x00400250:
     print $at
     print $a0
     print_all_regs         # show every register
-  PC:  0x00400250  →  0x00400254
+  PC:  0x004002ac  →  0x004002b0
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400254:
-    memory[0x00400254] = 0x34020004   →   ori $v0, $r0, 4
-    source line 246:         li      $v0, 4              # syscall: print_string
+Stepped at PC = 0x004002b0:
+    memory[0x004002b0] = 0x34020004   →   ori $v0, $r0, 4
+    source line 285:         li      $v0, 4              # syscall: print_string
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -3881,13 +4475,13 @@ Stepped at PC = 0x00400254:
     print $v0
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x00400254  →  0x00400258
+  PC:  0x004002b0  →  0x004002b4
 
 hi
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x00400258:
-    memory[0x00400258] = 0x0000000c   →   syscall
+Stepped at PC = 0x004002b4:
+    memory[0x004002b4] = 0x0000000c   →   syscall
   (continuation of the `li` pseudo-op expansion above —
    same source line, this was the next real instruction emitted)
 
@@ -3907,13 +4501,13 @@ Stepped at PC = 0x00400258:
     print $v0
     print $a0
     print 0x10010008       # inspect string memory
-  PC:  0x00400258  →  0x0040025c
+  PC:  0x004002b4  →  0x004002b8
 
 
 ──────────────────────────────────────────────────────────
-Stepped at PC = 0x0040025c:
-    memory[0x0040025c] = 0x3402000a   →   ori $v0, $r0, 10
-    source line 248:         li      $v0, 10             # syscall: exit
+Stepped at PC = 0x004002b8:
+    memory[0x004002b8] = 0x3402000a   →   ori $v0, $r0, 10
+    source line 287:         li      $v0, 10             # syscall: exit
   Pseudo-instruction `li` (as written in source):
     Load Immediate — set $rd to a 32-bit constant. Small constants emit
     one `ori` or `addiu`; larger ones expand to `lui` + `ori`.
@@ -3936,5 +4530,5 @@ Stepped at PC = 0x0040025c:
     print $v0
     print_all_regs         # show every register
     step                   # advance to the next instruction
-  PC:  0x0040025c  →  0x00400260
+  PC:  0x004002b8  →  0x004002bc
 

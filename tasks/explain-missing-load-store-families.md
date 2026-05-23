@@ -179,4 +179,52 @@ and test additions land together.
 
 ## Status
 
-Not started.
+Landed 2026-05-23.  All 10 opcodes now have per-instruction
+narration; zero `(no detailed explanation for this opcode yet)`
+fallthroughs in the tt.explain.s run.
+
+### What landed
+
+`src/explain.c`:
+
+- Helper `say_effective_address(base, off, ea)` extracted (the
+  duplicated effective-address arithmetic line — used by 8
+  templates now).  `tpl_load`/`tpl_store` refactored to use it;
+  refactor is byte-identical (verified with zero-diff before
+  adding new templates).
+- Six new templates: `tpl_load_unaligned`, `tpl_store_unaligned`,
+  `tpl_load_linked`, `tpl_store_conditional`, `tpl_load_fp`,
+  `tpl_store_fp`.
+- 10 new case statements in the opcode switch (LWL/LWR/SWL/SWR,
+  LL/SC, LWC1/LDC1/SWC1/SDC1).
+
+`tests/tt.explain.s`:
+
+- Added an 8-byte-aligned data buffer `ubuf` with two known
+  words (`0x11223344, 0x55667788`).
+- Four new test blocks: unaligned (lwl/lwr/swl/swr), atomic
+  (ll/sc), FP word (lwc1/swc1), FP double (ldc1/sdc1).
+
+`tests/tt.explain.expected`: regenerated; 3940 → 4534 lines.
+22/22 meson tests green.
+
+### Open questions — answered
+
+- **ldc1/sdc1 alignment**: spim enforces only 4-byte alignment
+  (`src/run.c:1405` for sdc1).  Real MIPS requires 8.  The
+  narration states the spim behavior and notes the divergence.
+- **lwl/lwr endianness**: deferred.  The narration just says
+  "the high bytes" / "the low bytes" of the addressed word,
+  which is accurate on both endianness assuming the reader
+  knows which end is which.  A more precise version would
+  require an `#ifdef SPIM_BIGENDIAN` branch in the template.
+
+### Cosmetic finding worth a follow-up
+
+- The L4 progressive decoder labels the `rt` field of FP loads
+  as `$r0`/`$rN` (the integer register name).  Pedagogically
+  this is mildly misleading — for FP loads/stores the field is
+  an FP register number.  The narration's "What it did" line
+  already clarifies it ("placed the result in FP register $f0"),
+  but the L4 box would be cleaner if the decoder knew about FP
+  opcodes.  Pre-existing; not specific to this task.

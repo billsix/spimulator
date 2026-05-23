@@ -680,6 +680,18 @@ static void tpl_shift(int level, mips_instruction* instruction,
   }
 }
 
+/* Effective-address arithmetic line shared by every base+offset
+   load/store template.  Picks "+" or "-" based on the sign of off so
+   "$fp - 4" reads naturally instead of "$fp + -4". */
+static void say_effective_address(int base, short off, mem_addr ea) {
+  const char* sign = (off < 0) ? "-" : "+";
+  int absoff = (off < 0) ? -off : off;
+  write_output(message_out,
+               "    Effective address = $%s %s %d  =  0x%08x %s %d  =  0x%08x.\n",
+               int_reg_names[base], sign, absoff,
+               snap_R[base], sign, absoff, ea);
+}
+
 static void tpl_load(int level, mips_instruction* instruction,
                      const char* op_label, const char* op_text, int width) {
   int rt = RT(instruction), base = BASE(instruction);
@@ -689,17 +701,12 @@ static void tpl_load(int level, mips_instruction* instruction,
      legal), the post-execute gpr[base] is the loaded value, not the
      pre-execute base. */
   mem_addr ea = (mem_addr)(snap_R[base] + off);
-  const char* sign = (off < 0) ? "-" : "+";
-  int absoff = (off < 0) ? -off : off;
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — read %s from memory at the effective address; "
                "placed the result in $%s.\n",
                op_label, op_text, int_reg_names[rt]);
-  write_output(message_out,
-               "    Effective address = $%s %s %d  =  0x%08x %s %d  =  0x%08x.\n",
-               int_reg_names[base], sign, absoff,
-               snap_R[base], sign, absoff, ea);
+  say_effective_address(base, off, ea);
   if (level >= 2) {
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_reg(base);
@@ -731,17 +738,12 @@ static void tpl_store(int level, mips_instruction* instruction,
   int rt = RT(instruction), base = BASE(instruction);
   short off = (short)IOFFSET(instruction);
   mem_addr ea = (mem_addr)(snap_R[base] + off);
-  const char* sign = (off < 0) ? "-" : "+";
-  int absoff = (off < 0) ? -off : off;
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — wrote %s from $%s into memory at the effective "
                "address.\n",
                op_label, op_text, int_reg_names[rt]);
-  write_output(message_out,
-               "    Effective address = $%s %s %d  =  0x%08x %s %d  =  0x%08x.\n",
-               int_reg_names[base], sign, absoff,
-               snap_R[base], sign, absoff, ea);
+  say_effective_address(base, off, ea);
   if (level >= 2) {
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_reg(base);
@@ -762,6 +764,235 @@ static void tpl_store(int level, mips_instruction* instruction,
     say_try(buf2, "inspect that memory");
     snprintf(buf2, sizeof buf2, "print %d($%s)", off, int_reg_names[base]);
     say_try(buf2, "same memory, using the N($reg) form you wrote");
+  }
+}
+
+/* lwl/lwr — load word left/right.  Each merges some bytes of the
+   word containing the addressed byte into the destination register
+   without disturbing the rest.  Pair an lwl with an lwr (or vice
+   versa) to assemble a full 32-bit word from any byte address —
+   the trick compilers use to load a misaligned word in two
+   instructions instead of trapping. */
+static void tpl_load_unaligned(int level, mips_instruction* instruction,
+                               const char* op_label, const char* op_text) {
+  int rt = RT(instruction), base = BASE(instruction);
+  short off = (short)IOFFSET(instruction);
+  mem_addr ea = (mem_addr)(snap_R[base] + off);
+  write_output(message_out, "  What it did:\n");
+  write_output(message_out,
+               "    %s — merged %s into $%s; preserved the other bytes "
+               "already there.\n",
+               op_label, op_text, int_reg_names[rt]);
+  say_effective_address(base, off, ea);
+  write_output(message_out,
+               "    Typically paired with the matching opcode to assemble a "
+               "full word from a potentially-misaligned address.\n");
+  if (level >= 2) {
+    write_output(message_out, "  Inputs (before this step):\n");
+    say_input_reg(base);
+    say_input_reg(rt);
+    write_output(message_out, "    offset = %d  (0x%04x)\n", off, off & 0xffff);
+    mem_addr word_addr = ea & ~3u;
+    write_output(message_out,
+                 "    memory at 0x%08x (containing word) = 0x%08x\n",
+                 word_addr, (uint32_t)peek_word(word_addr));
+    write_output(message_out, "  Wrote:\n");
+    say_wrote_reg(rt);
+    say_try_regs(base, rt, 0, 0);
+  }
+}
+
+/* swl/swr — store word left/right.  Mirror of lwl/lwr on the
+   store side: each writes some bytes of $rt into the word
+   containing the addressed byte, leaving the other bytes
+   intact.  Pair them to spill a 32-bit register to any byte
+   address. */
+static void tpl_store_unaligned(int level, mips_instruction* instruction,
+                                const char* op_label, const char* op_text) {
+  int rt = RT(instruction), base = BASE(instruction);
+  short off = (short)IOFFSET(instruction);
+  mem_addr ea = (mem_addr)(snap_R[base] + off);
+  write_output(message_out, "  What it did:\n");
+  write_output(message_out,
+               "    %s — wrote %s from $%s into the word containing the "
+               "effective address; preserved the other bytes of that word.\n",
+               op_label, op_text, int_reg_names[rt]);
+  say_effective_address(base, off, ea);
+  write_output(message_out,
+               "    Typically paired with the matching opcode to store a "
+               "full word to a potentially-misaligned address.\n");
+  if (level >= 2) {
+    write_output(message_out, "  Inputs (before this step):\n");
+    say_input_reg(base);
+    say_input_reg(rt);
+    write_output(message_out, "    offset = %d  (0x%04x)\n", off, off & 0xffff);
+    if (snap_has_mem) {
+      write_output(message_out, "    memory at 0x%08x = 0x%08x\n",
+                   snap_mem_addr, (uint32_t)snap_mem_val);
+    }
+    say_wrote_mem(4);
+    say_try_regs(base, rt, 0, 0);
+  }
+}
+
+/* ll — load linked.  On real multiprocessor MIPS, ll also tags
+   this CPU's link register with the address so a subsequent sc to
+   the same address can detect intervening writes.  spim is
+   single-threaded; ll behaves as a plain word load. */
+static void tpl_load_linked(int level, mips_instruction* instruction) {
+  int rt = RT(instruction), base = BASE(instruction);
+  short off = (short)IOFFSET(instruction);
+  mem_addr ea = (mem_addr)(snap_R[base] + off);
+  write_output(message_out, "  What it did:\n");
+  write_output(message_out,
+               "    Load Linked — read a 32-bit word from memory at the "
+               "effective address; placed the result in $%s.\n",
+               int_reg_names[rt]);
+  say_effective_address(base, off, ea);
+  write_output(message_out,
+               "    On real multiprocessor MIPS, ll also tags a link register "
+               "so a subsequent sc can detect intervening writes.  In spim's "
+               "single-threaded model, ll is just a plain word load.\n");
+  if (level >= 2) {
+    write_output(message_out, "  Inputs (before this step):\n");
+    say_input_reg(base);
+    write_output(message_out, "    offset = %d  (0x%04x)\n", off, off & 0xffff);
+    write_output(message_out, "    memory at 0x%08x = 0x%08x\n", ea,
+                 (uint32_t)peek_word(ea));
+    write_output(message_out, "  Wrote:\n");
+    say_wrote_reg(rt);
+    say_try_regs(base, rt, 0, 0);
+  }
+}
+
+/* sc — store conditional.  On real MIPS, sc only succeeds if no
+   intervening write happened since the matching ll, and writes
+   1 (success) / 0 (failure) to $rt.  spim's sc always stores
+   unconditionally and does NOT update $rt — code that polls $rt
+   after sc will see the value it had going in. */
+static void tpl_store_conditional(int level, mips_instruction* instruction) {
+  int rt = RT(instruction), base = BASE(instruction);
+  short off = (short)IOFFSET(instruction);
+  mem_addr ea = (mem_addr)(snap_R[base] + off);
+  write_output(message_out, "  What it did:\n");
+  write_output(message_out,
+               "    Store Conditional — wrote the 32-bit value from $%s into "
+               "memory at the effective address.\n",
+               int_reg_names[rt]);
+  say_effective_address(base, off, ea);
+  write_output(message_out,
+               "    On real multiprocessor MIPS, sc only succeeds if no "
+               "intervening write happened since the matching ll, and writes "
+               "1 (success) or 0 (failure) to $%s.  In spim, sc always "
+               "succeeds and does NOT update $%s.\n",
+               int_reg_names[rt], int_reg_names[rt]);
+  if (level >= 2) {
+    write_output(message_out, "  Inputs (before this step):\n");
+    say_input_reg(base);
+    say_input_reg(rt);
+    write_output(message_out, "    offset = %d  (0x%04x)\n", off, off & 0xffff);
+    if (snap_has_mem) {
+      write_output(message_out, "    memory at 0x%08x = 0x%08x\n", ea,
+                   (uint32_t)snap_mem_val);
+    }
+    say_wrote_mem(4);
+    say_try_regs(base, rt, 0, 0);
+  }
+}
+
+/* lwc1, ldc1 — coprocessor-1 (FP) loads.  Transfer width bytes from
+   memory to the FP register $fN.  ldc1 reads 8 bytes into the
+   register pair $fN / $f(N+1) and (in spim) needs at least 4-byte
+   alignment — real MIPS requires 8-byte alignment for ldc1. */
+static void tpl_load_fp(int level, mips_instruction* instruction,
+                        const char* op_label, int width) {
+  int ft = FT(instruction), base = BASE(instruction);
+  short off = (short)IOFFSET(instruction);
+  mem_addr ea = (mem_addr)(snap_R[base] + off);
+  write_output(message_out, "  What it did:\n");
+  if (width == 4) {
+    write_output(message_out,
+                 "    %s — read 4 bytes from memory at the effective "
+                 "address; placed the result in FP register $f%d.\n",
+                 op_label, ft);
+  } else {
+    write_output(message_out,
+                 "    %s — read 8 bytes from memory at the effective "
+                 "address; placed them in the FP register pair $f%d / $f%d.\n",
+                 op_label, ft, ft + 1);
+  }
+  say_effective_address(base, off, ea);
+  if (width == 8) {
+    write_output(message_out,
+                 "    ldc1 in spim requires 4-byte alignment; real MIPS "
+                 "requires 8-byte alignment.\n");
+  }
+  if (level >= 2) {
+    write_output(message_out, "  Inputs (before this step):\n");
+    say_input_reg(base);
+    write_output(message_out, "    offset = %d  (0x%04x)\n", off, off & 0xffff);
+    if (width == 4) {
+      write_output(message_out, "    memory at 0x%08x = 0x%08x\n", ea,
+                   (uint32_t)peek_word(ea));
+      write_output(message_out, "  Wrote:\n");
+      write_output(message_out,
+                   "    $f%d  ← loaded 4 bytes (typically interpreted as a "
+                   "single-precision float, or as a raw 32-bit int).\n",
+                   ft);
+    } else {
+      write_output(
+          message_out,
+          "    memory at 0x%08x = 0x%08x 0x%08x  (low / high words)\n", ea,
+          (uint32_t)peek_word(ea), (uint32_t)peek_word(ea + 4));
+      write_output(message_out, "  Wrote:\n");
+      write_output(message_out,
+                   "    $f%d / $f%d  ← loaded 8 bytes (typically interpreted "
+                   "as a double-precision float).\n",
+                   ft, ft + 1);
+    }
+    say_try_regs(base, 0, 0, 0);
+  }
+}
+
+/* swc1, sdc1 — coprocessor-1 (FP) stores.  Transfer width bytes from
+   FP register $fN to memory.  sdc1 writes 8 bytes (the pair $fN /
+   $f(N+1)) and (in spim) needs at least 4-byte alignment. */
+static void tpl_store_fp(int level, mips_instruction* instruction,
+                         const char* op_label, int width) {
+  int ft = FT(instruction), base = BASE(instruction);
+  short off = (short)IOFFSET(instruction);
+  mem_addr ea = (mem_addr)(snap_R[base] + off);
+  write_output(message_out, "  What it did:\n");
+  if (width == 4) {
+    write_output(message_out,
+                 "    %s — wrote 4 bytes from FP register $f%d into memory "
+                 "at the effective address.\n",
+                 op_label, ft);
+  } else {
+    write_output(message_out,
+                 "    %s — wrote 8 bytes from the FP register pair $f%d / "
+                 "$f%d into memory at the effective address.\n",
+                 op_label, ft, ft + 1);
+  }
+  say_effective_address(base, off, ea);
+  if (width == 8) {
+    write_output(message_out,
+                 "    sdc1 in spim requires 4-byte alignment; real MIPS "
+                 "requires 8-byte alignment.\n");
+  }
+  if (level >= 2) {
+    write_output(message_out, "  Inputs (before this step):\n");
+    say_input_reg(base);
+    write_output(message_out, "    offset = %d  (0x%04x)\n", off, off & 0xffff);
+    write_output(message_out, "  Wrote to memory:\n");
+    if (width == 4) {
+      write_output(message_out, "    0x%08x  ← 4 bytes from $f%d\n", ea, ft);
+    } else {
+      write_output(message_out,
+                   "    0x%08x  ← 8 bytes from $f%d / $f%d (low / high words)\n",
+                   ea, ft, ft + 1);
+    }
+    say_try_regs(base, 0, 0, 0);
   }
 }
 
@@ -1904,6 +2135,47 @@ static void render_dispatch(int level, mips_instruction* instruction) {
       break;
     case TOK_SH_OPCODE:
       tpl_store(level, instruction, "Store Halfword", "the low 16 bits", 2);
+      break;
+
+    /* Unaligned word loads/stores */
+    case TOK_LWL_OPCODE:
+      tpl_load_unaligned(level, instruction, "Load Word Left",
+                         "the high bytes of the addressed word");
+      break;
+    case TOK_LWR_OPCODE:
+      tpl_load_unaligned(level, instruction, "Load Word Right",
+                         "the low bytes of the addressed word");
+      break;
+    case TOK_SWL_OPCODE:
+      tpl_store_unaligned(level, instruction, "Store Word Left",
+                          "the high bytes of $rt");
+      break;
+    case TOK_SWR_OPCODE:
+      tpl_store_unaligned(level, instruction, "Store Word Right",
+                          "the low bytes of $rt");
+      break;
+
+    /* Atomic primitives — degraded to plain load/store in single-
+       threaded spim, but the narration explains the real semantics. */
+    case TOK_LL_OPCODE:
+      tpl_load_linked(level, instruction);
+      break;
+    case TOK_SC_OPCODE:
+      tpl_store_conditional(level, instruction);
+      break;
+
+    /* Coprocessor-1 (floating-point) loads/stores */
+    case TOK_LWC1_OPCODE:
+      tpl_load_fp(level, instruction, "Load Word Coprocessor 1", 4);
+      break;
+    case TOK_LDC1_OPCODE:
+      tpl_load_fp(level, instruction, "Load Double Coprocessor 1", 8);
+      break;
+    case TOK_SWC1_OPCODE:
+      tpl_store_fp(level, instruction, "Store Word Coprocessor 1", 4);
+      break;
+    case TOK_SDC1_OPCODE:
+      tpl_store_fp(level, instruction, "Store Double Coprocessor 1", 8);
       break;
 
     /* Branches. The comparison value is read from snap_R[] since by the
