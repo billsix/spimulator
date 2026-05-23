@@ -20,7 +20,7 @@
 
 /* Runtime-visible globals. */
 int line_no = 1;
-scan_value_t scan_value = {0};
+scan_value_t scan_value = {};
 
 /* Register-name → register-number lookup.  Public because inst.c and
    explain.c also call register_name_to_number, independent of the

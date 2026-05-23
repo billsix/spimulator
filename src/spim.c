@@ -37,7 +37,7 @@
 #include <editline/readline.h>
 #include <stdlib.h>
 #include <string.h>
-static char history_path[1024] = {0};
+static char history_path[1024] = {};
 static void save_history_at_exit(void) {
   if (history_path[0] != '\0') write_history(history_path);
 }
