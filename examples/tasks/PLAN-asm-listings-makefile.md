@@ -1,23 +1,29 @@
-# Plan: native assembly listings for every C demo, via a Makefile, in the Docker build
+# Plan: native assembly listings + runnable executables for every C demo, via a Makefile, in the Docker build
 
-Status: **Not started — awaiting review.**
+Status: **Implemented — staged, awaiting commit (Bill commits).**
 
 ## Goal
 
-For every C demo under `examples/src/`, emit a clean, readable
-**native** assembly listing `<demo>.s` *beside* its source, using
-a hand-written `Makefile` (not meson), and run that Makefile as a
-step of the Docker image build so the listings ship in the image.
+For every C demo under `examples/src/`, via a hand-written
+`Makefile` (not meson), produce two **native** artifacts and run
+the Makefile as a step of the Docker image build so both ship in
+the image:
+
+1. a clean, readable assembly listing `<demo>.s` *beside* its
+   source, and
+2. that same `.s` assembled and linked into a runnable native
+   executable at `examples/src/bin/<demo>`.
+
+This is the full `/pgu/src/c/Makefile` flow: `<demo>.c -> <demo>.s
+-> bin/<demo>`. (The first cut of this plan was listings-only;
+extended to also build executables per Bill's follow-up — "the
+makefile also compiles the assembly to an executable… that's what
+I want.")
 
 "Native" = the **build host's** arch, auto-detected by the
-compiler. `cc -S` with no `--target` follows the host: x86_64 on
-an x86_64 host, AArch64 on an arm host, and so on. No
-cross-compilation, no MIPS target — just "what does a real
-compiler emit from this C, here, on this machine."
-
-This is a direct port of the approach `/pgu/src/c/Makefile`
-already uses (its default `make` compiles the book's C ports to
-host-native `.s` with educational flags).
+compiler. `cc -S` / `cc` with no `--target` follows the host:
+x86_64 on an x86_64 host, AArch64 on an arm host, and so on. No
+cross-compilation, no MIPS target.
 
 ## Why
 
@@ -26,13 +32,14 @@ The pedagogy of this tree is "one program, multiple vocabularies":
 1. `<demo>.c` — the freestanding C the student reads/writes.
 2. `<demo>.asm` — the hand-written MIPS for spim (the lesson).
 3. **`<demo>.s`** — the compiler's translation of the C to the
-   host's native assembly. *This is the new artifact.*
+   host's native assembly.
+4. **`bin/<demo>`** — that `.s` assembled + linked into a running
+   program, so "the assembly you read is literally what runs."
 
-(3) lets a student open all three in one directory and see how the
-same program looks as their own host's instruction set next to the
-hand-written MIPS. Today (3) is only implicit: the student would
-have to know to run `cc -S` themselves with the right flags in the
-right directory. Most won't.
+(3) and (4) were only implicit before: the student would have to
+know to run `cc -S` / link with `-nostdlib` themselves, with the
+right flags, in the right directory. The Makefile makes both an
+ordinary build artifact.
 
 ## Relationship to existing plans (important — read before starting)
 
@@ -63,123 +70,82 @@ supersedes parts of it:
 `/pgu/src/c/Makefile`, and the same directory the demos and their
 `.asm` already sit in.
 
-## The Makefile (proposed, complete)
+## The Makefile (as landed)
 
-```makefile
-# examples/src/Makefile — generate clean, readable native assembly
-# listings from every C demo.
-#
-# For each <demo>.c this emits <demo>.s: the host compiler's
-# translation of the C to the BUILD HOST's native assembly
-# (x86_64 on an x86_64 host, AArch64 on an arm host, ...).  No
-# --target override -- `cc -S` follows the host, exactly like
-# /pgu/src/c/Makefile's default `make`.
-#
-# Listings-only build: it never links or runs anything.  The
-# runnable MIPS binaries + their tests are owned by meson
-# (meson.build / ../tests/run-demo.sh).  This Makefile exists only
-# to materialize the "what does a real compiler emit from this C?"
-# artifact beside each .c / hand-written .asm pair.
+See `examples/src/Makefile` for the committed version. Shape:
 
-CC ?= cc
-
-# Educational flags -- keep the generated .s book-readable: no
-# frame pointer, no CFI/unwind tables, no stack canaries.
-# -fverbose-asm annotates each instruction with its C source line
-# + variable names.  Same set meson uses in edu_args (note: NOT
-# gcc's -fno-dwarf2-cfi-asm, which clang rejects).
-EDU_FLAGS = -O0 -S \
-            -fomit-frame-pointer \
-            -fno-asynchronous-unwind-tables \
-            -fno-unwind-tables \
-            -fno-stack-protector \
-            -fverbose-asm
-
-# Demos include io.h/os.h/crt0.h via -I.; the lib demos also need
-# their library headers.
-INCLUDES = -I. -Ilib/libctype -Ilib/libstdlib
-
-# Every C translation unit gets a listing -- demos AND the
-# io/libctype/libstdlib helpers.  Each .c compiles on its own (-S,
-# no link), so demo-vs-library doesn't matter here.
-CSRC := $(shell find . -name '*.c')
-LISTINGS := $(CSRC:.c=.s)
-
-.PHONY: all listings clean
-all: listings
-listings: $(LISTINGS)
-
-%.s: %.c
-	$(CC) $(EDU_FLAGS) $(INCLUDES) $< -o $@
-
-clean:
-	rm -f $(LISTINGS)
-```
+- `.c -> .s` via `%.s: %.c` with the educational flag set (`-O0
+  -fomit-frame-pointer -fno-asynchronous-unwind-tables
+  -fno-unwind-tables -fno-stack-protector -fverbose-asm`), no `-g`.
+- `.s -> .o` via `%.o: %.s` (assemble the listing we just emitted —
+  the binary really comes from the readable `.s`, not a fresh `.c`
+  compile).
+- `bin/<demo>` links a demo's `.s` against three helper archives
+  with `-nostdlib`.
+- Targets: `all` (listings + executables), `listings`,
+  `executables`, `clean`.
 
 Notes on the design choices:
 
-- **Glob, don't enumerate.** `meson.build` keeps a curated list of
-  demo *executables*; this Makefile instead globs every `.c` so it
-  can never drift out of sync with meson, and because a per-TU `-S`
-  listing is wanted for the library helpers (`io`, `libctype`,
-  `libstdlib`) too, not just the linkable demos.
-- **Plain `<demo>.s`, beside source.** Matches /pgu. Hand-written
-  files are `.asm`, so `.s` never collides. Full source paths are
-  preserved (`intro/helloworld/helloworld.s`), so identical
-  basenames in different topic folders don't collide either.
-- **`CC ?= cc`.** Host default. In Docker we'll call it as
-  `make CC=clang` so the listings match the clang the rest of the
-  image is built with (see below). Overridable by the student.
-- **No `-g`.** Unlike the meson `--buildtype=debug` path, these
-  listings are clean of `.cfi_*`/DWARF directives from the start.
+- **Glob + structural split, don't enumerate.** `meson.build` keeps
+  a curated demo list with hand-written per-demo link deps; the
+  Makefile instead derives everything from the tree so it can't
+  drift. Helpers (no `_start`) are the top-level `*.c` (the IO
+  routines) plus `lib/libctype/libctype.c` and
+  `lib/libstdlib/libstdlib.c`; every other `.c` is a demo with its
+  own `_start`. `$(filter-out …)` separates them.
+- **Archive linking instead of per-demo dep lists.** The helpers
+  become `libio.a` / `libctype.a` / `libstdlib.a`, and *every* demo
+  links against all three. Archive semantics mean the linker pulls
+  only the members a demo actually references, so there's no need to
+  special-case "ctype-demo needs libctype, atoi-demo needs libstdlib
+  + libctype" the way meson does. Link order `libio libstdlib
+  libctype` satisfies libstdlib→libctype (atoi calls isspace).
+- **`.s` beside source; executables collected in `bin/`.** The `.s`
+  sits next to `<demo>.c`/`<demo>.asm` (the three-vocabularies read
+  view). Executables go in a flat `examples/src/bin/` rather than
+  strewn beside each source — demo basenames are unique (meson
+  relies on this too), and a single `bin/` dir is trivially
+  `.gitignore`'d, unlike extensionless binaries beside sources.
+  *(This is the one deviation from /pgu, which puts binaries beside
+  the source; flagged for Bill — easy to switch if he prefers.)*
+- **`CC ?= cc`.** Host default; Docker passes `CC=clang` to match
+  the rest of the image. Both are native and honor the flag set.
+- **No `-g`.** Unlike the old meson `--buildtype=debug` `-save-temps`
+  path, these listings are clean of `.cfi_*`/DWARF noise.
 
 ## Docker integration
 
 Two changes to `/spimulator/Dockerfile`:
 
-1. **Add `make` to the dnf install list.** The image builds with
-   meson+ninja and does not currently install `make` (verify: it's
-   absent from the `dnf install` block around line 34–48). Add
-   `make` to that list.
-2. **Run the Makefile** after the meson build/install/test block
-   (after the current `meson test` line, before the tree-sitter
-   block):
+1. **Add `make` to the dnf install list** (the image builds with
+   meson+ninja and didn't install `make`).
+2. **Run the Makefile** after the meson build/install/test block:
 
    ```dockerfile
-   # Materialize native assembly listings beside each C demo so a
-   # student can compare <demo>.c, the hand-written <demo>.asm, and
-   # the compiler's native <demo>.s in one directory.  CC=clang to
-   # match the compiler used for the rest of the image.
-   RUN make -C ${SPIM_SRC_DIR}/examples/src CC=clang listings
+   RUN make -C ${SPIM_SRC_DIR}/examples/src CC=clang all
    ```
 
-   The listings land beside their sources at
-   `/spimulator/examples/src/<topic>/<demo>/<demo>.s` in the image.
+   Listings land beside their sources; executables land in
+   `examples/src/bin/`. (meson also installs native demo binaries to
+   `$PREFIX/bin`; the Makefile's `bin/` is the in-tree, /pgu-style
+   "read the `.s`, run the result" artifact and is independent.)
 
-## meson cleanup (recommended, but a decision point)
+## meson cleanup (done)
 
-Now that the Makefile owns listing generation with cleaner output
-and a better path, the interim meson mechanism is redundant.
-**Recommend** removing `-save-temps=obj` and `-fverbose-asm` from
-`edu_args` in `examples/src/meson.build` (leaving the four
-`-fno-*` / `-fomit-frame-pointer` flags, which still shape the
-*binary* codegen the tests exercise). This avoids two competing
-native-listing mechanisms with different paths and quality.
-
-If you'd rather keep both for now, that's fine — they don't
-conflict; the Makefile's `.s` and meson's `.p/<...>.c.s` just
-coexist. Flagging it so the redundancy is a conscious choice.
+Dropped `-save-temps=obj` and `-fverbose-asm` from `edu_args` in
+`examples/src/meson.build` (kept the four `-fno-*` /
+`-fomit-frame-pointer` flags, which still shape the demo-*binary*
+codegen meson's tests exercise). Listing generation now lives only
+in the Makefile, with cleaner output and a sane path; meson no
+longer emits the buried `builddir/.../<demo>.p/<munged>.c.s`.
+Confirmed `meson test` still 29/29.
 
 ## .gitignore
 
-The listings are build artifacts (they change with compiler
-version / host arch), so they should **not** be committed. Add to
-`examples/src/.gitignore` (or `examples/.gitignore`):
-
-```
-# Compiler-generated native assembly listings (see src/Makefile)
-*.s
-```
+Generated artifacts must not be committed. Added to
+`examples/.gitignore`: `*.s`, `*.o`, `*.a`, and `src/bin/`. Safe
+because every hand-written source in this tree is `.asm`.
 
 Safe because every hand-written file in this tree is `.asm`, not
 `.s` (verified: `find examples -name '*.s'` is currently empty).
@@ -198,50 +164,54 @@ at the beside-source listing instead, e.g.:
 > MIPS for spim. To regenerate locally:
 > `make -C examples/src listings`.
 
-## Test / verification plan
+## Test / verification (done locally)
 
-1. **Local generation.** From `examples/src`, run
-   `make listings` (and `make CC=clang listings`). Exit 0; every
-   `.c` produces a sibling `.s`. `make clean` removes them all.
-2. **Readability spot-check.** `less intro/helloworld/helloworld.s`
-   — confirm it's clean (no `.cfi_*`), has `-fverbose-asm`
-   source/variable annotations, and is recognizably the same
-   program as `helloworld.asm` beside it.
-3. **Sanity-grep** (catches a silently-wrong compiler invocation):
-   on an x86_64 host the listings should contain `syscall` /
-   `%rdi`; the inline-asm `_start` from `crt0.h` should appear
-   verbatim. `grep -rl syscall examples/src --include='*.s'`.
-4. **meson suite unaffected.** `meson test -C builddir` still
-   passes the `examples` suite (currently 29/29) — the Makefile
-   touches no binary the tests run.
-5. **Docker build.** `docker build` succeeds with `make` added;
-   `docker run ... ls examples/src/intro/helloworld/` shows
-   `helloworld.s` present.
+1. **Build.** `make CC=clang all` → rc 0. 62 `.c` → 62 `.s`; 51
+   demos → 51 executables in `bin/`. Incremental rebuild is a
+   proper no-op; `make clean` leaves the tree pristine (0 stray
+   `.s`/`.o`/`.a`, no `bin/`).
+2. **Readability spot-check.** `intro/helloworld/helloworld.s` is
+   clean (no `.cfi_*`), carries `-fverbose-asm` annotations, and
+   the `os.h` inline `syscall` appears verbatim.
+3. **Executables run** (the key new check):
+   - `bin/exit` → rc 0
+   - `bin/helloworld` → `hello world`
+   - `bin/wc` on piped stdin → `12 bytes, 2 lines`
+   - `bin/ctype-demo` (io + libctype) → runs
+   - `bin/atoi-demo` (io + libstdlib + libctype) → `atoi("42") = 42`
+   These cover all three link shapes (io-only, +libctype,
+   +libstdlib+libctype), proving the archive-linking strategy.
+4. **meson suite unaffected.** Full `meson test -C builddir` =
+   **29/29**, and meson no longer emits `.p/*.c.s`.
+
+**Not yet verified (needs Bill / a real Docker host):** the
+`docker build` itself — that `make` installs and
+`make … all` runs as a layer with `bin/` populated in the image.
+Verified by construction only.
 
 ## Open questions / minor
 
-- **`.s` vs arch-suffixed name.** Plain `<demo>.s` matches /pgu and
-  is unambiguous on a given host (a student only builds on their
-  own machine). If you'd prefer the arch baked into the name
-  (`<demo>.x86_64.s`) so a checked-out image is self-describing,
-  it's a one-line change to the pattern rule + var. Lean: plain
-  `.s`, per your "just native" steer and /pgu parity.
-- **gcc vs clang default.** `CC ?= cc` (gcc on Fedora) for a bare
-  `make`; Docker pins `CC=clang` to match the image. Both are
-  native and both honor the flag set. No action needed unless you
-  want a single canonical compiler in both places.
-- **MIPS / full matrix.** Explicitly out of scope here per the
-  "just native" decision; lives in `PLAN-build-matrix.md`.
+- **Executables in `bin/` vs beside source.** Chose flat `bin/`
+  for clean `.gitignore` + unique basenames; /pgu strews them
+  beside the source. One-line change if Bill prefers /pgu parity.
+- **No `check` target.** /pgu's Makefile has a `check` that runs
+  every binary against expected output; here only the 6 library
+  demos have golden `.expected` files, and meson already
+  run-tests those. Didn't invent goldens for the other 45 demos.
+  A `check` (reusing the existing `.expected` files) is an easy
+  follow-up if wanted.
+- **MIPS / full matrix.** Out of scope; lives in
+  `PLAN-build-matrix.md`.
 
-## Order of work
+## What landed
 
-1. Add `examples/src/Makefile` (above). Run `make listings`
-   locally; verify steps 1–3.
-2. Add `*.s` to `examples/src/.gitignore`.
-3. Dockerfile: add `make` to dnf list + the `make … listings` RUN
-   step. Build the image; verify steps 4–5.
-4. Rewrite the READING-ORDER.md "Comparing…" section.
-5. (Recommended) Drop `-save-temps=obj` + `-fverbose-asm` from
-   meson `edu_args`; re-run `meson test` to confirm 29/29.
-6. ChangeLog entry (user-visible: new in-tree `.s` listings +
-   Makefile + Docker step).
+1. `examples/src/Makefile` — `.c → .s → bin/<demo>`; archive
+   linking; `all` / `listings` / `executables` / `clean`.
+2. `examples/.gitignore` — `*.s`, `*.o`, `*.a`, `src/bin/`.
+3. `Dockerfile` — `make` added to dnf; `make … CC=clang all` after
+   the meson build/test.
+4. `examples/READING-ORDER.md` — "Comparing…" section rewritten for
+   beside-source `.s` + `bin/<demo>`.
+5. `examples/src/meson.build` — dropped `-save-temps=obj` +
+   `-fverbose-asm`.
+6. `ChangeLog` — dated entry.

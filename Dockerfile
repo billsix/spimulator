@@ -95,15 +95,16 @@ RUN cd ${SPIM_SRC_DIR} && \
 #     the build.
 RUN meson test -C ${SPIM_BUILD_DIR} --print-errorlogs
 
-# Materialize native assembly listings beside each C demo so a
-# student can read three vocabularies of the same program in one
-# directory: <demo>.c (the C), <demo>.asm (hand-written MIPS for
-# spim), and <demo>.s (the compiler's translation to this host's
-# native arch).  Listings-only — no linking/running; the runnable
-# MIPS binaries + tests are owned by the meson build above.
-# CC=clang to match the compiler used for the rest of the image.
+# Materialize the native teaching artifacts beside each C demo:
+# <demo>.s (the compiler's translation of the C to this host's
+# native arch, next to the hand-written MIPS <demo>.asm) and a
+# linked, runnable native executable in examples/src/bin/.  Lets a
+# student read all three vocabularies and run the result, the same
+# /pgu-style flow.  This is the *native* path; the MIPS binaries
+# that run under spim + their golden tests are owned by the meson
+# build above.  CC=clang to match the rest of the image.
 # See examples/tasks/PLAN-asm-listings-makefile.md.
-RUN make -C ${SPIM_SRC_DIR}/examples/src CC=clang listings
+RUN make -C ${SPIM_SRC_DIR}/examples/src CC=clang all
 
 # Optional: build and test the editor-integration tree-sitter grammar.
 # Gated by --build-arg BUILD_TREE_SITTER=1 because Node + tree-sitter-cli

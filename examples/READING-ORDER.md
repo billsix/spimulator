@@ -73,13 +73,26 @@ shows the native x86-64 the compiler generated from
 `helloworld.c`, while `helloworld.asm` beside it is the
 hand-written MIPS that runs on spim.
 
-In the container these listings are already generated. To
-(re)generate them yourself:
+That same `<demo>.s` is also assembled and linked into a runnable
+native executable at `examples/src/bin/<demo>` — so the assembly
+you just read is literally what runs (the same `.c -> .s ->
+executable` flow as /pgu). These are freestanding (`-nostdlib`,
+own `_start`, kernel via `os.h`), independent of spim.
+
+In the container all of this is already generated. To
+(re)generate it yourself:
 
 ```
-make -C examples/src listings      # native host arch; <demo>.s beside each <demo>.c
-make -C examples/src clean         # remove them
+make -C examples/src            # listings (<demo>.s) + executables (bin/<demo>)
+make -C examples/src listings   # just the readable .s, beside each .c
+make -C examples/src executables# just the runnable bin/<demo>
+make -C examples/src clean      # remove all of it
+./examples/src/bin/helloworld   # run one
 ```
+
+(The MIPS side is unchanged: `<demo>.asm` is the hand-written
+MIPS that runs under spim; the meson build assembles and
+golden-tests it.)
 
 ## Real-Unix argv convention
 
