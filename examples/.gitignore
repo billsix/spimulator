@@ -2,6 +2,10 @@
 builddir/
 compile_commands.json
 
+# Compiler-generated native assembly listings (src/Makefile).
+# Hand-written sources are all *.asm, so *.s is safe to ignore.
+*.s
+
 # Sphinx book outputs
 output/
 book/build/

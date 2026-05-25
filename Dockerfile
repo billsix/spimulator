@@ -39,6 +39,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    git \
                    libedit-devel \
                    lldb \
+                   make \
                    meson \
                    ninja \
                    nano \
@@ -93,6 +94,16 @@ RUN cd ${SPIM_SRC_DIR} && \
 #     `<demo>.expected-status`.  Any drift on either side fails
 #     the build.
 RUN meson test -C ${SPIM_BUILD_DIR} --print-errorlogs
+
+# Materialize native assembly listings beside each C demo so a
+# student can read three vocabularies of the same program in one
+# directory: <demo>.c (the C), <demo>.asm (hand-written MIPS for
+# spim), and <demo>.s (the compiler's translation to this host's
+# native arch).  Listings-only — no linking/running; the runnable
+# MIPS binaries + tests are owned by the meson build above.
+# CC=clang to match the compiler used for the rest of the image.
+# See examples/tasks/PLAN-asm-listings-makefile.md.
+RUN make -C ${SPIM_SRC_DIR}/examples/src CC=clang listings
 
 # Optional: build and test the editor-integration tree-sitter grammar.
 # Gated by --build-arg BUILD_TREE_SITTER=1 because Node + tree-sitter-cli

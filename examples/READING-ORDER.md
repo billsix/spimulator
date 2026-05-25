@@ -57,19 +57,29 @@ cd examples/src && meson compile -C builddir
 
 ## Comparing the C compiler's translation
 
-Every demo's C source is also compiled to a viewable assembly
-listing as a build artifact, so you can compare your hand-
-written MIPS `.asm` against what gcc/clang generates from the
-same `.c`.  After `meson compile`, look at:
+Every demo's C source is also compiled to a clean assembly
+listing — `<demo>.s` — sitting **right next to** `<demo>.c` and
+the hand-written `<demo>.asm`, so you can read all three
+vocabularies in one directory:
+
+- `<demo>.c`   — the freestanding C.
+- `<demo>.asm` — the hand-written MIPS for spim (the lesson).
+- `<demo>.s`   — the compiler's translation of the C to your
+  **host's native** assembly (x86_64, AArch64, …), annotated
+  with C-source line numbers and variable names (`-fverbose-asm`).
+
+For example, on an x86_64 host `intro/helloworld/helloworld.s`
+shows the native x86-64 the compiler generated from
+`helloworld.c`, while `helloworld.asm` beside it is the
+hand-written MIPS that runs on spim.
+
+In the container these listings are already generated. To
+(re)generate them yourself:
 
 ```
-builddir/examples/src/<demo>.p/<munged>.c.s
+make -C examples/src listings      # native host arch; <demo>.s beside each <demo>.c
+make -C examples/src clean         # remove them
 ```
-
-For example, `helloworld.c.s` shows the native x86 assembly
-gcc generated, annotated with C-source line numbers and
-variable names (`-fverbose-asm`).  The MIPS `.asm` next to
-the C source is the hand-written equivalent for spim.
 
 ## Real-Unix argv convention
 

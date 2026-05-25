@@ -3,24 +3,24 @@
 # Standalone build is no longer supported; the merged project
 # is the canonical entry point.
 
-# Educational flags — keep the generated .s book-readable.
+# Educational flags — shape readable codegen for the demo binaries.
 # No frame pointer, no CFI/unwind tables, no stack canaries.
 # Scoped per-target (NOT add_project_arguments) so they don't
 # leak into spim's compile, which has its own warning/std flags.
+#
+# Note: the human-readable .s *listings* (the "compiler's
+# translation" teaching artifact) are no longer generated here.
+# That moved to src/Makefile, which emits a clean, cleanly-named
+# `<demo>.s` beside each `<demo>.c`/`<demo>.asm` — no -g debug
+# noise, no `.p/<munged>.c.s` path.  See
+# tasks/PLAN-asm-listings-makefile.md (supersedes the archived
+# PLAN-asm-listings.md `-save-temps` approach).
 edu_args = [
   '-O0',
   '-fomit-frame-pointer',
   '-fno-asynchronous-unwind-tables',
   '-fno-unwind-tables',
   '-fno-stack-protector',
-  # Emit a .s alongside each .o so students can compare the
-  # compiler's translation of their C against the hand-written
-  # MIPS .asm.  Lands at builddir/examples/src/<demo>.p/<demo>.c.s.
-  # -fverbose-asm adds C-source variable-name annotations next to
-  # each instruction — slight noise, big pedagogical gain.
-  # See tasks/archive/PLAN-asm-listings.md.
-  '-save-temps=obj',
-  '-fverbose-asm',
 ]
 
 # Each demo is freestanding — no libc, defines its own `_start`,

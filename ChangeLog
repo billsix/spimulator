@@ -1,3 +1,38 @@
+2026-05-25  Bill Six  <billsix@gmail.com>
+
+	Examples: native assembly listings via a Makefile, in the
+	Docker build.
+
+	Each C demo's source is now compiled to a clean, readable
+	`<demo>.s` sitting beside its `<demo>.c` and hand-written
+	`<demo>.asm`, so a student can read all three vocabularies of
+	the same program in one directory.  The listing is for the
+	build host's native arch (x86_64, AArch64, ...) — `cc -S` with
+	no --target, following the host, mirroring /pgu/src/c/Makefile.
+
+	* examples/src/Makefile: new.  Globs every *.c under src/ and
+	  emits a sibling *.s with the educational flag set (-O0,
+	  -fomit-frame-pointer, -fno-asynchronous-unwind-tables,
+	  -fno-unwind-tables, -fno-stack-protector, -fverbose-asm).
+	  Listings-only: never links or runs (the runnable MIPS
+	  binaries + tests stay owned by meson).  `make listings` /
+	  `make clean`; CC overridable.
+	* examples/src/meson.build (edu_args): dropped -save-temps=obj
+	  and -fverbose-asm.  Listing generation moved to the Makefile,
+	  which produces cleaner output (no -g/.cfi_ noise) at a sane
+	  path; the meson build no longer emits the buried
+	  builddir/.../<demo>.p/<munged>.c.s.  Supersedes the approach
+	  in tasks/archive/PLAN-asm-listings.md.
+	* Dockerfile: add `make` to the dnf install list; run
+	  `make -C examples/src CC=clang listings` after the meson
+	  build/test so the listings ship in the image.
+	* examples/.gitignore: ignore *.s (build artifacts; hand-written
+	  sources are all *.asm).
+	* examples/READING-ORDER.md: rewrote the "Comparing the C
+	  compiler's translation" section to point at the beside-source
+	  <demo>.s instead of the old builddir path.
+	* examples/tasks/PLAN-asm-listings-makefile.md: new plan doc.
+
 2026-05-23  Bill Six  <billsix@gmail.com>
 
 	Teaching mode: base+offset coverage and display polish.
