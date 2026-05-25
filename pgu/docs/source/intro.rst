@@ -99,56 +99,45 @@ responsive mailing list available.
 Your Tools
 ----------
 
-This book teaches assembly language for x86 processors and the GNU/Linux
-operating system. Therefore we will be giving all of the examples using
-the GNU/Linux standard GCC tool set. If you are not familiar with
-GNU/Linux and the GCC tool set, they will be described shortly. If you
-are new to Linux, you should check out the guide available at
-http://rute.sourceforge.net/ [1]_ What I intend to show you is more
-about programming in general than using a specific tool set on a
-specific platform, but standardizing on one makes the task much easier.
+This book teaches assembly language for the **MIPS** processor, run on
+the **spimulator** simulator — a fork of James Larus's *spim*. What I
+intend to show you is more about programming in general, and about how a
+computer and its operating system really work, than about any one chip
+or tool set; but standardizing on one keeps the task manageable, and
+spimulator keeps it simple.
 
-Those new to Linux should also try to get involved in their local
-GNU/Linux User's Group. User's Group members are usually very helpful
-for new people, and will help you from everything from installing Linux
-to learning to use it most efficiently. A listing of GNU/Linux User's
-Groups is available at http://www.linux.org/groups/
+We chose MIPS and a simulator deliberately. MIPS is a clean, regular
+instruction set, designed for teaching, without the decades of special
+cases that a chip like the x86 has accumulated. And because spimulator
+*simulates* the processor in software, you do not need any particular
+hardware or operating system to follow along: spimulator runs on Linux,
+macOS, and Windows. You hand it an assembly-source file and it
+assembles and runs the program for you, behaving — from the shell's
+point of view — like any other program. It reads standard input, writes
+standard output, opens files, takes command-line arguments, and returns
+a status code the shell can read with ``$?``.
 
-All of these programs have been tested using Red Hat Linux 8.0, and
-should work with any other GNU/Linux distribution, too. [2]_ They will
-not work with non-Linux operating systems such as BSD or other systems.
-However, all of the *skills* learned in this book should be easily
-transferable to any other system.
+To follow along, install spimulator (see the project's build
+instructions), and confirm it runs::
 
-If you do not have access to a GNU/Linux machine, you can look for a
-hosting provider who offers a Linux *shell account*, which is a
-command-line only interface to a Linux machine. There are many low-cost
-shell account providers, but you have to make sure that they match the
-requirements above (i.e. - Linux on x86). Someone at your local
-GNU/Linux User's Group may be able to give you one as well. Shell
-accounts only require that you already have an Internet connection and a
-telnet program. If you use Windows, you already have a telnet client -
-just click on ``start``, then ``run``, then type in ``telnet``. However,
-it is usually better to download PuTTY from
-http://www.chiart.greenend.co.uk/~sgtatham/putty/ because Windows'
-telnet has some weird problems. There are a lot of options for the
-Macintosh, too. NiftyTelnet is my favorite.
+   spimulator -f some-program.asm
 
-If you don't have GNU/Linux and can't find a shell account service, then
-you can download Knoppix from http://www.knoppix.org/ Knoppix is a
-GNU/Linux distribution that boots from CD so that you don't have to
-actually install it. Once you are done using it, you just reboot and
-remove the CD and you are back to your regular operating system.
+That single command assembles and runs the program — there is no
+separate compile, link, and run cycle to manage.
 
-So what is GNU/Linux? GNU/Linux is an operating system modeled after
-UNIX. The GNU part comes from the `GNU
-Project <http://www.gnu.org/>`__\  [3]_, which includes most of the
-programs you will run, including the GCC tool set that we will use to
-program with. The GCC tool set contains all of the programs necessary to
-create programs in various computer languages.
+Even though spimulator is a simulator, the skills are real and
+transferable. The way a program asks the operating system for a service,
+manages a stack, lays out records in memory, and hands a status back to
+the shell is the same idea on every system — only the spellings change.
 
-Linux is the name of the *kernel*. The kernel is the core part of an
-operating system that keeps track of everything. The kernel is both a
+Assembly programming lives right at the boundary between a program and
+the operating system, so it helps to know what an operating system is.
+At its core is the *kernel*. The kernel is the core part of an operating
+system that keeps track of everything — on a real machine it is a program
+such as Linux (the kernel of the GNU/Linux system, modeled after UNIX).
+spimulator plays this role itself: it emulates a tiny operating system,
+answering the ``syscall`` instruction with the services listed in
+:ref:`syscallap`. The kernel is both a
 fence and a gate. As a gate, it allows programs to access hardware in a
 uniform way. Without the kernel, you would have to write programs to
 deal with every device model ever made. The kernel handles all
@@ -178,13 +167,13 @@ each other's data and from accessing files and devices that they don't
 have permission to. It limits the amount of damage a poorly-written
 program can do to other running programs.
 
-In our case, the kernel is Linux. Now, the kernel all by itself won't do
-anything. You can't even boot up a computer with just a kernel. Think of
-the kernel as the water pipes for a house. Without the pipes, the
-faucets won't work, but the pipes are pretty useless if there are no
-faucets. Together, the user applications (from the GNU project and other
-places) and the kernel (Linux) make up the entire operating system,
-GNU/Linux.
+In our case, the role of the kernel is played by spimulator, which
+provides the same kinds of services — reading input, writing output,
+opening files, ending the program with a status — through its
+``syscall`` interface. On a real machine the kernel (such as Linux)
+does this for actual hardware; spimulator does it in software, which is
+exactly what lets you learn the ideas without a particular operating
+system underneath you.
 
 For the most part, this book will be using the computer's low-level
 assembly language. There are essentially three kinds of languages:
@@ -209,18 +198,3 @@ In this book we will learn assembly language, although we will cover a
 bit of high-level languages. Hopefully by learning assembly language,
 your understanding of how programming and computers work will put you a
 step ahead.
-
-.. [1]
-   This is quite a large document. You certainly don't need to know
-   everything to get started with this book. You simply need to know how
-   to navigate from the command line and how to use an editor like
-   ``pico``, ``emacs``, or ``vi`` (or others).
-
-.. [2]
-   By "GNU/Linux distribution", I mean an x86 GNU/Linux distribution.
-   GNU/Linux distributions for the Power Macintosh, the Alpha processor,
-   or other processors will not work with this book.
-
-.. [3]
-   The GNU Project is a project by the Free Software Foundation to
-   produce a complete, free operating system.

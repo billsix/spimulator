@@ -147,8 +147,8 @@ Some Terms
 
 Computer memory is a numbered sequence of fixed-size storage locations.
 The number attached to each storage location is called its *address*.
-The size of a single storage location is called a *byte*. On x86
-processors, a byte is a number between 0 and 255.
+The size of a single storage location is called a *byte*. On MIPS, like
+most processors, a byte is a number between 0 and 255.
 
 You may be wondering how computers can display and use text, graphics,
 and even large numbers when all they can do is store numbers between 0
@@ -191,14 +191,14 @@ the desk. Registers keep the contents of numbers that you are currently
 manipulating.
 
 On the computers we are using, registers are each four bytes long. The
-size of a typical register is called a computer's *word* size. x86
+size of a typical register is called a computer's *word* size. MIPS
 processors have four-byte words. This means that it is most natural on
 these computers to do computations four bytes at a time. [2]_ This gives
 us roughly 4 billion values.
 
 Addresses are also four bytes (1 word) long, and therefore also fit into
-a register. x86 processors can access up to 4294967296 bytes if enough
-memory is installed. Notice that this means that we can store addresses
+a register. A 32-bit MIPS processor can address up to 4294967296 bytes
+if enough memory is installed. Notice that this means that we can store addresses
 the same way we store any other number. In fact, the computer can't tell
 the difference between a value that is an address, a value that is a
 number, a value that is an ASCII code, or a value that you have decided
@@ -291,67 +291,59 @@ record.
 Data Accessing Methods
 ----------------------
 
-Processors have a number of different ways of accessing data, known as
-addressing modes. The simplest mode is *immediate mode*, in which the
-data to access is embedded in the instruction itself. For example, if we
-want to initialize a register to 0, instead of giving the computer an
-address to read the 0 from, we would specify immediate mode, and give it
-the number 0.
+Processors have several ways of accessing data, called *addressing
+modes*. MIPS keeps the set small and regular.
 
-In the *register addressing mode*, the instruction contains a register
-to access, rather than a memory location. The rest of the modes will
-deal with addresses.
+The simplest is *immediate mode*, where the data is part of the
+instruction itself. To put 0 into a register you do not give an address
+to read 0 from — you give the number 0 directly: ``li $t0, 0``.
 
-In the *direct addressing mode*, the instruction contains the memory
-address to access. For example, I could say, please load this register
-with the data at address 2002. The computer would go directly to byte
-number 2002 and copy the contents into our register.
+In *register mode*, the operand is a register rather than memory:
+``add $t0, $t1, $t2`` adds two registers into a third. Arithmetic on
+MIPS is always register-to-register — this is the load/store
+architecture introduced in :ref:`firstprogs`.
 
-In the *indexed addressing mode*, the instruction contains a memory
-address to access, and also specifies an *index register* to offset that
-address. For example, we could specify address 2002 and an index
-register. If the index register contains the number 4, the actual
-address the data is loaded from would be 2006. This way, if you have a
-set of numbers starting at location 2002, you can cycle between each of
-them using an index register. On x86 processors, you can also specify a
-*multiplier* for the index. This allows you to access memory a byte at a
-time or a word at a time (4 bytes). If you are accessing an entire word,
-your index will need to be multiplied by 4 to get the exact location of
-the fourth element from your address. For example, if you wanted to
-access the fourth byte from location 2002, you would load your index
-register with 3 (remember, we start counting at 0) and set the
-multiplier to 1 since you are going a byte at a time. This would get you
-location 2005. However, if you wanted to access the fourth word from
-location 2002, you would load your index register with 3 and set the
-multiplier to 4. This would load from location 2014 - the fourth word.
-Take the time to calculate these yourself to make sure you understand
-how it works.
+To reach memory, MIPS has essentially **one** mode:
+*base-plus-offset*. You give a register holding a base address and a
+constant offset, and the instruction accesses ``offset + base``:
 
-In the *indirect addressing mode*, the instruction contains a register
-that contains a pointer to where the data should be accessed. For
-example, if we used indirect addressing mode and specified the
-%eax register, and the %eax register contained the value
-4, whatever value was at memory location 4 would be used. In direct
-addressing, we would just load the value 4, but in indirect addressing,
-we use 4 as the address to use to find the data we want.
+::
 
-Finally, there is the *base pointer addressing mode*. This is similar to
-indirect addressing, but you also include a number called the *offset*
-to add to the register's value before using it for lookup. We will use
-this mode quite a bit in this book.
+       lw $t0, 8($t1)     # load the word at address ($t1 + 8)
 
-In :ref:`interpretingmemory` we discussed having a
-structure in memory holding customer information. Let's say we wanted to
-access the customer's age, which was the eighth byte of the data, and we
-had the address of the start of the structure in a register. We could
-use base pointer addressing and specify the register as the base
-pointer, and 8 as our offset. This is a lot like indexed addressing,
-with the difference that the offset is constant and the pointer is held
-in a register, and in indexed addressing the offset is in a register and
-the pointer is constant.
+This single form covers what other processors split into several
+separate modes:
 
-There are other forms of addressing, but these are the most important
-ones.
+-  with an offset of 0, it is plain *indirect* addressing — just follow
+   the pointer held in the register (``lw $t0, 0($t1)``);
+-  with a constant offset, it is *base-pointer* addressing — reach a
+   field a fixed distance into a structure (the customer's age at offset
+   8 from the start of the record: ``lw $t0, 8($t1)``).
+
+What MIPS does **not** have is a scaled *index* mode. On some processors
+(the i386 this book started on, for one) a single instruction can
+combine a base address, an index register, and a multiplier — so
+``array(,index,4)`` reads the index-th word automatically. MIPS makes
+you do that arithmetic yourself: to read the index-th word of an array,
+shift the index left by 2 (multiply by 4, the word size) to get a byte
+offset, add it to the base address, and load:
+
+::
+
+       sll  $t2, $t1, 2   # $t2 = index * 4   (word size in bytes)
+       add  $t2, $t0, $t2 # $t2 = &array[index]
+       lw   $t3, 0($t2)   # $t3 = array[index]
+
+You saw the same idea — stepping a pointer forward by 4 each time
+through a loop — in the ``maximum`` program in :ref:`firstprogs`. The
+cost is a couple of extra instructions; the gain is a simpler, more
+uniform processor.
+
+There is likewise no single-instruction *direct* mode that loads from a
+fixed absolute address. To get an address into a register you use
+``la`` (which the assembler expands into a ``lui``/``ori`` pair), and
+then access memory through that register. On MIPS, everything
+ultimately goes through a register.
 
 Review
 ------
@@ -423,13 +415,13 @@ Going Further
    :ref:`asciilisting`.
 
 .. [2]
-   Previous incarnations of x86 processors only had two-byte words.
-   Therefore, most other literature dealing with x86 processors refers
-   to two-byte entities as words for historical reasons, and therefore
-   refer to four-byte entities as double-words. We are using the term
-   *word* to mean the normal register size of a computer, which in this
-   case is four bytes. More information is available in
-   :ref:`instructionsappendix`,
+   A note on terminology: a "word" means the natural register size of a
+   processor. On MIPS that is four bytes, so we use *word* to mean four
+   bytes throughout. (Beware that some other architectures' literature —
+   x86's especially, for historical reasons — uses *word* for two bytes
+   and *doubleword* for four; that is not our usage here.) MIPS assembler
+   directives follow our convention: ``.word`` lays down four-byte
+   quantities. More on the instructions in :ref:`instructionsappendix`.
 
 .. [3]
    Note that here we are talking about general computer theory. Some

@@ -197,26 +197,25 @@ several outside of the areas you normally program in.
 Further Resources on Assembly Language
 --------------------------------------
 
-In assembly language, your best resources are on the web.
+For MIPS assembly specifically, good resources include:
 
--  http://www.linuxassembly.org/ - a great resource for Linux assembly
-   language programmers
+-  *Computer Organization and Design: The Hardware/Software Interface*
+   by David Patterson and John Hennessy — the standard text, built
+   around the MIPS instruction set. Its Appendix A (Larus's "SPIM"
+   appendix) documents the very simulator this book uses.
 
--  http://www.sandpile.org/ - a repository of reference material on x86,
-   x86-64, and compatible processors
+-  *See MIPS Run* by Dominic Sweetman — a thorough treatment of the MIPS
+   architecture and its system-level details.
 
--  http://www.x86.org/ - Dr. Dobb's Journal Microprocessor Resources
+-  The MIPS32 Architecture reference manuals (the instruction-set and
+   privileged-architecture volumes) — the authoritative ISA definition.
 
--  http://www.drpaulcarter.com/pcasm/ - Dr. Paul Carter's PC Assembly
-   Language Page
+-  The documentation for spim and for MARS (another MIPS simulator
+   widely used in courses); both describe the same system-call interface
+   and assembler directives you have used here.
 
--  http://webster.cs.ucr.edu/ - The Art of Assembly Home Page
-
--  http://www.intel.com/design/pentium/manuals/ - Intel's manuals for
-   their processors
-
--  http://www.janw.easynet.be/ - Jan Wagemaker's Linux assembly language
-   examples
-
--  http://www.azillionmonkeys.com/qed/asm.html - Paul Hsieh's x86
-   Assembly Page
+The skills transfer beyond MIPS, too. Once you are comfortable here,
+reading another architecture's manual — x86-64, ARM, RISC-V — is mostly
+a matter of learning a new register set, a new set of mnemonics, and a
+new calling convention; the underlying ideas are the ones this book
+taught.

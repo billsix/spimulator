@@ -200,31 +200,33 @@ Optimized Instructions
    from processor to processor. For more information on this topic, you
    need to see the user's manual that is provided for the specific chip
    you are using. As an example, let's look at the process of loading
-   the number 0 into a register. On most processors, doing a
-   ``movl $0, %eax`` is not the quickest way. The quickest way is to
-   exclusive-or the register with itself, ``xorl %eax, %eax``. This is
-   because it only has to access the register, and doesn't have to
-   transfer any data. For users of high-level languages, the compiler
-   handles this kind of optimizations for you. For assembly-language
-   programmers, you need to know your processor well.
+   the number 0 into a register. On many processors a register-only
+   trick is cheaper than moving a constant in: instead of ``li $t0, 0``
+   you can exclusive-or the register with itself, ``xor $t0, $t0, $t0``,
+   which only touches the register and transfers no data. (On MIPS you
+   also have ``$zero``, a register that always reads as 0, so often you
+   need no instruction at all — just use ``$zero`` directly.) For users
+   of high-level languages, the compiler handles this kind of thing for
+   you; assembly-language programmers need to know their processor well.
 
 Addressing Modes
-   Different addressing modes work at different speeds. The fastest are
-   the immediate and register addressing modes. Direct is the next
-   fastest, indirect is next, and base pointer and indexed indirect are
-   the slowest. Try to use the faster addressing modes, when possible.
-   One interesting consequence of this is that when you have a
-   structured piece of memory that you are accessing using base pointer
-   addressing, the first element can be accessed the quickest. Since its
-   offset is 0, you can access it using indirect addressing instead of
-   base pointer addressing, which makes it faster.
+   On a CISC processor with many addressing modes, some are faster than
+   others. MIPS deliberately has very few — immediate, register, and
+   base-plus-offset — and they are of roughly uniform cost, which is one
+   of the points of a RISC design. One small consequence still holds:
+   when you walk a structure with base-plus-offset addressing, the field
+   at offset 0 is reached with the simplest form (``lw $t0, 0($t1)``),
+   so laying out the most frequently accessed field first costs nothing
+   extra.
 
 Data Alignment
-   Some processors can access data on word-aligned memory boundaries
-   (i.e. - addresses divisible by the word size) faster than non-aligned
-   data. So, when setting up structures in memory, it is best to keep it
-   word-aligned. Some non-x86 processors, in fact, cannot access
-   non-aligned data in some modes.
+   Many processors access word-aligned data (addresses divisible by the
+   word size) faster than non-aligned data, so it is good practice to
+   keep structures word-aligned. On MIPS this is not merely faster — a
+   ``lw`` or ``sw`` of a word at a non-aligned address is illegal and
+   traps with an address error (you saw this with the record buffer in
+   :ref:`records`). So on MIPS, aligning your words is a correctness
+   requirement, not just an optimization.
 
 These are just a smattering of examples of the kinds of local
 optimizations possible. However, remember that the maintainability and

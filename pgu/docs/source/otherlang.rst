@@ -172,7 +172,7 @@ lines are simply comments about the program.
 Then there is the line ``int main(int argc, char **argv)``. This is the
 start of a function. C Functions are declared with their name, arguments
 and return type. This declaration says that the function's name is
-``main``, it returns an ``int`` (integer - 4 bytes long on the x86
+``main``, it returns an ``int`` (integer - 4 bytes long on MIPS, like x86
 platform), and has two arguments - an ``int`` called ``argc`` and a
 ``char **`` called ``argv``. You don't have to worry about where the
 arguments are positioned on the stack - the C compiler takes care of
@@ -196,8 +196,9 @@ the pointers to that storage onto the stack before calling the function.
 As you can see, it's a lot less work.
 
 Finally our function returns the number ``0``. In assembly language, we
-stored our return value in %eax, but in C we just use the
-``return`` command and it takes care of that for us. The return value of
+put our return value in ``$v0`` (or handed it straight to the exit
+syscall), but in C we just use the ``return`` command and it takes care
+of that for us. The return value of
 the ``main`` function is what is used as the exit code for the program.
 
 As you can see, using high-level languages makes life much easier. It

@@ -1,0 +1,11 @@
+# Sphinx / book build artifacts
+docs/build/
+output/
+
+# SVG-derived figures, rasterized by `make html/pdf/epub` (inkscape).
+# Ignore every _static/*.png, then re-include the source bitmaps that
+# have no .svg origin and ARE committed.
+docs/source/_static/*.png
+!docs/source/_static/cip.png
+!docs/source/_static/isbn.png
+!docs/source/_static/memorylayout.png

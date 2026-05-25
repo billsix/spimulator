@@ -57,7 +57,7 @@ to work anyway. It doesn't report any error message so the user won't
 even know that they typed in the name wrong. Let's say that the
 destination file is on a network drive, and the network temporarily
 fails. The operating system is returning a status code to us in
-%eax, but we aren't checking it. Therefore, if a failure
+``$v0``, but we aren't checking it. Therefore, if a failure
 occurs, the user is totally unaware. This program is definitely not
 robust. As you can see, even in a simple program there are a lot of
 things that can go wrong that a programmer must contend with.
@@ -271,74 +271,68 @@ single recovery point that covers the whole program. The only thing we
 will do to recover is to print the error and exit. The code to do that
 is pretty simple:
 
-.. literalinclude:: ../../src/error-exit.s
-   :language: asm
-   :linenos:
-   :lineno-match:
-   :caption: src/error-exit.s
+.. literalinclude:: ../../src/error-exit.asm
+   :language: gas
+   :start-after: doc-region-begin error exit
+   :end-before: doc-region-end error exit
+   :caption: error-exit.asm — the error_exit function
 
-Enter it in a file called ``error-exit.s``. To call it, you just need to
-push the address of an error message, and then an error code onto the
-stack, and call the function.
+Put it in a file called ``error-exit.asm``. To call it, put the
+error-code string's address in ``$a0`` and the message string's address
+in ``$a1``, then ``jal error_exit`` — it never returns, since it exits
+the program.
 
 Now let's look for potential error spots in our ``add-year`` program.
-First of all, we don't check to see if either of our ``open`` system
-calls actually complete properly. Linux returns its status code in
-%eax, so we need to check and see if there is an error.
+First of all, we don't check whether either of our ``open`` system calls
+actually completed. spimulator returns the status in ``$v0``, so we need
+to check it for an error.
 
 ::
 
-       #Open file for reading
-       movl  $SYS_OPEN, %eax
-       movl  $input_file_name, %ebx
-       movl  $0, %ecx
-       movl  $0666, %edx
-       int   $LINUX_SYSCALL
-
-       movl  %eax, ST_INPUT_DESCRIPTOR(%ebp)
-
-       #This will test and see if %eax is
-       #negative.  If it is not negative, it
-       #will jump to continue_processing.
-       #Otherwise it will handle the error
-       #condition that the negative number
-       #represents.
-       cmpl  $0, %eax
-       jl    continue_processing
-
-
-       #Send the error
-       .section .data
+       .data
    no_open_file_code:
-       .ascii "0001: \0"
+       .asciiz "0001: "
    no_open_file_msg:
-       .ascii "Can't Open Input File\0"
+       .asciiz "Can't Open Input File"
 
-       .section .text
-       pushl $no_open_file_msg
-       pushl $no_open_file_code
-       call  error_exit
+       .text
+       # Open the input file for reading
+       la   $a0, input_file_name
+       li   $a1, 0              # O_RDONLY
+       li   $a2, 0
+       li   $v0, 13            # open
+       syscall
+       move $s2, $v0            # save the descriptor
+
+       # open returns a negative number on failure.  If $v0 is NOT
+       # negative, we are fine; otherwise report the error and exit.
+       bgez $v0, continue_processing
+
+       la   $a0, no_open_file_code
+       la   $a1, no_open_file_msg
+       j    error_exit          # never returns
 
    continue_processing:
-       #Rest of program
+       # ... rest of the program ...
 
-So, after calling the system call, we check and see if we have an error
-by checking to see if the result of the system call is less than zero.
-If so, we call our error reporting and exit routine.
+So, after the system call, we check whether it failed by testing whether
+its result is negative (``bgez`` branches when ``$v0`` is zero or
+greater). If it failed, we call our error-reporting-and-exit routine.
 
 After every system call, function call, or instruction which can have
 erroneous results you should add error checking and handling code.
 
-To assemble and link the files, do:
+spimulator can load several source files into one program at once —
+each with its own ``-f`` — so an ``add-year`` that calls ``error_exit``
+would be run as::
 
-::
+   spimulator -f add-year.asm -f error-exit.asm
 
-   as -32 add-year.s -o add-year.o
-   as -32 error-exit.s -o error-exit.o
-   ld -m elf_i386 add-year.o write-newline.o error-exit.o read-record.o write-record.o count-chars.o -o add-year
-
-Now try to run it without the necessary files. It now exits cleanly and
-gracefully!
+The files share one address space; a ``.globl`` symbol such as
+``error_exit`` defined in one is reachable from the other. (Just be sure
+only one of them defines ``main``.) Now try running it with a missing
+input file: instead of silently misbehaving, it reports the error on
+standard error and exits with status 1.
 
 Review
 ------

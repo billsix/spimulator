@@ -1,5 +1,6 @@
 ..
    Copyright 2002 Jonathan Bartlett
+   Copyright 2026 William Emerison Six (MIPS/spimulator port)
 
    Permission is granted to copy, distribute and/or modify this
    document under the terms of the GNU Free Documentation License,
@@ -35,3 +36,13 @@ Document History
 -  04/18/2004 - Version 1.1 - Lots of minor updates based on reader
    comments.  Made cleared distinction between dynamic and shared
    libraries.
+-  2026 - MIPS/spimulator port (William Emerison Six) - Retargeted the
+   book from i386 Linux assembly to MIPS assembly running on the
+   spimulator simulator.  Rewrote the example programs in MIPS and
+   reworked the prose to match: the syscall mechanism (``syscall``
+   with ``$v0``/``$a0``), the load/store architecture, the o32 calling
+   convention, ``sbrk``-based allocation, and the spimulator system-call
+   table.  Replaced the x86 instruction and syscall appendices with MIPS
+   equivalents, reframed the linking chapter (spimulator has no linker),
+   condensed the virtual-memory discussion (spimulator presents a flat
+   address space), and dropped the GUI appendix (spimulator has no GUI).

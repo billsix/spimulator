@@ -1,5 +1,6 @@
 ..
    Copyright 2002 Jonathan Bartlett
+   Copyright 2026 William Emerison Six (MIPS/spimulator port)
 
    Permission is granted to copy, distribute and/or modify this
    document under the terms of the GNU Free Documentation License,
@@ -212,7 +213,7 @@ right, so from the bottom up you have 11101011001001.
 
 Each digit in a binary number is called a *bit*, which stands for
 *binary digit*. Remember, computers divide up their memory into storage
-locations called bytes. Each storage location on an x86 processor (and
+locations called bytes. Each storage location on a MIPS processor (and
 most others) is 8 bits long. Earlier we said that a byte can hold any
 number between 0 and 255. The reason for this is that the largest number
 you can fit into 8 bits is 255. You can see this for yourself if you
@@ -234,8 +235,8 @@ number you can hold in 32 bits is 4294967295 (4 billion). The largest
 number you can hold in 64 bits is 18,446,744,073,709,551,615. The
 largest number you can hold in 128 bits is
 340,282,366,920,938,463,463,374,607,431,768,211,456. Anyway, you see the
-picture. For x86 processors, most of the time you will deal with 4-byte
-numbers (32 bits), because that's the size of the registers.
+picture. On MIPS, most of the time you will deal with 4-byte
+numbers (32 bits), because that's the size of a register.
 
 .. _truthbinarynumbers:
 
@@ -382,13 +383,13 @@ example, the code
 
 ::
 
-       movl  $0, %eax
+       li   $t0, 0
 
 is often replaced by
 
 ::
 
-       xorl  %eax, %eax
+       xor  $t0, $t0, $t0
 
 We'll discuss speed more in :ref:`optimizationch`, but I want you to
 see how programmers often do tricky things, especially with these binary
@@ -540,26 +541,22 @@ the results. The code would look like this:
 
 ::
 
-       #NOTE - assume that the register %ebx holds
+       #NOTE - assume that register $t0 holds
        #       my Dad's preferences
 
-       movl  %ebx, %eax #This copies the information into %eax so
-                        #we don't lose the original data
+       srl  $t1, $t0, 1   #Shift Right Logical: shift $t0 right by 1
+                          #position and put the result in $t1.  On
+                          #MIPS the destination, the source, and the
+                          #shift amount are all named explicitly, and
+                          #the original ($t0) is left untouched.
 
-       shrl  $1, %eax   #This is the shift operator.  It stands
-                        #for Shift Right Long.  This first number
-                        #is the number of positions to shift,
-                        #and the second is the register to shift
+       #This does the masking: keep only the low bit
+       andi $t1, $t1, 1
 
-       #This does the masking
-       andl  $0b00000000000000000000000000000001, %eax
+       #The low bit is now 0 or 1; branch on it directly
+       bne  $t1, $zero, yes_he_likes_dressy_clothes
 
-       #Check to see if the result is 1 or 0
-       cmpl  $0b00000000000000000000000000000001, %eax
-
-       je    yes_he_likes_dressy_clothes
-
-       jmp   no_he_doesnt_like_dressy_clothes
+       j    no_he_doesnt_like_dressy_clothes
 
 And then we would have two labels which printed something about whether
 or not he likes dressy clothes and then exits. The ``0b`` notation means
@@ -617,35 +614,36 @@ The Program Status Register
 ---------------------------
 
 We've seen how bits on a register can be used to give the answers of
-yes/no and true/false statements. On your computer, there is a register
-called the *program status register*. This register holds a lot of
-information about what happens in a computation. For example, have you
-ever wondered what would happen if you added two numbers and the result
-was larger than would fit in a register? The program status register has
-a flag called the carry flag. You can test it to see if the last
-computation overflowed the register. There are flags for a number of
-different statuses. In fact, when you do a compare (``cmpl``)
-instruction, the result is stored in this register. The conditional jump
-instructions (``jge``, ``jne``, etc) use these results to tell whether
-or not they should jump. ``jmp``, the unconditional jump, doesn't
-care what is in the status register, since it is unconditional.
+yes/no and true/false statements. The i386 processor this book started
+on kept the results of comparisons in a special *program status
+register* — a set of flags (carry, zero, sign, and so on) that the
+conditional jumps then consulted.
 
-Let's say you needed to store a number larger than 32 bits. So, let's
-say the number is 2 registers wide, or 64 bits. How could you handle
-this? If you wanted to add two 64 bit numbers, you would add the least
-significant registers first. Then, if you detected an carry, you could
-add 1 to the most significant register. In fact, this is probably the
-way you learned to do decimal addition. If the result in one column is
-more than 9, you simply carried the number to the next most significant
-column. If you added 65 and 37, first you add 7 and 4 to get 12. You
-keep the 2 in the right column, and carry the one to the next column.
-There you add 6, 3, and the 1 you carried. This results in 10. So, you
-keep the zero in that column and carry the one to the next most
-significant column, which is empty, so you just put the one there.
-Luckily, 32 bits is usually big enough to hold the numbers we use
-regularly.
+MIPS works differently, and more simply: **there is no flags register.**
+A comparison instruction such as ``slt`` ("set less than") writes its
+yes/no answer — 1 or 0 — into an ordinary register, and the branch
+instructions compare registers directly: ``beq`` (branch if equal),
+``bne`` (not equal), ``blt`` (less than), ``bge`` (greater or equal),
+and so on. The unconditional jump ``j`` looks at nothing, since it is
+unconditional. Because the answer of a comparison lives in a normal
+register, you can keep it, copy it, or compute with it like any other
+value.
 
-Additional program status register flags are examined in
+Now, have you ever wondered what happens if you add two numbers and the
+result is larger than fits in a register? On MIPS, ``add`` raises an
+exception on signed overflow, while ``addu`` simply wraps around. Say
+you needed a number wider than 32 bits — two registers wide, or 64
+bits. To add two such numbers you add the least-significant halves
+first; if that sum *wrapped*, you add 1 to the most-significant half.
+You detect the wrap with ``sltu`` ("set less than, unsigned"): if the
+unsigned sum came out *less than* one of the values you added, it must
+have carried. This is exactly the way you learned decimal addition — if
+a column exceeds 9 you carry 1 into the next column. If you add 65 and
+37, you add 7 and 4 to get 12, keep the 2, and carry the 1; then 6 + 3 +
+1 = 10, keep the 0 and carry the 1 into the next column. Luckily, 32
+bits is usually big enough for the numbers we use regularly.
+
+The full set of MIPS comparison and branch instructions is listed in
 :ref:`instructionsappendix`.
 
 Other Numbering Systems
@@ -687,7 +685,7 @@ sufficiently big, adding 1 to it might not even register in the mantissa
 (remember, both parts are only so long). This affects several things,
 especially order of operations. If you add 1.0 to a given floating point
 number, it might not even affect the number if it is large enough. For
-example, on x86 platforms, a four-byte floating-point number, although
+example, a four-byte (single-precision) floating-point number, although
 it can represent very large numbers, cannot have 1.0 added to it past
 16777216.0, because it is no longer significant. The number no longer
 changes when 1.0 is added to it. So, if there is a multiplication
@@ -756,12 +754,12 @@ digits with a 1. If we extend a positive number by 4 digits, we should
 fill the new digits with a 0. So, the extension of -3 from four to eight
 bits will yield ``11111101``.
 
-The x86 processor has different forms of several instructions depending
-on whether they expect the quantities they operate on to be signed or
-unsigned. These are listed in :ref:`instructionsappendix`. For
-example, the x86 processor has both a sign-preserving shift-right,
-``sarl``, and a shift-right which does not preserve the sign bit,
-``shrl``.
+MIPS has different instructions depending on whether a quantity is to be
+treated as signed or unsigned. These are listed in
+:ref:`instructionsappendix`. For example, MIPS has both a
+sign-preserving shift-right, ``sra`` ("shift right arithmetic," which
+fills the vacated high bits with copies of the sign bit), and a
+shift-right that fills with zeros, ``srl`` ("shift right logical").
 
 .. _octalhexadecimal:
 
@@ -817,13 +815,13 @@ register to 1, I can just do
 
 ::
 
-       movl  $0xFFFFFFFF, %eax
+       li   $t0, 0xFFFFFFFF
 
 Which is considerably easier and less error-prone than writing
 
 ::
 
-       movl  $0b11111111111111111111111111111111, %eax
+       li   $t0, 0b11111111111111111111111111111111
 
 Note also that hexadecimal numbers are prefixed with ``0x``. So, when we
 do
@@ -848,15 +846,18 @@ a low level is that, when bytes are written from registers to memory,
 their bytes are written out least-significant-portion-first. [1]_ What
 most people expect is that if they have a word in a register, say
 ``0x5d 23 ef ee`` (the spacing is so you can see where the bytes are),
-the bytes will be written to memory in that order. However, on x86
-processors, the bytes are actually written in reverse order. In memory
-the bytes would be ``0xee ef 23 5d`` on x86 processors. The bytes are
-written in reverse order from what they would appear conceptually, but
-the bits within the bytes are ordered normally.
+the bytes will be written to memory in that order. However, on a
+little-endian machine the bytes are actually written in reverse order.
+In memory the bytes would be ``0xee ef 23 5d``. The bytes are written in
+reverse order from what they would appear conceptually, but the bits
+within the bytes are ordered normally.
 
-Not all processors behave this way. The x86 processor is a
-*little-endian* processor, which means that it stores the "little end",
-or least-significant byte of its words first.
+This is the behavior you will see under spimulator on a typical host.
+spimulator stores words in the host computer's byte order, and the
+common desktop processors (x86-64, and most ARM configurations) are
+*little-endian* — they store the "little end", or least-significant
+byte, of a word first. (Real MIPS hardware can be built either way;
+spimulator simply follows whatever host it runs on.)
 
 |Register-to-memory transfers on little-endian systems|
 
@@ -874,9 +875,9 @@ the bytes are in. The byte-switching magic happens automatically behind
 the scenes during register-to-memory transfers. However, the byte order
 can cause problems in several instances:
 
--  If you try to read in several bytes at a time using ``movl`` but deal
+-  If you try to read in several bytes at a time using ``lw`` but deal
    with them on a byte-by-byte basis using the least significant byte
-   (i.e. - by using %al and/or shifting of the register), this
+   (i.e. - by masking with ``andi`` and/or shifting the register), this
    will be in a different order than they appear in memory.
 
 -  If you read or write files written for different architectures, you
@@ -926,40 +927,31 @@ characters on the stack as we compute them. This way, as we pop them
 back off to fill in the buffer, it will be in the reverse order that we
 pushed them on.
 
-The code for the function should be put in a file called
-``integer-to-string.s`` and should be entered as follows:
+The conversion routine — ``integer_to_string`` — is the heart of the
+matter. It repeatedly divides by 10; each remainder is one decimal
+digit, turned into a character by adding ``'0'`` (48). Because the
+remainders come out least-significant first, it fills a buffer from the
+end backwards. ``div`` puts the quotient in ``LO`` (read with ``mflo``)
+and the remainder in ``HI`` (read with ``mfhi``). Put the routine, and
+a ``main`` that calls it, in a file called ``conversion-program.asm``:
 
+.. literalinclude:: ../../src/conversion-program.asm
+   :language: gas
+   :start-after: doc-region-begin integer to string
+   :end-before: doc-region-end integer to string
+   :caption: conversion-program.asm — integer to decimal string
 
-.. literalinclude:: ../../src/integer-to-string.s
-   :language: asm
-   :linenos:
-   :lineno-match:
-   :caption: src/integer-to-string.s
+The full program calls ``integer_to_string`` on the number 824, then
+prints the resulting text with ``print_string`` (syscall 4) followed by
+a newline. (The original i386 book linked together separate
+``integer-to-string``, ``count_chars``, and ``write_newline`` object
+files; under spimulator we keep one self-contained file and let
+``print_string`` find the string's end at its null terminator.) Build
+and run it in one step::
 
-To show this used in a full program, use the following code, along with
-the ``count_chars`` and ``write_newline`` functions written about in
-previous chapters. The code should be in a file called
-``conversion-program.s``.
+   spimulator -f conversion-program.asm
 
-
-.. literalinclude:: ../../src/conversion-program.s
-   :language: asm
-   :linenos:
-   :lineno-match:
-   :caption: src/conversion-program.s
-
-To build the program, issue the following commands:
-
-::
-
-   as -32 integer-to-string.s -o integer-to-number.o
-   as -32 count-chars.s -o count-chars.o
-   as -32 write-newline.s -o write-newline.o
-   as -32 conversion-program.s -o conversion-program.o
-   ld -m elf_i386 integer-to-number.o count-chars.o write-newline.o conversion-program.o -o conversion-program
-
-To run just type ``./conversion-program`` and the output should say
-``824``.
+The output should say ``824``.
 
 Review
 ------

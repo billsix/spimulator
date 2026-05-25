@@ -7,6 +7,14 @@ ARG USE_EMACS=0
 # Off by default since most spim users don't need it.
 ARG BUILD_TREE_SITTER=0
 
+# Install the toolchain to build the PGU book (the MIPS-on-spim port
+# under pgu/) into HTML/PDF/EPUB?  Adds Sphinx + furo + a full TeX
+# Live (~hundreds of MB), so it is a build-time opt-out.  The book
+# itself is built at runtime by the `docs`/`html`/`pdf`/`epub`
+# Makefile targets, which mount the repo and run sphinx-build inside
+# this image — nothing is built during `docker build`.
+ARG BUILD_DOCS=1
+
 # Build + install locations.  Override at build time with
 # `--build-arg SPIM_BUILD_DIR=...` or `--build-arg SPIM_PREFIX=...`.
 # `ENV` (not `ARG`) so subsequent RUN layers see them via $VAR
@@ -55,6 +63,31 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                   emacs-pgtk \
                   python3-lsp-server && \
       emacs --batch --load /root/.emacs.d/install-melpa-packages.el; \
+    fi ;
+
+# PGU book toolchain (gated by BUILD_DOCS).  Mirrors the deps in
+# pgu/Dockerfile: Sphinx + the furo theme for HTML/EPUB, latexmk +
+# TeX Live for PDF, inkscape to rasterize the book's SVG figures,
+# aspell for the docs spellcheck target, pandoc as a doc converter.
+RUN --mount=type=cache,target=/var/cache/libdnf5 \
+    --mount=type=cache,target=/var/lib/dnf \
+    if [ "$BUILD_DOCS" = "1" ]; then \
+      dnf install -y \
+                  aspell \
+                  aspell-en \
+                  inkscape \
+                  latexmk \
+                  pandoc \
+                  python3-furo \
+                  python3-pip \
+                  python3-sphinx \
+                  python3-sphinx-latex \
+                  python3-sphinx_rtd_theme \
+                  texlive \
+                  texlive-anyfontsize \
+                  texlive-dvipng \
+                  texlive-dvisvgm \
+                  texlive-standalone ; \
     fi ;
 
 COPY helloworld.s meson.build meson_options.txt ${SPIM_SRC_DIR}/

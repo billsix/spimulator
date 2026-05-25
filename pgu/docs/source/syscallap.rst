@@ -1,5 +1,6 @@
 ..
    Copyright 2002 Jonathan Bartlett
+   Copyright 2026 William Emerison Six (MIPS/spimulator port)
 
    Permission is granted to copy, distribute and/or modify this
    document under the terms of the GNU Free Documentation License,
@@ -7,136 +8,163 @@
    Foundation; with no Invariant Sections, with no Front-Cover Texts,
    and with no Back-Cover Texts.  A copy of the license is included in fdl.xml
 
+   This appendix was rewritten for the MIPS/spimulator edition: the original
+   listed i386 Linux system calls (number in %eax, ``int $0x80``).  It
+   now lists spimulator's emulated system calls (number in $v0, ``syscall``).
+
 .. _syscallap:
 
 Important System Calls
 ======================
 
-These are some of the more important system calls to use when dealing
-with Linux. For most cases, however, it is best to use library functions
-rather than direct system calls, because the system calls were designed
-to be minimalistic while the library functions were designed to be easy
-to program with. For information about the Linux C library, see the
-manual at http://www.gnu.org/software/libc/manual/
+On a real machine, a *system call* is how a user program asks the
+operating-system kernel to do something it cannot do for itself —
+read a file, write to the terminal, allocate memory, or exit. The
+program puts a number identifying the service it wants into an
+agreed-upon register, puts the arguments into other agreed-upon
+registers, and executes a trap instruction that transfers control
+to the kernel.
 
-Remember that %eax holds the system call numbers, and
-that the return values and error codes are also stored in %eax.
+spimulator does not run on a real kernel. Instead, spimulator *emulates* a tiny
+operating system: when your program executes the ``syscall``
+instruction, spimulator itself looks at your registers and performs the
+requested service. The mechanism is the same one you would use on a
+real MIPS Linux box — only the implementation lives inside the
+simulator. (On i386 Linux, the program this book was originally
+written for, the equivalent trap is ``int $0x80`` with the call
+number in ``%eax``.)
 
-.. list-table:: Important Linux System Calls
+The convention is:
+
+* the **system-call number** goes in ``$v0``,
+* **arguments** go in ``$a0``, ``$a1``, ``$a2``, ``$a3`` (in order),
+* the ``syscall`` instruction performs the service, and
+* a **result**, if any, comes back in ``$v0`` (floating-point
+  results come back in ``$f0``).
+
+.. list-table:: spimulator System Calls
    :header-rows: 1
-   :widths: 4 6 14 10 10 30
+   :widths: 4 12 26 26
 
-   * - %eax
+   * - $v0
      - Name
-     - %ebx
-     - %ecx
-     - %edx
-     - Notes
+     - Arguments
+     - Result / Notes
    * - 1
-     - ``exit``
-     - return value (int)
-     -
-     -
-     - Exits the program
-   * - 3
-     - ``read``
-     - file descriptor
-     - buffer start
-     - buffer size (int)
-     - Reads into the given buffer
+     - ``print_int``
+     - ``$a0`` = integer
+     - Prints the integer in decimal.
    * - 4
-     - ``write``
-     - file descriptor
-     - buffer start
-     - buffer size (int)
-     - Writes the buffer to the file descriptor
+     - ``print_string``
+     - ``$a0`` = address of a null-terminated string
+     - Prints characters until the terminating 0 byte.
    * - 5
-     - ``open``
-     - null-terminated file name
-     - option list
-     - permission mode
-     - Opens the given file.  Returns the file descriptor or
-       an error number.
-   * - 6
-     - ``close``
-     - file descriptor
+     - ``read_int``
      -
+     - Reads a decimal integer from stdin; returns it in ``$v0``.
+   * - 8
+     - ``read_string``
+     - ``$a0`` = buffer, ``$a1`` = max length
+     - Reads a line into the buffer (``fgets`` semantics).
+   * - 9
+     - ``sbrk``
+     - ``$a0`` = number of bytes
+     - Allocates that many bytes of heap; returns the address of
+       the block in ``$v0``. The simulator's equivalent of ``brk``.
+   * - 10
+     - ``exit``
      -
-     - Closes the give file descriptor
+     - Ends the program with status **0**, always.
+   * - 11
+     - ``print_char``
+     - ``$a0`` = character
+     - Prints one byte.
    * - 12
-     - ``chdir``
-     - null-terminated directory name
+     - ``read_char``
      -
-     -
-     - Changes the current directory of your program.
-   * - 19
-     - ``lseek``
-     - file descriptor
-     - offset
-     - mode
-     - Reposition where you are in the given file.  The mode
-       (called the "whence") should be 0 for absolute
-       positioning, and 1 for relative positioning.
-   * - 20
-     - ``getpid``
-     -
-     -
-     -
-     - Returns the process ID of the current process.
-   * - 39
-     - ``mkdir``
-     - null-terminated directory name
-     - permission mode
-     -
-     - Creates the given directory.  Assumes all directories
-       leading up to it already exist.
-   * - 40
-     - ``rmdir``
-     - null-terminated directory name
-     -
-     -
-     - Removes the given directory.
-   * - 41
-     - ``dup``
-     - file descriptor
-     -
-     -
-     - Returns a new file descriptor that works just like the
-       existing file descriptor.
-   * - 42
-     - ``pipe``
-     - pipe array
-     -
-     -
-     - Creates two file descriptors, where writing on one
-       produces data to read on the other and vice-versa.
-       %ebx is a pointer to two words of storage to hold the
-       file descriptors.
-   * - 45
-     - ``brk``
-     - new system break
-     -
-     -
-     - Sets the system break (i.e. - the end of the data
-       section).  If the system break is 0, it simply returns
-       the current system break.
-   * - 54
-     - ``ioctl``
-     - file descriptor
-     - request
-     - arguments
-     - This is used to set parameters on device files.  Its
-       actual usage varies based on the type of file or device
-       your descriptor references.
+     - Reads one byte from stdin; returns it in ``$v0`` (-1 at EOF).
+   * - 13
+     - ``open``
+     - ``$a0`` = null-terminated filename, ``$a1`` = flags,
+       ``$a2`` = mode
+     - Opens/creates a file on the host filesystem; returns the file
+       descriptor in ``$v0`` (negative on error). See the flag values
+       below.
+   * - 14
+     - ``read``
+     - ``$a0`` = fd, ``$a1`` = buffer, ``$a2`` = count
+     - Reads up to ``count`` bytes; returns the number actually read
+       in ``$v0`` (0 at end of file).
+   * - 15
+     - ``write``
+     - ``$a0`` = fd, ``$a1`` = buffer, ``$a2`` = count
+     - Writes ``count`` bytes; returns the number written in ``$v0``.
+   * - 16
+     - ``close``
+     - ``$a0`` = fd
+     - Closes the file descriptor.
+   * - 17
+     - ``exit2``
+     - ``$a0`` = status
+     - Ends the program with the status code in ``$a0`` — this is the
+       value the shell sees as ``$?``. **This is the call to use when
+       you want your program to return a status**, since ``exit``
+       (syscall 10) always returns 0.
 
-A more complete listing of system calls, along with additional
-information is available at http://www.lxhp.in-berlin.de/lhpsyscal.html
-You can also get more information about a system call by typing in
-``man 2 SYSCALLNAME`` which will return you the information about the
-system call from section 2 of the UNIX manual. However, this refers to
-the usage of the system call from the C programming language, and may or
-may not be directly helpful.
+The standard file descriptors are the usual Unix ones: 0 is standard
+input, 1 is standard output, 2 is standard error. ``print_string``
+and ``print_char`` write to standard output; to write to standard
+error, use ``write`` (syscall 15) with ``$a0`` = 2.
 
-For information on how system calls are implemented on Linux, see the
-Linux Kernel 2.4 Internals section on how system calls are implemented
-at http://www.faqs.org/docs/kernel_2_4/lki-2.html#ss2.11
+The ``open`` syscall passes its flags (``$a1``) and mode (``$a2``)
+straight through to the *host* operating system's ``open()`` call, so
+the flag numbers are the host's, not spimulator's own. The values below
+are for **Linux** — which is what spimulator's container runs, and what
+the examples in this book assume. (On another host, for example macOS,
+constants such as ``O_CREAT`` have different numeric values; if you run
+on such a host, use that system's numbers.) The flags may be combined by
+adding them together:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 8 10 30
+
+   * - Value
+     - Name
+     - Meaning
+   * - 0
+     - ``O_RDONLY``
+     - open for reading
+   * - 1
+     - ``O_WRONLY``
+     - open for writing
+   * - 0x40 (64)
+     - ``O_CREAT``
+     - create the file if it does not exist
+   * - 0x200 (512)
+     - ``O_TRUNC``
+     - truncate the file to zero length on open
+
+So ``$a1`` = 65 (``1 | 0x40``) means "open for writing, creating the
+file if necessary," and ``$a2`` (the mode) of 420 is octal 0644 —
+the usual permissions for a newly created file.
+
+Returning a status to the shell
+--------------------------------
+
+Because spimulator behaves like an ordinary Unix process, the status your
+program returns is visible from the shell exactly as for any other
+program::
+
+   spimulator -f exit.asm ; echo $?
+
+A program returns a status in one of two ways:
+
+#. Explicitly, with ``syscall`` 17 (``exit2``) and the status in
+   ``$a0``.
+#. Implicitly, by ``jr $ra`` from ``main`` — spimulator's startup code takes
+   whatever value is in ``$v0`` at that moment and passes it to
+   ``exit2`` for you. Note that every ``syscall`` clobbers ``$v0`` with
+   the call number, so a program that does any I/O must set
+   ``$v0`` back to the desired status (often ``li $v0, 0``)
+   immediately before its final ``jr $ra``.

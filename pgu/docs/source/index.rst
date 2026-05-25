@@ -25,10 +25,10 @@ Programming From The Ground Up
    wherenext.rst
    records.rst
    gdbap.rst
+   examplesap.rst
    asciiap.rst
    cch.rst
    ctranslationap.rst
-   guiap.rst
    instructionsap.rst
    syscallap.rst
    historyap.rst

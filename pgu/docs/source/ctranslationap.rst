@@ -1,5 +1,6 @@
 ..
    Copyright 2002 Jonathan Bartlett
+   Copyright 2026 William Emerison Six (MIPS/spimulator port)
 
    Permission is granted to copy, distribute and/or modify this
    document under the terms of the GNU Free Documentation License,
@@ -7,254 +8,186 @@
    Foundation; with no Invariant Sections, with no Front-Cover Texts,
    and with no Back-Cover Texts.  A copy of the license is included in fdl.xml
 
+   Port note (2026): every assembly block retargeted from i386 to MIPS.
+   Notable MIPS differences called out: no .equ (literal offsets), no
+   dedicated `loop` instruction (use addi+branch), no leal (use la / add).
+
 .. _ctranslationap:
 
 C Idioms in Assembly Language
 =============================
 
-This appendix is for C programmers learning assembly language. It is
-meant to give a general idea about how C constructs can be implemented
-in assembly language.
+This appendix is for C programmers learning assembly language. It shows
+how the constructs you know in C map to MIPS assembly running on
+spimulator.
 
 If Statement
 ------------
 
-In C, an if statement consists of three parts - the condition, the true
-branch, and the false branch. However, since assembly language is not a
-block structured language, you have to work a little to implement the
-block-like nature of C. For example, look at the following C code:
+In C an ``if`` has a condition, a true branch, and a false branch:
 
 ::
 
-   if(a == b)
-   {
+   if (a == b) {
        /* True Branch Code Here */
-   }
-   else
-   {
+   } else {
        /* False Branch Code Here */
    }
-
    /* At This Point, Reconverge */
 
-In assembly language, this can be rendered as:
+Assembly language is linear, so you build the blocks by jumping around
+them. MIPS compares two registers directly in the branch instruction —
+there is no separate compare-then-test-flags step:
 
 ::
 
-       #Move a and b into registers for comparison
-       movl a, %eax
-       movl b, %ebx
+       lw   $t0, a            # load a and b into registers
+       lw   $t1, b
+       beq  $t0, $t1, true_branch   # if (a == b) take the true branch
 
-       #Compare
-       cmpl %eax, %ebx
-
-       #If True, go to true branch
-       je true_branch
-
-   false_branch:  #This label is unnecessary,
-                  #only here for documentation
-       #False Branch Code Here
-
-       #Jump to recovergence point
-       jmp reconverge
-
+   false_branch:             # (label only for documentation)
+       # False Branch Code Here
+       j    reconverge        # jump past the true branch
 
    true_branch:
-       #True Branch Code Here
-
+       # True Branch Code Here
 
    reconverge:
-       #Both branches recoverge to this point
+       # both branches continue from here
 
-As you can see, since assembly language is linear, the blocks have to
-jump around each other. Recovergence is handled by the programmer, not
-the system.
-
-A case statement is written just like a sequence of if statements.
+The branch family covers the comparisons directly: ``beq`` (==),
+``bne`` (!=), ``blt`` (<), ``ble`` (<=), ``bgt`` (>), ``bge`` (>=). A
+``switch``/``case`` statement is written as a sequence of these.
 
 Function Call
 -------------
 
-A function call in assembly language simply requires pushing the
-arguments to the function onto the stack in *reverse* order, and issuing
-a ``call`` instruction. After calling, the arguments are then popped
-back off of the stack. For example, consider the C code:
+On MIPS, the first four arguments go in ``$a0``–``$a3`` and you call
+with ``jal``; the return value comes back in ``$v0``. (Unlike the i386,
+nothing is pushed for these — and spimulator has no C library, so there
+is no ``printf`` to call; we call our own routine instead.) The C call
 
 ::
 
-       printf("The number is %d", 88);
+       int n = square(7);
 
-In assembly language, this would be rendered as:
+becomes
 
 ::
 
-       .section .data
-       text_string:
-       .ascii "The number is %d\0"
+       li   $a0, 7            # first argument
+       jal  square            # call; sets $ra, returns into $v0
+       move $t0, $v0          # n = the return value
 
-       .section .text
-       pushl $88
-       pushl $text_string
-       call  printf
-       popl  %eax
-       popl  %eax      #%eax is just a dummy variable,
-                       #nothing is actually being done
-                       #with the value.  You can also
-                       #directly re-adjust %esp to the
-                       #proper location.
+A function that itself makes calls must save ``$ra`` (and any
+callee-saved ``$s`` registers it uses) across them — see
+:ref:`functionschapter`.
 
 Variables and Assignment
 ------------------------
 
-Global and static variables are declared using ``.data`` or ``.bss``
-entries. Local variables are declared by reserving space on the stack at
-the beginning of the function. This space is given back at the end of
-the function.
-
-Interestingly, global variables are accessed differently than local
-variables in assembly language. Global variables are accessed using
-direct addressing, while local variables are accessed using base pointer
-addressing. For example, consider the following C code:
+Global and static variables live in the ``.data`` section; local
+variables are reserved on the stack at the start of a function and given
+back at the end. They are reached differently: a global through its
+label, a local through an offset from the stack pointer. Consider:
 
 ::
 
    int my_global_var;
 
-   int foo()
-   {
+   int foo() {
        int my_local_var;
-
        my_local_var = 1;
        my_global_var = 2;
-
        return 0;
    }
 
-This would be rendered in assembly language as:
+In MIPS (spimulator's assembler has no ``.equ``, so the local's stack
+offset is just written as a number, with a comment):
 
 ::
 
-       .section .data
-       .lcomm my_global_var, 4
+       .data
+   my_global_var:
+       .word 0
 
-       .type foo, @function
+       .text
    foo:
-       pushl %ebp            #Save old base pointer
-       movl  %esp, %ebp      #make stack pointer base pointer
-       subl  $4, %esp        #Make room for my_local_var
-       .equ my_local_var, -4 #Can now use my_local_var to
-                             #find the local variable
+       addi $sp, $sp, -4      # make room for my_local_var at 0($sp)
 
+       # my_local_var = 1
+       li   $t0, 1
+       sw   $t0, 0($sp)       # the local, at offset 0 in the frame
 
-       movl  $1, my_local_var(%ebp)
-       movl  $2, my_global_var
+       # my_global_var = 2
+       li   $t0, 2
+       la   $t1, my_global_var
+       sw   $t0, 0($t1)       # store through the global's address
 
-       movl  %ebp, %esp      #Clean up function and return
-       popl  %ebp
-       ret
+       addi $sp, $sp, 4       # release the frame
+       li   $v0, 0            # return 0
+       jr   $ra
 
-What may not be obvious is that accessing the global variable takes
-fewer machine cycles than accessing the local variable. However, that
-may not matter because the stack is more likely to be in physical memory
-(instead of swap) than the global variable is.
-
-Also note that in the C programming language, after the compiler loads a
-value into a register, that value will likely stay in that register
-until that register is needed for something else. It may also move
-registers. For example, if you have a variable ``foo``, it may start on
-the stack, but the compiler will eventually move it into registers for
-processing. If there aren't many variables in use, the value may simply
-stay in the register until it is needed again. Otherwise, when that
-register is needed for something else, the value, if it's changed, is
-copied back to its corresponding memory location. In C, you can use the
-keyword ``volatile`` to make sure all modifications and
-references to the variable are done to the memory location itself,
-rather than a register copy of it, in case other processes, threads, or
-hardware may be modifying the value while your function is running.
+Note that reaching the global takes an extra step on MIPS: you must
+first load its *address* with ``la`` (which the assembler expands to
+``lui``/``ori``), then load or store through that register. There is no
+single instruction that touches a named memory location — this is the
+load/store architecture again.
 
 Loops
 -----
 
-Loops work a lot like if statements in assembly language - the blocks
-are formed by jumping around. In C, a while loop consists of a loop
-body, and a test to determine whether or not it is time to exit the
-loop. A for loop is exactly the same, with optional initialization and
-counter-increment sections. These can simply be moved around to make a
-while loop.
-
-In C, a while loop looks like this:
+Loops are built from branches, just like ``if``. A C ``while``:
 
 ::
 
-       while(a < b)
-       {
+       while (a < b) {
            /* Do stuff here */
        }
 
-       /* Finished Looping */
-
-This can be rendered in assembly language like this:
+becomes
 
 ::
 
    loop_begin:
-       movl  a, %eax
-       movl  b, %ebx
-       cmpl  %eax, %ebx
-       jge   loop_end
+       lw   $t0, a
+       lw   $t1, b
+       bge  $t0, $t1, loop_end    # exit when !(a < b)
 
    loop_body:
-       #Do stuff here
-
-       jmp loop_begin
+       # Do stuff here
+       j    loop_begin
 
    loop_end:
-       #Finished looping
+       # finished looping
 
-The x86 assembly language has some direct support for looping as well.
-The %ecx register can be used as a counter that *ends*
-with zero. The ``loop`` instruction will decrement %ecx and
-jump to a specified address unless %ecx is zero. For example, if
-you wanted to execute a statement 100 times, you would do this in C:
+A ``for`` loop is the same with an initialization before the loop and an
+increment at the bottom. To run a body 100 times:
 
 ::
 
-       for(i=0; i < 100; i++)
-       {
-           /* Do process here */
-       }
-
-In assembly language it would be written like this:
+   for (i = 0; i < 100; i++) { /* ... */ }
 
 ::
 
-   loop_initialize:
-       movl $100, %ecx
+       li   $t0, 0            # i = 0
+       li   $t1, 100
    loop_begin:
-       #
-       #Do Process Here
-       #
+       bge  $t0, $t1, loop_end    # while (i < 100)
+       # Do process here
+       addi $t0, $t0, 1      # i++
+       j    loop_begin
+   loop_end:
 
-       #Decrement %ecx and loops if not zero
-       loop loop_begin
-
-   rest_of_program:
-       #Continues on to here
-
-One thing to notice is that the ``loop`` instruction *requires you to be
-counting backwards to zero*. If you need to count forwards or use
-another ending number, you should use the loop form which does not
-include the ``loop`` instruction.
-
-For really tight loops of character string operations, there is also the
-``rep`` instruction, but we will leave learning about that as an
-exercise to the reader.
+Unlike the i386, **MIPS has no dedicated ``loop`` instruction** that
+decrements a counter and branches; you increment (or decrement) a
+register yourself and use a conditional branch, as above. The regular,
+explicit form is the only form.
 
 Structs
 -------
 
-Structs are simply descriptions of memory blocks. For example, in C you
-can say:
+A struct is just a description of a block of memory. In C:
 
 ::
 
@@ -264,205 +197,107 @@ can say:
        int age;
    };
 
-This doesn't do anything by itself, except give you ways of
-intelligently using 84 bytes of data. You can do basically the same
-thing using ``.equ`` directives in assembly language. Like this:
+That is 84 bytes laid out at fixed offsets. With no ``.equ``, we record
+the offsets as named numbers in a comment and use them as literal
+constants:
 
 ::
 
-       .equ PERSON_SIZE, 84
-       .equ PERSON_FIRSTNAME_OFFSET, 0
-       .equ PERSON_LASTNAME_OFFSET, 40
-       .equ PERSON_AGE_OFFSET, 80
+   # struct person: firstname @0 (40), lastname @40 (40), age @80 (4)
+   # PERSON_SIZE = 84
 
-When you declare a variable of this type, all you are doing is reserving
-84 bytes of space. So, if you have this in C:
-
-::
-
-   void foo()
-   {
-       struct person p;
-
-       /* Do stuff here */
-   }
-
-In assembly language you would have:
+To reserve one as a local, make room on the stack; to set the age, store
+a word at the base of the struct plus the age offset (80):
 
 ::
 
    foo:
-       #Standard header beginning
-       pushl %ebp
-       movl %esp, %ebp
+       addi $sp, $sp, -84     # reserve a struct person at 0($sp)
 
-       #Reserve our local variable
-       subl $PERSON_SIZE, %esp
-       #This is the variable's offset from %ebp
-       .equ P_VAR, 0 - PERSON_SIZE
+       # p.age = 30;
+       li   $t0, 30
+       sw   $t0, 80($sp)      # base ($sp) + PERSON_AGE_OFFSET (80)
 
-       #Do Stuff Here
+       addi $sp, $sp, 84
+       jr   $ra
 
-       #Standard function ending
-       movl %ebp, %esp
-       popl %ebp
-       ret
-
-To access structure members, you just have to use base pointer
-addressing with the offsets defined above. For example, in C you could
-set the person's age like this:
-
-::
-
-       p.age = 30;
-
-In assembly language it would look like this:
-
-::
-
-       movl $30, P_VAR + PERSON_AGE_OFFSET(%ebp)
+(Because ``age`` is a word, the struct's base must be word-aligned —
+true here since ``$sp`` is always word-aligned. See :ref:`records`.)
 
 Pointers
 --------
 
-Pointers are very easy. Remember, pointers are simply the address that a
-value resides at. Let's start by taking a look at global variables. For
-example:
+A pointer is just an address held in a register or memory. Taking the
+address of a global is exactly what ``la`` does:
 
 ::
 
-   int global_data = 30;
-
-In assembly language, this would be:
+   int global_data = 30;          /* C */
+   a = &global_data;
 
 ::
 
-       .section .data
+       .data
    global_data:
-       .long 30
+       .word 30
 
-Taking the address of this data in C:
+       .text
+       la   $t0, global_data  # $t0 = &global_data
 
-::
-
-       a = &global_data;
-
-Taking the address of this data in assembly language:
+For a local variable, its address is its slot in the stack frame —
+compute it from ``$sp``:
 
 ::
 
-       movl $global_data, %eax
-
-You see, with assembly language, you are almost always accessing memory
-through pointers. That's what direct addressing is. To get the pointer
-itself, you just have to go with immediate mode addressing.
-
-Local variables are a little more difficult, but not much. Here is how
-you take the address of a local variable in C:
-
-::
-
-   void foo()
-   {
+   void foo() {
        int a;
        int *b;
-
        a = 30;
-
        b = &a;
-
        *b = 44;
    }
-
-The same code in assembly language:
 
 ::
 
    foo:
-       #Standard opening
-       pushl %ebp
-       movl  %esp, %ebp
+       addi $sp, $sp, -8      # a @0($sp), b @4($sp)
 
-       #Reserve two words of memory
-       subl  $8, %esp
-       .equ A_VAR, -4
-       .equ B_VAR, -8
+       li   $t0, 30
+       sw   $t0, 0($sp)       # a = 30
 
-       #a = 30
-       movl $30, A_VAR(%ebp)
+       addi $t0, $sp, 0       # b = &a   (the address of a's slot)
+       sw   $t0, 4($sp)       # store the pointer b
 
-       #b = &a
-       movl $A_VAR, B_VAR(%ebp)
-       addl %ebp, B_VAR(%ebp)
+       lw   $t1, 4($sp)       # load b
+       li   $t2, 44
+       sw   $t2, 0($t1)       # *b = 44
 
-       #*b = 44
-       movl B_VAR(%ebp), %eax
-       movl $44, (%eax)
+       addi $sp, $sp, 8
+       jr   $ra
 
-       #Standard closing
-       movl %ebp, %esp
-       popl %ebp
-       ret
+Where the i386 used ``leal`` ("load effective address") to compute an
+address into a register, MIPS uses ``la`` for a labelled address and
+plain ``addi``/``add`` to compute one from a base register like ``$sp``.
+To use a pointer, load it into a register and access memory through it
+with base-plus-offset (``lw``/``sw``).
 
-As you can see, to take the address of a local variable, the address has
-to be computed the same way the computer computes the addresses in base
-pointer addressing. There is an easier way - the processor provides the
-instruction ``leal``, which stands for "load effective address".
-This lets the computer compute the address, and then load it wherever
-you want. So, we could just say:
+Getting the Compiler to Help
+----------------------------
 
-::
+A nice way to learn is to let a C compiler show you its assembly. With
+``-S`` the compiler emits assembly instead of an object file::
 
-       #b = &a
-       leal A_VAR(%ebp), %eax
-       movl %eax, B_VAR(%ebp)
+   gcc -S file.c            # native assembly in file.s
+   clang --target=mipsel-linux-gnu -S file.c    # MIPS assembly
 
-It's the same number of lines, but a little cleaner. Then, to use this
-value, you simply have to move it to a general-purpose register and use
-indirect addressing, as shown in the example above.
+Turn off optimization with ``-O0`` so the output follows your source.
+The names are mostly gone — replaced by stack offsets and
+compiler-generated labels — but you can trace the same logic you would
+write by hand. (The example tree that ships with spimulator does exactly
+this for you: each C demo is compiled to a readable assembly listing
+beside its source, so you can compare your hand-written MIPS against the
+compiler's.)
 
-Getting GCC to Help
--------------------
-
-One of the nice things about GCC is its ability to spit out assembly
-language code. To convert a C language file to assembly, you can simply
-do:
-
-::
-
-   gcc -S file.c
-
-The output will be in ``file.s``. It's not the most readable output -
-most of the variable names have been removed and replaced either with
-numeric stack locations or references to automatically-generated labels.
-To start with, you probably want to turn off optimizations with ``-O0``
-so that the assembly language output will follow your source code
-better.
-
-Something else you might notice is that GCC reserves more stack space
-for local variables than we do, and then AND's %esp [1]_
-This is to increase memory and cache efficiency by double-word
-aligning variables.
-
-Finally, at the end of functions, we usually do the following
-instructions to clean up the stack before issuing a ``ret``
-instruction:
-
-::
-
-       movl %ebp, %esp
-       popl %ebp
-
-However, GCC output will usually just include the instruction
-``leave``. This instruction is simply the combination of the above
-two instructions. We do not use ``leave`` in this text because we want
-to be clear about exactly what is happening at the processor level.
-
-I encourage you to take a C program you have written and compile it to
-assembly language and trace the logic. Then, add in optimizations and
-try again. See how the compiler chose to rearrange your program to be
-more optimized, and try to figure out why it chose the arrangement and
-instructions it did.
-
-.. [1]
-   Note that different versions of GCC do this differently.
+Try it on a C program you have written: compile it with ``-O0`` and
+trace the logic, then turn optimizations on and see how the compiler
+rearranges things — and try to figure out why.

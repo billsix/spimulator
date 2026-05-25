@@ -1,6 +1,6 @@
 # Port "Programming from the Ground Up" to MIPS / spim
 
-**Status:** planned — all scope decisions made; ready to start Phase 0
+**Status:** COMPLETE (2026-05-25) — all chapters/appendices ported to MIPS/spimulator, 11 examples written+tested, dead x86 .s removed, book builds clean. See tasks/port-pgu-worklog.md for the blow-by-blow.
 **Started:** 2026-05-25
 
 ## Goal
@@ -243,11 +243,22 @@ markers added (benign comments; see Decision 1 for in-place vs. copy).
    framing); drop `helloworld-lib.s` / `printf-example.s`. **Replace**
    the x86 instruction + syscall appendices with MIPS/spim tables.
 
-3. **Build: standalone Makefile, no image wiring (yet).** A
-   `pgu/Makefile` with a Sphinx book target (HTML/PDF/EPUB) like
-   `/pgu`, run on demand. Do **not** wire it into the spimulator
-   Dockerfile for now (avoids adding the Sphinx/LaTeX toolchain to the
-   image); revisit if we later want the book to ship in the container.
+3. **Build: wired into spim's own Dockerfile + Makefile** (revised
+   2026-05-25 — superseded the earlier "standalone, not in image"
+   lean). The book toolchain (Sphinx + furo + latexmk/TeX Live +
+   inkscape + aspell + pandoc) installs into the spimulator image,
+   gated by `--build-arg BUILD_DOCS=1` (default on), mirroring
+   `pgu/Dockerfile`. Top-level `Makefile` gains `docs`/`html`/`pdf`/
+   `epub` targets that `podman run` the image against the mounted
+   repo and emit to `output/pgu/{html,pdf,epub}`. Nothing is built
+   during `docker build` (matching PGU); the book builds at runtime
+   via those targets. The targets call `sphinx-build` directly rather
+   than `make -C pgu/docs`, because the copied `pgu/docs/Makefile`
+   routes every target through an interactive `aspell check` (hangs a
+   build) and a known-buggy doubled-`inkscape` line — that Makefile is
+   adapted in a later phase. **Landed 2026-05-25** (Dockerfile +
+   Makefile; verified by parse/recipe-expansion, full build pending a
+   real image build by Bill).
 
 4. **Scope: core arc first.** Land Phases 0–3 (scaffold + build →
    intro/memory/firstprog → counting/functions/robust →

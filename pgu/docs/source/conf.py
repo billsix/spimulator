@@ -35,6 +35,27 @@ highlight_language = 'none'
 
 
 
+# -- Options for LaTeX/PDF output --------------------------------------------
+# The worked-examples appendix pastes spimulator's -explain output, which
+# uses Unicode box-drawing characters (the bit-layout boxes).  pdflatex
+# can't typeset those by default and aborts the PDF build, so map each to
+# an ASCII box character.  (HTML/EPUB keep the real Unicode boxes; only the
+# PDF substitutes.)  No extra LaTeX package needed.
+latex_elements = {
+    'preamble': r'''
+% Box-drawing characters from -explain output -> ASCII for pdflatex
+\DeclareUnicodeCharacter{2500}{-}
+\DeclareUnicodeCharacter{2502}{|}
+\DeclareUnicodeCharacter{250C}{+}
+\DeclareUnicodeCharacter{2510}{+}
+\DeclareUnicodeCharacter{2514}{+}
+\DeclareUnicodeCharacter{2518}{+}
+\DeclareUnicodeCharacter{252C}{+}
+\DeclareUnicodeCharacter{2534}{+}
+''',
+}
+
+
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
