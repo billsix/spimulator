@@ -8,7 +8,8 @@ plus the four XML files with no RST counterpart.
 Citations are `file:line` on both sides where useful.
 
 > **Status (May 2026):** Almost everything in this document has
-> been resolved.  See [`/pgu/SESSION_NOTES.md`](../SESSION_NOTES.md)
+> been resolved.  See the archived session notes
+> [`tasks/archive/2026/05/24/SESSION_NOTES.md`](../../tasks/archive/2026/05/24/SESSION_NOTES.md)
 > for the cumulative status block.
 >
 > | Section | Status |

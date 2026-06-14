@@ -55,9 +55,9 @@ listings up front:
 ## Dependencies
 
 None — /pgu's `_start` shim already covers all five arches.
-See [`src/c/toupper-nomm-simplified.c`](src/c/toupper-nomm-simplified.c)
+See [`pgu/src/c/toupper-nomm-simplified.c`](../pgu/src/c/toupper-nomm-simplified.c)
 for the canonical 5-arch shim; the other freestanding demos in
-`src/c/` use `void _start(void)` directly (no argv) and
+`pgu/src/c/` use `void _start(void)` directly (no argv) and
 cross-compile cleanly on any arch.
 
 (This is unlike `/examples`, which has six demos that currently

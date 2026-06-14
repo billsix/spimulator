@@ -332,7 +332,7 @@ bound:
 
 After Phase 5 wraps, the next direction is **classic CS
 algorithm demos** (Fibonacci, Hanoi, 8 Queens, sieve, etc.) —
-see [`PLAN-cs-demos.md`](PLAN-cs-demos.md) for the 10-demo
+see [`PLAN-cs-demos.md`](archive/2026/05/23/PLAN-cs-demos.md) for the 10-demo
 roadmap.  Those are a different pedagogical track from sbase
 ports: familiar algorithms in MIPS, aimed at the college
 student who knows programming but not assembly.

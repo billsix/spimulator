@@ -71,11 +71,20 @@ pinned goldens; `examples/tests/run-demo.sh`).
 
 ## Tasks (in-flight)
 
-Short-lived work goes in `tasks/` (and `examples/tasks/` for the curriculum).
+Active work lives in `tasks/` (and `examples/tasks/` for the curriculum);
+completed work moves to `tasks/archive/<YYYY>/<MM>/<DD>/` (and the parallel
+`examples/tasks/archive/<YYYY>/<MM>/<DD>/` for curriculum docs). There is no
+separate handoff / session-notes / next-session log — the current `tasks/`
+contents are the live picture, and git history plus the dated archive are the
+record of what's done.
 
 - [`tasks/container-build-cleanup.md`](tasks/container-build-cleanup.md) — the
   `exit()` bashrc trap drops the shell exit code; bump the `fedora/43` dnf cache
   path to `44`.
+- [`tasks/fix-stale-doc-links.md`](tasks/fix-stale-doc-links.md) — repoint
+  intra-repo markdown links broken by the archive/plan→task reorg (doc hygiene).
+- [`examples/tasks/rename-plan-prefixed-curriculum-docs.md`](examples/tasks/rename-plan-prefixed-curriculum-docs.md)
+  — drop the `PLAN-` prefix from the remaining active curriculum task docs.
 - Reference / open: teaching-mode polish (`explanation-levels-*`,
   `post-execute-narration`), parser cleanup (`parser-leak-cleanup`,
   `ast-column-tracking`); `port-pgu.md` is done.

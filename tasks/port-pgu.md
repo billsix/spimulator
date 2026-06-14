@@ -19,7 +19,8 @@ same lens. A Makefile target builds the book (Sphinx → HTML/PDF/EPUB)
 the way `/pgu` already does.
 
 This is the realization of the "PGU rewrite targeting MIPS-on-spim"
-direction recorded in `/pgu/SESSION_NOTES.md` (2026-05-19). Its
+direction recorded in the archived pgu session notes
+`tasks/archive/2026/05/24/SESSION_NOTES.md` (2026-05-19). Its
 simulator-side prerequisite — spim behaving as a well-behaved Unix
 process (exit status, pipeline-clean stdout, failure exit codes) —
 **already landed** (see `tasks/archive/unix-process-conformance.md`),
