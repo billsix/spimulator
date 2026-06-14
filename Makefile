@@ -18,6 +18,12 @@ DNF_CACHE_TO_MOUNT = -v $(PACKAGE_CACHE_ROOT)/var/cache/libdnf5:/var/cache/libdn
 	             -v $(PACKAGE_CACHE_ROOT)/var/lib/dnf:/var/lib/dnf:Z
 
 
+# USE_EMACS=1 (the default) bind-mounts just the vendored elpa/ tree into the
+# container so an interactive `make shell` can *use* the vendored packages (:U
+# chowns it to the container user, :z relabels for SELinux). Mounting ONLY elpa/
+# (not the whole .emacs.d/) keeps the build-time tree-sitter grammar dropped into
+# /root/.emacs.d/tree-sitter/ intact. Set USE_EMACS=0 to skip the mount. To
+# *refresh* the vendored packages, use `make update-emacs-packages` below.
 ifeq ($(USE_EMACS), 1)
   ELPA_MOUNT= -v $(CURDIR)/entrypoint/dotfiles/.emacs.d/elpa:/root/.emacs.d/elpa:U,z
 else
@@ -53,6 +59,31 @@ shell: format ## Get Shell into a ephermeral container made from the image
                 $(ELPA_MOUNT) \
 		$(CONTAINER_NAME) \
 		/usr/local/bin/shell.sh
+
+
+# Refresh the vendored Emacs packages. Forces USE_EMACS=1 and rebuilds the image
+# first. Then, in the container, wipes the elpa tree and reinstalls from MELPA
+# into the host's bind-mounted entrypoint/dotfiles/.emacs.d/elpa (the
+# install-melpa-packages.el is mounted read-only, so edits to it take effect
+# without a rebuild). Mounting ONLY elpa/ leaves the build-time tree-sitter
+# grammar (/root/.emacs.d/tree-sitter/) untouched. Finally strips compiled
+# *.elc/*.eln (regenerated, machine-specific artifacts) and force-stages the elpa
+# tree (git add -A -f overrides .gitignore's *.elc/*.eln/...) so it is ready to
+# commit. Needs network access.
+.PHONY: update-emacs-packages
+update-emacs-packages: ## USE_EMACS=1: rebuild image, wipe+reinstall elpa, strip *.elc/*.eln, git add -f
+	$(MAKE) image USE_EMACS=1
+	$(CONTAINER_CMD) run --rm \
+		-v $(CURDIR)/entrypoint/dotfiles/.emacs.d/elpa:/root/.emacs.d/elpa:U,z \
+		-v $(CURDIR)/entrypoint/dotfiles/.emacs.d/install-melpa-packages.el:/root/.emacs.d/install-melpa-packages.el:ro,z \
+		--entrypoint /bin/bash \
+		$(CONTAINER_NAME) \
+		-c 'set -e; find /root/.emacs.d/elpa -mindepth 1 -delete; \
+		    emacs --batch --load /root/.emacs.d/install-melpa-packages.el'
+	cd $(CURDIR)/entrypoint/dotfiles/.emacs.d/elpa && \
+		find . \( -iname '*.elc' -o -iname '*.eln' \) -delete && \
+		git add -A -f .
+	@echo "Done: reinstalled packages, stripped *.elc/*.eln, staged elpa -- review and commit."
 
 
 .PHONY: format

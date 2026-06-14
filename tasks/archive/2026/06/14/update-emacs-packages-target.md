@@ -1,7 +1,20 @@
 # Add a `make update-emacs-packages` target (vendored Emacs refresh)
 
-**Status:** proposed — needs go-ahead
+**Status:** complete — 2026-06-14 (target added + dry-run verified; not executed, see below)
 **Created:** 2026-06-13
+**Completed:** 2026-06-14
+
+> **Done:** added the `update-emacs-packages` target (near-verbatim port of geometricalgebra's, since
+> spimulator's `ELPA_MOUNT` is elpa-only: elpa bind-mounted RW + `install-melpa-packages.el` mounted
+> read-only, elpa-scoped wipe/reinstall/strip + `git add -A -f`) plus the `ELPA_MOUNT` use-vs-refresh
+> comment (noting the elpa-only mount keeps the build-time tree-sitter grammar in
+> `/root/.emacs.d/tree-sitter/` intact). **Scope = decision #1 only** (just the target); decision #2
+> (the "ship twice" Dockerfile reconciliation — `.dockerignore` the elpa tree + drop the build-time
+> `emacs --batch` install) was left as a separate future choice. Verified: `make help` lists it and
+> `make -n` emits the expected steps. **Not executed** — it rewrites the ~17M vendored tree (Bill's
+> deliberate commit), and spimulator's image builds+tests spim and (BUILD_DOCS=1) pulls TeX Live at
+> build time, so it won't build in the sandbox's 8 GB tmpfs; run it on the host. (The `emacs --batch`
+> refresh mechanism is already proven from the mvp run.)
 
 ## Goal
 
