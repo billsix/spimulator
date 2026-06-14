@@ -39,7 +39,7 @@ Three reasons:
    installed by the Dockerfile, not assumed to be present on
    the host.
 3. **Unlocks two adjacent plans.**
-   - `PLAN-build-matrix.md` (cross-compile every demo to .s on
+   - `examples-build-matrix.md` (cross-compile every demo to .s on
      all 5 ISAs at image build) — needs the cross toolchains.
    - Future "CI runs every demo on every arch via qemu-user"
      work — needs qemu-user-static.
@@ -225,8 +225,8 @@ The meson cross-file can name qemu-aarch64-static as the
 `exe_wrapper`, which makes `meson test` Just Run binaries that
 target a different arch — quite elegant.
 
-This step ties back to PLAN-multiarch-shim.md (verify) and
-PLAN-build-matrix.md (cross-compile-to-asm).  Both become much
+This step ties back to multiarch-shim.md (verify) and
+examples-build-matrix.md (cross-compile-to-asm).  Both become much
 easier once the in-container env is provisioned.
 
 ## Order of work
@@ -270,15 +270,15 @@ easier once the in-container env is provisioned.
 
 This plan is **infrastructure**, supporting the work of:
 
-- [`PLAN-multiarch-shim.md`](PLAN-multiarch-shim.md) —
+- [`multiarch-shim.md`](multiarch-shim.md) —
   "verify the shim works on every arch" was previously
   blocked on having a way to do that in-container.  This
   unblocks step 2 of that plan.
-- [`PLAN-build-matrix.md`](PLAN-build-matrix.md) — "produce
+- [`examples-build-matrix.md`](examples-build-matrix.md) — "produce
   cross-arch .s listings at image-build time" likewise.
   After this plan lands, the build-matrix plan has a working
   toolchain to drive.
-- [`PLAN-asm-listings.md`](PLAN-asm-listings.md) — native-arch
+- [`archive/2026/05/23/PLAN-asm-listings.md`](archive/2026/05/23/PLAN-asm-listings.md) — native-arch
   .s listings.  Independent of this plan; doesn't need cross
   tools.
 

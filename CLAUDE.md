@@ -29,7 +29,7 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
   `lib/libctype` + `libstdlib` adapted from musl). `examples/src/meson.build`
   builds them; `examples/src/Makefile` materializes native `.s` listings +
   binaries; `examples/tests/run-demo.sh` runs C and asm and diffs both against
-  goldens. Curriculum design is in `examples/READING-ORDER.md` and `examples/tasks/`.
+  goldens. Curriculum design is in `examples/READING-ORDER.md` and the curriculum task docs in `tasks/`.
 - `pgu/` — the *Programming from the Ground Up* book ported to MIPS/spim (its own
   `Dockerfile`/`Makefile`/`docs/`). Port **complete** (`tasks/port-pgu.md`, 2026-05-25).
 - `tree-sitter/` — editor grammar; `grammar.js` keyword lists are derived from
@@ -71,20 +71,20 @@ pinned goldens; `examples/tests/run-demo.sh`).
 
 ## Tasks (in-flight)
 
-Active work lives in `tasks/` (and `examples/tasks/` for the curriculum);
-completed work moves to `tasks/archive/<YYYY>/<MM>/<DD>/` (and the parallel
-`examples/tasks/archive/<YYYY>/<MM>/<DD>/` for curriculum docs). There is no
-separate handoff / session-notes / next-session log — the current `tasks/`
-contents are the live picture, and git history plus the dated archive are the
-record of what's done.
+All task docs (spim-internal *and* curriculum) live in `tasks/`; completed work
+moves to `tasks/archive/<YYYY>/<MM>/<DD>/`. (The old separate `examples/tasks/`
+surface has been folded into `tasks/`.) There is no separate handoff /
+session-notes / next-session log — the current `tasks/` contents are the live
+picture, and git history plus the dated archive are the record of what's done.
 
 - [`tasks/container-build-cleanup.md`](tasks/container-build-cleanup.md) — the
   `exit()` bashrc trap drops the shell exit code; bump the `fedora/43` dnf cache
   path to `44`.
 - [`tasks/fix-stale-doc-links.md`](tasks/fix-stale-doc-links.md) — repoint
   intra-repo markdown links broken by the archive/plan→task reorg (doc hygiene).
-- [`examples/tasks/rename-plan-prefixed-curriculum-docs.md`](examples/tasks/rename-plan-prefixed-curriculum-docs.md)
-  — drop the `PLAN-` prefix from the remaining active curriculum task docs.
+- Curriculum tasks (now in `tasks/`): `examples-build-matrix.md`,
+  `container-cross-env.md`, `libstr.md`, `multiarch-shim.md`, `symbol-tables.md`,
+  `unix-tools.md`.
 - Reference / open: teaching-mode polish (`explanation-levels-*`,
   `post-execute-narration`), parser cleanup (`parser-leak-cleanup`,
   `ast-column-tracking`); `port-pgu.md` is done.

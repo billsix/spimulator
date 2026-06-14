@@ -303,7 +303,7 @@ parsing.
 - `tee <file ...>` — multiple output fds + stdin read loop.
   **DONE — tee** (variable argc, fd-array, per-block fan-out
   write, capped at MAX_OUT=8 files).
-- `fizzbuzz N`, `fibonacci N`, etc. — `PLAN-cs-demos.md`
+- `fizzbuzz N`, `fibonacci N`, etc. — `archive/2026/05/23/PLAN-cs-demos.md`
   entries whose hardcoded N becomes more natural via argv.
 
 Subtleties to remember when porting:
@@ -332,7 +332,7 @@ bound:
 
 After Phase 5 wraps, the next direction is **classic CS
 algorithm demos** (Fibonacci, Hanoi, 8 Queens, sieve, etc.) —
-see [`PLAN-cs-demos.md`](archive/2026/05/23/PLAN-cs-demos.md) for the 10-demo
+see [`archive/2026/05/23/PLAN-cs-demos.md`](archive/2026/05/23/PLAN-cs-demos.md) for the 10-demo
 roadmap.  Those are a different pedagogical track from sbase
 ports: familiar algorithms in MIPS, aimed at the college
 student who knows programming but not assembly.
@@ -352,7 +352,7 @@ Candidate next Phase-5 demos (all stdin-only, no argv blocker):
 ## Order of work
 
 **Phase 0 — finish current asm work first.**  Layer-5
-(`-explain=4`) annotation across 01–08 per `PLAN-asm-comments.md`.
+(`-explain=4`) annotation across 01–08 per `archive/2026/05/23/PLAN-asm-comments.md`.
 Each new demo brings more `.asm`, and rolling layer 5 over a
 static set is cleaner.
 

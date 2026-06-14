@@ -124,8 +124,8 @@ direction in the AST migration notes.
 
 Option C is the right long-term move and is already a follow-on
 direction from the AST work — see
-[`archive/c23-modernization.md`](archive/c23-modernization.md)
-or [`HANDOFF-2026-05-22.md`](HANDOFF-2026-05-22.md) for the
+[`archive/2026/05/22/c23-modernization.md`](archive/2026/05/22/c23-modernization.md)
+or [`HANDOFF-2026-05-22.md`](archive/2026/05/23/HANDOFF-2026-05-22.md) for the
 existing PARSE_AST status.
 
 Option A is the right short-term move if a hostile valgrind

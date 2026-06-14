@@ -53,7 +53,7 @@ Materializing the .s matrix at image build time:
 
 ## Dependencies
 
-Soft prerequisite: [`PLAN-multiarch-shim.md`](PLAN-multiarch-shim.md)
+Soft prerequisite: [`multiarch-shim.md`](multiarch-shim.md)
 needs to land first for the six argv-using demos (echo,
 factorial, cat, gcd, head, tee).
 Those carry an inline `_start` shim that's currently gated as
@@ -276,7 +276,7 @@ generated, the toolchain doesn't need to ride in the image.
 
 ## Order of work
 
-1. Land `PLAN-multiarch-shim.md` first (six demos otherwise
+1. Land `multiarch-shim.md` first (six demos otherwise
    fail to preprocess on non-x86_64).
 2. Write `src/build-asm-matrix.sh`.
 3. Smoke-test locally on Fedora 43 — verify all 5 arch
@@ -290,7 +290,7 @@ generated, the toolchain doesn't need to ride in the image.
 ## Open questions
 
 - **MIPS endianness.**  `mipsel` vs `mips`.  Pick one for
-  consistency with `/pgu/PLAN-build-matrix.md`.  Likely
+  consistency with `/pgu/examples-build-matrix.md`.  Likely
   `mipsel` (matches Debian's mainline MIPS port).
 - **Include the matrix in the Sphinx book?**  The whole point
   of generating the .s files is for the student to compare —
@@ -318,7 +318,7 @@ generated, the toolchain doesn't need to ride in the image.
 
 ## Relationship to /pgu
 
-`/pgu/PLAN-build-matrix.md` has the same shape and the same
+`/pgu/examples-build-matrix.md` has the same shape and the same
 goal.  The two trees should land their matrices with
 consistent:
 

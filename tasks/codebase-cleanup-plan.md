@@ -205,7 +205,7 @@ Unless someone is actually building this on AIX in 2026, delete.
 
 Landed May 2026 across twelve numbered commits on the
 `c23modernization` branch.  Final-state writeup:
-[`archive/c23-modernization.md`](archive/c23-modernization.md).
+[`archive/2026/05/22/c23-modernization.md`](archive/2026/05/22/c23-modernization.md).
 
 What this delivered (Tier D items in the original plan, plus
 several that emerged during execution):

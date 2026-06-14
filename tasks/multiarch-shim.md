@@ -13,7 +13,7 @@ that `os.h` already covers**: x86_64, i386, ARM-32, AArch64,
 and MIPS-32.  After this, a student on any of those hosts can
 `./N-foo-1 args` directly, in addition to running the matching
 `.asm` under spimulator.  It also unlocks the Dockerfile cross-
-build matrix (see `PLAN-build-matrix.md`) — every demo gets
+build matrix (see `examples-build-matrix.md`) — every demo gets
 cross-compiled to all five targets at image build time.
 
 ## Why this is worth doing
@@ -299,7 +299,7 @@ The six demos that today carry the inline x86_64-only shim:
 | head  | `head/head.c` |
 | tee        | `tee/tee.c` |
 
-Plus going forward, every new argv demo (PLAN-cs-demos.md
+Plus going forward, every new argv demo (archive/2026/05/23/PLAN-cs-demos.md
 entries like `fizzbuzz N`, future `head -n N <file>` variants,
 etc).
 

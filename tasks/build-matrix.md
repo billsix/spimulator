@@ -62,7 +62,7 @@ cross-compile cleanly on any arch.
 
 (This is unlike `/examples`, which has six demos that currently
 `#error` on non-x86_64 and need
-`/examples/PLAN-multiarch-shim.md` to land first.)
+`/examples/multiarch-shim.md` to land first.)
 
 ## Toolchain choice — clang + `-S` only
 
@@ -79,7 +79,7 @@ and already passes `-S` to produce `.s` listings as an
 intermediate step (see `GEN_FLAGS` in `src/c/Makefile`).  All
 that's missing is the loop over the five target triples.
 
-Target triples (same as `/examples/PLAN-build-matrix.md` for
+Target triples (same as `/examples/examples-build-matrix.md` for
 consistency):
 
 | Arch    | `--target=`                | Extra flags        |
@@ -326,7 +326,7 @@ on-mission.
 ## Open questions
 
 - **MIPS endianness.**  `mipsel` (LE) vs `mips` (BE).  Pick one
-  matching `/examples/PLAN-build-matrix.md` for consistency.
+  matching `/examples/examples-build-matrix.md` for consistency.
   Lean `mipsel`.
 - **Libc-using demos on cross arches.**  Worth installing the
   per-arch glibc headers, or punt for v1?  My lean is "install
@@ -355,7 +355,7 @@ on-mission.
 
 ## Relationship to /examples
 
-`/examples/PLAN-build-matrix.md` has the same shape and the
+`/examples/examples-build-matrix.md` has the same shape and the
 same goal.  The two trees should land their matrices with
 consistent:
 

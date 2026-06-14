@@ -28,7 +28,7 @@ but adapted to spim's command vocabulary.
 ## Why this is worth doing
 
 Now that command-line argv works (see
-[`argv-command-line-handling.md`](archive/argv-command-line-handling.md)),
+[`argv-command-line-handling.md`](archive/2026/05/23/argv-command-line-handling.md)),
 students iterating on numeric inputs for `factorial`, `gcd`,
 `fizzbuzz`, etc. have to keep `quit`-ing spim and re-invoking it
 with a different command line.  Each restart loses breakpoints,

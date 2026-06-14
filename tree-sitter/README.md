@@ -12,7 +12,7 @@ highlighting, structural navigation, code folds in editors that
 support tree-sitter (Helix, Neovim 0.5+, Zed, Emacs 29+ via
 `treesit.el`, VS Code via wasm).  It does NOT replace the
 spimulator binary's own parser; see
-[`../tasks/investigate-tree-sitter.md`](../tasks/investigate-tree-sitter.md)
+[`../tasks/archive/2026/05/23/investigate-tree-sitter.md`](../tasks/archive/2026/05/23/investigate-tree-sitter.md)
 for the rationale behind that decision.
 
 ## Coverage

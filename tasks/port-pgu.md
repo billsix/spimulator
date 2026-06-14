@@ -281,7 +281,7 @@ markers added (benign comments; see Decision 1 for in-place vs. copy).
 - **Records struct layout under spim.** firstname/lastname/address/age
   — pick offsets/alignment that read cleanly in MIPS (word-aligned
   fields); this is the one genuinely new data-structure lesson.
-- **Relationship to `examples/tasks/PLAN-build-matrix.md`** (multi-arch
+- **Relationship to `tasks/examples-build-matrix.md`** (multi-arch
   C→asm listings) and the just-landed native asm-listings Makefile —
   the book can point at those as "see the compiler's translation,"
   reinforcing the C-vs-asm thread PGU already has.
