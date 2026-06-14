@@ -1,0 +1,14 @@
+BasedOnStyle: google
+IndentWidth: 4
+ColumnLimit: 80
+
+SortIncludes: Never
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortBlocksOnASingleLine: Never
+InsertBraces: true
+
+DerivePointerAlignment: false
+PointerAlignment: Right
+IndentCaseLabels: true
+AlignAfterOpenBracket: Align
+SpaceBeforeParens: ControlStatements

@@ -105,9 +105,11 @@
         .text
         .globl main
 main:
+# doc-region-begin exit syscall
         # os_exit(0);
         li $a0, 0                    # the status code to return
         li $v0, 17                   # syscall 17 = exit2 (status in $a0)
         syscall                      # transfer control to the kernel
+# doc-region-end exit syscall
 
         # Execution never reaches here.  syscall 17 does not return.

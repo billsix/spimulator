@@ -1,0 +1,20 @@
+# Generated assembly (rebuilt from .c by the Makefile)
+*.s
+
+# Compiled binaries — every freestanding + libc program in the Makefile.
+exit
+maximum
+helloworld-nolib
+helloworld-lib
+power
+factorial
+conversion-program
+toupper-nomm-simplified
+read-records
+write-records
+add-year
+printf-example
+
+# Runtime data produced by write-records / add-year
+test.dat
+testout.dat
