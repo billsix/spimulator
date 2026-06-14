@@ -31,7 +31,8 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
   binaries; `examples/tests/run-demo.sh` runs C and asm and diffs both against
   goldens. Curriculum design is in `examples/READING-ORDER.md` and the curriculum task docs in `tasks/`.
 - `pgu/` — the *Programming from the Ground Up* book ported to MIPS/spim (its own
-  `Dockerfile`/`Makefile`/`docs/`). Port **complete** (`tasks/port-pgu.md`, 2026-05-25).
+  `Dockerfile`/`Makefile`/`docs/`). Port **complete**
+  (`tasks/archive/2026/06/14/port-pgu.md`, 2026-05-25).
 - `tree-sitter/` — editor grammar; `grammar.js` keyword lists are derived from
   `opcodes.h` via `scripts/extract-keywords.py`, so they stay in sync.
 - `tests/` — regression suite (`run-test.sh`, `tt.*.s` / `tt.*.in`).
@@ -83,8 +84,9 @@ picture, and git history plus the dated archive are the record of what's done.
 - [`tasks/fix-stale-doc-links.md`](tasks/fix-stale-doc-links.md) — repoint
   intra-repo markdown links broken by the archive/plan→task reorg (doc hygiene).
 - Curriculum tasks (now in `tasks/`): `examples-build-matrix.md`,
-  `container-cross-env.md`, `libstr.md`, `multiarch-shim.md`, `symbol-tables.md`,
-  `unix-tools.md`.
+  `pgu-build-matrix.md`, `container-cross-env.md`, `libstr.md`,
+  `multiarch-shim.md`, `symbol-tables.md`, `unix-tools.md`.
 - Reference / open: teaching-mode polish (`explanation-levels-*`,
   `post-execute-narration`), parser cleanup (`parser-leak-cleanup`,
-  `ast-column-tracking`); `port-pgu.md` is done.
+  `ast-column-tracking`); `port-pgu.md` is done
+  (`tasks/archive/2026/06/14/port-pgu.md`).
