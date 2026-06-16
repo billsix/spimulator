@@ -14,3 +14,6 @@ foo.txt
 bldInstall/
 data.asm
 text.asm
+
+# exported OCI image tars (make image-export) — large, never commit
+spimulator-*.tar
