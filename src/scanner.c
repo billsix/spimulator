@@ -230,7 +230,10 @@ static int scan_fp(int sign, int end_pos, scan_token* out) {
    '-' has already been consumed if signed.  Returns TOK_INT with
    scan_value.i set. */
 static int scan_int(int sign, scan_token* out) {
-  int value = 0;
+  /* Accumulate in uint32_t: left-shifting/multiplying a signed int past
+     its range is UB (e.g. 0x80000000, or a long decimal run).  Unsigned
+     arithmetic is defined to wrap; convert to the signed value at the end. */
+  uint32_t value = 0;
   if (peek_char() == '0' && (peek_char2() == 'x' || peek_char2() == 'X')) {
     next_char();
     next_char(); /* consume "0x" */
@@ -245,7 +248,7 @@ static int scan_int(int sign, scan_token* out) {
     }
   }
   out->type = TOK_INT;
-  out->val.i = sign * value;
+  out->val.i = (int32_t)(sign * value);
   out->present = true;
   return TOK_INT;
 }

@@ -1,6 +1,13 @@
 # Fix left-shift overflow in hex-literal scanner
 
-## Status — not started
+## Status — DONE (2026-06-16)
+
+Fixed in `src/scanner.c` `scan_int` (the doc's `:237-241` was approximate):
+`value` now accumulates in `uint32_t` (defined wrap for both the `<< 4` and the
+decimal `* 10` paths) and is converted back with `out->val.i = (int32_t)(sign *
+value)`. Verified in-container: full `meson test` suite 29/29 green on the normal
+build, and a `-fsanitize=undefined -fsanitize-trap=undefined` build runs the
+`0x80000000`/`0xfffe0000` repro clean while the pre-fix control traps with SIGILL.
 
 Filed during the post-C23-sweep ASan/UBSan audit (May 2026).
 Pre-existing from the hand-written parser migration.

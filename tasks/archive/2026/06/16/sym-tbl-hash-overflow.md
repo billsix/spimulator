@@ -1,6 +1,13 @@
 # Fix signed-int overflow in symbol-table hash
 
-## Status — not started
+## Status — DONE (2026-06-16)
+
+Fixed in `src/symbol-table.c` `get_hash` (actual location is `symbol-table.c:67`,
+not the doc's `sym-tbl.c:76`): `hi` changed `int` → `unsigned`, so `hi * 613`
+wraps as defined. No caller-signature changes were needed (`*slot_no` stays
+`int`; the post-mask value fits). Verified in-container: `meson test` 29/29 green
+on the normal build; under a UBSan-trap build the fixed code runs clean while the
+pre-fix control traps with SIGILL on startup (the hash runs in `initialize_world`).
 
 Filed during the post-C23-sweep ASan/UBSan audit (May 2026).
 Pre-existing — predates the C23 work, surfaces immediately for

@@ -94,7 +94,9 @@ esac
 [ -f "$expected" ] || fail "missing golden: $expected"
 
 # --- Run the C side ---
-"$C_BIN_DIR/$NAME" > "$out_c" 2>&1
+# Demo executables install/build with a `spimulator-example-` prefix so the
+# coreutil-named ones (cp, head, wc, …) don't shadow system tools on PATH.
+"$C_BIN_DIR/spimulator-example-$NAME" > "$out_c" 2>&1
 c_status=$?
 
 # --- Run the asm side under spim ---

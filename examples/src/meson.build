@@ -125,7 +125,7 @@ demos = [
 ]
 
 foreach demo : demos
-  executable(demo[0],
+  executable('spimulator-example-' + demo[0],
     demo[1],
     include_directories: inc,
     link_with: io_lib,
@@ -142,7 +142,7 @@ lib_demos = [
 ]
 
 foreach demo : lib_demos
-  executable(demo[0],
+  executable('spimulator-example-' + demo[0],
     demo[1],
     include_directories: [inc, demo[3]],
     link_with: [io_lib, demo[2]],
@@ -154,7 +154,7 @@ endforeach
 
 # libstdlib demos need both libstdlib AND libctype linked
 # (atoi calls into isspace/isdigit).
-executable('atoi-demo',
+executable('spimulator-example-atoi-demo',
   'lib/libstdlib-demo/atoi-demo.c',
   include_directories: [inc, libstdlib_inc, libctype_inc],
   link_with: [io_lib, libstdlib_lib, libctype_lib],
@@ -166,7 +166,7 @@ executable('atoi-demo',
 # abs/labs don't depend on libctype — leaf functions — but link
 # both libs for consistency with atoi-demo and any future
 # composite demo.
-executable('abs-demo',
+executable('spimulator-example-abs-demo',
   'lib/libstdlib-demo/abs-demo.c',
   include_directories: [inc, libstdlib_inc, libctype_inc],
   link_with: [io_lib, libstdlib_lib, libctype_lib],
@@ -175,7 +175,7 @@ executable('abs-demo',
   install: true,
 )
 
-executable('exit-demo',
+executable('spimulator-example-exit-demo',
   'lib/libstdlib-demo/exit-demo.c',
   include_directories: [inc, libstdlib_inc, libctype_inc],
   link_with: [io_lib, libstdlib_lib, libctype_lib],
@@ -184,7 +184,7 @@ executable('exit-demo',
   install: true,
 )
 
-executable('bsearch-demo',
+executable('spimulator-example-bsearch-demo',
   'lib/libstdlib-demo/bsearch-demo.c',
   include_directories: [inc, libstdlib_inc, libctype_inc],
   link_with: [io_lib, libstdlib_lib, libctype_lib],
@@ -193,7 +193,7 @@ executable('bsearch-demo',
   install: true,
 )
 
-executable('atexit-demo',
+executable('spimulator-example-atexit-demo',
   'lib/libstdlib-demo/atexit-demo.c',
   include_directories: [inc, libstdlib_inc, libctype_inc],
   link_with: [io_lib, libstdlib_lib, libctype_lib],

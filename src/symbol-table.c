@@ -64,7 +64,7 @@ void initialize_symbol_table(void) {
    set ENTRY to be nullptr. */
 
 static void get_hash(char* name, int* slot_no, label** entry) {
-  int hi;
+  unsigned hi;
   int i;
   label* cursor;
   int len;
