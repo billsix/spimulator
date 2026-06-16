@@ -176,8 +176,9 @@ constexpr uint32_t FCSR_FCC = 0xfe800000;
 constexpr uint32_t FCSR_MASK = FCSR_FCC;
 constexpr int CC0_bit = 23;
 constexpr int CC1_bit = 25;
+/* 1u: for n==7 the shift is `1 << 31`, which is UB on a signed `1`. */
 #define CC_mask(n) \
-  ((((n) == 0) || ((n) > 7)) ? (1 << CC0_bit) : (1 << (CC1_bit + (n) - 1)))
+  ((((n) == 0) || ((n) > 7)) ? (1u << CC0_bit) : (1u << (CC1_bit + (n) - 1)))
 #define FCC(n) (((FCSR & CC_mask(n)) == 0) ? 0 : 1)
 #define SET_FCC(n, v)    \
   if ((v) == 0) {        \

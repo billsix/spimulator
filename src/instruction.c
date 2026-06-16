@@ -92,11 +92,11 @@ void align_text(int alignment) {
     enable_text_auto_alignment = false;
   else if (in_kernel) {
     next_k_text_pc =
-        (next_k_text_pc + (1 << alignment) - 1) & (0xffffffff << alignment);
+        (next_k_text_pc + (1u << alignment) - 1) & (0xffffffff << alignment);
     fix_current_label_address(next_k_text_pc);
   } else {
     next_text_pc =
-        (next_text_pc + (1 << alignment) - 1) & (0xffffffff << alignment);
+        (next_text_pc + (1u << alignment) - 1) & (0xffffffff << alignment);
     fix_current_label_address(next_text_pc);
   }
 }

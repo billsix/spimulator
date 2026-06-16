@@ -73,11 +73,11 @@ void align_data(int alignment) {
     enable_data_auto_alignment = false;
   else if (in_kernel) {
     next_k_data_pc =
-        (next_k_data_pc + (1 << alignment) - 1) & (0xffffffff << alignment);
+        (next_k_data_pc + (1u << alignment) - 1) & (0xffffffff << alignment);
     fix_current_label_address(next_k_data_pc);
   } else {
     next_data_pc =
-        (next_data_pc + (1 << alignment) - 1) & (0xffffffff << alignment);
+        (next_data_pc + (1u << alignment) - 1) & (0xffffffff << alignment);
     fix_current_label_address(next_data_pc);
   }
 }
