@@ -57,10 +57,21 @@ Container (Fedora-44 + podman family template) — build args `USE_EMACS`,
 
 ## Tests
 
-Two meson suites: **regression** (21 cases — assembler, syscalls, exceptions,
+Two meson suites: **regression** (assembler, syscalls, exceptions,
 teaching-mode goldens, AST parity; `tests/run-test.sh`) and **examples** (each demo
 runs both the C binary and the spim asm, diffing stdout + exit status against
 pinned goldens; `examples/tests/run-demo.sh`).
+
+**Sanitizer gate** (`RUN_SANITIZERS=1`, the `make image` default; `make image
+RUN_SANITIZERS=0` to skip): the image build also compiles **spim only** (the
+`spimulator` target — the `-nostdlib` demos must not be sanitized) under
+**UBSan-trap** (`-fsanitize=undefined -fsanitize-trap=undefined`) and **ASan**
+(`-Db_sanitize=address`) and runs the regression suite under each, failing the
+image on any UB or memory error. ASan leak detection is defaulted off in
+`spim.c` via `__asan_default_options` (the gate is for corruption, not spim's
+intentional exit-time leaks). Note: diagnostic UBSan (`-Db_sanitize=undefined`)
+*under-reports* here — trap mode is the reliable gate. Rationale + the integer-UB
+primer: `tasks/archive/2026/06/16/ubsan-sweep.md`.
 
 ## Conventions
 

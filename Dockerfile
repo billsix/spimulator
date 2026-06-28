@@ -15,6 +15,16 @@ ARG BUILD_TREE_SITTER=0
 # this image — nothing is built during `docker build`.
 ARG BUILD_DOCS=1
 
+# Run the sanitizer gate at image-build time?  Builds spim a second/third
+# time under UndefinedBehaviorSanitizer (trap mode) and AddressSanitizer and
+# runs the regression suite under each, FAILING the image if any UB or memory
+# error fires (the same way the plain `meson test` step gates the build).
+# Catches integer-UB / memory-safety regressions before they ship.  Off by
+# default for a bare `podman build` (a second/third instrumented compile of
+# src/ costs build time); `make image` turns it on.  See
+# tasks/archive/2026/06/16/ubsan-sweep.md for the primer + rationale.
+ARG RUN_SANITIZERS=0
+
 # Build + install locations.  Override at build time with
 # `--build-arg SPIM_BUILD_DIR=...` or `--build-arg SPIM_PREFIX=...`.
 # `ENV` (not `ARG`) so subsequent RUN layers see them via $VAR
@@ -127,6 +137,31 @@ RUN cd ${SPIM_SRC_DIR} && \
 #     `<demo>.expected-status`.  Any drift on either side fails
 #     the build.
 RUN meson test -C ${SPIM_BUILD_DIR} --print-errorlogs
+
+# Sanitizer gate (opt-in via RUN_SANITIZERS=1; `make image` sets it).  Build
+# spim — and ONLY spim (the `spimulator` target; the -nostdlib example demos
+# must not be sanitized) — under UBSan-trap and ASan, and run the regression
+# suite under each with --no-rebuild.  A surviving UB traps (SIGILL); a memory
+# error aborts; either fails the image.  Scoped to src/; see the UBSan-sweep
+# task doc for why diagnostic UBSan under-reports and trap mode is the gate.
+# ASan leak detection is defaulted off in spim.c (__asan_default_options) — the
+# gate is for corruption, not spim's intentional exit-time leaks.
+RUN if [ "$RUN_SANITIZERS" = "1" ]; then \
+      set -e; \
+      echo '== UBSan (trap) gate =='; \
+      CC=clang meson setup /tmp/san-ubsan ${SPIM_SRC_DIR} --buildtype=debug \
+          -Dwarning_level=3 \
+          -Dc_args='-fsanitize=undefined -fsanitize-trap=undefined' \
+          -Dc_link_args='-fsanitize=undefined -fsanitize-trap=undefined'; \
+      meson compile -C /tmp/san-ubsan spimulator; \
+      meson test -C /tmp/san-ubsan --no-rebuild --suite regression --print-errorlogs; \
+      echo '== ASan gate =='; \
+      CC=clang meson setup /tmp/san-asan ${SPIM_SRC_DIR} --buildtype=debug \
+          -Dwarning_level=3 -Db_sanitize=address; \
+      meson compile -C /tmp/san-asan spimulator; \
+      meson test -C /tmp/san-asan --no-rebuild --suite regression --print-errorlogs; \
+      rm -rf /tmp/san-ubsan /tmp/san-asan; \
+    fi
 
 # Materialize the native teaching artifacts beside each C demo:
 # <demo>.s (the compiler's translation of the C to this host's

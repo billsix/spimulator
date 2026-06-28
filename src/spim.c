@@ -33,6 +33,25 @@
 #include "explain.h"
 #include "assembler-event.h"
 
+/* When built with AddressSanitizer, default LeakSanitizer OFF.  spim is a
+   short-lived process that intentionally leaves some allocations reachable at
+   exit (symbol tables, parsed program, etc.); the ASan build gate is for memory
+   *corruption* (buffer overflow / use-after-free), not exit-time leaks.  This
+   weak hook sets the default independent of the environment or test harness; it
+   compiles to nothing in a normal (non-ASan) build.  A dedicated leak audit, if
+   ever wanted, can flip this. */
+#if defined(__has_feature)
+#  if __has_feature(address_sanitizer)
+#    define SPIM_ASAN_BUILD 1
+#  endif
+#elif defined(__SANITIZE_ADDRESS__)
+#  define SPIM_ASAN_BUILD 1
+#endif
+#ifdef SPIM_ASAN_BUILD
+const char* __asan_default_options(void);
+const char* __asan_default_options(void) { return "detect_leaks=0"; }
+#endif
+
 #ifdef HAVE_LIBEDIT
 #include <editline/readline.h>
 #include <stdlib.h>

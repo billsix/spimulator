@@ -1,8 +1,11 @@
-.DEFAULT_GOAL := shell
+.DEFAULT_GOAL := help
 
 USE_EMACS ?= 1
 BUILD_TREE_SITTER ?= 1
 BUILD_DOCS ?= 1
+# Gate the image on a UBSan(trap)+ASan build+test of spim. Set RUN_SANITIZERS=0
+# to skip (faster rebuilds). See tasks/archive/2026/06/16/ubsan-sweep.md.
+RUN_SANITIZERS ?= 1
 
 CONTAINER_CMD = podman
 CONTAINER_NAME = spimulator
@@ -46,6 +49,7 @@ image: ## Build podman image to run the examples
                          --build-arg USE_EMACS=$(USE_EMACS) \
                          --build-arg BUILD_TREE_SITTER=$(BUILD_TREE_SITTER) \
                          --build-arg BUILD_DOCS=$(BUILD_DOCS) \
+                         --build-arg RUN_SANITIZERS=$(RUN_SANITIZERS) \
                          $(DNF_CACHE_TO_MOUNT) \
                          $(ELPA_MOUNT) \
                          .
