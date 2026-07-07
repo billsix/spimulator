@@ -113,10 +113,10 @@ Example-code hygiene (suggested order):
 
 - `string-equality-audit.md` — find the "stops short" equality bug, which is
   **in the example code** per Bill (simulator sites audited clean 2026-07-07).
-- `c-asm-comment-parity.md` — **remove** the embedded-C comment blocks from
-  all example `.asm` files (decision 2026-07-07: delete, don't sync).
 - `code-idiosyncrasies-audit.md` — sweep for oddities ("void argc" etc.):
   examples first, then pgu, then src/.
+- (The embedded-C removal from the demo `.asm` headers — `c-asm-comment-parity`
+  — was executed 2026-07-07: 466 lines across 38 demos, suite green; archived.)
 
 Curriculum / library:
 
@@ -132,6 +132,11 @@ Curriculum / library:
   MIPS endianness between them.
 - `container-cross-env.md` — lld + qemu-user-static in the root Dockerfile;
   needed only for *runtime* cross verification, not for the matrices.
+- `mini-c-compiler.md` — **capstone**: a small C compiler (subset covering our
+  example programs only) written in SPIM asm, then self-hosted in C; output
+  links against the shared asm library; demo goldens are the acceptance
+  harness. Investigate-first (construct census seeded: no structs/typedefs/
+  enums/goto anywhere; one switch, one float file).
 
 Simulator internals:
 

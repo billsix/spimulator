@@ -20,12 +20,6 @@
 
 
 # C source — see clear.c
-#
-#     __attribute__((noreturn)) void _start(void) {
-#       print_string("\033[2J\033[H");
-#       os_exit(0);
-#     }
-#
 # Same shape as helloworld: write a fixed string, exit zero.
 # The interesting thing is what the bytes ARE — control codes the
 # terminal interprets rather than displayable characters.

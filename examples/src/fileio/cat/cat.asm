@@ -20,17 +20,6 @@
 
 
 # C source — see cat.c
-#
-#     int my_main(int argc, char **argv) {
-#       int fd = STDIN;
-#       if (argc > 2) usage;
-#       if (argc == 2 && argv[1] != "-") fd = open(argv[1]);
-#       char buf[4096];
-#       long n;
-#       while ((n = read(fd, buf, 4096)) > 0) write(STDOUT, buf, n);
-#       if (fd != STDIN) close(fd);
-#       return n < 0 ? 1 : 0;
-#     }
 
 
 # Invocations:

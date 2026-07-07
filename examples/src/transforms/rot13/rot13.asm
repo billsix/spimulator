@@ -20,14 +20,6 @@
 
 
 # C source — see rot13-1.c
-#
-#     int ch;
-#     while ((ch = read_char()) != -1) {
-#       if (ch >= 'a' && ch <= 'z') ch = 'a' + (ch - 'a' + 13) % 26;
-#       else if (ch >= 'A' && ch <= 'Z') ch = 'A' + (ch - 'A' + 13) % 26;
-#       print_char((char)ch);
-#     }
-#
 # Invocation:
 #   echo "Hello, World!~" | spimulator -f rot13.asm
 #   # => Uryyb, Jbeyq!

@@ -20,22 +20,6 @@
 
 
 # C source — see hanoi.c
-#
-#     static void hanoi(int n, char src, char dst, char tmp) {
-#       if (n == 0) return;
-#       hanoi(n - 1, src, tmp, dst);
-#       print_string("Move disk from ");
-#       print_char(src); print_string(" to "); print_char(dst);
-#       print_char('\n');
-#       hanoi(n - 1, tmp, dst, src);
-#     }
-#
-#     int my_main(int argc, char **argv) {
-#       int n = parse_int(argv[1]);
-#       hanoi(n, 'A', 'C', 'B');
-#       return 0;
-#     }
-#
 # Invocation:
 #   spimulator -f hanoi.asm 3
 

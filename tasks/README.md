@@ -45,9 +45,11 @@ several docs' internal claims were refreshed the same day.)
   B2/B3 as **one** mechanical-rename sweep → then `c23-modernization-pass2`
   (don't modernize code about to be renamed).
 - Example hygiene, suggested order: `string-equality-audit` (suspected real
-  bug) → `c-asm-comment-parity` (mechanical removal of embedded-C blocks) →
-  `code-idiosyncrasies-audit` (reads everything; benefits from the first two
-  having shrunk/fixed the files).
+  bug) → `code-idiosyncrasies-audit` (reads everything).  The embedded-C
+  removal (`c-asm-comment-parity`) landed 2026-07-07 and is archived.
+- `mini-c-compiler` (capstone) comes after the library chain — its output
+  links against the shared asm library, and its acceptance harness is the
+  demo goldens.
 
 **Explicitly NOT dependencies (verified):**
 

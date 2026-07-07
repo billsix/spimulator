@@ -2,15 +2,6 @@
 
 
 # C source — see cp.c
-#
-#     int my_main(int argc, char **argv) {
-#       int src = open(argv[1], O_RDONLY, 0);
-#       int dst = open(argv[2], O_WRONLY|O_CREAT|O_TRUNC, 0644);
-#       char buf[4096];
-#       long n;
-#       while ((n = read(src, buf, 4096)) > 0) write(dst, buf, n);
-#       close(src); close(dst);
-#     }
 
 
 # Invocation:

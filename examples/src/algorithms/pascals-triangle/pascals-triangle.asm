@@ -20,17 +20,6 @@
 
 
 # C source — see pascals-triangle.c
-#
-#     int my_main(int argc, char **argv) {
-#       int rows = (argc == 2) ? parse_int(argv[1]) : 10;
-#       static int row[35] = {1};
-#       for (int n = 0; n < rows; n++) {
-#         for (int j = n; j > 0; j--) row[j] += row[j-1];
-#         for (int j = 0; j <= n; j++) { print_int(row[j]); print_char(' '); }
-#         print_char('\n');
-#       }
-#       return 0;
-#     }
 
 
 # Invocations:

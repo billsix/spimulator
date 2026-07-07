@@ -20,23 +20,6 @@
 
 
 # C source — see wc.c
-#
-#     int my_main(int argc, char **argv) {
-#       int fd = STDIN;
-#       if (argc > 2) usage;
-#       if (argc == 2 && argv[1] != "-") fd = open(argv[1]);
-#       int byte_count = 0, line_count = 0;
-#       char c;
-#       while (read(fd, &c, 1) > 0) {
-#         byte_count++;
-#         if (c == '\n') line_count++;
-#       }
-#       print_int(byte_count); print_string(" bytes, ");
-#       print_int(line_count); print_string(" lines\n");
-#       if (fd != STDIN) close(fd);
-#       return 0;
-#     }
-#
 # Invocations:
 #   spimulator -f wc.asm             # reads stdin
 #   spimulator -f wc.asm -           # reads stdin (explicit "-")

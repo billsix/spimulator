@@ -17,7 +17,7 @@ as equal). Find it and fix it.
 
 | Site | Status |
 |---|---|
-| `examples/src/extras/testStringsForEquality/testStringsForEquality.{c,-1.asm}` | C audited — the `while (*a == *b) { if (*a == 0) ... }` loop handles length correctly. **The .asm port still needs a careful read** (its embedded C is abridged — see `c-asm-comment-parity.md`). |
+| `examples/src/extras/testStringsForEquality/testStringsForEquality.{c,-1.asm}` | C audited — the `while (*a == *b) { if (*a == 0) ... }` loop handles length correctly. **The .asm port still needs a careful read.** |
 | `examples/src/transforms/head/head.{c,asm}` `str_eq` (the `-n` flag check) | both audited — same correct loop shape |
 | `examples/src/transforms/tail/tail.{c,asm}` | **not yet audited** |
 | every other demo with a comparison loop — `comm`, `cp`, `factor`, `seq`, `base64`, `od`, the recursion/algorithms sets | **not yet audited** — inventory via `grep -rn 'str_eq\|strcmp\|streq' examples/src pgu/src` |
@@ -43,8 +43,9 @@ declares "equal" when only the *first* string ended).
 1. Grep-inventory every comparison routine across `examples/src` and
    `pgu/src` (C and asm), audit each against the buggy shapes above.
 2. Fix the offender(s); update the paired C and asm together. (The embedded-C
-   comment blocks in the .asm headers are being *removed* per
-   `c-asm-comment-parity.md` — nothing extra to sync there.)
+   comment blocks in the .asm headers were removed 2026-07-07 —
+   `archive/2026/07/07/c-asm-comment-parity.md` — so there's nothing extra to
+   keep in sync.)
 3. Add a demo-level regression: a comparison case where one string is a
    prefix of the other (`"abc"` vs `"abcdef"`) pinned in the golden output.
 4. Record here which site Bill actually hit, once found.

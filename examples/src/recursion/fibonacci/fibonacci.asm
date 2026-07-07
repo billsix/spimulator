@@ -20,25 +20,6 @@
 
 
 # C source — see fibonacci.c
-#
-#     static int fib_iter(int n) {
-#       int a = 0, b = 1;
-#       for (int i = 0; i < n; i++) { int t = a + b; a = b; b = t; }
-#       return a;
-#     }
-#
-#     static int fib_rec(int n) {
-#       if (n < 2) return n;
-#       return fib_rec(n - 1) + fib_rec(n - 2);
-#     }
-#
-#     int my_main(int argc, char **argv) {
-#       int n = parse_int(argv[1]);
-#       print_string("iter: "); print_int(fib_iter(n)); print_char('\n');
-#       print_string("rec:  "); print_int(fib_rec(n));  print_char('\n');
-#       return 0;
-#     }
-#
 # Invocation:
 #   spimulator -f fibonacci.asm 10
 

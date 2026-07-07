@@ -20,21 +20,6 @@
 
 
 # C source — see gcd.c
-#
-#     int gcd(int a, int b) {
-#       while (b != 0) { int t = a % b; a = b; b = t; }
-#       return a;
-#     }
-#
-#     int my_main(int argc, char **argv) {
-#       if (argc != 3) { print_string("usage: gcd A B\n"); return 1; }
-#       int a = parse_int(argv[1]);
-#       int b = parse_int(argv[2]);
-#       print_int(gcd(a, b));
-#       print_char('\n');
-#       return 0;
-#     }
-#
 # Invocation:
 #   spimulator -f gcd.asm 1071 462
 

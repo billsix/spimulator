@@ -20,16 +20,6 @@
 
 
 # C source — see print1through10-1.c
-#
-#     __attribute__((noreturn)) void _start(void) {
-#       int i = 0;
-#       while (i <= 10) {
-#         print_int(i);
-#         print_string("\n");
-#         i++;
-#       }
-#       os_exit(0);
-#     }
 
 
 #PURPOSE:  Print the integers 0 through 10, each on its own line.

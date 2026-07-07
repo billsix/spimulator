@@ -20,16 +20,6 @@
 
 
 # C source — see echo.c
-#
-#     int my_main(int argc, char **argv) {
-#       for (int i = 1; i < argc; i++) {
-#         print_string(argv[i]);
-#         if (i + 1 < argc) print_char(' ');
-#       }
-#       print_char('\n');
-#       return 0;
-#     }
-#
 # Invocation:
 #   spimulator -f echo.asm one two three
 

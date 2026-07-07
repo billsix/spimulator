@@ -20,17 +20,6 @@
 
 
 # C source — see tr.c
-#
-#     __attribute__((noreturn)) void _start(void) {
-#       int ch = read_char();
-#       while (ch != -1) {
-#         if (ch >= 'a' && ch <= 'z')
-#           ch = ch - 32;
-#         print_char((char)ch);
-#         ch = read_char();
-#       }
-#       os_exit(0);
-#     }
 
 
 # Invocations (pure stdin filter — like real `tr`, no file arg):

@@ -20,15 +20,6 @@
 
 
 # C source — see binary-search.c
-#
-#     int my_main(int argc, char **argv) {
-#       int target = parse_int(argv[1]);
-#       int data[256], n = 0, value;
-#       while (n < 256 && read_int_from_stdin(&value) == 0)
-#         data[n++] = value;
-#       print_result("linear: ", linear_search(data, n, target));
-#       print_result("binary: ", binary_search(data, n, target));
-#     }
 
 
 # Invocations (sorted ints, one per line — see bubble-sort for why):

@@ -1,6 +1,18 @@
 # Remove the embedded C blocks from the example .asm files
 
-**Status:** proposed — not started; decision made 2026-07-07
+**Status:** DONE — executed and archived 2026-07-07. Removed 466 lines of
+transcribed-C header blocks across 38 `.asm` demos (script-driven: maximal
+column-0 comment runs in the file header whose lines are blank-`#` or
+3+-space-indented and that contain a line ending in `{` or a lone `}` —
+verified against a marker-anchored pass to catch the two files whose
+`# C source — see` line runs into prose). The `# C source — see <demo>.c`
+pointer lines were kept; the 8 demos whose block was a prose summary (comm,
+base64, cut, nl, od, tac, tail, uniq) were left intact, as were the lib
+files' small per-function `# C:` contract snippets (different convention —
+flag to Bill separately if those should go too). Verified: all 55 demos load
+clean under spimulator, helloworld + bubble-sort produce correct output,
+regression suite 29/29. The reintroduction-checker (step 3) was skipped as
+not-yet-earning-its-keep; trivial to add later.
 **Created:** 2026-07-07
 
 ## Request (Bill, 2026-07-07, two rounds)

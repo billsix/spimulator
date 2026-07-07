@@ -20,26 +20,6 @@
 
 
 # C source — see tee.c
-#
-#     int my_main(int argc, char **argv) {
-#       if (argc - 1 > MAX_OUT) usage;
-#       int fds[MAX_OUT]; int nfds = 0;
-#       for (int i = 1; i < argc; i++) {
-#         int fd = open(argv[i],
-#                       O_WRONLY|O_CREAT|O_TRUNC, 0644);
-#         if (fd < 0) error;
-#         fds[nfds++] = fd;
-#       }
-#       char buf[4096];
-#       long n;
-#       while ((n = read(STDIN, buf, 4096)) > 0) {
-#         write(STDOUT, buf, n);
-#         for (int i = 0; i < nfds; i++) write(fds[i], buf, n);
-#       }
-#       for (int i = 0; i < nfds; i++) close(fds[i]);
-#       return n < 0 ? 1 : 0;
-#     }
-#
 # Invocation:
 #   echo hello | spimulator -f tee.asm a.txt b.txt
 

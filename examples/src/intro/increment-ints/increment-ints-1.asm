@@ -20,16 +20,6 @@
 
 
 # C source — see increment-ints.c
-#
-#     __attribute__((noreturn)) void _start(void) {
-#       int a, b;
-#       a = b = 5;
-#       print_int(++a + 5);    print_string("\n");   // pre-increment
-#       print_int(a);          print_string("\n");
-#       print_int(b++ + 5);    print_string("\n");   // post-increment
-#       print_int(b);          print_string("\n");
-#       os_exit(0);
-#     }
 
 
 #PURPOSE:  Demonstrate pre- and post-increment of integer variables.
