@@ -17,7 +17,25 @@ equations at the beginning of Hennessy & Patterson (Patterson & Hennessy,
 *Computer Organization and Design* ch. 1.6): CPU time = instruction count ×
 CPI × clock cycle time.
 
-## Phase 1 — investigate
+## Phase 1 — investigate (findings 2026-07-07, partial)
+
+- **Dispatch loop:** `run_spim(initial_PC, steps_to_run, display)` in
+  `src/run.c` — the inner `for (step = 0; step < step_size; ...)` body is
+  the single per-instruction hook point for cost accounting and delay.
+- **"Being debugged" signal:** the `display` parameter is true for the
+  REPL `step` path and false for `run`/`continue` — suppressing the delay
+  when `display == true` (plus optionally when breakpoints exist) is
+  enough; no new plumbing needed.
+- **No retired-instruction counter exists** — `CP0_Count` is the *timer*
+  (bumped by the ITIMER tick handler, compared against `CP0_Compare`),
+  not an instruction count.  The timing module adds its own counter.
+- **Register/memory costs need no access-time metering:** the freshly
+  renamed `op_type` tags in `opcode-types.h` already classify every
+  opcode's operand shape (`RT_ADDR_INST` = load/store, `RD_RS_RT_INST` =
+  3-reg ALU, …), so per-instruction cost = a small table keyed on the
+  tag + opcode family.  This is much simpler than hooking `mem_read_*`.
+
+## Phase 1 — investigate (original list)
 
 - Where the dispatch loop lives (`src/run.c`, `run_program`/the big switch)
   and whether an instruction-count already exists to build on.
