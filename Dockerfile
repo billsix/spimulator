@@ -1,4 +1,7 @@
-FROM registry.fedoraproject.org/fedora:44
+# Fedora version comes from the Makefile (FEDORA_VERSION) so the base-image
+# tag and the host dnf package-cache path can't drift apart.
+ARG FEDORA_VERSION=44
+FROM registry.fedoraproject.org/fedora:${FEDORA_VERSION}
 
 ARG USE_EMACS=0
 
@@ -201,10 +204,10 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
 COPY .clang-format ${SPIM_SRC_DIR}/
 COPY .clang-tidy   ${SPIM_SRC_DIR}/
 
-RUN echo "exit() {" >> ~/.bashrc && \
-    echo "    echo "Formatting on shell exit"" >> ~/.bashrc && \
-    echo "    format.sh" >> ~/.bashrc && \
-    echo "    lint.sh" >> ~/.bashrc && \
-    echo "    builtin exit "$@"" >> ~/.bashrc && \
-    echo "}" >> ~/.bashrc && \
+RUN echo 'exit() {' >> ~/.bashrc && \
+    echo '    echo "Formatting on shell exit"' >> ~/.bashrc && \
+    echo '    format.sh' >> ~/.bashrc && \
+    echo '    lint.sh' >> ~/.bashrc && \
+    echo '    builtin exit "$@"' >> ~/.bashrc && \
+    echo '}' >> ~/.bashrc && \
     echo "PS1='\[\e[36m\]┌─(\t) \[\e[32m\]\u@\h:\w\n\[\e[36m\]└─λ \[\e[0m\]'" >> ~/.bashrc

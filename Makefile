@@ -15,7 +15,12 @@ FILES_TO_MOUNT = -v .:/spimulator/:Z \
                  -v ./entrypoint/lint.sh:/usr/local/bin/lint.sh:Z \
                  -v ./entrypoint/dotfiles/.tmux.conf:/root/.tmux.conf:Z
 
-PACKAGE_CACHE_ROOT = ~/.cache/packagecache/fedora/43
+# Single source of truth for the Fedora release: names the base-image tag
+# (via --build-arg to the Dockerfile's FROM) and the host package-cache path,
+# so the two can't drift apart.
+FEDORA_VERSION ?= 44
+
+PACKAGE_CACHE_ROOT = ~/.cache/packagecache/fedora/$(FEDORA_VERSION)
 
 DNF_CACHE_TO_MOUNT = -v $(PACKAGE_CACHE_ROOT)/var/cache/libdnf5:/var/cache/libdnf5:Z \
 	             -v $(PACKAGE_CACHE_ROOT)/var/lib/dnf:/var/lib/dnf:Z
@@ -46,6 +51,7 @@ image: ## Build podman image to run the examples
 	# build the container
 	$(CONTAINER_CMD) build \
                          -t $(CONTAINER_NAME) \
+                         --build-arg FEDORA_VERSION=$(FEDORA_VERSION) \
                          --build-arg USE_EMACS=$(USE_EMACS) \
                          --build-arg BUILD_TREE_SITTER=$(BUILD_TREE_SITTER) \
                          --build-arg BUILD_DOCS=$(BUILD_DOCS) \
