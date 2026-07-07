@@ -103,7 +103,7 @@ exception_file = meson.current_source_dir() / 'src' / 'exceptions.s'
 regression_tests = [
   # Standard "Passed all tests" sentinel
   'bare', 'core', 'le', 'dir', 'octal_escape', 'argv', 'multifile',
-  'read_int_eof',
+  'read_int_eof', 'read_int_space_sep',
   # Custom criteria
   'read_char_eof', 'args_cmd',
   # Unix-process conformance (exit codes)

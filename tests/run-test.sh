@@ -75,6 +75,13 @@ case "$NAME" in
     printf '5\n7\n' | "$SPIM" -exception_file "$EF" -f tt.read_int_eof.s >"$out" 2>&1
     expect_sentinel
     ;;
+  read_int_space_sep)
+    # Space-separated ints on one line, one int per syscall-5 call
+    # (scanf-style), mixed with newline separators and a negative.
+    printf '43 3 12\n-5 8\n' | "$SPIM" -exception_file "$EF" \
+      -f tt.read_int_space_sep.s >"$out" 2>&1
+    expect_sentinel
+    ;;
 
   # --- Tests with custom pass criteria ---
   read_char_eof)

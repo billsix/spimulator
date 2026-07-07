@@ -1581,6 +1581,57 @@ int read_input(char* str, int str_size) {
   return count;
 }
 
+/* Scanf-style integer read for syscall 5 (read_int): skip leading
+ * whitespace (spaces, tabs, CR, newlines), then parse an optional
+ * sign and a run of decimal digits.  Only the token plus the single
+ * byte that ends it are consumed — anything after stays in the
+ * kernel's stdin buffer for the next input syscall, so piped
+ * space-separated input (`echo 43 3 12 | spimulator ...`) yields one
+ * int per call instead of discarding the rest of the line.
+ *
+ * Returns 1 and stores the value on success.  Returns 0 — the
+ * caller's $a3 = 1 failure signal — on EOF, or when the next token
+ * does not begin a number (non-digit garbage), so read-until-$a3
+ * loops always terminate.
+ *
+ * The fd-level read has no pushback, so the delimiter byte after the
+ * digits is consumed with the token.  For whitespace-separated input
+ * that is exactly what a scanf user expects.
+ */
+
+int read_int_input(long* value) {
+  int restore_console_to_program = 0;
+
+  if (console_state_saved) {
+    restore_console_to_program = 1;
+    console_to_spim();
+  }
+
+  char c = '\0';
+  ssize_t n;
+  do {
+    n = read((int)console_in.i, &c, 1);
+  } while (n > 0 && (c == ' ' || c == '\t' || c == '\n' || c == '\r'));
+
+  long sign = 1;
+  if (n > 0 && (c == '-' || c == '+')) {
+    if (c == '-') sign = -1;
+    n = read((int)console_in.i, &c, 1);
+  }
+
+  bool got_digit = false;
+  long v = 0;
+  while (n > 0 && '0' <= c && c <= '9') {
+    got_digit = true;
+    v = v * 10 + (c - '0');
+    n = read((int)console_in.i, &c, 1);
+  }
+
+  if (restore_console_to_program) console_to_program();
+  *value = got_digit ? sign * v : 0;
+  return got_digit ? 1 : 0;
+}
+
 /* Give the console to the program for IO. */
 
 static void console_to_program(void) {
