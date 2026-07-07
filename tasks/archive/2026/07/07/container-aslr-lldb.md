@@ -1,6 +1,10 @@
 # Fix lldb ASLR-personality failure in the container
 
-**Status:** proposed — not started
+**Status:** DONE — archived 2026-07-07. Added
+`settings set target.disable-aslr false` to `entrypoint/dotfiles/.lldbinit`.
+Verified in the rebuilt image: lldb launches spimulator, hits a breakpoint at
+`main`, no "personality set failed" error. (Reference repos weren't mounted
+this session; the setting is the standard fix and verified working here.)
 **Created:** 2026-07-07
 
 ## Problem

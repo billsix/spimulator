@@ -1,5 +1,18 @@
 # Task: piped space-separated ints on stdin
 
+**Status: DONE — archived 2026-07-07.** Implemented **Option A**
+(scanf-style): new `read_int_input()` in `src/spim.c` skips whitespace
+(spaces/tabs/CR/newlines) byte-by-byte at the fd level, parses sign+digits,
+and consumes only the token plus its single delimiter byte — the rest stays
+in the kernel's stdin buffer for the next call.  `$a3 = 1` on EOF **or**
+non-digit garbage (so read-until-$a3 loops always terminate; verified
+`5 x 7` stops after the 5 rather than hanging).  `echo 43 3 12 | spimulator
+-f bubble-sort.asm` now sorts all three; newline-separated input unchanged;
+read_char interaction unchanged (the consumed delimiter after `5\n` is the
+newline, same as before).  New regression `tt.read_int_space_sep.s`
+(mixed separators + negative value) wired into run-test.sh + meson;
+regression 30/30 + examples suite green.
+
 ## Goal
 
 Make space-separated piped input work for the `read_int`

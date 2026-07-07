@@ -1,6 +1,12 @@
 # Fix bashrc exit() trap + stale dnf cache path
 
-**Status:** proposed — not started
+**Status:** DONE — archived 2026-07-07. Exit-trap echoes single-quoted so
+`builtin exit "$@"` lands literally (verified: `exit 7` from a container
+shell now propagates 7); Fedora version factored into one Makefile
+`FEDORA_VERSION ?= 44` variable feeding both the dnf cache path and the
+Dockerfile `FROM` tag via `--build-arg` (the open question below, answered
+yes). Verified via a full nested `make image` (suite + sanitizer gate green).
+The same exit-trap bug in texExpToPng is tracked in that repo, not here.
 **Created:** 2026-06-13
 
 ## Goal

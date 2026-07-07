@@ -1,8 +1,10 @@
 # Move example binaries off PATH (RPM-conventional install location)
 
-**Status:** implemented 2026-07-07 — local destdir install verified
+**Status:** DONE — archived 2026-07-07. Local destdir install verified
 (spimulator in `bin/`, all 50 demos in `libexec/spimulator/`), `meson test`
-29/29; awaiting a `make image` rebuild to confirm in-container, then archive.
+29/29; **and** confirmed in a full nested `make image` rebuild: inside the
+container `spimulator-example-*` is absent from PATH, 50 demos present in
+`/usr/local/libexec/spimulator/`, `spimulator` on PATH.
 **Created:** 2026-07-07
 
 ## Problem

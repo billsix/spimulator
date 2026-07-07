@@ -1,12 +1,29 @@
 # Replace custom `str_stream` with POSIX `open_memstream`
 
-## Status — not started
+## Status — DONE, archived 2026-07-07
 
-Filed after the variable-rename branch.  (Stale precondition removed
-2026-07-07: the variable-name expansion / file-rename work it waited on has
-long since landed on master.)  Current `ss_*` call count is ~127, not the
-~160 quoted below.  No dependencies; can be picked up any time — pairs
-naturally with any future `src/explain.c` refactor (the heaviest user).
+Implemented as a variant of option (b), one step thinner than planned: the
+`str_stream` struct became `{FILE* stream; char* buf; size_t size;}` backed
+by `open_memstream`, and the **existing `ss_*` API was kept** as thin
+wrappers — so all ~112 `ss_printf` call sites needed zero changes.  The
+custom growable-buffer/realloc logic is gone.  Semantics preserved: lazy
+init from zero-initialized statics; `ss_init` unconditionally starts fresh
+(locals are init'ed unzeroed); `ss_erase` = clamped `fseek`; relative
+`ss_length` arithmetic unaffected.  One deliberate change: `ss_to_string`
+no longer bumps the write position past the NUL (no caller relied on the
+old append-after-NUL quirk — audited all six call sites).
+
+New **`ss_take_string()`** makes the one ownership-transfer site explicit:
+`inst_to_string` builds in a *local* stream and its callers `free()` the
+result, so it now closes the stream and hands the buffer over (previously
+this pattern worked only because the buffer was a bare malloc).  While
+there, fixed a latent bug: `inst_to_string`'s error path returned a string
+literal that callers would `free()` — now `str_copy("")`.
+
+Verified: full suite green on the normal build, and the complete
+25-test regression suite green under an ASan build of spim (the
+`-nostdlib` demos can't be sanitized, so the ASan run drives
+`run-test.sh` directly against the sanitized `spimulator` target).
 
 ## Summary
 
