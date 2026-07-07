@@ -1,51 +1,45 @@
 # Audit string-equality code in the examples for a stops-short bug
 
-**Status:** proposed — candidates located, audit not finished
+**Status:** audit COMPLETE 2026-07-07 — **no stops-short bug found**; open
+pending Bill's pointer to what he observed (question at bottom).
 **Created:** 2026-07-07
-**Scope note (Bill, 2026-07-07):** the suspected bug is in the **example
-code** (`examples/src`, possibly `pgu/src`), not in spimulator itself. Audit
-the demos' comparison routines first; the simulator sites below are checked
-and fine.
+**Scope note (Bill):** the suspected bug is in the **example code**, not in
+spimulator itself.
 
 ## Report (Bill, 2026-07-07)
 
 String-equality code somewhere "stops short": it can report two strings equal
 without requiring both the same bytes *and* the same length (a prefix passing
-as equal). Find it and fix it.
+as equal).
 
-## Example-code sites (the real scope)
+## Audit results (2026-07-07) — every comparison routine, all clean
 
-| Site | Status |
+The buggy shapes looked for: `strncmp(a,b,strlen(a))`-style prefix equality;
+a loop that tests `*a == 0` *before* comparing against `*b`; an asm loop
+whose `beq $tX, $zero, equal` precedes the `bne $tX, $tY, differ`; a
+length-counted compare missing the length check.
+
+| Site | Verdict |
 |---|---|
-| `examples/src/extras/testStringsForEquality/testStringsForEquality.{c,-1.asm}` | C audited — the `while (*a == *b) { if (*a == 0) ... }` loop handles length correctly. **The .asm port still needs a careful read.** |
-| `examples/src/transforms/head/head.{c,asm}` `str_eq` (the `-n` flag check) | both audited — same correct loop shape |
-| `examples/src/transforms/tail/tail.{c,asm}` | **not yet audited** |
-| every other demo with a comparison loop — `comm`, `cp`, `factor`, `seq`, `base64`, `od`, the recursion/algorithms sets | **not yet audited** — inventory via `grep -rn 'str_eq\|strcmp\|streq' examples/src pgu/src` |
-| `pgu/src` asm ports (book code) | **not yet audited** |
+| `testStringsForEquality.{c,-1.asm}` `str_eq`/`streq` | **correct** both sides (`bne` differ-check precedes the NUL check). NB: returns **0 on equal / 1 on differ** — deliberately inverted, documented in the header. |
+| `transforms/head/head.{c,asm}` `str_eq` (`-n` flag) | correct both sides (returns 1 on equal) |
+| `transforms/tail/tail.{c,asm}` `str_eq` | correct both sides |
+| `fileio/comm/comm.{c,asm}` `line_cmp` | correct both sides (strcmp shape; NUL handled after differ-check) |
+| `transforms/uniq/uniq.{c,asm}` `lines_equal`/`emit_if_new` | correct both sides — the length-counted case; **both check `prevLen == curLen` before comparing bytes** |
+| every other demo (`seq`, `factor`, `cp`, `touch`, `base64`, `nl`, `od`, `cut`, `cat`, recursion/algorithms sets) | no string-equality code (grep-swept for comparison loops; hits were comments or numeric compares) |
+| `pgu/` (book + asm ports) | no string-equality listings (swept `src/`, `upstreamSource/`, `docs/source/*.rst`) |
+| simulator: `streq` (spim.h), symbol table, `map_string_to_name_val_val` (the shared register/keyword lookup, spim-utils.c:414) | correct — the lookup's match test requires **both** strings at NUL; prefix in either direction is a miss. `str_prefix` in the REPL is prefix-matching **by design** (command abbreviation). |
 
-Watch specifically for the buggy shapes: `strncmp(a, b, strlen(a)) == 0`
-(prefix passes), a loop that exits on `*a == 0` *before* comparing that byte
-against `*b`, or an asm loop whose `beq $t0, $zero, equal` sits before the
-`bne $t0, $t1, differ` (checking end-of-string before checking mismatch —
-declares "equal" when only the *first* string ended).
+## Question for Bill
 
-## Simulator sites (audited 2026-07-07 — all fine, kept for the record)
+No current code exhibits the described bug. Three possibilities:
 
-- `include/spim.h:32` `streq()` = `strcmp()==0` — correct;
-  `src/symbol-table.c` uses it — correct.
-- `src/spim.c` `str_prefix()` REPL command dispatch — prefix matching is
-  deliberate there (command abbreviation).
-- `src/scanner.c` keyword lookup — was the initial suspect, but per Bill the
-  bug is in the examples; only re-check if the example audit comes up empty.
-
-## Remaining work
-
-1. Grep-inventory every comparison routine across `examples/src` and
-   `pgu/src` (C and asm), audit each against the buggy shapes above.
-2. Fix the offender(s); update the paired C and asm together. (The embedded-C
-   comment blocks in the .asm headers were removed 2026-07-07 —
-   `archive/2026/07/07/c-asm-comment-parity.md` — so there's nothing extra to
-   keep in sync.)
-3. Add a demo-level regression: a comparison case where one string is a
-   prefix of the other (`"abc"` vs `"abcdef"`) pinned in the golden output.
-4. Record here which site Bill actually hit, once found.
+1. **The inverted convention read as a bug**: `testStringsForEquality`
+   returns 0 for equal / 1 for differ (inherited from the book demo it came
+   from, noted in its header). If this is what you saw, the fix is a naming/
+   convention decision, not a logic fix — say the word and I'll flip it (and
+   the demo's golden) to the intuitive 1-equal convention, or rename it
+   `str_cmp`-style so the 0 reads naturally.
+2. **Already fixed**: you saw an older revision.
+3. **Somewhere I didn't look**: if you can name the demo (or the behavior
+   you observed — inputs and wrong output), I'll pin it directly.
