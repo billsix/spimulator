@@ -77,7 +77,11 @@ primer: `tasks/archive/2026/06/16/ubsan-sweep.md`.
 
 - C23; clang-format + clang-tidy. `opcodes.h` is the single source of truth for
   both the simulator and the tree-sitter grammar — regenerate the grammar rather
-  than hand-editing keyword lists.
+  than hand-editing keyword lists. **Any change to `opcodes.h` (or
+  `opcode-types.h`) must be gated with `BUILD_TREE_SITTER=1`** — the keyword
+  pipeline (`extract-keywords.py` → `build-keyword-lists.py` → `grammar.js`)
+  consumes both the mnemonic and the type-tag columns, and a
+  `BUILD_TREE_SITTER=0` image build never exercises it.
 - This is a learning tool: the explain/teaching output is a first-class feature,
   not debug spew. Keep it correct and legible.
 
