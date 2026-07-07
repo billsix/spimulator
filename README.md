@@ -35,6 +35,7 @@ spimulator is built with [Meson](https://mesonbuild.com/) and
     * interactively:
         * `./builddir/spimulator`
             * `load "/path/to/01-helloworld.asm"`
+            * `disasm` — print a listing of the loaded program
             * `step`
             * `step`
             * `run`
