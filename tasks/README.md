@@ -63,11 +63,13 @@ several docs' internal claims were refreshed the same day.)
   other; if both land they must share cycle vocabulary.  `timing-model` is
   much cheaper — do it first if the H&P performance lesson is the goal.
 
-**Independent quick wins, any time:** `container-build-cleanup`,
-`container-aslr-lldb`, `fix-stale-doc-links`, `stdin-space-separated-ints`,
-`program-listing-at-start`, `string-stream-to-memstream`,
-`examples-install-location` (implemented; archive after `make image`
-confirms).
+**Independent quick wins, any time:** all of the original list landed and
+archived 2026-07-07 (container-build-cleanup, container-aslr-lldb,
+fix-stale-doc-links, stdin-space-separated-ints, program-listing-at-start,
+string-stream-to-memstream, examples-install-location, plus
+opcode-types-descriptive-names and the stdlib-modernization pass).
+Current smallest open items: `unix-tools`' remaining `strings` + hash
+demos, and `rpn-calculator`.
 
 ## Logging completed work
 

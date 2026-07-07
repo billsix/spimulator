@@ -92,31 +92,14 @@ picture, and git history plus the dated archive are the record of what's done.
 Ordering / dependency guidance lives in `tasks/README.md` (§Ordering &
 dependencies, reviewed 2026-07-07). Snapshot of the open set:
 
-Quick wins (independent):
+Example-code hygiene:
 
-- `examples-install-location.md` — demo binaries were installed onto PATH;
-  now go to `libexec/spimulator` (RPM convention). Implemented 2026-07-07;
-  archive after `make image` confirms.
-- `container-aslr-lldb.md` — container seccomp blocks lldb's `personality()`
-  call; add `settings set target.disable-aslr false` to `.lldbinit`.
-- `container-build-cleanup.md` — bashrc `exit()` trap drops the shell exit
-  code; bump the `fedora/43` dnf cache path to `44`.
-- `fix-stale-doc-links.md` — archive README manifests still list bare filenames.
-- `stdin-space-separated-ints.md` — syscall 5 reads only the first of
-  space-separated piped ints.
-- `program-listing-at-start.md` — pre-execution disassembly dump (the REPL
-  command must not be named `listing` — a `-listing` event-trace flag exists).
-- `string-stream-to-memstream.md` — replace `str_stream` with POSIX
-  `open_memstream` (~127 call sites).
-
-Example-code hygiene (suggested order):
-
-- `string-equality-audit.md` — find the "stops short" equality bug, which is
-  **in the example code** per Bill (simulator sites audited clean 2026-07-07).
+- `string-equality-audit.md` — audit COMPLETE, **no stops-short bug found**
+  anywhere (examples, pgu, simulator all clean); open pending Bill's pointer
+  to what he observed (chief suspect: testStringsForEquality's documented
+  0-equal/1-differ inversion).
 - `code-idiosyncrasies-audit.md` — sweep for oddities ("void argc" etc.):
   examples first, then pgu, then src/.
-- (The embedded-C removal from the demo `.asm` headers — `c-asm-comment-parity`
-  — was executed 2026-07-07: 466 lines across 38 demos, suite green; archived.)
 
 Curriculum / library:
 
@@ -132,28 +115,38 @@ Curriculum / library:
   MIPS endianness between them.
 - `container-cross-env.md` — lld + qemu-user-static in the root Dockerfile;
   needed only for *runtime* cross verification, not for the matrices.
-- `mini-c-compiler.md` — **capstone**: a small C compiler (subset covering our
-  example programs only) written in SPIM asm, then self-hosted in C; output
-  links against the shared asm library; demo goldens are the acceptance
-  harness. Investigate-first (construct census seeded: no structs/typedefs/
-  enums/goto anywhere; one switch, one float file).
+- `rpn-calculator.md` → `calc-language.md` — floating-point calculator demos
+  (the curriculum's first FPU exercises): RPN/stack first, then the TI-83-ish
+  infix language implemented twice from one grammar (SDT vs syntax tree).
+- `mini-c-compiler.md` — **capstone**: SpimC (a defined C subset; SDT, no
+  AST; declarations-first) compiler per Bill's design principles. Research
+  done 2026-07-07: construct inventory, Crenshaw-shaped plan, Route-B
+  (SpimC-in-SpimC first, hand-translate to asm) recommendation, and six
+  questions awaiting Bill in the doc.
 
 Simulator internals:
 
 - `parser-leak-cleanup.md` → then `ast-column-tracking.md` — the leak fix
   deletes PARSE_DIRECT (PARSE_AST is already the default); do the column
   plumbing once, after.
-- Naming pass: `opcode-types-descriptive-names.md` + `codebase-cleanup-plan.md`
-  Tier B2/B3 as one sweep → then `c23-modernization-pass2.md` (its
-  Tier-D-delivered items were struck 2026-07-07).
-- `codebase-cleanup-plan.md` — remaining: Tier B2/B3 (naming), Tier C (header
-  hygiene), Tier E3 (exception-path tests). Tiers A, D, B1, E1/E2/E4 done.
+- `codebase-cleanup-plan.md` — remaining: Tier C (header hygiene) and Tier
+  E3 (exception-path tests). Tiers A, D, E1/E2/E4 done; all of Tier B done
+  or moot (B2 resolved by stdlib-modernization; B3 obsoleted by the emit_*
+  renames).
+- `c23-modernization-pass2.md` — pruned 2026-07-07 (Tier-D-delivered items
+  struck); remaining: gnu23→c23 decision, `unreachable()`, literals,
+  `_BitInt`, examples/pgu subtrees.
 - Big swings, independent: `timing-model.md` (H&P ch.1 cycle model — cheaper,
   do first) and `software-alu.md` (bit-level ALU); share cycle vocabulary if
   both land.
 
-Archived 2026-07-07 after verifying the features shipped:
-`explanation-levels-and-completion`, `explanation-level-4-decoding`,
-`post-execute-narration`, `header-clarity-and-box-drawing`,
-`repl-args-command`, `multiarch-shim`, `symbol-tables` →
+Archived 2026-07-07 after verifying/landing: the seven explain/shim/symbol
+docs from the morning review, plus tonight's ten:
+`c-asm-comment-parity` (466 lines of embedded C removed),
+`container-build-cleanup`, `container-aslr-lldb`, `examples-install-location`,
+`stdin-space-separated-ints` (scanf-style syscall 5),
+`program-listing-at-start` (the `disasm` command), `fix-stale-doc-links`,
+`string-stream-to-memstream` (POSIX open_memstream),
+`opcode-types-descriptive-names` (operand-order tag names), and
+`stdlib-modernization` (bsearch/calloc/strdup) — all in
 `tasks/archive/2026/07/07/`.

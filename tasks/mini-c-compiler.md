@@ -91,7 +91,7 @@ compiles the same files they've been reading all along.
 | Construct | Where | SpimC verdict proposed |
 |---|---|---|
 | `switch` | **only** `lib/libstdlib/libstdlib.c` — zero in demos proper | omit from SpimC (libs stay hand-written asm anyway) |
-| `float`/`double` | only `recursion/hanoi/hanoi.c` — verify what for; likely rewriteable | omit; rewrite hanoi if real |
+| `float`/`double` | **zero real uses** (the one grep hit is the word "doubles" in a hanoi comment) | omit, confirmed |
 | `for (int i = …)` loop-scoped decls | 37 sites across 23 files | the bulk of the decls-first rewrite: hoist to function top |
 | `++`/`--` | 83 uses, pervasive | support in **statement position only** (`i++;` and `for(...; i++)`) — trivial in SDT; as an expression *value* it needs temporaries. Q1 below. |
 | compound assign `+= -= *= /=` | 9 uses | either support (cheap: `lhs = lhs op rhs` rewrite in the parser) or rewrite away. Q2. |
