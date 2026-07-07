@@ -297,2375 +297,2375 @@
     {
       "name": "abs.d",
       "token": "TOK_ABS_D_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46200005",
       "line": 100
     },
     {
       "name": "abs.ps",
       "token": "TOK_ABS_PS_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46600005",
       "line": 101
     },
     {
       "name": "abs.s",
       "token": "TOK_ABS_S_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46000005",
-      "line": 102
+      "line": 103
     },
     {
       "name": "add",
       "token": "TOK_ADD_OPCODE",
-      "kind": "R3_TYPE_INST",
+      "kind": "RD_RS_RT_INST",
       "encoding": "0x00000020",
-      "line": 104
+      "line": 105
     },
     {
       "name": "add.d",
       "token": "TOK_ADD_D_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x46200000",
-      "line": 105
+      "line": 106
     },
     {
       "name": "add.ps",
       "token": "TOK_ADD_PS_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x46600000",
-      "line": 106
+      "line": 107
     },
     {
       "name": "add.s",
       "token": "TOK_ADD_S_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x46000000",
-      "line": 107
+      "line": 108
     },
     {
       "name": "addi",
       "token": "TOK_ADDI_OPCODE",
-      "kind": "I2_TYPE_INST",
+      "kind": "RT_RS_IMM_INST",
       "encoding": "0x20000000",
-      "line": 108
+      "line": 109
     },
     {
       "name": "addiu",
       "token": "TOK_ADDIU_OPCODE",
-      "kind": "I2_TYPE_INST",
+      "kind": "RT_RS_IMM_INST",
       "encoding": "0x24000000",
-      "line": 109
+      "line": 110
     },
     {
       "name": "addu",
       "token": "TOK_ADDU_OPCODE",
-      "kind": "R3_TYPE_INST",
+      "kind": "RD_RS_RT_INST",
       "encoding": "0x00000021",
-      "line": 110
+      "line": 111
     },
     {
       "name": "alnv.ps",
       "token": "TOK_ALNV_PS_OPCODE",
-      "kind": "FP_R4_TYPE_INST",
+      "kind": "FP_FD_FR_FS_FT_INST",
       "encoding": "0x4c00001e",
-      "line": 112
+      "line": 113
     },
     {
       "name": "and",
       "token": "TOK_AND_OPCODE",
-      "kind": "R3_TYPE_INST",
+      "kind": "RD_RS_RT_INST",
       "encoding": "0x00000024",
-      "line": 114
+      "line": 116
     },
     {
       "name": "andi",
       "token": "TOK_ANDI_OPCODE",
-      "kind": "I2_TYPE_INST",
+      "kind": "RT_RS_IMM_INST",
       "encoding": "0x30000000",
-      "line": 115
+      "line": 117
     },
     {
       "name": "b",
       "token": "TOK_B_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 117
+      "line": 119
     },
     {
       "name": "bal",
       "token": "TOK_BAL_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 118
+      "line": 120
     },
     {
       "name": "bc1f",
       "token": "TOK_BC1F_OPCODE",
-      "kind": "BC_TYPE_INST",
+      "kind": "BRANCH_COPROC_COND_INST",
       "encoding": "0x45000000",
-      "line": 120
+      "line": 122
     },
     {
       "name": "bc1fl",
       "token": "TOK_BC1FL_OPCODE",
-      "kind": "BC_TYPE_INST",
+      "kind": "BRANCH_COPROC_COND_INST",
       "encoding": "0x45020000",
-      "line": 121
+      "line": 123
     },
     {
       "name": "bc1t",
       "token": "TOK_BC1T_OPCODE",
-      "kind": "BC_TYPE_INST",
+      "kind": "BRANCH_COPROC_COND_INST",
       "encoding": "0x45010000",
-      "line": 122
+      "line": 124
     },
     {
       "name": "bc1tl",
       "token": "TOK_BC1TL_OPCODE",
-      "kind": "BC_TYPE_INST",
+      "kind": "BRANCH_COPROC_COND_INST",
       "encoding": "0x45030000",
-      "line": 123
+      "line": 125
     },
     {
       "name": "bc2f",
       "token": "TOK_BC2F_OPCODE",
-      "kind": "BC_TYPE_INST",
+      "kind": "BRANCH_COPROC_COND_INST",
       "encoding": "0x49000000",
-      "line": 125
+      "line": 127
     },
     {
       "name": "bc2fl",
       "token": "TOK_BC2FL_OPCODE",
-      "kind": "BC_TYPE_INST",
+      "kind": "BRANCH_COPROC_COND_INST",
       "encoding": "0x49020000",
-      "line": 126
+      "line": 128
     },
     {
       "name": "bc2t",
       "token": "TOK_BC2T_OPCODE",
-      "kind": "BC_TYPE_INST",
+      "kind": "BRANCH_COPROC_COND_INST",
       "encoding": "0x49010000",
-      "line": 127
+      "line": 129
     },
     {
       "name": "bc2tl",
       "token": "TOK_BC2TL_OPCODE",
-      "kind": "BC_TYPE_INST",
+      "kind": "BRANCH_COPROC_COND_INST",
       "encoding": "0x49030000",
-      "line": 128
+      "line": 130
     },
     {
       "name": "beq",
       "token": "TOK_BEQ_OPCODE",
-      "kind": "B2_TYPE_INST",
+      "kind": "BRANCH_RS_RT_LABEL_INST",
       "encoding": "0x10000000",
-      "line": 130
+      "line": 132
     },
     {
       "name": "beql",
       "token": "TOK_BEQL_OPCODE",
-      "kind": "B2_TYPE_INST",
+      "kind": "BRANCH_RS_RT_LABEL_INST",
       "encoding": "0x50000000",
-      "line": 131
+      "line": 133
     },
     {
       "name": "beqz",
       "token": "TOK_BEQZ_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 132
+      "line": 134
     },
     {
       "name": "bge",
       "token": "TOK_BGE_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 133
+      "line": 135
     },
     {
       "name": "bgeu",
       "token": "TOK_BGEU_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 134
+      "line": 136
     },
     {
       "name": "bgez",
       "token": "TOK_BGEZ_OPCODE",
-      "kind": "B1_TYPE_INST",
+      "kind": "BRANCH_RS_LABEL_INST",
       "encoding": "0x04010000",
-      "line": 135
+      "line": 137
     },
     {
       "name": "bgezal",
       "token": "TOK_BGEZAL_OPCODE",
-      "kind": "B1_TYPE_INST",
+      "kind": "BRANCH_RS_LABEL_INST",
       "encoding": "0x04110000",
-      "line": 136
+      "line": 138
     },
     {
       "name": "bgezall",
       "token": "TOK_BGEZALL_OPCODE",
-      "kind": "B1_TYPE_INST",
+      "kind": "BRANCH_RS_LABEL_INST",
       "encoding": "0x04130000",
-      "line": 137
+      "line": 139
     },
     {
       "name": "bgezl",
       "token": "TOK_BGEZL_OPCODE",
-      "kind": "B1_TYPE_INST",
+      "kind": "BRANCH_RS_LABEL_INST",
       "encoding": "0x04030000",
-      "line": 138
+      "line": 140
     },
     {
       "name": "bgt",
       "token": "TOK_BGT_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 139
+      "line": 141
     },
     {
       "name": "bgtu",
       "token": "TOK_BGTU_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 140
+      "line": 142
     },
     {
       "name": "bgtz",
       "token": "TOK_BGTZ_OPCODE",
-      "kind": "B1_TYPE_INST",
+      "kind": "BRANCH_RS_LABEL_INST",
       "encoding": "0x1c000000",
-      "line": 141
+      "line": 143
     },
     {
       "name": "bgtzl",
       "token": "TOK_BGTZL_OPCODE",
-      "kind": "B1_TYPE_INST",
+      "kind": "BRANCH_RS_LABEL_INST",
       "encoding": "0x5c000000",
-      "line": 142
+      "line": 144
     },
     {
       "name": "ble",
       "token": "TOK_BLE_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 143
+      "line": 145
     },
     {
       "name": "bleu",
       "token": "TOK_BLEU_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 144
+      "line": 146
     },
     {
       "name": "blez",
       "token": "TOK_BLEZ_OPCODE",
-      "kind": "B1_TYPE_INST",
+      "kind": "BRANCH_RS_LABEL_INST",
       "encoding": "0x18000000",
-      "line": 145
+      "line": 147
     },
     {
       "name": "blezl",
       "token": "TOK_BLEZL_OPCODE",
-      "kind": "B1_TYPE_INST",
+      "kind": "BRANCH_RS_LABEL_INST",
       "encoding": "0x58000000",
-      "line": 146
+      "line": 148
     },
     {
       "name": "blt",
       "token": "TOK_BLT_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 147
+      "line": 149
     },
     {
       "name": "bltu",
       "token": "TOK_BLTU_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 148
+      "line": 150
     },
     {
       "name": "bltz",
       "token": "TOK_BLTZ_OPCODE",
-      "kind": "B1_TYPE_INST",
+      "kind": "BRANCH_RS_LABEL_INST",
       "encoding": "0x04000000",
-      "line": 149
+      "line": 151
     },
     {
       "name": "bltzal",
       "token": "TOK_BLTZAL_OPCODE",
-      "kind": "B1_TYPE_INST",
+      "kind": "BRANCH_RS_LABEL_INST",
       "encoding": "0x04100000",
-      "line": 150
+      "line": 152
     },
     {
       "name": "bltzall",
       "token": "TOK_BLTZALL_OPCODE",
-      "kind": "B1_TYPE_INST",
+      "kind": "BRANCH_RS_LABEL_INST",
       "encoding": "0x04120000",
-      "line": 151
+      "line": 153
     },
     {
       "name": "bltzl",
       "token": "TOK_BLTZL_OPCODE",
-      "kind": "B1_TYPE_INST",
+      "kind": "BRANCH_RS_LABEL_INST",
       "encoding": "0x04020000",
-      "line": 152
+      "line": 154
     },
     {
       "name": "bne",
       "token": "TOK_BNE_OPCODE",
-      "kind": "B2_TYPE_INST",
+      "kind": "BRANCH_RS_RT_LABEL_INST",
       "encoding": "0x14000000",
-      "line": 153
+      "line": 155
     },
     {
       "name": "bnel",
       "token": "TOK_BNEL_OPCODE",
-      "kind": "B2_TYPE_INST",
+      "kind": "BRANCH_RS_RT_LABEL_INST",
       "encoding": "0x54000000",
-      "line": 154
+      "line": 156
     },
     {
       "name": "bnez",
       "token": "TOK_BNEZ_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 155
+      "line": 157
     },
     {
       "name": "break",
       "token": "TOK_BREAK_OPCODE",
       "kind": "NOARG_TYPE_INST",
       "encoding": "0x0000000d",
-      "line": 157
+      "line": 159
     },
     {
       "name": "c.eq.d",
       "token": "TOK_C_EQ_D_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46200032",
-      "line": 159
+      "line": 161
     },
     {
       "name": "c.eq.ps",
       "token": "TOK_C_EQ_PS_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46600032",
-      "line": 160
+      "line": 162
     },
     {
       "name": "c.eq.s",
       "token": "TOK_C_EQ_S_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46000032",
-      "line": 161
+      "line": 164
     },
     {
       "name": "c.f.d",
       "token": "TOK_C_F_D_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46200030",
-      "line": 162
+      "line": 165
     },
     {
       "name": "c.f.ps",
       "token": "TOK_C_F_PS_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46600030",
-      "line": 163
+      "line": 166
     },
     {
       "name": "c.f.s",
       "token": "TOK_C_F_S_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46000030",
-      "line": 164
+      "line": 167
     },
     {
       "name": "c.le.d",
       "token": "TOK_C_LE_D_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x4620003e",
-      "line": 165
+      "line": 168
     },
     {
       "name": "c.le.ps",
       "token": "TOK_C_LE_PS_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x4660003e",
-      "line": 166
+      "line": 169
     },
     {
       "name": "c.le.s",
       "token": "TOK_C_LE_S_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x4600003e",
-      "line": 167
+      "line": 171
     },
     {
       "name": "c.lt.d",
       "token": "TOK_C_LT_D_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x4620003c",
-      "line": 168
+      "line": 172
     },
     {
       "name": "c.lt.ps",
       "token": "TOK_C_LT_PS_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x4660003c",
-      "line": 169
+      "line": 173
     },
     {
       "name": "c.lt.s",
       "token": "TOK_C_LT_S_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x4600003c",
-      "line": 170
+      "line": 175
     },
     {
       "name": "c.nge.d",
       "token": "TOK_C_NGE_D_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x4620003d",
-      "line": 171
+      "line": 176
     },
     {
       "name": "c.nge.ps",
       "token": "TOK_C_NGE_PS_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x4660003d",
-      "line": 172
+      "line": 177
     },
     {
       "name": "c.nge.s",
       "token": "TOK_C_NGE_S_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x4600003d",
-      "line": 173
+      "line": 179
     },
     {
       "name": "c.ngl.d",
       "token": "TOK_C_NGL_D_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x4620003b",
-      "line": 174
+      "line": 180
     },
     {
       "name": "c.ngl.ps",
       "token": "TOK_C_NGL_PS_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x4660003b",
-      "line": 175
+      "line": 181
     },
     {
       "name": "c.ngl.s",
       "token": "TOK_C_NGL_S_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x4600003b",
-      "line": 176
+      "line": 183
     },
     {
       "name": "c.ngle.d",
       "token": "TOK_C_NGLE_D_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46200039",
-      "line": 177
+      "line": 184
     },
     {
       "name": "c.ngle.ps",
       "token": "TOK_C_NGLE_PS_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46600039",
-      "line": 178
+      "line": 185
     },
     {
       "name": "c.ngle.s",
       "token": "TOK_C_NGLE_S_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46000039",
-      "line": 180
+      "line": 187
     },
     {
       "name": "c.ngt.d",
       "token": "TOK_C_NGT_D_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x4620003f",
-      "line": 181
+      "line": 188
     },
     {
       "name": "c.ngt.ps",
       "token": "TOK_C_NGT_PS_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x4660003f",
-      "line": 182
+      "line": 189
     },
     {
       "name": "c.ngt.s",
       "token": "TOK_C_NGT_S_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x4600003f",
-      "line": 183
+      "line": 191
     },
     {
       "name": "c.ole.d",
       "token": "TOK_C_OLE_D_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46200036",
-      "line": 184
+      "line": 192
     },
     {
       "name": "c.ole.ps",
       "token": "TOK_C_OLE_PS_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46600036",
-      "line": 185
+      "line": 193
     },
     {
       "name": "c.ole.s",
       "token": "TOK_C_OLE_S_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46000036",
-      "line": 186
+      "line": 195
     },
     {
       "name": "c.olt.d",
       "token": "TOK_C_OLT_D_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46200034",
-      "line": 187
+      "line": 196
     },
     {
       "name": "c.olt.ps",
       "token": "TOK_C_OLT_PS_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46600034",
-      "line": 188
+      "line": 197
     },
     {
       "name": "c.olt.s",
       "token": "TOK_C_OLT_S_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46000034",
-      "line": 189
+      "line": 199
     },
     {
       "name": "c.seq.d",
       "token": "TOK_C_SEQ_D_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x4620003a",
-      "line": 190
+      "line": 200
     },
     {
       "name": "c.seq.ps",
       "token": "TOK_C_SEQ_PS_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x4660003a",
-      "line": 191
+      "line": 201
     },
     {
       "name": "c.seq.s",
       "token": "TOK_C_SEQ_S_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x4600003a",
-      "line": 192
+      "line": 203
     },
     {
       "name": "c.sf.d",
       "token": "TOK_C_SF_D_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46200038",
-      "line": 193
+      "line": 204
     },
     {
       "name": "c.sf.ps",
       "token": "TOK_C_SF_PS_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46600038",
-      "line": 194
+      "line": 205
     },
     {
       "name": "c.sf.s",
       "token": "TOK_C_SF_S_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46000038",
-      "line": 195
+      "line": 207
     },
     {
       "name": "c.ueq.d",
       "token": "TOK_C_UEQ_D_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46200033",
-      "line": 196
+      "line": 208
     },
     {
       "name": "c.ueq.ps",
       "token": "TOK_C_UEQ_PS_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46600033",
-      "line": 197
+      "line": 209
     },
     {
       "name": "c.ueq.s",
       "token": "TOK_C_UEQ_S_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46000033",
-      "line": 198
+      "line": 211
     },
     {
       "name": "c.ule.d",
       "token": "TOK_C_ULE_D_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46200037",
-      "line": 199
+      "line": 212
     },
     {
       "name": "c.ule.ps",
       "token": "TOK_C_ULE_PS_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46600037",
-      "line": 200
+      "line": 213
     },
     {
       "name": "c.ule.s",
       "token": "TOK_C_ULE_S_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46000037",
-      "line": 201
+      "line": 215
     },
     {
       "name": "c.ult.d",
       "token": "TOK_C_ULT_D_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46200035",
-      "line": 202
+      "line": 216
     },
     {
       "name": "c.ult.ps",
       "token": "TOK_C_ULT_PS_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46600035",
-      "line": 203
+      "line": 217
     },
     {
       "name": "c.ult.s",
       "token": "TOK_C_ULT_S_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46000035",
-      "line": 204
+      "line": 219
     },
     {
       "name": "c.un.d",
       "token": "TOK_C_UN_D_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46200031",
-      "line": 205
+      "line": 220
     },
     {
       "name": "c.un.ps",
       "token": "TOK_C_UN_PS_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46600031",
-      "line": 206
+      "line": 221
     },
     {
       "name": "c.un.s",
       "token": "TOK_C_UN_S_OPCODE",
-      "kind": "FP_CMP_TYPE_INST",
+      "kind": "FP_CMP_FS_FT_INST",
       "encoding": "0x46000031",
-      "line": 207
+      "line": 223
     },
     {
       "name": "cache",
       "token": "TOK_CACHE_OPCODE",
-      "kind": "I2_TYPE_INST",
+      "kind": "RT_RS_IMM_INST",
       "encoding": "0xbc000000",
-      "line": 209
+      "line": 225
     },
     {
       "name": "ceil.l.d",
       "token": "TOK_CEIL_L_D_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x4620000a",
-      "line": 211
+      "line": 227
     },
     {
       "name": "ceil.l.s",
       "token": "TOK_CEIL_L_S_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x4600000a",
-      "line": 213
+      "line": 229
     },
     {
       "name": "ceil.w.d",
       "token": "TOK_CEIL_W_D_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x4620000e",
-      "line": 215
+      "line": 231
     },
     {
       "name": "ceil.w.s",
       "token": "TOK_CEIL_W_S_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x4600000e",
-      "line": 216
+      "line": 232
     },
     {
       "name": "cfc0",
       "token": "TOK_CFC0_OPCODE",
-      "kind": "FP_R2ts_TYPE_INST",
+      "kind": "FP_RT_COPREG_INST",
       "encoding": "0x40400000",
-      "line": 218
+      "line": 234
     },
     {
       "name": "cfc1",
       "token": "TOK_CFC1_OPCODE",
-      "kind": "FP_R2ts_TYPE_INST",
+      "kind": "FP_RT_COPREG_INST",
       "encoding": "0x44400000",
-      "line": 219
+      "line": 235
     },
     {
       "name": "cfc2",
       "token": "TOK_CFC2_OPCODE",
-      "kind": "FP_R2ts_TYPE_INST",
+      "kind": "FP_RT_COPREG_INST",
       "encoding": "0x48400000",
-      "line": 220
+      "line": 236
     },
     {
       "name": "clo",
       "token": "TOK_CLO_OPCODE",
-      "kind": "R3_TYPE_INST",
+      "kind": "RD_RS_RT_INST",
       "encoding": "0x70000021",
-      "line": 222
+      "line": 238
     },
     {
       "name": "clz",
       "token": "TOK_CLZ_OPCODE",
-      "kind": "R3_TYPE_INST",
+      "kind": "RD_RS_RT_INST",
       "encoding": "0x70000020",
-      "line": 223
+      "line": 239
     },
     {
       "name": "cop2",
       "token": "TOK_COP2_OPCODE",
       "kind": "J_TYPE_INST",
       "encoding": "0x4a000000",
-      "line": 225
+      "line": 241
     },
     {
       "name": "ctc0",
       "token": "TOK_CTC0_OPCODE",
-      "kind": "FP_R2ts_TYPE_INST",
+      "kind": "FP_RT_COPREG_INST",
       "encoding": "0x40c00000",
-      "line": 227
+      "line": 243
     },
     {
       "name": "ctc1",
       "token": "TOK_CTC1_OPCODE",
-      "kind": "FP_R2ts_TYPE_INST",
+      "kind": "FP_RT_COPREG_INST",
       "encoding": "0x44c00000",
-      "line": 228
+      "line": 244
     },
     {
       "name": "ctc2",
       "token": "TOK_CTC2_OPCODE",
-      "kind": "FP_R2ts_TYPE_INST",
+      "kind": "FP_RT_COPREG_INST",
       "encoding": "0x48c00000",
-      "line": 229
+      "line": 245
     },
     {
       "name": "cvt.d.l",
       "token": "TOK_CVT_D_L_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46b00021",
-      "line": 231
+      "line": 247
     },
     {
       "name": "cvt.d.s",
       "token": "TOK_CVT_D_S_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46000021",
-      "line": 232
+      "line": 249
     },
     {
       "name": "cvt.d.w",
       "token": "TOK_CVT_D_W_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46200021",
-      "line": 233
+      "line": 250
     },
     {
       "name": "cvt.l.d",
       "token": "TOK_CVT_L_D_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46200025",
-      "line": 234
+      "line": 251
     },
     {
       "name": "cvt.l.s",
       "token": "TOK_CVT_L_S_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46000025",
-      "line": 235
+      "line": 253
     },
     {
       "name": "cvt.ps.s",
       "token": "TOK_CVT_PS_S_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46000026",
-      "line": 236
+      "line": 255
     },
     {
       "name": "cvt.s.d",
       "token": "TOK_CVT_S_D_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46200020",
-      "line": 238
+      "line": 257
     },
     {
       "name": "cvt.s.l",
       "token": "TOK_CVT_S_L_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46b00020",
-      "line": 239
+      "line": 258
     },
     {
       "name": "cvt.s.pl",
       "token": "TOK_CVT_S_PL_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46c00024",
-      "line": 240
+      "line": 260
     },
     {
       "name": "cvt.s.pu",
       "token": "TOK_CVT_S_PU_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46c00020",
-      "line": 242
+      "line": 262
     },
     {
       "name": "cvt.s.w",
       "token": "TOK_CVT_S_W_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46800020",
-      "line": 244
+      "line": 264
     },
     {
       "name": "cvt.w.d",
       "token": "TOK_CVT_W_D_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46200024",
-      "line": 245
+      "line": 265
     },
     {
       "name": "cvt.w.s",
       "token": "TOK_CVT_W_S_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46000024",
-      "line": 246
+      "line": 266
     },
     {
       "name": "deret",
       "token": "TOK_DERET_OPCODE",
       "kind": "NOARG_TYPE_INST",
       "encoding": "0x4200001f",
-      "line": 248
+      "line": 268
     },
     {
       "name": "di",
       "token": "TOK_DI_OPCODE",
-      "kind": "I1t_TYPE_INST",
+      "kind": "RT_IMM_INST",
       "encoding": "0x41606000",
-      "line": 249
+      "line": 269
     },
     {
       "name": "div",
       "token": "TOK_DIV_OPCODE",
-      "kind": "R2st_TYPE_INST",
+      "kind": "RS_RT_INST",
       "encoding": "0x0000001a",
-      "line": 251
+      "line": 271
     },
     {
       "name": "div.d",
       "token": "TOK_DIV_D_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x46200003",
-      "line": 252
+      "line": 272
     },
     {
       "name": "div.s",
       "token": "TOK_DIV_S_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x46000003",
-      "line": 253
+      "line": 273
     },
     {
       "name": "divu",
       "token": "TOK_DIVU_OPCODE",
-      "kind": "R2st_TYPE_INST",
+      "kind": "RS_RT_INST",
       "encoding": "0x0000001b",
-      "line": 254
+      "line": 274
     },
     {
       "name": "ehb",
       "token": "TOK_EHB_OPCODE",
       "kind": "NOARG_TYPE_INST",
       "encoding": "0x000000c0",
-      "line": 256
+      "line": 276
     },
     {
       "name": "ei",
       "token": "TOK_EI_OPCODE",
-      "kind": "I1t_TYPE_INST",
+      "kind": "RT_IMM_INST",
       "encoding": "0x41606020",
-      "line": 257
+      "line": 277
     },
     {
       "name": "eret",
       "token": "TOK_ERET_OPCODE",
       "kind": "NOARG_TYPE_INST",
       "encoding": "0x42000018",
-      "line": 258
+      "line": 278
     },
     {
       "name": "ext",
       "token": "TOK_EXT_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x7c000000",
-      "line": 259
+      "line": 279
     },
     {
       "name": "floor.l.d",
       "token": "TOK_FLOOR_L_D_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x4620000b",
-      "line": 261
+      "line": 281
     },
     {
       "name": "floor.l.s",
       "token": "TOK_FLOOR_L_S_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x4600000b",
-      "line": 263
+      "line": 283
     },
     {
       "name": "floor.w.d",
       "token": "TOK_FLOOR_W_D_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x4620000f",
-      "line": 265
+      "line": 285
     },
     {
       "name": "floor.w.s",
       "token": "TOK_FLOOR_W_S_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x4600000f",
-      "line": 266
+      "line": 287
     },
     {
       "name": "ins",
       "token": "TOK_INS_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x7c000004",
-      "line": 268
+      "line": 290
     },
     {
       "name": "j",
       "token": "TOK_J_OPCODE",
       "kind": "J_TYPE_INST",
       "encoding": "0x08000000",
-      "line": 270
+      "line": 292
     },
     {
       "name": "jal",
       "token": "TOK_JAL_OPCODE",
       "kind": "J_TYPE_INST",
       "encoding": "0x0c000000",
-      "line": 271
+      "line": 293
     },
     {
       "name": "jalr",
       "token": "TOK_JALR_OPCODE",
-      "kind": "R2ds_TYPE_INST",
+      "kind": "RD_RS_INST",
       "encoding": "0x00000009",
-      "line": 272
+      "line": 294
     },
     {
       "name": "jalr.hb",
       "token": "TOK_JALR_HB_OPCODE",
-      "kind": "R2ds_TYPE_INST",
+      "kind": "RD_RS_INST",
       "encoding": "0x00000409",
-      "line": 273
+      "line": 295
     },
     {
       "name": "jr",
       "token": "TOK_JR_OPCODE",
-      "kind": "R1s_TYPE_INST",
+      "kind": "RS_INST",
       "encoding": "0x00000008",
-      "line": 275
+      "line": 297
     },
     {
       "name": "jr.hb",
       "token": "TOK_JR_HB_OPCODE",
-      "kind": "R1s_TYPE_INST",
+      "kind": "RS_INST",
       "encoding": "0x00000408",
-      "line": 276
+      "line": 298
     },
     {
       "name": "l.d",
       "token": "TOK_L_D_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 278
+      "line": 300
     },
     {
       "name": "l.s",
       "token": "TOK_L_S_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 279
+      "line": 301
     },
     {
       "name": "la",
       "token": "TOK_LA_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 281
+      "line": 303
     },
     {
       "name": "lb",
       "token": "TOK_LB_OPCODE",
-      "kind": "I2a_TYPE_INST",
+      "kind": "RT_ADDR_INST",
       "encoding": "0x80000000",
-      "line": 282
+      "line": 304
     },
     {
       "name": "lbu",
       "token": "TOK_LBU_OPCODE",
-      "kind": "I2a_TYPE_INST",
+      "kind": "RT_ADDR_INST",
       "encoding": "0x90000000",
-      "line": 283
+      "line": 305
     },
     {
       "name": "ld",
       "token": "TOK_LD_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 284
+      "line": 306
     },
     {
       "name": "ldc1",
       "token": "TOK_LDC1_OPCODE",
-      "kind": "FP_I2a_TYPE_INST",
+      "kind": "FP_FT_ADDR_INST",
       "encoding": "0xd4000000",
-      "line": 285
+      "line": 307
     },
     {
       "name": "ldc2",
       "token": "TOK_LDC2_OPCODE",
-      "kind": "I2a_TYPE_INST",
+      "kind": "RT_ADDR_INST",
       "encoding": "0xd8000000",
-      "line": 286
+      "line": 308
     },
     {
       "name": "ldxc1",
       "token": "TOK_LDXC1_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x4c000001",
-      "line": 287
+      "line": 309
     },
     {
       "name": "lh",
       "token": "TOK_LH_OPCODE",
-      "kind": "I2a_TYPE_INST",
+      "kind": "RT_ADDR_INST",
       "encoding": "0x84000000",
-      "line": 288
+      "line": 310
     },
     {
       "name": "lhu",
       "token": "TOK_LHU_OPCODE",
-      "kind": "I2a_TYPE_INST",
+      "kind": "RT_ADDR_INST",
       "encoding": "0x94000000",
-      "line": 289
+      "line": 311
     },
     {
       "name": "li",
       "token": "TOK_LI_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 291
+      "line": 313
     },
     {
       "name": "li.d",
       "token": "TOK_LI_D_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 292
+      "line": 314
     },
     {
       "name": "li.s",
       "token": "TOK_LI_S_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 293
+      "line": 315
     },
     {
       "name": "ll",
       "token": "TOK_LL_OPCODE",
-      "kind": "I2a_TYPE_INST",
+      "kind": "RT_ADDR_INST",
       "encoding": "0xc0000000",
-      "line": 295
+      "line": 317
     },
     {
       "name": "lui",
       "token": "TOK_LUI_OPCODE",
-      "kind": "I1t_TYPE_INST",
+      "kind": "RT_IMM_INST",
       "encoding": "0x3c000000",
-      "line": 297
+      "line": 319
     },
     {
       "name": "luxc1",
       "token": "TOK_LUXC1_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x4c000005",
-      "line": 298
+      "line": 320
     },
     {
       "name": "lw",
       "token": "TOK_LW_OPCODE",
-      "kind": "I2a_TYPE_INST",
+      "kind": "RT_ADDR_INST",
       "encoding": "0x8c000000",
-      "line": 300
+      "line": 322
     },
     {
       "name": "lwc1",
       "token": "TOK_LWC1_OPCODE",
-      "kind": "FP_I2a_TYPE_INST",
+      "kind": "FP_FT_ADDR_INST",
       "encoding": "0xc4000000",
-      "line": 301
+      "line": 323
     },
     {
       "name": "lwc2",
       "token": "TOK_LWC2_OPCODE",
-      "kind": "I2a_TYPE_INST",
+      "kind": "RT_ADDR_INST",
       "encoding": "0xc8000000",
-      "line": 302
+      "line": 324
     },
     {
       "name": "lwl",
       "token": "TOK_LWL_OPCODE",
-      "kind": "I2a_TYPE_INST",
+      "kind": "RT_ADDR_INST",
       "encoding": "0x88000000",
-      "line": 303
+      "line": 325
     },
     {
       "name": "lwr",
       "token": "TOK_LWR_OPCODE",
-      "kind": "I2a_TYPE_INST",
+      "kind": "RT_ADDR_INST",
       "encoding": "0x98000000",
-      "line": 304
+      "line": 326
     },
     {
       "name": "lwxc1",
       "token": "TOK_LWXC1_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x4c000000",
-      "line": 305
+      "line": 327
     },
     {
       "name": "madd",
       "token": "TOK_MADD_OPCODE",
-      "kind": "R2st_TYPE_INST",
+      "kind": "RS_RT_INST",
       "encoding": "0x70000000",
-      "line": 307
+      "line": 329
     },
     {
       "name": "madd.d",
       "token": "TOK_MADD_D_OPCODE",
-      "kind": "FP_R4_TYPE_INST",
+      "kind": "FP_FD_FR_FS_FT_INST",
       "encoding": "0x4c000001",
-      "line": 308
+      "line": 330
     },
     {
       "name": "madd.ps",
       "token": "TOK_MADD_PS_OPCODE",
-      "kind": "FP_R4_TYPE_INST",
+      "kind": "FP_FD_FR_FS_FT_INST",
       "encoding": "0x4c000006",
-      "line": 309
+      "line": 331
     },
     {
       "name": "madd.s",
       "token": "TOK_MADD_S_OPCODE",
-      "kind": "FP_R4_TYPE_INST",
+      "kind": "FP_FD_FR_FS_FT_INST",
       "encoding": "0x4c000000",
-      "line": 310
+      "line": 333
     },
     {
       "name": "maddu",
       "token": "TOK_MADDU_OPCODE",
-      "kind": "R2st_TYPE_INST",
+      "kind": "RS_RT_INST",
       "encoding": "0x70000001",
-      "line": 311
+      "line": 334
     },
     {
       "name": "mfc0",
       "token": "TOK_MFC0_OPCODE",
-      "kind": "R2td_TYPE_INST",
+      "kind": "RT_COPREG_INST",
       "encoding": "0x40000000",
-      "line": 313
+      "line": 336
     },
     {
       "name": "mfc1",
       "token": "TOK_MFC1_OPCODE",
-      "kind": "FP_R2ts_TYPE_INST",
+      "kind": "FP_RT_COPREG_INST",
       "encoding": "0x44000000",
-      "line": 314
+      "line": 337
     },
     {
       "name": "mfc1.d",
       "token": "TOK_MFC1_D_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 315
+      "line": 338
     },
     {
       "name": "mfc2",
       "token": "TOK_MFC2_OPCODE",
-      "kind": "R2td_TYPE_INST",
+      "kind": "RT_COPREG_INST",
       "encoding": "0x48000000",
-      "line": 316
+      "line": 339
     },
     {
       "name": "mfhc1",
       "token": "TOK_MFHC1_OPCODE",
-      "kind": "FP_R2ts_TYPE_INST",
+      "kind": "FP_RT_COPREG_INST",
       "encoding": "0x44600000",
-      "line": 317
+      "line": 340
     },
     {
       "name": "mfhc2",
       "token": "TOK_MFHC2_OPCODE",
-      "kind": "R2td_TYPE_INST",
+      "kind": "RT_COPREG_INST",
       "encoding": "0x48600000",
-      "line": 318
+      "line": 341
     },
     {
       "name": "mfhi",
       "token": "TOK_MFHI_OPCODE",
-      "kind": "R1d_TYPE_INST",
+      "kind": "RD_INST",
       "encoding": "0x00000010",
-      "line": 319
+      "line": 342
     },
     {
       "name": "mflo",
       "token": "TOK_MFLO_OPCODE",
-      "kind": "R1d_TYPE_INST",
+      "kind": "RD_INST",
       "encoding": "0x00000012",
-      "line": 320
+      "line": 343
     },
     {
       "name": "mov.d",
       "token": "TOK_MOV_D_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46200006",
-      "line": 322
+      "line": 345
     },
     {
       "name": "mov.ps",
       "token": "TOK_MOV_PS_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46c00006",
-      "line": 323
+      "line": 346
     },
     {
       "name": "mov.s",
       "token": "TOK_MOV_S_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46000006",
-      "line": 324
+      "line": 348
     },
     {
       "name": "move",
       "token": "TOK_MOVE_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 325
+      "line": 349
     },
     {
       "name": "movf",
       "token": "TOK_MOVF_OPCODE",
       "kind": "MOVC_TYPE_INST",
       "encoding": "0x00000001",
-      "line": 327
+      "line": 351
     },
     {
       "name": "movf.d",
       "token": "TOK_MOVF_D_OPCODE",
       "kind": "FP_MOVC_TYPE_INST",
       "encoding": "0x46200011",
-      "line": 328
+      "line": 352
     },
     {
       "name": "movf.ps",
       "token": "TOK_MOVF_PS_OPCODE",
       "kind": "FP_MOVC_TYPE_INST",
       "encoding": "0x46c00011",
-      "line": 329
+      "line": 353
     },
     {
       "name": "movf.s",
       "token": "TOK_MOVF_S_OPCODE",
       "kind": "FP_MOVC_TYPE_INST",
       "encoding": "0x46000011",
-      "line": 330
+      "line": 355
     },
     {
       "name": "movn",
       "token": "TOK_MOVN_OPCODE",
-      "kind": "R3_TYPE_INST",
+      "kind": "RD_RS_RT_INST",
       "encoding": "0x0000000b",
-      "line": 332
+      "line": 357
     },
     {
       "name": "movn.d",
       "token": "TOK_MOVN_D_OPCODE",
       "kind": "FP_MOVC_TYPE_INST",
       "encoding": "0x46200013",
-      "line": 333
+      "line": 358
     },
     {
       "name": "movn.ps",
       "token": "TOK_MOVN_PS_OPCODE",
       "kind": "FP_MOVC_TYPE_INST",
       "encoding": "0x46c00013",
-      "line": 334
+      "line": 359
     },
     {
       "name": "movn.s",
       "token": "TOK_MOVN_S_OPCODE",
       "kind": "FP_MOVC_TYPE_INST",
       "encoding": "0x46000013",
-      "line": 335
+      "line": 361
     },
     {
       "name": "movt",
       "token": "TOK_MOVT_OPCODE",
       "kind": "MOVC_TYPE_INST",
       "encoding": "0x00010001",
-      "line": 337
+      "line": 363
     },
     {
       "name": "movt.d",
       "token": "TOK_MOVT_D_OPCODE",
       "kind": "FP_MOVC_TYPE_INST",
       "encoding": "0x46210011",
-      "line": 338
+      "line": 364
     },
     {
       "name": "movt.ps",
       "token": "TOK_MOVT_PS_OPCODE",
       "kind": "FP_MOVC_TYPE_INST",
       "encoding": "0x46c10011",
-      "line": 339
+      "line": 365
     },
     {
       "name": "movt.s",
       "token": "TOK_MOVT_S_OPCODE",
       "kind": "FP_MOVC_TYPE_INST",
       "encoding": "0x46010011",
-      "line": 340
+      "line": 367
     },
     {
       "name": "movz",
       "token": "TOK_MOVZ_OPCODE",
-      "kind": "R3_TYPE_INST",
+      "kind": "RD_RS_RT_INST",
       "encoding": "0x0000000a",
-      "line": 342
+      "line": 369
     },
     {
       "name": "movz.d",
       "token": "TOK_MOVZ_D_OPCODE",
       "kind": "FP_MOVC_TYPE_INST",
       "encoding": "0x46200012",
-      "line": 343
+      "line": 370
     },
     {
       "name": "movz.ps",
       "token": "TOK_MOVZ_PS_OPCODE",
       "kind": "FP_MOVC_TYPE_INST",
       "encoding": "0x46c00012",
-      "line": 344
+      "line": 371
     },
     {
       "name": "movz.s",
       "token": "TOK_MOVZ_S_OPCODE",
       "kind": "FP_MOVC_TYPE_INST",
       "encoding": "0x46000012",
-      "line": 345
+      "line": 373
     },
     {
       "name": "msub",
       "token": "TOK_MSUB_OPCODE",
-      "kind": "R2st_TYPE_INST",
+      "kind": "RS_RT_INST",
       "encoding": "0x70000004",
-      "line": 347
+      "line": 375
     },
     {
       "name": "msub.d",
       "token": "TOK_MSUB_D_OPCODE",
-      "kind": "FP_R4_TYPE_INST",
+      "kind": "FP_FD_FR_FS_FT_INST",
       "encoding": "0x4c000021",
-      "line": 348
+      "line": 376
     },
     {
       "name": "msub.ps",
       "token": "TOK_MSUB_PS_OPCODE",
-      "kind": "FP_R4_TYPE_INST",
+      "kind": "FP_FD_FR_FS_FT_INST",
       "encoding": "0x4c000026",
-      "line": 349
+      "line": 377
     },
     {
       "name": "msub.s",
       "token": "TOK_MSUB_S_OPCODE",
-      "kind": "FP_R4_TYPE_INST",
+      "kind": "FP_FD_FR_FS_FT_INST",
       "encoding": "0x4c000020",
-      "line": 350
+      "line": 379
     },
     {
       "name": "msubu",
       "token": "TOK_MSUBU_OPCODE",
-      "kind": "R2st_TYPE_INST",
+      "kind": "RS_RT_INST",
       "encoding": "0x70000005",
-      "line": 351
+      "line": 380
     },
     {
       "name": "mtc0",
       "token": "TOK_MTC0_OPCODE",
-      "kind": "R2td_TYPE_INST",
+      "kind": "RT_COPREG_INST",
       "encoding": "0x40800000",
-      "line": 353
+      "line": 382
     },
     {
       "name": "mtc1",
       "token": "TOK_MTC1_OPCODE",
-      "kind": "FP_R2ts_TYPE_INST",
+      "kind": "FP_RT_COPREG_INST",
       "encoding": "0x44800000",
-      "line": 354
+      "line": 383
     },
     {
       "name": "mtc1.d",
       "token": "TOK_MTC1_D_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 355
+      "line": 384
     },
     {
       "name": "mtc2",
       "token": "TOK_MTC2_OPCODE",
-      "kind": "R2td_TYPE_INST",
+      "kind": "RT_COPREG_INST",
       "encoding": "0x48800000",
-      "line": 356
+      "line": 385
     },
     {
       "name": "mthc1",
       "token": "TOK_MTHC1_OPCODE",
-      "kind": "FP_R2ts_TYPE_INST",
+      "kind": "FP_RT_COPREG_INST",
       "encoding": "0x44e00000",
-      "line": 357
+      "line": 386
     },
     {
       "name": "mthc2",
       "token": "TOK_MTHC2_OPCODE",
-      "kind": "R2td_TYPE_INST",
+      "kind": "RT_COPREG_INST",
       "encoding": "0x48e00000",
-      "line": 358
+      "line": 387
     },
     {
       "name": "mthi",
       "token": "TOK_MTHI_OPCODE",
-      "kind": "R1s_TYPE_INST",
+      "kind": "RS_INST",
       "encoding": "0x00000011",
-      "line": 360
+      "line": 389
     },
     {
       "name": "mtlo",
       "token": "TOK_MTLO_OPCODE",
-      "kind": "R1s_TYPE_INST",
+      "kind": "RS_INST",
       "encoding": "0x00000013",
-      "line": 361
+      "line": 390
     },
     {
       "name": "mul",
       "token": "TOK_MUL_OPCODE",
-      "kind": "R3_TYPE_INST",
+      "kind": "RD_RS_RT_INST",
       "encoding": "0x70000002",
-      "line": 363
+      "line": 392
     },
     {
       "name": "mul.d",
       "token": "TOK_MUL_D_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x46200002",
-      "line": 364
+      "line": 393
     },
     {
       "name": "mul.ps",
       "token": "TOK_MUL_PS_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x46c00002",
-      "line": 365
+      "line": 394
     },
     {
       "name": "mul.s",
       "token": "TOK_MUL_S_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x46000002",
-      "line": 366
+      "line": 395
     },
     {
       "name": "mulo",
       "token": "TOK_MULO_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 367
+      "line": 396
     },
     {
       "name": "mulou",
       "token": "TOK_MULOU_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 368
+      "line": 397
     },
     {
       "name": "mult",
       "token": "TOK_MULT_OPCODE",
-      "kind": "R2st_TYPE_INST",
+      "kind": "RS_RT_INST",
       "encoding": "0x00000018",
-      "line": 369
+      "line": 398
     },
     {
       "name": "multu",
       "token": "TOK_MULTU_OPCODE",
-      "kind": "R2st_TYPE_INST",
+      "kind": "RS_RT_INST",
       "encoding": "0x00000019",
-      "line": 370
+      "line": 399
     },
     {
       "name": "neg",
       "token": "TOK_NEG_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 372
+      "line": 401
     },
     {
       "name": "neg.d",
       "token": "TOK_NEG_D_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46200007",
-      "line": 373
+      "line": 402
     },
     {
       "name": "neg.ps",
       "token": "TOK_NEG_PS_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46c00007",
-      "line": 374
+      "line": 403
     },
     {
       "name": "neg.s",
       "token": "TOK_NEG_S_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46000007",
-      "line": 375
+      "line": 405
     },
     {
       "name": "negu",
       "token": "TOK_NEGU_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 376
+      "line": 406
     },
     {
       "name": "nmadd.d",
       "token": "TOK_NMADD_D_OPCODE",
-      "kind": "FP_R4_TYPE_INST",
+      "kind": "FP_FD_FR_FS_FT_INST",
       "encoding": "0x4c000031",
-      "line": 378
+      "line": 408
     },
     {
       "name": "nmadd.ps",
       "token": "TOK_NMADD_PS_OPCODE",
-      "kind": "FP_R4_TYPE_INST",
+      "kind": "FP_FD_FR_FS_FT_INST",
       "encoding": "0x4c000036",
-      "line": 379
+      "line": 410
     },
     {
       "name": "nmadd.s",
       "token": "TOK_NMADD_S_OPCODE",
-      "kind": "FP_R4_TYPE_INST",
+      "kind": "FP_FD_FR_FS_FT_INST",
       "encoding": "0x4c000030",
-      "line": 380
+      "line": 412
     },
     {
       "name": "nmsub.d",
       "token": "TOK_NMSUB_D_OPCODE",
-      "kind": "FP_R4_TYPE_INST",
+      "kind": "FP_FD_FR_FS_FT_INST",
       "encoding": "0x4c000039",
-      "line": 381
+      "line": 414
     },
     {
       "name": "nmsub.ps",
       "token": "TOK_NMSUB_PS_OPCODE",
-      "kind": "FP_R4_TYPE_INST",
+      "kind": "FP_FD_FR_FS_FT_INST",
       "encoding": "0x4c00003e",
-      "line": 382
+      "line": 416
     },
     {
       "name": "nmsub.s",
       "token": "TOK_NMSUB_S_OPCODE",
-      "kind": "FP_R4_TYPE_INST",
+      "kind": "FP_FD_FR_FS_FT_INST",
       "encoding": "0x4c000038",
-      "line": 383
+      "line": 418
     },
     {
       "name": "nop",
       "token": "TOK_NOP_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 385
+      "line": 421
     },
     {
       "name": "nor",
       "token": "TOK_NOR_OPCODE",
-      "kind": "R3_TYPE_INST",
+      "kind": "RD_RS_RT_INST",
       "encoding": "0x00000027",
-      "line": 386
+      "line": 422
     },
     {
       "name": "not",
       "token": "TOK_NOT_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 387
+      "line": 423
     },
     {
       "name": "or",
       "token": "TOK_OR_OPCODE",
-      "kind": "R3_TYPE_INST",
+      "kind": "RD_RS_RT_INST",
       "encoding": "0x00000025",
-      "line": 388
+      "line": 424
     },
     {
       "name": "ori",
       "token": "TOK_ORI_OPCODE",
-      "kind": "I2_TYPE_INST",
+      "kind": "RT_RS_IMM_INST",
       "encoding": "0x34000000",
-      "line": 389
+      "line": 425
     },
     {
       "name": "pll.ps",
       "token": "TOK_PLL_PS_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x46c0002c",
-      "line": 391
+      "line": 427
     },
     {
       "name": "plu.ps",
       "token": "TOK_PLU_PS_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x46c0002d",
-      "line": 392
+      "line": 428
     },
     {
       "name": "pref",
       "token": "TOK_PREF_OPCODE",
-      "kind": "I2_TYPE_INST",
+      "kind": "RT_RS_IMM_INST",
       "encoding": "0xcc000000",
-      "line": 394
+      "line": 430
     },
     {
       "name": "prefx",
       "token": "TOK_PREFX_OPCODE",
-      "kind": "R2st_TYPE_INST",
+      "kind": "RS_RT_INST",
       "encoding": "0x4600000f",
-      "line": 395
+      "line": 431
     },
     {
       "name": "pul.ps",
       "token": "TOK_PUL_PS_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x46c0002e",
-      "line": 396
+      "line": 432
     },
     {
       "name": "puu.ps",
       "token": "TOK_PUU_PS_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x46c0002f",
-      "line": 397
+      "line": 433
     },
     {
       "name": "rdhwr",
       "token": "TOK_RDHWR_OPCODE",
-      "kind": "R3_TYPE_INST",
+      "kind": "RD_RS_RT_INST",
       "encoding": "0x7c00003b",
-      "line": 399
+      "line": 435
     },
     {
       "name": "rdpgpr",
       "token": "TOK_RDPGPR_OPCODE",
-      "kind": "R2td_TYPE_INST",
+      "kind": "RT_COPREG_INST",
       "encoding": "0x41400000",
-      "line": 400
+      "line": 436
     },
     {
       "name": "recip.d",
       "token": "TOK_RECIP_D_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46200015",
-      "line": 402
+      "line": 438
     },
     {
       "name": "recip.s",
       "token": "TOK_RECIP_S_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46000015",
-      "line": 403
+      "line": 440
     },
     {
       "name": "rem",
       "token": "TOK_REM_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 405
+      "line": 443
     },
     {
       "name": "remu",
       "token": "TOK_REMU_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 406
+      "line": 444
     },
     {
       "name": "rfe",
       "token": "TOK_RFE_OPCODE",
       "kind": "NOARG_TYPE_INST",
       "encoding": "0x42000010",
-      "line": 408
+      "line": 446
     },
     {
       "name": "rol",
       "token": "TOK_ROL_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 410
+      "line": 448
     },
     {
       "name": "ror",
       "token": "TOK_ROR_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 411
+      "line": 449
     },
     {
       "name": "rotr",
       "token": "TOK_ROTR_OPCODE",
-      "kind": "R2sh_TYPE_INST",
+      "kind": "RD_RT_SHAMT_INST",
       "encoding": "0x00200002",
-      "line": 412
+      "line": 450
     },
     {
       "name": "rotrv",
       "token": "TOK_ROTRV_OPCODE",
-      "kind": "R2sh_TYPE_INST",
+      "kind": "RD_RT_SHAMT_INST",
       "encoding": "0x00200003",
-      "line": 413
+      "line": 451
     },
     {
       "name": "round.l.d",
       "token": "TOK_ROUND_L_D_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46200008",
-      "line": 415
+      "line": 453
     },
     {
       "name": "round.l.s",
       "token": "TOK_ROUND_L_S_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46000008",
-      "line": 417
+      "line": 455
     },
     {
       "name": "round.w.d",
       "token": "TOK_ROUND_W_D_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x4620000c",
-      "line": 419
+      "line": 457
     },
     {
       "name": "round.w.s",
       "token": "TOK_ROUND_W_S_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x4600000c",
-      "line": 420
+      "line": 459
     },
     {
       "name": "rsqrt.d",
       "token": "TOK_RSQRT_D_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46200016",
-      "line": 422
+      "line": 462
     },
     {
       "name": "rsqrt.s",
       "token": "TOK_RSQRT_S_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46000016",
-      "line": 423
+      "line": 464
     },
     {
       "name": "s.d",
       "token": "TOK_S_D_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 425
+      "line": 467
     },
     {
       "name": "s.s",
       "token": "TOK_S_S_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 426
+      "line": 468
     },
     {
       "name": "sb",
       "token": "TOK_SB_OPCODE",
-      "kind": "I2a_TYPE_INST",
+      "kind": "RT_ADDR_INST",
       "encoding": "0xa0000000",
-      "line": 428
+      "line": 470
     },
     {
       "name": "sc",
       "token": "TOK_SC_OPCODE",
-      "kind": "I2a_TYPE_INST",
+      "kind": "RT_ADDR_INST",
       "encoding": "0xe0000000",
-      "line": 429
+      "line": 471
     },
     {
       "name": "sd",
       "token": "TOK_SD_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 430
+      "line": 472
     },
     {
       "name": "sdbbp",
       "token": "TOK_SDBBP_OPCODE",
       "kind": "NOARG_TYPE_INST",
       "encoding": "0x7000003f",
-      "line": 431
+      "line": 473
     },
     {
       "name": "sdc1",
       "token": "TOK_SDC1_OPCODE",
-      "kind": "FP_I2a_TYPE_INST",
+      "kind": "FP_FT_ADDR_INST",
       "encoding": "0xf4000000",
-      "line": 432
+      "line": 474
     },
     {
       "name": "sdc2",
       "token": "TOK_SDC2_OPCODE",
-      "kind": "I2a_TYPE_INST",
+      "kind": "RT_ADDR_INST",
       "encoding": "0xf8000000",
-      "line": 433
+      "line": 475
     },
     {
       "name": "sdxc1",
       "token": "TOK_SDXC1_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x46000009",
-      "line": 434
+      "line": 476
     },
     {
       "name": "seb",
       "token": "TOK_SEB_OPCODE",
-      "kind": "R2td_TYPE_INST",
+      "kind": "RT_COPREG_INST",
       "encoding": "0x7c000420",
-      "line": 436
+      "line": 478
     },
     {
       "name": "seh",
       "token": "TOK_SEH_OPCODE",
-      "kind": "R2td_TYPE_INST",
+      "kind": "RT_COPREG_INST",
       "encoding": "0x7c000620",
-      "line": 437
+      "line": 479
     },
     {
       "name": "seq",
       "token": "TOK_SEQ_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 438
+      "line": 480
     },
     {
       "name": "sge",
       "token": "TOK_SGE_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 439
+      "line": 481
     },
     {
       "name": "sgeu",
       "token": "TOK_SGEU_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 440
+      "line": 482
     },
     {
       "name": "sgt",
       "token": "TOK_SGT_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 441
+      "line": 483
     },
     {
       "name": "sgtu",
       "token": "TOK_SGTU_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 442
+      "line": 484
     },
     {
       "name": "sh",
       "token": "TOK_SH_OPCODE",
-      "kind": "I2a_TYPE_INST",
+      "kind": "RT_ADDR_INST",
       "encoding": "0xa4000000",
-      "line": 444
+      "line": 486
     },
     {
       "name": "sle",
       "token": "TOK_SLE_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 445
+      "line": 487
     },
     {
       "name": "sleu",
       "token": "TOK_SLEU_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 446
+      "line": 488
     },
     {
       "name": "sll",
       "token": "TOK_SLL_OPCODE",
-      "kind": "R2sh_TYPE_INST",
+      "kind": "RD_RT_SHAMT_INST",
       "encoding": "0x00000000",
-      "line": 447
+      "line": 489
     },
     {
       "name": "sllv",
       "token": "TOK_SLLV_OPCODE",
-      "kind": "R3sh_TYPE_INST",
+      "kind": "RD_RT_RS_INST",
       "encoding": "0x00000004",
-      "line": 448
+      "line": 490
     },
     {
       "name": "slt",
       "token": "TOK_SLT_OPCODE",
-      "kind": "R3_TYPE_INST",
+      "kind": "RD_RS_RT_INST",
       "encoding": "0x0000002a",
-      "line": 450
+      "line": 492
     },
     {
       "name": "slti",
       "token": "TOK_SLTI_OPCODE",
-      "kind": "I2_TYPE_INST",
+      "kind": "RT_RS_IMM_INST",
       "encoding": "0x28000000",
-      "line": 451
+      "line": 493
     },
     {
       "name": "sltiu",
       "token": "TOK_SLTIU_OPCODE",
-      "kind": "I2_TYPE_INST",
+      "kind": "RT_RS_IMM_INST",
       "encoding": "0x2c000000",
-      "line": 452
+      "line": 494
     },
     {
       "name": "sltu",
       "token": "TOK_SLTU_OPCODE",
-      "kind": "R3_TYPE_INST",
+      "kind": "RD_RS_RT_INST",
       "encoding": "0x0000002b",
-      "line": 453
+      "line": 495
     },
     {
       "name": "sne",
       "token": "TOK_SNE_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 454
+      "line": 496
     },
     {
       "name": "sqrt.d",
       "token": "TOK_SQRT_D_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46200004",
-      "line": 456
+      "line": 498
     },
     {
       "name": "sqrt.s",
       "token": "TOK_SQRT_S_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46000004",
-      "line": 457
+      "line": 499
     },
     {
       "name": "sra",
       "token": "TOK_SRA_OPCODE",
-      "kind": "R2sh_TYPE_INST",
+      "kind": "RD_RT_SHAMT_INST",
       "encoding": "0x00000003",
-      "line": 459
+      "line": 501
     },
     {
       "name": "srav",
       "token": "TOK_SRAV_OPCODE",
-      "kind": "R3sh_TYPE_INST",
+      "kind": "RD_RT_RS_INST",
       "encoding": "0x00000007",
-      "line": 460
+      "line": 502
     },
     {
       "name": "srl",
       "token": "TOK_SRL_OPCODE",
-      "kind": "R2sh_TYPE_INST",
+      "kind": "RD_RT_SHAMT_INST",
       "encoding": "0x00000002",
-      "line": 461
+      "line": 503
     },
     {
       "name": "srlv",
       "token": "TOK_SRLV_OPCODE",
-      "kind": "R3sh_TYPE_INST",
+      "kind": "RD_RT_RS_INST",
       "encoding": "0x00000006",
-      "line": 462
+      "line": 504
     },
     {
       "name": "ssnop",
       "token": "TOK_SSNOP_OPCODE",
-      "kind": "R2sh_TYPE_INST",
+      "kind": "RD_RT_SHAMT_INST",
       "encoding": "0x00000040",
-      "line": 464
+      "line": 506
     },
     {
       "name": "sub",
       "token": "TOK_SUB_OPCODE",
-      "kind": "R3_TYPE_INST",
+      "kind": "RD_RS_RT_INST",
       "encoding": "0x00000022",
-      "line": 466
+      "line": 508
     },
     {
       "name": "sub.d",
       "token": "TOK_SUB_D_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x46200001",
-      "line": 467
+      "line": 509
     },
     {
       "name": "sub.ps",
       "token": "TOK_SUB_PS_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x46600001",
-      "line": 468
+      "line": 510
     },
     {
       "name": "sub.s",
       "token": "TOK_SUB_S_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x46000001",
-      "line": 469
+      "line": 511
     },
     {
       "name": "subu",
       "token": "TOK_SUBU_OPCODE",
-      "kind": "R3_TYPE_INST",
+      "kind": "RD_RS_RT_INST",
       "encoding": "0x00000023",
-      "line": 470
+      "line": 512
     },
     {
       "name": "suxc1",
       "token": "TOK_SUXC1_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x4600000d",
-      "line": 472
+      "line": 514
     },
     {
       "name": "sw",
       "token": "TOK_SW_OPCODE",
-      "kind": "I2a_TYPE_INST",
+      "kind": "RT_ADDR_INST",
       "encoding": "0xac000000",
-      "line": 474
+      "line": 516
     },
     {
       "name": "swc1",
       "token": "TOK_SWC1_OPCODE",
-      "kind": "FP_I2a_TYPE_INST",
+      "kind": "FP_FT_ADDR_INST",
       "encoding": "0xe4000000",
-      "line": 475
+      "line": 517
     },
     {
       "name": "swc2",
       "token": "TOK_SWC2_OPCODE",
-      "kind": "I2a_TYPE_INST",
+      "kind": "RT_ADDR_INST",
       "encoding": "0xe8000000",
-      "line": 476
+      "line": 518
     },
     {
       "name": "swl",
       "token": "TOK_SWL_OPCODE",
-      "kind": "I2a_TYPE_INST",
+      "kind": "RT_ADDR_INST",
       "encoding": "0xa8000000",
-      "line": 477
+      "line": 519
     },
     {
       "name": "swr",
       "token": "TOK_SWR_OPCODE",
-      "kind": "I2a_TYPE_INST",
+      "kind": "RT_ADDR_INST",
       "encoding": "0xb8000000",
-      "line": 478
+      "line": 520
     },
     {
       "name": "swxc1",
       "token": "TOK_SWXC1_OPCODE",
-      "kind": "FP_R3_TYPE_INST",
+      "kind": "FP_FD_FS_FT_INST",
       "encoding": "0x46000008",
-      "line": 479
+      "line": 521
     },
     {
       "name": "sync",
       "token": "TOK_SYNC_OPCODE",
       "kind": "NOARG_TYPE_INST",
       "encoding": "0x0000000f",
-      "line": 481
+      "line": 523
     },
     {
       "name": "synci",
       "token": "TOK_SYNCI_OPCODE",
-      "kind": "I2_TYPE_INST",
+      "kind": "RT_RS_IMM_INST",
       "encoding": "0x04140000",
-      "line": 482
+      "line": 524
     },
     {
       "name": "syscall",
       "token": "TOK_SYSCALL_OPCODE",
       "kind": "NOARG_TYPE_INST",
       "encoding": "0x0000000c",
-      "line": 483
+      "line": 525
     },
     {
       "name": "teq",
       "token": "TOK_TEQ_OPCODE",
-      "kind": "R2st_TYPE_INST",
+      "kind": "RS_RT_INST",
       "encoding": "0x00000034",
-      "line": 485
+      "line": 527
     },
     {
       "name": "teqi",
       "token": "TOK_TEQI_OPCODE",
-      "kind": "I1s_TYPE_INST",
+      "kind": "RS_IMM_INST",
       "encoding": "0x040c0000",
-      "line": 486
+      "line": 528
     },
     {
       "name": "tge",
       "token": "TOK_TGE_OPCODE",
-      "kind": "R2st_TYPE_INST",
+      "kind": "RS_RT_INST",
       "encoding": "0x00000030",
-      "line": 487
+      "line": 529
     },
     {
       "name": "tgei",
       "token": "TOK_TGEI_OPCODE",
-      "kind": "I1s_TYPE_INST",
+      "kind": "RS_IMM_INST",
       "encoding": "0x04080000",
-      "line": 488
+      "line": 530
     },
     {
       "name": "tgeiu",
       "token": "TOK_TGEIU_OPCODE",
-      "kind": "I1s_TYPE_INST",
+      "kind": "RS_IMM_INST",
       "encoding": "0x04090000",
-      "line": 489
+      "line": 531
     },
     {
       "name": "tgeu",
       "token": "TOK_TGEU_OPCODE",
-      "kind": "R2st_TYPE_INST",
+      "kind": "RS_RT_INST",
       "encoding": "0x00000031",
-      "line": 490
+      "line": 532
     },
     {
       "name": "tlbp",
       "token": "TOK_TLBP_OPCODE",
       "kind": "NOARG_TYPE_INST",
       "encoding": "0x42000008",
-      "line": 492
+      "line": 534
     },
     {
       "name": "tlbr",
       "token": "TOK_TLBR_OPCODE",
       "kind": "NOARG_TYPE_INST",
       "encoding": "0x42000001",
-      "line": 493
+      "line": 535
     },
     {
       "name": "tlbwi",
       "token": "TOK_TLBWI_OPCODE",
       "kind": "NOARG_TYPE_INST",
       "encoding": "0x42000002",
-      "line": 494
+      "line": 536
     },
     {
       "name": "tlbwr",
       "token": "TOK_TLBWR_OPCODE",
       "kind": "NOARG_TYPE_INST",
       "encoding": "0x42000006",
-      "line": 495
+      "line": 537
     },
     {
       "name": "tlt",
       "token": "TOK_TLT_OPCODE",
-      "kind": "R2st_TYPE_INST",
+      "kind": "RS_RT_INST",
       "encoding": "0x00000032",
-      "line": 497
+      "line": 539
     },
     {
       "name": "tlti",
       "token": "TOK_TLTI_OPCODE",
-      "kind": "I1s_TYPE_INST",
+      "kind": "RS_IMM_INST",
       "encoding": "0x040a0000",
-      "line": 498
+      "line": 540
     },
     {
       "name": "tltiu",
       "token": "TOK_TLTIU_OPCODE",
-      "kind": "I1s_TYPE_INST",
+      "kind": "RS_IMM_INST",
       "encoding": "0x040b0000",
-      "line": 499
+      "line": 541
     },
     {
       "name": "tltu",
       "token": "TOK_TLTU_OPCODE",
-      "kind": "R2st_TYPE_INST",
+      "kind": "RS_RT_INST",
       "encoding": "0x00000033",
-      "line": 500
+      "line": 542
     },
     {
       "name": "tne",
       "token": "TOK_TNE_OPCODE",
-      "kind": "R2st_TYPE_INST",
+      "kind": "RS_RT_INST",
       "encoding": "0x00000036",
-      "line": 501
+      "line": 543
     },
     {
       "name": "tnei",
       "token": "TOK_TNEI_OPCODE",
-      "kind": "I1s_TYPE_INST",
+      "kind": "RS_IMM_INST",
       "encoding": "0x040e0000",
-      "line": 502
+      "line": 544
     },
     {
       "name": "trunc.l.d",
       "token": "TOK_TRUNC_L_D_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46200009",
-      "line": 504
+      "line": 546
     },
     {
       "name": "trunc.l.s",
       "token": "TOK_TRUNC_L_S_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x46000009",
-      "line": 506
+      "line": 548
     },
     {
       "name": "trunc.w.d",
       "token": "TOK_TRUNC_W_D_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x4620000d",
-      "line": 508
+      "line": 550
     },
     {
       "name": "trunc.w.s",
       "token": "TOK_TRUNC_W_S_OPCODE",
-      "kind": "FP_R2ds_TYPE_INST",
+      "kind": "FP_FD_FS_INST",
       "encoding": "0x4600000d",
-      "line": 509
+      "line": 552
     },
     {
       "name": "ulh",
       "token": "TOK_ULH_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 511
+      "line": 555
     },
     {
       "name": "ulhu",
       "token": "TOK_ULHU_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 512
+      "line": 556
     },
     {
       "name": "ulw",
       "token": "TOK_ULW_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 513
+      "line": 557
     },
     {
       "name": "ush",
       "token": "TOK_USH_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 514
+      "line": 558
     },
     {
       "name": "usw",
       "token": "TOK_USW_PSEUDO_OP",
       "kind": "PSEUDO_OP",
       "encoding": "-1",
-      "line": 515
+      "line": 559
     },
     {
       "name": "wrpgpr",
       "token": "TOK_WRPGPR_OPCODE",
-      "kind": "R2td_TYPE_INST",
+      "kind": "RT_COPREG_INST",
       "encoding": "0x41c00000",
-      "line": 517
+      "line": 561
     },
     {
       "name": "wsbh",
       "token": "TOK_WSBH_OPCODE",
-      "kind": "R2td_TYPE_INST",
+      "kind": "RT_COPREG_INST",
       "encoding": "0x7c0000a0",
-      "line": 518
+      "line": 562
     },
     {
       "name": "xor",
       "token": "TOK_XOR_OPCODE",
-      "kind": "R3_TYPE_INST",
+      "kind": "RD_RS_RT_INST",
       "encoding": "0x00000026",
-      "line": 520
+      "line": 564
     },
     {
       "name": "xori",
       "token": "TOK_XORI_OPCODE",
-      "kind": "I2_TYPE_INST",
+      "kind": "RT_RS_IMM_INST",
       "encoding": "0x38000000",
-      "line": 521
+      "line": 565
     }
   ],
   "by_kind": {
@@ -2971,1262 +2971,1262 @@
         "token": "TOK_B_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 117
+        "line": 119
       },
       {
         "name": "bal",
         "token": "TOK_BAL_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 118
+        "line": 120
       },
       {
         "name": "beqz",
         "token": "TOK_BEQZ_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 132
+        "line": 134
       },
       {
         "name": "bge",
         "token": "TOK_BGE_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 133
+        "line": 135
       },
       {
         "name": "bgeu",
         "token": "TOK_BGEU_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 134
+        "line": 136
       },
       {
         "name": "bgt",
         "token": "TOK_BGT_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 139
+        "line": 141
       },
       {
         "name": "bgtu",
         "token": "TOK_BGTU_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 140
+        "line": 142
       },
       {
         "name": "ble",
         "token": "TOK_BLE_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 143
+        "line": 145
       },
       {
         "name": "bleu",
         "token": "TOK_BLEU_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 144
+        "line": 146
       },
       {
         "name": "blt",
         "token": "TOK_BLT_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 147
+        "line": 149
       },
       {
         "name": "bltu",
         "token": "TOK_BLTU_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 148
+        "line": 150
       },
       {
         "name": "bnez",
         "token": "TOK_BNEZ_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 155
+        "line": 157
       },
       {
         "name": "l.d",
         "token": "TOK_L_D_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 278
+        "line": 300
       },
       {
         "name": "l.s",
         "token": "TOK_L_S_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 279
+        "line": 301
       },
       {
         "name": "la",
         "token": "TOK_LA_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 281
+        "line": 303
       },
       {
         "name": "ld",
         "token": "TOK_LD_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 284
+        "line": 306
       },
       {
         "name": "li",
         "token": "TOK_LI_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 291
+        "line": 313
       },
       {
         "name": "li.d",
         "token": "TOK_LI_D_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 292
+        "line": 314
       },
       {
         "name": "li.s",
         "token": "TOK_LI_S_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 293
+        "line": 315
       },
       {
         "name": "mfc1.d",
         "token": "TOK_MFC1_D_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 315
+        "line": 338
       },
       {
         "name": "move",
         "token": "TOK_MOVE_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 325
+        "line": 349
       },
       {
         "name": "mtc1.d",
         "token": "TOK_MTC1_D_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 355
+        "line": 384
       },
       {
         "name": "mulo",
         "token": "TOK_MULO_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 367
+        "line": 396
       },
       {
         "name": "mulou",
         "token": "TOK_MULOU_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 368
+        "line": 397
       },
       {
         "name": "neg",
         "token": "TOK_NEG_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 372
+        "line": 401
       },
       {
         "name": "negu",
         "token": "TOK_NEGU_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 376
+        "line": 406
       },
       {
         "name": "nop",
         "token": "TOK_NOP_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 385
+        "line": 421
       },
       {
         "name": "not",
         "token": "TOK_NOT_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 387
+        "line": 423
       },
       {
         "name": "rem",
         "token": "TOK_REM_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 405
+        "line": 443
       },
       {
         "name": "remu",
         "token": "TOK_REMU_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 406
+        "line": 444
       },
       {
         "name": "rol",
         "token": "TOK_ROL_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 410
+        "line": 448
       },
       {
         "name": "ror",
         "token": "TOK_ROR_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 411
+        "line": 449
       },
       {
         "name": "s.d",
         "token": "TOK_S_D_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 425
+        "line": 467
       },
       {
         "name": "s.s",
         "token": "TOK_S_S_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 426
+        "line": 468
       },
       {
         "name": "sd",
         "token": "TOK_SD_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 430
+        "line": 472
       },
       {
         "name": "seq",
         "token": "TOK_SEQ_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 438
+        "line": 480
       },
       {
         "name": "sge",
         "token": "TOK_SGE_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 439
+        "line": 481
       },
       {
         "name": "sgeu",
         "token": "TOK_SGEU_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 440
+        "line": 482
       },
       {
         "name": "sgt",
         "token": "TOK_SGT_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 441
+        "line": 483
       },
       {
         "name": "sgtu",
         "token": "TOK_SGTU_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 442
+        "line": 484
       },
       {
         "name": "sle",
         "token": "TOK_SLE_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 445
+        "line": 487
       },
       {
         "name": "sleu",
         "token": "TOK_SLEU_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 446
+        "line": 488
       },
       {
         "name": "sne",
         "token": "TOK_SNE_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 454
+        "line": 496
       },
       {
         "name": "ulh",
         "token": "TOK_ULH_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 511
+        "line": 555
       },
       {
         "name": "ulhu",
         "token": "TOK_ULHU_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 512
+        "line": 556
       },
       {
         "name": "ulw",
         "token": "TOK_ULW_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 513
+        "line": 557
       },
       {
         "name": "ush",
         "token": "TOK_USH_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 514
+        "line": 558
       },
       {
         "name": "usw",
         "token": "TOK_USW_PSEUDO_OP",
         "kind": "PSEUDO_OP",
         "encoding": "-1",
-        "line": 515
+        "line": 559
       }
     ],
-    "FP_R2ds_TYPE_INST": [
+    "FP_FD_FS_INST": [
       {
         "name": "abs.d",
         "token": "TOK_ABS_D_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46200005",
         "line": 100
       },
       {
         "name": "abs.ps",
         "token": "TOK_ABS_PS_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46600005",
         "line": 101
       },
       {
         "name": "abs.s",
         "token": "TOK_ABS_S_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46000005",
-        "line": 102
+        "line": 103
       },
       {
         "name": "ceil.l.d",
         "token": "TOK_CEIL_L_D_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x4620000a",
-        "line": 211
+        "line": 227
       },
       {
         "name": "ceil.l.s",
         "token": "TOK_CEIL_L_S_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x4600000a",
-        "line": 213
+        "line": 229
       },
       {
         "name": "ceil.w.d",
         "token": "TOK_CEIL_W_D_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x4620000e",
-        "line": 215
+        "line": 231
       },
       {
         "name": "ceil.w.s",
         "token": "TOK_CEIL_W_S_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x4600000e",
-        "line": 216
+        "line": 232
       },
       {
         "name": "cvt.d.l",
         "token": "TOK_CVT_D_L_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46b00021",
-        "line": 231
+        "line": 247
       },
       {
         "name": "cvt.d.s",
         "token": "TOK_CVT_D_S_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46000021",
-        "line": 232
+        "line": 249
       },
       {
         "name": "cvt.d.w",
         "token": "TOK_CVT_D_W_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46200021",
-        "line": 233
+        "line": 250
       },
       {
         "name": "cvt.l.d",
         "token": "TOK_CVT_L_D_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46200025",
-        "line": 234
+        "line": 251
       },
       {
         "name": "cvt.l.s",
         "token": "TOK_CVT_L_S_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46000025",
-        "line": 235
+        "line": 253
       },
       {
         "name": "cvt.ps.s",
         "token": "TOK_CVT_PS_S_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46000026",
-        "line": 236
+        "line": 255
       },
       {
         "name": "cvt.s.d",
         "token": "TOK_CVT_S_D_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46200020",
-        "line": 238
+        "line": 257
       },
       {
         "name": "cvt.s.l",
         "token": "TOK_CVT_S_L_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46b00020",
-        "line": 239
+        "line": 258
       },
       {
         "name": "cvt.s.pl",
         "token": "TOK_CVT_S_PL_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46c00024",
-        "line": 240
+        "line": 260
       },
       {
         "name": "cvt.s.pu",
         "token": "TOK_CVT_S_PU_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46c00020",
-        "line": 242
+        "line": 262
       },
       {
         "name": "cvt.s.w",
         "token": "TOK_CVT_S_W_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46800020",
-        "line": 244
+        "line": 264
       },
       {
         "name": "cvt.w.d",
         "token": "TOK_CVT_W_D_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46200024",
-        "line": 245
+        "line": 265
       },
       {
         "name": "cvt.w.s",
         "token": "TOK_CVT_W_S_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46000024",
-        "line": 246
+        "line": 266
       },
       {
         "name": "ext",
         "token": "TOK_EXT_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x7c000000",
-        "line": 259
+        "line": 279
       },
       {
         "name": "floor.l.d",
         "token": "TOK_FLOOR_L_D_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x4620000b",
-        "line": 261
+        "line": 281
       },
       {
         "name": "floor.l.s",
         "token": "TOK_FLOOR_L_S_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x4600000b",
-        "line": 263
+        "line": 283
       },
       {
         "name": "floor.w.d",
         "token": "TOK_FLOOR_W_D_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x4620000f",
-        "line": 265
+        "line": 285
       },
       {
         "name": "floor.w.s",
         "token": "TOK_FLOOR_W_S_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x4600000f",
-        "line": 266
+        "line": 287
       },
       {
         "name": "ins",
         "token": "TOK_INS_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x7c000004",
-        "line": 268
+        "line": 290
       },
       {
         "name": "mov.d",
         "token": "TOK_MOV_D_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46200006",
-        "line": 322
+        "line": 345
       },
       {
         "name": "mov.ps",
         "token": "TOK_MOV_PS_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46c00006",
-        "line": 323
+        "line": 346
       },
       {
         "name": "mov.s",
         "token": "TOK_MOV_S_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46000006",
-        "line": 324
+        "line": 348
       },
       {
         "name": "neg.d",
         "token": "TOK_NEG_D_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46200007",
-        "line": 373
+        "line": 402
       },
       {
         "name": "neg.ps",
         "token": "TOK_NEG_PS_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46c00007",
-        "line": 374
+        "line": 403
       },
       {
         "name": "neg.s",
         "token": "TOK_NEG_S_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46000007",
-        "line": 375
+        "line": 405
       },
       {
         "name": "recip.d",
         "token": "TOK_RECIP_D_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46200015",
-        "line": 402
+        "line": 438
       },
       {
         "name": "recip.s",
         "token": "TOK_RECIP_S_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46000015",
-        "line": 403
+        "line": 440
       },
       {
         "name": "round.l.d",
         "token": "TOK_ROUND_L_D_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46200008",
-        "line": 415
+        "line": 453
       },
       {
         "name": "round.l.s",
         "token": "TOK_ROUND_L_S_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46000008",
-        "line": 417
+        "line": 455
       },
       {
         "name": "round.w.d",
         "token": "TOK_ROUND_W_D_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x4620000c",
-        "line": 419
+        "line": 457
       },
       {
         "name": "round.w.s",
         "token": "TOK_ROUND_W_S_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x4600000c",
-        "line": 420
+        "line": 459
       },
       {
         "name": "rsqrt.d",
         "token": "TOK_RSQRT_D_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46200016",
-        "line": 422
+        "line": 462
       },
       {
         "name": "rsqrt.s",
         "token": "TOK_RSQRT_S_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46000016",
-        "line": 423
+        "line": 464
       },
       {
         "name": "sqrt.d",
         "token": "TOK_SQRT_D_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46200004",
-        "line": 456
+        "line": 498
       },
       {
         "name": "sqrt.s",
         "token": "TOK_SQRT_S_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46000004",
-        "line": 457
+        "line": 499
       },
       {
         "name": "trunc.l.d",
         "token": "TOK_TRUNC_L_D_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46200009",
-        "line": 504
+        "line": 546
       },
       {
         "name": "trunc.l.s",
         "token": "TOK_TRUNC_L_S_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x46000009",
-        "line": 506
+        "line": 548
       },
       {
         "name": "trunc.w.d",
         "token": "TOK_TRUNC_W_D_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x4620000d",
-        "line": 508
+        "line": 550
       },
       {
         "name": "trunc.w.s",
         "token": "TOK_TRUNC_W_S_OPCODE",
-        "kind": "FP_R2ds_TYPE_INST",
+        "kind": "FP_FD_FS_INST",
         "encoding": "0x4600000d",
-        "line": 509
+        "line": 552
       }
     ],
-    "R3_TYPE_INST": [
+    "RD_RS_RT_INST": [
       {
         "name": "add",
         "token": "TOK_ADD_OPCODE",
-        "kind": "R3_TYPE_INST",
+        "kind": "RD_RS_RT_INST",
         "encoding": "0x00000020",
-        "line": 104
+        "line": 105
       },
       {
         "name": "addu",
         "token": "TOK_ADDU_OPCODE",
-        "kind": "R3_TYPE_INST",
+        "kind": "RD_RS_RT_INST",
         "encoding": "0x00000021",
-        "line": 110
+        "line": 111
       },
       {
         "name": "and",
         "token": "TOK_AND_OPCODE",
-        "kind": "R3_TYPE_INST",
+        "kind": "RD_RS_RT_INST",
         "encoding": "0x00000024",
-        "line": 114
+        "line": 116
       },
       {
         "name": "clo",
         "token": "TOK_CLO_OPCODE",
-        "kind": "R3_TYPE_INST",
+        "kind": "RD_RS_RT_INST",
         "encoding": "0x70000021",
-        "line": 222
+        "line": 238
       },
       {
         "name": "clz",
         "token": "TOK_CLZ_OPCODE",
-        "kind": "R3_TYPE_INST",
+        "kind": "RD_RS_RT_INST",
         "encoding": "0x70000020",
-        "line": 223
+        "line": 239
       },
       {
         "name": "movn",
         "token": "TOK_MOVN_OPCODE",
-        "kind": "R3_TYPE_INST",
+        "kind": "RD_RS_RT_INST",
         "encoding": "0x0000000b",
-        "line": 332
+        "line": 357
       },
       {
         "name": "movz",
         "token": "TOK_MOVZ_OPCODE",
-        "kind": "R3_TYPE_INST",
+        "kind": "RD_RS_RT_INST",
         "encoding": "0x0000000a",
-        "line": 342
+        "line": 369
       },
       {
         "name": "mul",
         "token": "TOK_MUL_OPCODE",
-        "kind": "R3_TYPE_INST",
+        "kind": "RD_RS_RT_INST",
         "encoding": "0x70000002",
-        "line": 363
+        "line": 392
       },
       {
         "name": "nor",
         "token": "TOK_NOR_OPCODE",
-        "kind": "R3_TYPE_INST",
+        "kind": "RD_RS_RT_INST",
         "encoding": "0x00000027",
-        "line": 386
+        "line": 422
       },
       {
         "name": "or",
         "token": "TOK_OR_OPCODE",
-        "kind": "R3_TYPE_INST",
+        "kind": "RD_RS_RT_INST",
         "encoding": "0x00000025",
-        "line": 388
+        "line": 424
       },
       {
         "name": "rdhwr",
         "token": "TOK_RDHWR_OPCODE",
-        "kind": "R3_TYPE_INST",
+        "kind": "RD_RS_RT_INST",
         "encoding": "0x7c00003b",
-        "line": 399
+        "line": 435
       },
       {
         "name": "slt",
         "token": "TOK_SLT_OPCODE",
-        "kind": "R3_TYPE_INST",
+        "kind": "RD_RS_RT_INST",
         "encoding": "0x0000002a",
-        "line": 450
+        "line": 492
       },
       {
         "name": "sltu",
         "token": "TOK_SLTU_OPCODE",
-        "kind": "R3_TYPE_INST",
+        "kind": "RD_RS_RT_INST",
         "encoding": "0x0000002b",
-        "line": 453
+        "line": 495
       },
       {
         "name": "sub",
         "token": "TOK_SUB_OPCODE",
-        "kind": "R3_TYPE_INST",
+        "kind": "RD_RS_RT_INST",
         "encoding": "0x00000022",
-        "line": 466
+        "line": 508
       },
       {
         "name": "subu",
         "token": "TOK_SUBU_OPCODE",
-        "kind": "R3_TYPE_INST",
+        "kind": "RD_RS_RT_INST",
         "encoding": "0x00000023",
-        "line": 470
+        "line": 512
       },
       {
         "name": "xor",
         "token": "TOK_XOR_OPCODE",
-        "kind": "R3_TYPE_INST",
+        "kind": "RD_RS_RT_INST",
         "encoding": "0x00000026",
-        "line": 520
+        "line": 564
       }
     ],
-    "FP_R3_TYPE_INST": [
+    "FP_FD_FS_FT_INST": [
       {
         "name": "add.d",
         "token": "TOK_ADD_D_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x46200000",
-        "line": 105
+        "line": 106
       },
       {
         "name": "add.ps",
         "token": "TOK_ADD_PS_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x46600000",
-        "line": 106
+        "line": 107
       },
       {
         "name": "add.s",
         "token": "TOK_ADD_S_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x46000000",
-        "line": 107
+        "line": 108
       },
       {
         "name": "div.d",
         "token": "TOK_DIV_D_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x46200003",
-        "line": 252
+        "line": 272
       },
       {
         "name": "div.s",
         "token": "TOK_DIV_S_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x46000003",
-        "line": 253
+        "line": 273
       },
       {
         "name": "ldxc1",
         "token": "TOK_LDXC1_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x4c000001",
-        "line": 287
+        "line": 309
       },
       {
         "name": "luxc1",
         "token": "TOK_LUXC1_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x4c000005",
-        "line": 298
+        "line": 320
       },
       {
         "name": "lwxc1",
         "token": "TOK_LWXC1_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x4c000000",
-        "line": 305
+        "line": 327
       },
       {
         "name": "mul.d",
         "token": "TOK_MUL_D_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x46200002",
-        "line": 364
+        "line": 393
       },
       {
         "name": "mul.ps",
         "token": "TOK_MUL_PS_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x46c00002",
-        "line": 365
+        "line": 394
       },
       {
         "name": "mul.s",
         "token": "TOK_MUL_S_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x46000002",
-        "line": 366
+        "line": 395
       },
       {
         "name": "pll.ps",
         "token": "TOK_PLL_PS_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x46c0002c",
-        "line": 391
+        "line": 427
       },
       {
         "name": "plu.ps",
         "token": "TOK_PLU_PS_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x46c0002d",
-        "line": 392
+        "line": 428
       },
       {
         "name": "pul.ps",
         "token": "TOK_PUL_PS_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x46c0002e",
-        "line": 396
+        "line": 432
       },
       {
         "name": "puu.ps",
         "token": "TOK_PUU_PS_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x46c0002f",
-        "line": 397
+        "line": 433
       },
       {
         "name": "sdxc1",
         "token": "TOK_SDXC1_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x46000009",
-        "line": 434
+        "line": 476
       },
       {
         "name": "sub.d",
         "token": "TOK_SUB_D_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x46200001",
-        "line": 467
+        "line": 509
       },
       {
         "name": "sub.ps",
         "token": "TOK_SUB_PS_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x46600001",
-        "line": 468
+        "line": 510
       },
       {
         "name": "sub.s",
         "token": "TOK_SUB_S_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x46000001",
-        "line": 469
+        "line": 511
       },
       {
         "name": "suxc1",
         "token": "TOK_SUXC1_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x4600000d",
-        "line": 472
+        "line": 514
       },
       {
         "name": "swxc1",
         "token": "TOK_SWXC1_OPCODE",
-        "kind": "FP_R3_TYPE_INST",
+        "kind": "FP_FD_FS_FT_INST",
         "encoding": "0x46000008",
-        "line": 479
+        "line": 521
       }
     ],
-    "I2_TYPE_INST": [
+    "RT_RS_IMM_INST": [
       {
         "name": "addi",
         "token": "TOK_ADDI_OPCODE",
-        "kind": "I2_TYPE_INST",
+        "kind": "RT_RS_IMM_INST",
         "encoding": "0x20000000",
-        "line": 108
+        "line": 109
       },
       {
         "name": "addiu",
         "token": "TOK_ADDIU_OPCODE",
-        "kind": "I2_TYPE_INST",
+        "kind": "RT_RS_IMM_INST",
         "encoding": "0x24000000",
-        "line": 109
+        "line": 110
       },
       {
         "name": "andi",
         "token": "TOK_ANDI_OPCODE",
-        "kind": "I2_TYPE_INST",
+        "kind": "RT_RS_IMM_INST",
         "encoding": "0x30000000",
-        "line": 115
+        "line": 117
       },
       {
         "name": "cache",
         "token": "TOK_CACHE_OPCODE",
-        "kind": "I2_TYPE_INST",
+        "kind": "RT_RS_IMM_INST",
         "encoding": "0xbc000000",
-        "line": 209
+        "line": 225
       },
       {
         "name": "ori",
         "token": "TOK_ORI_OPCODE",
-        "kind": "I2_TYPE_INST",
+        "kind": "RT_RS_IMM_INST",
         "encoding": "0x34000000",
-        "line": 389
+        "line": 425
       },
       {
         "name": "pref",
         "token": "TOK_PREF_OPCODE",
-        "kind": "I2_TYPE_INST",
+        "kind": "RT_RS_IMM_INST",
         "encoding": "0xcc000000",
-        "line": 394
+        "line": 430
       },
       {
         "name": "slti",
         "token": "TOK_SLTI_OPCODE",
-        "kind": "I2_TYPE_INST",
+        "kind": "RT_RS_IMM_INST",
         "encoding": "0x28000000",
-        "line": 451
+        "line": 493
       },
       {
         "name": "sltiu",
         "token": "TOK_SLTIU_OPCODE",
-        "kind": "I2_TYPE_INST",
+        "kind": "RT_RS_IMM_INST",
         "encoding": "0x2c000000",
-        "line": 452
+        "line": 494
       },
       {
         "name": "synci",
         "token": "TOK_SYNCI_OPCODE",
-        "kind": "I2_TYPE_INST",
+        "kind": "RT_RS_IMM_INST",
         "encoding": "0x04140000",
-        "line": 482
+        "line": 524
       },
       {
         "name": "xori",
         "token": "TOK_XORI_OPCODE",
-        "kind": "I2_TYPE_INST",
+        "kind": "RT_RS_IMM_INST",
         "encoding": "0x38000000",
-        "line": 521
+        "line": 565
       }
     ],
-    "FP_R4_TYPE_INST": [
+    "FP_FD_FR_FS_FT_INST": [
       {
         "name": "alnv.ps",
         "token": "TOK_ALNV_PS_OPCODE",
-        "kind": "FP_R4_TYPE_INST",
+        "kind": "FP_FD_FR_FS_FT_INST",
         "encoding": "0x4c00001e",
-        "line": 112
+        "line": 113
       },
       {
         "name": "madd.d",
         "token": "TOK_MADD_D_OPCODE",
-        "kind": "FP_R4_TYPE_INST",
+        "kind": "FP_FD_FR_FS_FT_INST",
         "encoding": "0x4c000001",
-        "line": 308
+        "line": 330
       },
       {
         "name": "madd.ps",
         "token": "TOK_MADD_PS_OPCODE",
-        "kind": "FP_R4_TYPE_INST",
+        "kind": "FP_FD_FR_FS_FT_INST",
         "encoding": "0x4c000006",
-        "line": 309
+        "line": 331
       },
       {
         "name": "madd.s",
         "token": "TOK_MADD_S_OPCODE",
-        "kind": "FP_R4_TYPE_INST",
+        "kind": "FP_FD_FR_FS_FT_INST",
         "encoding": "0x4c000000",
-        "line": 310
+        "line": 333
       },
       {
         "name": "msub.d",
         "token": "TOK_MSUB_D_OPCODE",
-        "kind": "FP_R4_TYPE_INST",
+        "kind": "FP_FD_FR_FS_FT_INST",
         "encoding": "0x4c000021",
-        "line": 348
+        "line": 376
       },
       {
         "name": "msub.ps",
         "token": "TOK_MSUB_PS_OPCODE",
-        "kind": "FP_R4_TYPE_INST",
+        "kind": "FP_FD_FR_FS_FT_INST",
         "encoding": "0x4c000026",
-        "line": 349
+        "line": 377
       },
       {
         "name": "msub.s",
         "token": "TOK_MSUB_S_OPCODE",
-        "kind": "FP_R4_TYPE_INST",
+        "kind": "FP_FD_FR_FS_FT_INST",
         "encoding": "0x4c000020",
-        "line": 350
+        "line": 379
       },
       {
         "name": "nmadd.d",
         "token": "TOK_NMADD_D_OPCODE",
-        "kind": "FP_R4_TYPE_INST",
+        "kind": "FP_FD_FR_FS_FT_INST",
         "encoding": "0x4c000031",
-        "line": 378
+        "line": 408
       },
       {
         "name": "nmadd.ps",
         "token": "TOK_NMADD_PS_OPCODE",
-        "kind": "FP_R4_TYPE_INST",
+        "kind": "FP_FD_FR_FS_FT_INST",
         "encoding": "0x4c000036",
-        "line": 379
+        "line": 410
       },
       {
         "name": "nmadd.s",
         "token": "TOK_NMADD_S_OPCODE",
-        "kind": "FP_R4_TYPE_INST",
+        "kind": "FP_FD_FR_FS_FT_INST",
         "encoding": "0x4c000030",
-        "line": 380
+        "line": 412
       },
       {
         "name": "nmsub.d",
         "token": "TOK_NMSUB_D_OPCODE",
-        "kind": "FP_R4_TYPE_INST",
+        "kind": "FP_FD_FR_FS_FT_INST",
         "encoding": "0x4c000039",
-        "line": 381
+        "line": 414
       },
       {
         "name": "nmsub.ps",
         "token": "TOK_NMSUB_PS_OPCODE",
-        "kind": "FP_R4_TYPE_INST",
+        "kind": "FP_FD_FR_FS_FT_INST",
         "encoding": "0x4c00003e",
-        "line": 382
+        "line": 416
       },
       {
         "name": "nmsub.s",
         "token": "TOK_NMSUB_S_OPCODE",
-        "kind": "FP_R4_TYPE_INST",
+        "kind": "FP_FD_FR_FS_FT_INST",
         "encoding": "0x4c000038",
-        "line": 383
+        "line": 418
       }
     ],
-    "BC_TYPE_INST": [
+    "BRANCH_COPROC_COND_INST": [
       {
         "name": "bc1f",
         "token": "TOK_BC1F_OPCODE",
-        "kind": "BC_TYPE_INST",
+        "kind": "BRANCH_COPROC_COND_INST",
         "encoding": "0x45000000",
-        "line": 120
+        "line": 122
       },
       {
         "name": "bc1fl",
         "token": "TOK_BC1FL_OPCODE",
-        "kind": "BC_TYPE_INST",
+        "kind": "BRANCH_COPROC_COND_INST",
         "encoding": "0x45020000",
-        "line": 121
+        "line": 123
       },
       {
         "name": "bc1t",
         "token": "TOK_BC1T_OPCODE",
-        "kind": "BC_TYPE_INST",
+        "kind": "BRANCH_COPROC_COND_INST",
         "encoding": "0x45010000",
-        "line": 122
+        "line": 124
       },
       {
         "name": "bc1tl",
         "token": "TOK_BC1TL_OPCODE",
-        "kind": "BC_TYPE_INST",
+        "kind": "BRANCH_COPROC_COND_INST",
         "encoding": "0x45030000",
-        "line": 123
+        "line": 125
       },
       {
         "name": "bc2f",
         "token": "TOK_BC2F_OPCODE",
-        "kind": "BC_TYPE_INST",
+        "kind": "BRANCH_COPROC_COND_INST",
         "encoding": "0x49000000",
-        "line": 125
+        "line": 127
       },
       {
         "name": "bc2fl",
         "token": "TOK_BC2FL_OPCODE",
-        "kind": "BC_TYPE_INST",
+        "kind": "BRANCH_COPROC_COND_INST",
         "encoding": "0x49020000",
-        "line": 126
+        "line": 128
       },
       {
         "name": "bc2t",
         "token": "TOK_BC2T_OPCODE",
-        "kind": "BC_TYPE_INST",
+        "kind": "BRANCH_COPROC_COND_INST",
         "encoding": "0x49010000",
-        "line": 127
+        "line": 129
       },
       {
         "name": "bc2tl",
         "token": "TOK_BC2TL_OPCODE",
-        "kind": "BC_TYPE_INST",
+        "kind": "BRANCH_COPROC_COND_INST",
         "encoding": "0x49030000",
-        "line": 128
+        "line": 130
       }
     ],
-    "B2_TYPE_INST": [
+    "BRANCH_RS_RT_LABEL_INST": [
       {
         "name": "beq",
         "token": "TOK_BEQ_OPCODE",
-        "kind": "B2_TYPE_INST",
+        "kind": "BRANCH_RS_RT_LABEL_INST",
         "encoding": "0x10000000",
-        "line": 130
+        "line": 132
       },
       {
         "name": "beql",
         "token": "TOK_BEQL_OPCODE",
-        "kind": "B2_TYPE_INST",
+        "kind": "BRANCH_RS_RT_LABEL_INST",
         "encoding": "0x50000000",
-        "line": 131
+        "line": 133
       },
       {
         "name": "bne",
         "token": "TOK_BNE_OPCODE",
-        "kind": "B2_TYPE_INST",
+        "kind": "BRANCH_RS_RT_LABEL_INST",
         "encoding": "0x14000000",
-        "line": 153
+        "line": 155
       },
       {
         "name": "bnel",
         "token": "TOK_BNEL_OPCODE",
-        "kind": "B2_TYPE_INST",
+        "kind": "BRANCH_RS_RT_LABEL_INST",
         "encoding": "0x54000000",
-        "line": 154
+        "line": 156
       }
     ],
-    "B1_TYPE_INST": [
+    "BRANCH_RS_LABEL_INST": [
       {
         "name": "bgez",
         "token": "TOK_BGEZ_OPCODE",
-        "kind": "B1_TYPE_INST",
+        "kind": "BRANCH_RS_LABEL_INST",
         "encoding": "0x04010000",
-        "line": 135
+        "line": 137
       },
       {
         "name": "bgezal",
         "token": "TOK_BGEZAL_OPCODE",
-        "kind": "B1_TYPE_INST",
+        "kind": "BRANCH_RS_LABEL_INST",
         "encoding": "0x04110000",
-        "line": 136
+        "line": 138
       },
       {
         "name": "bgezall",
         "token": "TOK_BGEZALL_OPCODE",
-        "kind": "B1_TYPE_INST",
+        "kind": "BRANCH_RS_LABEL_INST",
         "encoding": "0x04130000",
-        "line": 137
+        "line": 139
       },
       {
         "name": "bgezl",
         "token": "TOK_BGEZL_OPCODE",
-        "kind": "B1_TYPE_INST",
+        "kind": "BRANCH_RS_LABEL_INST",
         "encoding": "0x04030000",
-        "line": 138
+        "line": 140
       },
       {
         "name": "bgtz",
         "token": "TOK_BGTZ_OPCODE",
-        "kind": "B1_TYPE_INST",
+        "kind": "BRANCH_RS_LABEL_INST",
         "encoding": "0x1c000000",
-        "line": 141
+        "line": 143
       },
       {
         "name": "bgtzl",
         "token": "TOK_BGTZL_OPCODE",
-        "kind": "B1_TYPE_INST",
+        "kind": "BRANCH_RS_LABEL_INST",
         "encoding": "0x5c000000",
-        "line": 142
+        "line": 144
       },
       {
         "name": "blez",
         "token": "TOK_BLEZ_OPCODE",
-        "kind": "B1_TYPE_INST",
+        "kind": "BRANCH_RS_LABEL_INST",
         "encoding": "0x18000000",
-        "line": 145
+        "line": 147
       },
       {
         "name": "blezl",
         "token": "TOK_BLEZL_OPCODE",
-        "kind": "B1_TYPE_INST",
+        "kind": "BRANCH_RS_LABEL_INST",
         "encoding": "0x58000000",
-        "line": 146
+        "line": 148
       },
       {
         "name": "bltz",
         "token": "TOK_BLTZ_OPCODE",
-        "kind": "B1_TYPE_INST",
+        "kind": "BRANCH_RS_LABEL_INST",
         "encoding": "0x04000000",
-        "line": 149
+        "line": 151
       },
       {
         "name": "bltzal",
         "token": "TOK_BLTZAL_OPCODE",
-        "kind": "B1_TYPE_INST",
+        "kind": "BRANCH_RS_LABEL_INST",
         "encoding": "0x04100000",
-        "line": 150
+        "line": 152
       },
       {
         "name": "bltzall",
         "token": "TOK_BLTZALL_OPCODE",
-        "kind": "B1_TYPE_INST",
+        "kind": "BRANCH_RS_LABEL_INST",
         "encoding": "0x04120000",
-        "line": 151
+        "line": 153
       },
       {
         "name": "bltzl",
         "token": "TOK_BLTZL_OPCODE",
-        "kind": "B1_TYPE_INST",
+        "kind": "BRANCH_RS_LABEL_INST",
         "encoding": "0x04020000",
-        "line": 152
+        "line": 154
       }
     ],
     "NOARG_TYPE_INST": [
@@ -4235,494 +4235,494 @@
         "token": "TOK_BREAK_OPCODE",
         "kind": "NOARG_TYPE_INST",
         "encoding": "0x0000000d",
-        "line": 157
+        "line": 159
       },
       {
         "name": "deret",
         "token": "TOK_DERET_OPCODE",
         "kind": "NOARG_TYPE_INST",
         "encoding": "0x4200001f",
-        "line": 248
+        "line": 268
       },
       {
         "name": "ehb",
         "token": "TOK_EHB_OPCODE",
         "kind": "NOARG_TYPE_INST",
         "encoding": "0x000000c0",
-        "line": 256
+        "line": 276
       },
       {
         "name": "eret",
         "token": "TOK_ERET_OPCODE",
         "kind": "NOARG_TYPE_INST",
         "encoding": "0x42000018",
-        "line": 258
+        "line": 278
       },
       {
         "name": "rfe",
         "token": "TOK_RFE_OPCODE",
         "kind": "NOARG_TYPE_INST",
         "encoding": "0x42000010",
-        "line": 408
+        "line": 446
       },
       {
         "name": "sdbbp",
         "token": "TOK_SDBBP_OPCODE",
         "kind": "NOARG_TYPE_INST",
         "encoding": "0x7000003f",
-        "line": 431
+        "line": 473
       },
       {
         "name": "sync",
         "token": "TOK_SYNC_OPCODE",
         "kind": "NOARG_TYPE_INST",
         "encoding": "0x0000000f",
-        "line": 481
+        "line": 523
       },
       {
         "name": "syscall",
         "token": "TOK_SYSCALL_OPCODE",
         "kind": "NOARG_TYPE_INST",
         "encoding": "0x0000000c",
-        "line": 483
+        "line": 525
       },
       {
         "name": "tlbp",
         "token": "TOK_TLBP_OPCODE",
         "kind": "NOARG_TYPE_INST",
         "encoding": "0x42000008",
-        "line": 492
+        "line": 534
       },
       {
         "name": "tlbr",
         "token": "TOK_TLBR_OPCODE",
         "kind": "NOARG_TYPE_INST",
         "encoding": "0x42000001",
-        "line": 493
+        "line": 535
       },
       {
         "name": "tlbwi",
         "token": "TOK_TLBWI_OPCODE",
         "kind": "NOARG_TYPE_INST",
         "encoding": "0x42000002",
-        "line": 494
+        "line": 536
       },
       {
         "name": "tlbwr",
         "token": "TOK_TLBWR_OPCODE",
         "kind": "NOARG_TYPE_INST",
         "encoding": "0x42000006",
-        "line": 495
+        "line": 537
       }
     ],
-    "FP_CMP_TYPE_INST": [
+    "FP_CMP_FS_FT_INST": [
       {
         "name": "c.eq.d",
         "token": "TOK_C_EQ_D_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46200032",
-        "line": 159
+        "line": 161
       },
       {
         "name": "c.eq.ps",
         "token": "TOK_C_EQ_PS_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46600032",
-        "line": 160
+        "line": 162
       },
       {
         "name": "c.eq.s",
         "token": "TOK_C_EQ_S_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46000032",
-        "line": 161
+        "line": 164
       },
       {
         "name": "c.f.d",
         "token": "TOK_C_F_D_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46200030",
-        "line": 162
+        "line": 165
       },
       {
         "name": "c.f.ps",
         "token": "TOK_C_F_PS_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46600030",
-        "line": 163
+        "line": 166
       },
       {
         "name": "c.f.s",
         "token": "TOK_C_F_S_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46000030",
-        "line": 164
+        "line": 167
       },
       {
         "name": "c.le.d",
         "token": "TOK_C_LE_D_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x4620003e",
-        "line": 165
+        "line": 168
       },
       {
         "name": "c.le.ps",
         "token": "TOK_C_LE_PS_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x4660003e",
-        "line": 166
+        "line": 169
       },
       {
         "name": "c.le.s",
         "token": "TOK_C_LE_S_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x4600003e",
-        "line": 167
+        "line": 171
       },
       {
         "name": "c.lt.d",
         "token": "TOK_C_LT_D_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x4620003c",
-        "line": 168
+        "line": 172
       },
       {
         "name": "c.lt.ps",
         "token": "TOK_C_LT_PS_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x4660003c",
-        "line": 169
+        "line": 173
       },
       {
         "name": "c.lt.s",
         "token": "TOK_C_LT_S_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x4600003c",
-        "line": 170
+        "line": 175
       },
       {
         "name": "c.nge.d",
         "token": "TOK_C_NGE_D_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x4620003d",
-        "line": 171
+        "line": 176
       },
       {
         "name": "c.nge.ps",
         "token": "TOK_C_NGE_PS_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x4660003d",
-        "line": 172
+        "line": 177
       },
       {
         "name": "c.nge.s",
         "token": "TOK_C_NGE_S_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x4600003d",
-        "line": 173
+        "line": 179
       },
       {
         "name": "c.ngl.d",
         "token": "TOK_C_NGL_D_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x4620003b",
-        "line": 174
+        "line": 180
       },
       {
         "name": "c.ngl.ps",
         "token": "TOK_C_NGL_PS_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x4660003b",
-        "line": 175
+        "line": 181
       },
       {
         "name": "c.ngl.s",
         "token": "TOK_C_NGL_S_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x4600003b",
-        "line": 176
+        "line": 183
       },
       {
         "name": "c.ngle.d",
         "token": "TOK_C_NGLE_D_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46200039",
-        "line": 177
+        "line": 184
       },
       {
         "name": "c.ngle.ps",
         "token": "TOK_C_NGLE_PS_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46600039",
-        "line": 178
+        "line": 185
       },
       {
         "name": "c.ngle.s",
         "token": "TOK_C_NGLE_S_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46000039",
-        "line": 180
+        "line": 187
       },
       {
         "name": "c.ngt.d",
         "token": "TOK_C_NGT_D_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x4620003f",
-        "line": 181
+        "line": 188
       },
       {
         "name": "c.ngt.ps",
         "token": "TOK_C_NGT_PS_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x4660003f",
-        "line": 182
+        "line": 189
       },
       {
         "name": "c.ngt.s",
         "token": "TOK_C_NGT_S_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x4600003f",
-        "line": 183
+        "line": 191
       },
       {
         "name": "c.ole.d",
         "token": "TOK_C_OLE_D_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46200036",
-        "line": 184
+        "line": 192
       },
       {
         "name": "c.ole.ps",
         "token": "TOK_C_OLE_PS_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46600036",
-        "line": 185
+        "line": 193
       },
       {
         "name": "c.ole.s",
         "token": "TOK_C_OLE_S_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46000036",
-        "line": 186
+        "line": 195
       },
       {
         "name": "c.olt.d",
         "token": "TOK_C_OLT_D_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46200034",
-        "line": 187
+        "line": 196
       },
       {
         "name": "c.olt.ps",
         "token": "TOK_C_OLT_PS_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46600034",
-        "line": 188
+        "line": 197
       },
       {
         "name": "c.olt.s",
         "token": "TOK_C_OLT_S_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46000034",
-        "line": 189
+        "line": 199
       },
       {
         "name": "c.seq.d",
         "token": "TOK_C_SEQ_D_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x4620003a",
-        "line": 190
+        "line": 200
       },
       {
         "name": "c.seq.ps",
         "token": "TOK_C_SEQ_PS_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x4660003a",
-        "line": 191
+        "line": 201
       },
       {
         "name": "c.seq.s",
         "token": "TOK_C_SEQ_S_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x4600003a",
-        "line": 192
+        "line": 203
       },
       {
         "name": "c.sf.d",
         "token": "TOK_C_SF_D_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46200038",
-        "line": 193
+        "line": 204
       },
       {
         "name": "c.sf.ps",
         "token": "TOK_C_SF_PS_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46600038",
-        "line": 194
+        "line": 205
       },
       {
         "name": "c.sf.s",
         "token": "TOK_C_SF_S_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46000038",
-        "line": 195
+        "line": 207
       },
       {
         "name": "c.ueq.d",
         "token": "TOK_C_UEQ_D_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46200033",
-        "line": 196
+        "line": 208
       },
       {
         "name": "c.ueq.ps",
         "token": "TOK_C_UEQ_PS_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46600033",
-        "line": 197
+        "line": 209
       },
       {
         "name": "c.ueq.s",
         "token": "TOK_C_UEQ_S_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46000033",
-        "line": 198
+        "line": 211
       },
       {
         "name": "c.ule.d",
         "token": "TOK_C_ULE_D_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46200037",
-        "line": 199
+        "line": 212
       },
       {
         "name": "c.ule.ps",
         "token": "TOK_C_ULE_PS_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46600037",
-        "line": 200
+        "line": 213
       },
       {
         "name": "c.ule.s",
         "token": "TOK_C_ULE_S_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46000037",
-        "line": 201
+        "line": 215
       },
       {
         "name": "c.ult.d",
         "token": "TOK_C_ULT_D_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46200035",
-        "line": 202
+        "line": 216
       },
       {
         "name": "c.ult.ps",
         "token": "TOK_C_ULT_PS_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46600035",
-        "line": 203
+        "line": 217
       },
       {
         "name": "c.ult.s",
         "token": "TOK_C_ULT_S_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46000035",
-        "line": 204
+        "line": 219
       },
       {
         "name": "c.un.d",
         "token": "TOK_C_UN_D_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46200031",
-        "line": 205
+        "line": 220
       },
       {
         "name": "c.un.ps",
         "token": "TOK_C_UN_PS_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46600031",
-        "line": 206
+        "line": 221
       },
       {
         "name": "c.un.s",
         "token": "TOK_C_UN_S_OPCODE",
-        "kind": "FP_CMP_TYPE_INST",
+        "kind": "FP_CMP_FS_FT_INST",
         "encoding": "0x46000031",
-        "line": 207
+        "line": 223
       }
     ],
-    "FP_R2ts_TYPE_INST": [
+    "FP_RT_COPREG_INST": [
       {
         "name": "cfc0",
         "token": "TOK_CFC0_OPCODE",
-        "kind": "FP_R2ts_TYPE_INST",
+        "kind": "FP_RT_COPREG_INST",
         "encoding": "0x40400000",
-        "line": 218
+        "line": 234
       },
       {
         "name": "cfc1",
         "token": "TOK_CFC1_OPCODE",
-        "kind": "FP_R2ts_TYPE_INST",
+        "kind": "FP_RT_COPREG_INST",
         "encoding": "0x44400000",
-        "line": 219
+        "line": 235
       },
       {
         "name": "cfc2",
         "token": "TOK_CFC2_OPCODE",
-        "kind": "FP_R2ts_TYPE_INST",
+        "kind": "FP_RT_COPREG_INST",
         "encoding": "0x48400000",
-        "line": 220
+        "line": 236
       },
       {
         "name": "ctc0",
         "token": "TOK_CTC0_OPCODE",
-        "kind": "FP_R2ts_TYPE_INST",
+        "kind": "FP_RT_COPREG_INST",
         "encoding": "0x40c00000",
-        "line": 227
+        "line": 243
       },
       {
         "name": "ctc1",
         "token": "TOK_CTC1_OPCODE",
-        "kind": "FP_R2ts_TYPE_INST",
+        "kind": "FP_RT_COPREG_INST",
         "encoding": "0x44c00000",
-        "line": 228
+        "line": 244
       },
       {
         "name": "ctc2",
         "token": "TOK_CTC2_OPCODE",
-        "kind": "FP_R2ts_TYPE_INST",
+        "kind": "FP_RT_COPREG_INST",
         "encoding": "0x48c00000",
-        "line": 229
+        "line": 245
       },
       {
         "name": "mfc1",
         "token": "TOK_MFC1_OPCODE",
-        "kind": "FP_R2ts_TYPE_INST",
+        "kind": "FP_RT_COPREG_INST",
         "encoding": "0x44000000",
-        "line": 314
+        "line": 337
       },
       {
         "name": "mfhc1",
         "token": "TOK_MFHC1_OPCODE",
-        "kind": "FP_R2ts_TYPE_INST",
+        "kind": "FP_RT_COPREG_INST",
         "encoding": "0x44600000",
-        "line": 317
+        "line": 340
       },
       {
         "name": "mtc1",
         "token": "TOK_MTC1_OPCODE",
-        "kind": "FP_R2ts_TYPE_INST",
+        "kind": "FP_RT_COPREG_INST",
         "encoding": "0x44800000",
-        "line": 354
+        "line": 383
       },
       {
         "name": "mthc1",
         "token": "TOK_MTHC1_OPCODE",
-        "kind": "FP_R2ts_TYPE_INST",
+        "kind": "FP_RT_COPREG_INST",
         "encoding": "0x44e00000",
-        "line": 357
+        "line": 386
       }
     ],
     "J_TYPE_INST": [
@@ -4731,450 +4731,450 @@
         "token": "TOK_COP2_OPCODE",
         "kind": "J_TYPE_INST",
         "encoding": "0x4a000000",
-        "line": 225
+        "line": 241
       },
       {
         "name": "j",
         "token": "TOK_J_OPCODE",
         "kind": "J_TYPE_INST",
         "encoding": "0x08000000",
-        "line": 270
+        "line": 292
       },
       {
         "name": "jal",
         "token": "TOK_JAL_OPCODE",
         "kind": "J_TYPE_INST",
         "encoding": "0x0c000000",
-        "line": 271
+        "line": 293
       }
     ],
-    "I1t_TYPE_INST": [
+    "RT_IMM_INST": [
       {
         "name": "di",
         "token": "TOK_DI_OPCODE",
-        "kind": "I1t_TYPE_INST",
+        "kind": "RT_IMM_INST",
         "encoding": "0x41606000",
-        "line": 249
+        "line": 269
       },
       {
         "name": "ei",
         "token": "TOK_EI_OPCODE",
-        "kind": "I1t_TYPE_INST",
+        "kind": "RT_IMM_INST",
         "encoding": "0x41606020",
-        "line": 257
+        "line": 277
       },
       {
         "name": "lui",
         "token": "TOK_LUI_OPCODE",
-        "kind": "I1t_TYPE_INST",
+        "kind": "RT_IMM_INST",
         "encoding": "0x3c000000",
-        "line": 297
+        "line": 319
       }
     ],
-    "R2st_TYPE_INST": [
+    "RS_RT_INST": [
       {
         "name": "div",
         "token": "TOK_DIV_OPCODE",
-        "kind": "R2st_TYPE_INST",
+        "kind": "RS_RT_INST",
         "encoding": "0x0000001a",
-        "line": 251
+        "line": 271
       },
       {
         "name": "divu",
         "token": "TOK_DIVU_OPCODE",
-        "kind": "R2st_TYPE_INST",
+        "kind": "RS_RT_INST",
         "encoding": "0x0000001b",
-        "line": 254
+        "line": 274
       },
       {
         "name": "madd",
         "token": "TOK_MADD_OPCODE",
-        "kind": "R2st_TYPE_INST",
+        "kind": "RS_RT_INST",
         "encoding": "0x70000000",
-        "line": 307
+        "line": 329
       },
       {
         "name": "maddu",
         "token": "TOK_MADDU_OPCODE",
-        "kind": "R2st_TYPE_INST",
+        "kind": "RS_RT_INST",
         "encoding": "0x70000001",
-        "line": 311
+        "line": 334
       },
       {
         "name": "msub",
         "token": "TOK_MSUB_OPCODE",
-        "kind": "R2st_TYPE_INST",
+        "kind": "RS_RT_INST",
         "encoding": "0x70000004",
-        "line": 347
+        "line": 375
       },
       {
         "name": "msubu",
         "token": "TOK_MSUBU_OPCODE",
-        "kind": "R2st_TYPE_INST",
+        "kind": "RS_RT_INST",
         "encoding": "0x70000005",
-        "line": 351
+        "line": 380
       },
       {
         "name": "mult",
         "token": "TOK_MULT_OPCODE",
-        "kind": "R2st_TYPE_INST",
+        "kind": "RS_RT_INST",
         "encoding": "0x00000018",
-        "line": 369
+        "line": 398
       },
       {
         "name": "multu",
         "token": "TOK_MULTU_OPCODE",
-        "kind": "R2st_TYPE_INST",
+        "kind": "RS_RT_INST",
         "encoding": "0x00000019",
-        "line": 370
+        "line": 399
       },
       {
         "name": "prefx",
         "token": "TOK_PREFX_OPCODE",
-        "kind": "R2st_TYPE_INST",
+        "kind": "RS_RT_INST",
         "encoding": "0x4600000f",
-        "line": 395
+        "line": 431
       },
       {
         "name": "teq",
         "token": "TOK_TEQ_OPCODE",
-        "kind": "R2st_TYPE_INST",
+        "kind": "RS_RT_INST",
         "encoding": "0x00000034",
-        "line": 485
+        "line": 527
       },
       {
         "name": "tge",
         "token": "TOK_TGE_OPCODE",
-        "kind": "R2st_TYPE_INST",
+        "kind": "RS_RT_INST",
         "encoding": "0x00000030",
-        "line": 487
+        "line": 529
       },
       {
         "name": "tgeu",
         "token": "TOK_TGEU_OPCODE",
-        "kind": "R2st_TYPE_INST",
+        "kind": "RS_RT_INST",
         "encoding": "0x00000031",
-        "line": 490
+        "line": 532
       },
       {
         "name": "tlt",
         "token": "TOK_TLT_OPCODE",
-        "kind": "R2st_TYPE_INST",
+        "kind": "RS_RT_INST",
         "encoding": "0x00000032",
-        "line": 497
+        "line": 539
       },
       {
         "name": "tltu",
         "token": "TOK_TLTU_OPCODE",
-        "kind": "R2st_TYPE_INST",
+        "kind": "RS_RT_INST",
         "encoding": "0x00000033",
-        "line": 500
+        "line": 542
       },
       {
         "name": "tne",
         "token": "TOK_TNE_OPCODE",
-        "kind": "R2st_TYPE_INST",
+        "kind": "RS_RT_INST",
         "encoding": "0x00000036",
-        "line": 501
+        "line": 543
       }
     ],
-    "R2ds_TYPE_INST": [
+    "RD_RS_INST": [
       {
         "name": "jalr",
         "token": "TOK_JALR_OPCODE",
-        "kind": "R2ds_TYPE_INST",
+        "kind": "RD_RS_INST",
         "encoding": "0x00000009",
-        "line": 272
+        "line": 294
       },
       {
         "name": "jalr.hb",
         "token": "TOK_JALR_HB_OPCODE",
-        "kind": "R2ds_TYPE_INST",
+        "kind": "RD_RS_INST",
         "encoding": "0x00000409",
-        "line": 273
+        "line": 295
       }
     ],
-    "R1s_TYPE_INST": [
+    "RS_INST": [
       {
         "name": "jr",
         "token": "TOK_JR_OPCODE",
-        "kind": "R1s_TYPE_INST",
+        "kind": "RS_INST",
         "encoding": "0x00000008",
-        "line": 275
+        "line": 297
       },
       {
         "name": "jr.hb",
         "token": "TOK_JR_HB_OPCODE",
-        "kind": "R1s_TYPE_INST",
+        "kind": "RS_INST",
         "encoding": "0x00000408",
-        "line": 276
+        "line": 298
       },
       {
         "name": "mthi",
         "token": "TOK_MTHI_OPCODE",
-        "kind": "R1s_TYPE_INST",
+        "kind": "RS_INST",
         "encoding": "0x00000011",
-        "line": 360
+        "line": 389
       },
       {
         "name": "mtlo",
         "token": "TOK_MTLO_OPCODE",
-        "kind": "R1s_TYPE_INST",
+        "kind": "RS_INST",
         "encoding": "0x00000013",
-        "line": 361
+        "line": 390
       }
     ],
-    "I2a_TYPE_INST": [
+    "RT_ADDR_INST": [
       {
         "name": "lb",
         "token": "TOK_LB_OPCODE",
-        "kind": "I2a_TYPE_INST",
+        "kind": "RT_ADDR_INST",
         "encoding": "0x80000000",
-        "line": 282
+        "line": 304
       },
       {
         "name": "lbu",
         "token": "TOK_LBU_OPCODE",
-        "kind": "I2a_TYPE_INST",
+        "kind": "RT_ADDR_INST",
         "encoding": "0x90000000",
-        "line": 283
+        "line": 305
       },
       {
         "name": "ldc2",
         "token": "TOK_LDC2_OPCODE",
-        "kind": "I2a_TYPE_INST",
+        "kind": "RT_ADDR_INST",
         "encoding": "0xd8000000",
-        "line": 286
+        "line": 308
       },
       {
         "name": "lh",
         "token": "TOK_LH_OPCODE",
-        "kind": "I2a_TYPE_INST",
+        "kind": "RT_ADDR_INST",
         "encoding": "0x84000000",
-        "line": 288
+        "line": 310
       },
       {
         "name": "lhu",
         "token": "TOK_LHU_OPCODE",
-        "kind": "I2a_TYPE_INST",
+        "kind": "RT_ADDR_INST",
         "encoding": "0x94000000",
-        "line": 289
+        "line": 311
       },
       {
         "name": "ll",
         "token": "TOK_LL_OPCODE",
-        "kind": "I2a_TYPE_INST",
+        "kind": "RT_ADDR_INST",
         "encoding": "0xc0000000",
-        "line": 295
+        "line": 317
       },
       {
         "name": "lw",
         "token": "TOK_LW_OPCODE",
-        "kind": "I2a_TYPE_INST",
+        "kind": "RT_ADDR_INST",
         "encoding": "0x8c000000",
-        "line": 300
+        "line": 322
       },
       {
         "name": "lwc2",
         "token": "TOK_LWC2_OPCODE",
-        "kind": "I2a_TYPE_INST",
+        "kind": "RT_ADDR_INST",
         "encoding": "0xc8000000",
-        "line": 302
+        "line": 324
       },
       {
         "name": "lwl",
         "token": "TOK_LWL_OPCODE",
-        "kind": "I2a_TYPE_INST",
+        "kind": "RT_ADDR_INST",
         "encoding": "0x88000000",
-        "line": 303
+        "line": 325
       },
       {
         "name": "lwr",
         "token": "TOK_LWR_OPCODE",
-        "kind": "I2a_TYPE_INST",
+        "kind": "RT_ADDR_INST",
         "encoding": "0x98000000",
-        "line": 304
+        "line": 326
       },
       {
         "name": "sb",
         "token": "TOK_SB_OPCODE",
-        "kind": "I2a_TYPE_INST",
+        "kind": "RT_ADDR_INST",
         "encoding": "0xa0000000",
-        "line": 428
+        "line": 470
       },
       {
         "name": "sc",
         "token": "TOK_SC_OPCODE",
-        "kind": "I2a_TYPE_INST",
+        "kind": "RT_ADDR_INST",
         "encoding": "0xe0000000",
-        "line": 429
+        "line": 471
       },
       {
         "name": "sdc2",
         "token": "TOK_SDC2_OPCODE",
-        "kind": "I2a_TYPE_INST",
+        "kind": "RT_ADDR_INST",
         "encoding": "0xf8000000",
-        "line": 433
+        "line": 475
       },
       {
         "name": "sh",
         "token": "TOK_SH_OPCODE",
-        "kind": "I2a_TYPE_INST",
+        "kind": "RT_ADDR_INST",
         "encoding": "0xa4000000",
-        "line": 444
+        "line": 486
       },
       {
         "name": "sw",
         "token": "TOK_SW_OPCODE",
-        "kind": "I2a_TYPE_INST",
+        "kind": "RT_ADDR_INST",
         "encoding": "0xac000000",
-        "line": 474
+        "line": 516
       },
       {
         "name": "swc2",
         "token": "TOK_SWC2_OPCODE",
-        "kind": "I2a_TYPE_INST",
+        "kind": "RT_ADDR_INST",
         "encoding": "0xe8000000",
-        "line": 476
+        "line": 518
       },
       {
         "name": "swl",
         "token": "TOK_SWL_OPCODE",
-        "kind": "I2a_TYPE_INST",
+        "kind": "RT_ADDR_INST",
         "encoding": "0xa8000000",
-        "line": 477
+        "line": 519
       },
       {
         "name": "swr",
         "token": "TOK_SWR_OPCODE",
-        "kind": "I2a_TYPE_INST",
+        "kind": "RT_ADDR_INST",
         "encoding": "0xb8000000",
-        "line": 478
+        "line": 520
       }
     ],
-    "FP_I2a_TYPE_INST": [
+    "FP_FT_ADDR_INST": [
       {
         "name": "ldc1",
         "token": "TOK_LDC1_OPCODE",
-        "kind": "FP_I2a_TYPE_INST",
+        "kind": "FP_FT_ADDR_INST",
         "encoding": "0xd4000000",
-        "line": 285
+        "line": 307
       },
       {
         "name": "lwc1",
         "token": "TOK_LWC1_OPCODE",
-        "kind": "FP_I2a_TYPE_INST",
+        "kind": "FP_FT_ADDR_INST",
         "encoding": "0xc4000000",
-        "line": 301
+        "line": 323
       },
       {
         "name": "sdc1",
         "token": "TOK_SDC1_OPCODE",
-        "kind": "FP_I2a_TYPE_INST",
+        "kind": "FP_FT_ADDR_INST",
         "encoding": "0xf4000000",
-        "line": 432
+        "line": 474
       },
       {
         "name": "swc1",
         "token": "TOK_SWC1_OPCODE",
-        "kind": "FP_I2a_TYPE_INST",
+        "kind": "FP_FT_ADDR_INST",
         "encoding": "0xe4000000",
-        "line": 475
+        "line": 517
       }
     ],
-    "R2td_TYPE_INST": [
+    "RT_COPREG_INST": [
       {
         "name": "mfc0",
         "token": "TOK_MFC0_OPCODE",
-        "kind": "R2td_TYPE_INST",
+        "kind": "RT_COPREG_INST",
         "encoding": "0x40000000",
-        "line": 313
+        "line": 336
       },
       {
         "name": "mfc2",
         "token": "TOK_MFC2_OPCODE",
-        "kind": "R2td_TYPE_INST",
+        "kind": "RT_COPREG_INST",
         "encoding": "0x48000000",
-        "line": 316
+        "line": 339
       },
       {
         "name": "mfhc2",
         "token": "TOK_MFHC2_OPCODE",
-        "kind": "R2td_TYPE_INST",
+        "kind": "RT_COPREG_INST",
         "encoding": "0x48600000",
-        "line": 318
+        "line": 341
       },
       {
         "name": "mtc0",
         "token": "TOK_MTC0_OPCODE",
-        "kind": "R2td_TYPE_INST",
+        "kind": "RT_COPREG_INST",
         "encoding": "0x40800000",
-        "line": 353
+        "line": 382
       },
       {
         "name": "mtc2",
         "token": "TOK_MTC2_OPCODE",
-        "kind": "R2td_TYPE_INST",
+        "kind": "RT_COPREG_INST",
         "encoding": "0x48800000",
-        "line": 356
+        "line": 385
       },
       {
         "name": "mthc2",
         "token": "TOK_MTHC2_OPCODE",
-        "kind": "R2td_TYPE_INST",
+        "kind": "RT_COPREG_INST",
         "encoding": "0x48e00000",
-        "line": 358
+        "line": 387
       },
       {
         "name": "rdpgpr",
         "token": "TOK_RDPGPR_OPCODE",
-        "kind": "R2td_TYPE_INST",
+        "kind": "RT_COPREG_INST",
         "encoding": "0x41400000",
-        "line": 400
+        "line": 436
       },
       {
         "name": "seb",
         "token": "TOK_SEB_OPCODE",
-        "kind": "R2td_TYPE_INST",
+        "kind": "RT_COPREG_INST",
         "encoding": "0x7c000420",
-        "line": 436
+        "line": 478
       },
       {
         "name": "seh",
         "token": "TOK_SEH_OPCODE",
-        "kind": "R2td_TYPE_INST",
+        "kind": "RT_COPREG_INST",
         "encoding": "0x7c000620",
-        "line": 437
+        "line": 479
       },
       {
         "name": "wrpgpr",
         "token": "TOK_WRPGPR_OPCODE",
-        "kind": "R2td_TYPE_INST",
+        "kind": "RT_COPREG_INST",
         "encoding": "0x41c00000",
-        "line": 517
+        "line": 561
       },
       {
         "name": "wsbh",
         "token": "TOK_WSBH_OPCODE",
-        "kind": "R2td_TYPE_INST",
+        "kind": "RT_COPREG_INST",
         "encoding": "0x7c0000a0",
-        "line": 518
+        "line": 562
       }
     ],
-    "R1d_TYPE_INST": [
+    "RD_INST": [
       {
         "name": "mfhi",
         "token": "TOK_MFHI_OPCODE",
-        "kind": "R1d_TYPE_INST",
+        "kind": "RD_INST",
         "encoding": "0x00000010",
-        "line": 319
+        "line": 342
       },
       {
         "name": "mflo",
         "token": "TOK_MFLO_OPCODE",
-        "kind": "R1d_TYPE_INST",
+        "kind": "RD_INST",
         "encoding": "0x00000012",
-        "line": 320
+        "line": 343
       }
     ],
     "MOVC_TYPE_INST": [
@@ -5183,14 +5183,14 @@
         "token": "TOK_MOVF_OPCODE",
         "kind": "MOVC_TYPE_INST",
         "encoding": "0x00000001",
-        "line": 327
+        "line": 351
       },
       {
         "name": "movt",
         "token": "TOK_MOVT_OPCODE",
         "kind": "MOVC_TYPE_INST",
         "encoding": "0x00010001",
-        "line": 337
+        "line": 363
       }
     ],
     "FP_MOVC_TYPE_INST": [
@@ -5199,226 +5199,226 @@
         "token": "TOK_MOVF_D_OPCODE",
         "kind": "FP_MOVC_TYPE_INST",
         "encoding": "0x46200011",
-        "line": 328
+        "line": 352
       },
       {
         "name": "movf.ps",
         "token": "TOK_MOVF_PS_OPCODE",
         "kind": "FP_MOVC_TYPE_INST",
         "encoding": "0x46c00011",
-        "line": 329
+        "line": 353
       },
       {
         "name": "movf.s",
         "token": "TOK_MOVF_S_OPCODE",
         "kind": "FP_MOVC_TYPE_INST",
         "encoding": "0x46000011",
-        "line": 330
+        "line": 355
       },
       {
         "name": "movn.d",
         "token": "TOK_MOVN_D_OPCODE",
         "kind": "FP_MOVC_TYPE_INST",
         "encoding": "0x46200013",
-        "line": 333
+        "line": 358
       },
       {
         "name": "movn.ps",
         "token": "TOK_MOVN_PS_OPCODE",
         "kind": "FP_MOVC_TYPE_INST",
         "encoding": "0x46c00013",
-        "line": 334
+        "line": 359
       },
       {
         "name": "movn.s",
         "token": "TOK_MOVN_S_OPCODE",
         "kind": "FP_MOVC_TYPE_INST",
         "encoding": "0x46000013",
-        "line": 335
+        "line": 361
       },
       {
         "name": "movt.d",
         "token": "TOK_MOVT_D_OPCODE",
         "kind": "FP_MOVC_TYPE_INST",
         "encoding": "0x46210011",
-        "line": 338
+        "line": 364
       },
       {
         "name": "movt.ps",
         "token": "TOK_MOVT_PS_OPCODE",
         "kind": "FP_MOVC_TYPE_INST",
         "encoding": "0x46c10011",
-        "line": 339
+        "line": 365
       },
       {
         "name": "movt.s",
         "token": "TOK_MOVT_S_OPCODE",
         "kind": "FP_MOVC_TYPE_INST",
         "encoding": "0x46010011",
-        "line": 340
+        "line": 367
       },
       {
         "name": "movz.d",
         "token": "TOK_MOVZ_D_OPCODE",
         "kind": "FP_MOVC_TYPE_INST",
         "encoding": "0x46200012",
-        "line": 343
+        "line": 370
       },
       {
         "name": "movz.ps",
         "token": "TOK_MOVZ_PS_OPCODE",
         "kind": "FP_MOVC_TYPE_INST",
         "encoding": "0x46c00012",
-        "line": 344
+        "line": 371
       },
       {
         "name": "movz.s",
         "token": "TOK_MOVZ_S_OPCODE",
         "kind": "FP_MOVC_TYPE_INST",
         "encoding": "0x46000012",
-        "line": 345
+        "line": 373
       }
     ],
-    "R2sh_TYPE_INST": [
+    "RD_RT_SHAMT_INST": [
       {
         "name": "rotr",
         "token": "TOK_ROTR_OPCODE",
-        "kind": "R2sh_TYPE_INST",
+        "kind": "RD_RT_SHAMT_INST",
         "encoding": "0x00200002",
-        "line": 412
+        "line": 450
       },
       {
         "name": "rotrv",
         "token": "TOK_ROTRV_OPCODE",
-        "kind": "R2sh_TYPE_INST",
+        "kind": "RD_RT_SHAMT_INST",
         "encoding": "0x00200003",
-        "line": 413
+        "line": 451
       },
       {
         "name": "sll",
         "token": "TOK_SLL_OPCODE",
-        "kind": "R2sh_TYPE_INST",
+        "kind": "RD_RT_SHAMT_INST",
         "encoding": "0x00000000",
-        "line": 447
+        "line": 489
       },
       {
         "name": "sra",
         "token": "TOK_SRA_OPCODE",
-        "kind": "R2sh_TYPE_INST",
+        "kind": "RD_RT_SHAMT_INST",
         "encoding": "0x00000003",
-        "line": 459
+        "line": 501
       },
       {
         "name": "srl",
         "token": "TOK_SRL_OPCODE",
-        "kind": "R2sh_TYPE_INST",
+        "kind": "RD_RT_SHAMT_INST",
         "encoding": "0x00000002",
-        "line": 461
+        "line": 503
       },
       {
         "name": "ssnop",
         "token": "TOK_SSNOP_OPCODE",
-        "kind": "R2sh_TYPE_INST",
+        "kind": "RD_RT_SHAMT_INST",
         "encoding": "0x00000040",
-        "line": 464
+        "line": 506
       }
     ],
-    "R3sh_TYPE_INST": [
+    "RD_RT_RS_INST": [
       {
         "name": "sllv",
         "token": "TOK_SLLV_OPCODE",
-        "kind": "R3sh_TYPE_INST",
+        "kind": "RD_RT_RS_INST",
         "encoding": "0x00000004",
-        "line": 448
+        "line": 490
       },
       {
         "name": "srav",
         "token": "TOK_SRAV_OPCODE",
-        "kind": "R3sh_TYPE_INST",
+        "kind": "RD_RT_RS_INST",
         "encoding": "0x00000007",
-        "line": 460
+        "line": 502
       },
       {
         "name": "srlv",
         "token": "TOK_SRLV_OPCODE",
-        "kind": "R3sh_TYPE_INST",
+        "kind": "RD_RT_RS_INST",
         "encoding": "0x00000006",
-        "line": 462
+        "line": 504
       }
     ],
-    "I1s_TYPE_INST": [
+    "RS_IMM_INST": [
       {
         "name": "teqi",
         "token": "TOK_TEQI_OPCODE",
-        "kind": "I1s_TYPE_INST",
+        "kind": "RS_IMM_INST",
         "encoding": "0x040c0000",
-        "line": 486
+        "line": 528
       },
       {
         "name": "tgei",
         "token": "TOK_TGEI_OPCODE",
-        "kind": "I1s_TYPE_INST",
+        "kind": "RS_IMM_INST",
         "encoding": "0x04080000",
-        "line": 488
+        "line": 530
       },
       {
         "name": "tgeiu",
         "token": "TOK_TGEIU_OPCODE",
-        "kind": "I1s_TYPE_INST",
+        "kind": "RS_IMM_INST",
         "encoding": "0x04090000",
-        "line": 489
+        "line": 531
       },
       {
         "name": "tlti",
         "token": "TOK_TLTI_OPCODE",
-        "kind": "I1s_TYPE_INST",
+        "kind": "RS_IMM_INST",
         "encoding": "0x040a0000",
-        "line": 498
+        "line": 540
       },
       {
         "name": "tltiu",
         "token": "TOK_TLTIU_OPCODE",
-        "kind": "I1s_TYPE_INST",
+        "kind": "RS_IMM_INST",
         "encoding": "0x040b0000",
-        "line": 499
+        "line": 541
       },
       {
         "name": "tnei",
         "token": "TOK_TNEI_OPCODE",
-        "kind": "I1s_TYPE_INST",
+        "kind": "RS_IMM_INST",
         "encoding": "0x040e0000",
-        "line": 502
+        "line": 544
       }
     ]
   },
   "kinds": [
     "ASM_DIR",
-    "B1_TYPE_INST",
-    "B2_TYPE_INST",
-    "BC_TYPE_INST",
-    "FP_CMP_TYPE_INST",
-    "FP_I2a_TYPE_INST",
+    "BRANCH_COPROC_COND_INST",
+    "BRANCH_RS_LABEL_INST",
+    "BRANCH_RS_RT_LABEL_INST",
+    "FP_CMP_FS_FT_INST",
+    "FP_FD_FR_FS_FT_INST",
+    "FP_FD_FS_FT_INST",
+    "FP_FD_FS_INST",
+    "FP_FT_ADDR_INST",
     "FP_MOVC_TYPE_INST",
-    "FP_R2ds_TYPE_INST",
-    "FP_R2ts_TYPE_INST",
-    "FP_R3_TYPE_INST",
-    "FP_R4_TYPE_INST",
-    "I1s_TYPE_INST",
-    "I1t_TYPE_INST",
-    "I2_TYPE_INST",
-    "I2a_TYPE_INST",
+    "FP_RT_COPREG_INST",
     "J_TYPE_INST",
     "MOVC_TYPE_INST",
     "NOARG_TYPE_INST",
     "PSEUDO_OP",
-    "R1d_TYPE_INST",
-    "R1s_TYPE_INST",
-    "R2ds_TYPE_INST",
-    "R2sh_TYPE_INST",
-    "R2st_TYPE_INST",
-    "R2td_TYPE_INST",
-    "R3_TYPE_INST",
-    "R3sh_TYPE_INST"
+    "RD_INST",
+    "RD_RS_INST",
+    "RD_RS_RT_INST",
+    "RD_RT_RS_INST",
+    "RD_RT_SHAMT_INST",
+    "RS_IMM_INST",
+    "RS_INST",
+    "RS_RT_INST",
+    "RT_ADDR_INST",
+    "RT_COPREG_INST",
+    "RT_IMM_INST",
+    "RT_RS_IMM_INST"
   ],
   "count": 381
 }

@@ -182,7 +182,7 @@ module.exports = grammar({
     //   2. `op rd, rs, imm`         (3-with-immediate, uses $at + ori)
     //   3. `op rd, imm`             (2-with-immediate shorthand, rs := rd)
     _inst_r3: $ => seq(
-      field('op', alias(kw(KEYWORDS.R3), $.opcode)),
+      field('op', alias(kw(KEYWORDS.RD_RS_RT), $.opcode)),
       field('rd', $.register),
       ',',
       choice(
@@ -193,19 +193,19 @@ module.exports = grammar({
 
     // R-type shift: rd, rt, shamt
     _inst_r2sh: $ => seq(
-      field('op', alias(kw(KEYWORDS.R2sh), $.opcode)),
+      field('op', alias(kw(KEYWORDS.RD_RT_SHAMT), $.opcode)),
       field('rd', $.register), ',',
       field('rt', $.register), ',',
       field('shamt', $._expr),
     ),
 
     _inst_r1s: $ => seq(
-      field('op', alias(kw(KEYWORDS.R1s), $.opcode)),
+      field('op', alias(kw(KEYWORDS.RS), $.opcode)),
       field('rs', $.register),
     ),
 
     _inst_r1d: $ => seq(
-      field('op', alias(kw(KEYWORDS.R1d), $.opcode)),
+      field('op', alias(kw(KEYWORDS.RD), $.opcode)),
       field('rd', $.register),
     ),
 
@@ -213,28 +213,28 @@ module.exports = grammar({
     // (real instructions), OR 3-operand pseudo form
     // `div $rd, $rs, $rt` that emits div + mflo.
     _inst_r2st: $ => seq(
-      field('op', alias(kw(KEYWORDS.R2st), $.opcode)),
+      field('op', alias(kw(KEYWORDS.RS_RT), $.opcode)),
       field('rs', $.register), ',',
       field('rt', $.register),
       optional(seq(',', field('rt2', choice($.register, $._expr)))),
     ),
 
     _inst_r2ds: $ => seq(
-      field('op', alias(kw(KEYWORDS.R2ds), $.opcode)),
+      field('op', alias(kw(KEYWORDS.RD_RS), $.opcode)),
       field('rd', $.register), ',',
       field('rs', $.register),
     ),
 
     // mfc0 / mtc0 / cfc1 / ctc1: REG + COP_REG.
     _inst_r2td: $ => seq(
-      field('op', alias(kw(KEYWORDS.R2td), $.opcode)),
+      field('op', alias(kw(KEYWORDS.RT_COPREG), $.opcode)),
       field('rt', $.register), ',',
       field('rd', $.register),
     ),
 
     // Variable-register shifts (sllv/srav/srlv).
     _inst_r3sh: $ => seq(
-      field('op', alias(kw(KEYWORDS.R3sh), $.opcode)),
+      field('op', alias(kw(KEYWORDS.RD_RT_RS), $.opcode)),
       field('rd', $.register), ',',
       field('rt', $.register), ',',
       field('rs', $.register),
@@ -242,7 +242,7 @@ module.exports = grammar({
 
     // I-type with two source registers (addi, andi, ori, ...).
     _inst_i2: $ => seq(
-      field('op', alias(kw(KEYWORDS.I2), $.opcode)),
+      field('op', alias(kw(KEYWORDS.RT_RS_IMM), $.opcode)),
       field('rt', $.register), ',',
       optional(seq(field('rs', $.register), ',')),
       field('imm', $._expr),
@@ -250,35 +250,35 @@ module.exports = grammar({
 
     // I-type address form (lw, sw, lb, sb, lh, sh, ll, sc, ...).
     _inst_i2a: $ => seq(
-      field('op', alias(kw(KEYWORDS.I2a), $.opcode)),
+      field('op', alias(kw(KEYWORDS.RT_ADDR), $.opcode)),
       field('rt', $.register), ',',
       field('addr', $.address),
     ),
 
     // teqi / tnei / tlti / etc.: SRC + IMM16.
     _inst_i1s: $ => seq(
-      field('op', alias(kw(KEYWORDS.I1s), $.opcode)),
+      field('op', alias(kw(KEYWORDS.RS_IMM), $.opcode)),
       field('rs', $.register), ',',
       field('imm', $._expr),
     ),
 
     // lui: DEST + UIMM16.
     _inst_i1t: $ => seq(
-      field('op', alias(kw(KEYWORDS.I1t), $.opcode)),
+      field('op', alias(kw(KEYWORDS.RT_IMM), $.opcode)),
       field('rt', $.register), ',',
       field('imm', $._expr),
     ),
 
     // Single-register branches (bgez, bltz, bgtz, blez, ...).
     _inst_b1: $ => seq(
-      field('op', alias(kw(KEYWORDS.B1), $.opcode)),
+      field('op', alias(kw(KEYWORDS.BRANCH_RS_LABEL), $.opcode)),
       field('rs', $.register), ',',
       field('label', $.label_ref),
     ),
 
     // Two-register branches (beq, bne, ...).
     _inst_b2: $ => seq(
-      field('op', alias(kw(KEYWORDS.B2), $.opcode)),
+      field('op', alias(kw(KEYWORDS.BRANCH_RS_RT_LABEL), $.opcode)),
       field('rs', $.register), ',',
       field('rt', choice($.register, $._expr)), ',',
       field('label', $.label_ref),
@@ -293,7 +293,7 @@ module.exports = grammar({
 
     // FP branch-on-condition (bc1t, bc1f, ...).
     _inst_bc: $ => seq(
-      field('op', alias(kw(KEYWORDS.BC), $.opcode)),
+      field('op', alias(kw(KEYWORDS.BRANCH_COPROC_COND), $.opcode)),
       optional(seq(field('cc', $.integer), ',')),
       field('label', $.label_ref),
     ),
@@ -307,7 +307,7 @@ module.exports = grammar({
 
     // FP R-type with 3 FP registers.
     _inst_fp_r3: $ => seq(
-      field('op', alias(kw(KEYWORDS.FP_R3), $.opcode)),
+      field('op', alias(kw(KEYWORDS.FP_FD_FS_FT), $.opcode)),
       field('fd', $.fp_register), ',',
       field('fs', $.fp_register), ',',
       field('ft', $.fp_register),
@@ -315,21 +315,21 @@ module.exports = grammar({
 
     // FP R-type 2 regs (abs.s, neg.s, mov.s, cvt.*, ...).
     _inst_fp_r2ds: $ => seq(
-      field('op', alias(kw(KEYWORDS.FP_R2ds), $.opcode)),
+      field('op', alias(kw(KEYWORDS.FP_FD_FS), $.opcode)),
       field('fd', $.fp_register), ',',
       field('fs', $.fp_register),
     ),
 
     // mfc1 / mtc1 / cfc1 / ctc1: integer reg + FP reg.
     _inst_fp_r2ts: $ => seq(
-      field('op', alias(kw(KEYWORDS.FP_R2ts), $.opcode)),
+      field('op', alias(kw(KEYWORDS.FP_RT_COPREG), $.opcode)),
       field('rt', $.register), ',',
       field('fs', choice($.register, $.fp_register)),
     ),
 
     // 4-operand FP (madd.s, msub.s, ...).
     _inst_fp_r4: $ => seq(
-      field('op', alias(kw(KEYWORDS.FP_R4), $.opcode)),
+      field('op', alias(kw(KEYWORDS.FP_FD_FR_FS_FT), $.opcode)),
       field('fd', $.fp_register), ',',
       field('fr', $.fp_register), ',',
       field('fs', $.fp_register), ',',
@@ -338,7 +338,7 @@ module.exports = grammar({
 
     // FP compare (c.lt.s, c.eq.d, ...).  Optional leading CC.
     _inst_fp_cmp: $ => seq(
-      field('op', alias(kw(KEYWORDS.FP_CMP), $.opcode)),
+      field('op', alias(kw(KEYWORDS.FP_CMP_FS_FT), $.opcode)),
       optional(seq(field('cc', $.integer), ',')),
       field('fs', $.fp_register), ',',
       field('ft', $.fp_register),
@@ -354,7 +354,7 @@ module.exports = grammar({
 
     // FP load/store: lwc1, swc1, ldc1, sdc1.
     _inst_fp_i2a: $ => seq(
-      field('op', alias(kw(KEYWORDS.FP_I2a), $.opcode)),
+      field('op', alias(kw(KEYWORDS.FP_FT_ADDR), $.opcode)),
       field('ft', $.fp_register), ',',
       field('addr', $.address),
     ),
