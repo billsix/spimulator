@@ -105,6 +105,7 @@ demos = [
   ['tac',                    'transforms/tac/tac.c'],
   ['tail',                   'transforms/tail/tail.c'],
   ['base64',                 'transforms/base64/base64.c'],
+  ['strings',                'transforms/strings/strings.c'],
   # ---- fileio: open/close/read/write of named files ----
   ['cat',                    'fileio/cat/cat.c'],
   ['nologin',                'fileio/nologin/nologin.c'],
@@ -229,6 +230,8 @@ demo_test_runner = files('../tests/run-demo.sh')
 lib_demo_tests = [
   'ctype-demo', 'atoi-demo', 'abs-demo', 'exit-demo', 'bsearch-demo',
   'atexit-demo',
+  # Regular demos with pinned goldens (stdin-driven; see run-demo.sh)
+  'strings',
 ]
 foreach name : lib_demo_tests
   test(name,

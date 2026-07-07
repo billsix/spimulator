@@ -108,8 +108,9 @@ Curriculum / library:
 - `multi-file-load.md` — re-scoped 2026-07-07: the loading mechanism was
   already shipped; remaining scope is the shared musl library + de-duplicating
   the demos' private `atoi:`/`str_eq:`/`print_uint:` copies (libstr = tranche 1).
-- `unix-tools.md` — nearly done (od/tail/tac/comm/cp/factor/seq/base64 and the
-  CS-algorithms track all landed); remaining: `strings` + a hash demo.
+- (`unix-tools.md` — DONE and archived 2026-07-07; `strings` landed as the
+  first golden-tested regular demo. Only the optional hash demo idea remains,
+  noted in the archived doc.)
 - `examples-build-matrix.md` / `pgu-build-matrix.md` — 5-ISA `.s` listing
   matrices; unblocked (crt0.h landed, clang already in the image); coordinate
   MIPS endianness between them.

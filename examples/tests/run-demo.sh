@@ -46,9 +46,17 @@ fail() {
 }
 
 # Per-demo: what golden file, what .asm files to load for spim,
-# and whether to also verify exit status.
+# optional stdin to pipe in, and whether to also verify exit status.
 expected_status=""
+input=""
 case "$NAME" in
+  strings)
+    # First non-library demo with a pinned golden: printable-run
+    # extraction over deliberately binary-ish stdin.
+    expected=$SRC_DIR/transforms/strings/strings.expected
+    input=$SRC_DIR/transforms/strings/strings.input
+    asm_files="-f $SRC_DIR/transforms/strings/strings.asm"
+    ;;
   ctype-demo)
     expected=$LIB_DIR/libctype-demo/ctype-demo.expected
     asm_files="-f $LIB_DIR/libctype/libctype.asm \
@@ -96,11 +104,12 @@ esac
 # --- Run the C side ---
 # Demo executables install/build with a `spimulator-example-` prefix so the
 # coreutil-named ones (cp, head, wc, …) don't shadow system tools on PATH.
-"$C_BIN_DIR/spimulator-example-$NAME" > "$out_c" 2>&1
+"$C_BIN_DIR/spimulator-example-$NAME" < "${input:-/dev/null}" > "$out_c" 2>&1
 c_status=$?
 
 # --- Run the asm side under spim ---
-$SPIM -exception_file "$EF" -noexplain -quiet $asm_files > "$out_asm" 2>&1
+$SPIM -exception_file "$EF" -noexplain -quiet $asm_files \
+  < "${input:-/dev/null}" > "$out_asm" 2>&1
 asm_status=$?
 
 # --- Golden diff (C side) ---
