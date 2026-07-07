@@ -21,14 +21,22 @@ the two sources to see exactly what a tree buys (and costs).
 ## Language sketch (v1 — decide exactly during implementation)
 
 ```
-$ echo "(3 + 4) * 2 - 10 / 5" | spimulator -f calc-sdt.asm
-12
+$ echo "(3 + 4) * 2 - 10 / 4" | spimulator -f calc-sdt.asm
+11.5
 ```
 
-- Integers, `+ - * /` with standard precedence, parentheses, unary minus.
-- One expression per line; print each result.  Integer division.
+- **Floating point** (Bill, 2026-07-07: like what students are used to —
+  a TI-83 computes reals).  Values are doubles; `/` is real division.
+  Asm side runs on the FPU (`$f` registers, `add.d`-family, syscall 3 to
+  print) — together with [`rpn-calculator.md`](rpn-calculator.md) these
+  are the curriculum's first FPU demos.
+- Number literals with optional fraction (`3`, `3.5`, `.5`); `+ - * /`
+  with standard precedence, parentheses, unary minus.
+- One expression per line; print each result.
 - Later extensions (explicitly out of v1): variables (`A`–`Z` like the
   TI-83), `^`, comparison ops.
+- Same golden-formatting note as the RPN task: pin one output shape and
+  don't get dragged into float-printing depth.
 
 Grammar (classic layered form — the teaching artifact itself):
 

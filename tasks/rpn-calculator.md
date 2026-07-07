@@ -11,21 +11,30 @@ that runs under spimulator.
 
 ## Sketch
 
-`dc`-flavored, integers only:
+`dc`-flavored, **floating point** (Bill, 2026-07-07: "like what students
+are used to" — a calculator does real arithmetic, not integer division):
 
 ```
 $ echo "3 4 + 2 *" | spimulator -f rpn.asm
 14
+$ echo "1 3 /" | spimulator -f rpn.asm
+0.33333333
 ```
 
-- Read whitespace-separated tokens from stdin: decimal integers push;
-  `+ - * /` (and `%`?) pop two, push the result; at EOF (or `p`/newline —
-  decide), print the top of stack.  Syscall 5's new scanf-style reading
-  handles the numbers; operators arrive via read_char or by tokenizing a
-  read line — decide during implementation (mixed int/operator tokenizing
-  is the one wrinkle; simplest is byte-at-a-time with an accumulating
-  number state, same pattern as the demos' `atoi`).
-- Errors: stack underflow and divide-by-zero print a message, exit 1.
+- Values are doubles (`.double` / `$f`-register arithmetic on the asm
+  side — making this the **first demo to exercise spim's FPU**: lwc1/
+  ldc1, add.d/sub.d/mul.d/div.d, and print via syscall 3).
+- Read whitespace-separated tokens from stdin: numbers (with optional
+  `.` fraction) push; `+ - * /` pop two, push the result; at EOF print
+  the top of stack.  Tokenize byte-at-a-time with an accumulating number
+  state (an `atof` sibling of the demos' `atoi` — itself a worthwhile
+  teaching artifact).
+- Errors: stack underflow prints a message, exit 1.  Divide-by-zero just
+  produces inf/nan the IEEE way — worth *showing* rather than trapping
+  (calculators show it too).
+- Output formatting: pick one shape (e.g. syscall 3's default double
+  printing) and pin it in the golden; note in the demo header that
+  formatting floats is its own deep topic the demo sidesteps.
 
 ## Why it earns a slot
 
