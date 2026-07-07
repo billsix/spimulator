@@ -16,7 +16,7 @@
 #include "symbol-table.h" /* label_is_defined */
 #include "scanner.h"      /* scan_value, line_no */
 #include "tokens.h"       /* TOK_* token values */
-#include "opcode-types.h" /* op_type tag enumerators (ASM_DIR, R3_TYPE_INST, ...) */
+#include "opcode-types.h" /* op_type tag enumerators (ASM_DIR, RD_RS_RT_INST, ...) */
 
 /* Runtime-visible globals. */
 int line_no = 1;
@@ -52,9 +52,9 @@ int register_name_to_number(char* name) {
 
 /* --- keyword table ---------------------------------------- */
 /* Maps a recognized keyword string to its (token, type) pair.  Built
-   from the X-macro list in op.h: each OP(name, sym, type, enc) row
+   from the X-macro list in opcodes.h: each OP(name, sym, type, enc) row
    expands here to {name, sym, type}, dropping the binary-encoding
-   column.  See op.h's top-of-file comment for the X-macro pattern. */
+   column.  See opcodes.h's top-of-file comment for the X-macro pattern. */
 
 static name_val_val keyword_tbl[] = {
 #undef OP

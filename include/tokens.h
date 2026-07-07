@@ -1,6 +1,6 @@
 /* TOK_* token enum shared by the scanner, parser, and runtime.
 
-   The 381 keyword tokens come from op.h via its X-macro pattern; the
+   The 381 keyword tokens come from opcodes.h via its X-macro pattern; the
    handful of structural/syntactic tokens (TOK_INT, TOK_ID, TOK_REG, ...)
    are listed explicitly below.
 
@@ -27,8 +27,8 @@ enum : int32_t {
 
 /* The remaining ~380 enumerators (TOK_ADD_OPCODE, TOK_ADDI_OPCODE, ...) are
    produced by the X-macro expansion below.  Each OP(name, sym, type,
-   enc) row in op.h becomes `sym,` here — adding one enumerator per
-   keyword.  See op.h's top-of-file comment for the X-macro pattern;
+   enc) row in opcodes.h becomes `sym,` here — adding one enumerator per
+   keyword.  See opcodes.h's top-of-file comment for the X-macro pattern;
    the #include is intentionally inside the enum body so the OP()
    rows expand directly between commas.  */
 #define OP(_name, sym, _kind, _opcode) sym,

@@ -1,6 +1,17 @@
 # More descriptive names for the opcode-table headers ("op.h")
 
-**Status:** proposed — not started
+**Status:** DONE — archived 2026-07-07.  All 21 terse tags renamed to
+operand-order-as-written names (`I2a_TYPE_INST` → `RT_ADDR_INST` for
+`lw rt, address`; `R3_TYPE_INST` → `RD_RS_RT_INST` for `add rd, rs, rt`;
+etc.), with a naming-scheme legend and per-tag example comments in
+`opcode-types.h`.  Names were derived from the parser's per-tag `parse_*`
+code (ground truth), not guessed from the old abbreviations —
+notably `R2td`/`FP_R2ts` are really REG,COPREG shapes (`RT_COPREG_INST` /
+`FP_RT_COPREG_INST`).  `J_TYPE_INST`/`NOARG_TYPE_INST`/`MOVC`/`FP_MOVC`
+kept (already legible).  All ~290 uses swept across src/, include/, and the
+tree-sitter extractor comment; every stale "op.h" self-reference now says
+`opcodes.h` (the extractor keys only on the mnemonic column, so the
+grammar is unaffected).  Suite green.
 **Created:** 2026-07-07
 
 ## Request (Bill, 2026-07-07)

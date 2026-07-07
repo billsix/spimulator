@@ -105,7 +105,10 @@ Untracked directory cluttering `git status`.  Already-built artefact.
 **Status refresh 2026-07-07:** B1 is DONE — `include/memory.h` now exposes
 noun-first `mem_read_*` / `mem_write_*` (Option B below, as recommended).
 B2 (`str_copy` vs `strdup`) is still open: `str_copy` survives with callers
-across ~8 files.  B3 (`*_inst` suffix) unverified — check during execution.
+across ~8 files (being handled in the stdlib-modernization task).  B3 is
+MOOT (2026-07-07): the `r_type_inst`/`i_type_inst` helpers were renamed to
+`emit_r`/`emit_i` by the AST migration — the old names survive only in
+comments describing history.
 Consider folding B2/B3 into the same sweep as
 [`opcode-types-descriptive-names.md`](opcode-types-descriptive-names.md) and
 the naming portion of [`code-idiosyncrasies-audit.md`](code-idiosyncrasies-audit.md)
