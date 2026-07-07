@@ -21,6 +21,35 @@ Explicit non-goals, per Bill:
   syscall (spim syscall 9) and simply **leak**; reclamation is optional
   forever.
 
+## Design principles (Bill, 2026-07-07 — these override everything below)
+
+**The #1 priority is understandability for an undergraduate.** Simplicity
+beats generality, performance, and even C fidelity. Concretely authorized:
+
+- **Syntax-directed translation** — emit MIPS as you parse, no AST, no IR,
+  no passes. (Pedagogically resonant here: spimulator's own assembler
+  parser was SDT for years, and the archived Phase-5 docs describe that
+  style. The compiler becomes the same shape the student has already seen.)
+- **Declarations up front, old-style** — every variable declared at the top
+  of its function (C89/K&R discipline, no mid-block declarations). This
+  makes the stack-frame layout computable the moment the body starts —
+  the frame diagram in the demo headers *is* the symbol table the compiler
+  builds.
+- **Define the subset, then make the examples conform.** We control both
+  sides: specify a simple C subset ("SpimC") that is sufficient for the
+  example programs, accept **only** that subset in the compiler (anything
+  else is a clean, line-numbered error), and **rewrite the example C to the
+  subset style** where it currently strays (mid-block declarations,
+  `for`-loop initializers with declarations, etc.). The paired-golden test
+  harness proves each rewrite preserves behavior before the compiler ever
+  sees it.
+- Any other simplification that buys clarity is on the table: restricting
+  expression forms, requiring braces, one function per `.text` block —
+  "we can do anything."
+
+This principle also settles the Route A/B question's spirit: whichever
+route, the artifact students read must be small enough to read whole.
+
 ## Investigation step 1: what C do the examples actually use?
 
 The compiler's required surface = the constructs in `examples/src/**/*.c`.
@@ -80,8 +109,9 @@ should put effort estimates on both and let Bill pick.
 
 ## Compiler design constraints (v1)
 
-- Single pass to asm text, or tiny AST — whatever stays writable in the
-  subset itself (self-hosting rules out anything fancy).
+- Single pass, syntax-directed translation to asm text (per the design
+  principles above — no AST/IR), writable in the subset itself
+  (self-hosting rules out anything fancy anyway).
 - Memory: bump allocator over sbrk (syscall 9); no free, leaks by design.
 - Codegen: naive and readable — every local on the stack frame, load/operate/
   store per expression node; correctness and legibility over quality. The
@@ -104,11 +134,20 @@ resulting compiler compiles the demo set with identical output to stage 1.
 ## Order of work
 
 1. Investigate: precise construct inventory of `examples/src/**/*.c` (incl.
-   naming the one `switch` and one `float` file), pick Route A or B, define
-   the exact accepted grammar, write it up here for a go-ahead.
-2. Build the compiler to pass helloworld end-to-end through the golden
+   naming the one `switch` and one `float` file), pick Route A or B, and
+   **write the SpimC subset definition** (grammar + the declarations-first
+   rule + what's excluded), sized against the inventory. Write it up here
+   for a go-ahead.
+2. **Subset-conformance pass over the example C**: rewrite the demos into
+   SpimC style (declarations hoisted to function tops, excluded constructs
+   replaced), one demo per commit, goldens proving behavior unchanged.
+   This lands value even before the compiler exists — the C reads more
+   uniformly against its asm — and every rewritten demo is a ready-made
+   compiler test case.
+3. Build the compiler to pass helloworld end-to-end through the golden
    harness; then widen construct-by-construct in curriculum order.
-3. Stage-2 self-host per the chosen route.
+4. Stage-2 self-host per the chosen route (the compiler source itself must
+   be SpimC from day one).
 
 ## Relation to other tasks
 
