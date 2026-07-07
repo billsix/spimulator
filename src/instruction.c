@@ -571,12 +571,16 @@ char* inst_to_string(mem_addr addr) {
 
   if (exception_occurred) {
     error("Can't print instruction not in text segment (0x%08x)\n", addr);
-    return "";
+    /* Callers free the result, so it must be heap-allocated — a string
+       literal here would get free()d. */
+    return str_copy("");
   }
 
   ss_init(&ss);
   format_an_inst(&ss, instruction, addr);
-  return ss_to_string(&ss);
+  /* Transfer the buffer to the caller (who frees it); ss is a local,
+     so its stream must not outlive this call. */
+  return ss_take_string(&ss);
 }
 
 void format_an_inst(str_stream* ss, mips_instruction* instruction,
