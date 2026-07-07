@@ -261,7 +261,7 @@ easier once the in-container env is provisioned.
 
 This plan is **infrastructure**, supporting the work of:
 
-- [`multiarch-shim.md`](multiarch-shim.md) —
+- [`multiarch-shim.md`](archive/2026/07/07/multiarch-shim.md) *(done — archived)* —
   "verify the shim works on every arch" was previously
   blocked on having a way to do that in-container.  This
   unblocks step 2 of that plan.

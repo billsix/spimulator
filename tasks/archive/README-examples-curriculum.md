@@ -12,7 +12,7 @@ case-conversion functions adapted from musl's src/ctype/.  Pure
 leaf functions, no `.data`, no `$ra` discipline — the simplest
 of the three planned libraries (libctype → libstdlib → libstr).
 
-- **[`PLAN-libctype.md`](PLAN-libctype.md)** — final-state writeup
+- **[`PLAN-libctype.md`](2026/05/23/PLAN-libctype.md)** — final-state writeup
   covering the 8 functions, the calling-convention contract,
   the worked `isdigit` example, the demo's printable-ASCII
   table, the consolidation from per-function .c files to one
@@ -30,7 +30,7 @@ Files added: `src/lib/libctype/` (library) and
 Each paired C + asm, smoke-tested against the real system tool
 where applicable.
 
-- **[`PLAN-tier1-tier2-tools.md`](PLAN-tier1-tier2-tools.md)** —
+- **[`PLAN-tier1-tier2-tools.md`](2026/05/23/PLAN-tier1-tier2-tools.md)** —
   final-state writeup of all 12 demos with their per-demo
   teaching ideas, and notes on the two non-obvious defects fixed
   during smoke-testing (`.asciiz` octal-escape decoder in spim;
@@ -45,7 +45,7 @@ from argv + sbrk-allocated bit array), binary-search (target
 from argv + sorted ints from stdin), queens (generalized to
 N-queens from argv).
 
-- **[`PLAN-remove-hardcodes.md`](PLAN-remove-hardcodes.md)** —
+- **[`PLAN-remove-hardcodes.md`](2026/05/23/PLAN-remove-hardcodes.md)** —
   per-demo rewrite plan, what changed for each, the new asm
   patterns each demo lands.
 
@@ -57,7 +57,7 @@ across the filter demos (`wc`, `head`, `rev`, `expand`, `cat`,
 (explicit), `demo FILE` opens FILE.  Pure-filter demos (`tr`,
 `rot13`) take no file arg to match real Unix behavior.
 
-- **[`PLAN-stdin-or-file.md`](PLAN-stdin-or-file.md)** —
+- **[`PLAN-stdin-or-file.md`](2026/05/23/PLAN-stdin-or-file.md)** —
   convention writeup, per-demo rewrite notes.
 
 ## Library curriculum sketch (superseded May 2026)
@@ -70,12 +70,12 @@ the same day — Bill chose to go in a different direction with
 a more focused musl-derived libc port (libctype, libstdlib,
 libstr).
 
-- **[`PLAN-libraries.md`](PLAN-libraries.md)** — the original
+- **[`PLAN-libraries.md`](2026/05/23/PLAN-libraries.md)** — the original
   sketch.  Useful as historical record for "why we landed on a
   per-namespace .c+.asm library structure rather than a single
   libio.asm with everything."  The multi-`-f` recommendation
   from this doc did land — see
-  [`/spimulator/tasks/cli-multi-file-load.md`](../../../tasks/archive/cli-multi-file-load.md).
+  [`/spimulator/tasks/cli-multi-file-load.md`](2026/05/23/cli-multi-file-load.md).
 
 ## libstdlib v1 (May 2026)
 
@@ -88,7 +88,7 @@ call via `jalr` (bsearch's comparator), and the second
 indirect call as a function-pointer table walk (exit's
 handler chain).
 
-- **[`PLAN-libstdlib.md`](PLAN-libstdlib.md)** — umbrella
+- **[`PLAN-libstdlib.md`](2026/05/23/PLAN-libstdlib.md)** — umbrella
   plan covering all 7 functions, the calling-convention
   contract, the worked atoi example, the `absolute` /
   `labsolute` naming gotcha (spim reserves `abs` as a
@@ -96,7 +96,7 @@ handler chain).
   coexistence decision (parse_int stays as a simple
   teaching helper; atoi is the strict-libc alternative
   with no curriculum-wide migration planned).
-- **[`PLAN-libstdlib-atexit.md`](PLAN-libstdlib-atexit.md)**
+- **[`PLAN-libstdlib-atexit.md`](2026/05/23/PLAN-libstdlib-atexit.md)**
   — focused sub-plan for the cleanup-on-exit chain.
   Documents the deliberate scope choice (atexit/exit only,
   NOT POSIX signal handling — spim's single-threaded
@@ -118,7 +118,7 @@ disk as a viewable build artifact, so students can compare
 "what the C compiles to natively" against the hand-written
 MIPS `.asm` for spim.
 
-- **[`PLAN-asm-listings.md`](PLAN-asm-listings.md)** — covers
+- **[`PLAN-asm-listings.md`](2026/05/23/PLAN-asm-listings.md)** — covers
   the three implementation options considered
   (`-save-temps=obj` project-wide flag vs. per-demo
   `custom_target` vs. dedicated `run_target`), the
