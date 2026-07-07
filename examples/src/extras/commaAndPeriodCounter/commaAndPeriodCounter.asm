@@ -20,20 +20,6 @@
 
 
 # C source — see commaAndPeriodCounter.c
-#
-#     __attribute__((noreturn)) void _start(void) {
-#       int comma_count = 0;
-#       int period_count = 0;
-#       int this_char = read_char();
-#       while (this_char != -1) {           /* EOF */
-#         if (this_char == '.') period_count = period_count + 1;
-#         if (this_char == ',') comma_count = comma_count + 1;
-#         this_char = read_char();
-#       }
-#       print_int(comma_count);  print_string(" commas, ");
-#       print_int(period_count); print_string(" stops\n");
-#       os_exit(0);
-#     }
 
 
 #PURPOSE:  Count the commas and periods on standard input and

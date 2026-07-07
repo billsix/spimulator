@@ -20,21 +20,6 @@
 
 
 # C source — see rev.c
-#
-#     int my_main(int argc, char **argv) {
-#       int fd = STDIN;
-#       if (argc > 2) usage;
-#       if (argc == 2 && argv[1] != "-") fd = open(argv[1]);
-#       int len = 0;
-#       char c;
-#       while (read(fd, &c, 1) > 0) {
-#         if (c == '\n') { flush_reversed(len); len = 0; }
-#         else if (len < 256) buf[len++] = c;
-#       }
-#       if (len > 0) flush_reversed(len);
-#       if (fd != STDIN) close(fd);
-#       return 0;
-#     }
 
 
 # Invocations:

@@ -1,6 +1,13 @@
 # Fix stale links in the archive README manifests
 
-**Status:** proposed — not started (2026-06-13)
+**Status:** DONE — archived 2026-07-07.  Chose option (a): the manifests'
+per-file descriptions are valuable, so each link was repointed to its dated
+path (script-driven; 14 links in `README.md`, 9 in
+`README-examples-curriculum.md`, zero ambiguous basenames, zero unresolved).
+The done-check broken-link sweep over all non-archived docs + both manifests
+then found exactly one other stale link (`container-cross-env.md` →
+just-archived `multiarch-shim.md`), fixed in the same pass; sweep now clean.
+Links inside frozen archived snapshots left as-is, per the note below.
 
 ## Why
 

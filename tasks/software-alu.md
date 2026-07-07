@@ -159,6 +159,15 @@ existing `-explain` ladder.
   hardware variants). Pick the H&P design as the reference and
   document the divergence.
 
+## Relation to other tasks (added 2026-07-07)
+
+- [`timing-model.md`](timing-model.md) — that task *models* cost in cycles;
+  this one makes execution *actually* bit-level.  Independent, either order,
+  but they must agree on cycle vocabulary if both land (a Tier-3 multiplier
+  taking 32 alu_add steps should square with the timing model's mult cost).
+- `tests/tt.alu.bare.s` already exists in the regression suite — it's the
+  natural bit-exactness gate for Tier 1 before writing any new unit tests.
+
 ## Effort estimate
 
 Without FP:

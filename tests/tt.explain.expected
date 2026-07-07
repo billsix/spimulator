@@ -1,4 +1,186 @@
-Loaded: src/exceptions.s
+Loaded: ../src/exceptions.s
+
+	USER TEXT SEGMENT
+[0x00400000]	0x8fa40000  lw $a0, 0($sp)                  ; 183: 	lw $a0 0($sp)		# argc
+[0x00400004]	0x27a50004  addiu $a1, $sp, 4               ; 184: 	addiu $a1 $sp 4		# argv
+[0x00400008]	0x24a60004  addiu $a2, $a1, 4               ; 185: 	addiu $a2 $a1 4		# envp
+[0x0040000c]	0x00041080  sll $v0, $a0, 2                 ; 186: 	sll $v0 $a0 2
+[0x00400010]	0x00c23021  addu $a2, $a2, $v0              ; 187: 	addu $a2 $a2 $v0
+[0x00400014]	0x0c10000a  jal 0x00400028 [main]           ; 188: 	jal main
+[0x00400018]	0x00000000  nop
+[0x0040001c]	0x00022021  addu $a0, $r0, $v0              ; 191: 	move $a0 $v0		# carry main's return value through as exit status
+[0x00400020]	0x34020011  ori $v0, $r0, 17                ; 192: 	li $v0 17		# syscall 17 (exit2): status in $a0
+[0x00400024]	0x0000000c  syscall
+[0x00400028]	0x34080005  ori $t0, $r0, 5                 ; 35:         li      $t0, 5              # I-type immediate (addiu)
+[0x0040002c]	0x34090007  ori $t1, $r0, 7                 ; 36:         li      $t1, 7
+[0x00400030]	0x01095020  add $t2, $t0, $t1               ; 37:         add     $t2, $t0, $t1       # R-type signed add
+[0x00400034]	0x01095824  and $t3, $t0, $t1               ; 38:         and     $t3, $t0, $t1       # R-type logical
+[0x00400038]	0x000a6080  sll $t4, $t2, 2                 ; 39:         sll     $t4, $t2, 2         # shift
+[0x0040003c]	0x3c011001  lui $at, 4097                   ; 40:         lw      $t5, src            # load from data segment
+[0x00400040]	0x8c2d0000  lw $t5, 0($at)                  ; 40:         lw      $t5, src            # load from data segment
+[0x00400044]	0x3c011001  lui $at, 4097                   ; 41:         sw      $t2, dst            # store to data segment
+[0x00400048]	0xac2a0004  sw $t2, 4($at)                  ; 41:         sw      $t2, dst            # store to data segment
+[0x0040004c]	0x11090002  beq $t0, $t1, 8 [skip-0x0040004c]; 42:         beq     $t0, $t1, skip      # branch (not taken)
+[0x00400050]	0x210e0001  addi $t6, $t0, 1                ; 43:         addi    $t6, $t0, 1         # falls through
+[0x00400054]	0x15090002  bne $t0, $t1, 8 [done-0x00400054]; 44: skip:   bne     $t0, $t1, done      # branch (taken)
+[0x00400058]	0x00000000  nop
+[0x0040005c]	0x3c011001  lui $at, 4097 [hello]           ; 46: done:   la      $a0, hello          # pseudo-op for address load
+[0x00400060]	0x34240008  ori $a0, $at, 8 [hello]         ; 46: done:   la      $a0, hello          # pseudo-op for address load
+[0x00400064]	0x3c0e1001  lui $t6, 4097 [src]             ; 52:         la      $t6, src            # $t6 points into .data
+[0x00400068]	0x8dcf0000  lw $t7, 0($t6)                  ; 53:         lw      $t7, 0($t6)         # load with zero offset
+[0x0040006c]	0x81d80000  lb $t8, 0($t6)                  ; 54:         lb      $t8, 0($t6)         # byte load via base+offset
+[0x00400070]	0x27bdfff8  addiu $sp, $sp, -8              ; 55:         addiu   $sp, $sp, -8        # allocate an 8-byte stack frame
+[0x00400074]	0xafaf0004  sw $t7, 4($sp)                  ; 56:         sw      $t7, 4($sp)         # store with non-zero offset into frame
+[0x00400078]	0x8fb90004  lw $t9, 4($sp)                  ; 57:         lw      $t9, 4($sp)         # load back from the frame slot
+[0x0040007c]	0x27bd0008  addiu $sp, $sp, 8               ; 58:         addiu   $sp, $sp, 8         # tear down the frame
+[0x00400080]	0x27bdffec  addiu $sp, $sp, -20             ; 66:         addiu   $sp, $sp, -20       # 5-word frame (slot 0 = arg area)
+[0x00400084]	0xafa40004  sw $a0, 4($sp)                  ; 67:         sw      $a0,  4($sp)        # save arg 0
+[0x00400088]	0xafa50008  sw $a1, 8($sp)                  ; 68:         sw      $a1,  8($sp)        # save arg 1
+[0x0040008c]	0xafa6000c  sw $a2, 12($sp)                 ; 69:         sw      $a2, 12($sp)        # save arg 2
+[0x00400090]	0xafbf0010  sw $ra, 16($sp)                 ; 70:         sw      $ra, 16($sp)        # save return address
+[0x00400094]	0x8fa40004  lw $a0, 4($sp)                  ; 71:         lw      $a0,  4($sp)        # restore arg 0
+[0x00400098]	0x8fa50008  lw $a1, 8($sp)                  ; 72:         lw      $a1,  8($sp)        # restore arg 1
+[0x0040009c]	0x8fa6000c  lw $a2, 12($sp)                 ; 73:         lw      $a2, 12($sp)        # restore arg 2
+[0x004000a0]	0x8fbf0010  lw $ra, 16($sp)                 ; 74:         lw      $ra, 16($sp)        # restore return address
+[0x004000a4]	0x27bd0014  addiu $sp, $sp, 20              ; 75:         addiu   $sp, $sp, 20        # tear down frame
+[0x004000a8]	0x001df021  addu $fp, $r0, $sp              ; 82:         move    $fp, $sp            # remember the top of frame
+[0x004000ac]	0x27bdfff8  addiu $sp, $sp, -8              ; 83:         addiu   $sp, $sp, -8        # carve out 2 words of locals
+[0x004000b0]	0x3409006f  ori $t1, $r0, 111               ; 84:         li      $t1, 111
+[0x004000b4]	0xafc9fffc  sw $t1, -4($fp)                 ; 85:         sw      $t1, -4($fp)        # store local 0 (signed immediate)
+[0x004000b8]	0x340a00de  ori $t2, $r0, 222               ; 86:         li      $t2, 222
+[0x004000bc]	0xafcafff8  sw $t2, -8($fp)                 ; 87:         sw      $t2, -8($fp)        # store local 1
+[0x004000c0]	0x8fcbfffc  lw $t3, -4($fp)                 ; 88:         lw      $t3, -4($fp)        # load local 0
+[0x004000c4]	0x8fccfff8  lw $t4, -8($fp)                 ; 89:         lw      $t4, -8($fp)        # load local 1
+[0x004000c8]	0x27bd0008  addiu $sp, $sp, 8               ; 90:         addiu   $sp, $sp, 8         # release locals
+[0x004000cc]	0x3c011001  lui $at, 4097 [ubuf]            ; 97:         la      $t0, ubuf
+[0x004000d0]	0x34280010  ori $t0, $at, 16 [ubuf]         ; 97:         la      $t0, ubuf
+[0x004000d4]	0x3c01aaaa  lui $at, -21846                 ; 98:         li      $t1, 0xaaaaaaaa     # garbage in destination
+[0x004000d8]	0x3429aaaa  ori $t1, $at, -21846            ; 98:         li      $t1, 0xaaaaaaaa     # garbage in destination
+[0x004000dc]	0x89090004  lwl $t1, 4($t0)                 ; 99:         lwl     $t1, 4($t0)         # merge high bytes
+[0x004000e0]	0x99090001  lwr $t1, 1($t0)                 ; 100:         lwr     $t1, 1($t0)         # merge low bytes
+[0x004000e4]	0x3c019988  lui $at, -26232                 ; 101:         li      $t2, 0x99887766     # word to spill
+[0x004000e8]	0x342a7766  ori $t2, $at, 30566             ; 101:         li      $t2, 0x99887766     # word to spill
+[0x004000ec]	0xa90a0004  swl $t2, 4($t0)                 ; 102:         swl     $t2, 4($t0)         # spill high bytes
+[0x004000f0]	0xb90a0001  swr $t2, 1($t0)                 ; 103:         swr     $t2, 1($t0)         # spill low bytes
+[0x004000f4]	0x3c011001  lui $at, 4097 [ubuf]            ; 110:         la      $t0, ubuf
+[0x004000f8]	0x34280010  ori $t0, $at, 16 [ubuf]         ; 110:         la      $t0, ubuf
+[0x004000fc]	0xc1090000  ll $t1, 0($t0)                  ; 111:         ll      $t1, 0($t0)
+[0x00400100]	0x21290001  addi $t1, $t1, 1                ; 112:         addi    $t1, $t1, 1         # the increment-via-CAS idiom
+[0x00400104]	0xe1090000  sc $t1, 0($t0)                  ; 113:         sc      $t1, 0($t0)
+[0x00400108]	0x3c011001  lui $at, 4097 [ubuf]            ; 117:         la      $t0, ubuf
+[0x0040010c]	0x34280010  ori $t0, $at, 16 [ubuf]         ; 117:         la      $t0, ubuf
+[0x00400110]	0xc5000000  lwc1 $f0, 0($t0)                ; 118:         lwc1    $f0, 0($t0)         # load word into $f0
+[0x00400114]	0xe5000004  swc1 $f0, 4($t0)                ; 119:         swc1    $f0, 4($t0)         # store $f0 at $t0+4
+[0x00400118]	0x3c011001  lui $at, 4097 [ubuf]            ; 125:         la      $t0, ubuf
+[0x0040011c]	0x34280010  ori $t0, $at, 16 [ubuf]         ; 125:         la      $t0, ubuf
+[0x00400120]	0xd5020000  ldc1 $f2, 0($t0)                ; 126:         ldc1    $f2, 0($t0)         # load 8 bytes into $f2/$f3 pair
+[0x00400124]	0xf5020000  sdc1 $f2, 0($t0)                ; 127:         sdc1    $f2, 0($t0)         # store them back
+[0x00400128]	0x01098021  addu $s0, $t0, $t1              ; 130:         addu    $s0, $t0, $t1       # unsigned add
+[0x0040012c]	0x01288823  subu $s1, $t1, $t0              ; 131:         subu    $s1, $t1, $t0       # unsigned sub
+[0x00400130]	0x3112000f  andi $s2, $t0, 15               ; 134:         andi    $s2, $t0, 0x0f      # AND with 16-bit immediate
+[0x00400134]	0x351300f0  ori $s3, $t0, 240               ; 135:         ori     $s3, $t0, 0xf0      # OR  with 16-bit immediate
+[0x00400138]	0x391400ff  xori $s4, $t0, 255              ; 136:         xori    $s4, $t0, 0xff      # XOR with 16-bit immediate
+[0x0040013c]	0x000aa842  srl $s5, $t2, 1                 ; 137:         srl     $s5, $t2, 1         # logical shift right (zero fill)
+[0x00400140]	0x000ab043  sra $s6, $t2, 1                 ; 138:         sra     $s6, $t2, 1         # arithmetic shift right (sign fill)
+[0x00400144]	0x0109b82a  slt $s7, $t0, $t1               ; 141:         slt     $s7, $t0, $t1       # signed:    ($t0 < $t1) ? 1 : 0
+[0x00400148]	0x290b0064  slti $t3, $t0, 100              ; 142:         slti    $t3, $t0, 100       # signed immediate
+[0x0040014c]	0x0109602b  sltu $t4, $t0, $t1              ; 143:         sltu    $t4, $t0, $t1       # unsigned compare
+[0x00400150]	0x2d0d0064  sltiu $t5, $t0, 100             ; 144:         sltiu   $t5, $t0, 100       # unsigned immediate
+[0x00400154]	0x340e0001  ori $t6, $r0, 1                 ; 147:         li      $t6, 1
+[0x00400158]	0x1dc00002  bgtz $t6 8 [zb1-0x00400158]     ; 148:         bgtz    $t6, zb1            # 1 > 0
+[0x0040015c]	0x00000000  nop
+[0x00400160]	0x05c10002  bgez $t6 8 [zb2-0x00400160]     ; 150: zb1:    bgez    $t6, zb2            # 1 >= 0
+[0x00400164]	0x00000000  nop
+[0x00400168]	0x3c01ffff  lui $at, -1                     ; 152: zb2:    li      $t6, -1
+[0x0040016c]	0x342effff  ori $t6, $at, -1                ; 152: zb2:    li      $t6, -1
+[0x00400170]	0x05c00002  bltz $t6 8 [zb3-0x00400170]     ; 153:         bltz    $t6, zb3            # -1 < 0
+[0x00400174]	0x00000000  nop
+[0x00400178]	0x19c00002  blez $t6 8 [zb4-0x00400178]     ; 155: zb3:    blez    $t6, zb4            # -1 <= 0
+[0x0040017c]	0x00000000  nop
+[0x00400180]	0x3c011001  lui $at, 4097 [dst]             ; 160:         la      $t7, dst
+[0x00400184]	0x342f0004  ori $t7, $at, 4 [dst]           ; 160:         la      $t7, dst
+[0x00400188]	0x341800ab  ori $t8, $r0, 171               ; 161:         li      $t8, 0xab
+[0x0040018c]	0xa1f80000  sb $t8, 0($t7)                  ; 162:         sb      $t8, 0($t7)         # byte store
+[0x00400190]	0x3418cdef  ori $t8, $r0, -12817            ; 163:         li      $t8, 0xcdef
+[0x00400194]	0xa5f80002  sh $t8, 2($t7)                  ; 164:         sh      $t8, 2($t7)         # halfword store at offset 2
+[0x00400198]	0x3c19dead  lui $t9, -8531                  ; 168:         lui     $t9, 0xdead
+[0x0040019c]	0x3739beef  ori $t9, $t9, -16657            ; 169:         ori     $t9, $t9, 0xbeef    # $t9 now = 0xdeadbeef
+[0x004001a0]	0x34080007  ori $t0, $r0, 7                 ; 172:         li      $t0, 7
+[0x004001a4]	0x34090006  ori $t1, $r0, 6                 ; 173:         li      $t1, 6
+[0x004001a8]	0x01090018  mult $t0, $t1                   ; 174:         mult    $t0, $t1            # HI:LO = 7 * 6
+[0x004001ac]	0x00008012  mflo $s0                        ; 175:         mflo    $s0                 # $s0 = 42 (low word)
+[0x004001b0]	0x00008810  mfhi $s1                        ; 176:         mfhi    $s1                 # $s1 = 0  (high word)
+[0x004001b4]	0x34080064  ori $t0, $r0, 100               ; 177:         li      $t0, 100
+[0x004001b8]	0x34090007  ori $t1, $r0, 7                 ; 178:         li      $t1, 7
+[0x004001bc]	0x0109001a  div $t0, $t1                    ; 179:         div     $t0, $t1            # LO = quotient, HI = remainder
+[0x004001c0]	0x00008012  mflo $s0                        ; 180:         mflo    $s0                 # $s0 = 14
+[0x004001c4]	0x00008810  mfhi $s1                        ; 181:         mfhi    $s1                 # $s1 = 2
+[0x004001c8]	0x340a0003  ori $t2, $r0, 3                 ; 186:         li      $t2, 3
+[0x004001cc]	0x34120000  ori $s2, $r0, 0                 ; 187:         li      $s2, 0
+[0x004001d0]	0x024a9021  addu $s2, $s2, $t2              ; 188: loop:   addu    $s2, $s2, $t2       # accumulator += counter
+[0x004001d4]	0x214affff  addi $t2, $t2, -1               ; 189:         addi    $t2, $t2, -1
+[0x004001d8]	0x1540fffe  bne $t2, $r0, -8 [loop-0x004001d8]; 190:         bne     $t2, $zero, loop    # iterate while counter != 0
+[0x004001dc]	0x01098025  or $s0, $t0, $t1                ; 195:         or      $s0, $t0, $t1       # bitwise OR
+[0x004001e0]	0x01098826  xor $s1, $t0, $t1               ; 196:         xor     $s1, $t0, $t1       # bitwise XOR
+[0x004001e4]	0x01009027  nor $s2, $t0, $r0               ; 197:         nor     $s2, $t0, $zero     # bitwise NOT of $t0 via NOR with $zero
+[0x004001e8]	0x01289822  sub $s3, $t1, $t0               ; 200:         sub     $s3, $t1, $t0       # 7 - 5 = 2 (well within range, no trap)
+[0x004001ec]	0x3c01ffff  lui $at, -1                     ; 205:         li      $t0, 0xfffffffe
+[0x004001f0]	0x3428fffe  ori $t0, $at, -2                ; 205:         li      $t0, 0xfffffffe
+[0x004001f4]	0x34090003  ori $t1, $r0, 3                 ; 206:         li      $t1, 3
+[0x004001f8]	0x01090019  multu $t0, $t1                  ; 207:         multu   $t0, $t1            # 64-bit unsigned product
+[0x004001fc]	0x0000a012  mflo $s4                        ; 208:         mflo    $s4
+[0x00400200]	0x0000a810  mfhi $s5                        ; 209:         mfhi    $s5
+[0x00400204]	0x0109001b  divu $t0, $t1                   ; 210:         divu    $t0, $t1            # unsigned divide
+[0x00400208]	0x0000a012  mflo $s4                        ; 211:         mflo    $s4
+[0x0040020c]	0x0000a810  mfhi $s5                        ; 212:         mfhi    $s5
+[0x00400210]	0x3c011001  lui $at, 4097 [dst]             ; 218:         la      $t0, dst
+[0x00400214]	0x34280004  ori $t0, $at, 4 [dst]           ; 218:         la      $t0, dst
+[0x00400218]	0x81160000  lb $s6, 0($t0)                  ; 219:         lb      $s6, 0($t0)         # 0xab → 0xffffffab  (signed -85)
+[0x0040021c]	0x91170000  lbu $s7, 0($t0)                 ; 220:         lbu     $s7, 0($t0)         # 0xab → 0x000000ab  (unsigned 171)
+[0x00400220]	0x850a0002  lh $t2, 2($t0)                  ; 221:         lh      $t2, 2($t0)         # halfword 0xcdef → 0xffffcdef
+[0x00400224]	0x950b0002  lhu $t3, 2($t0)                 ; 222:         lhu     $t3, 2($t0)         # halfword 0xcdef → 0x0000cdef
+[0x00400228]	0x0810008c  j 0x00400230 [afterj]           ; 225:         j       afterj
+[0x0040022c]	0x00000000  nop
+[0x00400230]	0x34040005  ori $a0, $r0, 5                 ; 230:         li      $a0, 5
+[0x00400234]	0x0c1000b0  jal 0x004002c0 [square]         ; 231:         jal     square              # call helper; result in $v0 = 25
+[0x00400238]	0x3c010040  lui $at, 64 [square]            ; 234:         la      $t9, square
+[0x0040023c]	0x343902c0  ori $t9, $at, 704 [square]      ; 234:         la      $t9, square
+[0x00400240]	0x34040008  ori $a0, $r0, 8                 ; 235:         li      $a0, 8
+[0x00400244]	0x0320f809  jalr $ra, $t9                   ; 236:         jalr    $t9                 # call $t9; return address goes to $ra
+[0x00400248]	0x00402021  addu $a0, $v0, $r0              ; 240:         addu    $a0, $v0, $zero     # $a0 = 64 (the squared result)
+[0x0040024c]	0x34020001  ori $v0, $r0, 1                 ; 241:         li      $v0, 1              # syscall: print_int
+[0x00400250]	0x0000000c  syscall
+[0x00400254]	0x3404000a  ori $a0, $r0, 10                ; 245:         li      $a0, 0x0a           # ASCII newline
+[0x00400258]	0x3402000b  ori $v0, $r0, 11                ; 246:         li      $v0, 11             # syscall: print_char
+[0x0040025c]	0x0000000c  syscall
+[0x00400260]	0x34080005  ori $t0, $r0, 5                 ; 254:         li      $t0, 5
+[0x00400264]	0x34090007  ori $t1, $r0, 7                 ; 255:         li      $t1, 7
+[0x00400268]	0x00088021  addu $s0, $r0, $t0              ; 256:         move    $s0, $t0            # single-inst pseudo-op (→ addu)
+[0x0040026c]	0x01008827  nor $s1, $t0, $r0               ; 257:         not     $s1, $t0            # single-inst pseudo-op (→ nor with $0)
+[0x00400270]	0x00089022  sub $s2, $r0, $t0               ; 258:         neg     $s2, $t0            # single-inst pseudo-op (→ sub from $0)
+[0x00400274]	0x00000000  nop
+[0x00400278]	0x10000002  beq $r0, $r0, 8 [ps_b1-0x00400278]; 260:         beqz    $zero, ps_b1        # single-inst zero-compare pseudo-op
+[0x0040027c]	0x00000000  nop
+[0x00400280]	0x15000002  bne $t0, $r0, 8 [ps_b2-0x00400280]; 262: ps_b1:  bnez    $t0, ps_b2          # taken (5 != 0)
+[0x00400284]	0x00000000  nop
+[0x00400288]	0x0109082a  slt $at, $t0, $t1               ; 264: ps_b2:  blt     $t0, $t1, ps_b3     # multi-inst pseudo-op (→ slt + bne)
+[0x0040028c]	0x14200002  bne $at, $r0, 8 [ps_b3-0x0040028c]; 264: ps_b2:  blt     $t0, $t1, ps_b3     # multi-inst pseudo-op (→ slt + bne)
+[0x00400290]	0x00000000  nop
+[0x00400294]	0x0128082a  slt $at, $t1, $t0               ; 266: ps_b3:  bge     $t1, $t0, ps_b4     # multi-inst pseudo-op (→ slt + beq)
+[0x00400298]	0x10200002  beq $at, $r0, 8 [ps_b4-0x00400298]; 266: ps_b3:  bge     $t1, $t0, ps_b4     # multi-inst pseudo-op (→ slt + beq)
+[0x0040029c]	0x00000000  nop
+[0x004002a0]	0x04010002  bgez $r0 8 [ps_end-0x004002a0]  ; 268: ps_b4:  b       ps_end              # unconditional branch pseudo-op (→ beq $0,$0)
+[0x004002a4]	0x00000000  nop
+[0x004002a8]	0x3c011001  lui $at, 4097 [hello]           ; 284:         la      $a0, hello          # reload (jal arg clobbered it)
+[0x004002ac]	0x34240008  ori $a0, $at, 8 [hello]         ; 284:         la      $a0, hello          # reload (jal arg clobbered it)
+[0x004002b0]	0x34020004  ori $v0, $r0, 4                 ; 285:         li      $v0, 4              # syscall: print_string
+[0x004002b4]	0x0000000c  syscall
+[0x004002b8]	0x3402000a  ori $v0, $r0, 10                ; 287:         li      $v0, 10             # syscall: exit
+[0x004002bc]	0x0000000c  syscall
+[0x004002c0]	0x00840018  mult $a0, $a0                   ; 292: square: mult    $a0, $a0
+[0x004002c4]	0x00001012  mflo $v0                        ; 293:         mflo    $v0
+[0x004002c8]	0x03e00008  jr $ra                          ; 294:         jr      $ra
+
 
 ══════════════════════════════════════════════════════════
 About the output

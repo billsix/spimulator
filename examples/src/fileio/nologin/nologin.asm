@@ -20,20 +20,6 @@
 
 
 # C source — see nologin.c
-#
-#     __attribute__((noreturn)) void _start(void) {
-#       static char buf[256];
-#       int fd = os_open("/etc/nologin.txt", OS_O_RDONLY, 0);
-#       if (fd >= 0) {
-#         long n;
-#         while ((n = os_read(fd, buf, sizeof(buf))) > 0)
-#           os_write(STDOUT, buf, n);
-#         os_close(fd);
-#       } else {
-#         os_write(STDOUT, "The account is currently unavailable.\n", 38);
-#       }
-#       os_exit(1);
-#     }
 
 
 #PURPOSE:  Print /etc/nologin.txt if it exists, else a fallback

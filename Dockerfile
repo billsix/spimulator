@@ -47,7 +47,6 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
     --mount=type=cache,target=/var/lib/dnf \
     echo "keepcache=True" >> /etc/dnf/dnf.conf && \
     sed -i -e "s@tsflags=nodocs@#tsflags=nodocs@g" /etc/dnf/dnf.conf && \
-    echo "keepcache=True" >> /etc/dnf/dnf.conf && \
     dnf upgrade -y && \
     dnf install -y clang \
                    clang-tools-extra \
@@ -201,10 +200,10 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
 COPY .clang-format ${SPIM_SRC_DIR}/
 COPY .clang-tidy   ${SPIM_SRC_DIR}/
 
-RUN echo "exit() {" >> ~/.bashrc && \
-    echo "    echo "Formatting on shell exit"" >> ~/.bashrc && \
-    echo "    format.sh" >> ~/.bashrc && \
-    echo "    lint.sh" >> ~/.bashrc && \
-    echo "    builtin exit "$@"" >> ~/.bashrc && \
-    echo "}" >> ~/.bashrc && \
+RUN echo 'exit() {' >> ~/.bashrc && \
+    echo '    echo "Formatting on shell exit"' >> ~/.bashrc && \
+    echo '    format.sh' >> ~/.bashrc && \
+    echo '    lint.sh' >> ~/.bashrc && \
+    echo '    builtin exit "$@"' >> ~/.bashrc && \
+    echo '}' >> ~/.bashrc && \
     echo "PS1='\[\e[36m\]┌─(\t) \[\e[32m\]\u@\h:\w\n\[\e[36m\]└─λ \[\e[0m\]'" >> ~/.bashrc

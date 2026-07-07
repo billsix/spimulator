@@ -20,29 +20,6 @@
 
 
 # C source — see head.c
-#
-#     int my_main(int argc, char **argv) {
-#       int fd = STDIN, n = 10;
-#       const char *file_arg = NULL;
-#       switch (argc) {
-#         case 1: break;
-#         case 2: file_arg = argv[1]; break;
-#         case 3: if (!str_eq(argv[1], "-n")) usage;
-#                 n = parse_int(argv[2]); break;
-#         case 4: if (!str_eq(argv[1], "-n")) usage;
-#                 n = parse_int(argv[2]); file_arg = argv[3]; break;
-#         default: usage;
-#       }
-#       if (file_arg && !is_dash(file_arg)) fd = open(file_arg);
-#       int line_count = 0;
-#       char c;
-#       while (line_count < n && read(fd, &c, 1) > 0) {
-#         print_char(c);
-#         if (c == '\n') line_count++;
-#       }
-#       if (fd != STDIN) close(fd);
-#       return 0;
-#     }
 
 
 # Invocations:

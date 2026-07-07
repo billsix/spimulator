@@ -53,16 +53,18 @@ Materializing the .s matrix at image build time:
 
 ## Dependencies
 
-Soft prerequisite: [`multiarch-shim.md`](multiarch-shim.md)
-needs to land first for the six argv-using demos (echo,
-factorial, cat, gcd, head, tee).
-Those carry an inline `_start` shim that's currently gated as
-`#error` on non-x86_64.  Without the shim plan applied, the
-preprocessor halts on the unsupported `#elif` branch and
-`clang -S` fails.
+**Satisfied (2026-07-07):** the multiarch-shim work landed — `examples/src/crt0.h`
+carries all five arch branches and 30 demo `.c` files include it (the old
+inline x86_64-only `#error` shims are gone).  Nothing blocks generating `.s`
+for all five arches.  Toolchain-wise this plan needs only clang (no lld — we
+never link), and the root `Dockerfile` already installs clang; note the
+"Dockerfile changes" section below predates the examples/spimulator merge —
+its edits target the root `Dockerfile` now, and the `dnf install clang` step
+is already done.
 
-Demos 01–18 don't have the shim and should generate `.s`
-cleanly on all five arches today.
+Runtime *verification* of the shim (qemu-user) is separate infrastructure —
+that's [`container-cross-env.md`](container-cross-env.md), which is not a
+blocker for this listing-only matrix.
 
 ## Toolchain choice — clang + `-S` only
 

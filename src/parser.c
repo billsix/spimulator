@@ -820,7 +820,7 @@ static bool op_has_imm_form(int op) {
   }
 }
 
-/* R3_TYPE_INST: <op> DEST, SRC1, SRC2.  For BINARYI_OPS opcodes,
+/* RD_RS_RT_INST: <op> DEST, SRC1, SRC2.  For BINARYI_OPS opcodes,
    also accepts <op> DEST, SRC1, IMM and <op> DEST, IMM (see
 SUB_OPS (sub, subu) similarly accept an
    immediate, converted to addi/addiu with a negated value
@@ -899,7 +899,7 @@ static void parse_r3(int op) {
   emit_r(op, rd, rs, rt);
 }
 
-/* R2sh_TYPE_INST: <op> DEST, SRC1, SHAMT (immediate 0..31).
+/* RD_RT_SHAMT_INST: <op> DEST, SRC1, SHAMT (immediate 0..31).
    ssnop is a special no-operand case emitting `sll $0, $0, 1`. */
 static void parse_r2sh(int op) {
   if (op == TOK_SSNOP_OPCODE) {
@@ -917,13 +917,13 @@ static void parse_r2sh(int op) {
   emit_r_shift(op, rd, rs, sh);
 }
 
-/* R1s_TYPE_INST: <op> SRC1 (jr) */
+/* RS_INST: <op> SRC1 (jr) */
 static void parse_r1s(int op) {
   int rs = parse_register();
   emit_r(op, 0, rs, 0);
 }
 
-/* I2_TYPE_INST: <op> DEST, SRC1, IMM16
+/* RT_RS_IMM_INST: <op> DEST, SRC1, IMM16
    Also accepts the 2-operand shorthand `<op> DEST, IMM16` for
    andi/ori/xori where the missing SRC1 defaults to DEST — exception handlers
    use `ori $k0, 0x1`. */
@@ -946,14 +946,14 @@ static void parse_i2(int op) {
   emit_i_free(op, rt, rs, imm);
 }
 
-/* I1t_TYPE_INST: <op> DEST, UIMM16 (lui) */
+/* RT_IMM_INST: <op> DEST, UIMM16 (lui) */
 static void parse_i1t(int op) {
   int rt = parse_register();
   imm_expr* imm = parse_uimm16();
   emit_i_free(op, rt, 0, imm);
 }
 
-/* I2a_TYPE_INST: <op> DEST, ADDRESS — loads and stores */
+/* RT_ADDR_INST: <op> DEST, ADDRESS — loads and stores */
 static void parse_i2a(int op) {
   int rt = parse_register();
   addr_expr* addr = parse_address();
@@ -965,7 +965,7 @@ static void parse_i2a(int op) {
   free(addr);
 }
 
-/* B2_TYPE_INST: <op> SRC1, SRC2, LABEL (beq, bne) — reg/reg form.
+/* BRANCH_RS_RT_LABEL_INST: <op> SRC1, SRC2, LABEL (beq, bne) — reg/reg form.
    Also <op> SRC1, IMM, LABEL — reg/imm form
    which uses $at + ori to materialize the immediate, then beq/bne. */
 static void parse_b2(int op) {
@@ -992,7 +992,7 @@ static void parse_b2(int op) {
   }
 }
 
-/* B1_TYPE_INST: <op> SRC1, LABEL (bgez, bltz, etc.) */
+/* BRANCH_RS_LABEL_INST: <op> SRC1, LABEL (bgez, bltz, etc.) */
 static void parse_b1(int op) {
   int rs = parse_register();
   imm_expr* target = parse_label();
@@ -1240,9 +1240,9 @@ static void parse_dir_asciiz(void) {
 
 /* Look up an opcode token's operand-shape type tag.
 
-   Built from the X-macro list in op.h: each OP(name, sym, type, enc)
+   Built from the X-macro list in opcodes.h: each OP(name, sym, type, enc)
    row expands here to {sym, type}, dropping the name and encoding
-   columns.  See op.h's top-of-file comment for the X-macro pattern. */
+   columns.  See opcodes.h's top-of-file comment for the X-macro pattern. */
 
 typedef struct {
   int op;
@@ -1804,28 +1804,28 @@ static void parse_asm_code(void) {
     case NOARG_TYPE_INST:
       parse_noarg(op);
       break;
-    case R3_TYPE_INST:
+    case RD_RS_RT_INST:
       parse_r3(op);
       break;
-    case R2sh_TYPE_INST:
+    case RD_RT_SHAMT_INST:
       parse_r2sh(op);
       break;
-    case R1s_TYPE_INST:
+    case RS_INST:
       parse_r1s(op);
       break;
-    case I2_TYPE_INST:
+    case RT_RS_IMM_INST:
       parse_i2(op);
       break;
-    case I1t_TYPE_INST:
+    case RT_IMM_INST:
       parse_i1t(op);
       break;
-    case I2a_TYPE_INST:
+    case RT_ADDR_INST:
       parse_i2a(op);
       break;
-    case B2_TYPE_INST:
+    case BRANCH_RS_RT_LABEL_INST:
       parse_b2(op);
       break;
-    case B1_TYPE_INST:
+    case BRANCH_RS_LABEL_INST:
       parse_b1(op);
       break;
     case J_TYPE_INST:
@@ -1834,7 +1834,7 @@ static void parse_asm_code(void) {
     case PSEUDO_OP:
       parse_pseudo(op);
       break;
-    case R2td_TYPE_INST: {
+    case RT_COPREG_INST: {
       /* mfc0/mtc0/etc.: <op> REG COP_REG.  COP_REG accepts
          TOK_REG or TOK_FP_REG. */
       int reg = parse_register();
@@ -1847,13 +1847,13 @@ static void parse_asm_code(void) {
       emit_fp_r(op, 0, copreg, reg);
       break;
     }
-    case R2ds_TYPE_INST: {
+    case RD_RS_INST: {
       /* jalr — register-indirect jump-and-link.  Defer to parse_j
          since J_OPS handles the dispatch. */
       parse_j(op);
       break;
     }
-    case R2st_TYPE_INST: {
+    case RS_RT_INST: {
       /* Two-source R-type with no destination — covers
          mult/multu (always 2-operand) and div/divu (which ALSO
          accept 3-operand DIV_POPS pseudo forms).
@@ -1905,14 +1905,14 @@ static void parse_asm_code(void) {
       }
       break;
     }
-    case R1d_TYPE_INST: {
+    case RD_INST: {
       /* One-destination-register R-type: mfhi/mflo.  See
        */
       int rd = parse_register();
       emit_r(op, rd, 0, 0);
       break;
     }
-    case R3sh_TYPE_INST: {
+    case RD_RT_RS_INST: {
       /* BINARYIR_OPS: sllv, srav, srlv (variable-register shift).
          DEST SRC1 SRC2 — note the r_type_inst call below has rs/rt
          swapped (rt=SRC2, rs=SRC1).  Also accepts immediate form
@@ -1935,7 +1935,7 @@ static void parse_asm_code(void) {
       }
       break;
     }
-    case I1s_TYPE_INST: {
+    case RS_IMM_INST: {
       /* BINARYI_TRAP_OPS: teqi/tgei/tgeiu/tlti/tltiu/tnei.
          <op> SRC1 IMM16 → emit_i_free(op, 0, rs, imm).
  */
@@ -1944,7 +1944,7 @@ static void parse_asm_code(void) {
       emit_i_free(op, 0, rs, imm);
       break;
     }
-    case BC_TYPE_INST: {
+    case BRANCH_COPROC_COND_INST: {
       /* BR_COP_OPS: bc1f/bc1t/bc1fl/bc1tl.  Two forms:
            <op> LABEL                  → cc=0
            <op> CC_REG LABEL           → cc=TOK_INT
@@ -1981,7 +1981,7 @@ static void parse_asm_code(void) {
     }
 
     /* --- FP family --- */
-    case FP_R2ds_TYPE_INST: {
+    case FP_FD_FS_INST: {
       /* FP_UNARY_OPS / FP_MOVE_OPS: <op> F_DEST F_SRC2.
          etc.: emit_fp_r($1, $2, $3, 0). */
       int fd = parse_fp_register();
@@ -1989,7 +1989,7 @@ static void parse_asm_code(void) {
       emit_fp_r(op, fd, fs, 0);
       break;
     }
-    case FP_R3_TYPE_INST: {
+    case FP_FD_FS_FT_INST: {
       /* FP_BINARY_OPS: <op> F_DEST F_SRC1 F_SRC2.
        */
       int fd = parse_fp_register();
@@ -1998,7 +1998,7 @@ static void parse_asm_code(void) {
       emit_fp_r(op, fd, fs, ft);
       break;
     }
-    case FP_CMP_TYPE_INST: {
+    case FP_CMP_FS_FT_INST: {
       /* FP_CMP_OPS: two forms:
            <op> F_SRC1 F_SRC2                   → cc=0
            <op> CC_REG F_SRC1 F_SRC2            → cc=TOK_INT */
@@ -2035,7 +2035,7 @@ static void parse_asm_code(void) {
       }
       break;
     }
-    case FP_I2a_TYPE_INST: {
+    case FP_FT_ADDR_INST: {
       /* lwc1 / ldc1 / lwc2 etc.: <op> F_REG ADDRESS.
        */
       int fr = parse_fp_register();
@@ -2045,7 +2045,7 @@ static void parse_asm_code(void) {
       free(addr);
       break;
     }
-    case FP_R2ts_TYPE_INST: {
+    case FP_RT_COPREG_INST: {
       /* mfc1/mtc1/cfc0/ctc0/cfc1/ctc1: <op> REG COP_REG.
          COP_REG accepts either TOK_REG OR TOK_FP_REG (
          2574) — both name the coprocessor register number. */

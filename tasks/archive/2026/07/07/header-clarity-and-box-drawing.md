@@ -1,5 +1,9 @@
 # Plan: clarify the Stepped header + Unicode box-drawing
 
+**Status: DONE — archived 2026-07-07.** Shipped: Unicode box-drawing in the
+bit-layout renderers and the once-per-session "About the output" legend
+(`legend_emitted` in `src/explain.c`).
+
 Two related polish passes for the L1–L4 output:
 
 1. **Replace ASCII `+-|`** in the bit-field boxes and section

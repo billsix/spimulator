@@ -20,16 +20,6 @@
 
 
 # C source — see fizzbuzz.c
-#
-#     int my_main(int argc, char **argv) {
-#       int n = (argc == 2) ? parse_int(argv[1]) : 100;
-#       for (int i = 1; i <= n; i++) {
-#         if (i % 15 == 0) print_string("FizzBuzz");
-#         ...
-#       }
-#       return 0;
-#     }
-#
 # Invocations:
 #   spimulator -f fizzbuzz.asm             # 1..100 (default)
 #   spimulator -f fizzbuzz.asm 30          # 1..30

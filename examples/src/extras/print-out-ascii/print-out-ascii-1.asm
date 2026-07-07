@@ -20,18 +20,6 @@
 
 
 # C source — see print-out-ascii.c
-#
-#     __attribute__((noreturn)) void _start(void) {
-#       char c = CHAR_MIN;             /* -128 on Linux/x86_64 */
-#       print_int(c);
-#       print_string("\n");
-#       do {
-#         c = c + 1;
-#         print_int(c);
-#         print_string("\n");
-#       } while (c != CHAR_MAX);       /* 127 */
-#       os_exit(0);
-#     }
 
 
 #PURPOSE:  Walk a signed value from -128 up to 127, printing each

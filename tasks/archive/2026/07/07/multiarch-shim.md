@@ -1,5 +1,10 @@
 # Plan: multi-arch `_start` shim for argv-using C demos
 
+**Status: DONE — archived 2026-07-07.** Shipped: `examples/src/crt0.h`
+carries all five arch branches and 30 demo `.c` files include it (Option B,
+shared header). The remaining runtime *verification* on non-x86 arches
+(qemu-user) lives on in [`container-cross-env.md`](../../../container-cross-env.md).
+
 ## Goal
 
 The six argv-using C demos (echo, factorial, cat,

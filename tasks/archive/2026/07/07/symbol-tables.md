@@ -1,5 +1,9 @@
 # Plan: per-demo symbol tables (C variable → MIPS location)
 
+**Status: DONE — archived 2026-07-07.** Rolled out: 30 demo `.asm` files
+carry `#SYMBOL TABLE` blocks (frame-bearing ones also `#STORAGE LAYOUT`),
+spanning every tier below; the trivial Tier-4 demos are skipped by design.
+
 ## Goal
 
 For each in-scope `.asm` demo, replace the existing terse

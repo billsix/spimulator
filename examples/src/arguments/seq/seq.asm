@@ -20,14 +20,6 @@
 
 
 # C source — see seq.c
-#
-#     int my_main(int argc, char **argv) {
-#       int m, n;
-#       if (argc == 2)      { m = 1; n = parse_int(argv[1]); }
-#       else if (argc == 3) { m = parse_int(argv[1]); n = parse_int(argv[2]); }
-#       else usage;
-#       for (int i = m; i <= n; i++) { print_int(i); print_char('\n'); }
-#     }
 
 
 # Invocations:

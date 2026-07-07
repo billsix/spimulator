@@ -1,5 +1,9 @@
 # Plan: L4 — progressive bit-field decoding
 
+**Status: DONE — archived 2026-07-07.** Level 4 shipped (`-explain` accepts
+0..4 in `src/spim.c`; the L4 renderers are in `src/explain.c`; the
+explain-mode consistency audit in the archive covers L1–L4).
+
 A fourth `-explain` level that adds a step-by-step decoder walkthrough.
 Each step is a redrawing of the bit-field diagram, identical in shape
 to the L3 box, with one or two more fields filled in than the previous

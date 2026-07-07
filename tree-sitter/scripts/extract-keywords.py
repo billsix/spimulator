@@ -14,7 +14,7 @@ import re
 import sys
 
 # OP("name", TOK_FOO, KIND, encoding).  KIND may be mixed-case
-# (e.g. FP_R2ds_TYPE_INST).  Some entries span two source lines.
+# (e.g. FP_FD_FS_INST).  Some entries span two source lines.
 # Match across line breaks by reading the full file as one buffer.
 OP_RE = re.compile(
     r'OP\("([^"]+)",\s*(TOK_[A-Z_0-9]+),\s*([A-Za-z_][A-Za-z_0-9]*),'

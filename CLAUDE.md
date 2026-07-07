@@ -77,7 +77,11 @@ primer: `tasks/archive/2026/06/16/ubsan-sweep.md`.
 
 - C23; clang-format + clang-tidy. `opcodes.h` is the single source of truth for
   both the simulator and the tree-sitter grammar — regenerate the grammar rather
-  than hand-editing keyword lists.
+  than hand-editing keyword lists. **Any change to `opcodes.h` (or
+  `opcode-types.h`) must be gated with `BUILD_TREE_SITTER=1`** — the keyword
+  pipeline (`extract-keywords.py` → `build-keyword-lists.py` → `grammar.js`)
+  consumes both the mnemonic and the type-tag columns, and a
+  `BUILD_TREE_SITTER=0` image build never exercises it.
 - This is a learning tool: the explain/teaching output is a first-class feature,
   not debug spew. Keep it correct and legible.
 
@@ -89,15 +93,65 @@ surface has been folded into `tasks/`.) There is no separate handoff /
 session-notes / next-session log — the current `tasks/` contents are the live
 picture, and git history plus the dated archive are the record of what's done.
 
-- [`tasks/container-build-cleanup.md`](tasks/container-build-cleanup.md) — the
-  `exit()` bashrc trap drops the shell exit code; bump the `fedora/43` dnf cache
-  path to `44`.
-- [`tasks/fix-stale-doc-links.md`](tasks/fix-stale-doc-links.md) — repoint
-  intra-repo markdown links broken by the archive/plan→task reorg (doc hygiene).
-- Curriculum tasks (now in `tasks/`): `examples-build-matrix.md`,
-  `pgu-build-matrix.md`, `container-cross-env.md`, `libstr.md`,
-  `multiarch-shim.md`, `symbol-tables.md`, `unix-tools.md`.
-- Reference / open: teaching-mode polish (`explanation-levels-*`,
-  `post-execute-narration`), parser cleanup (`parser-leak-cleanup`,
-  `ast-column-tracking`); `port-pgu.md` is done
-  (`tasks/archive/2026/06/14/port-pgu.md`).
+Ordering / dependency guidance lives in `tasks/README.md` (§Ordering &
+dependencies, reviewed 2026-07-07). Snapshot of the open set:
+
+Example-code hygiene:
+
+- `string-equality-audit.md` — audit COMPLETE, **no stops-short bug found**
+  anywhere (examples, pgu, simulator all clean); open pending Bill's pointer
+  to what he observed (chief suspect: testStringsForEquality's documented
+  0-equal/1-differ inversion).
+- `code-idiosyncrasies-audit.md` — sweep for oddities ("void argc" etc.):
+  examples first, then pgu, then src/.
+
+Curriculum / library:
+
+- `libstr.md` — musl string/memory teaching library; **unblocked** — multi-file
+  loading already works (`tests/tt.multifile.s`).
+- `multi-file-load.md` — re-scoped 2026-07-07: the loading mechanism was
+  already shipped; remaining scope is the shared musl library + de-duplicating
+  the demos' private `atoi:`/`str_eq:`/`print_uint:` copies (libstr = tranche 1).
+- (`unix-tools.md` — DONE and archived 2026-07-07; `strings` landed as the
+  first golden-tested regular demo. Only the optional hash demo idea remains,
+  noted in the archived doc.)
+- `examples-build-matrix.md` / `pgu-build-matrix.md` — 5-ISA `.s` listing
+  matrices; unblocked (crt0.h landed, clang already in the image); coordinate
+  MIPS endianness between them.
+- `container-cross-env.md` — lld + qemu-user-static in the root Dockerfile;
+  needed only for *runtime* cross verification, not for the matrices.
+- `rpn-calculator.md` → `calc-language.md` — floating-point calculator demos
+  (the curriculum's first FPU exercises): RPN/stack first, then the TI-83-ish
+  infix language implemented twice from one grammar (SDT vs syntax tree).
+- `mini-c-compiler.md` — **capstone**: SpimC (a defined C subset; SDT, no
+  AST; declarations-first) compiler per Bill's design principles. Research
+  done 2026-07-07: construct inventory, Crenshaw-shaped plan, Route-B
+  (SpimC-in-SpimC first, hand-translate to asm) recommendation, and six
+  questions awaiting Bill in the doc.
+
+Simulator internals:
+
+- `parser-leak-cleanup.md` → then `ast-column-tracking.md` — the leak fix
+  deletes PARSE_DIRECT (PARSE_AST is already the default); do the column
+  plumbing once, after.
+- `codebase-cleanup-plan.md` — remaining: Tier C (header hygiene) and Tier
+  E3 (exception-path tests). Tiers A, D, E1/E2/E4 done; all of Tier B done
+  or moot (B2 resolved by stdlib-modernization; B3 obsoleted by the emit_*
+  renames).
+- `c23-modernization-pass2.md` — pruned 2026-07-07 (Tier-D-delivered items
+  struck); remaining: gnu23→c23 decision, `unreachable()`, literals,
+  `_BitInt`, examples/pgu subtrees.
+- Big swings, independent: `timing-model.md` (H&P ch.1 cycle model — cheaper,
+  do first) and `software-alu.md` (bit-level ALU); share cycle vocabulary if
+  both land.
+
+Archived 2026-07-07 after verifying/landing: the seven explain/shim/symbol
+docs from the morning review, plus tonight's ten:
+`c-asm-comment-parity` (466 lines of embedded C removed),
+`container-build-cleanup`, `container-aslr-lldb`, `examples-install-location`,
+`stdin-space-separated-ints` (scanf-style syscall 5),
+`program-listing-at-start` (the `disasm` command), `fix-stale-doc-links`,
+`string-stream-to-memstream` (POSIX open_memstream),
+`opcode-types-descriptive-names` (operand-order tag names), and
+`stdlib-modernization` (bsearch/calloc/strdup) — all in
+`tasks/archive/2026/07/07/`.

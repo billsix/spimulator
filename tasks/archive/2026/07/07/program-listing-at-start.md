@@ -1,5 +1,23 @@
 # Task: print a full program listing before execution
 
+**Status: DONE — archived 2026-07-07.** Shipped as the **`disasm`** REPL
+command (`print_text_listing()` in `src/display-utils.c`, reusing
+`format_insts`) plus a once-per-session auto-listing from the first
+`explain_before` when `-explain` is on (same lifetime as the legend).
+Decisions: named `disasm`, not `listing` (the `-listing` flag is the
+assemble-time event trace) — and the minimum abbreviation is `dis`, because
+`di` is the MIPS32r2 disable-interrupts mnemonic and tokenizes as an opcode.
+v1 lists the user text segment only (kernel listing deferred); no length cap
+(teaching programs are small).  `tt.explain.expected` regenerated — the diff
+was a pure insertion of the listing block; narration byte-identical.  New
+`disasm` regression test; suite green.
+
+**Naming caveat (2026-07-07):** a `-listing FILE` CLI flag now exists and
+means something else — an assemble-time *event trace* (see `src/spim.c`
+`listing_observer`, `tests/tt.listing.s`).  The REPL command proposed below
+must not be called `listing`; pick `disasm` or `code` to avoid colliding
+with / shadowing that flag's vocabulary.  Doc text below predates the flag.
+
 ## Goal
 
 Before the first instruction executes (or as a new REPL command),

@@ -1,5 +1,5 @@
 /* SPIM S20 MIPS simulator.
-   Dump the op.h file in a readable format to allow checking of encodings.
+   Dump the opcodes.h file in a readable format to allow checking of encodings.
    SPDX-License-Identifier: BSD-3-Clause
    See LICENSE in the project root for full text. */
 
@@ -20,10 +20,10 @@ typedef struct inst_t {
   };
 } instruction;
 
-/* Pull rows from op.h's X-macro list, keeping only the mnemonic (a)
+/* Pull rows from opcodes.h's X-macro list, keeping only the mnemonic (a)
    and the binary encoding (d).  This utility doesn't need the token
    symbol (b) or the operand-shape type tag (c), so OP_TYPES_H from
-   op-types.h isn't required either.  See op.h for the X-macro
+   opcode-types.h isn't required either.  See opcodes.h for the X-macro
    pattern. */
 #define OP(a, b, c, d) {a, d},
 

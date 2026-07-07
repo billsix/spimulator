@@ -20,11 +20,6 @@
 
 
 # C source — see exit.c
-#
-#     __attribute__((noreturn)) void _start(void) {
-#       os_exit(0);
-#     }
-#
 # This is the simplest possible program.  It performs exactly
 # one operation: it asks the kernel to terminate the process
 # and hands the kernel a status code (0 here) to make available

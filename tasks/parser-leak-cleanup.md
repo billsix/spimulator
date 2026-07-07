@@ -103,8 +103,11 @@ Estimated effort: 1 week with careful audit.
 The AST migration (already merged to master) gives `ast_node`
 ownership of identifier strings and `imm_expr`/`addr_expr`
 nodes.  `ast_free` recursively frees a tree.  The leak only
-matters in `PARSE_DIRECT` mode (the default) where there's no
-tree to own things.
+matters in `PARSE_DIRECT` mode, where there's no tree to own
+things.  (Status refresh 2026-07-07: `PARSE_AST` is now the
+**default** — see `include/ast.h` / `include/parser.h` — so
+Option C has shrunk to "delete the non-default PARSE_DIRECT
+codepath," which was already the stated future direction.)
 
 The cleanest long-term fix: make `PARSE_AST` the only mode,
 delete the `PARSE_DIRECT` codepath, and let `ast_free` clean
@@ -169,3 +172,10 @@ The fix matters for three reasons:
 - Option A: 1-2 days
 - Option B: 1 week
 - Option C: 2-3 days (recommended)
+
+## Ordering
+
+Do this **before** [`ast-column-tracking.md`](ast-column-tracking.md): Option
+C deletes the PARSE_DIRECT codepath, and column tracking touches the same
+scanner/AST-constructor surface — landing the deletion first means the column
+plumbing is written once, against one parse mode.

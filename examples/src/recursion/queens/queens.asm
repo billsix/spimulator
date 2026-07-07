@@ -20,18 +20,6 @@
 
 
 # C source — see queens.c
-#
-#     int N_global;  static int columns[12];
-#     int safe(int row, int col) { ...checks columns[0..row-1]... }
-#     void solve(int row) {
-#       if (row == N_global) { print_solution(); return; }
-#       for (int col = 0; col < N_global; col++)
-#         if (safe(row, col)) { columns[row] = col; solve(row+1); }
-#     }
-#     int my_main(int argc, char **argv) {
-#       N_global = (argc == 2) ? parse_int(argv[1]) : 8;
-#       solve(0); return 0;
-#     }
 
 
 # Invocations:

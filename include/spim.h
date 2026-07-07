@@ -167,6 +167,8 @@ void error(char* fmt, ...);
 char get_console_char(void);
 void put_console_char(char c);
 int read_input(char* str, int n); /* Returns bytes read (0 on EOF). */
+int read_int_input(long* value);  /* Scanf-style int read for syscall 5.
+                                     Returns 1 on success, 0 on EOF/garbage. */
 [[noreturn]] void run_error(char* fmt, ...);
 void write_output(port, char* fmt, ...);
 

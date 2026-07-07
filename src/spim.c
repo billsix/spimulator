@@ -73,11 +73,11 @@ static void save_history_at_exit(void) {
  * str_prefix table further below. Alphabetical order so the listing
  * libedit prints on Tab-Tab reads cleanly. */
 static const char* spim_commands[] = {
-    "args",          "breakpoint", "continue", "delete",
-    "dump",          "dumpnative", "exit",     "help",
-    "list",          "load",       "print",    "print_all_regs",
-    "print_symbols", "quit",       "read",     "reinitialize",
-    "run",           "step",       nullptr};
+    "args",          "breakpoint", "continue",     "delete",
+    "disasm",        "dump",       "dumpnative",   "exit",
+    "help",          "list",       "load",         "print",
+    "print_all_regs", "print_symbols", "quit",     "read",
+    "reinitialize",  "run",        "step",         nullptr};
 
 static char* command_generator(const char* text, int state) {
   static size_t idx;
@@ -88,7 +88,7 @@ static char* command_generator(const char* text, int state) {
   }
   while (spim_commands[idx] != nullptr) {
     const char* s = spim_commands[idx++];
-    if (strncmp(s, text, text_len) == 0) return str_copy(s);
+    if (strncmp(s, text, text_len) == 0) return strdup(s);
   }
   return nullptr;
 }
@@ -113,7 +113,7 @@ static char* suggestion_generator(const char* text, int state) {
     const char* tail = s;
     const char* space = strchr(s, ' ');
     if (space != nullptr) tail = space + 1;
-    if (strncmp(tail, text, text_len) == 0) return str_copy(tail);
+    if (strncmp(tail, text, text_len) == 0) return strdup(tail);
   }
   return nullptr;
 }
@@ -153,7 +153,7 @@ static bool line_is_label_command(void) {
 }
 
 /* Snapshot of label names taken on each Tab. The pointers point into
-   the symbol table's own storage (label->name), so we don't str_copy —
+   the symbol table's own storage (label->name), so we don't strdup —
    but we re-collect on every state==0 call in case the symbol table
    changed (e.g. after `reinit` + `load`). */
 static const char** label_names_cache = nullptr;
@@ -186,7 +186,7 @@ static char* label_generator(const char* text, int state) {
   }
   while (idx < label_names_cache_n) {
     const char* s = label_names_cache[idx++];
-    if (strncmp(s, text, text_len) == 0) return str_copy(s);
+    if (strncmp(s, text, text_len) == 0) return strdup(s);
   }
   return nullptr;
 }
@@ -886,6 +886,7 @@ enum {
   LIST_BKPT_CMD,
   DUMPNATIVE_TEXT_CMD,
   DUMP_TEXT_CMD,
+  DISASM_CMD,
   ARGS_CMD
 };
 
@@ -1113,11 +1114,11 @@ static bool parse_spim_command(bool redo) {
       while ((t = read_token()) != TOK_NL && t != 0) {
         char* s = nullptr;
         if (t == TOK_STR || t == TOK_ID) {
-          s = str_copy((char*)scan_value.p);
+          s = strdup((char*)scan_value.p);
         } else if (t == TOK_INT) {
           char buf[32];
           snprintf(buf, sizeof(buf), "%d", scan_value.i);
-          s = str_copy(buf);
+          s = strdup(buf);
         } else {
           continue;
         }
@@ -1184,6 +1185,9 @@ static bool parse_spim_command(bool redo) {
       write_output(message_out,
                    "dumpnative [ \"FILE\" ] -- Dump binary code to spim.dump "
                    "or FILE in host byte order\n");
+      write_output(message_out,
+                   "disasm -- Print a disassembly listing of the loaded "
+                   "program's text segment\n");
       write_output(message_out,
                    ". -- Rest of line is assembly instruction to execute\n");
       write_output(message_out,
@@ -1274,6 +1278,12 @@ static bool parse_spim_command(bool redo) {
       return (0);
     }
 
+    case DISASM_CMD:
+      print_text_listing();
+      if (!redo) flush_to_newline();
+      prev_cmd = NOP_CMD;
+      return (0);
+
     default:
       while (read_token() != TOK_NL);
       error("Unknown spim command\n");
@@ -1327,6 +1337,11 @@ static int read_assembly_command(void) {
     return (DUMPNATIVE_TEXT_CMD);
   else if (str_prefix((char*)scan_value.p, "dump", 4))
     return (DUMP_TEXT_CMD);
+  /* Min abbreviation is "dis", not "di" — `di` is the MIPS32r2
+     disable-interrupts mnemonic, which the scanner tokenizes as an
+     opcode before command dispatch ever sees it. */
+  else if (str_prefix((char*)scan_value.p, "disasm", 3))
+    return (DISASM_CMD);
   else if (*(char*)scan_value.p == '?')
     return (HELP_CMD);
   else if (*(char*)scan_value.p == '.')
@@ -1579,6 +1594,57 @@ int read_input(char* str, int str_size) {
 
   if (restore_console_to_program) console_to_program();
   return count;
+}
+
+/* Scanf-style integer read for syscall 5 (read_int): skip leading
+ * whitespace (spaces, tabs, CR, newlines), then parse an optional
+ * sign and a run of decimal digits.  Only the token plus the single
+ * byte that ends it are consumed — anything after stays in the
+ * kernel's stdin buffer for the next input syscall, so piped
+ * space-separated input (`echo 43 3 12 | spimulator ...`) yields one
+ * int per call instead of discarding the rest of the line.
+ *
+ * Returns 1 and stores the value on success.  Returns 0 — the
+ * caller's $a3 = 1 failure signal — on EOF, or when the next token
+ * does not begin a number (non-digit garbage), so read-until-$a3
+ * loops always terminate.
+ *
+ * The fd-level read has no pushback, so the delimiter byte after the
+ * digits is consumed with the token.  For whitespace-separated input
+ * that is exactly what a scanf user expects.
+ */
+
+int read_int_input(long* value) {
+  int restore_console_to_program = 0;
+
+  if (console_state_saved) {
+    restore_console_to_program = 1;
+    console_to_spim();
+  }
+
+  char c = '\0';
+  ssize_t n;
+  do {
+    n = read((int)console_in.i, &c, 1);
+  } while (n > 0 && (c == ' ' || c == '\t' || c == '\n' || c == '\r'));
+
+  long sign = 1;
+  if (n > 0 && (c == '-' || c == '+')) {
+    if (c == '-') sign = -1;
+    n = read((int)console_in.i, &c, 1);
+  }
+
+  bool got_digit = false;
+  long v = 0;
+  while (n > 0 && '0' <= c && c <= '9') {
+    got_digit = true;
+    v = v * 10 + (c - '0');
+    n = read((int)console_in.i, &c, 1);
+  }
+
+  if (restore_console_to_program) console_to_program();
+  *value = got_digit ? sign * v : 0;
+  return got_digit ? 1 : 0;
 }
 
 /* Give the console to the program for IO. */

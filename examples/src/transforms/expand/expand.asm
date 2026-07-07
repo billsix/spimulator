@@ -20,21 +20,6 @@
 
 
 # C source — see expand.c
-#
-#     int my_main(int argc, char **argv) {
-#       int fd = STDIN;
-#       if (argc > 2) usage;
-#       if (argc == 2 && argv[1] != "-") fd = open(argv[1]);
-#       int col = 0;
-#       char c;
-#       while (read(fd, &c, 1) > 0) {
-#         if (c == '\t') { emit (8 - col%8) spaces; col += spaces; }
-#         else if (c == '\n') { print_char('\n'); col = 0; }
-#         else { print_char(c); col++; }
-#       }
-#       if (fd != STDIN) close(fd);
-#       return 0;
-#     }
 
 
 # Invocations:

@@ -22,19 +22,6 @@
 # C source — see subrountines.c (same C; -2.asm is the idiomatic
 # MIPS port of it, while -1.asm shows the longhand stack-based version
 # for comparison).
-#
-#     int mxPlusB(int m, int x, int b) {
-#       int result = m * x + b;
-#       return result;
-#     }
-#
-#     __attribute__((noreturn)) void _start(void) {
-#       int result1 = mxPlusB(1, 2, 3);
-#       print_int(result1);  print_string("\n");
-#       int result2 = mxPlusB(4, 5, 6);
-#       print_int(result2);  print_string("\n");
-#       os_exit(0);
-#     }
 
 
 #PURPOSE:  Run `int mxPlusB(int m, int x, int b)` twice from main and

@@ -15,12 +15,6 @@ FILES_TO_MOUNT = -v .:/spimulator/:Z \
                  -v ./entrypoint/lint.sh:/usr/local/bin/lint.sh:Z \
                  -v ./entrypoint/dotfiles/.tmux.conf:/root/.tmux.conf:Z
 
-PACKAGE_CACHE_ROOT = ~/.cache/packagecache/fedora/43
-
-DNF_CACHE_TO_MOUNT = -v $(PACKAGE_CACHE_ROOT)/var/cache/libdnf5:/var/cache/libdnf5:Z \
-	             -v $(PACKAGE_CACHE_ROOT)/var/lib/dnf:/var/lib/dnf:Z
-
-
 # USE_EMACS=1 (the default) bind-mounts just the vendored elpa/ tree into the
 # container so an interactive `make shell` can *use* the vendored packages (:U
 # chowns it to the container user, :z relabels for SELinux). Mounting ONLY elpa/
@@ -40,9 +34,6 @@ all: shell ## Build the image and get a shell in it
 
 .PHONY: image
 image: ## Build podman image to run the examples
-	# cache rpm packages
-	mkdir -p $(PACKAGE_CACHE_ROOT)/var/cache/libdnf5
-	mkdir -p $(PACKAGE_CACHE_ROOT)/var/lib/dnf
 	# build the container
 	$(CONTAINER_CMD) build \
                          -t $(CONTAINER_NAME) \
@@ -50,7 +41,6 @@ image: ## Build podman image to run the examples
                          --build-arg BUILD_TREE_SITTER=$(BUILD_TREE_SITTER) \
                          --build-arg BUILD_DOCS=$(BUILD_DOCS) \
                          --build-arg RUN_SANITIZERS=$(RUN_SANITIZERS) \
-                         $(DNF_CACHE_TO_MOUNT) \
                          $(ELPA_MOUNT) \
                          .
 

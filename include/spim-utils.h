@@ -33,6 +33,7 @@ void delete_breakpoint(mem_addr addr);
 void format_data_segs(str_stream* ss);
 void format_insts(str_stream* ss, mem_addr from, mem_addr to);
 void format_mem(str_stream* ss, mem_addr from, mem_addr to);
+void print_text_listing(void);
 void format_registers(str_stream* ss, int print_gpr_hex, int print_fpr_hex);
 void initialize_registers(void);
 void initialize_stack(const char* command_line);
@@ -46,7 +47,6 @@ name_val_val* map_string_to_name_val_val(name_val_val tbl[], int tbl_len,
 [[nodiscard]] bool run_program(mem_addr pc, int steps, bool display,
                                bool cont_bkpt, bool* continuable);
 mem_addr starting_address(void);
-[[nodiscard]] char* str_copy(const char* str);
 void write_startup_message(void);
 [[nodiscard]] void* xmalloc(int);
 [[nodiscard]] void* zmalloc(int);

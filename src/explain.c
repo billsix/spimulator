@@ -50,6 +50,11 @@ static bool touched_hi, touched_lo;
    the header's layout, and avoids cluttering every subsequent step. */
 static bool legend_emitted = false;
 
+/* Once-per-session flag: before the first narrated instruction runs,
+   print a full disassembly listing of the loaded program, so the
+   student has a static map of what they're about to step through. */
+static bool listing_shown = false;
+
 /* Forward declarations needed by explain_print_step_header, which is
    defined below but called from explain_after (and from run.c, via the
    public extern in explain.h). */
@@ -177,7 +182,7 @@ void explain_print_step_header(mem_addr pc, mips_instruction* instruction) {
  * from its libedit completion callback so a student can recall a hint
  * with Tab.
  *
- * Lifetime: strings are str_copy'd at add time and freed by
+ * Lifetime: strings are strdup'd at add time and freed by
  * explain_clear_suggestions. Storage is a fixed-cap array — 16 is a
  * comfortable ceiling (templates emit at most 3-4 hints).
  */
@@ -195,7 +200,7 @@ void explain_clear_suggestions(void) {
 
 static void add_suggestion(const char* cmd) {
   if (n_suggestions >= MAX_SUGGESTIONS) return;
-  char* copy = str_copy(cmd);
+  char* copy = strdup(cmd);
   if (copy != nullptr) suggestions[n_suggestions++] = copy;
 }
 
@@ -1643,6 +1648,14 @@ static void explain_decoding_steps(mips_instruction* instruction) {
    every visible line describes something that has already happened. */
 void explain_before(mips_instruction* instruction, mem_addr addr) {
   if (explain_level == 0) return;
+
+  /* Once per session, before the first instruction executes: show the
+     whole loaded program.  Gives the student a static view to match
+     `run <ADDR>` arguments and branch targets against while stepping. */
+  if (!listing_shown) {
+    print_text_listing();
+    listing_shown = true;
+  }
 
   /* Tab-completion suggestions are per-instruction; clear before any
      template populates new ones. (At L1 nothing gets added, so the list

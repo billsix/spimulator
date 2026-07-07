@@ -20,12 +20,6 @@
 
 
 # C source — see helloworld.c
-#
-#     __attribute__((noreturn)) void _start(void) {
-#       print_string("hello world\n");
-#       os_exit(0);
-#     }
-#
 # In SPIM there is no separate _start — the simulator calls `main`
 # directly, so we use `main` as the entry point.  $v0 at return time
 # is taken as main's exit status, which stands in for os_exit's arg.

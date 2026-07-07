@@ -20,21 +20,6 @@
 
 
 # C source — see get-char-from-user.c
-#
-#     __attribute__((noreturn)) void _start(void) {
-#       int ch = read_char();
-#       while (ch != -1) {
-#         if (ch != '\n') {
-#           print_string("ch was ");
-#           print_char((char)ch);
-#           print_string(", value ");
-#           print_int(ch);
-#           print_string("\n");
-#         }
-#         ch = read_char();
-#       }
-#       os_exit(0);
-#     }
 
 
 #PURPOSE:  Read characters from standard input until EOF and, for

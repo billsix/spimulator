@@ -104,7 +104,7 @@ void initialize_world(char* exception_file_names, bool print_message) {
 
       /* strtok modifies the string, so we must back up the string prior to
          use. */
-      if ((files = str_copy(exception_file_names)) == nullptr)
+      if ((files = strdup(exception_file_names)) == nullptr)
         fatal_error("Insufficient memory to complete.\n");
 
       for (filename = strtok(files, ";"); filename != nullptr;
@@ -218,7 +218,7 @@ void initialize_stack(const char* command_line) {
   int argc = 0;
   char* argv[MAX_ARGS];
   char* a;
-  char* args = str_copy((char*)command_line); /* Destructively modify string */
+  char* args = strdup((char*)command_line); /* Destructively modify string */
   char* orig_args = args;
 
   while (*args != '\0') {
@@ -408,62 +408,35 @@ void list_breakpoints(void) {
 /* Utility routines */
 
 /* Return the entry in the linear TABLE of length LENGTH with key STRING.
-   TABLE must be sorted on the key field.
+   TABLE must be sorted on the key field (lexicographically — the same
+   order strcmp induces; all keys are plain ASCII).
    Return nullptr if no such entry exists. */
+
+static int cmp_key_to_name(const void* key, const void* elem) {
+  return strcmp((const char*)key, ((const name_val_val*)elem)->name);
+}
 
 name_val_val* map_string_to_name_val_val(name_val_val tbl[], int tbl_len,
                                          char* id) {
-  int low = 0;
-  int hi = tbl_len - 1;
-
-  while (low <= hi) {
-    int mid = (low + hi) / 2;
-    char *idp = id, *np = tbl[mid].name;
-
-    while (*idp == *np && *idp != '\0') {
-      idp++;
-      np++;
-    }
-
-    if (*np == '\0' && *idp == '\0') /* End of both strings */
-      return (&tbl[mid]);
-    else if (*idp > *np)
-      low = mid + 1;
-    else
-      hi = mid - 1;
-  }
-
-  return nullptr;
+  return bsearch(id, tbl, (size_t)tbl_len, sizeof(name_val_val),
+                 cmp_key_to_name);
 }
 
 /* Return the entry in the linear TABLE of length LENGTH with VALUE1 field NUM.
-   TABLE must be sorted on the VALUE1 field.
+   TABLE must be sorted on the VALUE1 field (as initialize_inst_tables'
+   qsort arranges).
    Return nullptr if no such entry exists. */
+
+static int cmp_key_to_value1(const void* key, const void* elem) {
+  int k = *(const int*)key;
+  int v = ((const name_val_val*)elem)->value1;
+  return (k > v) - (k < v);
+}
 
 name_val_val* map_int_to_name_val_val(name_val_val tbl[], int tbl_len,
                                       int num) {
-  int low = 0;
-  int hi = tbl_len - 1;
-
-  while (low <= hi) {
-    int mid = (low + hi) / 2;
-
-    if (tbl[mid].value1 == num)
-      return (&tbl[mid]);
-    else if (num > tbl[mid].value1)
-      low = mid + 1;
-    else
-      hi = mid - 1;
-  }
-
-  return nullptr;
-}
-
-char* str_copy(const char* str) {
-  const int len_to_copy = (int)strlen(str) + 1;
-  char* const new_str = (char*)xmalloc(len_to_copy);
-  strlcpy(new_str, str, len_to_copy);
-  return new_str;
+  return bsearch(&num, tbl, (size_t)tbl_len, sizeof(name_val_val),
+                 cmp_key_to_value1);
 }
 
 void* xmalloc(int size) {
@@ -476,10 +449,8 @@ void* xmalloc(int size) {
 /* Allocate a zero'ed block of storage. */
 
 void* zmalloc(int size) {
-  void* z = (void*)malloc(size);
+  void* z = calloc(1, (size_t)size);
 
   if (z == 0) fatal_error("Out of memory at request for %d bytes.\n");
-
-  memset(z, 0, size);
   return (z);
 }

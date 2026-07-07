@@ -20,12 +20,6 @@
 
 
 # C source — see yes.c
-#
-#     __attribute__((noreturn)) void _start(void) {
-#       for (;;)
-#         print_string("y\n");
-#     }
-#
 # Suckless `sbase/yes` in three real instructions plus a load of
 # constants done once.  The print_string syscall reads $v0 and $a0
 # but doesn't write to them, so we can set both ONCE outside the

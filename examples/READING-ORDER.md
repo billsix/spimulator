@@ -236,6 +236,9 @@ and forces you to think about a specific asm pattern.
     simultaneously; line-by-line merge.
 39. **`base64`** — bit-twiddling across three-byte input
     triples to produce four 6-bit indices; column wrap.
+40. **`strings`** — two-phase run detector: hold back the
+    first 4 bytes of a candidate printable run, then stream
+    once it qualifies.  Unbounded runs, no line buffer.
 
 ---
 
@@ -304,3 +307,4 @@ Where each MIPS idea first lands in this order:
 | incremental sbrk for unbounded buffer | tac |
 | ring buffer over a stream | tail |
 | bit-pack across input bytes | base64 |
+| hold-back-then-stream run detection | strings |

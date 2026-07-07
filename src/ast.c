@@ -20,7 +20,7 @@
 #include <string.h>
 
 #include "ast.h"
-#include "spim-utils.h"   /* xmalloc, str_copy           */
+#include "spim-utils.h"   /* xmalloc                    */
 #include "scanner.h"      /* line_no                      */
 #include "symbol-table.h" /* struct label definition      */
 #include "tokens.h"       /* TOK_*_OP names for ast_print */
@@ -98,7 +98,7 @@ ast_node* ast_make_inst_fp_compare(int op, int fs, int ft, int cc) {
 
 ast_node* ast_make_pseudo(const char* mnemonic) {
   ast_node* n = new_node(AST_PSEUDO);
-  n->u.pseudo.mnemonic = str_copy(mnemonic);
+  n->u.pseudo.mnemonic = strdup(mnemonic);
   n->u.pseudo.child = nullptr;
   return n;
 }
@@ -195,13 +195,13 @@ ast_node* ast_make_dir_space(int size) {
 
 ast_node* ast_make_dir_globl(const char* name) {
   ast_node* n = new_node(AST_DIR_GLOBL);
-  n->u.dir_globl.name = str_copy(name);
+  n->u.dir_globl.name = strdup(name);
   return n;
 }
 
 static ast_node* make_named_size(ast_kind kind, const char* name, int size) {
   ast_node* n = new_node(kind);
-  n->u.dir_named_size.name = str_copy(name);
+  n->u.dir_named_size.name = strdup(name);
   n->u.dir_named_size.size = size;
   return n;
 }
@@ -221,7 +221,7 @@ ast_node* ast_make_dir_comm(const char* name, int size) {
 ast_node* ast_make_label_normal(const char* name) {
   ast_node* n = new_node(AST_LABEL_DEF);
   n->u.label_def.kind = AST_LABEL_NORMAL;
-  n->u.label_def.name = str_copy(name);
+  n->u.label_def.name = strdup(name);
   n->u.label_def.value = 0;
   return n;
 }
@@ -229,7 +229,7 @@ ast_node* ast_make_label_normal(const char* name) {
 ast_node* ast_make_label_const(const char* name, int32_t value) {
   ast_node* n = new_node(AST_LABEL_DEF);
   n->u.label_def.kind = AST_LABEL_CONST;
-  n->u.label_def.name = str_copy(name);
+  n->u.label_def.name = strdup(name);
   n->u.label_def.value = value;
   return n;
 }
@@ -241,13 +241,13 @@ ast_node* ast_make_label_const(const char* name, int32_t value) {
 ast_node* ast_make_file(const char* source_file) {
   ast_node* n = new_node(AST_FILE);
   n->u.file.child = nullptr;
-  n->u.file.source_file = source_file ? str_copy(source_file) : nullptr;
+  n->u.file.source_file = source_file ? strdup(source_file) : nullptr;
   return n;
 }
 
 ast_node* ast_make_error(const char* message) {
   ast_node* n = new_node(AST_ERROR);
-  n->u.error.message = message ? str_copy(message) : nullptr;
+  n->u.error.message = message ? strdup(message) : nullptr;
   return n;
 }
 

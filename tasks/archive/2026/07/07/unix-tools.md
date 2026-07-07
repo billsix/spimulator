@@ -225,6 +225,35 @@ to extend spimulator:
 | 3 | tr, expand | none beyond Tier 2 | no |
 | 4 | echo, cat<file>, head<file>, tee, sync, mkfifo, sleep, ... | various | **yes** — blocked on spimulator changes |
 
+## Status: DONE — archived 2026-07-07
+
+**`strings` landed 2026-07-07** (the last named candidate): two-phase
+run detector (hold back the first 4 bytes of a candidate run, stream once
+it qualifies — unbounded runs, no line buffer), C + asm byte-identical to
+the pinned golden and cross-checked against system `strings -n 4`.  It is
+also the **first regular demo with a golden in the test suite** —
+`run-demo.sh` gained stdin support for it (the lib demos read no stdin, so
+piping `/dev/null` to them is behavior-neutral).
+
+With od/tail/tac/etc. all long since landed, the only idea left in this
+plan is the optional **hash demo** (md5sum/sha256sum, "worth one for
+symmetry with cksum") — re-open or ask if wanted.  Everything else here is
+history.
+
+## Status refresh (2026-07-07)
+
+The tree has grown well past the table below.  Landed since: **od**, **tail**,
+**tac**, **rot13**, **comm**, **cp**, **touch**, **factor**, **seq**,
+**base64**, and the whole CS-algorithms track from PLAN-cs-demos
+(**fibonacci**, **hanoi**, **queens**, **sieve**, **pascals-triangle**,
+**fizzbuzz**, **binary-search**, **bubble-sort**), organized into category
+dirs (`intro/ algorithms/ transforms/ fileio/ arguments/ recursion/ extras/`).
+Of the "candidate next Phase-5 demos" below, only **`strings`** and the
+**hash demo** (md5sum/sha256sum) remain unbuilt — that's the whole remaining
+scope of this doc.  New demos should draw shared routines from the library
+plan ([`multi-file-load.md`](multi-file-load.md) / [`libstr.md`](libstr.md))
+instead of carrying private copies.
+
 ## Status (overnight 2026-05-17/18)
 
 **Phases 1, 2, 3 done.  Phase 5 started.**  Demos 09–18 live in `src/`:

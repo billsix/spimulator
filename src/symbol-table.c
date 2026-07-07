@@ -114,7 +114,7 @@ label* lookup_label(char* name) {
 
   /* Not found, create one, add to chain */
   new_entry = (label*)xmalloc(sizeof(label));
-  new_entry->name = str_copy(name);
+  new_entry->name = strdup(name);
   new_entry->addr = 0;
   new_entry->global_flag = 0;
   new_entry->const_flag = 0;

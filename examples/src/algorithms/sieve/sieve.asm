@@ -20,17 +20,6 @@
 
 
 # C source — see sieve.c
-#
-#     int my_main(int argc, char **argv) {
-#       int limit = (argc == 2) ? parse_int(argv[1]) : 100;
-#       unsigned char *sieve = sbrk(limit + 1);   // zero-filled
-#       for (int i = 2; i*i <= limit; i++)
-#         if (!sieve[i])
-#           for (int j = i*i; j <= limit; j += i) sieve[j] = 1;
-#       for (int i = 2; i <= limit; i++)
-#         if (!sieve[i]) { print_int(i); print_char(' '); }
-#       print_char('\n');
-#     }
 
 
 # Invocations:

@@ -20,21 +20,6 @@
 
 
 # C source — see factorial.c
-#
-#     int my_main(int argc, char **argv) {
-#       if (argc != 2) { print_string("usage: factorial N\n"); return 1; }
-#       int n = parse_int(argv[1]);
-#       print_uint(factorial(n));
-#       print_char('\n');
-#       return 0;
-#     }
-#
-#     unsigned int factorial(int n) {
-#       unsigned int result = 1;
-#       while (n > 1) { result = result * n; n--; }
-#       return result;
-#     }
-#
 # Invocation: spimulator -f factorial.asm 5
 
 

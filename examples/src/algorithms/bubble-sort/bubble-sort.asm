@@ -20,15 +20,6 @@
 
 
 # C source — see bubble-sort.c
-#
-#     int my_main(int argc, char **argv) {
-#       int data[256];
-#       int n = 0;
-#       int value;
-#       while (n < 256 && read_int_from_stdin(&value) == 0) data[n++] = value;
-#       bubble_sort(data, n);
-#       for (int i = 0; i < n; i++) { print_int(data[i]); print_char('\n'); }
-#     }
 
 
 #PURPOSE:  Bubble sort N ints read from stdin.  N up to 256.

@@ -20,27 +20,6 @@
 
 
 # C source — see testStringsForEquality.c
-#
-#     int str_eq(const char *s1, const char *s2) {
-#       while (*s1 == *s2) {
-#         if (*s1 == 0) return 0;
-#         s1++;
-#         s2++;
-#       }
-#       return 1;
-#     }
-#
-#     __attribute__((noreturn)) void _start(void) {
-#       const char *str1 = "str1";
-#       const char *str2 = "str2";
-#       const char *str3 = "str1";
-#       print_string("str1 compared to str2 is ");
-#       print_int(str_eq(str1, str2));
-#       print_string("\n");
-#       /* ... and same pattern for str1/str3 and str2/str3 */
-#       os_exit(0);
-#     }
-#
 # NOTE: this .asm is a simplified port of the C — it does NOT print the
 # descriptive "strN compared to strN is " prefix, only the result digit
 # and a newline.  The student can add it back as an exercise.

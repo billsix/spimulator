@@ -20,20 +20,6 @@
 
 
 # C source — see cksum.c
-#
-#     int my_main(int argc, char **argv) {
-#       int fd = STDIN;
-#       const char *filename = NULL;
-#       if (argc > 2) usage;
-#       if (argc == 2 && argv[1] != "-") { filename = argv[1];
-#                                           fd = open(filename); }
-#       /* ... CRC over read(fd, buf, 4096) chunks ... */
-#       print_uint(ck); print_char(' '); print_uint(len);
-#       if (filename) { print_char(' '); print_string(filename); }
-#       print_char('\n');
-#       if (fd != STDIN) close(fd);
-#       return 0;
-#     }
 
 
 # Invocations:

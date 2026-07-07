@@ -503,9 +503,9 @@ void initialize_inst_tables(void) {
 /* Map from token -> (name, type).  Used by inst_op_name() and similar
    to render an opcode back to its mnemonic string at disassembly time.
 
-   First of three op.h inclusions in this file.  Each one defines OP()
+   First of three opcodes.h inclusions in this file.  Each one defines OP()
    differently to extract the columns that table needs from the same
-   380-row instruction list.  See op.h's top-of-file comment for the
+   380-row instruction list.  See opcodes.h's top-of-file comment for the
    X-macro pattern. */
 
 static name_val_val name_tbl[] = {
@@ -571,12 +571,16 @@ char* inst_to_string(mem_addr addr) {
 
   if (exception_occurred) {
     error("Can't print instruction not in text segment (0x%08x)\n", addr);
-    return "";
+    /* Callers free the result, so it must be heap-allocated — a string
+       literal here would get free()d. */
+    return strdup("");
   }
 
   ss_init(&ss);
   format_an_inst(&ss, instruction, addr);
-  return ss_to_string(&ss);
+  /* Transfer the buffer to the caller (who frees it); ss is a local,
+     so its stream must not outlive this call. */
+  return ss_take_string(&ss);
 }
 
 void format_an_inst(str_stream* ss, mips_instruction* instruction,
@@ -607,64 +611,64 @@ void format_an_inst(str_stream* ss, mips_instruction* instruction,
 
   ss_printf(ss, "0x%08x  %s", (uint32_t)ENCODING(instruction), entry->name);
   switch (entry->value2) {
-    case BC_TYPE_INST:
+    case BRANCH_COPROC_COND_INST:
       ss_printf(ss, "%d %d", CC(instruction), BRANCH_OFFSET(instruction));
       break;
 
-    case B1_TYPE_INST:
+    case BRANCH_RS_LABEL_INST:
       ss_printf(ss, " $%s %d", int_reg_names[RS(instruction)],
                 BRANCH_OFFSET(instruction));
       break;
 
-    case I1s_TYPE_INST:
+    case RS_IMM_INST:
       ss_printf(ss, " $%s, %d", int_reg_names[RS(instruction)],
                 IMM(instruction));
       break;
 
-    case I1t_TYPE_INST:
+    case RT_IMM_INST:
       ss_printf(ss, " $%s, %d", int_reg_names[RT(instruction)],
                 IMM(instruction));
       break;
 
-    case I2_TYPE_INST:
+    case RT_RS_IMM_INST:
       ss_printf(ss, " $%s, $%s, %d", int_reg_names[RT(instruction)],
                 int_reg_names[RS(instruction)], IMM(instruction));
       break;
 
-    case B2_TYPE_INST:
+    case BRANCH_RS_RT_LABEL_INST:
       ss_printf(ss, " $%s, $%s, %d", int_reg_names[RS(instruction)],
                 int_reg_names[RT(instruction)], BRANCH_OFFSET(instruction));
       break;
 
-    case I2a_TYPE_INST:
+    case RT_ADDR_INST:
       ss_printf(ss, " $%s, %d($%s)", int_reg_names[RT(instruction)],
                 IMM(instruction), int_reg_names[BASE(instruction)]);
       break;
 
-    case R1s_TYPE_INST:
+    case RS_INST:
       ss_printf(ss, " $%s", int_reg_names[RS(instruction)]);
       break;
 
-    case R1d_TYPE_INST:
+    case RD_INST:
       ss_printf(ss, " $%s", int_reg_names[RD(instruction)]);
       break;
 
-    case R2td_TYPE_INST:
+    case RT_COPREG_INST:
       ss_printf(ss, " $%s, $%s", int_reg_names[RT(instruction)],
                 int_reg_names[RD(instruction)]);
       break;
 
-    case R2st_TYPE_INST:
+    case RS_RT_INST:
       ss_printf(ss, " $%s, $%s", int_reg_names[RS(instruction)],
                 int_reg_names[RT(instruction)]);
       break;
 
-    case R2ds_TYPE_INST:
+    case RD_RS_INST:
       ss_printf(ss, " $%s, $%s", int_reg_names[RD(instruction)],
                 int_reg_names[RS(instruction)]);
       break;
 
-    case R2sh_TYPE_INST:
+    case RD_RT_SHAMT_INST:
       /* nop is canonically sll $0, $0, 0. ENCODING() is unreliable here
        * (the assembler doesn't populate it for source-assembled instructions,
        * so it's always 0 and would falsely make every shift print as nop).
@@ -678,31 +682,31 @@ void format_an_inst(str_stream* ss, mips_instruction* instruction,
                   int_reg_names[RT(instruction)], SHAMT(instruction));
       break;
 
-    case R3_TYPE_INST:
+    case RD_RS_RT_INST:
       ss_printf(ss, " $%s, $%s, $%s", int_reg_names[RD(instruction)],
                 int_reg_names[RS(instruction)], int_reg_names[RT(instruction)]);
       break;
 
-    case R3sh_TYPE_INST:
+    case RD_RT_RS_INST:
       ss_printf(ss, " $%s, $%s, $%s", int_reg_names[RD(instruction)],
                 int_reg_names[RT(instruction)], int_reg_names[RS(instruction)]);
       break;
 
-    case FP_I2a_TYPE_INST:
+    case FP_FT_ADDR_INST:
       ss_printf(ss, " $f%d, %d($%s)", FT(instruction), IMM(instruction),
                 int_reg_names[BASE(instruction)]);
       break;
 
-    case FP_R2ds_TYPE_INST:
+    case FP_FD_FS_INST:
       ss_printf(ss, " $f%d, $f%d", FD(instruction), FS(instruction));
       break;
 
-    case FP_R2ts_TYPE_INST:
+    case FP_RT_COPREG_INST:
       ss_printf(ss, " $%s, $f%d", int_reg_names[RT(instruction)],
                 FS(instruction));
       break;
 
-    case FP_CMP_TYPE_INST:
+    case FP_CMP_FS_FT_INST:
       if (FD(instruction) == 0)
         ss_printf(ss, " $f%d, $f%d", FS(instruction), FT(instruction));
       else
@@ -710,7 +714,7 @@ void format_an_inst(str_stream* ss, mips_instruction* instruction,
                   FT(instruction));
       break;
 
-    case FP_R3_TYPE_INST:
+    case FP_FD_FS_FT_INST:
       ss_printf(ss, " $f%d, $f%d, $f%d", FD(instruction), FS(instruction),
                 FT(instruction));
       break;
@@ -1049,7 +1053,7 @@ addr_expr* make_addr_expr(int offs, char* sym, int reg_no) {
         make_imm_expr(offs + looked_up->addr - gp_midpoint, nullptr, false);
   } else {
     expr->reg_no = (unsigned char)reg_no;
-    expr->imm = make_imm_expr(offs, (sym ? str_copy(sym) : sym), false);
+    expr->imm = make_imm_expr(offs, (sym ? strdup(sym) : sym), false);
   }
   return (expr);
 }
@@ -1067,9 +1071,9 @@ int addr_expr_reg(addr_expr* expr) { return (expr->reg_no); }
 
 /* Map from internal opcode -> real opcode.
 
-   Second of three op.h inclusions in this file.  This one keeps the
+   Second of three opcodes.h inclusions in this file.  This one keeps the
    binary encoding in the third slot — used to look up "what bits do I
-   emit for this token?"  See op.h for the X-macro pattern. */
+   emit for this token?"  See opcodes.h for the X-macro pattern. */
 
 static name_val_val i_opcode_tbl[] = {
 #undef OP
@@ -1102,73 +1106,73 @@ int32_t inst_encode(mips_instruction* instruction) {
       name_tbl, sizeof(name_tbl) / sizeof(name_val_val), OPCODE(instruction));
 
   switch (entry->value2) {
-    case BC_TYPE_INST:
+    case BRANCH_COPROC_COND_INST:
       return (a_opcode | REGS(CC(instruction) << 2, 16) |
               (IOFFSET(instruction) & 0xffff));
 
-    case B1_TYPE_INST:
+    case BRANCH_RS_LABEL_INST:
       return (a_opcode | REGS(RS(instruction), 21) |
               (IOFFSET(instruction) & 0xffff));
 
-    case I1s_TYPE_INST:
+    case RS_IMM_INST:
       return (a_opcode | REGS(RS(instruction), 21) |
               (IMM(instruction) & 0xffff));
 
-    case I1t_TYPE_INST:
+    case RT_IMM_INST:
       return (a_opcode | REGS(RS(instruction), 21) | REGS(RT(instruction), 16) |
               (IMM(instruction) & 0xffff));
 
-    case I2_TYPE_INST:
-    case B2_TYPE_INST:
+    case RT_RS_IMM_INST:
+    case BRANCH_RS_RT_LABEL_INST:
       return (a_opcode | REGS(RS(instruction), 21) | REGS(RT(instruction), 16) |
               (IMM(instruction) & 0xffff));
 
-    case I2a_TYPE_INST:
+    case RT_ADDR_INST:
       return (a_opcode | REGS(BASE(instruction), 21) |
               REGS(RT(instruction), 16) | (IOFFSET(instruction) & 0xffff));
 
-    case R1s_TYPE_INST:
+    case RS_INST:
       return (a_opcode | REGS(RS(instruction), 21));
 
-    case R1d_TYPE_INST:
+    case RD_INST:
       return (a_opcode | REGS(RD(instruction), 11));
 
-    case R2td_TYPE_INST:
+    case RT_COPREG_INST:
       return (a_opcode | REGS(RT(instruction), 16) | REGS(RD(instruction), 11));
 
-    case R2st_TYPE_INST:
+    case RS_RT_INST:
       return (a_opcode | REGS(RS(instruction), 21) | REGS(RT(instruction), 16));
 
-    case R2ds_TYPE_INST:
+    case RD_RS_INST:
       return (a_opcode | REGS(RS(instruction), 21) | REGS(RD(instruction), 11));
 
-    case R2sh_TYPE_INST:
+    case RD_RT_SHAMT_INST:
       return (a_opcode | REGS(RT(instruction), 16) | REGS(RD(instruction), 11) |
               REGS(SHAMT(instruction), 6));
 
-    case R3_TYPE_INST:
+    case RD_RS_RT_INST:
       return (a_opcode | REGS(RS(instruction), 21) | REGS(RT(instruction), 16) |
               REGS(RD(instruction), 11));
 
-    case R3sh_TYPE_INST:
+    case RD_RT_RS_INST:
       return (a_opcode | REGS(RS(instruction), 21) | REGS(RT(instruction), 16) |
               REGS(RD(instruction), 11));
 
-    case FP_I2a_TYPE_INST:
+    case FP_FT_ADDR_INST:
       return (a_opcode | REGS(BASE(instruction), 21) |
               REGS(RT(instruction), 16) | (IOFFSET(instruction) & 0xffff));
 
-    case FP_R2ds_TYPE_INST:
+    case FP_FD_FS_INST:
       return (a_opcode | REGS(FS(instruction), 11) | REGS(FD(instruction), 6));
 
-    case FP_R2ts_TYPE_INST:
+    case FP_RT_COPREG_INST:
       return (a_opcode | REGS(RT(instruction), 16) | REGS(FS(instruction), 11));
 
-    case FP_CMP_TYPE_INST:
+    case FP_CMP_FS_FT_INST:
       return (a_opcode | REGS(FT(instruction), 16) | REGS(FS(instruction), 11) |
               REGS(FD(instruction), 6) | COND(instruction));
 
-    case FP_R3_TYPE_INST:
+    case FP_FD_FS_FT_INST:
       return (a_opcode | REGS(FT(instruction), 16) | REGS(FS(instruction), 11) |
               REGS(FD(instruction), 6));
 
@@ -1198,9 +1202,9 @@ int32_t inst_encode(mips_instruction* instruction) {
 
 /* Map from real opcode -> internal opcode (reverse of i_opcode_tbl).
 
-   Third of three op.h inclusions in this file.  Same row data, fields
+   Third of three opcodes.h inclusions in this file.  Same row data, fields
    swapped — used to look up "what token decodes this binary
-   encoding?" during disassembly.  See op.h for the X-macro pattern. */
+   encoding?" during disassembly.  See opcodes.h for the X-macro pattern. */
 
 static name_val_val a_opcode_tbl[] = {
 #undef OP
@@ -1248,70 +1252,70 @@ mips_instruction* inst_decode(int32_t val) {
   switch (map_int_to_name_val_val(
               name_tbl, sizeof(name_tbl) / sizeof(name_val_val), i_opcode)
               ->value2) {
-    case BC_TYPE_INST:
+    case BRANCH_COPROC_COND_INST:
       return (mk_i_inst(val, i_opcode, BIN_RS(val), BIN_RT(val), val & 0xffff));
 
-    case B1_TYPE_INST:
+    case BRANCH_RS_LABEL_INST:
       return (mk_i_inst(val, i_opcode, BIN_RS(val), 0, val & 0xffff));
 
-    case I1s_TYPE_INST:
+    case RS_IMM_INST:
       return (mk_i_inst(val, i_opcode, BIN_RS(val), 0, val & 0xffff));
 
-    case I1t_TYPE_INST:
+    case RT_IMM_INST:
       return (mk_i_inst(val, i_opcode, BIN_RS(val), BIN_RT(val), val & 0xffff));
 
-    case I2_TYPE_INST:
-    case B2_TYPE_INST:
+    case RT_RS_IMM_INST:
+    case BRANCH_RS_RT_LABEL_INST:
       return (mk_i_inst(val, i_opcode, BIN_RS(val), BIN_RT(val), val & 0xffff));
 
-    case I2a_TYPE_INST:
+    case RT_ADDR_INST:
       return (mk_i_inst(val, i_opcode, BIN_RS(val), BIN_RT(val), val & 0xffff));
 
-    case R1s_TYPE_INST:
+    case RS_INST:
       return (mk_r_inst(val, i_opcode, BIN_RS(val), 0, 0, 0));
 
-    case R1d_TYPE_INST:
+    case RD_INST:
       return (mk_r_inst(val, i_opcode, 0, 0, BIN_RD(val), 0));
 
-    case R2td_TYPE_INST:
+    case RT_COPREG_INST:
       return (mk_r_inst(val, i_opcode, 0, BIN_RT(val), BIN_RD(val), 0));
 
-    case R2st_TYPE_INST:
+    case RS_RT_INST:
       return (mk_r_inst(val, i_opcode, BIN_RS(val), BIN_RT(val), 0, 0));
 
-    case R2ds_TYPE_INST:
+    case RD_RS_INST:
       return (mk_r_inst(val, i_opcode, BIN_RS(val), 0, BIN_RD(val), 0));
 
-    case R2sh_TYPE_INST:
+    case RD_RT_SHAMT_INST:
       return (mk_r_inst(val, i_opcode, 0, BIN_RT(val), BIN_RD(val),
                         BIN_SHAMT(val)));
 
-    case R3_TYPE_INST:
+    case RD_RS_RT_INST:
       return (
           mk_r_inst(val, i_opcode, BIN_RS(val), BIN_RT(val), BIN_RD(val), 0));
 
-    case R3sh_TYPE_INST:
+    case RD_RT_RS_INST:
       return (
           mk_r_inst(val, i_opcode, BIN_RS(val), BIN_RT(val), BIN_RD(val), 0));
 
-    case FP_I2a_TYPE_INST:
+    case FP_FT_ADDR_INST:
       return (
           mk_i_inst(val, i_opcode, BIN_BASE(val), BIN_FT(val), val & 0xffff));
 
-    case FP_R2ds_TYPE_INST:
+    case FP_FD_FS_INST:
       return (mk_co_r_inst(val, i_opcode, BIN_FS(val), 0, BIN_FD(val)));
 
-    case FP_R2ts_TYPE_INST:
+    case FP_RT_COPREG_INST:
       return (mk_r_inst(val, i_opcode, 0, BIN_RT(val), BIN_FS(val), 0));
 
-    case FP_CMP_TYPE_INST: {
+    case FP_CMP_FS_FT_INST: {
       mips_instruction* instruction =
           mk_r_inst(val, i_opcode, BIN_FS(val), BIN_FT(val), BIN_FD(val), 0);
       SET_COND(instruction, val & 0xf);
       return (instruction);
     }
 
-    case FP_R3_TYPE_INST:
+    case FP_FD_FS_FT_INST:
       return (
           mk_co_r_inst(val, i_opcode, BIN_FS(val), BIN_FT(val), BIN_FD(val)));
 

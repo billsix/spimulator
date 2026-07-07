@@ -2,15 +2,6 @@
 
 
 # C source — see factor.c
-#
-#     int my_main(int argc, char **argv) {
-#       int n = parse_int(argv[1]);
-#       print_int(n); print_char(':');
-#       for (int d = 2; d * d <= n; d++)
-#         while (n % d == 0) { print_char(' '); print_int(d); n /= d; }
-#       if (n > 1) { print_char(' '); print_int(n); }
-#       print_char('\n');
-#     }
 
 
 # Invocations:

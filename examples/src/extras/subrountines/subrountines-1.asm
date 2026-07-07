@@ -20,20 +20,6 @@
 
 
 # C source — see subrountines.c
-#
-#     int mxPlusB(int m, int x, int b) {
-#       int result = m * x + b;
-#       return result;
-#     }
-#
-#     __attribute__((noreturn)) void _start(void) {
-#       int result1 = mxPlusB(1, 2, 3);
-#       print_int(result1);  print_string("\n");
-#       int result2 = mxPlusB(4, 5, 6);
-#       print_int(result2);  print_string("\n");
-#       os_exit(0);
-#     }
-#
 # This is the "longhand" implementation: every part of the call is
 # stored explicitly on the stack — args, the address to write the
 # result into, the continuation address, and the caller's $fp.

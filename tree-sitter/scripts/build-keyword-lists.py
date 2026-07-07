@@ -13,9 +13,9 @@ The output module's shape:
       ...
     };
 
-The category names drop the `_TYPE_INST` suffix for readability
-(R3_TYPE_INST → R3) and convert PSEUDO_OP → PSEUDO, NOARG_TYPE_INST
-→ NOARG, ASM_DIR stays as-is.
+The category names drop the `_TYPE_INST` / `_INST` suffix for
+readability (RD_RS_RT_INST → RD_RS_RT, J_TYPE_INST → J) and convert
+PSEUDO_OP → PSEUDO; ASM_DIR stays as-is.
 """
 
 import json
@@ -26,6 +26,8 @@ def short_name(kind):
     """Map opcodes.h kind name to grammar.js category name."""
     if kind.endswith('_TYPE_INST'):
         return kind[: -len('_TYPE_INST')]
+    if kind.endswith('_INST'):
+        return kind[: -len('_INST')]
     if kind == 'PSEUDO_OP':
         return 'PSEUDO'
     return kind

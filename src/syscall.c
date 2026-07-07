@@ -47,11 +47,14 @@ int do_syscall(void) {
       break;
 
     case READ_INT_SYSCALL: {
-      static char str[256];
-
-      int n = read_input(str, 256);
-      gpr[REG_RES] = atol(str);
-      gpr[REG_A3] = (n == 0) ? 1 : 0; /* EOF flag: 0 = success, 1 = EOF */
+      /* Scanf-style: skips whitespace (including newlines) and reads
+         one int per call, leaving the rest of the input buffered — so
+         `echo 43 3 12 | spimulator ...` yields all three ints, one per
+         syscall, not just the first. */
+      long value;
+      int ok = read_int_input(&value);
+      gpr[REG_RES] = (reg_word)value;
+      gpr[REG_A3] = ok ? 0 : 1; /* 0 = success, 1 = EOF/no number */
       break;
     }
 

@@ -1,2 +1,7 @@
 settings set stop-line-count-before 10
 settings set stop-line-count-after 10
+# lldb defaults to disabling ASLR for launched processes via
+# personality(ADDR_NO_RANDOMIZE), which the container's seccomp policy
+# blocks ("personality set failed: Operation not permitted").  Don't try:
+# let the debuggee run with ASLR on.
+settings set target.disable-aslr false
