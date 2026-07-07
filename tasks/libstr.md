@@ -142,7 +142,8 @@ same operation.
   subcase.  Total ~20 subcases.
 - Output diffs deterministically against a golden file.
 
-Invocation (once multi-`-f` lands):
+Invocation (multi-`-f` verified working 2026-07-07 — see
+[`multi-file-load.md`](multi-file-load.md); `tests/tt.multifile.s` pins it):
 
 ```sh
 spimulator -f src/lib/libstr/libstr.asm \
@@ -182,6 +183,10 @@ might).
 
 ## Status
 
-Not started.  Estimated effort: ~one day for the 10 functions
-+ demo + golden + meson wiring + the count-chars.c
+Not started — but **unblocked** as of 2026-07-07: the multi-file loading this
+plan waited on already works (repeated `-f`, additive REPL `load`), so the
+two-file library+demo invocation runs today.  This is tranche 1 of the larger
+shared-library plan in [`multi-file-load.md`](multi-file-load.md); do this
+first, then that doc's de-duplication sweep.  Estimated effort: ~one day for
+the 10 functions + demo + golden + meson wiring + the count-chars.c
 consolidation sweep.

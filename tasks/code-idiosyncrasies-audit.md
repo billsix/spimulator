@@ -7,9 +7,16 @@
 
 Double-check a lot of the code for weird idiosyncrasies — the observed example
 being a "random `void` argc"-style oddity (nonsensical parameter
-types/usages). The codebase is a 1990s fork that's been through several
-modernization passes; leftovers from upstream SPIM and from mechanical sweeps
-can survive in odd corners.
+types/usages).
+
+**Scope (clarified by Bill, 2026-07-07): the example code too, not necessarily
+spimulator source itself.** So the sweep covers, in priority order:
+1. `examples/src` — the demo C sources (freestanding, hand-written for
+   readability — exactly where a nonsense parameter survives review because
+   nothing warns on it) and the hand-written `.asm`.
+2. `pgu/src` — the book's C ports and asm.
+3. `src/`+`include/` (the simulator) — lower priority; it's been through
+   several modernization passes, but the same greps are cheap to run over it.
 
 ## What to sweep for
 
@@ -35,13 +42,15 @@ Concrete patterns, each greppable or clang-tidy-able:
 
 ## Method
 
-1. One pass with tooling: crank `clang-tidy` checks up
-   (readability-*, misc-unused-parameters, bugprone-*) over `src/` +
-   `include/` and triage the output — the image already ships clang-tidy via
-   `lint.sh`.
-2. One pass by eye, file by file (~14k LOC), noting anything a new reader
-   would trip over. Log findings as a table in this doc (site → what's weird →
-   proposed fix → risk).
+1. One pass with tooling over the C: `clang-tidy` (readability-*,
+   misc-unused-parameters, bugprone-*) over `examples/src`, `pgu/src/c`, and
+   `src/`+`include/`, and triage — the image already ships clang-tidy via
+   `lint.sh`. Note the demos compile `-nostdlib -ffreestanding`; pass those
+   flags so tidy sees them the way the build does.
+2. One pass by eye — the `.asm` files have no tooling, so the demo asm gets
+   read directly (weird register choices, dead stores, copy-paste residue
+   from a neighboring demo). Log findings as a table in this doc (site →
+   what's weird → proposed fix → risk).
 3. Get a go-ahead on the findings table, then fix in small mechanical commits
    with the full `meson test` suite (and `make image`'s sanitizer gate) as the
    verification gate.

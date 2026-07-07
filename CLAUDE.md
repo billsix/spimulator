@@ -89,45 +89,66 @@ surface has been folded into `tasks/`.) There is no separate handoff /
 session-notes / next-session log — the current `tasks/` contents are the live
 picture, and git history plus the dated archive are the record of what's done.
 
-Simulator / build (open):
+Ordering / dependency guidance lives in `tasks/README.md` (§Ordering &
+dependencies, reviewed 2026-07-07). Snapshot of the open set:
 
-- `container-build-cleanup.md` — the `exit()` bashrc trap drops the shell exit
-  code (unquoted `$@` in the Dockerfile echo); bump the `fedora/43` dnf cache
-  path to `44`. Both still present.
+Quick wins (independent):
+
+- `examples-install-location.md` — demo binaries were installed onto PATH;
+  now go to `libexec/spimulator` (RPM convention). Implemented 2026-07-07;
+  archive after `make image` confirms.
+- `container-aslr-lldb.md` — container seccomp blocks lldb's `personality()`
+  call; add `settings set target.disable-aslr false` to `.lldbinit`.
+- `container-build-cleanup.md` — bashrc `exit()` trap drops the shell exit
+  code; bump the `fedora/43` dnf cache path to `44`.
+- `fix-stale-doc-links.md` — archive README manifests still list bare filenames.
 - `stdin-space-separated-ints.md` — syscall 5 reads only the first of
-  space-separated piped ints; pick scanf-style semantics + regression test.
-- `string-stream-to-memstream.md` — replace hand-rolled `str_stream` with POSIX
-  `open_memstream` (~160 call sites).
-- `parser-leak-cleanup.md` — parser drops transient identifiers/exprs;
-  recommended fix: make PARSE_AST the only mode.
-- `ast-column-tracking.md` — column begin/end on tokens and AST nodes.
-- `program-listing-at-start.md` — `listing` REPL command + auto-listing under
-  `-explain`.
-- `software-alu.md` — (large) bit-level H&P-style ALU in `src/alu.c`,
-  narratable by explain mode.
-- `c23-modernization-pass2.md` — proposed second C23 pass (gnu23→c23 decision,
-  constexpr / enum widths / attributes) across src/, examples/, pgu/.
-- `codebase-cleanup-plan.md` — tiered cleanup: Tiers A + D done, F rejected;
-  B (naming), C (header hygiene), E (test infra) remain.
-- `fix-stale-doc-links.md` — repoint the archive README manifests' bare
-  filenames to dated subdirs.
+  space-separated piped ints.
+- `program-listing-at-start.md` — pre-execution disassembly dump (the REPL
+  command must not be named `listing` — a `-listing` event-trace flag exists).
+- `string-stream-to-memstream.md` — replace `str_stream` with POSIX
+  `open_memstream` (~127 call sites).
 
-Curriculum (open):
+Example-code hygiene (suggested order):
 
-- `container-cross-env.md` — bake clang + lld + qemu-user-static into the image
-  so the multiarch shim is verifiable in-container (unblocks the two below).
-- `examples-build-matrix.md` / `pgu-build-matrix.md` — cross-compile every C
-  demo to `.s` listings for 5 ISAs at image build (`asm-out/<arch>/`).
-- `libstr.md` — port ~10 musl string/memory functions as a teaching library.
-- `symbol-tables.md` — per-demo `#SYMBOL TABLE` headers (C variable → MIPS
-  location) + stack-frame diagrams; no demo has one yet.
-- `unix-tools.md` — sbase/ubase ports; demos 09–24 landed; remaining: more
-  stdin tools (strings, tail, od) and the CS-algorithms track.
+- `string-equality-audit.md` — find the "stops short" equality bug, which is
+  **in the example code** per Bill (simulator sites audited clean 2026-07-07).
+- `c-asm-comment-parity.md` — **remove** the embedded-C comment blocks from
+  all example `.asm` files (decision 2026-07-07: delete, don't sync).
+- `code-idiosyncrasies-audit.md` — sweep for oddities ("void argc" etc.):
+  examples first, then pgu, then src/.
 
-Done but not yet archived (feature verified in the code; doc pending a move to
-`tasks/archive/`): `explanation-levels-and-completion.md`,
-`explanation-level-4-decoding.md`, `post-execute-narration.md`,
-`header-clarity-and-box-drawing.md`, `repl-args-command.md`, and
-`multiarch-shim.md` (5-arch `crt0.h` shipped; qemu verification lives on in
-`container-cross-env.md`). `port-pgu.md` is archived
-(`tasks/archive/2026/06/14/port-pgu.md`).
+Curriculum / library:
+
+- `libstr.md` — musl string/memory teaching library; **unblocked** — multi-file
+  loading already works (`tests/tt.multifile.s`).
+- `multi-file-load.md` — re-scoped 2026-07-07: the loading mechanism was
+  already shipped; remaining scope is the shared musl library + de-duplicating
+  the demos' private `atoi:`/`str_eq:`/`print_uint:` copies (libstr = tranche 1).
+- `unix-tools.md` — nearly done (od/tail/tac/comm/cp/factor/seq/base64 and the
+  CS-algorithms track all landed); remaining: `strings` + a hash demo.
+- `examples-build-matrix.md` / `pgu-build-matrix.md` — 5-ISA `.s` listing
+  matrices; unblocked (crt0.h landed, clang already in the image); coordinate
+  MIPS endianness between them.
+- `container-cross-env.md` — lld + qemu-user-static in the root Dockerfile;
+  needed only for *runtime* cross verification, not for the matrices.
+
+Simulator internals:
+
+- `parser-leak-cleanup.md` → then `ast-column-tracking.md` — the leak fix
+  deletes PARSE_DIRECT (PARSE_AST is already the default); do the column
+  plumbing once, after.
+- Naming pass: `opcode-types-descriptive-names.md` + `codebase-cleanup-plan.md`
+  Tier B2/B3 as one sweep → then `c23-modernization-pass2.md` (its
+  Tier-D-delivered items were struck 2026-07-07).
+- `codebase-cleanup-plan.md` — remaining: Tier B2/B3 (naming), Tier C (header
+  hygiene), Tier E3 (exception-path tests). Tiers A, D, B1, E1/E2/E4 done.
+- Big swings, independent: `timing-model.md` (H&P ch.1 cycle model — cheaper,
+  do first) and `software-alu.md` (bit-level ALU); share cycle vocabulary if
+  both land.
+
+Archived 2026-07-07 after verifying the features shipped:
+`explanation-levels-and-completion`, `explanation-level-4-decoding`,
+`post-execute-narration`, `header-clarity-and-box-drawing`,
+`repl-args-command`, `multiarch-shim`, `symbol-tables` →
+`tasks/archive/2026/07/07/`.

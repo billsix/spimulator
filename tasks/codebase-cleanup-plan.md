@@ -102,7 +102,16 @@ Untracked directory cluttering `git status`.  Already-built artefact.
 
 ## Tier B — naming consistency (one day, low risk)
 
-### B1. Settle `read_mem_*` vs `set_mem_*` verb asymmetry
+**Status refresh 2026-07-07:** B1 is DONE — `include/memory.h` now exposes
+noun-first `mem_read_*` / `mem_write_*` (Option B below, as recommended).
+B2 (`str_copy` vs `strdup`) is still open: `str_copy` survives with callers
+across ~8 files.  B3 (`*_inst` suffix) unverified — check during execution.
+Consider folding B2/B3 into the same sweep as
+[`opcode-types-descriptive-names.md`](opcode-types-descriptive-names.md) and
+the naming portion of [`code-idiosyncrasies-audit.md`](code-idiosyncrasies-audit.md)
+— one mechanical-rename pass, one review, one test gate.
+
+### B1. Settle `read_mem_*` vs `set_mem_*` verb asymmetry — DONE
 
 `src/memory.c:297-374` exposes `read_mem_byte`/`read_mem_half`/
 `read_mem_word`/`read_mem_inst` as getters, but the setters
@@ -247,7 +256,19 @@ Additional C23 features adopted that weren't in the original list:
 
 ## Tier E — testing infrastructure (1 week, medium payoff)
 
-### E1. Wire `tests/tt.*.s` into `meson test`
+**Status refresh 2026-07-07 — mostly DONE:**
+- E1 DONE: `meson.build` declares the `regression_tests` list; `meson test`
+  runs the suite locally (29/29).
+- E2 DONE for the big one: `tests/tt.explain.expected` golden exists and is
+  diffed by `tests/run-test.sh`.
+- E3 PARTIAL: `tt.divide_by_zero.s` is in the suite; break-instruction,
+  stack-overflow, and kernel-mode-transition tests still missing — this is
+  the remaining open work in Tier E.
+- E4 DONE in spirit: `ast_parity_all` runs 20-program parity, and
+  `run-test.sh` diffs text/data dumps between `-explain=0` and `-explain=2`
+  runs (teaching mode proven side-effect-free).
+
+### E1. Wire `tests/tt.*.s` into `meson test` — DONE
 
 Currently the regression tests live as shell commands in the
 Dockerfile.  Add a `test()` declaration for each one in

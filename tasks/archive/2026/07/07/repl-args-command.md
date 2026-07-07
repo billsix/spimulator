@@ -1,5 +1,8 @@
 # Task: `args` REPL command (gdb-style `set args`)
 
+**Status: DONE — archived 2026-07-07.** Shipped: `ARGS_CMD` in `src/spim.c`
+with the `tests/tt.args-cmd.s` regression.
+
 ## Goal
 
 Let a student at the `(spim)` prompt change the arguments their

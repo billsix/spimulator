@@ -1,57 +1,59 @@
-# Make each demo's embedded C (in the .asm) match the real .c
+# Remove the embedded C blocks from the example .asm files
 
-**Status:** proposed — not started
+**Status:** proposed — not started; decision made 2026-07-07
 **Created:** 2026-07-07
 
-## Request (Bill, 2026-07-07)
+## Request (Bill, 2026-07-07, two rounds)
 
-Now that the book (pgu port) exists, the examples don't all need to be
-teaching-oriented in the same way — but they do need to be *consistent*. Each
-`.asm` demo embeds its paired C source as a header comment block, and for some
-demos (bubble sort was the observed case) the embedded C does **not** match
-the actual `.c` file next to it. Audit every pair, find the mismatches, and
-make the embedded C and the real C agree.
+Originally: the C source embedded as a comment block at the top of each demo
+`.asm` has drifted from the real `.c` next to it (bubble-sort was the
+observed case), and with the book now carrying the pedagogy, the examples
+don't all need to be teaching-oriented — so bring them back into agreement.
 
-Known example: `examples/src/algorithms/bubble-sort/bubble-sort.asm`'s
-embedded C block vs `bubble-sort.c` — not the same.
+**Decision (Bill, same day): don't sync them — delete them.** For all the
+examples, the commented-out C at the top of the `.asm` should simply be
+removed. The paired `.c` file sitting in the same directory *is* the C
+reference; a transcription of it in comments is a second source of truth that
+only drifts.
 
-(`testStringsForEquality-1.asm` even embeds an abridged C with a comment
-admitting it — "same pattern for str1/str3 and str2/str3" — so some drift is
-deliberate abridgment, some is real divergence. The audit should distinguish
-the two and eliminate both: the embedded block should be the real C, verbatim.)
+## Scope
+
+- Every `examples/src/**/<demo>.asm` (and `-1.asm`/`-2.asm` variants) that
+  carries a transcribed-C comment block: **remove that block**.
+- **Keep** everything else in the headers: `#PURPOSE`, `#SYMBOL TABLE`,
+  `#STORAGE LAYOUT`, `#VARIABLES`, intentional-bug NOTEs, and all inline
+  body comments. Only the "here is the C source, commented out" block goes.
+- Where useful, leave a one-line pointer in its place
+  (`# C version: ./bubble-sort.c`) — cheap, can't drift.
+- `pgu/` is out of scope — that's the book tree, different conventions.
 
 ## Plan
 
-1. **Inventory.** For every `examples/src/**/<demo>.asm` with a paired
-   `<demo>.c` (and the pgu `src/` pairs if the same convention holds), extract
-   the embedded C comment block and diff it against the actual `.c`
-   (normalize: strip the `#`/comment prefixes, whitespace). A small script in
-   the repo (`scripts/check-c-asm-parity.sh` or python) beats doing it by eye
-   and can then be kept as a checker.
-2. **Classify each mismatch:**
-   - *Comment is stale* — the `.c` evolved; update the embedded block to the
-     current `.c`, verbatim.
-   - *Asm diverged from the C* — the asm implements something different from
-     the `.c` (different algorithm shape, different output). Decide per demo
-     which side is right, then fix the other. The paired-demo contract
-     (`examples/tests/run-demo.sh` diffs C output against asm output against
-     one golden) means observable behavior already matches — mismatches will
-     mostly be in structure/abridgment, not behavior.
-3. **Fix, demo by demo,** starting with bubble-sort (the reported case).
-4. **Keep it fixed.** Wire the parity checker from step 1 into the meson test
-   suite (or the Dockerfile test block) so embedded-C drift fails the build,
-   the same way the goldens do.
-
-## Decision needed before step 4
-
-Verbatim embedding makes the checker trivial but means every `.c` edit touches
-two files. Alternative: drop the embedded C entirely and point at the `.c`
-file by name (the book now carries the pedagogy). That's Bill's call —
-"examples don't need to be teaching oriented" suggests trimming may be
-acceptable; the checker makes either policy enforceable.
+1. Inventory which `.asm` files carry an embedded-C block (grep for the
+   telltale transcribed-C markers — `# int `, `# while (`, `#   return`,
+   `# __attribute__((noreturn))` etc. — then eyeball the hit list; the block
+   shape varies a little per file).
+2. Remove the blocks file by file, most-recently-touched demos first
+   (bubble-sort as the template case). Add the one-line `# C version:`
+   pointer where the header doesn't already name the pairing.
+3. Guard against reintroduction: a small checker (grep-based is enough) that
+   fails if a `.asm` re-grows a transcribed-C block; wire into the test
+   suite or lint.sh if it earns its keep — decide once the sweep is done.
 
 ## Verification
 
-- Parity script reports zero mismatches across all pairs.
-- `meson test` both suites green (behavior unchanged unless a demo's asm was
-  found genuinely divergent and corrected — call those out individually).
+Comment-only change: `meson test` both suites must stay green with **zero
+golden diffs** (the demos' output can't change from deleting comments). Spot
+re-read a couple of the edited files to confirm the surviving header blocks
+(#PURPOSE / #SYMBOL TABLE / #STORAGE LAYOUT) still read coherently without
+the C block they sometimes referenced.
+
+## Coordination
+
+- [`string-equality-audit.md`](string-equality-audit.md) is auditing demo
+  comparison routines in the same files — if a fix lands there, it edits the
+  real `.c`/`.asm` only; nothing to keep in sync once the embedded blocks are
+  gone (which is the point).
+- [`code-idiosyncrasies-audit.md`](code-idiosyncrasies-audit.md) reads all
+  the demo files anyway; doing this removal first shrinks what that audit has
+  to read past.

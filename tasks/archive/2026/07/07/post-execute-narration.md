@@ -1,5 +1,9 @@
 # Plan: move the narration to after execution
 
+**Status: DONE — archived 2026-07-07.** Shipped: narration fires past-tense
+from `explain_after` with the "Stepped" header (`src/explain.c`), diffed by
+the `tt.explain.expected` golden.
+
 ## Why
 
 Today `explain_before` prints the bulk of the per-instruction

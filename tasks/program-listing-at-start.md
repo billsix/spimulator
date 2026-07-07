@@ -1,5 +1,11 @@
 # Task: print a full program listing before execution
 
+**Naming caveat (2026-07-07):** a `-listing FILE` CLI flag now exists and
+means something else — an assemble-time *event trace* (see `src/spim.c`
+`listing_observer`, `tests/tt.listing.s`).  The REPL command proposed below
+must not be called `listing`; pick `disasm` or `code` to avoid colliding
+with / shadowing that flag's vocabulary.  Doc text below predates the flag.
+
 ## Goal
 
 Before the first instruction executes (or as a new REPL command),

@@ -29,6 +29,13 @@ edu_args = [
 # (spim itself links against libc + libedit).
 edu_link_args = ['-nostdlib']
 
+# Where `meson install` puts the demo binaries.  NOT ${prefix}/bin —
+# example programs don't belong on PATH.  libexec/spimulator matches
+# where an RPM would ship internal/demo binaries (%{_libexecdir}/<pkg>;
+# FHS: binaries not intended to be executed directly by users).
+# See tasks/examples-install-location.md.
+example_install_dir = get_option('libexecdir') / 'spimulator'
+
 # Static lib of the small IO helpers shared across every demo.
 io_lib = static_library('examples_io',
   files(
@@ -132,6 +139,7 @@ foreach demo : demos
     c_args: edu_args,
     link_args: edu_link_args,
     install: true,
+    install_dir: example_install_dir,
   )
 endforeach
 
@@ -149,6 +157,7 @@ foreach demo : lib_demos
     c_args: edu_args,
     link_args: edu_link_args,
     install: true,
+    install_dir: example_install_dir,
   )
 endforeach
 
@@ -161,6 +170,7 @@ executable('spimulator-example-atoi-demo',
   c_args: edu_args,
   link_args: edu_link_args,
   install: true,
+  install_dir: example_install_dir,
 )
 
 # abs/labs don't depend on libctype — leaf functions — but link
@@ -173,6 +183,7 @@ executable('spimulator-example-abs-demo',
   c_args: edu_args,
   link_args: edu_link_args,
   install: true,
+  install_dir: example_install_dir,
 )
 
 executable('spimulator-example-exit-demo',
@@ -182,6 +193,7 @@ executable('spimulator-example-exit-demo',
   c_args: edu_args,
   link_args: edu_link_args,
   install: true,
+  install_dir: example_install_dir,
 )
 
 executable('spimulator-example-bsearch-demo',
@@ -191,6 +203,7 @@ executable('spimulator-example-bsearch-demo',
   c_args: edu_args,
   link_args: edu_link_args,
   install: true,
+  install_dir: example_install_dir,
 )
 
 executable('spimulator-example-atexit-demo',
@@ -200,6 +213,7 @@ executable('spimulator-example-atexit-demo',
   c_args: edu_args,
   link_args: edu_link_args,
   install: true,
+  install_dir: example_install_dir,
 )
 
 # ---------------------------------------------------------------------------

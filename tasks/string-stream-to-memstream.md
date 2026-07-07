@@ -2,9 +2,11 @@
 
 ## Status — not started
 
-Filed after the variable-rename branch.  Separate from the
-rename phases.  Do after the variable-name expansion (and
-file-rename phase 10) lands on master.
+Filed after the variable-rename branch.  (Stale precondition removed
+2026-07-07: the variable-name expansion / file-rename work it waited on has
+long since landed on master.)  Current `ss_*` call count is ~127, not the
+~160 quoted below.  No dependencies; can be picked up any time — pairs
+naturally with any future `src/explain.c` refactor (the heaviest user).
 
 ## Summary
 

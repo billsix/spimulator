@@ -46,23 +46,14 @@ Three reasons:
 
 ## State of the world today
 
-`examples/Dockerfile` installs only: aspell, git, make, sphinx,
-texlive.  No compilers, no qemu.  The actual build environment
-this session has been using (Fedora 43 with meson, clang,
-flex/bison, qemu-user-static) is a richer container that
-isn't checked in here — it lives in some upstream parent image
-or was manually provisioned.
-
-The build container Bill develops in has:
-
-- `clang 22.x` (multi-target capable; lacks per-target sysroots)
-- `qemu-{arm,aarch64,i386,mips}-static` (the user-mode emulators
-  are already there)
-- `ld.bfd` (host-arch only — no cross-emulation modes)
-- No cross-gcc / cross-binutils for any non-x86 target
-
-So one thing is missing: a *cross-capable linker* (lld or
-cross-binutils) and per-target tooling to drive it.
+(Refreshed 2026-07-07 — the original text predated the examples/spimulator
+merge; `examples/Dockerfile` no longer exists.)  The **root `Dockerfile`** is
+now the one container image; it installs clang (and lldb), but **no `lld` and
+no `qemu-user-static`** — verified by grep.  So the two things missing for
+in-container cross verification are exactly this plan's additions: the
+cross-capable linker (lld) and the user-mode emulators (qemu-user-static).
+All Dockerfile edits below target the root `Dockerfile`, not the
+long-gone `examples/Dockerfile`.
 
 ## Two paths
 

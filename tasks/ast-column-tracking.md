@@ -1,5 +1,10 @@
 # AST column tracking
 
+**Ordering (2026-07-07):** do [`parser-leak-cleanup.md`](parser-leak-cleanup.md)
+first — its recommended fix deletes the PARSE_DIRECT codepath, and this task
+plumbs new state through the same scanner/constructor surface; sequencing
+avoids doing the column work against two parse modes.
+
 Track source column begin/end on every AST node, in addition to
 the existing per-node source line.  Print the column information
 as part of `-print-ast` and emit it in the JSON output.

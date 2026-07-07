@@ -13,9 +13,20 @@ is a *second* pass: (1) decide whether to move from **gnu23 → strict c23**, (2
 adopt more C23 where it improves clarity/safety, and (3) bring the **example
 projects** (`examples/`) and the **`pgu/`** book port up to the same bar.
 
-This pairs naturally with the in-flight UBSan sweep (`tasks/ubsan-sweep.md`) —
-several C23 features (fixed-width `_BitInt`, `enum`-with-underlying-type, explicit
-`unsigned` MIPS-word handling) directly reduce the integer-UB surface.
+This pairs naturally with the UBSan sweep (done —
+`tasks/archive/2026/06/16/ubsan-sweep.md`); several C23 features (fixed-width
+`_BitInt`, explicit `unsigned` MIPS-word handling) touch the same integer-UB
+surface it mapped.
+
+**Dedup note (2026-07-07):** the codebase-cleanup Tier D pass (archived at
+`tasks/archive/2026/05/22/c23-modernization.md`, summarized in
+`codebase-cleanup-plan.md` §Tier D) already delivered several items this doc
+originally listed as candidates: `constexpr` (~85 constants), `enum E : T` on
+every named enum, `[[nodiscard]]`/`[[noreturn]]`, `static_assert`,
+`<stdbool.h>` removal, `<stdbit.h>`/`<stdckdint.h>`, and `#embed` for the
+exception handler. Those are struck below; what's genuinely left for pass 2
+is the gnu23→c23 decision, `unreachable()`, binary literals / digit
+separators, `_BitInt` evaluation, and extending the bar to `examples/`+`pgu/`.
 
 ## Investigate (the "what could be better" audit)
 
@@ -27,19 +38,14 @@ For each candidate, decide adopt / skip / defer, with a one-line rationale:
   still GNU. Decide: keep `gnu23` (pragmatic) vs. `c23` + replace extensions
   (portability win). Likely keep gnu23 for the freestanding examples (need inline
   asm syscalls), evaluate strict c23 for `src/`.
-- **`constexpr`** for the many `#define`/`static const` table sizes & masks
-  (`HASHBITS`, `LABEL_HASH_TABLE_SIZE`, opcode masks) → typed, scoped constants.
-- **`enum` with fixed underlying type** (`enum X : uint32_t { … }`) for opcode /
-  exception-code / token enums — pins width, helps the integer-UB story.
-- **Attributes**: `[[nodiscard]]` on allocators / status-returning funcs,
-  `[[maybe_unused]]`, `[[fallthrough]]` in the big `run.c` opcode switch (replaces
-  any `/* fallthrough */` comments), `[[noreturn]]` on error/exit paths.
-- **`static_assert`** (no `<assert.h>`) for struct-layout / field-width invariants
-  in the instruction-encoding structs (`instruction.h` bitfields).
+- ~~`constexpr`~~ — done in Tier D (src/); still to check in examples/pgu.
+- ~~`enum` with fixed underlying type~~ — done in Tier D (every named enum).
+- ~~Attributes~~ — `[[nodiscard]]`/`[[noreturn]]` done in Tier D;
+  `-Wimplicit-fallthrough=5` polices the `run.c` switch. Nothing left here.
+- ~~`static_assert`~~ — in place (`include/memory.h:19` and Tier D).
 - **`unreachable()`** for the `default:` of exhaustive opcode switches.
-- **`#embed`** to inline `exceptions.s` / fixed data blobs instead of build-time
-  file plumbing (evaluate; may not be worth it).
-- **Drop `<stdbool.h>`/`<stddef.h>` shims** now that `bool`/`nullptr` are keywords.
+- ~~`#embed`~~ — done in Tier D (default exception handler is embedded).
+- ~~Drop `<stdbool.h>`/`<stddef.h>` shims~~ — done.
 - **Binary literals + digit separators** (`0b…`, `0xFFFF'0000`) for the opcode and
   mask tables — readability.
 - **`auto`** — likely *skip* in teaching/sim code (hurts readability); note it.

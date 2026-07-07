@@ -1,5 +1,9 @@
 # Plan: explanation levels + tab completion
 
+**Status: DONE — archived 2026-07-07.** Both parts shipped: `explain_level`
+0–4 with `-explain=N` parsing in `src/spim.c`, and tab completion
+(`spim_commands[]`, `rl_attempted_completion_function`) at the REPL.
+
 Two related changes to teaching mode, designed together so the second
 builds cleanly on the first. Both are CLI-side work; both are
 intentionally compatible with a future GUI session where the user

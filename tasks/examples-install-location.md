@@ -1,6 +1,8 @@
 # Move example binaries off PATH (RPM-conventional install location)
 
-**Status:** in progress — research done, fix being applied (2026-07-07)
+**Status:** implemented 2026-07-07 — local destdir install verified
+(spimulator in `bin/`, all 50 demos in `libexec/spimulator/`), `meson test`
+29/29; awaiting a `make image` rebuild to confirm in-container, then archive.
 **Created:** 2026-07-07
 
 ## Problem
