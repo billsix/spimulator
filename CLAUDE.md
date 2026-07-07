@@ -89,15 +89,45 @@ surface has been folded into `tasks/`.) There is no separate handoff /
 session-notes / next-session log — the current `tasks/` contents are the live
 picture, and git history plus the dated archive are the record of what's done.
 
-- [`tasks/container-build-cleanup.md`](tasks/container-build-cleanup.md) — the
-  `exit()` bashrc trap drops the shell exit code; bump the `fedora/43` dnf cache
-  path to `44`.
-- [`tasks/fix-stale-doc-links.md`](tasks/fix-stale-doc-links.md) — repoint
-  intra-repo markdown links broken by the archive/plan→task reorg (doc hygiene).
-- Curriculum tasks (now in `tasks/`): `examples-build-matrix.md`,
-  `pgu-build-matrix.md`, `container-cross-env.md`, `libstr.md`,
-  `multiarch-shim.md`, `symbol-tables.md`, `unix-tools.md`.
-- Reference / open: teaching-mode polish (`explanation-levels-*`,
-  `post-execute-narration`), parser cleanup (`parser-leak-cleanup`,
-  `ast-column-tracking`); `port-pgu.md` is done
-  (`tasks/archive/2026/06/14/port-pgu.md`).
+Simulator / build (open):
+
+- `container-build-cleanup.md` — the `exit()` bashrc trap drops the shell exit
+  code (unquoted `$@` in the Dockerfile echo); bump the `fedora/43` dnf cache
+  path to `44`. Both still present.
+- `stdin-space-separated-ints.md` — syscall 5 reads only the first of
+  space-separated piped ints; pick scanf-style semantics + regression test.
+- `string-stream-to-memstream.md` — replace hand-rolled `str_stream` with POSIX
+  `open_memstream` (~160 call sites).
+- `parser-leak-cleanup.md` — parser drops transient identifiers/exprs;
+  recommended fix: make PARSE_AST the only mode.
+- `ast-column-tracking.md` — column begin/end on tokens and AST nodes.
+- `program-listing-at-start.md` — `listing` REPL command + auto-listing under
+  `-explain`.
+- `software-alu.md` — (large) bit-level H&P-style ALU in `src/alu.c`,
+  narratable by explain mode.
+- `c23-modernization-pass2.md` — proposed second C23 pass (gnu23→c23 decision,
+  constexpr / enum widths / attributes) across src/, examples/, pgu/.
+- `codebase-cleanup-plan.md` — tiered cleanup: Tiers A + D done, F rejected;
+  B (naming), C (header hygiene), E (test infra) remain.
+- `fix-stale-doc-links.md` — repoint the archive README manifests' bare
+  filenames to dated subdirs.
+
+Curriculum (open):
+
+- `container-cross-env.md` — bake clang + lld + qemu-user-static into the image
+  so the multiarch shim is verifiable in-container (unblocks the two below).
+- `examples-build-matrix.md` / `pgu-build-matrix.md` — cross-compile every C
+  demo to `.s` listings for 5 ISAs at image build (`asm-out/<arch>/`).
+- `libstr.md` — port ~10 musl string/memory functions as a teaching library.
+- `symbol-tables.md` — per-demo `#SYMBOL TABLE` headers (C variable → MIPS
+  location) + stack-frame diagrams; no demo has one yet.
+- `unix-tools.md` — sbase/ubase ports; demos 09–24 landed; remaining: more
+  stdin tools (strings, tail, od) and the CS-algorithms track.
+
+Done but not yet archived (feature verified in the code; doc pending a move to
+`tasks/archive/`): `explanation-levels-and-completion.md`,
+`explanation-level-4-decoding.md`, `post-execute-narration.md`,
+`header-clarity-and-box-drawing.md`, `repl-args-command.md`, and
+`multiarch-shim.md` (5-arch `crt0.h` shipped; qemu verification lives on in
+`container-cross-env.md`). `port-pgu.md` is archived
+(`tasks/archive/2026/06/14/port-pgu.md`).
