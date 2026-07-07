@@ -573,7 +573,7 @@ char* inst_to_string(mem_addr addr) {
     error("Can't print instruction not in text segment (0x%08x)\n", addr);
     /* Callers free the result, so it must be heap-allocated — a string
        literal here would get free()d. */
-    return str_copy("");
+    return strdup("");
   }
 
   ss_init(&ss);
@@ -1053,7 +1053,7 @@ addr_expr* make_addr_expr(int offs, char* sym, int reg_no) {
         make_imm_expr(offs + looked_up->addr - gp_midpoint, nullptr, false);
   } else {
     expr->reg_no = (unsigned char)reg_no;
-    expr->imm = make_imm_expr(offs, (sym ? str_copy(sym) : sym), false);
+    expr->imm = make_imm_expr(offs, (sym ? strdup(sym) : sym), false);
   }
   return (expr);
 }

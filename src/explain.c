@@ -182,7 +182,7 @@ void explain_print_step_header(mem_addr pc, mips_instruction* instruction) {
  * from its libedit completion callback so a student can recall a hint
  * with Tab.
  *
- * Lifetime: strings are str_copy'd at add time and freed by
+ * Lifetime: strings are strdup'd at add time and freed by
  * explain_clear_suggestions. Storage is a fixed-cap array — 16 is a
  * comfortable ceiling (templates emit at most 3-4 hints).
  */
@@ -200,7 +200,7 @@ void explain_clear_suggestions(void) {
 
 static void add_suggestion(const char* cmd) {
   if (n_suggestions >= MAX_SUGGESTIONS) return;
-  char* copy = str_copy(cmd);
+  char* copy = strdup(cmd);
   if (copy != nullptr) suggestions[n_suggestions++] = copy;
 }
 

@@ -11,7 +11,7 @@
 #include <stdlib.h>
 
 #include "spim.h"
-#include "spim-utils.h"   /* name_val_val, str_copy, xmalloc */
+#include "spim-utils.h"   /* name_val_val, xmalloc */
 #include "registers.h"    /* R_LENGTH */
 #include "symbol-table.h" /* label_is_defined */
 #include "scanner.h"      /* scan_value, line_no */
@@ -431,7 +431,7 @@ static int scan_identifier(scan_token* out, bool force_id) {
 
   /* Otherwise an identifier. */
   out->type = TOK_ID;
-  out->val.p = (void*)str_copy(id_buf);
+  out->val.p = (void*)strdup(id_buf);
   out->present = true;
   return TOK_ID;
 }
@@ -477,7 +477,7 @@ static int scan_register(scan_token* out) {
     out->val.i = (int)l->addr;
   } else {
     out->type = TOK_ID;
-    out->val.p = (void*)str_copy(reg_buf);
+    out->val.p = (void*)strdup(reg_buf);
   }
   out->present = true;
   return out->type;
@@ -664,7 +664,7 @@ have_char: {
     next_char();
     static char q[2] = "?";
     out->type = TOK_ID;
-    out->val.p = (void*)str_copy(q);
+    out->val.p = (void*)strdup(q);
     out->present = true;
     return;
   }

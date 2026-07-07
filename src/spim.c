@@ -88,7 +88,7 @@ static char* command_generator(const char* text, int state) {
   }
   while (spim_commands[idx] != nullptr) {
     const char* s = spim_commands[idx++];
-    if (strncmp(s, text, text_len) == 0) return str_copy(s);
+    if (strncmp(s, text, text_len) == 0) return strdup(s);
   }
   return nullptr;
 }
@@ -113,7 +113,7 @@ static char* suggestion_generator(const char* text, int state) {
     const char* tail = s;
     const char* space = strchr(s, ' ');
     if (space != nullptr) tail = space + 1;
-    if (strncmp(tail, text, text_len) == 0) return str_copy(tail);
+    if (strncmp(tail, text, text_len) == 0) return strdup(tail);
   }
   return nullptr;
 }
@@ -153,7 +153,7 @@ static bool line_is_label_command(void) {
 }
 
 /* Snapshot of label names taken on each Tab. The pointers point into
-   the symbol table's own storage (label->name), so we don't str_copy —
+   the symbol table's own storage (label->name), so we don't strdup —
    but we re-collect on every state==0 call in case the symbol table
    changed (e.g. after `reinit` + `load`). */
 static const char** label_names_cache = nullptr;
@@ -186,7 +186,7 @@ static char* label_generator(const char* text, int state) {
   }
   while (idx < label_names_cache_n) {
     const char* s = label_names_cache[idx++];
-    if (strncmp(s, text, text_len) == 0) return str_copy(s);
+    if (strncmp(s, text, text_len) == 0) return strdup(s);
   }
   return nullptr;
 }
@@ -1114,11 +1114,11 @@ static bool parse_spim_command(bool redo) {
       while ((t = read_token()) != TOK_NL && t != 0) {
         char* s = nullptr;
         if (t == TOK_STR || t == TOK_ID) {
-          s = str_copy((char*)scan_value.p);
+          s = strdup((char*)scan_value.p);
         } else if (t == TOK_INT) {
           char buf[32];
           snprintf(buf, sizeof(buf), "%d", scan_value.i);
-          s = str_copy(buf);
+          s = strdup(buf);
         } else {
           continue;
         }
