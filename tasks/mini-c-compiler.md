@@ -84,6 +84,86 @@ the `#include` lines and arch `#if` blocks — simplest is a pre-pass rule
 ("strip `#`-lines; treat io/os functions as known externs"), so the student
 compiles the same files they've been reading all along.
 
+## Research findings (2026-07-07, overnight session)
+
+### Precise construct inventory (grep-verified)
+
+| Construct | Where | SpimC verdict proposed |
+|---|---|---|
+| `switch` | **only** `lib/libstdlib/libstdlib.c` — zero in demos proper | omit from SpimC (libs stay hand-written asm anyway) |
+| `float`/`double` | only `recursion/hanoi/hanoi.c` — verify what for; likely rewriteable | omit; rewrite hanoi if real |
+| `for (int i = …)` loop-scoped decls | 37 sites across 23 files | the bulk of the decls-first rewrite: hoist to function top |
+| `++`/`--` | 83 uses, pervasive | support in **statement position only** (`i++;` and `for(...; i++)`) — trivial in SDT; as an expression *value* it needs temporaries. Q1 below. |
+| compound assign `+= -= *= /=` | 9 uses | either support (cheap: `lhs = lhs op rhs` rewrite in the parser) or rewrite away. Q2. |
+| ternary `?:` | ~10 uses | rewrite to if/else (SDT-simplest). Q2. |
+| `unsigned` | ~19 files mention; **cksum's CRC needs real unsigned ops** (`srl` vs `sra`, unsigned compare) | support `unsigned int` as a type (one bit on the symbol entry choosing sra/srl, slt/sltu) or exclude cksum. Q3. |
+| `char** argv` | the arguments/ demos | one level of indexing off a pointer-to-pointer; supportable, or v1 targets stdin-only demos first. Q4. |
+| `static` | 62 uses (file-scope buffers/tables + function-local) | file-scope statics → `.data`/`.space`; function-local statics: only if a demo needs one — check. |
+| structs/typedef/enum/goto | **zero anywhere** | omitted, confirmed |
+| function pointers | libstdlib demos only | omitted, confirmed |
+
+Required expression surface (from reading the demos): int/char/unsigned
+arithmetic incl. `%`, comparisons, `&& || !`, bitwise `& | ^ ~ << >>`
+(cksum), arrays (global and local), pointer deref/index/arith, `&x`
+(read_int_from_stdin takes `int*`), string/char literals with escapes,
+recursion, `sizeof(buf)` (a few sites — constant-foldable at parse time).
+
+The io surface the compiler treats as externs is exactly 9 functions
+(io.h/os.h), all already hand-written in asm.
+
+### Prior art worth stealing from
+
+- **Crenshaw, "Let's Build a Compiler"** — THE undergrad-facing reference:
+  SDT recursive descent emitting assembly directly, one tiny chapter per
+  construct, no AST, no theory prerequisite. Our structure should mirror
+  it (targeting MIPS instead of 68000). This is the strongest match to
+  Bill's design principles.
+- **c4 (rswier)** — self-hosting C subset in ~500 lines; proof of how
+  small self-hosting can be, but it compiles to a VM and its style is
+  deliberately cryptic — the *opposite* of our readability goal. Steal
+  the subset choice, not the style.
+- **chibicc / SmallerC** — staged-commits pedagogy (chibicc) and a real
+  self-hosting subset compiler with an asm stage (SmallerC); both far
+  bigger than we need but good subset sanity checks.
+
+### Route A vs Route B, with numbers
+
+The SpimC compiler (lexer + recursive-descent SDT + naive stack codegen,
+readable style) is realistically **1,500–2,500 lines of SpimC**. That's
+5–10× larger than the biggest current demo.
+
+- **Route A (write it in MIPS asm first):** hand-writing a lexer, parser,
+  and code generator directly in asm is a **multi-month** artifact and
+  extremely hard to keep correct without the C reference existing first.
+  High risk of stalling.
+- **Route B (write SpimC-in-SpimC first, verify with clang natively, then
+  produce the asm):** the C version is 2–4 weeks of steady work with the
+  golden harness as the gate. The asm version then comes either by
+  **hand-translating function-by-function** — which IS the capstone
+  narrative: "we translated our largest C program the same way every demo
+  before was translated," and can proceed incrementally with the C
+  version as the oracle — or, once the C version compiles itself, by
+  **self-compilation** (generated asm kept alongside; hand-annotated).
+- Recommendation: **Route B with hand translation**, Crenshaw-shaped.
+  Same deliverables as Route A (asm compiler exists, original kept), a
+  fraction of the risk.
+
+### Questions for Bill (answers shape the SpimC spec)
+
+1. `++`/`--` in statement position only — OK? (Full expression semantics
+   costs real SDT complexity for 83 mostly-statement uses.)
+2. Compound assignment: support (`+=` family, cheap) but rewrite ternaries
+   to if/else — OK?
+3. `unsigned int` in SpimC (needed for cksum's CRC), or drop cksum from
+   the compilable set?
+4. v1 target set: stdin-only demos first (no argv, ~20 demos), argv demos
+   in v2? Or all-at-once?
+5. Where does it live: `examples/src/lang/spimcc/` next to the calculator
+   demos (rpn → calc-sdt/calc-tree → spimcc arc)?
+6. Confirm codegen style: everything on the stack, no register
+   allocation, one construct = one fixed template (the output should look
+   like the hand-written demos' longhand style, diffable against them).
+
 ## Investigation step 2: how big is this, honestly?
 
 A recursive-descent compiler for the subset above (ints/chars/pointers/
