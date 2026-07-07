@@ -105,7 +105,7 @@ regression_tests = [
   'bare', 'core', 'le', 'dir', 'octal_escape', 'argv', 'multifile',
   'read_int_eof', 'read_int_space_sep',
   # Custom criteria
-  'read_char_eof', 'args_cmd',
+  'read_char_eof', 'args_cmd', 'disasm',
   # Unix-process conformance (exit codes)
   'return_value', 'unaligned', 'missing_main', 'parse_error', 'stderr_split',
   # Exception-handler paths

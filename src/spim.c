@@ -73,11 +73,11 @@ static void save_history_at_exit(void) {
  * str_prefix table further below. Alphabetical order so the listing
  * libedit prints on Tab-Tab reads cleanly. */
 static const char* spim_commands[] = {
-    "args",          "breakpoint", "continue", "delete",
-    "dump",          "dumpnative", "exit",     "help",
-    "list",          "load",       "print",    "print_all_regs",
-    "print_symbols", "quit",       "read",     "reinitialize",
-    "run",           "step",       nullptr};
+    "args",          "breakpoint", "continue",     "delete",
+    "disasm",        "dump",       "dumpnative",   "exit",
+    "help",          "list",       "load",         "print",
+    "print_all_regs", "print_symbols", "quit",     "read",
+    "reinitialize",  "run",        "step",         nullptr};
 
 static char* command_generator(const char* text, int state) {
   static size_t idx;
@@ -886,6 +886,7 @@ enum {
   LIST_BKPT_CMD,
   DUMPNATIVE_TEXT_CMD,
   DUMP_TEXT_CMD,
+  DISASM_CMD,
   ARGS_CMD
 };
 
@@ -1185,6 +1186,9 @@ static bool parse_spim_command(bool redo) {
                    "dumpnative [ \"FILE\" ] -- Dump binary code to spim.dump "
                    "or FILE in host byte order\n");
       write_output(message_out,
+                   "disasm -- Print a disassembly listing of the loaded "
+                   "program's text segment\n");
+      write_output(message_out,
                    ". -- Rest of line is assembly instruction to execute\n");
       write_output(message_out,
                    "<cr> -- Newline reexecutes previous command\n");
@@ -1274,6 +1278,12 @@ static bool parse_spim_command(bool redo) {
       return (0);
     }
 
+    case DISASM_CMD:
+      print_text_listing();
+      if (!redo) flush_to_newline();
+      prev_cmd = NOP_CMD;
+      return (0);
+
     default:
       while (read_token() != TOK_NL);
       error("Unknown spim command\n");
@@ -1327,6 +1337,11 @@ static int read_assembly_command(void) {
     return (DUMPNATIVE_TEXT_CMD);
   else if (str_prefix((char*)scan_value.p, "dump", 4))
     return (DUMP_TEXT_CMD);
+  /* Min abbreviation is "dis", not "di" — `di` is the MIPS32r2
+     disable-interrupts mnemonic, which the scanner tokenizes as an
+     opcode before command dispatch ever sees it. */
+  else if (str_prefix((char*)scan_value.p, "disasm", 3))
+    return (DISASM_CMD);
   else if (*(char*)scan_value.p == '?')
     return (HELP_CMD);
   else if (*(char*)scan_value.p == '.')

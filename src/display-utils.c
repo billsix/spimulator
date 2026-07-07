@@ -152,6 +152,28 @@ void format_insts(str_stream* ss, mem_addr from, mem_addr to) {
   }
 }
 
+/* Print a disassembly listing of the loaded user text segment to the
+   console: one line per instruction with address, encoded word,
+   disassembly, and the source line that produced it — the same shape
+   as teaching mode's per-step header.  Used by the REPL `disasm`
+   command and by explain mode's once-per-session pre-run listing.
+   (Named `disasm`, not `listing`: the -listing CLI flag is the
+   assemble-time event trace, a different feature.) */
+
+void print_text_listing(void) {
+  static str_stream ss;
+  ss_clear(&ss);
+  format_insts(&ss, TEXT_BOT, text_top);
+
+  char* text = ss_to_string(&ss);
+  if (*text == '\0') {
+    write_output(message_out, "No program loaded.\n");
+    return;
+  }
+  write_output(message_out, "\n\tUSER TEXT SEGMENT\n");
+  write_output(message_out, "%s\n", text);
+}
+
 /* Write to the stream a printable representation of the data and stack
    segments. */
 

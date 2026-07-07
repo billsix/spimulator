@@ -84,6 +84,14 @@ case "$NAME" in
     ;;
 
   # --- Tests with custom pass criteria ---
+  disasm)
+    # REPL command: load a program, print its listing, confirm the
+    # segment header and user-text addresses appear.
+    printf 'load "tt.le.s"\ndisasm\nexit\n' | "$SPIM" -exception_file "$EF" \
+      >"$out" 2>&1
+    grep -q 'USER TEXT SEGMENT' "$out" || fail "missing segment header"
+    grep -q '\[0x004000' "$out" || fail "missing user-text addresses"
+    ;;
   read_char_eof)
     # Test outputs 'abc' (no trailing newline) then 'Passed all tests\n', so
     # 'Passed all tests' is NOT on its own line.  grep -q for the substring,
