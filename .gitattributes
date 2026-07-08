@@ -1,0 +1,3 @@
+# Vendored Emacs packages (downloaded from MELPA via `make update-emacs-packages`),
+# not project source: exclude from GitHub language statistics, collapse in diffs.
+entrypoint/dotfiles/.emacs.d/elpa/** linguist-vendored
