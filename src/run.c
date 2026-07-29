@@ -233,8 +233,8 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
 
         case TOK_ADDU_OPCODE:
-          gpr[RD(instruction)] =
-              (u_reg_word)gpr[RS(instruction)] + (u_reg_word)gpr[RT(instruction)];
+          gpr[RD(instruction)] = (u_reg_word)gpr[RS(instruction)] +
+                                 (u_reg_word)gpr[RT(instruction)];
           break;
 
         case TOK_AND_OPCODE:
@@ -446,50 +446,51 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         } break;
 
         case TOK_LB_OPCODE:
-          LOAD_INST(
-              &gpr[RT(instruction)],
-              mem_read_byte((u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction)),
-              0xffffffff);
+          LOAD_INST(&gpr[RT(instruction)],
+                    mem_read_byte((u_reg_word)gpr[BASE(instruction)] +
+                                  IOFFSET(instruction)),
+                    0xffffffff);
           break;
 
         case TOK_LBU_OPCODE:
-          LOAD_INST(
-              &gpr[RT(instruction)],
-              mem_read_byte((u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction)),
-              0xff);
+          LOAD_INST(&gpr[RT(instruction)],
+                    mem_read_byte((u_reg_word)gpr[BASE(instruction)] +
+                                  IOFFSET(instruction)),
+                    0xff);
           break;
 
         case TOK_LH_OPCODE:
-          LOAD_INST(
-              &gpr[RT(instruction)],
-              mem_read_half((u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction)),
-              0xffffffff);
+          LOAD_INST(&gpr[RT(instruction)],
+                    mem_read_half((u_reg_word)gpr[BASE(instruction)] +
+                                  IOFFSET(instruction)),
+                    0xffffffff);
           break;
 
         case TOK_LHU_OPCODE:
-          LOAD_INST(
-              &gpr[RT(instruction)],
-              mem_read_half((u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction)),
-              0xffff);
+          LOAD_INST(&gpr[RT(instruction)],
+                    mem_read_half((u_reg_word)gpr[BASE(instruction)] +
+                                  IOFFSET(instruction)),
+                    0xffff);
           break;
 
         case TOK_LL_OPCODE:
           /* Uniprocess, so this instruction is just a load */
-          LOAD_INST(
-              &gpr[RT(instruction)],
-              mem_read_word((u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction)),
-              0xffffffff);
+          LOAD_INST(&gpr[RT(instruction)],
+                    mem_read_word((u_reg_word)gpr[BASE(instruction)] +
+                                  IOFFSET(instruction)),
+                    0xffffffff);
           break;
 
         case TOK_LUI_OPCODE:
-          gpr[RT(instruction)] = ((unsigned)IMM(instruction) << 16) & 0xffff0000;
+          gpr[RT(instruction)] =
+              ((unsigned)IMM(instruction) << 16) & 0xffff0000;
           break;
 
         case TOK_LW_OPCODE:
-          LOAD_INST(
-              &gpr[RT(instruction)],
-              mem_read_word((u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction)),
-              0xffffffff);
+          LOAD_INST(&gpr[RT(instruction)],
+                    mem_read_word((u_reg_word)gpr[BASE(instruction)] +
+                                  IOFFSET(instruction)),
+                    0xffffffff);
           break;
 
         case TOK_LDC2_OPCODE:
@@ -501,7 +502,8 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
 
         case TOK_LWL_OPCODE: {
-          mem_addr addr = (u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction);
+          mem_addr addr =
+              (u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction);
           reg_word word; /* Can't be register */
           int byte = addr & 0x3;
           reg_word reg_val = gpr[RT(instruction)];
@@ -549,7 +551,8 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         }
 
         case TOK_LWR_OPCODE: {
-          mem_addr addr = (u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction);
+          mem_addr addr =
+              (u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction);
           reg_word word; /* Can't be register */
           int byte = addr & 0x3;
           reg_word reg_val = gpr[RT(instruction)];
@@ -746,14 +749,16 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
 
         case TOK_SB_OPCODE:
-          mem_write_byte((u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction),
-                         gpr[RT(instruction)]);
+          mem_write_byte(
+              (u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction),
+              gpr[RT(instruction)]);
           break;
 
         case TOK_SC_OPCODE:
           /* Uniprocessor, so instruction is just a store */
-          mem_write_word((u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction),
-                         gpr[RT(instruction)]);
+          mem_write_word(
+              (u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction),
+              gpr[RT(instruction)]);
           break;
 
         case TOK_SDC2_OPCODE:
@@ -761,8 +766,9 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
 
         case TOK_SH_OPCODE:
-          mem_write_half((u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction),
-                         gpr[RT(instruction)]);
+          mem_write_half(
+              (u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction),
+              gpr[RT(instruction)]);
           break;
 
         case TOK_SLL_OPCODE: {
@@ -875,8 +881,9 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
 
         case TOK_SW_OPCODE:
-          mem_write_word((u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction),
-                         gpr[RT(instruction)]);
+          mem_write_word(
+              (u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction),
+              gpr[RT(instruction)]);
           break;
 
         case TOK_SWC2_OPCODE:
@@ -884,7 +891,8 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
 
         case TOK_SWL_OPCODE: {
-          mem_addr addr = (u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction);
+          mem_addr addr =
+              (u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction);
           mem_word data;
           reg_word reg = gpr[RT(instruction)];
           int byte = addr & 0x3;
@@ -932,7 +940,8 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         }
 
         case TOK_SWR_OPCODE: {
-          mem_addr addr = (u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction);
+          mem_addr addr =
+              (u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction);
           mem_word data;
           reg_word reg = gpr[RT(instruction)];
           int byte = addr & 0x3;
@@ -1264,7 +1273,8 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         }
 
         case TOK_LDC1_OPCODE: {
-          mem_addr addr = (u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction);
+          mem_addr addr =
+              (u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction);
           if ((addr & 0x3) != 0)
             RAISE_EXCEPTION(ExcCode_AdEL, CP0_BadVAddr = addr);
 
@@ -1276,10 +1286,10 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         }
 
         case TOK_LWC1_OPCODE:
-          LOAD_INST(
-              (reg_word*)&FPR_S(FT(instruction)),
-              mem_read_word((u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction)),
-              0xffffffff);
+          LOAD_INST((reg_word*)&FPR_S(FT(instruction)),
+                    mem_read_word((u_reg_word)gpr[BASE(instruction)] +
+                                  IOFFSET(instruction)),
+                    0xffffffff);
           break;
 
         case TOK_MFC1_OPCODE: {
@@ -1403,7 +1413,8 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         case TOK_SDC1_OPCODE: {
           double val = FPR_D(RT(instruction));
           reg_word* vp = (reg_word*)&val;
-          mem_addr addr = (u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction);
+          mem_addr addr =
+              (u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction);
           if ((addr & 0x3) != 0)
             RAISE_EXCEPTION(ExcCode_AdEL, CP0_BadVAddr = addr);
 
@@ -1434,7 +1445,8 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           float val = FPR_S(RT(instruction));
           reg_word* vp = (reg_word*)&val;
 
-          mem_write_word((u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction), *vp);
+          mem_write_word(
+              (u_reg_word)gpr[BASE(instruction)] + IOFFSET(instruction), *vp);
           break;
         }
 
@@ -1556,7 +1568,8 @@ static void signed_multiply(reg_word v1, reg_word v2) {
   int neg_sign = 0;
 
   /* Negate as unsigned: -v is UB when v == INT_MIN.  The two's-complement
-     bit pattern (which unsigned_multiply consumes as a magnitude) is identical. */
+     bit pattern (which unsigned_multiply consumes as a magnitude) is identical.
+   */
   if (v1 < 0) {
     v1 = (reg_word)(-(u_reg_word)v1);
     neg_sign = 1;

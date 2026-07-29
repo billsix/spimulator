@@ -41,11 +41,11 @@
    compiles to nothing in a normal (non-ASan) build.  A dedicated leak audit, if
    ever wanted, can flip this. */
 #if defined(__has_feature)
-#  if __has_feature(address_sanitizer)
-#    define SPIM_ASAN_BUILD 1
-#  endif
+#if __has_feature(address_sanitizer)
+#define SPIM_ASAN_BUILD 1
+#endif
 #elif defined(__SANITIZE_ADDRESS__)
-#  define SPIM_ASAN_BUILD 1
+#define SPIM_ASAN_BUILD 1
 #endif
 #ifdef SPIM_ASAN_BUILD
 const char* __asan_default_options(void);
@@ -73,11 +73,11 @@ static void save_history_at_exit(void) {
  * str_prefix table further below. Alphabetical order so the listing
  * libedit prints on Tab-Tab reads cleanly. */
 static const char* spim_commands[] = {
-    "args",          "breakpoint", "continue",     "delete",
-    "disasm",        "dump",       "dumpnative",   "exit",
-    "help",          "list",       "load",         "print",
-    "print_all_regs", "print_symbols", "quit",     "read",
-    "reinitialize",  "run",        "step",         nullptr};
+    "args",           "breakpoint",    "continue",   "delete",
+    "disasm",         "dump",          "dumpnative", "exit",
+    "help",           "list",          "load",       "print",
+    "print_all_regs", "print_symbols", "quit",       "read",
+    "reinitialize",   "run",           "step",       nullptr};
 
 static char* command_generator(const char* text, int state) {
   static size_t idx;
