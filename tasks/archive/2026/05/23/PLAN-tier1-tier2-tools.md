@@ -274,7 +274,7 @@ similar in scope to the engagement-first rename we already
 did.
 
 **My lean: Option A (append).**  The engagement-first
-principle is preserved, the new demos serve as a "deeper Unix
+principle is preserved, the new demos form a "deeper Unix
 tools" extension after the recursion climax, and there's zero
 cross-reference cleanup.  Future readers can take or leave
 Part 7 demos individually without disturbing Parts 1-6.
@@ -370,7 +370,7 @@ These are sbase tools that I'd NOT add to the curriculum:
 - **`stat`, `du`, `df`** — need `stat`.
 - **`chmod`, `chown`** — need `chmod`/`chown` syscalls.
 - **`grep`, `sed`, `awk`** — small languages of their own.
-- **`sort`** — real sort is genuinely complex; bubble-sort
+- **`sort`** — a real sort is a project of its own; bubble-sort
   covers the sort lesson on numeric arrays already.
 - **`md5sum`/`sha256sum`** — same family as cksum but the
   algorithm is more complex without teaching a new asm

@@ -60,7 +60,7 @@ Ten parts:
 8. meson build flow
 9. Risk-relevant findings (`\001` EOF sentinel, per-line
    `yyparse` loop, recently-fixed octal-escape bug,
-   load-bearing error-message format, forward-reference
+   golden-tested error-message format, forward-reference
    model, negative-integer tokenization quirk, `\X` vs `\x`
    inconsistency)
 10. Open questions for Phase 1
@@ -210,7 +210,7 @@ Covers:
    quirk).
 7. Error-recovery model: `sync_to_newline` on `yyerror`,
    preserves the existing one-error-per-line behavior and
-   the load-bearing error-message format.
+   the golden-tested error-message format.
 8. Phase 2 pilot scope: BINARYI/BINARY_ARITHI/BINARY_LOGICALI/
    SHIFT/LOAD/STORE/branch/jump/NULLARY + EXPR/ADDR +
    `.data`/`.text`/`.globl`/`.word`/`.byte`/`.asciiz`/`.space`/`.align`.
@@ -909,7 +909,7 @@ exposures, but two of them shrink:
    becomes an explicit lookahead branch the author writes by
    hand — visible, reviewable, testable.  ANTLR's LL(*) is a
    black box; hand-written is not.
-3. **Error message format.**  Now load-bearing
+3. **Error message format.**  Now part of the tested contract
    (`parse_errors_seen > 0 → exit 2` since 2026-05-19).
    Mitigated by reusing the existing `error()` /
    `erroneous_line()` helpers — same call sites, same output
@@ -1011,7 +1011,7 @@ concrete numbers.
 
 Then decide at the Phase 1 gate.  If Phase 1's design sketch
 holds the 6-9 week total, proceed to Phase 2 with the parity
-harness as the load-bearing tool.  If not, kill cleanly —
+harness as the deciding tool.  If not, kill cleanly —
 bison's still there.
 
 ## First concrete deliverable

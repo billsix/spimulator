@@ -25,7 +25,7 @@ The student we're optimising for:
   collection and a class library).  Algorithmic content is
   comfortable territory.
 - **Barely knows C.**  They can read it, but it's not their
-  daily language.  The C version of each demo serves as a
+  daily language.  The C version of each demo is a
   one-step-closer-to-the-metal version of the algorithm —
   "the same code I'd write in Java, but with pointers and
   manual memory."
@@ -272,7 +272,7 @@ invocation would overwrite the same register).
 | `$s*` callee-save save discipline, lookup tables, bitwise ops | Part 4 (18) |
 | argv via `crt0.h` shim | Part 5 (19) |
 | `atoi`, private subroutines | Part 5 (20) |
-| cross-call `$s*` saves becoming load-bearing | Part 5 (22) |
+| cross-call `$s*` saves starting to matter | Part 5 (22) |
 | `.word` arrays, strided indexed access | Part 5 (27) |
 | argv + file open | Part 5 (21) |
 | string compare + flag parsing + multiple subroutines | Part 5 (23) |

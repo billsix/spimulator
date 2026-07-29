@@ -218,7 +218,7 @@ Build spim with UBSan and run the suite. Two modes:
   packages; diagnostic mode may need a temporary link-flag/dep addition
   (allowed as a tracked, temporary build-file change — remove before done).
 - Don't silence with `__attribute__((no_sanitize(...)))` unless a site is
-  genuinely intended UB-free-by-construction and documented; prefer real fixes.
+  intended UB-free-by-construction and documented; prefer real fixes.
 
 ## Acceptance
 

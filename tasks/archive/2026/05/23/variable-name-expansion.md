@@ -7,8 +7,8 @@ branch (now merged to master).  Renamed ~2500 identifier
 sites and 9 source files across the codebase.
 
 The work targeted non-MIPS-spec abbreviations only — names
-that were inherited 80s-era terseness, not load-bearing
-convention from the MIPS architecture reference.
+that were inherited 80s-era terseness, not names fixed
+by the MIPS architecture reference.
 
 ## Naming policy used
 
@@ -184,8 +184,8 @@ rerun; not introduced by any phase here.
 
 ## Files left alone
 
-MIPS-spec names that look abbreviated but are load-bearing
-convention from the architecture reference:
+MIPS-spec names that look abbreviated but are externally
+fixed by the architecture reference:
 
 - `RS`, `RT`, `RD`, `SHAMT`, `IMM` — R/I-type instruction
   field names.

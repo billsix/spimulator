@@ -118,7 +118,7 @@ argument — real `tr` doesn't either.
    working example: `$v0` holds the syscall number, `$a0..$a3`
    hold arguments, `syscall` transfers control to the kernel.
    Reads as a direct port of Programming from the Ground Up's
-   first program, retargeted to MIPS + spim.  Also serves as
+   first program, retargeted to MIPS + spim.  Also doubles as
    the canonical reference for "why every other demo sets
    `$v0` before its final `jr $ra`" — see the demo's header
    comment block.
@@ -291,7 +291,7 @@ Where each MIPS idea first lands in this order:
 | 256-entry lookup table + bitwise ops | cksum |
 | `crt0.h` shim for `my_main(argc, argv)` | echo |
 | `atoi` + private subroutine | factorial |
-| cross-call `$s*` becomes load-bearing | gcd |
+| cross-call `$s*` saves start to matter | gcd |
 | `.word` arrays + strided index | binary-search |
 | variable argc + fd array + fan-out | tee |
 | stack frame + word alignment | get-char-from-user |

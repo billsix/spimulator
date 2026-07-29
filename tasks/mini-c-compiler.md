@@ -164,7 +164,7 @@ readable style) is realistically **1,500–2,500 lines of SpimC**. That's
    allocation, one construct = one fixed template (the output should look
    like the hand-written demos' longhand style, diffable against them).
 
-## Investigation step 2: how big is this, honestly?
+## Investigation step 2: how big is this, really?
 
 A recursive-descent compiler for the subset above (ints/chars/pointers/
 arrays, full statement set, precedence climbing for expressions, no

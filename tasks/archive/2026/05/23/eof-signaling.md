@@ -387,7 +387,7 @@ A + B applied to spim source:
   from documentation as a historical artifact.  After the
   curriculum update they'll still be mentioned briefly
   ("before spim signaled EOF, demos used a sentinel char")
-  but no longer load-bearing.
+  but nothing will depend on them.
 - Pedagogical reordering of demos that read input.  The
   6-Part order from `PLAN-curriculum-order.md` doesn't shift
   due to this change.

@@ -281,7 +281,7 @@ balloon if the grammar misses subtle precedence/ambiguity cases.
 
 ## Q1 answered: what's the actual use case?
 
-This is the load-bearing question.  Three plausible answers, each
+Everything else hinges on this question.  Three plausible answers, each
 implying different scope:
 
 ### Use case A: editor integration only (recommended)

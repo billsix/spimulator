@@ -117,8 +117,8 @@ undergraduate is expected to know?
     absent from the test:
     - **R-type bitwise**: `or`, `xor`, `nor`. We have the *immediate*
       forms (`andi`/`ori`/`xori`) and R-type `and`, but the register
-      forms of `or`/`xor`/`nor` aren't exercised. `nor` is especially
-      load-bearing — H&P uses it to explain why MIPS doesn't need a
+      forms of `or`/`xor`/`nor` aren't exercised. `nor` especially
+      matters — H&P uses it to explain why MIPS doesn't need a
       `not` opcode (it's `nor reg, reg, $zero`).
     - **Signed-vs-unsigned arith trap contrast**: `sub` (signed,
       traps), `multu`, `divu`. We have the no-trap `subu` and signed

@@ -24,7 +24,7 @@ surface it mapped.
 originally listed as candidates: `constexpr` (~85 constants), `enum E : T` on
 every named enum, `[[nodiscard]]`/`[[noreturn]]`, `static_assert`,
 `<stdbool.h>` removal, `<stdbit.h>`/`<stdckdint.h>`, and `#embed` for the
-exception handler. Those are struck below; what's genuinely left for pass 2
+exception handler. Those are struck below; what's actually left for pass 2
 is the gnu23→c23 decision, `unreachable()`, binary literals / digit
 separators, `_BitInt` evaluation, and extending the bar to `examples/`+`pgu/`.
 

@@ -140,7 +140,7 @@ hand-tuned flags.
 
 Option C is appealing for the cross-arch listings (the
 PLAN-build-matrix work) where regenerating 5 listings per demo
-on every build is genuinely expensive.
+on every build is a real cost.
 
 ## Compiler flags to consider
 

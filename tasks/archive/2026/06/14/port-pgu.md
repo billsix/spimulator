@@ -72,7 +72,7 @@ need every code block retyped in MIPS.
 
 ### What ALREADY exists in spim's world (the central finding)
 
-`/spimulator/examples/` is a **mature, comprehensive 60-example MIPS
+`/spimulator/examples/` is a **mature 60-example MIPS
 curriculum** — paired hand-written `.asm` + freestanding C, its own
 `READING-ORDER.md`, `TEACHING-ASSEMBLER-INTERNALS.md`, build
 (meson), golden tests (`tests/run-demo.sh`), and shared conventions
@@ -95,7 +95,7 @@ references PGU* and teaches `$?` via spim syscall 17.
 | **conversion-program** (standalone) | ❌ missing | atoi exists only inside factorial |
 | **records** (firstname/lastname/address/age struct: read-records, write-records, add-year) | ❌ missing | no struct example anywhere |
 
-So the genuinely new example work is small and well-defined:
+So the truly new example work is small and well-defined:
 **maximum, power, a standalone conversion-program, and the records
 trio.** Everything else has a strong MIPS equivalent already.
 
@@ -280,7 +280,7 @@ markers added (benign comments; see Decision 1 for in-place vs. copy).
   `-show-expansion` flag makes this teachable).
 - **Records struct layout under spim.** firstname/lastname/address/age
   — pick offsets/alignment that read cleanly in MIPS (word-aligned
-  fields); this is the one genuinely new data-structure lesson.
+  fields); this is the one new data-structure lesson.
 - **Relationship to `tasks/examples-build-matrix.md`** (multi-arch
   C→asm listings) and the just-landed native asm-listings Makefile —
   the book can point at those as "see the compiler's translation,"

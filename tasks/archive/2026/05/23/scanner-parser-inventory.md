@@ -138,7 +138,7 @@ The `\$[…]+` rule:
 | `yywrap` | 386-399 | Insert `\001` sentinel via `unput`, return 0 once.  This is what produces `Y_EOF` cleanly |
 | `scan_escape` | 404-450 | Decode a `\X` escape *for char literals only*.  Named escapes `\a`, `\b`, `\f`, `\n`, `\r`, `\t`, `\\`, `\"`, `\'`; hex form `\X..`.  **Does NOT support octal** — that's `copy_str`'s job |
 | `copy_str` | 456-546 | Decode `\` escapes *for string literals*.  Named escapes (`\n`, `\t`, `\"`); octal `\NNN` (high digit 0-3); hex `\X..`; default branch copies `\` then next char (so `\\` doesn't decode to `\`).  **Note**: bug in octal-digit shift was fixed 2026-05-19 (line 493: `<< 6`).  Guarded by `tests/tt.octal_escape.s` |
-| `erroneous_line` | 553-603 | Reconstruct the source line with a `^` caret for error messages.  Uses `yyinput`/`unput` to advance to next newline.  Load-bearing for `parse_errors_seen > 0 → exit 2` |
+| `erroneous_line` | 553-603 | Reconstruct the source line with a `^` caret for error messages.  Uses `yyinput`/`unput` to advance to next newline.  Required for `parse_errors_seen > 0 → exit 2` |
 | `check_keyword` | 613-626 | Look up identifier in `keyword_tbl[]` |
 | `register_name_to_number` | 667-688 | Map `$reg` to register number (0-31) |
 | `source_line` | 695-742 | Return the current source line as a freshly-allocated string with `N: ` line-number prefix.  Called by the REPL when echoing source.  One-shot per line (gated by `line_returned`) |
@@ -600,7 +600,7 @@ single function with a single loop over tokens.
 `scanner.l:493` — fixed 2026-05-19.  Hand-written port must
 preserve the fix.  `tests/tt.octal_escape.s` is the regression.
 
-### D. Newly-load-bearing error message format
+### D. The error message format is now a contract
 
 After 2026-05-19's Unix-process conformance fixes,
 `parse_errors_seen > 0 → main returns 2`.  The user-visible

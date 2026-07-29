@@ -47,7 +47,7 @@ actually matters:
   `$t*` caller-save, `$ra` discipline around `jal`.
 - **Why the contract has to be a contract** — if `libio` clobbers
   `$s0`, the program calling into it silently breaks.  The
-  discipline is the load-bearing idea.
+  discipline is the idea that matters.
 - **Documented vs assumed interfaces.**  A library header
   comment block enumerating each entry point's expected inputs
   and outputs is the asm equivalent of a `.h` file.

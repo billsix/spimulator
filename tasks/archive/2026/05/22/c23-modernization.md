@@ -271,8 +271,8 @@ arbitrary directory, or anywhere else works without a reachable
 `exceptions.s` on disk.
 
 `install_data('src/exceptions.s', ...)` in `meson.build` is kept
-unchanged.  The file is no longer load-bearing at runtime but
-serves as documentation in the install tree and as a starting point
+unchanged.  The file is no longer used at runtime but is kept
+as documentation in the install tree and as a starting point
 for users who want to customize via `-exception_file`.
 
 ### Empty initializers
@@ -340,8 +340,8 @@ Items the modernization plan considered but deferred or skipped:
 - **`[[reproducible]]` / `[[unsequenced]]`** — experimental
   attributes; not used.
 - **Switching `c_std` from `gnu23` to plain `c23`** — the GNU
-  statement-expression extension is load-bearing for the `MIN`/`MAX`/
-  `ROUND_*` macros.
+  statement-expression extension is what the `MIN`/`MAX`/
+  `ROUND_*` macros are built on.
 - **Broader `[[nodiscard]]` to pure-query functions**
   (`opcode_is_*`, `mem_read_*`, `current_text_pc`, etc.) — discarding
   these wastes work but doesn't leak.  Possible later pass.
@@ -375,7 +375,7 @@ Open follow-on tasks documented as separate plan files in `tasks/`:
 Smaller items not promoted to their own plans:
 
 - **Regression test for `ckd_add` overflow trap.**  The change to
-  `ckd_add`/`ckd_sub` is the most semantically load-bearing edit in
+  `ckd_add`/`ckd_sub` is the edit with the most behavioural weight in
   the sweep, but the existing test suite doesn't exercise the
   signed-overflow trap path (only address-fault traps).  Manually
   verified during the sweep with one-off MIPS programs; worth

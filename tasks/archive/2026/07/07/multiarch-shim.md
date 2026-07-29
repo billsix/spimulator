@@ -17,7 +17,7 @@ The goal is to extend the shim to support **every Linux arch
 that `os.h` already covers**: x86_64, i386, ARM-32, AArch64,
 and MIPS-32.  After this, a student on any of those hosts can
 `./N-foo-1 args` directly, in addition to running the matching
-`.asm` under spimulator.  It also unlocks the Dockerfile cross-
+`.asm` under spimulator.  It also enables the Dockerfile cross-
 build matrix (see `examples-build-matrix.md`) — every demo gets
 cross-compiled to all five targets at image build time.
 
@@ -31,7 +31,7 @@ audience by a wide margin (every Pi-class board, every Apple
 Silicon Mac running an ARM Linux VM/container, every recent
 Chromebook in Linux mode).
 
-The work is genuinely small per arch — the shim is 5–6
+The work is small per arch — the shim is 5–6
 instructions in each case — and the lesson value of "here's how
 process entry differs across CPUs" is itself pedagogically
 useful at this point in the curriculum.
@@ -281,8 +281,8 @@ a curious student has to chase down the header.  Slightly
 breaks the "each demo is one file" pattern that 19/20/21/22/
 23/24 already established.
 
-**Recommendation:** Option B.  The shim is now genuinely
-shared infrastructure — six demos already carry an identical
+**Recommendation:** Option B.  The shim is now shared
+infrastructure — six demos already carry an identical
 copy and any future argv demo will need it too.  Mitigation
 for the "where did `_start` go?" question: leave a one-line
 pointer comment in each demo (`/* _start shim provided by
@@ -356,7 +356,7 @@ syscalls on the fly — so we can verify both the `_start` shim
 AND the os.h syscall wrappers in one shot without needing real
 ARM hardware.
 
-This is the load-bearing test.  If the qemu run produces
+This is the test that decides it.  If the qemu run produces
 identical output to the x86_64 run, the multi-arch shim is
 working.
 

@@ -570,7 +570,7 @@ spim: (parser) <message> on line <N> of file <F>
 ```
 
 Maintained by `erroneous_line()` (stays in scanner.c).
-The newly-load-bearing `parse_errors_seen → exit 2` path is
+The newly-contractual `parse_errors_seen → exit 2` path is
 preserved.
 
 ### Recovery quality vs bison
@@ -858,7 +858,7 @@ those files are within the pilot's covered subset.
 
 - FP family (`add.s`, `c.lt.d`, etc.) — Phase 3.
 - Pseudo-op expansion (`la`, `li`, `div`, `mulo`, `sle`,
-  etc.) — Phase 3.  This is the load-bearing risk area.
+  etc.) — Phase 3.  This is where the risk concentrates.
 - Coprocessor instructions (`mfc1`, `mtc1`) — Phase 3.
 - TLB instructions — Phase 3.
 - The rest of the directives — Phase 3.

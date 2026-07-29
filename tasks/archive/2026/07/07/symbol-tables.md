@@ -82,7 +82,7 @@ Rules:
   short window.
 - The **Cross-call saves** subsection is mandatory whenever the
   demo issues `jal` (even to its own subroutines).  It is the
-  load-bearing reason the table exists.
+  reason the table exists at all.
 - Skip the **Volatile** subsection if everything in it is
   already obvious from the other sections (e.g. one-syscall
   demos).

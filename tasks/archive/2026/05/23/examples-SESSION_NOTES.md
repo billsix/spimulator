@@ -74,7 +74,7 @@ run."
 Added `src/intro/exit/exit.{c,asm}` as Part 0 of the curriculum.
 This is the PGU exit.s pattern retargeted to MIPS+spim — the
 smallest possible program (no output, just a status code) — and
-serves as the canonical reference for the syscall mechanism and
+is the canonical reference for the syscall mechanism and
 the `$v0`-before-`jr $ra` discipline introduced by the
 Unix-process fixes.
 

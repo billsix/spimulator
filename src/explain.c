@@ -1293,7 +1293,7 @@ static void render_j_layout(uint32_t enc, const char* mnemonic) {
 static void explain_bit_layout(mips_instruction* instruction) {
   if (instruction == nullptr) return;
   uint32_t enc = (uint32_t)inst_encode(instruction);
-  /* nop (sll $0,$0,0) genuinely encodes to 0x00000000. Skip the diagram
+  /* nop (sll $0,$0,0) really does encode to 0x00000000. Skip the diagram
      since "all zeros" carries no pedagogical signal of its own; the
      mnemonic-level explanation below covers it. */
   if (enc == 0) return;

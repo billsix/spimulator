@@ -58,7 +58,7 @@ Three call stacks account for all reported leaks:
 The parser's ownership model treats heap-allocated parse
 artifacts (identifiers, immediate expressions, address
 expressions) as "transferred to the next layer."  Most paths
-genuinely do transfer (the inst tables and the symbol table
+do transfer (the inst tables and the symbol table
 hold the long-lived references).  A few paths — error
 recovery, pseudo-op expansion that picks an alternate form,
 speculative-then-rejected emit attempts — drop the

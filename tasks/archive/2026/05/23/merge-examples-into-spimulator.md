@@ -15,8 +15,8 @@ then unify the build / test / container story so:
   produce byte-identical output matching the same golden —
   and where pinned, both produce the same exit status.  If
   either side drifts from the golden, the Docker build
-  fails.**  This is what makes the golden files load-bearing
-  instead of aspirational documentation.
+  fails.**  This is what gives the golden files teeth
+  instead of being aspirational documentation.
 - `meson test -C builddir` from /spimulator root runs every
   test, including the C-vs-asm goldens for the library demos
   (libctype, libstdlib, future libstr).
