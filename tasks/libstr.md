@@ -1,5 +1,8 @@
 # Plan: libstr — string and memory primitives
 
+**Priority:** 5
+**Difficulty:** 5
+
 ## Goal
 
 Port a focused set of `<string.h>` functions from musl as a

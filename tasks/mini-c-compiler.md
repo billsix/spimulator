@@ -1,6 +1,8 @@
 # Mini C compiler for the example programs (capstone)
 
 **Status:** proposed — investigate first, then plan, then build
+**Priority:** 6
+**Difficulty:** 9
 **Created:** 2026-07-07
 
 ## Request (Bill, 2026-07-07)

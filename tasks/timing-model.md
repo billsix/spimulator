@@ -1,6 +1,8 @@
 # Optional timing model: make performance perceptible (H&P ch. 1)
 
 **Status:** proposed — investigate → plan → execute, in that order
+**Priority:** 6
+**Difficulty:** 6
 **Created:** 2026-07-07
 
 ## Request (Bill, 2026-07-07)

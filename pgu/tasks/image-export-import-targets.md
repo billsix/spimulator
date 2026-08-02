@@ -1,6 +1,8 @@
 # Add `image-export` / `image-import` Makefile targets
 
 **Status:** proposed — needs go-ahead
+**Priority:** 5
+**Difficulty:** 3
 **Created:** 2026-06-13
 
 ## Goal

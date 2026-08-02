@@ -2,6 +2,9 @@
 
 ## Status — not started
 
+**Priority:** 4
+**Difficulty:** 6
+
 Filed during the post-C23-sweep ASan/valgrind audit (May 2026).
 Pre-existing.  Bigger than the other two filed bugs — this is
 an architectural question, not a one-line fix.

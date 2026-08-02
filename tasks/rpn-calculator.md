@@ -1,6 +1,8 @@
 # Example: RPN calculator (C + spim asm)
 
 **Status:** proposed — not started
+**Priority:** 6
+**Difficulty:** 5
 **Created:** 2026-07-07 (Bill)
 
 ## Request

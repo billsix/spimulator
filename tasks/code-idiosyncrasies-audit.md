@@ -1,6 +1,8 @@
 # Audit the code for inherited idiosyncrasies
 
 **Status:** proposed — not started
+**Priority:** 5
+**Difficulty:** 4
 **Created:** 2026-07-07
 
 ## Request (Bill, 2026-07-07)

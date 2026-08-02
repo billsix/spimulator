@@ -1,5 +1,8 @@
 # Codebase cleanup + modernization plan
 
+**Priority:** 4
+**Difficulty:** 7
+
 Audit of `/spimulator/` (~14k LOC C, `c_std=gnu23`) after the
 Phase-5 parser migration + four-tier post-Phase-5 naming cleanup
 landed.  Organised by effort / risk / payoff so individual items

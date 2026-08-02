@@ -1,5 +1,8 @@
 # Plan: clang cross-compile-to-assembly matrix in the Docker image
 
+**Priority:** 6
+**Difficulty:** 5
+
 ## Goal
 
 At Docker image build time, cross-compile **every C demo** in

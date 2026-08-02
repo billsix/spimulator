@@ -1,6 +1,8 @@
 # Example: calculator language (TI-83-style), SDT and AST versions
 
 **Status:** proposed — not started
+**Priority:** 6
+**Difficulty:** 6
 **Created:** 2026-07-07 (Bill)
 
 ## Request

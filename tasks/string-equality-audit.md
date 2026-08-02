@@ -2,6 +2,8 @@
 
 **Status:** audit COMPLETE 2026-07-07 — **no stops-short bug found**; open
 pending Bill's pointer to what he observed (question at bottom).
+**Priority:** 7
+**Difficulty:** 2
 **Created:** 2026-07-07
 **Scope note (Bill):** the suspected bug is in the **example code**, not in
 spimulator itself.

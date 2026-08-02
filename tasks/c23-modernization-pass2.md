@@ -1,6 +1,8 @@
 # C23 modernization, pass 2 — simulator + example/pgu subprojects
 
 **Status:** proposed — needs go-ahead
+**Priority:** 5
+**Difficulty:** 7
 **Created:** 2026-06-16
 
 ## Context / what's already done

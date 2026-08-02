@@ -1,5 +1,8 @@
 # Plan: cross-compilers + qemu-user in the container
 
+**Priority:** 5
+**Difficulty:** 4
+
 ## Goal
 
 Bake into the `/examples` container the tooling needed to

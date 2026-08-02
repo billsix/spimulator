@@ -1,5 +1,8 @@
 # Task: implement the ALU in C, bit-level, per H&P
 
+**Priority:** 6
+**Difficulty:** 8
+
 ## Goal
 
 Replace the host-arithmetic implementations of MIPS arithmetic

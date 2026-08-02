@@ -1,5 +1,8 @@
 # AST column tracking
 
+**Priority:** 6
+**Difficulty:** 5
+
 **Ordering (2026-07-07):** do [`parser-leak-cleanup.md`](parser-leak-cleanup.md)
 first — its recommended fix deletes the PARSE_DIRECT codepath, and this task
 plumbs new state through the same scanner/constructor surface; sequencing

@@ -2,6 +2,8 @@
 
 **Status:** re-scoped 2026-07-07 — the loading mechanism turned out to already
 be shipped; what remains is the library work built on top of it.
+**Priority:** 5
+**Difficulty:** 5
 **Created:** 2026-07-07
 
 ## Original question — resolved: multi-file loading already works
