@@ -1,13 +1,65 @@
 # Parser / scanner allocation lifetime cleanup
 
-## Status — not started
+## Status — Option A LANDED and verified (2026-08-03)
 
 **Priority:** 4
 **Difficulty:** 6
 
 Filed during the post-C23-sweep ASan/valgrind audit (May 2026).
-Pre-existing.  Bigger than the other two filed bugs — this is
-an architectural question, not a one-line fix.
+Pre-existing.
+
+**Resolution: Option A (fix the specific drop sites).**  The leak is
+gone — valgrind now reports `definitely lost: 0 bytes in 0 blocks` on
+`tt.argv.s` (was 224/26), `tt.explain.s` (was 351/44), and a
+broad-coverage input.  All 32 meson tests pass; the ASan address gate
+passes 25/25 with no double-free.  See "Resolution — the actual
+defects" below.
+
+**Option C (delete the non-default `PARSE_DIRECT` codepath) is now
+DECOUPLED from the leak** — it no longer *has* to happen to close the
+valgrind finding.  It remains a reasonable forward-consistency cleanup
+(one ownership model instead of two) but that is a design decision for
+Bill, not forced by memory hygiene.  NB the ordering note at the bottom
+still holds: `PARSE_DIRECT` still exists, so `ast-column-tracking.md` is
+*not* yet unblocked by a codepath deletion.
+
+## Resolution — the actual defects (Option A, 2026-08-03)
+
+The ownership model is: `make_imm_expr(offs, sym, ...)` and
+`make_addr_expr(offs, sym, reg)` both only *read* `sym` (via
+`lookup_label`, storing the resulting `label*`); neither retains nor
+frees the string.  So the caller always owns `sym`.  The leaks were the
+paths that violated that contract, plus two orphaned `imm_expr` nodes:
+
+1. **`make_addr_expr` (`instruction.c`)** — `strdup(sym)`'d the symbol
+   before handing it to `make_imm_expr`, which promptly dropped the
+   pointer.  That copy was orphaned on **every** call with a symbol —
+   the single largest source.  Fix: pass `sym` straight through, no
+   copy.
+2. **`parse_label` (`parser.c`)** — read the TOK_ID string, built the
+   `imm_expr`, never freed it; the comment wrongly claimed
+   `make_imm_expr` "stores it".  Fix: `free(sym)`.
+3. **`parse_imm32` (`parser.c`)** — the bare-`TOK_ID` return path had
+   the same wrong "ownership passes to make_imm_expr" comment and leaked
+   `sym`.  Fix: `free(sym)`.
+4. **`parse_address` (`parser.c`)** — the `ABS_ADDR '+' ID` path did not
+   free `sym` (the sibling `TOK_ID` path did).  Fix: `free(sym)`.
+5. **`sync_to_nl` (`parser.c`)** — discarded whole lines (ignored
+   directives like `.set noreorder`, error recovery) without freeing the
+   TOK_ID/TOK_STR strings it advanced past.  Fix: free `scan_value.p`
+   when the discarded token is a TOK_ID or TOK_STR.
+6. **`i_type_inst_full_word` (`instruction.c`)** — the out-of-range
+   load/store path did `lower_bits_of_expr(const_imm_expr(low))`;
+   `lower_bits_of_expr` *copies*, so the `const_imm_expr` node was
+   orphaned.  Fix: capture the intermediate and free it.
+7. **`li.d` / `li.s` pseudo-ops (`parser.c`)** — passed inline
+   `const_imm_expr(...)` nodes to `emit_i` (which keeps caller
+   ownership), so the nodes leaked.  Fix: use `emit_i_free` (transfers +
+   frees), matching the idiom used everywhere else in the file.  (The FP
+   literal `scan_value.p` here is *not* a leak — it points at a `static
+   double` in the scanner.)
+
+Files changed: `src/instruction.c`, `src/parser.c` (github.com/billsix/spimulator).
 
 ## Symptom
 

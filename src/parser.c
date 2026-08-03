@@ -515,7 +515,11 @@ static void parse_error_at(const char* msg) {
    on every line that follows an ignored directive like `.set`. */
 static void sync_to_nl(void) {
   while (scanner_peek() != TOK_NL && scanner_peek() != TOK_EOF) {
-    scanner_advance();
+    int t = scanner_advance();
+    /* TOK_ID / TOK_STR tokens own a heap string that advance moves into
+       scan_value; discarding the token here (ignored directives, error
+       recovery) means nobody else will free it. */
+    if (t == TOK_ID || t == TOK_STR) free(scan_value.p);
   }
 }
 
@@ -683,8 +687,10 @@ static imm_expr* parse_imm32(void) {
       free(sym);
       return r;
     }
-    return make_imm_expr(0, sym, false);
-    /* sym ownership passes to make_imm_expr; don't free */
+    imm_expr* r = make_imm_expr(0, sym, false);
+    /* make_imm_expr does not retain `sym`; this frame owns and frees it. */
+    free(sym);
+    return r;
   }
   if (scanner_peek() == '(') {
     /* '(' ABS_ADDR ')' '>' '>' TOK_INT */
@@ -733,8 +739,9 @@ static imm_expr* parse_label(void) {
   scanner_advance();
   char* sym = (char*)scan_value.p;
   imm_expr* r = make_imm_expr(-(int)current_text_pc(), sym, true);
-  /* sym ownership: the original LABEL action does NOT free name
-     (because make_imm_expr stores it).  Mirror that. */
+  /* make_imm_expr looks `sym` up into a label* and does not retain the
+     string, so this frame owns it and must free it. */
+  free(sym);
   return r;
 }
 
@@ -762,6 +769,9 @@ static addr_expr* parse_address(void) {
       scanner_advance();
       char* sym = (char*)scan_value.p;
       addr_expr* r = make_addr_expr(imm, sym, 0);
+      /* make_addr_expr does not retain `sym` (see instruction.c); free it,
+         matching the TOK_ID path below. */
+      free(sym);
       return r;
     }
     if (scanner_peek() == '(') {
@@ -1512,9 +1522,11 @@ static void do_parse_pseudo(int op) {
       }
       scanner_advance();
       int* x = (int*)scan_value.p;
-      emit_i(TOK_ORI_OPCODE, 1, 0, const_imm_expr(*x));
+      /* emit_i_free (not emit_i): the const_imm_expr node is allocated
+         inline with no other owner, so transfer it to be freed. */
+      emit_i_free(TOK_ORI_OPCODE, 1, 0, const_imm_expr(*x));
       emit_fp_r(TOK_MTC1_OPCODE, 0, fd, 1);
-      emit_i(TOK_ORI_OPCODE, 1, 0, const_imm_expr(*(x + 1)));
+      emit_i_free(TOK_ORI_OPCODE, 1, 0, const_imm_expr(*(x + 1)));
       emit_fp_r(TOK_MTC1_OPCODE, 0, fd + 1, 1);
       break;
     }
@@ -1529,7 +1541,8 @@ static void do_parse_pseudo(int op) {
       scanner_advance();
       float fval = (float)*((double*)scan_value.p);
       int* y = (int*)&fval;
-      emit_i(TOK_ORI_OPCODE, 1, 0, const_imm_expr(*y));
+      /* emit_i_free: inline const_imm_expr node has no other owner. */
+      emit_i_free(TOK_ORI_OPCODE, 1, 0, const_imm_expr(*y));
       emit_fp_r(TOK_MTC1_OPCODE, 0, fd, 1);
       break;
     }

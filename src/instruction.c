@@ -245,8 +245,11 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
         {
           r_type_inst(TOK_ADDU_OPCODE, 1, 1, rs);
         }
-        i_type_inst_free(opcode, rt, 1,
-                         lower_bits_of_expr(const_imm_expr(low)));
+        /* lower_bits_of_expr copies its argument, so the const_imm_expr
+           node it wraps is not adopted by anyone — free the intermediate. */
+        imm_expr* low_expr = const_imm_expr(low);
+        i_type_inst_free(opcode, rt, 1, lower_bits_of_expr(low_expr));
+        free(low_expr);
       } else {
         /* Special case, sign-extension of low 16 bits sets high to 0xffff */
         i_type_inst_free(opcode, rt, rs, const_imm_expr(low));
@@ -1053,7 +1056,12 @@ addr_expr* make_addr_expr(int offs, char* sym, int reg_no) {
         make_imm_expr(offs + looked_up->addr - gp_midpoint, nullptr, false);
   } else {
     expr->reg_no = (unsigned char)reg_no;
-    expr->imm = make_imm_expr(offs, (sym ? strdup(sym) : sym), false);
+    /* make_imm_expr only reads `sym` (via lookup_label) and stores the
+       resulting label*, never the string itself — so it neither retains
+       nor frees it.  strdup'ing here produced a copy that was orphaned on
+       every call; pass the caller's `sym` straight through instead.  The
+       caller keeps ownership and frees it. */
+    expr->imm = make_imm_expr(offs, sym, false);
   }
   return (expr);
 }

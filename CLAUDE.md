@@ -131,9 +131,12 @@ Curriculum / library:
 
 Simulator internals:
 
-- `parser-leak-cleanup.md` → then `ast-column-tracking.md` — the leak fix
-  deletes PARSE_DIRECT (PARSE_AST is already the default); do the column
-  plumbing once, after.
+- `parser-leak-cleanup.md` — **leak fixed (Option A, 2026-08-03):** the
+  parser/scanner drop sites now free their transient strings/nodes;
+  valgrind is clean and 32/32 tests pass. PARSE_DIRECT was **not** deleted,
+  so `ast-column-tracking.md` is not yet unblocked by a codepath removal;
+  deleting PARSE_DIRECT (old Option C) is now an optional, leak-decoupled
+  cleanup for Bill to decide.
 - `codebase-cleanup-plan.md` — remaining: Tier C (header hygiene) and Tier
   E3 (exception-path tests). Tiers A, D, E1/E2/E4 done; all of Tier B done
   or moot (B2 resolved by stdlib-modernization; B3 obsoleted by the emit_*
