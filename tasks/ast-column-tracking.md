@@ -8,6 +8,18 @@ first — its recommended fix deletes the PARSE_DIRECT codepath, and this task
 plumbs new state through the same scanner/constructor surface; sequencing
 avoids doing the column work against two parse modes.
 
+**UNBLOCKED (2026-08-03):** `parser-leak-cleanup` is done and archived — the
+PARSE_DIRECT codepath was deleted, so the AST is now the only parse mode and
+this column work runs against a single surface.  Two things to know before
+starting: (1) `ast_node` now also carries a `char* src_text` field (the
+"NNN: text" source-line snapshot, captured in `new_node` and replayed by
+`emit_ast` for instruction annotations) — the column fields would join it
+there and be captured at the same point in `new_node`; (2) `emit_one` in
+`src/parser.c` sets `line_no = node->source_line` and
+`emit_source_set(node->src_text)` per node, which is the per-node
+position-replay pattern column info would extend.  Background:
+`tasks/reference/parser-ast-emit.md`.
+
 Track source column begin/end on every AST node, in addition to
 the existing per-node source line.  Print the column information
 as part of `-print-ast` and emit it in the JSON output.

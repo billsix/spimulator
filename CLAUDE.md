@@ -11,7 +11,10 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
 - **Build:** Meson + Ninja (replaced the legacy Make/xmkmf). GNU C23
   (`c_std=gnu23`). One option: `-Dline_editing` (libedit REPL history; default auto).
 - **Parser:** hand-written recursive-descent scanner/parser (`scanner.c` /
-  `parser.c`) — flex+bison were removed (Phase 5, 2026-05).
+  `parser.c`) — flex+bison were removed (Phase 5, 2026-05). Parses to an AST,
+  then `emit_ast` walks it to commit code; the older inline syntax-directed
+  (PARSE_DIRECT) path was removed 2026-08-03, so the AST is the only mode. See
+  `tasks/reference/parser-ast-emit.md`.
 - **Teaching mode:** `explain.c` renders instructions at levels 0–4 (mnemonic →
   disassembly → register before/after → bit-layout diagram → field decoding).
 - The image builds + runs the full test suite at build time and fails on any
@@ -131,12 +134,14 @@ Curriculum / library:
 
 Simulator internals:
 
-- `parser-leak-cleanup.md` — **leak fixed (Option A, 2026-08-03):** the
-  parser/scanner drop sites now free their transient strings/nodes;
-  valgrind is clean and 32/32 tests pass. PARSE_DIRECT was **not** deleted,
-  so `ast-column-tracking.md` is not yet unblocked by a codepath removal;
-  deleting PARSE_DIRECT (old Option C) is now an optional, leak-decoupled
-  cleanup for Bill to decide.
+- (`parser-leak-cleanup.md` — **DONE + archived 2026-08-03**: leak fixed
+  (Option A) and PARSE_DIRECT deleted (Option C), so the AST is the only
+  parse mode. Archived to `tasks/archive/2026/08/03/`; durable design notes
+  in `tasks/reference/parser-ast-emit.md`. This unblocked
+  `ast-column-tracking.md`.)
+- `ast-column-tracking.md` — **unblocked** (2026-08-03): single parse mode
+  now; `ast_node.src_text` + per-node `emit_source_set` are the pattern the
+  column work extends.
 - `codebase-cleanup-plan.md` — remaining: Tier C (header hygiene) and Tier
   E3 (exception-path tests). Tiers A, D, E1/E2/E4 done; all of Tier B done
   or moot (B2 resolved by stdlib-modernization; B3 obsoleted by the emit_*

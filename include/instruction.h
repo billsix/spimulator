@@ -215,6 +215,12 @@ int32_t eval_imm_expr(imm_expr* expr);
 void format_an_inst(str_stream* ss, mips_instruction* instruction,
                     mem_addr addr);
 void free_inst(mips_instruction* instruction);
+/* Override the source-line text store_instruction records, for deferred
+   (AST) emission where the scanner has moved past the instruction's
+   line.  emit_ast sets it per node (may be null) and clears it when
+   done; while cleared, store_instruction reads the live scanner line. */
+void emit_source_set(const char* s);
+void emit_source_clear(void);
 void i_type_inst(int opcode, int rt, int rs, imm_expr* expr);
 void i_type_inst_free(int opcode, int rt, int rs, imm_expr* expr);
 [[nodiscard]] imm_expr* incr_expr_offset(imm_expr* expr, int32_t value);

@@ -1,12 +1,11 @@
 /* SPIM S20 MIPS simulator.
    Abstract Syntax Tree node definitions.
 
-   The parser running in PARSE_AST mode (the default) produces a tree
-   of these nodes rather than calling the action helpers directly.
-   `emit_ast` in parser.c walks the tree in source order and calls
-   the action helpers (r_type_inst, store_word, record_label, ...)
-   that commit each node's effect to the simulator's memory and
-   symbol table.
+   The parser produces a tree of these nodes rather than calling the
+   action helpers directly.  `emit_ast` in parser.c walks the tree in
+   source order and calls the action helpers (r_type_inst, store_word,
+   record_label, ...) that commit each node's effect to the simulator's
+   memory and symbol table.
 
    Three teaching surfaces consume the tree:
      -print-ast      indented text dump of every node
@@ -96,7 +95,14 @@ typedef struct ast_node ast_node;
 struct ast_node {
   ast_kind kind;
   int source_line; /* 1-based, 0 if unknown */
-  ast_node* next;  /* sibling chain inside a parent's child list */
+  /* Heap copy of the originating source line, in "NNN: text" form (as
+     produced by scanner.c's source_line()), captured at parse time when
+     the scanner is still on this node's line.  emit_ast restores it so
+     an assembled instruction's listing annotation shows the right
+     source even though emission is deferred past the parse.  May be
+     null (e.g. nodes built off a blank line).  Owned by the node. */
+  char* src_text;
+  ast_node* next; /* sibling chain inside a parent's child list */
 
   union {
     /* ---------- instructions ---------- */

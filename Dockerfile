@@ -40,6 +40,17 @@ COPY entrypoint/format.sh /usr/local/bin
 COPY entrypoint/lint.sh /usr/local/bin
 COPY entrypoint/shell.sh /usr/local/bin
 
+# System-package installation lives in per-group scripts (entrypoint/0N-install-*.sh),
+# host-runnable with no container runtime; the scripts take no options -- WHICH optional
+# groups run is decided by the ARG `if` blocks below. base is always installed;
+# emacs/docs/tree-sitter are flag-gated. The dnf cache mount, tsflags `sed`, and keepcache
+# stay in the Dockerfile (build plumbing); config (emacs MELPA bootstrap, the tree-sitter
+# grammar build) stays too. 01-install-base.sh does `dnf upgrade` + the base install.
+COPY entrypoint/01-install-base.sh /usr/local/bin
+COPY entrypoint/02-install-emacs.sh /usr/local/bin
+COPY entrypoint/03-install-docs.sh /usr/local/bin
+COPY entrypoint/04-install-tree-sitter.sh /usr/local/bin
+
 
 
 
@@ -47,30 +58,10 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
     --mount=type=cache,target=/var/lib/dnf \
     echo "keepcache=True" >> /etc/dnf/dnf.conf && \
     sed -i -e "s@tsflags=nodocs@#tsflags=nodocs@g" /etc/dnf/dnf.conf && \
-    dnf upgrade -y && \
-    dnf install -y clang \
-                   clang-tools-extra \
-                   diffutils \
-                   gcc \
-                   gdb \
-                   git \
-                   libedit-devel \
-                   lldb \
-                   make \
-                   meson \
-                   ninja \
-                   nano \
-                   pkgconfig \
-                   tmux \
-                   valgrind \
-                   which && \
+    /usr/local/bin/01-install-base.sh && \
     echo 'set debuginfod enabled off' > /root/.gdbinit ; \
     if [ "$USE_EMACS" = "1" ]; then \
-      dnf install -y \
-                  emacs \
-                  emacs-gtk+x11 \
-                  emacs-pgtk \
-                  python3-lsp-server && \
+      /usr/local/bin/02-install-emacs.sh && \
       emacs --batch --load /root/.emacs.d/install-melpa-packages.el; \
     fi ;
 
@@ -81,22 +72,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
 RUN --mount=type=cache,target=/var/cache/libdnf5 \
     --mount=type=cache,target=/var/lib/dnf \
     if [ "$BUILD_DOCS" = "1" ]; then \
-      dnf install -y \
-                  aspell \
-                  aspell-en \
-                  inkscape \
-                  latexmk \
-                  pandoc \
-                  python3-furo \
-                  python3-pip \
-                  python3-sphinx \
-                  python3-sphinx-latex \
-                  python3-sphinx_rtd_theme \
-                  texlive \
-                  texlive-anyfontsize \
-                  texlive-dvipng \
-                  texlive-dvisvgm \
-                  texlive-standalone ; \
+      /usr/local/bin/03-install-docs.sh ; \
     fi ;
 
 COPY helloworld.s meson.build meson_options.txt ${SPIM_SRC_DIR}/
@@ -185,7 +161,7 @@ COPY tree-sitter/ ${SPIM_SRC_DIR}/tree-sitter
 RUN --mount=type=cache,target=/var/cache/libdnf5 \
     --mount=type=cache,target=/var/lib/dnf \
     if [ "$BUILD_TREE_SITTER" = "1" ]; then \
-      dnf install -y nodejs npm && \
+      /usr/local/bin/04-install-tree-sitter.sh && \
       cd ${SPIM_SRC_DIR}/tree-sitter && \
       npm install && \
       make && \

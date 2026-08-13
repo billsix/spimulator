@@ -36,6 +36,9 @@ static ast_node* new_node(ast_kind kind) {
   memset(n, 0, sizeof(*n));
   n->kind = kind;
   n->source_line = line_no;
+  /* Snapshot the source line now, while the scanner is still on it;
+     emit_ast replays it at emit time (see ast_node.src_text). */
+  n->src_text = source_line();
   n->next = nullptr;
   return n;
 }
@@ -360,6 +363,7 @@ void ast_free(ast_node* node) {
         break;
     }
 
+    free(node->src_text);
     free(node);
     node = next_sibling;
   }

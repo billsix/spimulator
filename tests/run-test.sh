@@ -153,14 +153,17 @@ case "$NAME" in
     ;;
 
   ast_parity_all)
-    # Broad SDT-vs-AST parity check: for every representative .s file
-    # in tests/, run it with -parser=sdt and -parser=ast, then diff
-    # the text + data segment dumps.  Catches any drift between the
-    # two parser implementations on real programs.
+    # AST-emit regression golden: for every representative .s file in
+    # tests/, assemble it (-dump) and diff the text + data segment dumps
+    # against tests/golden.ast_parity_all.txt.  That golden was captured
+    # from the SDT parser before it was removed (2026-08-03), so this
+    # test proves the AST-only emitter still reproduces the exact bytes
+    # the old syntax-directed path produced.  Regenerate the golden with
+    # tests/gen-parity-golden.sh if an intentional codegen change lands.
     #
     # tt.parse_error.s is excluded because its parse intentionally
-    # fails — the assembled output is empty/partial under both modes
-    # and there's nothing meaningful to compare.
+    # fails — the assembled output is empty/partial and there's nothing
+    # meaningful to compare.
     progs="
       tt.alu.bare.s tt.argv.s tt.bare.s tt.be.s tt.core.s tt.dir.s
       tt.divide_by_zero.s tt.explain.s tt.fpu.bare.s tt.io.s tt.le.s
@@ -168,52 +171,42 @@ case "$NAME" in
       tt.read_char_eof.s tt.read_int_eof.s tt.return_value.s
       tt.stderr_split.s tt.unaligned.s
     "
-    dir_sdt=$(mktemp -d); dir_ast=$(mktemp -d)
-    trap 'rm -f "$out"; rm -rf "$dir_sdt" "$dir_ast"' EXIT
-    fail_prog=""
+    d=$(mktemp -d); got="$d/got.txt"
+    trap 'rm -f "$out"; rm -rf "$d"' EXIT
+    : > "$got"
     for prog in $progs; do
       [ -f "$prog" ] || continue
-      ( cd "$dir_sdt" && "$SPIM" -exception_file "$EF" -parser=sdt -dump \
+      ( cd "$d" && "$SPIM" -exception_file "$EF" -dump \
           -f "$TESTS_DIR/$prog" </dev/null >/dev/null 2>&1 ) || true
-      ( cd "$dir_ast" && "$SPIM" -exception_file "$EF" -parser=ast -dump \
-          -f "$TESTS_DIR/$prog" </dev/null >/dev/null 2>&1 ) || true
-      # The `; NNN: source` annotations track scanner state at emit
-      # time and differ between modes without affecting bytes — strip
-      # them before diffing.
+      # The `; NNN: source` annotations track scanner state at emit time
+      # and don't affect the assembled bytes — strip before comparing.
       for seg in text data; do
-        [ -f "$dir_sdt/$seg.asm" ] && [ -f "$dir_ast/$seg.asm" ] || continue
-        sed 's/[[:space:]]*;.*$//' "$dir_sdt/$seg.asm" > "$dir_sdt/$seg.bare"
-        sed 's/[[:space:]]*;.*$//' "$dir_ast/$seg.asm" > "$dir_ast/$seg.bare"
-        if ! diff -q "$dir_sdt/$seg.bare" "$dir_ast/$seg.bare" >/dev/null; then
-          fail_prog="$prog ($seg)"
-          break 2
-        fi
+        [ -f "$d/$seg.asm" ] || continue
+        echo "### $prog :: $seg ###" >> "$got"
+        sed 's/[[:space:]]*;.*$//' "$d/$seg.asm" >> "$got"
       done
+      rm -f "$d/text.asm" "$d/data.asm"
     done
-    [ -z "$fail_prog" ] || fail "SDT vs AST differ on $fail_prog"
+    diff -u "$TESTS_DIR/golden.ast_parity_all.txt" "$got" > "$out" 2>&1 \
+      || fail "AST emit differs from golden.ast_parity_all.txt"
     ;;
   ast_parity)
-    # SDT and AST modes should produce identical MEMORY contents for
-    # the same input.  Compare via -dump (text + data segments).
-    # The listing trace can differ in line_no decoration due to
-    # scanner-lookahead timing (peek for arithmetic operators may
-    # consume a newline ahead of the next emit), which is cosmetic
-    # — but the bytes written must match.
-    dir_sdt=$(mktemp -d); dir_ast=$(mktemp -d)
-    trap 'rm -f "$out"; rm -rf "$dir_sdt" "$dir_ast"' EXIT
-    ( cd "$dir_sdt" && "$SPIM" -exception_file "$EF" -parser=sdt -dump \
+    # AST-emit regression golden for tt.core.s (text + data segments),
+    # diffed against tests/golden.ast_parity.txt.  Same rationale as
+    # ast_parity_all: the golden is the pre-removal SDT output, so this
+    # confirms the AST-only emitter is byte-identical to it.
+    d=$(mktemp -d); got="$d/got.txt"
+    trap 'rm -f "$out"; rm -rf "$d"' EXIT
+    ( cd "$d" && "$SPIM" -exception_file "$EF" -dump \
         -f "$TESTS_DIR/tt.core.s" </dev/null >/dev/null 2>&1 )
-    ( cd "$dir_ast" && "$SPIM" -exception_file "$EF" -parser=ast -dump \
-        -f "$TESTS_DIR/tt.core.s" </dev/null >/dev/null 2>&1 )
-    # Strip the trailing `; NNN: source` annotations before diffing —
-    # those track scanner state at emit time and differ in deferred
-    # AST mode without affecting the assembled bytes.
-    sed 's/[[:space:]]*;.*$//' "$dir_sdt/text.asm" > "$dir_sdt/text.bare"
-    sed 's/[[:space:]]*;.*$//' "$dir_ast/text.asm" > "$dir_ast/text.bare"
-    diff -q "$dir_sdt/text.bare" "$dir_ast/text.bare" > /dev/null \
-      || fail "text segment differs between SDT and AST modes"
-    diff -q "$dir_sdt/data.asm" "$dir_ast/data.asm" > /dev/null \
-      || fail "data segment differs between SDT and AST modes"
+    : > "$got"
+    for seg in text data; do
+      [ -f "$d/$seg.asm" ] || continue
+      echo "### tt.core.s :: $seg ###" >> "$got"
+      sed 's/[[:space:]]*;.*$//' "$d/$seg.asm" >> "$got"
+    done
+    diff -u "$TESTS_DIR/golden.ast_parity.txt" "$got" > "$out" 2>&1 \
+      || fail "AST emit differs from golden.ast_parity.txt"
     ;;
   print_ast)
     # -print-ast: AST gets dumped to stderr, exit 0, no emit.

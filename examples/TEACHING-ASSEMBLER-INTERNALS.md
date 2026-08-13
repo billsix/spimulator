@@ -25,42 +25,37 @@ Together they let a student answer:
 - *What bytes ended up in memory and in what order?* → `-listing`
 - *What does each instruction do when it runs?* → `-explain`
 
-## The two parser modes — when each is active
+## How the assembler works — parse to a tree, then emit
 
-spim has two parser implementations that produce byte-identical
-results:
+spim's parser builds an **abstract syntax tree** from your source,
+then a separate `emit_ast` pass walks the tree calling the action
+helpers that write into memory and the symbol table:
 
-- **SDT (syntax-directed translation)** — the default.  As the
-  parser reads each statement, it directly calls action helpers
-  that write into memory and the symbol table.  No tree is built.
-  This is what every plain `spimulator -f foo.asm` invocation uses.
-- **AST** — the parser builds an abstract syntax tree first, then
-  a separate `emit_ast` pass walks the tree calling the same action
-  helpers.  Enables structural inspection (`-print-ast`,
-  `-show-expansion`, `-print-ast-json`).
+- **Parse** — the recursive-descent parser turns each statement into
+  an AST node (expanding pseudo-ops into their real instructions as
+  child nodes).  Nothing is committed to memory yet.
+- **Emit** — `emit_ast` walks the tree in source order and calls the
+  action helpers (`r_type_inst`, `store_word`, `record_label`, …)
+  that commit each node's effect.
 
-You almost never need to think about the modes.  The four teaching
-flags below set up the right mode automatically:
+Building the tree first is what makes structural inspection possible
+(`-print-ast`, `-show-expansion`, `-print-ast-json`).
 
-| Flag | Implicit mode |
+(Historical note: spim once also carried an inline "syntax-directed
+translation" path that emitted directly during the parse, selectable
+with a `-parser=` flag.  It was removed in 2026 once the AST became
+the sole driver; there is no mode to choose any more.)
+
+The teaching flags below just add observers or dump the tree; the
+parse-then-emit pipeline is the same either way:
+
+| Flag | Effect |
 |---|---|
-| `-listing FILE` | either (observer fires the same way in both modes) |
-| `-explain` | either |
-| `-print-ast` | AST (also skips emit so spim just dumps the tree and exits) |
-| `-show-expansion` | AST (also skips emit) |
-| `-print-ast-json` | AST (also skips emit) |
-
-If you want to force a mode explicitly:
-
-```sh
-spimulator -parser=sdt -f foo.asm     # SDT (same as no flag)
-spimulator -parser=ast -f foo.asm     # AST as the driver
-```
-
-The `-parser=ast` form is useful when you want to **run** the
-program through the AST path (no inspection, no skip-emit) — for
-example, when checking that AST mode produces the same output as
-SDT for a particular program.
+| `-listing FILE` | fire the assemble-time event observer to FILE |
+| `-explain` | narrate each instruction as it executes |
+| `-print-ast` | dump the tree and exit without emitting |
+| `-show-expansion` | dump just the pseudo-op expansions and exit |
+| `-print-ast-json` | dump the tree as JSON and exit |
 
 ## A worked example
 

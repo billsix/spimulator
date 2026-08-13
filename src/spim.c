@@ -559,29 +559,21 @@ int main(int argc, char** argv) {
       }
     } else if (streq(argv[i], "-assemble")) {
       assemble = true;
-    } else if (streq(argv[i], "-parser=ast")) {
-      parser_set_mode(PARSE_AST);
-    } else if (streq(argv[i], "-parser=sdt")) {
-      parser_set_mode(PARSE_DIRECT);
     } else if (streq(argv[i], "-print-ast")) {
       /* Build the AST, dump it to stderr, and skip the emit phase so
-         spim doesn't commit anything to memory.  Implies AST mode. */
-      parser_set_mode(PARSE_AST);
+         spim doesn't commit anything to memory. */
       parser_set_print_ast(true, stderr);
       parser_set_print_ast_only(true);
     } else if (streq(argv[i], "-show-expansion")) {
       /* Dump just the pseudo-op wrappers and their expansion children.
          Focused teaching view of "what does each pseudo-op become."
-         Implies AST mode + skip-emit. */
-      parser_set_mode(PARSE_AST);
+         Skips emit. */
       parser_set_show_expansion(true, stderr);
       parser_set_print_ast_only(true);
     } else if (streq(argv[i], "-print-ast-json")) {
       /* Dump the AST as JSON.  Used by external tooling (GUI, etc.).
          Goes to stdout so the JSON can be piped to a parser; the
-         "Loaded:" banner stays on stderr.  Implies AST mode + skip-
-         emit. */
-      parser_set_mode(PARSE_AST);
+         "Loaded:" banner stays on stderr.  Skips emit. */
       parser_set_print_ast_json(true, stdout);
       parser_set_print_ast_only(true);
     } else if (streq(argv[i], "-listing")) {
@@ -648,7 +640,6 @@ int main(int argc, char** argv) {
 				symbol table; forward references resolve across files.\n\
 	-assemble		Write assembled code to <file>.out\n\
 	-listing <file>		Write assemble-time event trace to <file> (use - for stderr)\n\
-	-parser=sdt|ast		Choose parser mode (sdt = inline emit, default; ast = build tree first)\n\
 	-print-ast		Parse to AST, print it to stderr, and exit without emitting any code\n\
 	-print-ast-json		Parse to AST, dump JSON to stdout (for tooling), and exit\n\
 	-show-expansion		Parse to AST, print just the pseudo-op wrappers + their expansion, and exit\n\

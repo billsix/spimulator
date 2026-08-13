@@ -132,6 +132,30 @@ static void increment_text_pc(int delta) {
 
 void user_kernel_text_segment(bool to_kernel) { in_kernel = to_kernel; }
 
+/* Source-annotation override for deferred (AST) emission.
+   store_instruction records each instruction's originating source line
+   for the listing/explain annotation.  During a normal parse the
+   scanner is still on that line, so source_line() reads it live; but
+   emit_ast replays the tree after the parse has finished, when the
+   scanner has moved to the last line of the file.  So emit_ast wraps
+   each node's emission in emit_source_set(node->src_text) /
+   emit_source_clear(): while active, store_instruction copies the
+   supplied text instead of the stale live line.  When inactive (e.g.
+   direct emission with the scanner still current), it falls back to
+   source_line(). */
+static bool emit_source_active = false;
+static const char* emit_source_text = nullptr;
+
+void emit_source_set(const char* s) {
+  emit_source_active = true;
+  emit_source_text = s;
+}
+
+void emit_source_clear(void) {
+  emit_source_active = false;
+  emit_source_text = nullptr;
+}
+
 /* Store an INSTRUCTION in memory at the next location. */
 
 static void store_instruction(mips_instruction* instruction) {
@@ -147,7 +171,10 @@ static void store_instruction(mips_instruction* instruction) {
     else
       increment_text_pc(BYTES_PER_WORD);
     if (instruction != nullptr) {
-      SET_SOURCE(instruction, source_line());
+      SET_SOURCE(instruction,
+                 emit_source_active
+                     ? (emit_source_text ? strdup(emit_source_text) : nullptr)
+                     : source_line());
       if (ENCODING(instruction) == 0)
         SET_ENCODING(instruction, inst_encode(instruction));
       asm_fire_text_inst(at, (uint32_t)ENCODING(instruction));

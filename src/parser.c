@@ -48,8 +48,6 @@ void set_input_file_name(char* name) { input_file_name = name; }
 /* These globals control directive emission.  Local to this TU. */
 
 static bool null_term;
-static void (*store_op)(int);
-static void (*store_fp_op)(double*);
 
 /* ------- Forward declarations for items defined below ------ */
 
@@ -58,37 +56,25 @@ static bool auto_align; /* defined as static further down */
 
 /* ------- Parser mode and AST state ------------------------- */
 
-/* `parse_mode_` selects between two equivalent emit strategies:
-   - PARSE_DIRECT: the parser calls action helpers (r_type_inst,
-     store_word, ...) inline as each statement is parsed.  No AST
-     is built.
-   - PARSE_AST (default): the parser builds an AST during parse,
-     then emit_ast walks it in source order calling the same action
-     helpers.  Equivalent memory contents; the AST lets us inspect
-     or transform the program between parse and emit.
+/* The parser builds an abstract syntax tree during the parse, then
+   emit_ast walks it in source order calling the action helpers
+   (r_type_inst, store_word, ...) that commit each statement's effect to
+   the simulator.  This is the sole parse strategy: the older inline
+   "syntax-directed translation" path (PARSE_DIRECT), which fired the
+   action helpers directly during the parse instead of building a tree,
+   was removed once the AST became the only driver (2026-08-03).
    The `print_ast_only_` flag (set by -print-ast / -show-expansion /
-   -print-ast-json) suppresses the emit pass entirely in AST mode
-   so spim can dump the tree without committing anything to memory. */
-static parse_mode_t parse_mode_ = PARSE_DIRECT;
+   -print-ast-json) suppresses the emit pass entirely so spim can dump
+   the tree without committing anything to memory. */
 static ast_node* current_file = nullptr;
 static bool print_ast_after_parse = false;
 static FILE* ast_print_out = nullptr;
 static bool print_ast_only_ = false;
 
-/* When false, AST mode runs in tee form: both the inline action
-   helpers AND the AST-construction path fire.  Useful as a parity
-   oracle when debugging — the listing output should be identical
-   either way.  True is the production setting; the AST is the
-   driver and the action helpers only fire from emit_ast. */
-static bool defer_emit_to_emit_ast = true;
-
-/* When AST mode is deferred, parse_factor stashes the FIRST
-   unresolved label it sees in the current expression here so
-   data_int_push can attach symbol info to the AST imm_expr.
-   emit_ast then records the forward-reference use at the
-   correct (emit-time) data PC.  In PARSE_DIRECT mode this slot
-   is unused — record_data_uses_symbol fires inline from
-   parse_factor with the right PC already. */
+/* parse_factor stashes the FIRST unresolved label it sees in the
+   current expression here so data_int_push can attach symbol info to
+   the AST imm_expr; emit_ast then records the forward-reference use at
+   the correct (emit-time) data PC. */
 static label* expr_unresolved_label = nullptr;
 
 /* When non-null, AST nodes built by the dispatch helpers go into this
@@ -112,9 +98,6 @@ static void ast_append(ast_node* node) {
 }
 
 void emit_ast(const ast_node* file);
-
-void parser_set_mode(parse_mode_t mode) { parse_mode_ = mode; }
-parse_mode_t parser_get_mode(void) { return parse_mode_; }
 
 void parser_set_print_ast(bool on, FILE* out) {
   print_ast_after_parse = on;
@@ -160,19 +143,6 @@ void parser_set_print_ast_only(bool on) { print_ast_only_ = on; }
 
 bool parser_get_print_ast_only(void) { return print_ast_only_; }
 
-/* Whether the inline action helpers should fire during parse.
-   False when:
-     - -print-ast / -show-expansion / -print-ast-json is set (we want
-       the tree built but no side effects on the simulator); or
-     - we're in AST mode with deferred emit (the default — parse
-       builds the tree, then emit_ast drives the action calls). */
-static inline bool should_emit(void) {
-  if (print_ast_only_) return false;
-  if (parse_mode_ == PARSE_AST && defer_emit_to_emit_ast) return false;
-  return true;
-}
-static inline bool should_build_ast(void) { return parse_mode_ == PARSE_AST; }
-
 /* Deep-copy an imm_expr so the AST can own its own copy independent
    of the one the action helper sees. */
 static imm_expr* dup_imm(const imm_expr* e) {
@@ -185,46 +155,36 @@ static imm_expr* dup_imm(const imm_expr* e) {
 /* ----- instruction dispatch helpers ------------------------ */
 
 void emit_r(int op, int rd, int rs, int rt) {
-  if (should_emit()) r_type_inst(op, rd, rs, rt);
-  if (should_build_ast()) ast_append(ast_make_inst_r(op, rd, rs, rt));
+  ast_append(ast_make_inst_r(op, rd, rs, rt));
 }
 
 void emit_r_shift(int op, int rd, int rt, int shamt) {
-  if (should_emit()) r_sh_type_inst(op, rd, rt, shamt);
-  if (should_build_ast()) ast_append(ast_make_inst_r_shift(op, rd, rt, shamt));
+  ast_append(ast_make_inst_r_shift(op, rd, rt, shamt));
 }
 
-/* emit_i: caller keeps ownership of imm (matches i_type_inst). */
+/* emit_i: caller keeps ownership of imm (the AST takes its own copy). */
 void emit_i(int op, int rt, int rs, imm_expr* imm) {
-  if (should_build_ast()) ast_append(ast_make_inst_i(op, rt, rs, dup_imm(imm)));
-  if (should_emit()) i_type_inst(op, rt, rs, imm);
+  ast_append(ast_make_inst_i(op, rt, rs, dup_imm(imm)));
 }
 
-/* emit_i_free: caller transfers ownership (matches i_type_inst_free). */
+/* emit_i_free: caller transfers ownership of imm.  The AST takes a copy,
+   so the original is freed here. */
 void emit_i_free(int op, int rt, int rs, imm_expr* imm) {
-  if (should_build_ast()) ast_append(ast_make_inst_i(op, rt, rs, dup_imm(imm)));
-  if (should_emit())
-    i_type_inst_free(op, rt, rs, imm);
-  else
-    free(imm); /* AST took a copy; original needs to go */
+  ast_append(ast_make_inst_i(op, rt, rs, dup_imm(imm)));
+  free(imm);
 }
 
 void emit_j(int op, imm_expr* target) {
-  /* j_type_inst copies its arg; caller (parse_j) frees the
-     original. AST-only mode dups for the AST and lets the caller's
-     free still run. */
-  if (should_build_ast()) ast_append(ast_make_inst_j(op, dup_imm(target)));
-  if (should_emit()) j_type_inst(op, target);
+  /* The AST takes its own copy; caller (parse_j) frees the original. */
+  ast_append(ast_make_inst_j(op, dup_imm(target)));
 }
 
 void emit_fp_r(int op, int fd, int fs, int ft) {
-  if (should_emit()) r_co_type_inst(op, fd, fs, ft);
-  if (should_build_ast()) ast_append(ast_make_inst_fp_r(op, fd, fs, ft));
+  ast_append(ast_make_inst_fp_r(op, fd, fs, ft));
 }
 
 void emit_fp_compare(int op, int fs, int ft, int cc) {
-  if (should_emit()) r_cond_type_inst(op, fs, ft, cc);
-  if (should_build_ast()) ast_append(ast_make_inst_fp_compare(op, fs, ft, cc));
+  ast_append(ast_make_inst_fp_compare(op, fs, ft, cc));
 }
 
 /* ----- data dispatch helpers ------------------------------- */
@@ -274,10 +234,7 @@ static void data_int_push(int value) {
 }
 
 static void data_int_finalize(void) {
-  if (!should_build_ast() || data_int_count == 0) {
-    /* Free any unused literals built during accumulation. */
-    for (int i = 0; i < data_int_count; i++) free(data_int_buf[i]);
-    data_int_count = 0;
+  if (data_int_count == 0) {
     return;
   }
   /* Hand off the array as-is; ast_node owns it now. */
@@ -325,8 +282,7 @@ static void data_fp_push(double value) {
 }
 
 static void data_fp_finalize(void) {
-  if (!should_build_ast() || data_fp_count == 0) {
-    data_fp_count = 0;
+  if (data_fp_count == 0) {
     return;
   }
   double* values = (double*)xmalloc(data_fp_count * sizeof(double));
@@ -340,73 +296,40 @@ static void data_fp_finalize(void) {
 }
 
 static void emit_data_string(char* s, int len, bool null_term_in) {
-  if (should_emit()) store_string(s, len, null_term_in);
-  if (should_build_ast())
-    ast_append(ast_make_data_string(s, len, null_term_in));
+  ast_append(ast_make_data_string(s, len, null_term_in));
 }
 
 /* ----- label + directive dispatch helpers ------------------ */
 
-static void emit_label_normal(const char* name, mem_addr addr) {
-  if (should_emit()) {
-    label* l = record_label((char*)name, addr, 0);
-    cons_label(l);
-  }
-  if (should_build_ast()) ast_append(ast_make_label_normal(name));
+static void emit_label_normal(const char* name) {
+  ast_append(ast_make_label_normal(name));
 }
 
 static void emit_label_const(const char* name, int v) {
-  if (should_emit()) {
-    label* l = record_label((char*)name, (mem_addr)v, 1);
-    l->const_flag = 1;
-  }
-  if (should_build_ast()) ast_append(ast_make_label_const(name, v));
+  ast_append(ast_make_label_const(name, v));
 }
 
 static void emit_dir_globl(const char* name) {
-  if (should_emit()) make_label_global((char*)name);
-  if (should_build_ast()) ast_append(ast_make_dir_globl(name));
+  ast_append(ast_make_dir_globl(name));
 }
 
-static void emit_dir_align(int n) {
-  if (should_emit()) {
-    if (text_dir)
-      align_text(n);
-    else
-      align_data(n);
-  }
-  if (should_build_ast()) ast_append(ast_make_dir_align(n));
-}
+static void emit_dir_align(int n) { ast_append(ast_make_dir_align(n)); }
 
-static void emit_dir_space(int v) {
-  if (should_emit()) increment_data_pc(v);
-  if (should_build_ast()) ast_append(ast_make_dir_space(v));
-}
+static void emit_dir_space(int v) { ast_append(ast_make_dir_space(v)); }
 
 static void emit_dir_extern(const char* sym, int sz) {
-  if (should_emit()) {
-    make_label_global((char*)sym);
-    if (lookup_label((char*)sym)->addr == 0) {
-      record_label((char*)sym, current_data_pc(), 1);
-    }
-    increment_data_pc(sz);
-  }
-  if (should_build_ast()) ast_append(ast_make_dir_extern(sym, sz));
+  ast_append(ast_make_dir_extern(sym, sz));
 }
 
 static void emit_dir_comm(const char* sym, int sz) {
-  if (should_emit()) {
-    align_data(2);
-    if (lookup_label((char*)sym)->addr == 0) {
-      record_label((char*)sym, current_data_pc(), 1);
-    }
-    increment_data_pc(sz);
-  }
-  if (should_build_ast()) ast_append(ast_make_dir_comm(sym, sz));
+  ast_append(ast_make_dir_comm(sym, sz));
 }
 
 static void emit_dir_seg(ast_kind kind, bool kernel, bool has_addr,
                          mem_addr addr) {
+  /* `kernel` is implied by `kind` (KTEXT/KDATA vs TEXT/DATA) in the AST
+     node; the user/kernel segment switch itself happens at emit time. */
+  (void)kernel;
   /* Update parser-state flags unconditionally so subsequent directive
      parsing (e.g. the .asciiz text/data check) sees the right segment
      even in -print-ast-only mode. */
@@ -418,38 +341,28 @@ static void emit_dir_seg(ast_kind kind, bool kernel, bool has_addr,
     text_dir = false;
     auto_align = true;
   }
-  /* Action-helper side effects (only when emitting). */
-  if (should_emit()) {
-    if (kind == AST_DIR_TEXT || kind == AST_DIR_KTEXT) {
-      user_kernel_text_segment(kernel);
-      if (has_addr) set_text_pc(addr);
-    } else {
-      user_kernel_data_segment(kernel);
-      enable_data_alignment();
-      if (has_addr) set_data_pc(addr);
-    }
+  /* The segment change's action-helper side effects (switching segment,
+     setting the PC) happen at emit time from emit_one; here we only
+     record the directive in the AST. */
+  ast_node* n;
+  switch (kind) {
+    case AST_DIR_TEXT:
+      n = ast_make_dir_text(has_addr, addr);
+      break;
+    case AST_DIR_DATA:
+      n = ast_make_dir_data(has_addr, addr);
+      break;
+    case AST_DIR_KTEXT:
+      n = ast_make_dir_ktext(has_addr, addr);
+      break;
+    case AST_DIR_KDATA:
+      n = ast_make_dir_kdata(has_addr, addr);
+      break;
+    default:
+      n = ast_make_dir_data(has_addr, addr);
+      break;
   }
-  if (should_build_ast()) {
-    ast_node* n;
-    switch (kind) {
-      case AST_DIR_TEXT:
-        n = ast_make_dir_text(has_addr, addr);
-        break;
-      case AST_DIR_DATA:
-        n = ast_make_dir_data(has_addr, addr);
-        break;
-      case AST_DIR_KTEXT:
-        n = ast_make_dir_ktext(has_addr, addr);
-        break;
-      case AST_DIR_KDATA:
-        n = ast_make_dir_kdata(has_addr, addr);
-        break;
-      default:
-        n = ast_make_dir_data(has_addr, addr);
-        break;
-    }
-    ast_append(n);
-  }
+  ast_append(n);
 }
 
 /* Labels collected on the current line, flushed (resolved + freed)
@@ -606,14 +519,11 @@ static int parse_factor(void) {
     char* sym_name = (char*)scan_value.p;
     label* l = lookup_label(sym_name);
     if (l->addr == 0) {
-      /* Forward reference.  In SDT mode record the use at parse time
-         (current_data_pc is correct because emission is happening
-         inline).  In AST-deferred mode current_data_pc isn't the
-         right address yet — stash the label and let emit_ast record
-         the use against the actual data PC. */
-      if (should_emit()) {
-        record_data_uses_symbol(current_data_pc(), l);
-      } else if (expr_unresolved_label == nullptr) {
+      /* Forward reference.  current_data_pc isn't the right address at
+         parse time (emission is deferred to emit_ast), so stash the
+         label and let emit_ast record the use against the actual data
+         PC. */
+      if (expr_unresolved_label == nullptr) {
         expr_unresolved_label = l;
       }
       free(sym_name);
@@ -1138,18 +1048,17 @@ static void parse_dir_space(void) {
   emit_dir_space(v);
 }
 
-/* EXPR_LST: emit each expression value via store_op (SDT) and/or
-   collect into the AST data accumulator. */
+/* EXPR_LST: collect each expression value into the AST data
+   accumulator; data_int_finalize builds the AST node. */
 static void parse_expr_list(void) {
   for (;;) {
     int v = parse_expression();
-    if (should_emit()) store_op(v);
-    if (should_build_ast()) data_int_push(v);
+    data_int_push(v);
     /* commas are skipped by the scanner; same with whitespace */
     if (scanner_peek() == TOK_NL || scanner_peek() == TOK_EOF) break;
     /* Otherwise continue to next expression */
   }
-  if (should_build_ast()) data_int_finalize();
+  data_int_finalize();
 }
 
 /* Pre-fix any labels currently on this_line_labels to the
@@ -1164,8 +1073,8 @@ static void align_labels_to(int alignment) {
   fix_current_label_address(aligned);
 }
 
-/* FP_EXPR_LST: consume TOK_FP tokens, emit via store_fp_op (SDT)
-   and/or collect into the AST data accumulator. */
+/* FP_EXPR_LST: consume TOK_FP tokens, collecting into the AST data
+   accumulator; data_fp_finalize builds the AST node. */
 static void parse_fp_expr_list(void) {
   for (;;) {
     if (scanner_peek() != TOK_FP) {
@@ -1174,16 +1083,14 @@ static void parse_fp_expr_list(void) {
     }
     scanner_advance();
     double* val = (double*)scan_value.p;
-    if (should_emit()) store_fp_op(val);
-    if (should_build_ast()) data_fp_push(*val);
+    data_fp_push(*val);
     if (scanner_peek() == TOK_NL || scanner_peek() == TOK_EOF) break;
   }
-  if (should_build_ast()) data_fp_finalize();
+  data_fp_finalize();
 }
 
 static void parse_dir_float(void) {
   align_labels_to(2);
-  store_fp_op = store_float;
   if (data_dir) set_data_alignment(2);
   data_fp_begin(AST_DATA_FLOAT);
   parse_fp_expr_list();
@@ -1191,7 +1098,6 @@ static void parse_dir_float(void) {
 
 static void parse_dir_double(void) {
   align_labels_to(3);
-  store_fp_op = store_double;
   if (data_dir) set_data_alignment(3);
   data_fp_begin(AST_DATA_DOUBLE);
   parse_fp_expr_list();
@@ -1199,20 +1105,17 @@ static void parse_dir_double(void) {
 
 static void parse_dir_word(void) {
   align_labels_to(2);
-  store_op = store_word;
   if (data_dir) set_data_alignment(2);
   data_int_begin(AST_DATA_WORD);
   parse_expr_list();
 }
 static void parse_dir_half(void) {
   align_labels_to(1);
-  store_op = store_half;
   if (data_dir) set_data_alignment(1);
   data_int_begin(AST_DATA_HALF);
   parse_expr_list();
 }
 static void parse_dir_byte(void) {
-  store_op = store_byte;
   data_int_begin(AST_DATA_BYTE);
   parse_expr_list();
 }
@@ -1290,22 +1193,16 @@ static int find_op_type(int op) {
 static void do_parse_pseudo(int op);
 
 static void parse_pseudo(int op) {
-  ast_node* pseudo_node = nullptr;
-  ast_node* saved_pseudo = nullptr;
   int saved_line = line_no;
-  if (should_build_ast()) {
-    pseudo_node = ast_make_pseudo(op_token_name(op));
-    pseudo_node->source_line = saved_line;
-    saved_pseudo = current_pseudo;
-    current_pseudo = pseudo_node;
-  }
+  ast_node* pseudo_node = ast_make_pseudo(op_token_name(op));
+  pseudo_node->source_line = saved_line;
+  ast_node* saved_pseudo = current_pseudo;
+  current_pseudo = pseudo_node;
 
   do_parse_pseudo(op);
 
-  if (should_build_ast()) {
-    current_pseudo = saved_pseudo;
-    ast_append(pseudo_node);
-  }
+  current_pseudo = saved_pseudo;
+  ast_append(pseudo_node);
 }
 
 static void do_parse_pseudo(int op) {
@@ -2177,13 +2074,11 @@ static void parse_opt_label(void) {
   int sep = scanner_advance(); /* ':' or '=' */
 
   if (sep == ':') {
-    mem_addr addr = text_dir ? current_text_pc() : current_data_pc();
-    /* DO NOT resolve uses immediately.  If a subsequent .word (etc.)
-       on the next line bumps the data PC for alignment,
-       fix_current_label_address must be able to update this label's
-       addr first.  emit_label_normal also conses onto
-       this_line_labels in SDT mode. */
-    emit_label_normal(sym, addr);
+    /* The label's address is assigned at emit time (emit_one's
+       AST_LABEL_DEF case), where it also conses onto this_line_labels so
+       a subsequent .word's alignment can retroactively fix the address
+       via fix_current_label_address before the use is resolved. */
+    emit_label_normal(sym);
     free(sym);
   } else {
     /* ID '=' EXPR : constant label */
@@ -2254,9 +2149,7 @@ void parser_init(FILE* in, char* file_name) {
     ast_free(current_file);
     current_file = nullptr;
   }
-  if (should_build_ast()) {
-    current_file = ast_make_file(file_name);
-  }
+  current_file = ast_make_file(file_name);
 }
 
 int parse_file(void) {
@@ -2271,29 +2164,26 @@ int parse_file(void) {
 
   /* If -print-ast was requested, dump the tree now (after parse,
      possibly before/instead of emit). */
-  if (should_build_ast() && print_ast_after_parse && current_file != nullptr) {
+  if (print_ast_after_parse && current_file != nullptr) {
     ast_print(current_file, ast_print_out ? ast_print_out : stderr);
   }
 
   /* If -show-expansion was requested, dump just the pseudo-op
      wrappers from this file. */
-  if (should_build_ast() && show_expansion_after_parse &&
-      current_file != nullptr) {
+  if (show_expansion_after_parse && current_file != nullptr) {
     print_pseudo_walk(current_file,
                       show_expansion_out ? show_expansion_out : stderr);
   }
 
   /* If -print-ast-json was requested, dump the tree as JSON. */
-  if (should_build_ast() && print_ast_json_after_parse &&
-      current_file != nullptr) {
+  if (print_ast_json_after_parse && current_file != nullptr) {
     ast_print_json(current_file, ast_json_out ? ast_json_out : stderr);
   }
 
-  /* AST mode: walk the tree and emit code via the action helpers.
-     Skipped when the user asked to just inspect the tree
-     (-print-ast / -show-expansion / -print-ast-json). */
-  if (should_build_ast() && !print_ast_only_ && defer_emit_to_emit_ast &&
-      current_file != nullptr) {
+  /* Walk the tree and emit code via the action helpers.  Skipped when
+     the user asked to just inspect the tree (-print-ast /
+     -show-expansion / -print-ast-json). */
+  if (!print_ast_only_ && current_file != nullptr) {
     emit_ast(current_file);
   }
 
@@ -2306,10 +2196,8 @@ int parse_file(void) {
    helpers (r_type_inst, store_word, record_label, ...) that commit
    each node's effect to the simulator's memory and symbol table.
 
-   The action helpers themselves are unchanged from when the parser
-   called them inline; the AST walk is just a different driver for
-   the same effect chain.  In PARSE_DIRECT mode this function isn't
-   called — the parser fires the same helpers itself.
+   This is the only driver for the action helpers: the parse phase
+   builds the tree and emit_ast walks it to commit the effects.
 
    Forward references in `.word LABEL`-style data work via a small
    side channel: the parser attaches the unresolved label to the
@@ -2333,6 +2221,9 @@ void emit_ast(const ast_node* file) {
      directive) get their uses resolved here, just like
      parse_file does. */
   clear_labels();
+  /* Stop overriding the source annotation; any later direct emission
+     (e.g. interactive REPL) should read the live scanner line. */
+  emit_source_clear();
 }
 
 /* Emit one .byte/.half/.word value list.  For literal-only exprs
@@ -2370,8 +2261,12 @@ static void emit_one(const ast_node* node) {
   /* Restore the per-node source line so listing observers (and any
      parse_error / parse_warn fired from inside an action helper)
      report the right line.  Without this, the scanner's line_no
-     stays at the file's last line throughout emit_ast. */
+     stays at the file's last line throughout emit_ast.  The source
+     TEXT (for an assembled instruction's annotation) comes from the
+     node too — see ast_node.src_text — since source_line() would
+     likewise return the stale last line at emit time. */
   line_no = node->source_line;
+  emit_source_set(node->src_text);
 
   switch (node->kind) {
     case AST_FILE:
