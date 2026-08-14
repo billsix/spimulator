@@ -1,6 +1,6 @@
 #!/bin/env bash
 
-cd /spimulator || exit 1
+[ -d /spimulator ] && cd /spimulator
 
 # pgu/upstreamSource/ holds third-party sources kept byte-identical to
 # upstream -- never reformat them (Bill, 2026-07-29).

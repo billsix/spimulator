@@ -1,5 +1,5 @@
 #!/bin/env bash
 
-cd /spimulator
+[ -d /spimulator ] && cd /spimulator
 
 run-clang-tidy . -fix
