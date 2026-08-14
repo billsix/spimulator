@@ -19,7 +19,7 @@ for the rationale behind that decision.
 
 | Corpus | Files | Clean parse |
 |---|---:|---:|
-| [`/examples`](https://github.com/billsix/examples) (MIPS teaching demos) | 46 | **44** |
+| [`/examples`](https://github.com/billsix/spimulator-examples) (MIPS teaching demos) | 46 | **44** |
 | `tree-sitter test` corpus | 5 | **5** |
 
 The 2 `/examples` files that don't parse cleanly
