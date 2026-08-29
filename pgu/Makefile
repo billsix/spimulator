@@ -10,6 +10,15 @@ TMUX_MOUNT := $(shell if [ -f $(TMUX_REAL_PATH) ]; then echo "-v $(TMUX_REAL_PAT
 
 CONTAINER_CMD = podman
 CONTAINER_NAME = programmingfromthegroundup
+
+# Extra flags for every container `run`. Auto-set when running nested inside a
+# runClaudeInContainer/runCrushInContainer sandbox (which exports NESTED_PODMAN=1,
+# making --cgroups=disabled apply so podman-in-podman works); empty — and
+# byte-identical behavior — on a normal host. Overridable:
+#   make shell PODMAN_RUN_FLAGS='--cgroups=disabled --network=host'
+# On `run` lines only, never `build` (podman build rejects --cgroups). Convention:
+# runClaudeInContainer tasks/reference/nested-podman-design.md.
+PODMAN_RUN_FLAGS ?= $(if $(filter 1,$(NESTED_PODMAN)),--cgroups=disabled)
 FILES_TO_MOUNT = -v ./docs:/pgu/docs:Z \
                  -v ./src:/pgu/src:Z \
                  -v ./entrypoint/shell.sh:/usr/local/bin/shell.sh:Z \
@@ -47,7 +56,7 @@ image: ## Build podman image to run the examples
 
 .PHONY: shell
 shell: format  ## Get Shell into a ephermeral container made from the image
-	$(CONTAINER_CMD) run -it --rm \
+	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) -it --rm \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \
 		$(OUTPUT_DIR_TO_MOUNT) \
@@ -59,7 +68,7 @@ shell: format  ## Get Shell into a ephermeral container made from the image
 
 .PHONY: format
 format: image ## Format the C code
-	$(CONTAINER_CMD) run -it --rm \
+	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) -it --rm \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \
 		$(OUTPUT_DIR_TO_MOUNT) \
@@ -72,7 +81,7 @@ docs: html pdf epub ## Build the book in HTML, PDF, and EPUB form
 
 .PHONY: html
 html: image ## Build the book in HTML form
-	$(CONTAINER_CMD) run -it --rm \
+	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) -it --rm \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \
 		$(OUTPUT_DIR_TO_MOUNT) \
@@ -81,7 +90,7 @@ html: image ## Build the book in HTML form
 
 .PHONY: pdf
 pdf: image  ## Build the book in PDF form
-	$(CONTAINER_CMD) run -it --rm \
+	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) -it --rm \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \
 		$(OUTPUT_DIR_TO_MOUNT) \
@@ -90,7 +99,7 @@ pdf: image  ## Build the book in PDF form
 
 .PHONY: epub
 epub: image  ## Build the book in EPUB form
-	$(CONTAINER_CMD) run -it --rm \
+	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) -it --rm \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \
 		$(OUTPUT_DIR_TO_MOUNT) \

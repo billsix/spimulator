@@ -9,6 +9,15 @@ RUN_SANITIZERS ?= 1
 
 CONTAINER_CMD = podman
 CONTAINER_NAME = spimulator
+
+# Extra flags for every container `run`. Auto-set when running nested inside a
+# runClaudeInContainer/runCrushInContainer sandbox (which exports NESTED_PODMAN=1,
+# making --cgroups=disabled apply so podman-in-podman works); empty — and
+# byte-identical behavior — on a normal host. Overridable:
+#   make shell PODMAN_RUN_FLAGS='--cgroups=disabled --network=host'
+# On `run` lines only, never `build` (podman build rejects --cgroups). Convention:
+# runClaudeInContainer tasks/reference/nested-podman-design.md.
+PODMAN_RUN_FLAGS ?= $(if $(filter 1,$(NESTED_PODMAN)),--cgroups=disabled)
 FILES_TO_MOUNT = -v .:/spimulator/:Z \
                  -v ./entrypoint/shell.sh:/usr/local/bin/shell.sh:Z \
                  -v ./entrypoint/format.sh:/usr/local/bin/format.sh:Z \
@@ -62,12 +71,12 @@ SHELL_EXEC_ARGS = -c 'cd $(REPO_MOUNT) && $(if $(CMD),$(CMD),exec bash $(SCRIPT)
 
 .PHONY: shell
 shell: format ## Get Shell into a ephermeral container made from the image
-	$(CONTAINER_CMD) run -it --rm $(SHELL_RUN_FLAGS) $(CONTAINER_NAME) /usr/local/bin/shell.sh
+	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) -it --rm $(SHELL_RUN_FLAGS) $(CONTAINER_NAME) /usr/local/bin/shell.sh
 
 .PHONY: shell-exec
 shell-exec: image ## Run a script/command in the container env (no TTY): make shell-exec SCRIPT=path | CMD='...'
 	@[ -n "$(SCRIPT)$(CMD)" ] || { echo 'usage: make shell-exec SCRIPT=<repo-relative path> | CMD="..."'; exit 2; }
-	$(CONTAINER_CMD) run --rm $(SHELL_RUN_FLAGS) $(CONTAINER_NAME) /usr/local/bin/shell.sh $(SHELL_EXEC_ARGS)
+	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) --rm $(SHELL_RUN_FLAGS) $(CONTAINER_NAME) /usr/local/bin/shell.sh $(SHELL_EXEC_ARGS)
 
 
 # Refresh the vendored Emacs packages. Forces USE_EMACS=1 and rebuilds the image
@@ -82,7 +91,7 @@ shell-exec: image ## Run a script/command in the container env (no TTY): make sh
 .PHONY: update-emacs-packages
 update-emacs-packages: ## USE_EMACS=1: rebuild image, wipe+reinstall elpa, strip *.elc/*.eln, git add -f
 	$(MAKE) image USE_EMACS=1
-	$(CONTAINER_CMD) run --rm \
+	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) --rm \
 		-v $(CURDIR)/entrypoint/dotfiles/.emacs.d/elpa:/root/.emacs.d/elpa:U,z \
 		-v $(CURDIR)/entrypoint/dotfiles/.emacs.d/install-melpa-packages.el:/root/.emacs.d/install-melpa-packages.el:ro,z \
 		--entrypoint /bin/bash \
@@ -97,7 +106,7 @@ update-emacs-packages: ## USE_EMACS=1: rebuild image, wipe+reinstall elpa, strip
 
 .PHONY: format
 format: image ## Format the C code
-	$(CONTAINER_CMD) run -it --rm \
+	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) -it --rm \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \
 		$(CONTAINER_NAME) \
@@ -120,7 +129,7 @@ DOCS_SRC   = /spimulator/pgu/docs/source
 DOCS_BUILD = /spimulator/pgu/docs/build
 
 define run_in_container
-	$(CONTAINER_CMD) run -it --rm \
+	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) -it --rm \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \
 		$(ELPA_MOUNT) \
