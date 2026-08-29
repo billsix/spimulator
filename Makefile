@@ -45,14 +45,29 @@ image: ## Build podman image to run the examples
                          .
 
 
-.PHONY: shell
-shell: format ## Get Shell into a ephermeral container made from the image
-	$(CONTAINER_CMD) run -it --rm \
+# --- shell / shell-exec share ONE container invocation, defined here so the two
+# targets can never drift. Scoped to this pair ONLY. See runClaudeInContainer
+# tasks/add-shell-exec-target.md for the design.
+SHELL_RUN_FLAGS = \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \
-                $(ELPA_MOUNT) \
-		$(CONTAINER_NAME) \
-		/usr/local/bin/shell.sh
+		$(ELPA_MOUNT)
+
+# In-container repo mount path (matches FILES_TO_MOUNT: -v .:/spimulator/).
+REPO_MOUNT = /spimulator
+
+# shell-exec payload: cd to the repo root (independent of shell.sh's own cd), then
+# run the inline CMD, else the repo-relative SCRIPT. Prefers CMD when both are set.
+SHELL_EXEC_ARGS = -c 'cd $(REPO_MOUNT) && $(if $(CMD),$(CMD),exec bash $(SCRIPT))'
+
+.PHONY: shell
+shell: format ## Get Shell into a ephermeral container made from the image
+	$(CONTAINER_CMD) run -it --rm $(SHELL_RUN_FLAGS) $(CONTAINER_NAME) /usr/local/bin/shell.sh
+
+.PHONY: shell-exec
+shell-exec: image ## Run a script/command in the container env (no TTY): make shell-exec SCRIPT=path | CMD='...'
+	@[ -n "$(SCRIPT)$(CMD)" ] || { echo 'usage: make shell-exec SCRIPT=<repo-relative path> | CMD="..."'; exit 2; }
+	$(CONTAINER_CMD) run --rm $(SHELL_RUN_FLAGS) $(CONTAINER_NAME) /usr/local/bin/shell.sh $(SHELL_EXEC_ARGS)
 
 
 # Refresh the vendored Emacs packages. Forces USE_EMACS=1 and rebuilds the image
