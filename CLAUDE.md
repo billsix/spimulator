@@ -123,9 +123,11 @@ Curriculum / library:
   MIPS endianness between them.
 - `container-cross-env.md` — lld + qemu-user-static in the root Dockerfile;
   needed only for *runtime* cross verification, not for the matrices.
-- `rpn-calculator.md` → `calc-language.md` — floating-point calculator demos
-  (the curriculum's first FPU exercises): RPN/stack first, then the TI-83-ish
-  infix language implemented twice from one grammar (SDT vs syntax tree).
+- (`rpn-calculator.md` + `calc-language.md` — floating-point calculator demos,
+  the curriculum's first FPU exercises — **DONE + archived 2026-09-02**: rpn,
+  then the TI-83-ish infix language implemented twice from one grammar
+  (`calc-sdt` = SDT, `calc-tree` = AST). FPU + AST-via-sbrk design notes in
+  `tasks/reference/mips-fpu-and-float-demos.md`.)
 - `mini-c-compiler.md` — **capstone**: SpimC (a defined C subset; SDT, no
   AST; declarations-first) compiler per Bill's design principles. Research
   done 2026-07-07: construct inventory, Crenshaw-shaped plan, Route-B

@@ -186,10 +186,46 @@ might).
 
 ## Status
 
-Not started — but **unblocked** as of 2026-07-07: the multi-file loading this
-plan waited on already works (repeated `-f`, additive REPL `load`), so the
-two-file library+demo invocation runs today.  This is tranche 1 of the larger
-shared-library plan in [`multi-file-load.md`](multi-file-load.md); do this
-first, then that doc's de-duplication sweep.  Estimated effort: ~one day for
-the 10 functions + demo + golden + meson wiring + the count-chars.c
-consolidation sweep.
+**DONE (library + demo + golden + wiring) — 2026-09-02** (William Emerison Six
+<billsix@gmail.com>).  The count-chars.c consolidation is **deferred** (see
+below).
+
+Delivered:
+
+- `examples/src/lib/libstr/` — `libstr.h`, `libstr.c` (naive C), `libstr.asm`
+  (naive MIPS, every function a leaf: `$a0..$a3` in, `$v0` out, `$t*` clobber,
+  no `.data`, no `jal`), and `LICENSE-musl`.  All 10 functions: strlen, strcmp,
+  strncmp, strcpy, strncpy, strchr, memchr, memcpy, memset, memmove.
+- `examples/src/lib/libstr-demo/` — `str-demo.c`, `str-demo.asm`, and
+  `str-demo.expected` (24 hardcoded subcases: equal/unequal/prefix compares,
+  bounded compares, copy + NUL-padded bounded copy, forward/reverse byte search,
+  bounded memory search, sized memcpy, memset fill/clear, and memmove
+  forward-overlap + backward-overlap + non-overlap).  One `name=PASS` line per
+  subcase.
+- Wiring: `libstr_lib`/`libstr_inc` + the `str-demo` `lib_demos` entry in
+  `examples/src/meson.build`; `str-demo` in the `lib_demo_tests` array; a
+  `str-demo)` case in `examples/tests/run-demo.sh`; a Part 9 (teaching
+  libraries) entry + concept-index rows in `examples/READING-ORDER.md`.
+
+Verification (all green): `meson compile` clean; the golden was **generated from
+the compiled C binary** (the oracle) and the asm under spim reproduces it
+**byte-for-byte** (`meson test str-demo` OK, and a direct `diff` of the spim
+stdout vs the golden is empty); full suite **34/34** (was 33); clang-format
+`--dry-run --Werror` clean on all three new `.c`/`.h` files.  One benign
+compiler warning remains — `-Wstringop-truncation` on the deliberate
+`strncpy(buf,"hello",3)` truncation subcase, which is exactly the strncpy gotcha
+the demo teaches; not fatal (no `-Werror` in `edu_args`).
+
+### Deferred — count-chars.c → strlen consolidation
+
+The plan (above, "Consolidation with existing helpers") called for renaming
+`examples/src/count-chars.c`'s `count_chars` → `strlen` and deleting the file.
+**Deferred and flagged as risky**: `count_chars` is part of `io_lib` and is
+called by `examples/src/print-string.c`, which backs `print_string` used by
+**every** demo.  Renaming/removing it is not a local change — it touches the
+shared IO layer, so it belongs with the demos' de-duplication sweep tracked in
+[`multi-file-load.md`](multi-file-load.md), not with the libstr port.  Also
+still deferred from the original plan: `strstr`/`memmem` (Two-Way), `strspn`/
+`strcspn`/`strpbrk`, `strtok_r` — see "What's NOT in scope" above.
+
+Implemented via one commit on branch `overnight-2026-09-02-examples`.

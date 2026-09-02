@@ -60,6 +60,15 @@ libctype_lib = static_library('libctype',
 )
 libctype_inc = include_directories('lib/libctype')
 
+# libstr — naive string/memory primitives (strlen, strcmp, strncmp,
+# strcpy, strncpy, strchr, memchr, memcpy, memset, memmove).
+# Adapted from musl libc src/string/.  See src/lib/libstr/LICENSE-musl.
+libstr_lib = static_library('libstr',
+  files('lib/libstr/libstr.c'),
+  c_args: edu_args,
+)
+libstr_inc = include_directories('lib/libstr')
+
 # libstdlib — atoi (and, growing: abs, labs, bsearch, _Exit).
 # Adapted from musl libc src/stdlib/ and src/exit/.
 # See src/lib/libstdlib/LICENSE-musl.
@@ -91,6 +100,10 @@ demos = [
   ['pascals-triangle',       'algorithms/pascals-triangle/pascals-triangle.c'],
   ['sieve',                  'algorithms/sieve/sieve.c'],
   ['binary-search',          'algorithms/binary-search/binary-search.c'],
+  ['rpn',                    'algorithms/rpn/rpn.c'],
+  # ---- lang: little languages (infix parsers / evaluators) ----
+  ['calc-sdt',               'lang/calc/calc-sdt.c'],
+  ['calc-tree',              'lang/calc/calc-tree.c'],
   # ---- transforms: stdin -> stdout stream transforms ----
   ['wc',                     'transforms/wc/wc.c'],
   ['head',                   'transforms/head/head.c'],
@@ -148,6 +161,7 @@ endforeach
 # Each entry: [target_name, source_path, link_with_lib, extra_includes]
 lib_demos = [
   ['ctype-demo', 'lib/libctype-demo/ctype-demo.c', libctype_lib, libctype_inc],
+  ['str-demo', 'lib/libstr-demo/str-demo.c', libstr_lib, libstr_inc],
 ]
 
 foreach demo : lib_demos
@@ -228,10 +242,10 @@ demo_test_runner = files('../tests/run-demo.sh')
 # `spimulator_exe` and `exception_file` come from the parent project's
 # meson.build via subdir scope.
 lib_demo_tests = [
-  'ctype-demo', 'atoi-demo', 'abs-demo', 'exit-demo', 'bsearch-demo',
+  'ctype-demo', 'str-demo', 'atoi-demo', 'abs-demo', 'exit-demo', 'bsearch-demo',
   'atexit-demo',
   # Regular demos with pinned goldens (stdin-driven; see run-demo.sh)
-  'strings',
+  'strings', 'rpn', 'calc-sdt', 'calc-tree',
 ]
 foreach name : lib_demo_tests
   test(name,

@@ -1,9 +1,39 @@
 # Example: RPN calculator (C + spim asm)
 
-**Status:** proposed — not started
+**Status:** DONE 2026-09-02 (William Emerison Six <billsix@gmail.com>) — shipped as
+`examples/src/algorithms/rpn/rpn.{c,asm}` + golden test, full suite 33/33 green.
 **Priority:** 6
 **Difficulty:** 5
 **Created:** 2026-07-07 (Bill)
+
+## Done — what shipped (2026-09-02)
+
+`examples/src/algorithms/rpn/`: `rpn.c` (portable freestanding C reference),
+`rpn.asm` (hand-written MIPS, first FPU example), `rpn.input` + `rpn.expected`
+(golden), registered in `examples/src/meson.build` (`lib_demo_tests`), a
+`run-demo.sh` case, and a Part 8 entry in `examples/READING-ORDER.md`. The C and
+asm produce byte-identical output (verified across 17 expressions incl. fractions,
+`inf`, `nan`, negatives, decimals); the golden is generated FROM the C oracle and
+the asm reproduces it. `meson test` full suite 33/33.
+
+**Decisions made (use-your-discretion grant, Bill 2026-09-02):**
+- Output format: a fixed deterministic printer — integral → integer (`14`), else
+  integer part + `.` + 6 truncated fractional digits (`0.333333`) — implemented
+  identically in C and asm so they match WITHOUT depending on spim's `%.18g`
+  (which native C cannot reproduce). `nan`/`inf` named; `/0` shows inf/nan.
+- `-` is always subtract (no negative literals; negative *results* print fine).
+- Operand stack IS the MIPS `$sp` stack (per the task's lesson).
+
+**Durable knowledge harvested to `tasks/reference/mips-fpu-and-float-demos.md`** —
+the C↔asm byte-match technique, FP-constant synthesis, and two simulator parser
+idiosyncrasies found (labeled `.double` followed by another labeled statement
+fails to parse; a data label named after an instruction mnemonic breaks parsing).
+One open observation recorded there: the asm error-exit status (`syscall 17`) is
+not propagated to the shell in batch mode, so the golden pins the success path only.
+
+---
+
+_Original request below._
 
 ## Request
 

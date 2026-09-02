@@ -63,6 +63,10 @@ static void bubble_sort(int* a, int n) {
 }
 
 int my_main(int argc, char** argv) {
+  /* crt0.h fixes the my_main(argc, argv) signature; this demo checks argc but
+   * takes no argv, so cast the unused argv to void to silence
+   * -Wunused-parameter (the build enables it via warning_level=3 / -Wextra).
+   * The cast evaluates-and-discards, emitting no code. */
   (void)argv;
   if (argc != 1) {
     print_string("usage: bubble-sort   (reads ints from stdin)\n");
