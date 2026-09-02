@@ -240,14 +240,15 @@ and forces you to think about a specific asm pattern.
     first 4 bytes of a candidate printable run, then stream
     once it qualifies.  Unbounded runs, no line buffer.
 
-## Part 8 — The FPU: floating point and the operand stack (1 demo)
+## Part 8 — The FPU: floating point, the operand stack, and a parser (2 demos)
 
-The first demo to compute with **real numbers** rather than integers.
-It introduces the floating-point coprocessor — the `$f0..$f31`
+The first demos to compute with **real numbers** rather than integers.
+They introduce the floating-point coprocessor — the `$f0..$f31`
 register file, `cvt.d.w` (int → double), `add.d`/`sub.d`/`mul.d`/
-`div.d`, and `trunc.w.d` (double → integer digits).  Read it after
-Part 6: its evaluation stack is the real `$sp` stack, so the push/pop
-frame discipline from the recursion demos is the prerequisite.
+`div.d`, and `trunc.w.d` (double → integer digits).  Read them after
+Part 6: rpn's evaluation stack is the real `$sp` stack, and calc-sdt's
+recursive-descent parser leans on the push/pop frame discipline the
+recursion demos taught.
 
 41. **`rpn`** — a `dc`-flavored floating-point reverse-Polish
     calculator.  Whitespace-separated tokens on stdin: a number is
@@ -255,8 +256,19 @@ frame discipline from the recursion demos is the prerequisite.
     and EOF prints the top of stack.  The operand stack IS the MIPS
     `$sp` stack (push = `addi $sp,-8` + `sdc1`; pop = `ldc1` +
     `addi $sp,8`), and an `atof`-style tokenizer builds each double
-    from its digits.  Predecessor to an infix calculator (see
-    `tasks/calc-language.md`).
+    from its digits.  The gentle (postfix, no precedence) step before
+    the infix calculator.
+42. **`calc-sdt`** — a TI-83-style **infix** calculator by
+    syntax-directed translation: a recursive-descent parser that
+    *evaluates while parsing* (no tree), one expression per line.
+    `expr → term → factor → ( expr )` is **mutually recursive**, so
+    the asm holds each operand on the stack across a recursive call —
+    the recursion chapter's frame discipline with a real payload.
+    Precedence and associativity fall out of the grammar layering;
+    unary minus, parentheses, and per-line error recovery are handled.
+    This is the SDT technique the mini C compiler will use; a
+    tree-building companion (calc-tree) is planned — see
+    `tasks/calc-language.md`.
 
 ## Part 9 — Teaching libraries (multi-file linking)
 
@@ -275,7 +287,7 @@ from Parts 5–6 is comfortable.
   (`isdigit`, `isalpha`, `toupper`, …).  Every function is a
   one-line range check; the simplest library, all leaves.
 
-42. **`libstr`** — naive `<string.h>` primitives: `strlen`,
+43. **`libstr`** — naive `<string.h>` primitives: `strlen`,
     `strcmp`, `strncmp`, `strcpy`, `strncpy`, `strchr`, `memchr`,
     `memcpy`, `memset`, `memmove`.  The payoff is seeing the two
     core shapes side by side: the **NUL-sentinel byte loop**

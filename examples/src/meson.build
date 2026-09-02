@@ -101,6 +101,8 @@ demos = [
   ['sieve',                  'algorithms/sieve/sieve.c'],
   ['binary-search',          'algorithms/binary-search/binary-search.c'],
   ['rpn',                    'algorithms/rpn/rpn.c'],
+  # ---- lang: little languages (infix parsers / evaluators) ----
+  ['calc-sdt',               'lang/calc/calc-sdt.c'],
   # ---- transforms: stdin -> stdout stream transforms ----
   ['wc',                     'transforms/wc/wc.c'],
   ['head',                   'transforms/head/head.c'],
@@ -242,7 +244,7 @@ lib_demo_tests = [
   'ctype-demo', 'str-demo', 'atoi-demo', 'abs-demo', 'exit-demo', 'bsearch-demo',
   'atexit-demo',
   # Regular demos with pinned goldens (stdin-driven; see run-demo.sh)
-  'strings', 'rpn',
+  'strings', 'rpn', 'calc-sdt',
 ]
 foreach name : lib_demo_tests
   test(name,

@@ -104,6 +104,11 @@ case "$NAME" in
     input=$SRC_DIR/algorithms/rpn/rpn.input
     asm_files="-f $SRC_DIR/algorithms/rpn/rpn.asm"
     ;;
+  calc-sdt)
+    expected=$SRC_DIR/lang/calc/calc-sdt.expected
+    input=$SRC_DIR/lang/calc/calc-sdt.input
+    asm_files="-f $SRC_DIR/lang/calc/calc-sdt.asm"
+    ;;
   *)
     fail "unknown demo: $NAME"
     ;;

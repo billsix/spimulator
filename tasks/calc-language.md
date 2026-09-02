@@ -1,9 +1,42 @@
 # Example: calculator language (TI-83-style), SDT and AST versions
 
-**Status:** proposed — not started
+**Status:** SDT version DONE 2026-09-02 (William Emerison Six <billsix@gmail.com>);
+**TREE version remaining** (calc-tree.c + calc-tree.asm — the sbrk-allocated AST).
 **Priority:** 6
 **Difficulty:** 6
 **Created:** 2026-07-07 (Bill)
+
+## Done so far — the SDT version (2026-09-02)
+
+`examples/src/lang/calc/calc-sdt.{c,asm}` + `calc-sdt.input`/`calc-sdt.expected`,
+registered in `meson.build` (`lib_demo_tests`), a `run-demo.sh` case, and a Part 8
+entry (#42, after rpn) in `READING-ORDER.md`. Recursive-descent, **evaluates while
+parsing** (no tree); the asm exercises **mutual recursion** (`expr`↔`term`↔`factor`
+via `( expr )`) with operands saved on the stack across recursive calls. Floating
+point (reuses rpn's FP-constant synthesis + deterministic `print_double`, so C and
+asm match byte-for-byte). Handles precedence, parentheses, unary minus, leading-dot
+numbers (`.5`), per-line **error recovery** (bad line → "error", resume next line),
+and inf/nan. Verified across 18 expressions C-vs-asm + a 6-line multi-line golden;
+`meson test` full suite **35/35**.
+
+**Language decided (v1):** grammar exactly as sketched below; `-` is subtract and
+unary minus (no negative literals needed — unary minus in `factor` covers it);
+numbers are `[0-9]*('.'[0-9]*)?` with at least one digit; malformed input recovers
+per line rather than aborting (chosen over exit-on-error so a multi-line golden can
+show good lines around a bad one). Output format matches rpn's (see
+`tasks/reference/mips-fpu-and-float-demos.md`).
+
+## Remaining — the TREE version (calc-tree.c + calc-tree.asm)
+
+The AST-building companion: same grammar, but parse into a tree, then a separate
+walker evaluates it — so a student diffs the two architectures. In asm this needs
+an **sbrk bump-allocator** for nodes (allocate, never free) — the harder, ~2-day
+piece the original estimate flagged. Should produce byte-identical output to
+calc-sdt (can share the golden). Left as a focused follow-up.
+
+---
+
+_Original request below._
 
 ## Request
 
