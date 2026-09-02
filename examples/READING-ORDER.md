@@ -240,6 +240,24 @@ and forces you to think about a specific asm pattern.
     first 4 bytes of a candidate printable run, then stream
     once it qualifies.  Unbounded runs, no line buffer.
 
+## Part 8 — The FPU: floating point and the operand stack (1 demo)
+
+The first demo to compute with **real numbers** rather than integers.
+It introduces the floating-point coprocessor — the `$f0..$f31`
+register file, `cvt.d.w` (int → double), `add.d`/`sub.d`/`mul.d`/
+`div.d`, and `trunc.w.d` (double → integer digits).  Read it after
+Part 6: its evaluation stack is the real `$sp` stack, so the push/pop
+frame discipline from the recursion demos is the prerequisite.
+
+41. **`rpn`** — a `dc`-flavored floating-point reverse-Polish
+    calculator.  Whitespace-separated tokens on stdin: a number is
+    pushed, an operator (`+ - * /`) pops two and pushes the result,
+    and EOF prints the top of stack.  The operand stack IS the MIPS
+    `$sp` stack (push = `addi $sp,-8` + `sdc1`; pop = `ldc1` +
+    `addi $sp,8`), and an `atof`-style tokenizer builds each double
+    from its digits.  Predecessor to an infix calculator (see
+    `tasks/calc-language.md`).
+
 ---
 
 ## Extras (not in the main reading order)

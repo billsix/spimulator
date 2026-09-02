@@ -94,6 +94,11 @@ case "$NAME" in
                -f $LIB_DIR/libstdlib/libstdlib.asm \
                -f $LIB_DIR/libstdlib-demo/atexit-demo.asm"
     ;;
+  rpn)
+    expected=$SRC_DIR/algorithms/rpn/rpn.expected
+    input=$SRC_DIR/algorithms/rpn/rpn.input
+    asm_files="-f $SRC_DIR/algorithms/rpn/rpn.asm"
+    ;;
   *)
     fail "unknown demo: $NAME"
     ;;

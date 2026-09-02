@@ -91,6 +91,7 @@ demos = [
   ['pascals-triangle',       'algorithms/pascals-triangle/pascals-triangle.c'],
   ['sieve',                  'algorithms/sieve/sieve.c'],
   ['binary-search',          'algorithms/binary-search/binary-search.c'],
+  ['rpn',                    'algorithms/rpn/rpn.c'],
   # ---- transforms: stdin -> stdout stream transforms ----
   ['wc',                     'transforms/wc/wc.c'],
   ['head',                   'transforms/head/head.c'],
@@ -231,7 +232,7 @@ lib_demo_tests = [
   'ctype-demo', 'atoi-demo', 'abs-demo', 'exit-demo', 'bsearch-demo',
   'atexit-demo',
   # Regular demos with pinned goldens (stdin-driven; see run-demo.sh)
-  'strings',
+  'strings', 'rpn',
 ]
 foreach name : lib_demo_tests
   test(name,
