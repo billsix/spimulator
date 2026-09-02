@@ -29,10 +29,27 @@ show good lines around a bad one). Output format matches rpn's (see
 ## Remaining — the TREE version (calc-tree.c + calc-tree.asm)
 
 The AST-building companion: same grammar, but parse into a tree, then a separate
-walker evaluates it — so a student diffs the two architectures. In asm this needs
-an **sbrk bump-allocator** for nodes (allocate, never free) — the harder, ~2-day
-piece the original estimate flagged. Should produce byte-identical output to
-calc-sdt (can share the golden). Left as a focused follow-up.
+walker evaluates it — so a student diffs the two architectures. Should produce
+byte-identical output to calc-sdt.
+
+**Design decisions (Bill approved my recommendations, 2026-09-02):**
+1. **Node allocation = an `sbrk` bump-allocator on BOTH sides** (grab a region,
+   hand out nodes by bumping a pointer, never free) — the "allocate, never free"
+   heap lesson this version exists to teach, and what the mini C compiler will do.
+   `sbrk` (syscall 9) is confirmed available (the sieve demo uses it).
+2. **The C side mirrors the asm's manual bump allocator** (`os_brk`-based), NOT a
+   static pool — so calc-sdt-vs-calc-tree and calc-tree.c-vs-calc-tree.asm both
+   read as the same lesson. (`tac` already uses incremental sbrk as a C model.)
+3. **Unary minus is a dedicated AST node** (`NEG`), mirroring the
+   `factor := '-' factor` grammar rule — not desugared to `0 - x`.
+4. **Share calc-sdt's golden** — calc-tree's run-demo.sh case points at
+   `lang/calc/calc-sdt.expected`, proving the two architectures produce identical
+   output.
+
+Same language/grammar/error-recovery as calc-sdt (see above); the parser reuses
+calc-sdt.asm's structure but *builds nodes* instead of evaluating, and a separate
+recursive tree-walk evaluator produces the value. The harder, ~2-day piece the
+original estimate flagged.
 
 ---
 
