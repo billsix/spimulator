@@ -3,7 +3,8 @@
 **Reference document.** Distilled while building the first FPU example, `rpn`
 (`examples/src/algorithms/rpn/`, 2026-09-02, William Emerison Six
 <billsix@gmail.com>). Read this before writing another floating-point demo
-(e.g. `tasks/calc-language.md`), so the parser quirks and the C↔asm matching
+(the calc-language demos — `tasks/archive/2026/09/02/calc-language.md`), so the
+parser quirks and the C↔asm matching
 technique don't have to be rediscovered.
 
 ## The core problem a paired float demo must solve
@@ -73,6 +74,40 @@ These are real; work around them (and note them for `tasks/fix-inherited-idiosyn
 - Doubles on the `$sp` stack: `addi $sp,-8; sdc1 $fX,0($sp)` to push,
   `ldc1 $fX,0($sp); addi $sp,8` to pop. `rpn` uses this as its operand stack;
   save/restore the original `$sp` (it kept it in `$s1`).
+
+## Building an AST with sbrk nodes (the calc-tree companion, 2026-09-02)
+
+`calc-tree` (`examples/src/lang/calc/calc-tree.{c,asm}`) is calc-sdt restructured:
+the same grammar/scanner/number-parse/`print_double`/error-recovery, but the
+parser *builds a tree* and a separate recursive `eval` walks it. It shares
+calc-sdt's golden, so the two are proven byte-identical. Durable technique, reused
+by the planned mini C compiler:
+
+- **Nodes are bump-allocated off the program break, never freed** — the
+  "allocate, never free" heap lesson. Asm: `li $a0,24; li $v0,9; syscall` — spim
+  syscall 9 (sbrk) grows the data segment by `$a0` and returns the OLD top in
+  `$v0`. **Verified: the sbrk base is 8-aligned and a 24-byte node stride keeps
+  the `value` field (offset 8) 8-aligned**, so `sdc1`/`ldc1` to it need no manual
+  alignment. C mirrors it with `os_brk` (the `tac`/`sieve` pattern:
+  `n = os_brk(0); os_brk((char*)n + sizeof(Node))`), NOT a static pool, so the two
+  sides read as one lesson.
+- **Asm node layout (24 bytes):** 0 = kind (word: 0=NUM, 1=BINOP, 2=NEG), 4 = op
+  (word), 8 = value (double), 16 = left (word `Node*`), 20 = right (word `Node*`).
+  The C struct is native and need NOT match this byte layout — only the computed
+  output must match. Unary minus is a dedicated **NEG** node (mirrors
+  `factor := '-' factor`), not desugared to `0 - x`.
+- **The parser returns a node pointer up the call chain** (in `$v0`) where
+  calc-sdt returned a double in `$f0`. The left-operand held across a recursive
+  call is now a **word** on the `$sp` frame, not a `sdc1`'d double — but the frame
+  discipline is otherwise identical. `$f0` survives the `new_node` syscall, so a
+  NUM node's value can be parsed into `$f0` and stored after allocating.
+- **`eval(node)` is the recursive walker** (`$a0` = node, returns `$f0`): NUM ->
+  value; NEG -> `neg.d` of `eval(left)`; BINOP -> `eval(left)`, save it on the
+  stack across `eval(right)` (`sdc1`/`ldc1` — the same save-across-call discipline
+  the recursion chapter taught), then apply the op.
+- **Gotcha (parser):** don't name an asm label after an instruction mnemonic — the
+  NEG/eval labels are prefixed (`ev_neg`, `ev_num`, `pfn_build`, `pt_build`) for
+  exactly this reason (see the `neg:`/`abs:` note above).
 
 ## Open observation — asm error-exit status is not propagated
 

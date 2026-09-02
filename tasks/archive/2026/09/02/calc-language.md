@@ -1,12 +1,30 @@
 # Example: calculator language (TI-83-style), SDT and AST versions
 
-**Status:** SDT version DONE 2026-09-02 (William Emerison Six <billsix@gmail.com>);
-**TREE version remaining** (calc-tree.c + calc-tree.asm — the sbrk-allocated AST).
+**Status:** DONE 2026-09-02 (William Emerison Six <billsix@gmail.com>) — BOTH the
+SDT and the tree versions shipped and verified. Archived.
 **Priority:** 6
 **Difficulty:** 6
 **Created:** 2026-07-07 (Bill)
 
-## Done so far — the SDT version (2026-09-02)
+## Done — the TREE version (2026-09-02)
+
+`examples/src/lang/calc/calc-tree.{c,asm}`, registered in `meson.build`
+(`demos` + `lib_demo_tests`), a `run-demo.sh` case that **shares calc-sdt's
+golden + input** (`calc-sdt.expected`/`calc-sdt.input`), and Part 8 entry #43 in
+`READING-ORDER.md` (libstr bumped 43->44, Part 8 header 2->3 demos). Same
+grammar/scanner/number-parse/`print_double`/error-recovery as calc-sdt, but the
+parser **builds an AST** (NUM/BINOP/NEG nodes, unary minus a dedicated NEG node)
+and a separate recursive `eval` walks it. Nodes are **bump-allocated off the
+program break and never freed** — asm via syscall 9 (sbrk, 24-byte node), C via
+`os_brk` mirroring it (not a static pool). Durable design notes (node layout, the
+verified 8-aligned sbrk stride, the eval-walker frame discipline) are harvested
+into `tasks/reference/mips-fpu-and-float-demos.md`. Verified: clean
+warning_level=3 compile, clang-format clean, a 35-expression battery byte-identical
+across calc-tree C / calc-tree.asm / calc-sdt C / calc-sdt.asm, `meson test`
+**36/36**. Commit: `examples: add calc-tree — the AST-building companion to
+calc-sdt`.
+
+## Done — the SDT version (2026-09-02)
 
 `examples/src/lang/calc/calc-sdt.{c,asm}` + `calc-sdt.input`/`calc-sdt.expected`,
 registered in `meson.build` (`lib_demo_tests`), a `run-demo.sh` case, and a Part 8
