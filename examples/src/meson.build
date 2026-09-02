@@ -103,6 +103,7 @@ demos = [
   ['rpn',                    'algorithms/rpn/rpn.c'],
   # ---- lang: little languages (infix parsers / evaluators) ----
   ['calc-sdt',               'lang/calc/calc-sdt.c'],
+  ['calc-tree',              'lang/calc/calc-tree.c'],
   # ---- transforms: stdin -> stdout stream transforms ----
   ['wc',                     'transforms/wc/wc.c'],
   ['head',                   'transforms/head/head.c'],
@@ -244,7 +245,7 @@ lib_demo_tests = [
   'ctype-demo', 'str-demo', 'atoi-demo', 'abs-demo', 'exit-demo', 'bsearch-demo',
   'atexit-demo',
   # Regular demos with pinned goldens (stdin-driven; see run-demo.sh)
-  'strings', 'rpn', 'calc-sdt',
+  'strings', 'rpn', 'calc-sdt', 'calc-tree',
 ]
 foreach name : lib_demo_tests
   test(name,

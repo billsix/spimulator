@@ -109,6 +109,13 @@ case "$NAME" in
     input=$SRC_DIR/lang/calc/calc-sdt.input
     asm_files="-f $SRC_DIR/lang/calc/calc-sdt.asm"
     ;;
+  calc-tree)
+    # Shares calc-sdt's golden + input: the AST-building version must produce
+    # byte-identical output to the syntax-directed one.
+    expected=$SRC_DIR/lang/calc/calc-sdt.expected
+    input=$SRC_DIR/lang/calc/calc-sdt.input
+    asm_files="-f $SRC_DIR/lang/calc/calc-tree.asm"
+    ;;
   *)
     fail "unknown demo: $NAME"
     ;;

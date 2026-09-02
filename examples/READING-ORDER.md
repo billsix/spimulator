@@ -240,7 +240,7 @@ and forces you to think about a specific asm pattern.
     first 4 bytes of a candidate printable run, then stream
     once it qualifies.  Unbounded runs, no line buffer.
 
-## Part 8 — The FPU: floating point, the operand stack, and a parser (2 demos)
+## Part 8 — The FPU: floating point, the operand stack, and a parser (3 demos)
 
 The first demos to compute with **real numbers** rather than integers.
 They introduce the floating-point coprocessor — the `$f0..$f31`
@@ -266,9 +266,22 @@ recursion demos taught.
     the recursion chapter's frame discipline with a real payload.
     Precedence and associativity fall out of the grammar layering;
     unary minus, parentheses, and per-line error recovery are handled.
-    This is the SDT technique the mini C compiler will use; a
-    tree-building companion (calc-tree) is planned — see
-    `tasks/calc-language.md`.
+    This is the SDT technique the mini C compiler will use; the
+    tree-building companion is calc-tree (#43).
+43. **`calc-tree`** — the SAME language and grammar as calc-sdt, but
+    the parser *builds an abstract syntax tree* and a SEPARATE
+    recursive walker (`eval`) evaluates it — so nothing is computed
+    until the whole line is parsed.  It shares calc-sdt's golden,
+    proving the two architectures produce byte-identical output; the
+    student diffs the sources to see exactly what a tree buys (a
+    second pass, a reusable structure) and costs (node allocation).
+    Nodes (NUM / BINOP / NEG — unary minus is its own node) are
+    **bump-allocated off the program break** with `sbrk` (syscall 9)
+    and never freed: the "allocate, never free" heap lesson the mini
+    C compiler will reuse.  The C side mirrors the asm's manual bump
+    allocator (`os_brk`), and `eval` recurses with the same $ra/frame
+    discipline, saving the left operand across the right subtree's
+    evaluation.
 
 ## Part 9 — Teaching libraries (multi-file linking)
 
@@ -287,7 +300,7 @@ from Parts 5–6 is comfortable.
   (`isdigit`, `isalpha`, `toupper`, …).  Every function is a
   one-line range check; the simplest library, all leaves.
 
-43. **`libstr`** — naive `<string.h>` primitives: `strlen`,
+44. **`libstr`** — naive `<string.h>` primitives: `strlen`,
     `strcmp`, `strncmp`, `strcpy`, `strncpy`, `strchr`, `memchr`,
     `memcpy`, `memset`, `memmove`.  The payoff is seeing the two
     core shapes side by side: the **NUL-sentinel byte loop**
