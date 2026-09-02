@@ -1,0 +1,56 @@
+libstr — attribution and license
+=================================
+
+The implementations in this directory (strlen, strcmp, strncmp,
+strcpy, strncpy, strchr, memchr, memcpy, memset, memmove — in
+libstr.c and the corresponding MIPS assembly in libstr.asm) are
+adapted from musl libc's src/string/ subtree.
+
+Source       https://musl.libc.org/
+Repository   https://git.musl-libc.org/cgit/musl/tree/src/string
+
+musl is distributed under the MIT license, reproduced below
+verbatim from the musl COPYRIGHT file.
+
+----------------------------------------------------------------------
+Copyright © 2005-2020 Rich Felker, et al.
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+----------------------------------------------------------------------
+
+What's adapted vs. dropped
+--------------------------
+
+Kept from musl:
+- The algorithms themselves — the NUL-sentinel byte loop (strlen,
+  strcmp, strcpy, strchr), the count-driven memory loop (memcpy,
+  memset, memmove), strcmp's single-subtraction three-way result,
+  and memmove's copy-direction check.
+- The function signatures and ASCII/byte semantics.
+
+Dropped:
+- musl's performance machinery: word-at-a-time copies, the
+  has-a-zero-byte SWAR test in strlen/strchr, alignment handling,
+  and the __memcpy_fwd/bwd fast paths.  The naive byte loop is the
+  teaching version.
+- strstr / memmem (Two-Way string matching, ~150 lines) — deferred
+  to a follow-up (see tasks/libstr.md).
+- strdup / strndup (need malloc) and the wide-char wcs*/wmem*
+  counterparts (locale) — out of scope for this teaching libc.

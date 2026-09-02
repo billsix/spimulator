@@ -36,9 +36,17 @@ C), and **extract the patterns already duplicated in existing demos** so demos
 `jal` into the shared library instead of carrying private copies.
 
 - Already done: `examples/src/lib/libctype`, `libstdlib` (musl-adapted, C side).
-- First tranche, already specced: [`libstr.md`](libstr.md) — 10 string/memory
-  functions. That task is now **unblocked** and its planned two-file
-  invocation (`spimulator -f libstr.asm -f str-demo.asm`) works today.
+- First tranche, already specced: `libstr.md` — 10 string/memory functions.
+  **DONE 2026-09-02** — `libstr` + `str-demo` landed and are golden-tested
+  (full suite 34/34); the two-file invocation
+  (`spimulator -f libstr.asm -f str-demo.asm`) works.  See the archived
+  [`tasks/archive/2026/09/02/libstr.md`](archive/2026/09/02/libstr.md).
+- **Pending here (deferred from the libstr port):** consolidate
+  `examples/src/count-chars.c`'s `count_chars` into a shared `strlen`.  This is
+  a shared-IO change, not a libstr-local one — `count_chars` lives in `io_lib`
+  and is called by `print-string.c`, which backs `print_string` in **every**
+  demo, so renaming/removing it must happen as part of this de-duplication
+  sweep (and carefully: `print_string`'s length count is exactly what rebinds).
 - Then: survey what the demos reinvent
   (`grep -rn '^atoi:\|^str_eq:\|^print_uint:' examples/src --include='*.asm'`),
   promote those routines into the library, and de-duplicate the demos to

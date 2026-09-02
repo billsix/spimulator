@@ -258,6 +258,39 @@ frame discipline from the recursion demos is the prerequisite.
     from its digits.  Predecessor to an infix calculator (see
     `tasks/calc-language.md`).
 
+## Part 9 — Teaching libraries (multi-file linking)
+
+These live under `src/lib/` as `libNAME/` (the library) paired
+with a `libNAME-demo/` (a golden-tested exercise of it), adapted
+from musl libc.  Unlike the single-file demos above, each is
+*linked* from more than one file: the C demo links the library's
+`.o`, and the spim side loads both `.asm` files together
+(`spimulator -f libNAME.asm -f NAME-demo.asm`) — the cross-file
+symbol references resolve because spim's symbol table accumulates
+across `-f` files.  Read them as "a library is a bundle of
+callable leaf/near-leaf functions" once the calling convention
+from Parts 5–6 is comfortable.
+
+- **`libctype`** — ASCII classification + case conversion
+  (`isdigit`, `isalpha`, `toupper`, …).  Every function is a
+  one-line range check; the simplest library, all leaves.
+
+42. **`libstr`** — naive `<string.h>` primitives: `strlen`,
+    `strcmp`, `strncmp`, `strcpy`, `strncpy`, `strchr`, `memchr`,
+    `memcpy`, `memset`, `memmove`.  The payoff is seeing the two
+    core shapes side by side: the **NUL-sentinel byte loop**
+    (strlen/strcmp/strcpy/strchr are variations on it) and the
+    **count-driven memory loop** (memcpy/memset).  `memmove`'s
+    copy-direction check (`bltu` on the two pointers) is the real
+    bug it exists to prevent — get it wrong and overlapping
+    copies scramble bytes.  The demo (`str-demo`) runs ~24
+    hardcoded subcases and prints `name=PASS` per line.
+
+- **`libstdlib`** — `atoi`, `abs`/`labs`, `bsearch`, `exit`/
+  `atexit`.  The first library with a non-leaf function: `atoi`
+  calls into libctype in a loop, so it saves `$ra` and keeps
+  state in `$s*` across the calls.
+
 ---
 
 ## Extras (not in the main reading order)
@@ -326,3 +359,7 @@ Where each MIPS idea first lands in this order:
 | ring buffer over a stream | tail |
 | bit-pack across input bytes | base64 |
 | hold-back-then-stream run detection | strings |
+| FPU + operand stack (`cvt.d.w`, `sdc1`/`ldc1`) | rpn |
+| multi-file library linking (`-f` symbol accumulation) | libctype / libstr |
+| NUL-sentinel byte loop (strlen/strcmp/strcpy/strchr) | libstr |
+| count-driven memory loop + overlap-aware copy (memcpy/memmove) | libstr |

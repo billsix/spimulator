@@ -62,6 +62,11 @@ case "$NAME" in
     asm_files="-f $LIB_DIR/libctype/libctype.asm \
                -f $LIB_DIR/libctype-demo/ctype-demo.asm"
     ;;
+  str-demo)
+    expected=$LIB_DIR/libstr-demo/str-demo.expected
+    asm_files="-f $LIB_DIR/libstr/libstr.asm \
+               -f $LIB_DIR/libstr-demo/str-demo.asm"
+    ;;
   atoi-demo)
     expected=$LIB_DIR/libstdlib-demo/atoi-demo.expected
     asm_files="-f $LIB_DIR/libctype/libctype.asm \
