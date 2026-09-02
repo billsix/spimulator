@@ -185,6 +185,11 @@ static double parse_expr(void) {
 }
 
 int my_main(int argc, char** argv) {
+  /* This demo reads stdin, not the command line, but crt0.h always calls
+   * my_main(argc, argv), so the signature is fixed.  Casting the unused
+   * parameters to void marks them deliberately-ignored and silences
+   * -Wunused-parameter (the build enables it via warning_level=3 / -Wextra).
+   * The casts evaluate-and-discard, emitting no code. */
   (void)argc;
   (void)argv;
 
