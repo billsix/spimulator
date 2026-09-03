@@ -7,7 +7,7 @@ BUILD_DOCS ?= 1
 # to skip (faster rebuilds). See tasks/archive/2026/06/16/ubsan-sweep.md.
 RUN_SANITIZERS ?= 1
 
-CONTAINER_CMD = podman
+CONTAINER_CMD ?= $(shell command -v podman >/dev/null 2>&1 && echo podman || echo docker)
 CONTAINER_NAME = spimulator
 
 # Extra flags for every container `run`. Auto-set when running nested inside a

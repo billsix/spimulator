@@ -8,7 +8,7 @@ TMUX_REAL_PATH := $(shell readlink -f $(TMUX_FILE))
 TMUX_MOUNT := $(shell if [ -f $(TMUX_REAL_PATH) ]; then echo "-v $(TMUX_REAL_PATH):/root/.tmux.conf:Z" ; fi)
 
 
-CONTAINER_CMD = podman
+CONTAINER_CMD ?= $(shell command -v podman >/dev/null 2>&1 && echo podman || echo docker)
 CONTAINER_NAME = programmingfromthegroundup
 
 # Extra flags for every container `run`. Auto-set when running nested inside a
