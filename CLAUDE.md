@@ -50,9 +50,10 @@ meson compile -C builddir && meson test -C builddir`.
 Container (Fedora-44 + podman family template) — build args `USE_EMACS`,
 `BUILD_TREE_SITTER`, `BUILD_DOCS`:
 
+- `make help` *(default)* — list the documented targets.
 - `make image` — build + test spim at image-build time; build the examples' native
   artifacts; optionally build the tree-sitter grammar / Emacs integration.
-- `make shell` *(default; runs `format` first)* — dev shell.
+- `make shell` *(runs `format` first)* — dev shell.
 - `make format` — clang-format; `lint.sh` runs `clang-tidy`. Both run on shell exit.
 - `make html` / `pdf` / `epub` / `docs` *(BUILD_DOCS)* — build the **pgu** book via
   sphinx-build directly (the Makefile rasterizes SVGs and calls `sphinx-build`
