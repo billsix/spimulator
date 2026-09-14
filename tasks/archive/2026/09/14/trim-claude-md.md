@@ -1,6 +1,6 @@
 # Trim spimulator's CLAUDE.md (9,311 B ≈ 2.3K tok, loaded every session)
 
-**Status:** Done — trimmed 2026-09-13 (pending archive after the work commit)
+**Status:** Done — trimmed 2026-09-13 (archived 2026-09-14)
 **Priority:** 5
 **Difficulty:** 3
 
