@@ -11,9 +11,8 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
 - **Build:** Meson + Ninja (replaced the legacy Make/xmkmf). GNU C23
   (`c_std=gnu23`). One option: `-Dline_editing` (libedit REPL history; default auto).
 - **Parser:** hand-written recursive-descent scanner/parser (`scanner.c` /
-  `parser.c`) — flex+bison were removed (Phase 5, 2026-05). Parses to an AST,
-  then `emit_ast` walks it to commit code; the older inline syntax-directed
-  (PARSE_DIRECT) path was removed 2026-08-03, so the AST is the only mode. See
+  `parser.c`); parses to an AST, then `emit_ast` walks it to commit code. Single
+  parse mode. History (flex+bison and PARSE_DIRECT removal) + design:
   `tasks/reference/parser-ast-emit.md`.
 - **Teaching mode:** `explain.c` renders instructions at levels 0–4 (mnemonic →
   disassembly → register before/after → bit-layout diagram → field decoding).
@@ -71,11 +70,10 @@ RUN_SANITIZERS=0` to skip): the image build also compiles **spim only** (the
 `spimulator` target — the `-nostdlib` demos must not be sanitized) under
 **UBSan-trap** (`-fsanitize=undefined -fsanitize-trap=undefined`) and **ASan**
 (`-Db_sanitize=address`) and runs the regression suite under each, failing the
-image on any UB or memory error. ASan leak detection is defaulted off in
-`spim.c` via `__asan_default_options` (the gate is for corruption, not spim's
-intentional exit-time leaks). Note: diagnostic UBSan (`-Db_sanitize=undefined`)
-*under-reports* here — trap mode is the reliable gate. Rationale + the integer-UB
-primer: `tasks/archive/2026/06/16/ubsan-sweep.md`.
+image on any UB or memory error. Rationale (trap mode over diagnostic, which
+under-reports; ASan leak detection defaulted off so the gate targets corruption,
+not spim's intentional exit-time leaks) + the integer-UB primer:
+`tasks/archive/2026/06/16/ubsan-sweep.md`.
 
 ## Conventions
 
@@ -94,75 +92,7 @@ primer: `tasks/archive/2026/06/16/ubsan-sweep.md`.
 All task docs (spim-internal *and* curriculum) live in `tasks/`; completed work
 moves to `tasks/archive/<YYYY>/<MM>/<DD>/`. (The old separate `examples/tasks/`
 surface has been folded into `tasks/`.) There is no separate handoff /
-session-notes / next-session log — the current `tasks/` contents are the live
-picture, and git history plus the dated archive are the record of what's done.
-
-Ordering / dependency guidance lives in `tasks/README.md` (§Ordering &
-dependencies, reviewed 2026-07-07). Snapshot of the open set:
-
-Example-code hygiene:
-
-- `string-equality-audit.md` — audit COMPLETE, **no stops-short bug found**
-  anywhere (examples, pgu, simulator all clean); open pending Bill's pointer
-  to what he observed (chief suspect: testStringsForEquality's documented
-  0-equal/1-differ inversion).
-- `code-idiosyncrasies-audit.md` — sweep for oddities ("void argc" etc.):
-  examples first, then pgu, then src/.
-
-Curriculum / library:
-
-- `libstr.md` — musl string/memory teaching library; **unblocked** — multi-file
-  loading already works (`tests/tt.multifile.s`).
-- `multi-file-load.md` — re-scoped 2026-07-07: the loading mechanism was
-  already shipped; remaining scope is the shared musl library + de-duplicating
-  the demos' private `atoi:`/`str_eq:`/`print_uint:` copies (libstr = tranche 1).
-- (`unix-tools.md` — DONE and archived 2026-07-07; `strings` landed as the
-  first golden-tested regular demo. Only the optional hash demo idea remains,
-  noted in the archived doc.)
-- `examples-build-matrix.md` / `pgu-build-matrix.md` — 5-ISA `.s` listing
-  matrices; unblocked (crt0.h landed, clang already in the image); coordinate
-  MIPS endianness between them.
-- `container-cross-env.md` — lld + qemu-user-static in the root Dockerfile;
-  needed only for *runtime* cross verification, not for the matrices.
-- (`rpn-calculator.md` + `calc-language.md` — floating-point calculator demos,
-  the curriculum's first FPU exercises — **DONE + archived 2026-09-02**: rpn,
-  then the TI-83-ish infix language implemented twice from one grammar
-  (`calc-sdt` = SDT, `calc-tree` = AST). FPU + AST-via-sbrk design notes in
-  `tasks/reference/mips-fpu-and-float-demos.md`.)
-- `mini-c-compiler.md` — **capstone**: SpimC (a defined C subset; SDT, no
-  AST; declarations-first) compiler per Bill's design principles. Research
-  done 2026-07-07: construct inventory, Crenshaw-shaped plan, Route-B
-  (SpimC-in-SpimC first, hand-translate to asm) recommendation, and six
-  questions awaiting Bill in the doc.
-
-Simulator internals:
-
-- (`parser-leak-cleanup.md` — **DONE + archived 2026-08-03**: leak fixed
-  (Option A) and PARSE_DIRECT deleted (Option C), so the AST is the only
-  parse mode. Archived to `tasks/archive/2026/08/03/`; durable design notes
-  in `tasks/reference/parser-ast-emit.md`. This unblocked
-  `ast-column-tracking.md`.)
-- `ast-column-tracking.md` — **unblocked** (2026-08-03): single parse mode
-  now; `ast_node.src_text` + per-node `emit_source_set` are the pattern the
-  column work extends.
-- `codebase-cleanup-plan.md` — remaining: Tier C (header hygiene) and Tier
-  E3 (exception-path tests). Tiers A, D, E1/E2/E4 done; all of Tier B done
-  or moot (B2 resolved by stdlib-modernization; B3 obsoleted by the emit_*
-  renames).
-- `c23-modernization-pass2.md` — pruned 2026-07-07 (Tier-D-delivered items
-  struck); remaining: gnu23→c23 decision, `unreachable()`, literals,
-  `_BitInt`, examples/pgu subtrees.
-- Big swings, independent: `timing-model.md` (H&P ch.1 cycle model — cheaper,
-  do first) and `software-alu.md` (bit-level ALU); share cycle vocabulary if
-  both land.
-
-Archived 2026-07-07 after verifying/landing: the seven explain/shim/symbol
-docs from the morning review, plus tonight's ten:
-`c-asm-comment-parity` (466 lines of embedded C removed),
-`container-build-cleanup`, `container-aslr-lldb`, `examples-install-location`,
-`stdin-space-separated-ints` (scanf-style syscall 5),
-`program-listing-at-start` (the `disasm` command), `fix-stale-doc-links`,
-`string-stream-to-memstream` (POSIX open_memstream),
-`opcode-types-descriptive-names` (operand-order tag names), and
-`stdlib-modernization` (bsearch/calloc/strdup) — all in
-`tasks/archive/2026/07/07/`.
+session-notes / next-session log — the top-level contents of `tasks/` are the
+live picture, and git history plus the dated archive are the record of what's
+done. Ordering / dependency guidance lives in `tasks/README.md` (§Ordering &
+dependencies).

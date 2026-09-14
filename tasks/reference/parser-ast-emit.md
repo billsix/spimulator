@@ -27,6 +27,11 @@ dispatch helpers (`emit_r`, `emit_i`, `emit_i_free`, `emit_j`, `emit_fp_r`,
 now do exactly one thing: append the corresponding AST node. Actual
 emission happens only in `emit_one`.
 
+### History: hand-written parser (flex+bison removed)
+
+The scanner/parser (`scanner.c` / `parser.c`) is hand-written recursive-descent;
+flex+bison were removed (Phase 5, 2026-05).
+
 ### History: PARSE_DIRECT is gone
 
 spim used to carry a second mode, **PARSE_DIRECT** (syntax-directed
