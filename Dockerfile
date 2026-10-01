@@ -160,6 +160,7 @@ RUN make -C ${SPIM_SRC_DIR}/examples/src CC=clang all
 COPY tree-sitter/ ${SPIM_SRC_DIR}/tree-sitter
 RUN --mount=type=cache,target=/var/cache/libdnf5 \
     --mount=type=cache,target=/var/lib/dnf \
+    --mount=type=cache,target=/root/.npm \
     if [ "$BUILD_TREE_SITTER" = "1" ]; then \
       /usr/local/bin/04-install-tree-sitter.sh && \
       cd ${SPIM_SRC_DIR}/tree-sitter && \
