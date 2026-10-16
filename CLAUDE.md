@@ -9,7 +9,9 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
 ## Status
 
 - **Build:** Meson + Ninja (replaced the legacy Make/xmkmf). GNU C23
-  (`c_std=gnu23`). One option: `-Dline_editing` (libedit REPL history; default auto).
+  (`c_std=gnu23`); the core is built `-Werror` (`-Dcore_werror`, default on; scoped to the
+  `spimulator` target so `examples/` keep their own warning posture). Options:
+  `-Dline_editing` (libedit REPL history; default auto), `-Dcore_werror`.
 - **Parser:** hand-written recursive-descent scanner/parser (`scanner.c` /
   `parser.c`); parses to an AST, then `emit_ast` walks it to commit code. Single
   parse mode. History (flex+bison and PARSE_DIRECT removal) + design:
@@ -77,7 +79,10 @@ not spim's intentional exit-time leaks) + the integer-UB primer:
 
 ## Conventions
 
-- C23; clang-format + clang-tidy. `opcodes.h` is the single source of truth for
+- C23; clang-format + clang-tidy; core `-Werror` (gcc + clang clean). `src/`+`include/` follow the
+  shared standard `~/.claude/reference/c-coding-standard.md` (modernized through
+  `tasks/archive/2026/10/16/c23-modernization-pass2.md`); deep integer-conversion tightening is tracked in
+  `tasks/integer-conversion-hardening.md`. `opcodes.h` is the single source of truth for
   both the simulator and the tree-sitter grammar — regenerate the grammar rather
   than hand-editing keyword lists. **Any change to `opcodes.h` (or
   `opcode-types.h`) must be gated with `BUILD_TREE_SITTER=1`** — the keyword

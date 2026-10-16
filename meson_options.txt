@@ -2,3 +2,7 @@ option('line_editing',
        type: 'feature',
        value: 'auto',
        description: 'Use libedit for REPL line editing and persistent history. BSD-licensed; does not affect spimulator\'s BSD license.')
+option('core_werror',
+       type: 'boolean',
+       value: true,
+       description: 'Treat warnings as errors when compiling the simulator core (src/). Does not gate the teaching examples under examples/, which carry their own warning posture. Override with -Dcore_werror=false.')

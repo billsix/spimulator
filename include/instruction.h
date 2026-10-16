@@ -13,9 +13,9 @@
 #include "string-stream.h"
 
 typedef struct immexpr {
-  int offset;           /* Offset from symbol */
+  int32_t offset;       /* Offset from symbol */
   struct label* symbol; /* Symbolic label */
-  short bits;           /* > 0 => 31..16, < 0 => 15..0 */
+  int16_t bits;         /* > 0 => 31..16, < 0 => 15..0 */
   bool pc_relative;     /* => offset from label in code */
 } imm_expr;
 
@@ -23,7 +23,7 @@ typedef struct immexpr {
    instruction.  Address have the form: label +/- offset (register). */
 
 typedef struct addrexpr {
-  unsigned char reg_no; /* Register number */
+  uint8_t reg_no;       /* Register number */
   imm_expr* imm;        /* The immediate part */
 } addr_expr;
 
@@ -32,20 +32,20 @@ typedef struct addrexpr {
    speed decoding in C code, as opposed to hardware).. */
 
 typedef struct inst_s {
-  short opcode;
+  int16_t opcode;
 
   union {
     /* R-type or I-type: */
     struct {
-      unsigned char rs;
-      unsigned char rt;
+      uint8_t rs;
+      uint8_t rt;
 
       union {
-        short imm;
+        int16_t imm;
 
         struct {
-          unsigned char rd;
-          unsigned char shamt;
+          uint8_t rd;
+          uint8_t shamt;
         } r;
       } r_i;
     } r_i;
@@ -60,16 +60,16 @@ typedef struct inst_s {
 } mips_instruction;
 
 #define OPCODE(INST) (INST)->opcode
-#define SET_OPCODE(INST, VAL) (INST)->opcode = (short)(VAL)
+#define SET_OPCODE(INST, VAL) (INST)->opcode = (int16_t)(VAL)
 
 #define RS(INST) (INST)->r_t.r_i.rs
-#define SET_RS(INST, VAL) (INST)->r_t.r_i.rs = (unsigned char)(VAL)
+#define SET_RS(INST, VAL) (INST)->r_t.r_i.rs = (uint8_t)(VAL)
 
 #define RT(INST) (INST)->r_t.r_i.rt
-#define SET_RT(INST, VAL) (INST)->r_t.r_i.rt = (unsigned char)(VAL)
+#define SET_RT(INST, VAL) (INST)->r_t.r_i.rt = (uint8_t)(VAL)
 
 #define RD(INST) (INST)->r_t.r_i.r_i.r.rd
-#define SET_RD(INST, VAL) (INST)->r_t.r_i.r_i.r.rd = (unsigned char)(VAL)
+#define SET_RD(INST, VAL) (INST)->r_t.r_i.r_i.r.rd = (uint8_t)(VAL)
 
 #define FS(INST) RD(INST)
 #define SET_FS(INST, VAL) SET_RD(INST, VAL)
@@ -81,17 +81,17 @@ typedef struct inst_s {
 #define SET_FD(INST, VAL) SET_SHAMT(INST, VAL)
 
 #define SHAMT(INST) (INST)->r_t.r_i.r_i.r.shamt
-#define SET_SHAMT(INST, VAL) (INST)->r_t.r_i.r_i.r.shamt = (unsigned char)(VAL)
+#define SET_SHAMT(INST, VAL) (INST)->r_t.r_i.r_i.r.shamt = (uint8_t)(VAL)
 
 #define IMM(INST) (INST)->r_t.r_i.r_i.imm
-#define SET_IMM(INST, VAL) (INST)->r_t.r_i.r_i.imm = (short)(VAL)
+#define SET_IMM(INST, VAL) (INST)->r_t.r_i.r_i.imm = (int16_t)(VAL)
 
 #define BASE(INST) RS(INST)
 #define SET_BASE(INST, VAL) SET_RS(INST, VAL)
 
 #define IOFFSET(INST) IMM(INST)
 #define SET_IOFFSET(INST, VAL) SET_IMM(INST, VAL)
-/* Shift as unsigned: IOFFSET is a signed `short`, and `<< 2` on a negative
+/* Shift as unsigned: IOFFSET is a signed int16_t, and `<< 2` on a negative
    value is UB.  sign_ex() then re-derives the signed offset from the low bits.
  */
 #define BRANCH_OFFSET(INST) (sign_ex((unsigned)IOFFSET(INST) << 2))
