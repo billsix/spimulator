@@ -325,11 +325,9 @@ static void emit_dir_comm(const char* sym, int sz) {
   ast_append(ast_make_dir_comm(sym, sz));
 }
 
-static void emit_dir_seg(ast_kind kind, bool kernel, bool has_addr,
-                         mem_addr addr) {
-  /* `kernel` is implied by `kind` (KTEXT/KDATA vs TEXT/DATA) in the AST
-     node; the user/kernel segment switch itself happens at emit time. */
-  (void)kernel;
+static void emit_dir_seg(ast_kind kind, bool has_addr, mem_addr addr) {
+  /* The kernel/user distinction is implied by `kind` (KTEXT/KDATA vs
+     TEXT/DATA) in the AST node; the segment switch happens at emit time. */
   /* Update parser-state flags unconditionally so subsequent directive
      parsing (e.g. the .asciiz text/data check) sees the right segment
      even in -print-ast-only mode. */
@@ -981,7 +979,7 @@ static void parse_dir_data(bool kernel) {
     has_addr = true;
     addr = (mem_addr)scan_value.i;
   }
-  emit_dir_seg(kernel ? AST_DIR_KDATA : AST_DIR_DATA, kernel, has_addr, addr);
+  emit_dir_seg(kernel ? AST_DIR_KDATA : AST_DIR_DATA, has_addr, addr);
 }
 
 static void parse_dir_text(bool kernel) {
@@ -992,7 +990,7 @@ static void parse_dir_text(bool kernel) {
     has_addr = true;
     addr = (mem_addr)scan_value.i;
   }
-  emit_dir_seg(kernel ? AST_DIR_KTEXT : AST_DIR_TEXT, kernel, has_addr, addr);
+  emit_dir_seg(kernel ? AST_DIR_KTEXT : AST_DIR_TEXT, has_addr, addr);
 }
 
 static void parse_dir_globl(void) {

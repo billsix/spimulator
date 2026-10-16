@@ -439,18 +439,18 @@ name_val_val* map_int_to_name_val_val(name_val_val tbl[], int tbl_len,
                  cmp_key_to_value1);
 }
 
-void* xmalloc(int size) {
+void* xmalloc(size_t size) {
   void* x = (void*)malloc(size);
 
-  if (x == 0) fatal_error("Out of memory at request for %d bytes.\n");
+  if (x == 0) fatal_error("Out of memory at request for %zu bytes.\n", size);
   return (x);
 }
 
 /* Allocate a zero'ed block of storage. */
 
-void* zmalloc(int size) {
-  void* z = calloc(1, (size_t)size);
+void* zmalloc(size_t size) {
+  void* z = calloc(1, size);
 
-  if (z == 0) fatal_error("Out of memory at request for %d bytes.\n");
+  if (z == 0) fatal_error("Out of memory at request for %zu bytes.\n", size);
   return (z);
 }

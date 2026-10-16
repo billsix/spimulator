@@ -1,6 +1,8 @@
 # Fix the verified idiosyncrasies (HIGH fatal_error bug first)
 
-**Status:** proposed — needs go-ahead. Created 2026-08-27 (William Emerison Six <billsix@gmail.com>).
+**Status:** SUPERSEDED (2026-10-16) — all four correctness fixes landed as Tier 1 of
+`tasks/c23-modernization-pass2.md`. Created 2026-08-27 (William Emerison Six <billsix@gmail.com>).
+Kept until the modernization task archives, then moved with it.
 **Priority:** 4
 **Difficulty:** 3
 

@@ -46,7 +46,7 @@ reproduce that string.
 
 ## Simulator parser idiosyncrasies found (2026-09-02)
 
-These are real; work around them (and note them for `tasks/fix-inherited-idiosyncrasies.md`
+These are real; work around them (and note them for `tasks/reference/inherited-idiosyncrasies.md`
 / `tasks/ast-column-tracking.md`, which this corroborates):
 
 1. **A labeled `.double`/`.float` directive immediately followed on a later line

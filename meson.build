@@ -3,23 +3,35 @@ project('spimulator', 'c',
   default_options: ['c_std=gnu23', 'warning_level=3']
 )
 
-# -Wno-zero-length-array: spim uses flexible array members.
-# -Wunused-function: catches dead static fns like the late parse_br_imm32.
-# -Wshadow: prevents inner-scope rebinding bugs.
-# -Wimplicit-fallthrough=5: surfaces unannotated switch fallthroughs.
-#   Level 5 means ONLY the C23 [[fallthrough]]; attribute is
-#   accepted as an annotation — comment-style "/* fall through */"
-#   doesn't count.  Fits the C23 modernization direction and
-#   means there's one true way to express "I meant to flow into
-#   the next case."  Anything without a break/return/goto/
-#   [[fallthrough]] is a likely bug.
-add_project_arguments(
-  '-Wno-zero-length-array',
-  '-Wunused-function',
-  '-Wshadow',
-  '-Wimplicit-fallthrough=5',
-  language: 'c'
-)
+# Warning flags.  Probed per-compiler with has_argument() so an unknown spelling
+# is dropped rather than failing the build under the core's -Werror — the image
+# builds spim with clang (Dockerfile) while the host dev build is often gcc.
+#   -Wno-zero-length-array : spim uses flexible array members.
+#   -Wunused-function      : catches dead static fns like the late parse_br_imm32.
+#   -Wshadow               : prevents inner-scope rebinding bugs.
+#   -Wno-string-concatenation : clang only; explain.c's category/modifier teaching
+#     tables deliberately concatenate a description across several adjacent string
+#     literals, which clang's heuristic reads as a possible missing comma.
+cc = meson.get_compiler('c')
+foreach warg : [
+    '-Wno-zero-length-array',
+    '-Wunused-function',
+    '-Wshadow',
+    '-Wno-string-concatenation',
+  ]
+  if cc.has_argument(warg)
+    add_project_arguments(warg, language: 'c')
+  endif
+endforeach
+# -Wimplicit-fallthrough: surface unannotated switch fallthroughs.  GCC's level 5
+# means ONLY the C23 [[fallthrough]] attribute counts (comment-style "/* fall
+# through */" does not) — one true way to say "I meant to flow into the next
+# case."  clang has only the plain form; use whichever the compiler accepts.
+if cc.has_argument('-Wimplicit-fallthrough=5')
+  add_project_arguments('-Wimplicit-fallthrough=5', language: 'c')
+elif cc.has_argument('-Wimplicit-fallthrough')
+  add_project_arguments('-Wimplicit-fallthrough', language: 'c')
+endif
 
 
 # BSD-licensed line-editing library. Auto by default; gate with
@@ -79,10 +91,15 @@ link_libraries = [
   meson.get_compiler('c').find_library('m')
 ]
 
-# Executable
+# Executable.  -Werror is scoped to the simulator core here (not a global
+# `werror=true`) so the teaching demos under examples/ — deliberately simple
+# C read against generated asm, out of the modernization scope — are not gated
+# by it.  Override with -Dcore_werror=false.
+core_c_args = get_option('core_werror') ? ['-Werror'] : []
 spimulator_exe = executable('spimulator',
   spim_source_files,
   include_directories: inc,
+  c_args: core_c_args,
   dependencies: link_libraries + [libedit_dep],
   install: true
 )

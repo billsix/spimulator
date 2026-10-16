@@ -10,7 +10,7 @@
 Add the OCI-image save/load convenience targets that **modelviewprojection** already has, so the built
 image can be archived to a tar (to move it to an offline/air-gapped machine, or snapshot a known-good
 build) and reloaded later without a rebuild. Part of standardizing this target pair across all the
-container-template projects — see the "Makefile contract" in `~/.claude/CLAUDE.md`.
+container-template projects — see the "Makefile contract" in `github.com/billsix/runClaudeInContainer:entrypoint/dotfiles/.claude/CLAUDE.md`.
 
 ## Reference implementation
 

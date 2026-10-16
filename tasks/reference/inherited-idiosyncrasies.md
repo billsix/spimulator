@@ -13,26 +13,27 @@ legitimately, byte buffers already `unsigned char`/`int8_t`, no K&R residue. The
 (`src/`, `include/`) is partially-modernized C23 grafted onto legacy SPIM bones, and hides **one genuine
 latent bug** plus a scatter of dead/misnamed/mistyped items.
 
-## HIGH — a real latent bug
+## HIGH — a real latent bug  — FIXED 2026-10-16
 
 - **`src/spim.c:1502-1508` — `fatal_error` corrupts its own format string.** The body does
   `va_start(args, fmt); fmt = va_arg(args, char*); vfprintf(stderr, fmt, args);` — the **`va_arg` line
   overwrites the format string with the first variadic argument.** All 14 call sites break: a bare-string
   call reads a nonexistent vararg as `fmt` (UB); `"…: %d\n", OPCODE(...)` reinterprets an `int` as a
   `char*` format (segfault); `"…: %s\n", filename` prints the filename *as* the format. The correct
-  sibling `run_error` (`spim.c:1512`, marked `[[noreturn]]`) has no such line. **Fix:** delete the
-  `fmt = va_arg(...)` line and add `va_end(args)`. (Verified verbatim 2026-08-27.)
+  sibling `run_error` (`spim.c:1512`, marked `[[noreturn]]`) has no such line. **FIXED 2026-10-16**
+  (c23-modernization-pass2, Tier 1): the `fmt = va_arg(...)` line removed, `va_end(args)` added;
+  verified the `%s` diagnostics now expand their argument.
 
-## The "random void argc" shape Bill remembered — real
+## The "random void argc" shape the maintainer remembered — real (dump-opcodes FIXED 2026-10-16)
 
 - **`src/dump-opcodes.c:61` — `main(int argc, char** argv)` with NO return type** (implicit-int, illegal
-  in the C23 the tree targets) and `argc`/`argv` unused. Fix: `int main(void)`.
+  in the C23 the tree targets) and `argc`/`argv` unused. **FIXED 2026-10-16**: `int main(void)`.
 - `pgu/src/c/toupper-nomm-simplified.c:89` — a defensible `(void)argc;`.
 
-## Mistyped sizes
+## Mistyped sizes — FIXED 2026-10-16
 
-- **`src/spim-utils.c:442,451` — `xmalloc(int size)` / `zmalloc(int size)`** take a signed `int` into
-  `malloc`/`calloc`. Fix: `size_t`.
+- **`src/spim-utils.c` — `xmalloc`/`zmalloc`** took a signed `int` into `malloc`/`calloc`.
+  **FIXED**: `size_t` (and the out-of-memory message's dangling `%d` → `%zu` with the size passed).
 
 ## Other verified categories (see the archived audit for the full itemized table)
 
@@ -41,7 +42,7 @@ latent bug** plus a scatter of dead/misnamed/mistyped items.
   `opcode-types-descriptive-names.md`).
 - **Copy-paste residue in hand-written `.asm`** (weird register choices, dead stores, leftovers from a
   neighboring demo) — read by eye since asm has no tooling.
-- **A few dead/misnamed items**, e.g. a dead `kernel` parameter at `parser.c:328-332`; some cosmetic
+- **A few dead/misnamed items**, e.g. a dead `kernel` parameter at `parser.c` `emit_dir_seg` (**FIXED 2026-10-16**); some cosmetic
   demo-name off-by-ones (these need maintainer direction — scoped OUT of the mechanical fix task).
 
 ## What's clean (so nobody re-audits it)
@@ -52,9 +53,8 @@ Demo/book layers: argc/argv legitimate, byte buffers already unsigned, no implic
 
 ## Follow-on
 
-`tasks/fix-inherited-idiosyncrasies.md` — land the HIGH `fatal_error` fix first and alone, then the
-mechanical correctness fixes (implicit-int `main`, `int`→`size_t`, dead `kernel` param), gated on
-`meson test` + the `make image` ASan gate. Cosmetic renames are excluded (need direction).
+All the correctness fixes above **landed 2026-10-16** as Tier 1 of `c23-modernization-pass2`
+(`fix-inherited-idiosyncrasies.md` superseded). Cosmetic renames remain excluded (need direction).
 
 ## Cross-links
 

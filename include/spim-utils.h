@@ -48,7 +48,7 @@ name_val_val* map_string_to_name_val_val(name_val_val tbl[], int tbl_len,
                                bool cont_bkpt, bool* continuable);
 mem_addr starting_address(void);
 void write_startup_message(void);
-[[nodiscard]] void* xmalloc(int);
-[[nodiscard]] void* zmalloc(int);
+[[nodiscard]] void* xmalloc(size_t);
+[[nodiscard]] void* zmalloc(size_t);
 
 #endif
