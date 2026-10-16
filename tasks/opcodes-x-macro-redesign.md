@@ -45,7 +45,7 @@ Choose one, and write the rationale here:
 2. **Replace with external code generation** (the direction the tree-sitter pipeline already takes). A
    generator reads the table — `opcodes.h` as-is, or a cleaner data source (TSV/JSON) — and emits
    plain generated C (the `TOK_*` enum and the lookup tables), retiring the enum-body trick. If
-   chosen, this task spawns a build-out follow-on bound by `~/.claude/reference/codegen-conventions.md`.
+   chosen, this task spawns a build-out follow-on bound by `github.com/billsix/runClaudeInContainer:tasks/reference/codegen-conventions.md`.
 
 ## Investigate (to inform the choice)
 
@@ -94,4 +94,4 @@ The task is still `proposed` — it needs a go-ahead to *run* the investigation,
 
 - `tasks/reference/opcodes-x-macro.md` — how it works + the full design analysis (read first).
 - `tasks/archive/2026/10/16/c23-modernization-pass2.md` — the simulator-core modernization this was split out of.
-- `~/.claude/reference/codegen-conventions.md` — rules any codegen build-out must follow.
+- `github.com/billsix/runClaudeInContainer:tasks/reference/codegen-conventions.md` — rules any codegen build-out must follow.

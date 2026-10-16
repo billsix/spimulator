@@ -7,8 +7,8 @@
 ## BLUF
 
 Brought the simulator core (`src/` + `include/`) up to the shared modern-C bar
-(`~/.claude/reference/c-coding-standard.md`), modelled on the APUE tree's modernization
-(`/foo/opt/apue`, `2026/10/16/modernize-to-modern-c.md`), preserving runtime behavior — the
+(`github.com/billsix/runClaudeInContainer:tasks/reference/c-coding-standard.md`), modelled on the APUE tree's modernization
+(github.com/billsix/apue, its `tasks/archive/2026/10/16/modernize-to-modern-c.md`), preserving runtime behavior — the
 `ast_parity`/`ast_parity_all` byte-identical memory goldens plus the full `meson test` suite and the
 ASan/UBSan sanitizer gates are the oracle. The delta here was **small on purpose**: the archived pass 1
 (`tasks/archive/2026/05/22/c23-modernization.md`) and the parser/AST work had already landed most of the
@@ -54,7 +54,7 @@ constant store. Making the core clean under those flags and adding them to the g
 per-instruction review and UBSan coordination, not a blind sweep — filed as
 `tasks/integer-conversion-hardening.md` (proposed).
 
-## Standard-coverage audit (`~/.claude/reference/c-coding-standard.md`)
+## Standard-coverage audit (`github.com/billsix/runClaudeInContainer:tasks/reference/c-coding-standard.md`)
 
 | Item | Status | Note |
 | --- | --- | --- |
@@ -82,8 +82,8 @@ matching the pre-work baseline (`594e06b`). Verified standalone with the Dockerf
 
 ## Cross-links
 
-- `~/.claude/reference/c-coding-standard.md`, `~/.claude/reference/c-modernization-sweep.md`,
-  `~/.claude/reference/porting-with-an-output-oracle.md`.
+- `github.com/billsix/runClaudeInContainer:tasks/reference/c-coding-standard.md`, `github.com/billsix/runClaudeInContainer:tasks/reference/c-modernization-sweep.md`,
+  `github.com/billsix/runClaudeInContainer:tasks/reference/porting-with-an-output-oracle.md`.
 - `tasks/integer-conversion-hardening.md` (the deferred integer work),
   `tasks/reference/inherited-idiosyncrasies.md` (the correctness findings, now fixed),
   `tasks/reference/example-c-teaching-style.md` (why examples/pgu are out),

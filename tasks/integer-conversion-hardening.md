@@ -24,7 +24,7 @@ arithmetic — i.e. the deliberate signed/unsigned handling that distinguishes `
 `slt`/`sltu`, branch-offset sign-extension, etc. "Fixing" one with a wrong cast silently changes
 executed behavior, and the regression suite does not exercise every instruction, so a blind sweep is
 unsafe. This is the one place the usual "tighten the integer types" rule must be applied
-instruction-by-instruction (`~/.claude/reference/c-modernization-sweep.md`: opt out where the obvious
+instruction-by-instruction (`github.com/billsix/runClaudeInContainer:tasks/reference/c-modernization-sweep.md`: opt out where the obvious
 fix is wrong).
 
 ## Known sub-items
@@ -56,5 +56,5 @@ fix is wrong).
 
 - `tasks/archive/2026/10/16/c23-modernization-pass2.md` (parent; Tier 3 did the safe structural widths in `instruction.h`).
 - `tasks/archive/2026/06/16/ubsan-sweep.md` (the integer-UB surface to coordinate with).
-- `~/.claude/reference/c-coding-standard.md` (integer-conversion rule), `~/.claude/reference/c-modernization-sweep.md`
+- `github.com/billsix/runClaudeInContainer:tasks/reference/c-coding-standard.md` (integer-conversion rule), `github.com/billsix/runClaudeInContainer:tasks/reference/c-modernization-sweep.md`
   (why this is opt-out-in-place, not a blanket sweep).

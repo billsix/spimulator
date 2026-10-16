@@ -90,7 +90,7 @@ table rows. No C23 preprocessor feature replaces X-macro list expansion.
    takes. A generator reads the table (either `opcodes.h` as today, or a cleaner data source such as a
    TSV/JSON row file) and emits plain, greppable, debuggable generated C (the `TOK_*` enum, the
    keyword and opcode tables), retiring the enum-body `#include` entirely. The cost is a build-time
-   generator plus the generated-file discipline in `~/.claude/reference/codegen-conventions.md`
+   generator plus the generated-file discipline in `github.com/billsix/runClaudeInContainer:tasks/reference/codegen-conventions.md`
    (never hand-edit the output, a parity harness proving the generated tables are byte-identical to
    today's, and a run-to-run determinism gate).
 
@@ -106,6 +106,6 @@ textual source already shared with the grammar. The decision, with its rationale
   `src/dump-opcodes.c`.
 - `tree-sitter/scripts/extract-keywords.py` / `build-keyword-lists.py` — the existing external
   consumer and the `BUILD_TREE_SITTER=1` gate.
-- `~/.claude/reference/codegen-conventions.md` — the rules any external-codegen redesign must follow.
+- `github.com/billsix/runClaudeInContainer:tasks/reference/codegen-conventions.md` — the rules any external-codegen redesign must follow.
 - `tasks/opcodes-x-macro-redesign.md` — the investigate-and-decide task.
 - `tasks/archive/2026/10/16/c23-modernization-pass2.md` — the simulator-core modernization this was split out of.

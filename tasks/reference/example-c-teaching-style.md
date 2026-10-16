@@ -11,7 +11,7 @@ The teaching C — every `examples/src/**/*.c` and the C under `pgu/` — is a *
 demo**: a student reads the `.c` next to the compiler's generated assembly (and next to the
 hand-written `.asm` port) to learn how a high-level construct becomes machine code. That purpose,
 not modern-C style, is the contract. **Do not apply the shared C coding standard
-(`~/.claude/reference/c-coding-standard.md`) to this code.** Modernization is scoped to the
+(`github.com/billsix/runClaudeInContainer:tasks/reference/c-coding-standard.md`) to this code.** Modernization is scoped to the
 simulator core (`src/`+`include/`).
 
 The correctness bar here is the examples test suite (`examples/tests/run-demo.sh`, which diffs both
@@ -50,9 +50,9 @@ legitimate, byte buffers already unsigned, no K&R residue), so there is little t
 
 ## Cross-links
 
-- `~/.claude/reference/c-coding-standard.md` — the standard this subtree is exempt from (applies to
+- `github.com/billsix/runClaudeInContainer:tasks/reference/c-coding-standard.md` — the standard this subtree is exempt from (applies to
   `src/`+`include/`).
-- `~/.claude/reference/c-modernization-sweep.md` — the opt-out-in-place principle this specializes.
+- `github.com/billsix/runClaudeInContainer:tasks/reference/c-modernization-sweep.md` — the opt-out-in-place principle this specializes.
 - `tasks/reference/mips-fpu-and-float-demos.md` — how to author a floating-point demo (the C↔asm
   byte-matching technique).
 - `examples/READING-ORDER.md`, `examples/TEACHING-ASSEMBLER-INTERNALS.md` — the student-facing
