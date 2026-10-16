@@ -45,12 +45,45 @@ fix is wrong).
 
 ## Plan
 
-1. Re-run the probe (`CFLAGS='-Wconversion -Wsign-conversion' meson setup … -Dcore_werror=false`);
-   categorize by file × instruction × correct-vs-bug.
+1. Re-run `tasks/adhoc/integer-conversion-hardening/discover.sh` (regenerates the catalog under
+   `data/`); the prep below already did the first categorization. Adjudicate each site correct-vs-bug.
 2. Work `run.c` in small, instruction-grouped commits, each verified by `ast_parity`/`ast_parity_all`
    (byte-identical) + the targeted regression tests + the ASan/UBSan suites.
 3. Resolve `long addr` (prove-fits or split the field).
 4. Add `-Wconversion -Wsign-conversion` to the core's gated flags once clean.
+
+## Prep done (2026-10-16) — tooling + catalog (read-only; no code changed)
+
+The scary part of this task is that C's integer conversions are invisible in the source. Two tools make
+them visible, and a third turns them into a worklist:
+
+- **`clang -Xclang -ast-dump` (or `-ast-dump=json`)** prints every subexpression's type AND every
+  `ImplicitCastExpr` with its `CastKind` (`<IntegralCast>`, `<LValueToRValue>`, …) — so you can see the
+  FROM type, the TO type, and every intermediate at a site, which is what you need to decide whether a
+  cast is the intended unsigned-MIPS-word semantics or a bug. Worked example + how to target a site:
+  `tasks/adhoc/integer-conversion-hardening/data/worked-example.txt`.
+- **`clang-query -p <builddir> src/run.c`** runs AST matchers interactively, e.g.
+  `m implicitCastExpr(hasCastKind("CK_IntegralCast"))` (897 integral casts in run.c; the sign-changing
+  subset is the 190 `-Wsign-conversion` hits).
+- **The compiler diagnostics are the precise worklist.** `discover.sh` builds the spimulator target
+  under `-Wconversion -Wsign-conversion` and `analyze.py` parses them into
+  `data/conversions.tsv` (file, line, col, flag, from→to) + `data/summary.txt`.
+
+**Key finding — this is 4 boundaries, not 336 puzzles.** All 336 flagged conversions (clang 22.1.8)
+are `-Wsign-conversion`, and they collapse into **four** resolved type-pairs:
+
+| count | from → to | what it is |
+| --- | --- | --- |
+| 156 | `int` → `unsigned int` | `reg_word`/`mem_word` → `mem_addr`/`u_reg_word` (the MIPS word boundary) |
+| 109 | `unsigned int` → `int` | the reverse |
+| 45 | `int` → `unsigned long` | `int` → `size_t` (host sizes/indices) |
+| 26 | `short` → `unsigned int` | the `int16_t` imm fields → unsigned |
+
+So the work is: **decide a policy per boundary** (keep-as-intended-unsigned-semantics with an explicit
+cast, or fix a real narrowing), not invent 336 separate answers. 190 of the 336 are in `run.c` (the
+ALU); `memory.c` (52) is next. The `int → unsigned long` (size_t) group is the lowest-risk and overlaps
+the host-index work; the `run.c` word boundary is the delicate one (needs per-op review vs the MIPS
+spec + the ASan/UBSan gates after each chunk).
 
 ## Cross-links
 

@@ -1,0 +1,23 @@
+Total flagged integer conversions in src/+include/: 336
+  (clang 22.1.8, -Wconversion -Wsign-conversion, spimulator target)
+
+== By file x flag ==
+   190  src/run.c  [sign-conversion]
+    52  src/memory.c  [sign-conversion]
+    14  src/instruction.c  [sign-conversion]
+    13  src/data.c  [sign-conversion]
+    13  src/syscall.c  [sign-conversion]
+    12  src/scanner.c  [sign-conversion]
+    11  src/spim-utils.c  [sign-conversion]
+    10  src/parser.c  [sign-conversion]
+     8  src/symbol-table.c  [sign-conversion]
+     5  src/explain.c  [sign-conversion]
+     4  src/spim.c  [sign-conversion]
+     2  src/ast.c  [sign-conversion]
+     2  src/display-utils.c  [sign-conversion]
+
+== By resolved type-pair (from -> to) -- the SHAPE of the work ==
+   156           int -> unsigned int  [sign-conversion]
+   109  unsigned int -> int           [sign-conversion]
+    45           int -> unsigned long  [sign-conversion]
+    26         short -> unsigned int  [sign-conversion]

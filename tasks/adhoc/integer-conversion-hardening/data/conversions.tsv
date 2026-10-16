@@ -1,0 +1,337 @@
+file	line	col	flag	from	to	from_named	to_named
+src/ast.c	151	37	sign-conversion	int	unsigned long	int	size_t
+src/ast.c	152	22	sign-conversion	int	unsigned long	int	__size_t
+src/data.c	57	19	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/data.c	109	23	sign-conversion	int	unsigned int	int	mem_addr
+src/data.c	111	21	sign-conversion	int	unsigned int	int	typeof (next_k_data_pc - k_data_top + 1)
+src/data.c	111	21	sign-conversion	int	unsigned int	typeof (64 * kilo)	typeof (next_k_data_pc - k_data_top + 1)
+src/data.c	111	21	sign-conversion	unsigned int	int	typeof (next_k_data_pc - k_data_top + 1)	int
+src/data.c	113	21	sign-conversion	int	unsigned int	int	mem_addr
+src/data.c	115	19	sign-conversion	int	unsigned int	int	typeof (next_data_pc - data_top + 1)
+src/data.c	115	19	sign-conversion	int	unsigned int	typeof (64 * kilo)	typeof (next_data_pc - data_top + 1)
+src/data.c	115	19	sign-conversion	unsigned int	int	typeof (next_data_pc - data_top + 1)	int
+src/data.c	126	27	sign-conversion	int	unsigned int	int	mem_addr
+src/data.c	129	26	sign-conversion	int	unsigned int	int	mem_addr
+src/data.c	137	27	sign-conversion	int	unsigned int	int	mem_addr
+src/data.c	141	26	sign-conversion	int	unsigned int	int	mem_addr
+src/display-utils.c	185	18	sign-conversion	int	unsigned int	typeof (gpr[29])	mem_addr
+src/display-utils.c	198	16	sign-conversion	int	unsigned int	int	typeof (from)
+src/explain.c	1010	35	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/explain.c	1010	35	sign-conversion	unsigned int	int	unsigned int	int
+src/explain.c	1032	35	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/explain.c	1032	35	sign-conversion	unsigned int	int	unsigned int	int
+src/explain.c	1118	27	sign-conversion	int	unsigned int	reg_word	mem_addr
+src/instruction.c	121	23	sign-conversion	int	unsigned int	int	mem_addr
+src/instruction.c	125	21	sign-conversion	int	unsigned int	int	mem_addr
+src/instruction.c	216	19	sign-conversion	int	unsigned int	int32_t	unsigned int
+src/instruction.c	217	19	sign-conversion	int	unsigned int	int32_t	unsigned int
+src/instruction.c	219	18	sign-conversion	int	unsigned int	int32_t	unsigned int
+src/instruction.c	325	30	sign-conversion	int	unsigned int	int32_t	unsigned int
+src/instruction.c	645	47	sign-conversion	unsigned int	int	unsigned int	int
+src/instruction.c	650	17	sign-conversion	unsigned int	int	unsigned int	int
+src/instruction.c	670	49	sign-conversion	unsigned int	int	unsigned int	int
+src/instruction.c	1223	15	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/instruction.c	1223	24	sign-conversion	unsigned int	int	mem_addr	int32_t
+src/instruction.c	1258	22	sign-conversion	int	unsigned int	int32_t	unsigned int
+src/instruction.c	1258	26	sign-conversion	unsigned int	int	unsigned int	int32_t
+src/instruction.c	1272	10	sign-conversion	int	unsigned int	int32_t	unsigned int
+src/memory.c	95	44	sign-conversion	int	unsigned long	int	__size_t
+src/memory.c	98	54	sign-conversion	int	unsigned long	int	__size_t
+src/memory.c	100	23	sign-conversion	int	unsigned long	int	__size_t
+src/memory.c	101	25	sign-conversion	int	unsigned int	int	mem_addr
+src/memory.c	105	35	sign-conversion	int	unsigned long	int	size_t
+src/memory.c	107	45	sign-conversion	int	unsigned long	int	__size_t
+src/memory.c	108	23	sign-conversion	int	unsigned long	int	__size_t
+src/memory.c	111	25	sign-conversion	int	unsigned int	int	mem_addr
+src/memory.c	116	36	sign-conversion	int	unsigned long	int	size_t
+src/memory.c	118	47	sign-conversion	int	unsigned long	int	__size_t
+src/memory.c	119	24	sign-conversion	int	unsigned long	int	__size_t
+src/memory.c	122	27	sign-conversion	int	unsigned int	int	mem_addr
+src/memory.c	126	46	sign-conversion	int	unsigned long	int	__size_t
+src/memory.c	130	49	sign-conversion	int	unsigned long	int	__size_t
+src/memory.c	132	25	sign-conversion	int	unsigned long	int	__size_t
+src/memory.c	133	29	sign-conversion	int	unsigned int	int	mem_addr
+src/memory.c	137	37	sign-conversion	int	unsigned long	int	size_t
+src/memory.c	139	49	sign-conversion	int	unsigned long	int	__size_t
+src/memory.c	140	25	sign-conversion	int	unsigned long	int	__size_t
+src/memory.c	143	29	sign-conversion	int	unsigned int	int	mem_addr
+src/memory.c	161	27	sign-conversion	unsigned int	int	mem_addr	int
+src/memory.c	170	43	sign-conversion	int	unsigned long	int	__size_t
+src/memory.c	175	15	sign-conversion	int	unsigned int	int	mem_addr
+src/memory.c	187	28	sign-conversion	unsigned int	int	mem_addr	int
+src/memory.c	199	32	sign-conversion	int	unsigned long	int	size_t
+src/memory.c	200	22	sign-conversion	int	unsigned long	int	__size_t
+src/memory.c	210	26	sign-conversion	int	unsigned int	int	mem_addr
+src/memory.c	217	29	sign-conversion	unsigned int	int	mem_addr	int
+src/memory.c	227	47	sign-conversion	int	unsigned long	int	__size_t
+src/memory.c	232	17	sign-conversion	int	unsigned int	int	mem_addr
+src/memory.c	350	47	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/memory.c	355	47	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/memory.c	362	15	sign-conversion	int	unsigned int	int	mem_addr
+src/memory.c	363	50	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/memory.c	371	29	sign-conversion	unsigned int	int	unsigned int	mem_word
+src/memory.c	380	29	sign-conversion	unsigned int	int	unsigned int	mem_word
+src/memory.c	400	35	sign-conversion	unsigned int	int	mem_addr	int
+src/memory.c	406	49	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/memory.c	413	15	sign-conversion	int	unsigned int	int	mem_addr
+src/memory.c	414	50	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/memory.c	462	35	sign-conversion	unsigned int	int	mem_addr	int
+src/memory.c	471	51	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/memory.c	478	49	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/memory.c	505	9	sign-conversion	int	unsigned int	int	uint32_t
+src/memory.c	513	16	sign-conversion	int	unsigned int	int	uint32_t
+src/memory.c	518	9	sign-conversion	int	unsigned int	int	uint32_t
+src/memory.c	530	12	sign-conversion	int	unsigned int	mem_word	uint32_t
+src/memory.c	533	13	sign-conversion	int	unsigned int	int	uint32_t
+src/memory.c	546	12	sign-conversion	int	unsigned int	int	uint32_t
+src/memory.c	559	12	sign-conversion	int	unsigned int	mem_word	uint32_t
+src/memory.c	562	13	sign-conversion	int	unsigned int	int	uint32_t
+src/memory.c	612	34	sign-conversion	int	unsigned int	int	mem_addr
+src/parser.c	215	40	sign-conversion	int	unsigned long	int	__size_t
+src/parser.c	222	43	sign-conversion	int	unsigned long	int	__size_t
+src/parser.c	223	32	sign-conversion	int	unsigned long	int	__size_t
+src/parser.c	241	42	sign-conversion	int	unsigned long	int	__size_t
+src/parser.c	242	31	sign-conversion	int	unsigned long	int	__size_t
+src/parser.c	269	36	sign-conversion	int	unsigned long	int	__size_t
+src/parser.c	276	37	sign-conversion	int	unsigned long	int	__size_t
+src/parser.c	277	31	sign-conversion	int	unsigned long	int	__size_t
+src/parser.c	288	37	sign-conversion	int	unsigned long	int	__size_t
+src/parser.c	289	31	sign-conversion	int	unsigned long	int	__size_t
+src/run.c	152	10	sign-conversion	int	unsigned int	reg_word	uint32_t
+src/run.c	152	43	sign-conversion	int	unsigned int	reg_word	uint32_t
+src/run.c	153	11	sign-conversion	int	unsigned int	reg_word	uint32_t
+src/run.c	153	40	sign-conversion	int	unsigned int	reg_word	uint32_t
+src/run.c	232	48	sign-conversion	unsigned int	int	u_reg_word	reg_word
+src/run.c	232	50	sign-conversion	short	unsigned int	short	u_reg_word
+src/run.c	236	67	sign-conversion	unsigned int	int	u_reg_word	reg_word
+src/run.c	258	28	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/run.c	258	28	sign-conversion	unsigned int	int	unsigned int	int
+src/run.c	263	28	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/run.c	263	28	sign-conversion	unsigned int	int	unsigned int	int
+src/run.c	267	32	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	268	28	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/run.c	268	28	sign-conversion	unsigned int	int	unsigned int	int
+src/run.c	272	32	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	273	28	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/run.c	273	28	sign-conversion	unsigned int	int	unsigned int	int
+src/run.c	278	18	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/run.c	279	32	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	280	28	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/run.c	280	28	sign-conversion	unsigned int	int	unsigned int	int
+src/run.c	285	18	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/run.c	286	32	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	287	28	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/run.c	287	28	sign-conversion	unsigned int	int	unsigned int	int
+src/run.c	292	53	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	293	20	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/run.c	293	20	sign-conversion	unsigned int	int	unsigned int	int
+src/run.c	298	53	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	299	20	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/run.c	299	20	sign-conversion	unsigned int	int	unsigned int	int
+src/run.c	304	53	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	305	20	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/run.c	305	20	sign-conversion	unsigned int	int	unsigned int	int
+src/run.c	310	53	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	311	20	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/run.c	311	20	sign-conversion	unsigned int	int	unsigned int	int
+src/run.c	315	32	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	316	28	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/run.c	316	28	sign-conversion	unsigned int	int	unsigned int	int
+src/run.c	320	32	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	321	28	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/run.c	321	28	sign-conversion	unsigned int	int	unsigned int	int
+src/run.c	326	18	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/run.c	327	32	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	328	28	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/run.c	328	28	sign-conversion	unsigned int	int	unsigned int	int
+src/run.c	333	18	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/run.c	334	32	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	335	28	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/run.c	335	28	sign-conversion	unsigned int	int	unsigned int	int
+src/run.c	340	28	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/run.c	340	28	sign-conversion	unsigned int	int	unsigned int	int
+src/run.c	345	28	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/run.c	345	28	sign-conversion	unsigned int	int	unsigned int	int
+src/run.c	408	51	sign-conversion	unsigned int	int	u_reg_word	reg_word
+src/run.c	410	51	sign-conversion	unsigned int	int	u_reg_word	reg_word
+src/run.c	417	11	sign-conversion	int	unsigned int	int	mem_addr
+src/run.c	426	26	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/run.c	428	26	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/run.c	433	26	sign-conversion	int	unsigned int	reg_word	mem_addr
+src/run.c	436	39	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/run.c	438	39	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/run.c	443	26	sign-conversion	int	unsigned int	reg_word	mem_addr
+src/run.c	449	11	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	449	11	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	450	21	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	450	21	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	451	35	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	451	35	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	458	35	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	458	35	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	463	11	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	463	11	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	464	21	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	464	21	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	465	35	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	465	35	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	472	35	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	472	35	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	478	11	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	478	11	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	479	21	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	479	21	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	480	35	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	480	35	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	486	50	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	490	11	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	490	11	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	491	21	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	491	21	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	492	35	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	492	35	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	506	52	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	534	56	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	538	58	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	542	59	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	555	52	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	589	25	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	589	47	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	589	51	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	593	25	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	593	47	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	593	51	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	597	25	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	597	47	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	597	51	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	607	36	sign-conversion	int	unsigned int	reg_word	u_reg_word
+src/run.c	607	55	sign-conversion	int	unsigned int	reg_word	u_reg_word
+src/run.c	615	31	sign-conversion	int	unsigned int	reg_word	u_reg_word
+src/run.c	621	16	sign-conversion	unsigned int	int	u_reg_word	reg_word
+src/run.c	622	29	sign-conversion	unsigned int	int	u_reg_word	reg_word
+src/run.c	622	31	sign-conversion	int	unsigned int	reg_word	u_reg_word
+src/run.c	654	36	sign-conversion	int	unsigned int	reg_word	u_reg_word
+src/run.c	654	55	sign-conversion	int	unsigned int	reg_word	u_reg_word
+src/run.c	664	31	sign-conversion	int	unsigned int	reg_word	u_reg_word
+src/run.c	669	16	sign-conversion	unsigned int	int	u_reg_word	reg_word
+src/run.c	670	29	sign-conversion	unsigned int	int	u_reg_word	reg_word
+src/run.c	670	31	sign-conversion	int	unsigned int	reg_word	u_reg_word
+src/run.c	753	52	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	760	52	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	770	52	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	778	67	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	788	67	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	850	28	sign-conversion	int	unsigned int	reg_word	u_reg_word
+src/run.c	853	40	sign-conversion	unsigned int	int	u_reg_word	reg_word
+src/run.c	855	36	sign-conversion	unsigned int	int	u_reg_word	reg_word
+src/run.c	861	28	sign-conversion	int	unsigned int	reg_word	u_reg_word
+src/run.c	864	40	sign-conversion	unsigned int	int	u_reg_word	reg_word
+src/run.c	866	36	sign-conversion	unsigned int	int	u_reg_word	reg_word
+src/run.c	879	67	sign-conversion	unsigned int	int	u_reg_word	reg_word
+src/run.c	885	52	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	895	52	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	922	23	sign-conversion	int	unsigned int	mem_word	unsigned int
+src/run.c	922	42	sign-conversion	unsigned int	int	unsigned int	mem_word
+src/run.c	926	23	sign-conversion	int	unsigned int	mem_word	unsigned int
+src/run.c	926	42	sign-conversion	unsigned int	int	unsigned int	mem_word
+src/run.c	930	23	sign-conversion	int	unsigned int	mem_word	unsigned int
+src/run.c	930	42	sign-conversion	unsigned int	int	unsigned int	mem_word
+src/run.c	944	52	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	975	58	sign-conversion	unsigned int	int	unsigned int	mem_word
+src/run.c	979	59	sign-conversion	unsigned int	int	unsigned int	mem_word
+src/run.c	983	59	sign-conversion	unsigned int	int	unsigned int	mem_word
+src/run.c	1114	23	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	1114	43	sign-conversion	int	unsigned int	int32_t	mem_addr
+src/run.c	1114	43	sign-conversion	unsigned int	int	unsigned int	int
+src/run.c	1140	17	sign-conversion	int	unsigned int	int	uint32_t
+src/run.c	1170	17	sign-conversion	int	unsigned int	int	uint32_t
+src/run.c	1189	18	sign-conversion	int	unsigned int	reg_word	uint32_t
+src/run.c	1277	52	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	1279	58	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/run.c	1281	11	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	1281	11	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	1281	57	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	1281	57	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	1283	11	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	1283	11	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	1284	21	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	1284	21	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	1289	11	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	1289	11	sign-conversion	unsigned int	int	unsigned int	reg_word
+src/run.c	1290	21	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	1290	21	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	1291	35	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	1291	35	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	1313	15	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	1319	15	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	1325	15	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	1343	15	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	1349	15	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	1355	15	sign-conversion	int	unsigned int	reg_word	unsigned int
+src/run.c	1417	52	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	1419	58	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/run.c	1449	52	sign-conversion	short	unsigned int	int16_t	u_reg_word
+src/run.c	1563	22	sign-conversion	unsigned int	int	u_reg_word	reg_word
+src/run.c	1564	31	sign-conversion	unsigned int	int	u_reg_word	reg_word
+src/run.c	1594	7	sign-conversion	int	unsigned int	int	uint32_t
+src/run.c	1595	7	sign-conversion	int	unsigned int	int	uint32_t
+src/run.c	1596	7	sign-conversion	int	unsigned int	int	uint32_t
+src/run.c	1603	9	sign-conversion	int	unsigned int	reg_word	uint32_t
+src/run.c	1604	13	sign-conversion	int	unsigned int	reg_word	uint32_t
+src/run.c	1619	12	sign-conversion	int	unsigned int	reg_word	uint32_t
+src/run.c	1621	19	sign-conversion	int	unsigned int	int	typeof (PC - BYTES_PER_WORD)
+src/run.c	1621	19	sign-conversion	unsigned int	int	typeof (PC - BYTES_PER_WORD)	reg_word
+src/run.c	1627	12	sign-conversion	int	unsigned int	reg_word	uint32_t
+src/run.c	1629	19	sign-conversion	int	unsigned int	int	typeof (PC)
+src/run.c	1629	19	sign-conversion	unsigned int	int	typeof (PC)	reg_word
+src/run.c	1635	18	sign-conversion	int	unsigned int	reg_word	uint32_t
+src/run.c	1635	50	sign-conversion	unsigned int	int	uint32_t	reg_word
+src/run.c	1635	60	sign-conversion	int	unsigned int	int	uint32_t
+src/scanner.c	170	40	sign-conversion	int	unsigned long	int	__size_t
+src/scanner.c	212	36	sign-conversion	int	unsigned long	int	__size_t
+src/scanner.c	243	29	sign-conversion	int	unsigned int	int	uint32_t
+src/scanner.c	243	57	sign-conversion	int	unsigned int	int	uint32_t
+src/scanner.c	243	72	sign-conversion	int	unsigned int	int	uint32_t
+src/scanner.c	247	41	sign-conversion	int	unsigned int	int	uint32_t
+src/scanner.c	251	26	sign-conversion	int	unsigned int	int	uint32_t
+src/scanner.c	308	34	sign-conversion	int	unsigned long	int	size_t
+src/scanner.c	409	36	sign-conversion	int	unsigned long	int	__size_t
+src/scanner.c	453	37	sign-conversion	int	unsigned long	int	__size_t
+src/scanner.c	812	28	sign-conversion	int	unsigned long	int	size_t
+src/scanner.c	824	28	sign-conversion	int	unsigned long	int	size_t
+src/spim-utils.c	78	53	sign-conversion	unsigned int	int	mem_addr	int
+src/spim-utils.c	79	35	sign-conversion	unsigned int	int	mem_addr	int
+src/spim-utils.c	80	36	sign-conversion	unsigned int	int	mem_addr	int
+src/spim-utils.c	276	50	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/spim-utils.c	276	68	sign-conversion	unsigned int	int	mem_addr	int
+src/spim-utils.c	280	50	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/spim-utils.c	280	68	sign-conversion	unsigned int	int	mem_addr	int
+src/spim-utils.c	284	18	sign-conversion	int	unsigned int	reg_word	mem_addr
+src/spim-utils.c	290	20	sign-conversion	int	unsigned int	reg_word	mem_addr
+src/spim-utils.c	298	18	sign-conversion	int	unsigned int	reg_word	mem_addr
+src/spim-utils.c	323	29	sign-conversion	int	unsigned int	reg_word	uint32_t
+src/spim.c	1118	44	sign-conversion	int	unsigned long	int	__size_t
+src/spim.c	1123	43	sign-conversion	int	unsigned long	int	__size_t
+src/spim.c	1649	23	sign-conversion	int	unsigned int	int	tcflag_t
+src/spim.c	1655	23	sign-conversion	int	unsigned int	int	tcflag_t
+src/symbol-table.c	76	8	sign-conversion	int	unsigned int	int	unsigned int
+src/symbol-table.c	82	14	sign-conversion	unsigned int	int	unsigned int	int
+src/symbol-table.c	231	37	sign-conversion	unsigned int	int	mem_addr	int32_t
+src/symbol-table.c	251	14	sign-conversion	int	unsigned int	int32_t	unsigned int
+src/symbol-table.c	261	13	sign-conversion	unsigned int	int	unsigned int	int32_t
+src/symbol-table.c	393	32	sign-conversion	int	unsigned long	int	__size_t
+src/symbol-table.c	405	43	sign-conversion	int	unsigned long	int	__size_t
+src/symbol-table.c	407	49	sign-conversion	int	unsigned long	int	__size_t
+src/syscall.c	46	53	sign-conversion	int	unsigned int	reg_word	mem_addr
+src/syscall.c	78	47	sign-conversion	int	unsigned int	reg_word	mem_addr
+src/syscall.c	87	22	sign-conversion	unsigned int	int	mem_addr	reg_word
+src/syscall.c	120	37	sign-conversion	int	unsigned int	reg_word	mem_addr
+src/syscall.c	126	53	sign-conversion	int	unsigned int	int	mem_addr
+src/syscall.c	127	54	sign-conversion	int	unsigned int	reg_word	mem_addr
+src/syscall.c	127	68	sign-conversion	int	unsigned long	reg_word	size_t
+src/syscall.c	134	53	sign-conversion	int	unsigned int	int	mem_addr
+src/syscall.c	136	44	sign-conversion	int	unsigned int	reg_word	mem_addr
+src/syscall.c	136	58	sign-conversion	int	unsigned long	reg_word	size_t
+src/syscall.c	154	17	sign-conversion	int	unsigned int	reg_word	uint32_t
+src/syscall.c	160	11	sign-conversion	int	unsigned int	reg_word	uint32_t
+src/syscall.c	212	52	sign-conversion	int	unsigned int	reg_word	uint32_t

@@ -1,0 +1,29 @@
+Worked example — seeing the invisible conversion with clang -ast-dump
+=====================================================================
+
+The dominant pattern in this codebase is reg_word (int32_t) mixing with
+mem_addr/u_reg_word (uint32_t) in arithmetic. A minimal reproduction:
+
+    #include <stdint.h>
+    typedef int32_t reg_word;
+    uint32_t f(reg_word a, reg_word b){ return (uint32_t)a + b; }
+
+    $ clang -std=gnu23 -Xclang -ast-dump -fsyntax-only x.c
+
+    `-BinaryOperator 'uint32_t':'unsigned int' '+'
+      |-ImplicitCastExpr 'reg_word':'int' <LValueToRValue> part_of_explicit_cast   # (uint32_t)a
+      `-ImplicitCastExpr 'uint32_t':'unsigned int' <IntegralCast>                   # <-- the sign change
+        `-ImplicitCastExpr 'reg_word':'int' <LValueToRValue>                        #     b, silently
+
+Reading it: `b` (reg_word/int) is implicitly <IntegralCast>'d to uint32_t before
+the add. That IntegralCast is exactly what -Wsign-conversion flags. The AST shows
+the FROM type, the TO type, and the cast kind for every subexpression and every
+intermediate — which is what you need to decide, per MIPS op, whether the cast is
+the intended unsigned-word semantics (keep, make explicit) or a real bug.
+
+To inspect a real site, dump its translation unit and search for the line:
+    clang -std=gnu23 -Xclang -ast-dump=json -fsyntax-only \
+        $(jq -r '.[]|select(.file|endswith("run.c")).command' compile_commands.json | ...) \
+  or, interactively, clang-query -p <builddir> src/run.c  then:
+    m implicitCastExpr(hasCastKind("CK_IntegralCast"))
+(897 integral casts in run.c; the sign-changing subset is the 190 -Wsign-conversion hits.)
