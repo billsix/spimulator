@@ -125,6 +125,8 @@ spec + the ASan/UBSan gates after each chunk).
 
 ## Cross-links
 
+- `tasks/reference/simulator-integer-types.md` — the durable model + gate harvested from this task (read that before touching the core's integer arithmetic).
+
 - `tasks/archive/2026/10/16/c23-modernization-pass2.md` (parent; Tier 3 did the safe structural widths in `instruction.h`).
 - `tasks/archive/2026/06/16/ubsan-sweep.md` (the integer-UB surface to coordinate with).
 - `github.com/billsix/runClaudeInContainer:tasks/reference/c-coding-standard.md` (integer-conversion rule), `github.com/billsix/runClaudeInContainer:tasks/reference/c-modernization-sweep.md`
