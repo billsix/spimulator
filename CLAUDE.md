@@ -86,6 +86,16 @@ not spim's intentional exit-time leaks) + the integer-UB primer:
   `BUILD_TREE_SITTER=0` image build never exercises it.
 - This is a learning tool: the explain/teaching output is a first-class feature,
   not debug spew. Keep it correct and legible.
+- **Modernization scope — `src/` + `include/` only.** The shared C coding standard
+  (`~/.claude/reference/c-coding-standard.md`) and modernization sweep
+  (`~/.claude/reference/c-modernization-sweep.md`) apply to the simulator core.
+  The **teaching C is deliberately NOT modernized**: `examples/` and `pgu/`'s C are
+  paired C + MIPS-asm demos a student reads next to the generated assembly, so they
+  are written for the clearest C→asm mapping — e.g. **all locals declared at the top
+  of a function**, mirroring the stack-frame prologue — not for modern-C style. Opt
+  out of any idiom (declare-at-use, heavy `const`, designated initializers,
+  `typeof`/`auto`, helper extraction) that obscures the codegen a demo exists to show.
+  Rationale + opt-out list: `tasks/reference/example-c-teaching-style.md`.
 
 ## Tasks (in-flight)
 
