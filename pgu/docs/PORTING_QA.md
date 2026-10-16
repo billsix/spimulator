@@ -7,6 +7,8 @@ plus the four XML files with no RST counterpart.
 
 Citations are `file:line` on both sides where useful.
 
+> **Commit SHAs below refer to the upstream source repo, github.com/billsix/programmingFromTheGroundUp** (this doc was imported from there with the pgu content); they do not resolve in this repo’s history.
+
 > **Status (May 2026):** Almost everything in this document has
 > been resolved.  See the archived session notes
 > [`tasks/archive/2026/05/24/SESSION_NOTES.md`](../../tasks/archive/2026/05/24/SESSION_NOTES.md)
