@@ -98,7 +98,7 @@ constexpr uint32_t CP0_Cause_Mask =
     CP0_Cause_BD | CP0_Cause_IP | CP0_Cause_IP7 | CP0_Cause_IP6 |
     CP0_Cause_IP5 | CP0_Cause_IP4 | CP0_Cause_IP3 | CP0_Cause_IP2 |
     CP0_Cause_ExcCode;
-#define CP0_ExCode ((CP0_Cause & CP0_Cause_ExcCode) >> 2)
+#define CP0_ExCode (((uint32_t)CP0_Cause & CP0_Cause_ExcCode) >> 2)
 
 /* EPC register: */
 constexpr int CP0_EPC_Reg = 14;
@@ -179,7 +179,7 @@ constexpr int CC1_bit = 25;
 /* 1u: for n==7 the shift is `1 << 31`, which is UB on a signed `1`. */
 #define CC_mask(n) \
   ((((n) == 0) || ((n) > 7)) ? (1u << CC0_bit) : (1u << (CC1_bit + (n) - 1)))
-#define FCC(n) (((FCSR & CC_mask(n)) == 0) ? 0 : 1)
+#define FCC(n) ((((u_reg_word)FCSR & CC_mask(n)) == 0) ? 0 : 1)
 #define SET_FCC(n, v)    \
   if ((v) == 0) {        \
     FCSR &= ~CC_mask(n); \

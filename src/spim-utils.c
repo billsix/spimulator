@@ -75,9 +75,9 @@ void initialize_world(char* exception_file_names, bool print_message) {
   if (fp_single_view == nullptr)
     fp_double_view = (double*)xmalloc(FPR_LENGTH * sizeof(double));
   /* Allocate the memory */
-  make_memory(initial_text_size, initial_data_size, initial_data_limit,
-              initial_stack_size, initial_stack_limit, initial_k_text_size,
-              initial_k_data_size, initial_k_data_limit);
+  make_memory(initial_text_size, initial_data_size, (int)initial_data_limit,
+              initial_stack_size, (int)initial_stack_limit, initial_k_text_size,
+              initial_k_data_size, (int)initial_k_data_limit);
   initialize_registers();
   initialize_inst_tables();
   initialize_symbol_table();
@@ -273,21 +273,23 @@ void initialize_run_stack(int argc, char** argv) {
   /* Build vectors on stack: */
   /* env: */
   (void)copy_int_to_stack(0); /* Null-terminate vector */
-  for (i = env_j - 1; i >= 0; i--) gpr[REG_A2] = copy_int_to_stack(addrs[i]);
+  for (i = env_j - 1; i >= 0; i--)
+    gpr[REG_A2] = (reg_word)copy_int_to_stack((int)addrs[i]);
 
   /* argv: */
   (void)copy_int_to_stack(0); /* Null-terminate vector */
-  for (i = j - 1; i >= env_j; i--) gpr[REG_A1] = copy_int_to_stack(addrs[i]);
+  for (i = j - 1; i >= env_j; i--)
+    gpr[REG_A1] = (reg_word)copy_int_to_stack((int)addrs[i]);
 
   /* argc: */
   gpr[REG_A0] = argc;
-  mem_write_word(gpr[REG_SP], argc); /* Leave argc on stack */
+  mem_write_word((mem_addr)gpr[REG_SP], argc); /* Leave argc on stack */
 }
 
 static mem_addr copy_str_to_stack(char* s) {
   int i = (int)strlen(s);
   while (i >= 0) {
-    mem_write_byte(gpr[REG_SP], s[i]);
+    mem_write_byte((mem_addr)gpr[REG_SP], s[i]);
     gpr[REG_SP] -= 1;
     i -= 1;
   }
@@ -295,7 +297,7 @@ static mem_addr copy_str_to_stack(char* s) {
 }
 
 static mem_addr copy_int_to_stack(int n) {
-  mem_write_word(gpr[REG_SP], n);
+  mem_write_word((mem_addr)gpr[REG_SP], n);
   gpr[REG_SP] -= BYTES_PER_WORD;
   return ((mem_addr)gpr[REG_SP] + BYTES_PER_WORD);
 }
@@ -320,7 +322,7 @@ bool run_program(mem_addr pc, int steps, bool display, bool cont_bkpt,
 
   exception_occurred = 0;
   *continuable = run_spim(pc, steps, display);
-  if (exception_occurred && CP0_ExCode == ExcCode_Bp) {
+  if (exception_occurred && (uint32_t)CP0_ExCode == ExcCode_Bp) {
     /* Turn off EXL bit, so subsequent interrupts set EPC since the break is
     handled by SPIM code, not MIPS code. */
     CP0_Status &= ~CP0_Status_EXL;

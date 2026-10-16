@@ -43,7 +43,7 @@ int do_syscall(void) {
       break;
 
     case PRINT_STRING_SYSCALL:
-      write_output(console_out, "%s", mem_reference(gpr[REG_A0]));
+      write_output(console_out, "%s", mem_reference((mem_addr)gpr[REG_A0]));
       break;
 
     case READ_INT_SYSCALL: {
@@ -75,7 +75,8 @@ int do_syscall(void) {
     }
 
     case READ_STRING_SYSCALL: {
-      int n = read_input((char*)mem_reference(gpr[REG_A0]), gpr[REG_A1]);
+      int n =
+          read_input((char*)mem_reference((mem_addr)gpr[REG_A0]), gpr[REG_A1]);
       gpr[REG_A3] = (n == 0) ? 1 : 0; /* EOF flag */
       data_modified = true;
       break;
@@ -84,7 +85,7 @@ int do_syscall(void) {
     case SBRK_SYSCALL: {
       mem_addr x = data_top;
       expand_data(gpr[REG_A0]);
-      gpr[REG_RES] = x;
+      gpr[REG_RES] = (reg_word)x;
       data_modified = true;
       break;
     }
@@ -102,7 +103,7 @@ int do_syscall(void) {
       } else {
         /* Treat the byte as unsigned (0..255) so bytes >= 0x80 don't
            alias with the -1 EOF sentinel via sign extension. */
-        gpr[REG_RES] = (long)(unsigned char)str[0];
+        gpr[REG_RES] = (reg_word)(unsigned char)str[0];
       }
       break;
     }
@@ -116,24 +117,27 @@ int do_syscall(void) {
       return (0);
 
     case OPEN_SYSCALL: {
-      gpr[REG_RES] =
-          open((char*)mem_reference(gpr[REG_A0]), gpr[REG_A1], gpr[REG_A2]);
+      gpr[REG_RES] = open((char*)mem_reference((mem_addr)gpr[REG_A0]),
+                          gpr[REG_A1], gpr[REG_A2]);
       break;
     }
 
     case READ_SYSCALL: {
       /* Test if address is valid */
-      (void)mem_reference(gpr[REG_A1] + gpr[REG_A2] - 1);
-      gpr[REG_RES] = read(gpr[REG_A0], mem_reference(gpr[REG_A1]), gpr[REG_A2]);
+      (void)mem_reference((mem_addr)(gpr[REG_A1] + gpr[REG_A2] - 1));
+      gpr[REG_RES] =
+          (reg_word)read(gpr[REG_A0], mem_reference((mem_addr)gpr[REG_A1]),
+                         (size_t)gpr[REG_A2]);
       data_modified = true;
       break;
     }
 
     case WRITE_SYSCALL: {
       /* Test if address is valid */
-      (void)mem_reference(gpr[REG_A1] + gpr[REG_A2] - 1);
+      (void)mem_reference((mem_addr)(gpr[REG_A1] + gpr[REG_A2] - 1));
       gpr[REG_RES] =
-          write(gpr[REG_A0], mem_reference(gpr[REG_A1]), gpr[REG_A2]);
+          (reg_word)write(gpr[REG_A0], mem_reference((mem_addr)gpr[REG_A1]),
+                          (size_t)gpr[REG_A2]);
       break;
     }
 

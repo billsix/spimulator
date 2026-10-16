@@ -1,6 +1,6 @@
 # Integer-conversion hardening — `-Wsign-conversion`/`-Wconversion` gate for the core
 
-**Status:** proposed — needs go-ahead
+**Status:** COMPLETE (2026-10-16)
 **Priority:** 6
 **Difficulty:** 8
 **Created:** 2026-10-16 (William Emerison Six <billsix@gmail.com>)
@@ -15,7 +15,44 @@ signed/unsigned casts *are* the architecture's semantics, so each must be review
 blanket-fixed. "Done" = core compiles clean under both flags, the flags are in the gate, and
 `ast_parity`/`ast_parity_all` + the sanitizer suites are still green.
 
-## Why this is deferred, not done
+## What landed (2026-10-16)
+
+The core (`src/`+`include/`) is **clean under clang `-Wconversion -Wsign-conversion`**, and those flags
+are now in the core gate (`meson.build`, scoped to the `spimulator` target, clang-only — see the gate
+note below). Verified: clang clean under `-Werror`; `meson test` **36/36** (incl. the byte-identical
+`ast_parity`/`ast_parity_all` memory goldens); UBSan-trap and ASan gates **25/25**; gcc build still
+green. Behavior is byte-identical — every edit is an explicit cast to the type the compiler was already
+implicitly converting to (a value-level no-op), or a one-line type/macro fix.
+
+**How, by class (~340 conversions):**
+- **Repeated ALU idioms fixed once** — branch-target (`PC + (mem_addr)BRANCH_OFFSET`), effective-address
+  (`(u_reg_word)IOFFSET`), applied uniformly.
+- **Macro-internal conversions fixed at the macro** (the key leverage — a call-site cast can't reach
+  inside a macro): `ROUND_UP`/`ROUND_DOWN` capture `B` as `typeof(V)` (`spim.h`); `BRANCH_OFFSET`'s
+  `sign_ex` arg made explicit (`instruction.h`); `CP0_ExCode` and `FCC` cast their `reg_word` operand
+  (`registers.h`).
+- **Per-site explicit casts** elsewhere (gpr/register reinterpretations → `reg_word`/`u_reg_word`,
+  host sizes → `size_t`, addresses → `mem_addr`).
+- **Narrowing (`-Wshorten-64-to-32` / `-Wimplicit-int-conversion`)**: `long`/`ssize_t` results cast to
+  `reg_word`/`mem_addr`/`int32_t` at the point of truncation; `parser.c` `long dist` → `int dist`
+  (eval_imm_expr already returns int32_t, range-checked 0..31).
+
+**The gate is clang-scoped, on purpose.** Every Dockerfile build and both sanitizer gates use
+`CC=clang`, and the core is clang-clean. gcc's `-Wsign-conversion` is stricter and flags ~46 additional
+edge cases (notably `memory.c` memory-mapped-IO register tests and a few `registers.h` macros), so
+enabling the flags under gcc would break a host gcc build. The gate therefore adds the conversion flags
+only when `cc.get_id() == 'clang'`; plain `-Werror` still applies under both compilers.
+
+**Known-remaining (not gated, documented):**
+- The ~46 gcc-only `-Wsign-conversion` edge cases above — address them if a gcc-enforced conversion
+  gate is ever wanted (same cast policy; a few are macro-internal in `registers.h`).
+- The `#ifdef SPIM_BIGENDIAN` paths in `memory.c` (e.g. 369/378, 424/435) carry the same latent
+  conversions as their little-endian twins but are not compiled on the little-endian gate build, so
+  they were left untouched (unverifiable here). Mirror the LE casts if BE is ever gated.
+- Pre-existing latent narrowing `scanner.c` `(int)(len + 16)` in two `xmalloc` calls — flagged by a
+  reviewer, left as-is (separate correctness review, not a conversion-warning fix).
+
+## Why it was deferred originally (historical)
 
 A `-Wconversion -Wsign-conversion` probe of the core (2026-10-16) found **371 warnings**, 358 of them
 `-Wsign-conversion`, and **326 in `src/run.c` alone**. Inspection showed these are conversions

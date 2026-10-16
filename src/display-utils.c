@@ -182,7 +182,7 @@ void format_data_segs(str_stream* ss) {
   format_mem(ss, DATA_BOT, data_top);
 
   ss_printf(ss, "\n\tSTACK\n");
-  format_mem(ss, ROUND_DOWN(gpr[29], BYTES_PER_WORD), STACK_TOP);
+  format_mem(ss, (mem_addr)ROUND_DOWN(gpr[29], BYTES_PER_WORD), STACK_TOP);
 
   ss_printf(ss, "\n\tKERNEL DATA\n");
   format_mem(ss, K_DATA_BOT, k_data_top);

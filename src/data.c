@@ -54,7 +54,7 @@ void data_begins_at_point(mem_addr addr) {
   else {
     next_gp_item_addr = addr;
     gp_midpoint = addr + 32 * kilo;
-    gpr[REG_GP] = gp_midpoint;
+    gpr[REG_GP] = (reg_word)gp_midpoint;
     next_data_pc = addr + 64 * kilo;
   }
 }
@@ -106,13 +106,13 @@ mem_addr current_data_pc(void) { return (DATA_PC); }
 
 void increment_data_pc(int delta) {
   if (in_kernel) {
-    next_k_data_pc += delta;
+    next_k_data_pc += (mem_addr)delta;
     if (k_data_top <= next_k_data_pc)
-      expand_k_data(ROUND_UP(next_k_data_pc - k_data_top + 1, 64 * kilo));
+      expand_k_data((int)ROUND_UP(next_k_data_pc - k_data_top + 1, 64 * kilo));
   } else {
-    next_data_pc += delta;
+    next_data_pc += (mem_addr)delta;
     if (data_top <= next_data_pc)
-      expand_data(ROUND_UP(next_data_pc - data_top + 1, 64 * kilo));
+      expand_data((int)ROUND_UP(next_data_pc - data_top + 1, 64 * kilo));
   }
 }
 
@@ -123,10 +123,10 @@ void extern_directive(char* name, int size) {
 
   if (!bare_machine && !sym->gp_flag  // Not already a global symbol
       && size > 0 && size <= SMALL_DATA_SEG_MAX_SIZE &&
-      next_gp_item_addr + size < gp_midpoint + 32 * kilo) {
+      next_gp_item_addr + (mem_addr)size < gp_midpoint + 32 * kilo) {
     sym->gp_flag = 1;
     sym->addr = next_gp_item_addr;
-    next_gp_item_addr += size;
+    next_gp_item_addr += (mem_addr)size;
   }
 }
 
@@ -134,11 +134,11 @@ void extern_directive(char* name, int size) {
 
 void lcomm_directive(char* name, int size) {
   if (!bare_machine && size > 0 && size <= SMALL_DATA_SEG_MAX_SIZE &&
-      next_gp_item_addr + size < gp_midpoint + 32 * kilo) {
+      next_gp_item_addr + (mem_addr)size < gp_midpoint + 32 * kilo) {
     label* sym = record_label(name, next_gp_item_addr, 1);
     sym->gp_flag = 1;
 
-    next_gp_item_addr += size;
+    next_gp_item_addr += (mem_addr)size;
     /* Don't need to initialize since memory starts with 0's */
   } else {
     (void)record_label(name, next_data_pc, 1);

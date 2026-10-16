@@ -73,13 +73,13 @@ static void get_hash(char* name, int* slot_no, label** entry) {
   for (len = 0; name[len]; len++);
 
   /* Compute hash code */
-  hi = len;
+  hi = (unsigned int)len;
   for (i = 0; i < len; i++) hi = ((hi * 613) + (unsigned)(name[i]));
 
   hi &= (1 << HASHBITS) - 1;
   hi %= LABEL_HASH_TABLE_SIZE;
 
-  *slot_no = hi;
+  *slot_no = (int)hi;
   /* Search table for entry */
   for (cursor = label_hash_table[hi]; cursor; cursor = cursor->next)
     if (streq(cursor->name, name)) {
@@ -224,11 +224,12 @@ static void resolve_a_label_sub(label* sym, mips_instruction* instruction,
                                 mem_addr pc) {
   if (instruction == nullptr) {
     /* Memory data: */
-    mem_write_word(pc, sym->addr);
+    mem_write_word(pc, (reg_word)sym->addr);
   } else {
     /* Instruction: */
     if (EXPR(instruction)->pc_relative)
-      EXPR(instruction)->offset = 0 - pc; /* Instruction may have moved */
+      EXPR(instruction)->offset =
+          (int32_t)(0 - pc); /* Instruction may have moved */
 
     if (EXPR(instruction)->symbol == nullptr ||
         SYMBOL_IS_DEFINED(EXPR(instruction)->symbol)) {
@@ -248,7 +249,7 @@ static void resolve_a_label_sub(label* sym, mips_instruction* instruction,
         field_mask = 0xffff;
       } else if (opcode_is_jump(OPCODE(instruction))) {
         value = eval_imm_expr(EXPR(instruction));
-        if ((value & 0xf0000000) != (pc & 0xf0000000)) {
+        if (((unsigned int)value & 0xf0000000) != (pc & 0xf0000000)) {
           error(
               "Target of jump differs in high-order 4 bits from instruction pc "
               "0x%x\n",
@@ -257,8 +258,8 @@ static void resolve_a_label_sub(label* sym, mips_instruction* instruction,
         /* Drop high four bits, since they come from the PC and the
                low two bits since instructions are on word boundaries. */
         value = (value & 0x0fffffff) >> 2;
-        field_mask =
-            0xffffffff; /* Already checked that value fits in instruction */
+        field_mask = (int32_t)0xffffffff; /* Already checked that value fits in
+                                             instruction */
       } else if (opcode_is_load_store(OPCODE(instruction))) {
         /* Label's location is an address */
         value = eval_imm_expr(EXPR(instruction));
@@ -347,7 +348,7 @@ mem_addr find_symbol_address(char* symbol) {
   if (l == nullptr || l->addr == 0)
     return 0;
   else
-    return (l->addr);
+    return ((mem_addr)l->addr);
 }
 
 /* Print all symbols in the table. */
@@ -390,7 +391,7 @@ void print_undefined_symbols(void) {
 char* undefined_symbol_string(void) {
   int buffer_length = 128;
   int string_length = 0;
-  char* buffer = (char*)malloc(buffer_length);
+  char* buffer = (char*)malloc((size_t)buffer_length);
 
   int i;
   label* l;
@@ -402,9 +403,9 @@ char* undefined_symbol_string(void) {
         int after_length = string_length + name_length + 2;
         if (buffer_length < after_length) {
           buffer_length = MAX(2 * buffer_length, 2 * after_length);
-          buffer = (char*)realloc(buffer, buffer_length);
+          buffer = (char*)realloc(buffer, (size_t)buffer_length);
         }
-        memcpy(buffer + string_length, l->name, name_length);
+        memcpy(buffer + string_length, l->name, (size_t)name_length);
         string_length += name_length;
         buffer[string_length] = '\n';
         string_length += 1;

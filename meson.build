@@ -95,7 +95,23 @@ link_libraries = [
 # `werror=true`) so the teaching demos under examples/ — deliberately simple
 # C read against generated asm, out of the modernization scope — are not gated
 # by it.  Override with -Dcore_werror=false.
-core_c_args = get_option('core_werror') ? ['-Werror'] : []
+core_c_args = []
+# Integer-conversion gate for the core: flag silent narrowing / sign-flip
+# conversions (the simulator core was made clean under these 2026-10-16; see the
+# integer-conversion-hardening task). Scoped to clang because the image and the
+# sanitizer gates all build with clang (Dockerfile) and the core is clang-clean
+# under these; gcc's -Wsign-conversion is stricter and flags ~46 additional edge
+# cases not yet addressed, so enabling it there would break a host gcc build.
+if cc.get_id() == 'clang'
+  foreach warg : ['-Wconversion', '-Wsign-conversion']
+    if cc.has_argument(warg)
+      core_c_args += warg
+    endif
+  endforeach
+endif
+if get_option('core_werror')
+  core_c_args += '-Werror'
+endif
 spimulator_exe = executable('spimulator',
   spim_source_files,
   include_directories: inc,

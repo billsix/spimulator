@@ -167,7 +167,7 @@ static void maybe_snapshot_line(void) {
     int len = line_len;
     if (len > 0 && line_buf[len - 1] == '\n') len--;
     if (len >= LINE_BUF_MAX) len = LINE_BUF_MAX - 1;
-    memcpy(current_line_buf, line_buf, len);
+    memcpy(current_line_buf, line_buf, (size_t)len);
     current_line_buf[len] = '\0';
     current_line_no_saved = line_no;
     current_line_saved = true;
@@ -209,7 +209,7 @@ static int scan_fp(int sign, int end_pos, scan_token* out) {
   char buf[64];
   int len = end_pos - line_pos;
   if (len >= (int)sizeof(buf)) len = sizeof(buf) - 1;
-  memcpy(buf, line_buf + line_pos, len);
+  memcpy(buf, line_buf + line_pos, (size_t)len);
   buf[len] = '\0';
   /* Normalize separator */
   for (int i = 0; i < len; i++) {
@@ -239,16 +239,17 @@ static int scan_int(int sign, scan_token* out) {
     next_char(); /* consume "0x" */
     while (isxdigit(peek_char())) {
       int c = next_char();
-      value = (value << 4) |
-              (c <= '9' ? c - '0' : (c <= 'F' ? c - 'A' + 10 : c - 'a' + 10));
+      value = (value << 4) | (c <= '9' ? (uint32_t)(c - '0')
+                                       : (c <= 'F' ? (uint32_t)(c - 'A' + 10)
+                                                   : (uint32_t)(c - 'a' + 10)));
     }
   } else {
     while (isdigit(peek_char())) {
-      value = value * 10 + (next_char() - '0');
+      value = value * 10 + (uint32_t)(next_char() - '0');
     }
   }
   out->type = TOK_INT;
-  out->val.i = (int32_t)(sign * value);
+  out->val.i = (int32_t)((uint32_t)sign * value);
   out->present = true;
   return TOK_INT;
 }
@@ -305,7 +306,7 @@ static int scan_escape_char(const char** pp) {
 /* Decode a string literal — produces a fresh heap-allocated
    NUL-terminated decoded buffer. */
 static char* decode_string(const char* src, int len) {
-  char* dst = (char*)xmalloc(len + 1);
+  char* dst = (char*)xmalloc((size_t)(len + 1));
   char* d = dst;
   const char* s = src;
   const char* end = src + len;
@@ -406,7 +407,7 @@ static int scan_identifier(scan_token* out, bool force_id) {
   static char id_buf[256];
   int idlen = end - start;
   if (idlen >= (int)sizeof(id_buf)) idlen = sizeof(id_buf) - 1;
-  memcpy(id_buf, line_buf + start, idlen);
+  memcpy(id_buf, line_buf + start, (size_t)idlen);
   id_buf[idlen] = '\0';
 
   /* Keyword lookup (unless force_id). */
@@ -450,7 +451,7 @@ static int scan_register(scan_token* out) {
   static char reg_buf[64];
   int reglen = end - start;
   if (reglen >= (int)sizeof(reg_buf)) reglen = sizeof(reg_buf) - 1;
-  memcpy(reg_buf, line_buf + start, reglen);
+  memcpy(reg_buf, line_buf + start, (size_t)reglen);
   reg_buf[reglen] = '\0';
 
   int reg_no = register_name_to_number(reg_buf);
@@ -809,7 +810,7 @@ void scanner_pop_source(void) {
    indented and newline-terminated, for the parse-error printer. */
 char* erroneous_line(void) {
   size_t len = strlen(current_line_buf);
-  char* r = (char*)xmalloc((int)(len + 16));
+  char* r = (char*)xmalloc((size_t)(int)(len + 16));
   snprintf(r, len + 16, "\t  %s\n", current_line_buf);
   return r;
 }
@@ -821,7 +822,7 @@ char* source_line(void) {
   if (!current_line_saved) return nullptr;
   size_t len = strlen(current_line_buf);
   /* "NNN: " prefix — up to 10 digits + ": " + line + NUL */
-  char* r = (char*)xmalloc((int)(len + 16));
+  char* r = (char*)xmalloc((size_t)(int)(len + 16));
   snprintf(r, len + 16, "%d: %s", current_line_no_saved, current_line_buf);
   return r;
 }

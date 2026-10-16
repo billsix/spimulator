@@ -1007,7 +1007,7 @@ static void tpl_branch_2reg(int level, mips_instruction* instruction,
   int rs = RS(instruction), rt = RT(instruction);
   /* Target is computed from the instruction's own PC (snap_PC) plus 4 +
      displacement. Live PC has already advanced past this instruction. */
-  mem_addr target = snap_PC + 4 + BRANCH_OFFSET(instruction);
+  mem_addr target = snap_PC + 4 + (mem_addr)BRANCH_OFFSET(instruction);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — would transfer to 0x%08x if ($%s %s $%s).\n", op_label,
@@ -1029,7 +1029,7 @@ static void tpl_branch_1reg(int level, mips_instruction* instruction,
                             const char* op_label, const char* op_symbol,
                             bool taken) {
   int rs = RS(instruction);
-  mem_addr target = snap_PC + 4 + BRANCH_OFFSET(instruction);
+  mem_addr target = snap_PC + 4 + (mem_addr)BRANCH_OFFSET(instruction);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — would transfer to 0x%08x if ($%s %s 0).\n", op_label,
@@ -1115,7 +1115,7 @@ static void explain_syscall(int level) {
         say_input_reg(REG_A1);
         write_output(message_out, "  Wrote to memory:\n");
         write_output(message_out, "    0x%08x .. 0x%08x\n", a0,
-                     a0 + snap_R[REG_A1] - 1);
+                     a0 + (mem_addr)snap_R[REG_A1] - 1);
         say_try_regs(REG_V0, REG_A0, REG_A1, 0);
       }
       break;
