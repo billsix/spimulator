@@ -23,8 +23,8 @@ typedef struct immexpr {
    instruction.  Address have the form: label +/- offset (register). */
 
 typedef struct addrexpr {
-  uint8_t reg_no;       /* Register number */
-  imm_expr* imm;        /* The immediate part */
+  uint8_t reg_no; /* Register number */
+  imm_expr* imm;  /* The immediate part */
 } addr_expr;
 
 /* Representation of an instruction. Store the instruction fields in an
@@ -94,7 +94,7 @@ typedef struct inst_s {
 /* Shift as unsigned: IOFFSET is a signed int16_t, and `<< 2` on a negative
    value is UB.  sign_ex() then re-derives the signed offset from the low bits.
  */
-#define BRANCH_OFFSET(INST) (sign_ex((unsigned)IOFFSET(INST) << 2))
+#define BRANCH_OFFSET(INST) (sign_ex((int)((unsigned)IOFFSET(INST) << 2)))
 
 #define COND(INST) RS(INST)
 #define SET_COND(INST, VAL) SET_RS(INST, VAL)

@@ -118,11 +118,11 @@ mem_addr current_text_pc(void) { return (INST_PC); }
 
 static void increment_text_pc(int delta) {
   if (in_kernel) {
-    next_k_text_pc += delta;
+    next_k_text_pc += (mem_addr)delta;
     if (k_text_top <= next_k_text_pc)
       run_error("Can't expand kernel text segment\n");
   } else {
-    next_text_pc += delta;
+    next_text_pc += (mem_addr)delta;
     if (text_top <= next_text_pc) run_error("Can't expand text segment\n");
   }
 }
@@ -213,10 +213,10 @@ void i_type_inst(int opcode, int rt, int rs, imm_expr* expr) {
            opcode == TOK_TLTIU_OPCODE || opcode == TOK_TNEI_OPCODE ||
            (opcode_is_load_store(opcode) && expr->bits == 0))
               // Sign-extended immediate values:
-              ? ((value & 0xffff8000) != 0 &&
-                 (value & 0xffff8000) != 0xffff8000)
+              ? (((unsigned int)value & 0xffff8000) != 0 &&
+                 ((unsigned int)value & 0xffff8000) != 0xffff8000)
               // Not sign-extended:
-              : (value & 0xffff0000) != 0))) {
+              : ((unsigned int)value & 0xffff0000) != 0))) {
       // Non-immediate value
       free_inst(instruction);
       i_type_inst_full_word(opcode, rt, rs, expr, 1, value);
@@ -249,7 +249,7 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
     int32_t offset;
 
     if (expr->symbol != nullptr && expr->symbol->gp_flag && rs == 0 &&
-        IMM_MIN <= (offset = expr->symbol->addr + expr->offset) &&
+        IMM_MIN <= (offset = (int32_t)(expr->symbol->addr + expr->offset)) &&
         offset <= IMM_MAX) {
       i_type_inst_free(opcode, rt, REG_GP,
                        make_imm_expr(offset, nullptr, false));
@@ -300,7 +300,7 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
     int offset;
 
     if (expr->symbol != nullptr && expr->symbol->gp_flag && rs == 0 &&
-        IMM_MIN <= (offset = expr->symbol->addr + expr->offset) &&
+        IMM_MIN <= (offset = (int32_t)(expr->symbol->addr + expr->offset)) &&
         offset <= IMM_MAX) {
       i_type_inst_free((opcode == TOK_LUI_OPCODE ? TOK_ADDIU_OPCODE : opcode),
                        rt, REG_GP, make_imm_expr(offset, nullptr, false));
@@ -322,7 +322,7 @@ static void produce_immediate(imm_expr* expr, int rt, int value_known,
                               int32_t value) {
   if (value_known && (value & 0xffff) == 0) {
     i_type_inst_free(TOK_LUI_OPCODE, rt, 0, upper_bits_of_expr(expr));
-  } else if (value_known && (value & 0xffff0000) == 0) {
+  } else if (value_known && ((unsigned int)value & 0xffff0000) == 0) {
     i_type_inst_free(TOK_ORI_OPCODE, rt, 0, lower_bits_of_expr(expr));
   } else {
     i_type_inst_free(TOK_LUI_OPCODE, 1, 0, upper_bits_of_expr(expr));
@@ -642,12 +642,12 @@ void format_an_inst(str_stream* ss, mips_instruction* instruction,
   ss_printf(ss, "0x%08x  %s", (uint32_t)ENCODING(instruction), entry->name);
   switch (entry->value2) {
     case BRANCH_COPROC_COND_INST:
-      ss_printf(ss, "%d %d", CC(instruction), BRANCH_OFFSET(instruction));
+      ss_printf(ss, "%d %d", CC(instruction), (int)BRANCH_OFFSET(instruction));
       break;
 
     case BRANCH_RS_LABEL_INST:
       ss_printf(ss, " $%s %d", int_reg_names[RS(instruction)],
-                BRANCH_OFFSET(instruction));
+                (int)BRANCH_OFFSET(instruction));
       break;
 
     case RS_IMM_INST:
@@ -667,7 +667,8 @@ void format_an_inst(str_stream* ss, mips_instruction* instruction,
 
     case BRANCH_RS_RT_LABEL_INST:
       ss_printf(ss, " $%s, $%s, %d", int_reg_names[RS(instruction)],
-                int_reg_names[RT(instruction)], BRANCH_OFFSET(instruction));
+                int_reg_names[RT(instruction)],
+                (int)BRANCH_OFFSET(instruction));
       break;
 
     case RT_ADDR_INST:
@@ -1027,7 +1028,7 @@ int32_t eval_imm_expr(imm_expr* expr) {
   if (expr->symbol == nullptr)
     value = expr->offset;
   else if (SYMBOL_IS_DEFINED(expr->symbol)) {
-    value = expr->offset + expr->symbol->addr;
+    value = (int32_t)(expr->offset + expr->symbol->addr);
   } else {
     error("Evaluated undefined symbol: %s\n", expr->symbol->name);
     value = 0;
@@ -1079,8 +1080,8 @@ addr_expr* make_addr_expr(int offs, char* sym, int reg_no) {
   if (reg_no == 0 && sym != nullptr &&
       (looked_up = lookup_label(sym))->gp_flag) {
     expr->reg_no = REG_GP;
-    expr->imm =
-        make_imm_expr(offs + looked_up->addr - gp_midpoint, nullptr, false);
+    expr->imm = make_imm_expr((int)(offs + looked_up->addr - gp_midpoint),
+                              nullptr, false);
   } else {
     expr->reg_no = (unsigned char)reg_no;
     /* make_imm_expr only reads `sym` (via lookup_label) and stores the
@@ -1220,7 +1221,7 @@ int32_t inst_encode(mips_instruction* instruction) {
               REGS(FD(instruction), 6));
 
     case J_TYPE_INST:
-      return (a_opcode | TARGET(instruction));
+      return ((int32_t)((mem_addr)a_opcode | TARGET(instruction)));
 
     case NOARG_TYPE_INST:
       return (a_opcode);
@@ -1255,7 +1256,7 @@ static void sort_a_opcode_table(void) {
 }
 
 mips_instruction* inst_decode(int32_t val) {
-  int32_t a_opcode = val & 0xfc000000;
+  int32_t a_opcode = (int32_t)((unsigned int)val & 0xfc000000);
   name_val_val* entry;
   int32_t i_opcode;
 
@@ -1269,7 +1270,7 @@ mips_instruction* inst_decode(int32_t val) {
   else if (a_opcode == 0x44000000) /* COP1 */
   {
     a_opcode |= (val & 0x03e00000);
-    if ((val & 0xff000000) == 0x45000000)
+    if (((unsigned int)val & 0xff000000) == 0x45000000)
       a_opcode |= (val & 0x00010000); /* BC1f/t */
     else
       a_opcode |= (val & 0x3f);

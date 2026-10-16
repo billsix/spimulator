@@ -1007,7 +1007,7 @@ static void tpl_branch_2reg(int level, mips_instruction* instruction,
   int rs = RS(instruction), rt = RT(instruction);
   /* Target is computed from the instruction's own PC (snap_PC) plus 4 +
      displacement. Live PC has already advanced past this instruction. */
-  mem_addr target = snap_PC + 4 + BRANCH_OFFSET(instruction);
+  mem_addr target = snap_PC + 4 + (mem_addr)BRANCH_OFFSET(instruction);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — would transfer to 0x%08x if ($%s %s $%s).\n", op_label,
@@ -1029,7 +1029,7 @@ static void tpl_branch_1reg(int level, mips_instruction* instruction,
                             const char* op_label, const char* op_symbol,
                             bool taken) {
   int rs = RS(instruction);
-  mem_addr target = snap_PC + 4 + BRANCH_OFFSET(instruction);
+  mem_addr target = snap_PC + 4 + (mem_addr)BRANCH_OFFSET(instruction);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — would transfer to 0x%08x if ($%s %s 0).\n", op_label,
@@ -1115,7 +1115,7 @@ static void explain_syscall(int level) {
         say_input_reg(REG_A1);
         write_output(message_out, "  Wrote to memory:\n");
         write_output(message_out, "    0x%08x .. 0x%08x\n", a0,
-                     a0 + snap_R[REG_A1] - 1);
+                     a0 + (mem_addr)snap_R[REG_A1] - 1);
         say_try_regs(REG_V0, REG_A0, REG_A1, 0);
       }
       break;
@@ -1215,7 +1215,7 @@ static void render_r_layout(uint32_t enc, const char* mnemonic) {
   write_bits(b_rd, enc, 15, 11);
   write_bits(b_sh, enc, 10, 6);
   write_bits(b_fn, enc, 5, 0);
-  int op = (enc >> 26) & 0x3f;
+  int op = (int)((enc >> 26) & 0x3f);
   int rs = (enc >> 21) & 0x1f;
   int rt = (enc >> 16) & 0x1f;
   int rd = (enc >> 11) & 0x1f;
@@ -1248,7 +1248,7 @@ static void render_i_layout(uint32_t enc, const char* mnemonic) {
   write_bits(b_rs, enc, 25, 21);
   write_bits(b_rt, enc, 20, 16);
   write_bits(b_im, enc, 15, 0);
-  int op = (enc >> 26) & 0x3f;
+  int op = (int)((enc >> 26) & 0x3f);
   int rs = (enc >> 21) & 0x1f;
   int rt = (enc >> 16) & 0x1f;
   int16_t imm_s = (int16_t)(enc & 0xffff);
@@ -1272,7 +1272,7 @@ static void render_j_layout(uint32_t enc, const char* mnemonic) {
   char b_op[7], b_tg[27];
   write_bits(b_op, enc, 31, 26);
   write_bits(b_tg, enc, 25, 0);
-  int op = (enc >> 26) & 0x3f;
+  int op = (int)((enc >> 26) & 0x3f);
   uint32_t target = enc & 0x03ffffff;
 
   write_output(message_out, "  Bit layout (J-type, encoding 0x%08x):\n", enc);
@@ -1299,7 +1299,7 @@ static void explain_bit_layout(mips_instruction* instruction) {
   if (enc == 0) return;
 
   const char* mnemonic = inst_op_name(instruction);
-  int op = (enc >> 26) & 0x3f;
+  int op = (int)((enc >> 26) & 0x3f);
   if (op == 0x00 || op == 0x1c || op == 0x1f)
     render_r_layout(enc, mnemonic);
   else if (op == 0x02 || op == 0x03)
@@ -1608,7 +1608,7 @@ static void explain_decoding_steps(mips_instruction* instruction) {
   if (enc == 0) return; /* true nop — skip */
 
   const char* mnemonic = inst_op_name(instruction);
-  int op = (enc >> 26) & 0x3f;
+  int op = (int)((enc >> 26) & 0x3f);
 
   write_output(message_out, "  Decoding 0x%08x step by step:\n", enc);
   render_hex_bin_table(enc);

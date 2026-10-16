@@ -212,15 +212,17 @@ static void data_int_begin(ast_kind kind) {
   data_directive_line = line_no;
   if (data_int_buf == nullptr) {
     data_int_cap = 8;
-    data_int_buf = (imm_expr**)xmalloc(data_int_cap * sizeof(imm_expr*));
+    data_int_buf =
+        (imm_expr**)xmalloc((size_t)data_int_cap * sizeof(imm_expr*));
   }
 }
 
 static void data_int_push(int value) {
   if (data_int_count == data_int_cap) {
     data_int_cap *= 2;
-    imm_expr** grow = (imm_expr**)xmalloc(data_int_cap * sizeof(imm_expr*));
-    memcpy(grow, data_int_buf, data_int_count * sizeof(imm_expr*));
+    imm_expr** grow =
+        (imm_expr**)xmalloc((size_t)data_int_cap * sizeof(imm_expr*));
+    memcpy(grow, data_int_buf, (size_t)data_int_count * sizeof(imm_expr*));
     free(data_int_buf);
     data_int_buf = grow;
   }
@@ -238,8 +240,9 @@ static void data_int_finalize(void) {
     return;
   }
   /* Hand off the array as-is; ast_node owns it now. */
-  imm_expr** exprs = (imm_expr**)xmalloc(data_int_count * sizeof(imm_expr*));
-  memcpy(exprs, data_int_buf, data_int_count * sizeof(imm_expr*));
+  imm_expr** exprs =
+      (imm_expr**)xmalloc((size_t)data_int_count * sizeof(imm_expr*));
+  memcpy(exprs, data_int_buf, (size_t)data_int_count * sizeof(imm_expr*));
   ast_node* node;
   switch (data_int_kind) {
     case AST_DATA_BYTE:
@@ -266,15 +269,15 @@ static void data_fp_begin(ast_kind kind) {
   data_directive_line = line_no;
   if (data_fp_buf == nullptr) {
     data_fp_cap = 8;
-    data_fp_buf = (double*)xmalloc(data_fp_cap * sizeof(double));
+    data_fp_buf = (double*)xmalloc((size_t)data_fp_cap * sizeof(double));
   }
 }
 
 static void data_fp_push(double value) {
   if (data_fp_count == data_fp_cap) {
     data_fp_cap *= 2;
-    double* grow = (double*)xmalloc(data_fp_cap * sizeof(double));
-    memcpy(grow, data_fp_buf, data_fp_count * sizeof(double));
+    double* grow = (double*)xmalloc((size_t)data_fp_cap * sizeof(double));
+    memcpy(grow, data_fp_buf, (size_t)data_fp_count * sizeof(double));
     free(data_fp_buf);
     data_fp_buf = grow;
   }
@@ -285,8 +288,8 @@ static void data_fp_finalize(void) {
   if (data_fp_count == 0) {
     return;
   }
-  double* values = (double*)xmalloc(data_fp_count * sizeof(double));
-  memcpy(values, data_fp_buf, data_fp_count * sizeof(double));
+  double* values = (double*)xmalloc((size_t)data_fp_count * sizeof(double));
+  memcpy(values, data_fp_buf, (size_t)data_fp_count * sizeof(double));
   ast_node* node = (data_int_kind == AST_DATA_FLOAT)
                        ? ast_make_data_float(data_fp_count, values)
                        : ast_make_data_double(data_fp_count, values);
@@ -1262,7 +1265,7 @@ static void do_parse_pseudo(int op) {
         emit_r(TOK_OR_OPCODE, rd, rd, 1);
       } else {
         imm_expr* imm = parse_imm32();
-        long dist = eval_imm_expr(imm);
+        int dist = eval_imm_expr(imm);
         check_imm_range(imm, 0, 31);
         if (op == TOK_ROR_PSEUDO_OP) {
           emit_r_shift(TOK_SLL_OPCODE, 1, rs, -dist);

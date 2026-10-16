@@ -1115,12 +1115,12 @@ static bool parse_spim_command(bool redo) {
         }
         if (owned_strs_len + 1 > cap) {
           cap = cap == 0 ? 4 : cap * 2;
-          owned_strs = realloc(owned_strs, cap * sizeof(char*));
+          owned_strs = realloc(owned_strs, (size_t)cap * sizeof(char*));
         }
         owned_strs[owned_strs_len++] = s;
       }
 
-      owned_argv = malloc((owned_strs_len + 1) * sizeof(char*));
+      owned_argv = malloc((size_t)(owned_strs_len + 1) * sizeof(char*));
       owned_argv[0] = argv0;
       for (int i = 0; i < owned_strs_len; i++)
         owned_argv[1 + i] = owned_strs[i];
@@ -1255,8 +1255,8 @@ static bool parse_spim_command(bool redo) {
       for (addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
         int32_t code = inst_encode(mem_read_inst(addr));
         if (cmd == DUMP_TEXT_CMD)
-          code = (int32_t)htonl(
-              (unsigned long)code); /* dump in network byte order */
+          code =
+              (int32_t)htonl((uint32_t)code); /* dump in network byte order */
         (void)fwrite(&code, 1, sizeof(code), fp);
         words += 1;
       }
@@ -1390,7 +1390,7 @@ static int print_reg_from_string(char* reg_num) {
   char* s1 = s;
 
   /* Conver to lower case */
-  while (*reg_num != '\0' && s1 - s < 100) *s1++ = tolower(*reg_num++);
+  while (*reg_num != '\0' && s1 - s < 100) *s1++ = (char)tolower(*reg_num++);
   *s1 = '\0';
   /* Drop leading $ */
   if (s[0] == '$')
@@ -1646,13 +1646,13 @@ static void console_to_program(void) {
 
     tcgetattr(console_in.i, &saved_console_state);
     params = saved_console_state;
-    params.c_iflag &= ~(ISTRIP | INLCR | ICRNL | IGNCR | IXON | IXOFF | INPCK |
-                        BRKINT | PARMRK);
+    params.c_iflag &= (tcflag_t) ~(ISTRIP | INLCR | ICRNL | IGNCR | IXON |
+                                   IXOFF | INPCK | BRKINT | PARMRK);
 
     /* Translate CR -> NL to canonicalize input. */
     params.c_iflag |= IGNBRK | IGNPAR | ICRNL;
     params.c_oflag = OPOST | ONLCR;
-    params.c_cflag &= ~PARENB;
+    params.c_cflag &= (tcflag_t)~PARENB;
     params.c_cflag |= CREAD | CS8;
     params.c_lflag = 0;
     params.c_cc[VMIN] = 1;

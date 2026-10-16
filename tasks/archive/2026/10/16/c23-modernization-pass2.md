@@ -52,7 +52,7 @@ A `-Wconversion -Wsign-conversion` probe found 371 core warnings, 358 of them `-
 branch-offset sign-extension), plus the `symbol-table.h` `long addr` field that doubles as a signed
 constant store. Making the core clean under those flags and adding them to the gate needs
 per-instruction review and UBSan coordination, not a blind sweep — filed as
-`tasks/integer-conversion-hardening.md` (proposed).
+`tasks/archive/2026/10/16/integer-conversion-hardening.md`.
 
 ## Standard-coverage audit (`github.com/billsix/runClaudeInContainer:tasks/reference/c-coding-standard.md`)
 
@@ -84,7 +84,7 @@ matching the pre-work baseline (`594e06b`). Verified standalone with the Dockerf
 
 - `github.com/billsix/runClaudeInContainer:tasks/reference/c-coding-standard.md`, `github.com/billsix/runClaudeInContainer:tasks/reference/c-modernization-sweep.md`,
   `github.com/billsix/runClaudeInContainer:tasks/reference/porting-with-an-output-oracle.md`.
-- `tasks/integer-conversion-hardening.md` (the deferred integer work),
+- `tasks/archive/2026/10/16/integer-conversion-hardening.md` (the deferred integer work, since done),
   `tasks/reference/inherited-idiosyncrasies.md` (the correctness findings, now fixed),
   `tasks/reference/example-c-teaching-style.md` (why examples/pgu are out),
   `tasks/opcodes-x-macro-redesign.md` (the OP macro, out of scope).

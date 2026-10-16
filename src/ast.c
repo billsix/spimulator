@@ -148,8 +148,8 @@ ast_node* ast_make_data_string(const char* bytes, int length, bool null_term) {
   ast_node* n = new_node(AST_DATA_STRING);
   /* Copy the bytes verbatim (may contain NULs); +1 so callers can also
      read it as a C-string when no embedded NULs are present. */
-  char* buf = (char*)xmalloc(length + 1);
-  memcpy(buf, bytes, length);
+  char* buf = (char*)xmalloc((size_t)length + 1);
+  memcpy(buf, bytes, (size_t)length);
   buf[length] = '\0';
   n->u.data_string.bytes = buf;
   n->u.data_string.length = length;

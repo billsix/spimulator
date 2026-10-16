@@ -92,55 +92,58 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   data_size = ROUND_UP(data_size, BYTES_PER_WORD); /* Keep word aligned */
 
   if (text_seg == nullptr)
-    text_seg = (mips_instruction**)xmalloc(BYTES_TO_INST(text_size));
+    text_seg = (mips_instruction**)xmalloc(BYTES_TO_INST((size_t)text_size));
   else {
-    free_instructions(text_seg, (text_top - TEXT_BOT) / BYTES_PER_WORD);
-    text_seg = (mips_instruction**)realloc(text_seg, BYTES_TO_INST(text_size));
+    free_instructions(text_seg, (int)((text_top - TEXT_BOT) / BYTES_PER_WORD));
+    text_seg =
+        (mips_instruction**)realloc(text_seg, BYTES_TO_INST((size_t)text_size));
   }
-  memset(text_seg, 0, BYTES_TO_INST(text_size));
-  text_top = TEXT_BOT + text_size;
+  memset(text_seg, 0, BYTES_TO_INST((size_t)text_size));
+  text_top = TEXT_BOT + (mem_addr)text_size;
 
   data_size = ROUND_UP(data_size, BYTES_PER_WORD); /* Keep word aligned */
   if (data_seg == nullptr)
-    data_seg = (mem_word*)xmalloc(data_size);
+    data_seg = (mem_word*)xmalloc((size_t)data_size);
   else
-    data_seg = (mem_word*)realloc(data_seg, data_size);
-  memset(data_seg, 0, data_size);
+    data_seg = (mem_word*)realloc(data_seg, (size_t)data_size);
+  memset(data_seg, 0, (size_t)data_size);
   data_seg_b = (int8_t*)data_seg;
   data_seg_h = (short*)data_seg;
-  data_top = DATA_BOT + data_size;
+  data_top = DATA_BOT + (mem_addr)data_size;
   data_size_limit = data_limit;
 
   stack_size = ROUND_UP(stack_size, BYTES_PER_WORD); /* Keep word aligned */
   if (stack_seg == nullptr)
-    stack_seg = (mem_word*)xmalloc(stack_size);
+    stack_seg = (mem_word*)xmalloc((size_t)stack_size);
   else
-    stack_seg = (mem_word*)realloc(stack_seg, stack_size);
-  memset(stack_seg, 0, stack_size);
+    stack_seg = (mem_word*)realloc(stack_seg, (size_t)stack_size);
+  memset(stack_seg, 0, (size_t)stack_size);
   stack_seg_b = (int8_t*)stack_seg;
   stack_seg_h = (short*)stack_seg;
-  stack_bot = STACK_TOP - stack_size;
+  stack_bot = STACK_TOP - (mem_addr)stack_size;
   stack_size_limit = stack_limit;
 
   if (k_text_seg == nullptr)
-    k_text_seg = (mips_instruction**)xmalloc(BYTES_TO_INST(k_text_size));
-  else {
-    free_instructions(k_text_seg, (k_text_top - K_TEXT_BOT) / BYTES_PER_WORD);
     k_text_seg =
-        (mips_instruction**)realloc(k_text_seg, BYTES_TO_INST(k_text_size));
+        (mips_instruction**)xmalloc(BYTES_TO_INST((size_t)k_text_size));
+  else {
+    free_instructions(k_text_seg,
+                      (int)((k_text_top - K_TEXT_BOT) / BYTES_PER_WORD));
+    k_text_seg = (mips_instruction**)realloc(
+        k_text_seg, BYTES_TO_INST((size_t)k_text_size));
   }
-  memset(k_text_seg, 0, BYTES_TO_INST(k_text_size));
-  k_text_top = K_TEXT_BOT + k_text_size;
+  memset(k_text_seg, 0, BYTES_TO_INST((size_t)k_text_size));
+  k_text_top = K_TEXT_BOT + (mem_addr)k_text_size;
 
   k_data_size = ROUND_UP(k_data_size, BYTES_PER_WORD); /* Keep word aligned */
   if (k_data_seg == nullptr)
-    k_data_seg = (mem_word*)xmalloc(k_data_size);
+    k_data_seg = (mem_word*)xmalloc((size_t)k_data_size);
   else
-    k_data_seg = (mem_word*)realloc(k_data_seg, k_data_size);
-  memset(k_data_seg, 0, k_data_size);
+    k_data_seg = (mem_word*)realloc(k_data_seg, (size_t)k_data_size);
+  memset(k_data_seg, 0, (size_t)k_data_size);
   k_data_seg_b = (int8_t*)k_data_seg;
   k_data_seg_h = (short*)k_data_seg;
-  k_data_top = K_DATA_BOT + k_data_size;
+  k_data_top = K_DATA_BOT + (mem_addr)k_data_size;
   k_data_size_limit = k_data_limit;
 
   text_modified = true;
@@ -158,7 +161,7 @@ static void free_instructions(mips_instruction** instruction, int n) {
 
 void expand_data(int addl_bytes) {
   int delta = ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
-  int old_size = data_top - DATA_BOT;
+  int old_size = (int)(data_top - DATA_BOT);
   int new_size = old_size + delta;
   int8_t* p;
 
@@ -167,12 +170,12 @@ void expand_data(int addl_bytes) {
           new_size);
     run_error("Use -ldata # with # > %d\n", new_size);
   }
-  data_seg = (mem_word*)realloc(data_seg, new_size);
+  data_seg = (mem_word*)realloc(data_seg, (size_t)new_size);
   if (data_seg == nullptr) fatal_error("realloc failed in expand_data\n");
 
   data_seg_b = (int8_t*)data_seg;
   data_seg_h = (short*)data_seg;
-  data_top += delta;
+  data_top += (mem_addr)delta;
 
   /* Zero new memory */
   for (p = data_seg_b + old_size; p < data_seg_b + new_size;) *p++ = 0;
@@ -184,7 +187,7 @@ void expand_data(int addl_bytes) {
 
 void expand_stack(int addl_bytes) {
   int delta = ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
-  int old_size = STACK_TOP - stack_bot;
+  int old_size = (int)(STACK_TOP - stack_bot);
   int new_size = old_size + MAX(delta, old_size);
   mem_word* new_seg;
   mem_word *po, *pn;
@@ -196,8 +199,8 @@ void expand_stack(int addl_bytes) {
         addl_bytes, new_size, new_size);
   }
 
-  new_seg = (mem_word*)xmalloc(new_size);
-  memset(new_seg, 0, new_size);
+  new_seg = (mem_word*)xmalloc((size_t)new_size);
+  memset(new_seg, 0, (size_t)new_size);
 
   po = stack_seg + (old_size / BYTES_PER_WORD - 1);
   pn = new_seg + (new_size / BYTES_PER_WORD - 1);
@@ -207,14 +210,14 @@ void expand_stack(int addl_bytes) {
   stack_seg = new_seg;
   stack_seg_b = (int8_t*)stack_seg;
   stack_seg_h = (short*)stack_seg;
-  stack_bot -= (new_size - old_size);
+  stack_bot -= (mem_addr)(new_size - old_size);
 }
 
 /* Expand the kernel data segment by adding N bytes. */
 
 void expand_k_data(int addl_bytes) {
   int delta = ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
-  int old_size = k_data_top - K_DATA_BOT;
+  int old_size = (int)(k_data_top - K_DATA_BOT);
   int new_size = old_size + delta;
   int8_t* p;
 
@@ -224,12 +227,12 @@ void expand_k_data(int addl_bytes) {
         "-lkdata # with # > %d\n",
         addl_bytes, new_size, new_size);
   }
-  k_data_seg = (mem_word*)realloc(k_data_seg, new_size);
+  k_data_seg = (mem_word*)realloc(k_data_seg, (size_t)new_size);
   if (k_data_seg == nullptr) fatal_error("realloc failed in expand_k_data\n");
 
   k_data_seg_b = (int8_t*)k_data_seg;
   k_data_seg_h = (short*)k_data_seg;
-  k_data_top += delta;
+  k_data_top += (mem_addr)delta;
 
   /* Zero new memory */
   for (p = k_data_seg_b + old_size / BYTES_PER_WORD;
@@ -347,20 +350,20 @@ void mem_write_word(mem_addr addr, reg_word value) {
 /* Handle the infrequent and erroneous cases in memory accesses. */
 
 static mips_instruction* bad_text_read(mem_addr addr) {
-  RAISE_EXCEPTION(ExcCode_IBE, CP0_BadVAddr = addr);
+  RAISE_EXCEPTION(ExcCode_IBE, CP0_BadVAddr = (reg_word)addr);
   return (inst_decode(0));
 }
 
 static void bad_text_write(mem_addr addr, mips_instruction* instruction) {
-  RAISE_EXCEPTION(ExcCode_IBE, CP0_BadVAddr = addr);
+  RAISE_EXCEPTION(ExcCode_IBE, CP0_BadVAddr = (reg_word)addr);
   mem_write_word(addr, ENCODING(instruction));
 }
 
 static mem_word bad_mem_read(mem_addr addr, int mask) {
   mem_word tmp;
 
-  if ((addr & mask) != 0)
-    RAISE_EXCEPTION(ExcCode_AdEL, CP0_BadVAddr = addr)
+  if ((addr & (mem_addr)mask) != 0)
+    RAISE_EXCEPTION(ExcCode_AdEL, CP0_BadVAddr = (reg_word)addr)
   else if (addr >= TEXT_BOT && addr < text_top)
     switch (mask) {
       case 0x0:
@@ -368,7 +371,7 @@ static mem_word bad_mem_read(mem_addr addr, int mask) {
 #ifdef SPIM_BIGENDIAN
         tmp = (unsigned)tmp >> (8 * (3 - (addr & 0x3)));
 #else
-        tmp = (unsigned)tmp >> (8 * (addr & 0x3));
+        tmp = (mem_word)((unsigned)tmp >> (8 * (addr & 0x3)));
 #endif
         return (0xff & tmp);
 
@@ -377,7 +380,7 @@ static mem_word bad_mem_read(mem_addr addr, int mask) {
 #ifdef SPIM_BIGENDIAN
         tmp = (unsigned)tmp >> (8 * (2 - (addr & 0x2)));
 #else
-        tmp = (unsigned)tmp >> (8 * (addr & 0x2));
+        tmp = (mem_word)((unsigned)tmp >> (8 * (addr & 0x2)));
 #endif
         return (0xffff & tmp);
 
@@ -397,21 +400,21 @@ static mem_word bad_mem_read(mem_addr addr, int mask) {
            /* If more than 16 MB below stack, probably is bad data ref */
            && addr > stack_bot - 16 * mega) {
     /* Grow stack segment */
-    expand_stack(stack_bot - addr + 4);
+    expand_stack((int)(stack_bot - addr + 4));
     return (0);
   } else if (MM_IO_BOT <= addr && addr <= MM_IO_TOP)
     return (read_memory_mapped_IO(addr));
   else
     /* Address out of range */
-    RAISE_EXCEPTION(ExcCode_DBE, CP0_BadVAddr = addr)
+    RAISE_EXCEPTION(ExcCode_DBE, CP0_BadVAddr = (reg_word)addr)
   return (0);
 }
 
 static void bad_mem_write(mem_addr addr, mem_word value, int mask) {
   mem_word tmp;
 
-  if ((addr & mask) != 0) /* Unaligned address fault */
-    RAISE_EXCEPTION(ExcCode_AdES, CP0_BadVAddr = addr)
+  if ((addr & (mem_addr)mask) != 0) /* Unaligned address fault */
+    RAISE_EXCEPTION(ExcCode_AdES, CP0_BadVAddr = (reg_word)addr)
   else if (addr >= TEXT_BOT && addr < text_top) {
     if (text_seg[(addr - TEXT_BOT) >> 2] == nullptr) {
       /* No instruction at address. Only create instruction from
@@ -459,7 +462,7 @@ static void bad_mem_write(mem_addr addr, mem_word value, int mask) {
              /* If more than 16 MB below stack, probably is bad data ref */
              && addr > stack_bot - 16 * mega) {
     /* Grow stack segment */
-    expand_stack(stack_bot - addr + 4);
+    expand_stack((int)(stack_bot - addr + 4));
     if (addr >= stack_bot) {
       if (mask == 0)
         stack_seg_b[addr - stack_bot] = (char)value;
@@ -468,23 +471,23 @@ static void bad_mem_write(mem_addr addr, mem_word value, int mask) {
       else
         stack_seg[(addr - stack_bot) >> 2] = value;
     } else
-      RAISE_EXCEPTION(ExcCode_DBE, CP0_BadVAddr = addr)
+      RAISE_EXCEPTION(ExcCode_DBE, CP0_BadVAddr = (reg_word)addr)
 
     data_modified = true;
   } else if (MM_IO_BOT <= addr && addr <= MM_IO_TOP)
     write_memory_mapped_IO(addr, value);
   else
     /* Address out of range */
-    RAISE_EXCEPTION(ExcCode_DBE, CP0_BadVAddr = addr)
+    RAISE_EXCEPTION(ExcCode_DBE, CP0_BadVAddr = (reg_word)addr)
 }
 
 /* Memory-mapped IO routines. */
 
-static int recv_control = 0; /* No input */
+static uint32_t recv_control = 0; /* No input */
 static int recv_buffer;
 static int recv_buffer_full_timer = 0;
 
-static int trans_control = TRANS_READY; /* Ready to write */
+static uint32_t trans_control = TRANS_READY; /* Ready to write */
 static int trans_buffer;
 static int trans_buffer_full_timer = 0;
 
@@ -502,7 +505,7 @@ void check_memory_mapped_IO(void) {
     recv_buffer = get_console_char();
     recv_control |= RECV_READY;
     recv_buffer_full_timer = RECV_INTERVAL;
-    if (recv_control & RECV_INT_ENABLE) {
+    if ((uint32_t)recv_control & RECV_INT_ENABLE) {
       RAISE_INTERRUPT(RECV_INT_LEVEL);
     }
   }
@@ -510,12 +513,12 @@ void check_memory_mapped_IO(void) {
   if (trans_buffer_full_timer > 0) {
     /* Do not allow output until this interval expires. */
     trans_buffer_full_timer -= 1;
-  } else if (!(trans_control & TRANS_READY)) {
+  } else if (!((uint32_t)trans_control & TRANS_READY)) {
     /* Done writing: empty the buffer and raise an interrupt, if interrupts
        are enabled for device. */
     /* assert(trans_buffer_full_timer == 0); */
     trans_control |= TRANS_READY;
-    if (trans_control & TRANS_INT_ENABLE) {
+    if ((uint32_t)trans_control & TRANS_INT_ENABLE) {
       RAISE_INTERRUPT(TRANS_INT_LEVEL);
     }
   }
@@ -527,10 +530,10 @@ static void write_memory_mapped_IO(mem_addr addr, mem_word value) {
   switch (addr) {
     case TRANS_CTRL_ADDR:
       /* Program can only set the interrupt enable, not ready, bit. */
-      if ((value & TRANS_INT_ENABLE) != 0) {
+      if (((uint32_t)value & TRANS_INT_ENABLE) != 0) {
         /* Enable interrupts: */
         trans_control |= TRANS_INT_ENABLE;
-        if (trans_control & TRANS_READY) {
+        if ((uint32_t)trans_control & TRANS_READY) {
           /* Raise interrupt on enabling a ready transmitter */
           RAISE_INTERRUPT(TRANS_INT_LEVEL);
         }
@@ -543,7 +546,7 @@ static void write_memory_mapped_IO(mem_addr addr, mem_word value) {
 
     case TRANS_BUFFER_ADDR:
       /* Ignore write if device is not ready. */
-      if ((trans_control & TRANS_READY) != 0) {
+      if (((uint32_t)trans_control & TRANS_READY) != 0) {
         /* Write char: */
         trans_buffer = value & 0xff;
         put_console_char((char)trans_buffer);
@@ -556,10 +559,10 @@ static void write_memory_mapped_IO(mem_addr addr, mem_word value) {
 
     case RECV_CTRL_ADDR:
       /* Program can only set the interrupt enable, not ready, bit. */
-      if ((value & RECV_INT_ENABLE) != 0) {
+      if (((uint32_t)value & RECV_INT_ENABLE) != 0) {
         /* Enable interrupts: */
         recv_control |= RECV_INT_ENABLE;
-        if (recv_control & RECV_READY) {
+        if ((uint32_t)recv_control & RECV_READY) {
           /* Raise interrupt on enabling a ready receiver */
           RAISE_INTERRUPT(RECV_INT_LEVEL);
         }
@@ -584,13 +587,13 @@ static void write_memory_mapped_IO(mem_addr addr, mem_word value) {
 static mem_word read_memory_mapped_IO(mem_addr addr) {
   switch (addr) {
     case TRANS_CTRL_ADDR:
-      return (trans_control);
+      return ((mem_word)trans_control);
 
     case TRANS_BUFFER_ADDR:
       return (trans_buffer & 0xff);
 
     case RECV_CTRL_ADDR:
-      return (recv_control);
+      return ((mem_word)recv_control);
 
     case RECV_BUFFER_ADDR:
       recv_control &= ~RECV_READY; /* Buffer now empty */
@@ -609,7 +612,8 @@ static mem_word read_memory_mapped_IO(mem_addr addr) {
 void print_mem(mem_addr addr) {
   mem_word value;
 
-  if ((addr & 0x3) != 0) addr &= ~0x3; /* Address must be word-aligned */
+  if ((addr & 0x3) != 0)
+    addr &= (mem_addr)~0x3; /* Address must be word-aligned */
 
   if (TEXT_BOT <= addr && addr < text_top)
     print_inst(addr);
