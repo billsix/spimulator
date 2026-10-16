@@ -180,11 +180,11 @@ constexpr int CC1_bit = 25;
 #define CC_mask(n) \
   ((((n) == 0) || ((n) > 7)) ? (1u << CC0_bit) : (1u << (CC1_bit + (n) - 1)))
 #define FCC(n) ((((u_reg_word)FCSR & CC_mask(n)) == 0) ? 0 : 1)
-#define SET_FCC(n, v)    \
-  if ((v) == 0) {        \
-    FCSR &= ~CC_mask(n); \
-  } else {               \
-    FCSR |= CC_mask(n);  \
+#define SET_FCC(n, v)                                  \
+  if ((v) == 0) {                                      \
+    FCSR = (reg_word)((u_reg_word)FCSR & ~CC_mask(n)); \
+  } else {                                             \
+    FCSR = (reg_word)((u_reg_word)FCSR | CC_mask(n));  \
   }
 
 /* Floating point Cause (not implemented): */

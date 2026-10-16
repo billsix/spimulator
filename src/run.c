@@ -416,8 +416,9 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
 
         case TOK_ERET_OPCODE: {
-          CP0_Status &= ~CP0_Status_EXL; /* Clear EXL bit */
-          JUMP_INST((mem_addr)CP0_EPC);  /* Jump to EPC */
+          CP0_Status = (reg_word)((u_reg_word)CP0_Status &
+                                  ~CP0_Status_EXL); /* Clear EXL bit */
+          JUMP_INST((mem_addr)CP0_EPC);             /* Jump to EPC */
         } break;
 
         case TOK_J_OPCODE:
@@ -686,20 +687,30 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           coprocessor_registers[0][FS(instruction)] = gpr[RT(instruction)];
           switch (FS(instruction)) {
             case CP0_Compare_Reg:
-              CP0_Cause &= ~CP0_Cause_IP7; /* Writing clears HW interrupt 5 */
+              CP0_Cause = (reg_word)((u_reg_word)CP0_Cause &
+                                     ~CP0_Cause_IP7); /* Writing clears HW
+                                                         interrupt 5 */
               break;
 
             case CP0_Status_Reg:
-              CP0_Status &= CP0_Status_Mask;
-              CP0_Status |= ((CP0_Status_CU & 0x30000000) | CP0_Status_UM);
+              CP0_Status = (reg_word)((u_reg_word)CP0_Status & CP0_Status_Mask);
+              CP0_Status =
+                  (reg_word)((u_reg_word)CP0_Status |
+                             ((CP0_Status_CU & 0x30000000) | CP0_Status_UM));
               break;
 
             case CP0_Cause_Reg:
-              coprocessor_registers[0][FS(instruction)] &= CP0_Cause_Mask;
+              coprocessor_registers[0][FS(instruction)] =
+                  (reg_word)((u_reg_word)
+                                 coprocessor_registers[0][FS(instruction)] &
+                             CP0_Cause_Mask);
               break;
 
             case CP0_Config_Reg:
-              coprocessor_registers[0][FS(instruction)] &= CP0_Config_Mask;
+              coprocessor_registers[0][FS(instruction)] =
+                  (reg_word)((u_reg_word)
+                                 coprocessor_registers[0][FS(instruction)] &
+                             CP0_Config_Mask);
               break;
 
             default:
@@ -1563,9 +1574,9 @@ static void unsigned_multiply(reg_word v1, reg_word v2) {
   u_reg_word bd, ad, cb, ac;
   u_reg_word mid, mid2, carry_mid = 0;
 
-  a = (v1 >> 16) & 0xffff;
+  a = (u_reg_word)((v1 >> 16) & 0xffff);
   b = v1 & 0xffff;
-  c = (v2 >> 16) & 0xffff;
+  c = (u_reg_word)((v2 >> 16) & 0xffff);
   d = v2 & 0xffff;
 
   bd = b * d;
@@ -1643,7 +1654,7 @@ void raise_exception(mips_exc_code excode) {
         /* Branch's addr */
         CP0_EPC = (reg_word)ROUND_DOWN(PC - BYTES_PER_WORD, BYTES_PER_WORD);
         /* Set BD bit to record that instruction is in delay slot */
-        CP0_Cause |= CP0_Cause_BD;
+        CP0_Cause = (reg_word)((u_reg_word)CP0_Cause | CP0_Cause_BD);
       }
     } else {
       /* Not in delay slot */
@@ -1659,7 +1670,7 @@ void raise_exception(mips_exc_code excode) {
                            (uint32_t)(excode << 2));
 
     /* Turn on EXL bit to prevent subsequent interrupts from affecting EPC */
-    CP0_Status |= CP0_Status_EXL;
+    CP0_Status = (reg_word)((u_reg_word)CP0_Status | CP0_Status_EXL);
 
 #ifdef MIPS1
     CP0_Status = (CP0_Status & 0xffffffc0) | ((CP0_Status & 0xf) << 2);

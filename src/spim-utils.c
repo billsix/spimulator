@@ -325,7 +325,7 @@ bool run_program(mem_addr pc, int steps, bool display, bool cont_bkpt,
   if (exception_occurred && (uint32_t)CP0_ExCode == ExcCode_Bp) {
     /* Turn off EXL bit, so subsequent interrupts set EPC since the break is
     handled by SPIM code, not MIPS code. */
-    CP0_Status &= ~CP0_Status_EXL;
+    CP0_Status = (reg_word)((u_reg_word)CP0_Status & ~CP0_Status_EXL);
     return true;
   } else
     return false;

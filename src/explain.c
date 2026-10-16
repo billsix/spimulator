@@ -1215,7 +1215,7 @@ static void render_r_layout(uint32_t enc, const char* mnemonic) {
   write_bits(b_rd, enc, 15, 11);
   write_bits(b_sh, enc, 10, 6);
   write_bits(b_fn, enc, 5, 0);
-  int op = (enc >> 26) & 0x3f;
+  int op = (int)((enc >> 26) & 0x3f);
   int rs = (enc >> 21) & 0x1f;
   int rt = (enc >> 16) & 0x1f;
   int rd = (enc >> 11) & 0x1f;
@@ -1248,7 +1248,7 @@ static void render_i_layout(uint32_t enc, const char* mnemonic) {
   write_bits(b_rs, enc, 25, 21);
   write_bits(b_rt, enc, 20, 16);
   write_bits(b_im, enc, 15, 0);
-  int op = (enc >> 26) & 0x3f;
+  int op = (int)((enc >> 26) & 0x3f);
   int rs = (enc >> 21) & 0x1f;
   int rt = (enc >> 16) & 0x1f;
   int16_t imm_s = (int16_t)(enc & 0xffff);
@@ -1272,7 +1272,7 @@ static void render_j_layout(uint32_t enc, const char* mnemonic) {
   char b_op[7], b_tg[27];
   write_bits(b_op, enc, 31, 26);
   write_bits(b_tg, enc, 25, 0);
-  int op = (enc >> 26) & 0x3f;
+  int op = (int)((enc >> 26) & 0x3f);
   uint32_t target = enc & 0x03ffffff;
 
   write_output(message_out, "  Bit layout (J-type, encoding 0x%08x):\n", enc);
@@ -1299,7 +1299,7 @@ static void explain_bit_layout(mips_instruction* instruction) {
   if (enc == 0) return;
 
   const char* mnemonic = inst_op_name(instruction);
-  int op = (enc >> 26) & 0x3f;
+  int op = (int)((enc >> 26) & 0x3f);
   if (op == 0x00 || op == 0x1c || op == 0x1f)
     render_r_layout(enc, mnemonic);
   else if (op == 0x02 || op == 0x03)
@@ -1608,7 +1608,7 @@ static void explain_decoding_steps(mips_instruction* instruction) {
   if (enc == 0) return; /* true nop — skip */
 
   const char* mnemonic = inst_op_name(instruction);
-  int op = (enc >> 26) & 0x3f;
+  int op = (int)((enc >> 26) & 0x3f);
 
   write_output(message_out, "  Decoding 0x%08x step by step:\n", enc);
   render_hex_bin_table(enc);

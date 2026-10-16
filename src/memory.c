@@ -94,7 +94,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   if (text_seg == nullptr)
     text_seg = (mips_instruction**)xmalloc(BYTES_TO_INST((size_t)text_size));
   else {
-    free_instructions(text_seg, (text_top - TEXT_BOT) / BYTES_PER_WORD);
+    free_instructions(text_seg, (int)((text_top - TEXT_BOT) / BYTES_PER_WORD));
     text_seg =
         (mips_instruction**)realloc(text_seg, BYTES_TO_INST((size_t)text_size));
   }
@@ -127,7 +127,8 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
     k_text_seg =
         (mips_instruction**)xmalloc(BYTES_TO_INST((size_t)k_text_size));
   else {
-    free_instructions(k_text_seg, (k_text_top - K_TEXT_BOT) / BYTES_PER_WORD);
+    free_instructions(k_text_seg,
+                      (int)((k_text_top - K_TEXT_BOT) / BYTES_PER_WORD));
     k_text_seg = (mips_instruction**)realloc(
         k_text_seg, BYTES_TO_INST((size_t)k_text_size));
   }
@@ -482,11 +483,11 @@ static void bad_mem_write(mem_addr addr, mem_word value, int mask) {
 
 /* Memory-mapped IO routines. */
 
-static int recv_control = 0; /* No input */
+static uint32_t recv_control = 0; /* No input */
 static int recv_buffer;
 static int recv_buffer_full_timer = 0;
 
-static int trans_control = TRANS_READY; /* Ready to write */
+static uint32_t trans_control = TRANS_READY; /* Ready to write */
 static int trans_buffer;
 static int trans_buffer_full_timer = 0;
 
@@ -586,13 +587,13 @@ static void write_memory_mapped_IO(mem_addr addr, mem_word value) {
 static mem_word read_memory_mapped_IO(mem_addr addr) {
   switch (addr) {
     case TRANS_CTRL_ADDR:
-      return (trans_control);
+      return ((mem_word)trans_control);
 
     case TRANS_BUFFER_ADDR:
       return (trans_buffer & 0xff);
 
     case RECV_CTRL_ADDR:
-      return (recv_control);
+      return ((mem_word)recv_control);
 
     case RECV_BUFFER_ADDR:
       recv_control &= ~RECV_READY; /* Buffer now empty */

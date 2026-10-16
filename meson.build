@@ -98,17 +98,14 @@ link_libraries = [
 core_c_args = []
 # Integer-conversion gate for the core: flag silent narrowing / sign-flip
 # conversions (the simulator core was made clean under these 2026-10-16; see the
-# integer-conversion-hardening task). Scoped to clang because the image and the
-# sanitizer gates all build with clang (Dockerfile) and the core is clang-clean
-# under these; gcc's -Wsign-conversion is stricter and flags ~46 additional edge
-# cases not yet addressed, so enabling it there would break a host gcc build.
-if cc.get_id() == 'clang'
-  foreach warg : ['-Wconversion', '-Wsign-conversion']
-    if cc.has_argument(warg)
-      core_c_args += warg
-    endif
-  endforeach
-endif
+# integer-conversion-hardening task). Enforced under BOTH the image's clang and a
+# host gcc (gcc's -Wsign-conversion is the stricter of the two; the core is clean
+# under both).
+foreach warg : ['-Wconversion', '-Wsign-conversion']
+  if cc.has_argument(warg)
+    core_c_args += warg
+  endif
+endforeach
 if get_option('core_werror')
   core_c_args += '-Werror'
 endif
