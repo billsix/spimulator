@@ -30,7 +30,7 @@ keyword table (`scanner.c`), the op-type table (`parser.c`), three instruction t
 (`instruction.c`), a dump utility (`dump-opcodes.c`), and — already out-of-tree, read as text, not via
 cpp — the tree-sitter grammar's keyword lists (`extract-keywords.py`).
 
-This was split out of the simulator-core modernization (`tasks/c23-modernization-pass2.md`) because it
+This was split out of the simulator-core modernization (`tasks/archive/2026/10/16/c23-modernization-pass2.md`) because it
 is a design decision, not part of the mechanical C23 sweep.
 
 ## The decision to make
@@ -93,5 +93,5 @@ The task is still `proposed` — it needs a go-ahead to *run* the investigation,
 ## Cross-links
 
 - `tasks/reference/opcodes-x-macro.md` — how it works + the full design analysis (read first).
-- `tasks/c23-modernization-pass2.md` — the simulator-core modernization this was split out of.
+- `tasks/archive/2026/10/16/c23-modernization-pass2.md` — the simulator-core modernization this was split out of.
 - `~/.claude/reference/codegen-conventions.md` — rules any codegen build-out must follow.

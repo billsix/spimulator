@@ -9,7 +9,7 @@
 
 Make the simulator core (`src/`+`include/`) clean under `-Wconversion -Wsign-conversion` and then add
 those flags to the `-Werror` gate, so silent narrowing / sign-flip integer bugs become compile errors.
-Split out of the pass-2 modernization (`tasks/c23-modernization-pass2.md`, Tier 3) because it is **not
+Split out of the pass-2 modernization (`tasks/archive/2026/10/16/c23-modernization-pass2.md`, Tier 3) because it is **not
 a safe mechanical sweep**: the warnings concentrate in the MIPS instruction-execution core where the
 signed/unsigned casts *are* the architecture's semantics, so each must be reviewed per instruction, not
 blanket-fixed. "Done" = core compiles clean under both flags, the flags are in the gate, and
@@ -54,7 +54,7 @@ fix is wrong).
 
 ## Cross-links
 
-- `tasks/c23-modernization-pass2.md` (parent; Tier 3 did the safe structural widths in `instruction.h`).
+- `tasks/archive/2026/10/16/c23-modernization-pass2.md` (parent; Tier 3 did the safe structural widths in `instruction.h`).
 - `tasks/archive/2026/06/16/ubsan-sweep.md` (the integer-UB surface to coordinate with).
 - `~/.claude/reference/c-coding-standard.md` (integer-conversion rule), `~/.claude/reference/c-modernization-sweep.md`
   (why this is opt-out-in-place, not a blanket sweep).

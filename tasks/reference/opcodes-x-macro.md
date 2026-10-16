@@ -108,4 +108,4 @@ textual source already shared with the grammar. The decision, with its rationale
   consumer and the `BUILD_TREE_SITTER=1` gate.
 - `~/.claude/reference/codegen-conventions.md` — the rules any external-codegen redesign must follow.
 - `tasks/opcodes-x-macro-redesign.md` — the investigate-and-decide task.
-- `tasks/c23-modernization-pass2.md` — the simulator-core modernization this was split out of.
+- `tasks/archive/2026/10/16/c23-modernization-pass2.md` — the simulator-core modernization this was split out of.

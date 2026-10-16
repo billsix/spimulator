@@ -12,7 +12,7 @@ latent bug** — `fatal_error` (`src/spim.c:1502-1508`) overwrites its own forma
 argc" case (`dump-opcodes.c:61` implicit-int `main`), `xmalloc`/`zmalloc` taking `int`, a dead `kernel`
 param, and catalogued comment/asm drift. Demo/book layers are clean.
 
-**Follow-on task created:** `tasks/fix-inherited-idiosyncrasies.md` (HIGH `fatal_error` fix first, then
+**Follow-on task created:** `tasks/archive/2026/10/16/fix-inherited-idiosyncrasies.md` (HIGH `fatal_error` fix first, then
 the mechanical fixes; cosmetic renames excluded pending direction).
 
 The full original itemized findings table is preserved in this doc's git history (and the reference doc
