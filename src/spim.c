@@ -1502,8 +1502,8 @@ void error(char* fmt, ...) {
 void fatal_error(char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  fmt = va_arg(args, char*);
   vfprintf(stderr, fmt, args);
+  va_end(args);
   exit(-1);
 }
 

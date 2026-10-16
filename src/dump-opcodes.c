@@ -58,7 +58,7 @@ int compare_ops(mips_instruction* p1, mips_instruction* p2) {
   }
 }
 
-main(int argc, char** argv) {
+int main(void) {
   /* Remove pseudo ops (opcode == -1) from table */
   int empty, next;
   for (empty = 0, next = 0; next < (sizeof(ops) / sizeof(ops[0])); next += 1) {
