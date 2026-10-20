@@ -153,7 +153,7 @@ static double parse_factor(void) {
 /* term := factor (('*' | '/') factor)* */
 static double parse_term(void) {
   double value = parse_factor();
-  for (;;) {
+  while (true) {
     skip_blanks();
     if (cur == '*') {
       advance();
@@ -170,7 +170,7 @@ static double parse_term(void) {
 /* expr := term (('+' | '-') term)* */
 static double parse_expr(void) {
   double value = parse_term();
-  for (;;) {
+  while (true) {
     skip_blanks();
     if (cur == '+') {
       advance();

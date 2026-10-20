@@ -205,7 +205,7 @@ static Node* parse_factor(void) {
 /* term := factor (('*' | '/') factor)* — left-associative BINOP nesting. */
 static Node* parse_term(void) {
   Node* node = parse_factor();
-  for (;;) {
+  while (true) {
     skip_blanks();
     if (cur == '*') {
       advance();
@@ -222,7 +222,7 @@ static Node* parse_term(void) {
 /* expr := term (('+' | '-') term)* — left-associative BINOP nesting. */
 static Node* parse_expr(void) {
   Node* node = parse_term();
-  for (;;) {
+  while (true) {
     skip_blanks();
     if (cur == '+') {
       advance();

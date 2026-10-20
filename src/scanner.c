@@ -541,7 +541,7 @@ static void scan_one_token(scan_token* out) {
   /* Skip whitespace, comments, and CR.  Stop at NL, ';', or a
    * real token character.  Each iteration may need to refill
    * line_buf if we've exhausted it without finding a token. */
-  for (;;) {
+  while (true) {
     /* If buffer is empty / exhausted, refill — but we report
        TOK_NL between every line, and TOK_EOF/TOK_EOF only when the
        FILE is actually done.  We treat the trailing newline of

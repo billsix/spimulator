@@ -1052,7 +1052,7 @@ static void parse_dir_space(void) {
 /* EXPR_LST: collect each expression value into the AST data
    accumulator; data_int_finalize builds the AST node. */
 static void parse_expr_list(void) {
-  for (;;) {
+  while (true) {
     int v = parse_expression();
     data_int_push(v);
     /* commas are skipped by the scanner; same with whitespace */
@@ -1077,7 +1077,7 @@ static void align_labels_to(int alignment) {
 /* FP_EXPR_LST: consume TOK_FP tokens, collecting into the AST data
    accumulator; data_fp_finalize builds the AST node. */
 static void parse_fp_expr_list(void) {
-  for (;;) {
+  while (true) {
     if (scanner_peek() != TOK_FP) {
       parse_error_at("Expected floating-point literal");
       return;
@@ -1123,7 +1123,7 @@ static void parse_dir_byte(void) {
 
 /* STR_LST: emit each string via store_string */
 static void parse_string_list(void) {
-  for (;;) {
+  while (true) {
     if (scanner_peek() != TOK_STR) {
       parse_error_at("Expected string literal");
       return;
