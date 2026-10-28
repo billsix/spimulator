@@ -35,7 +35,11 @@ CC ?= cc
 # -fverbose-asm annotates each instruction with its C source line
 # + variable names.  Same set meson uses in edu_args (note: NOT
 # gcc's -fno-dwarf2-cfi-asm, which clang rejects).
-EDU_FLAGS = -O0 \
+# -std=gnu23 matches the meson build's project-wide `c_std=gnu23`
+# so C23 keywords (true/false/bool/nullptr) resolve here too; the
+# demos carry no <stdbool.h> by design, and clang defaults to C17.
+EDU_FLAGS = -std=gnu23 \
+            -O0 \
             -fomit-frame-pointer \
             -fno-asynchronous-unwind-tables \
             -fno-unwind-tables \
@@ -44,7 +48,7 @@ EDU_FLAGS = -O0 \
 
 # Demos include io.h/os.h/crt0.h via -I.; the lib demos also need
 # their library headers.
-INCLUDES = -I. -Ilib/libctype -Ilib/libstdlib
+INCLUDES = -I. -Ilib/libctype -Ilib/libstdlib -Ilib/libstr
 
 # Freestanding link: each demo defines its own _start and never
 # touches libc.  Matches meson's edu_link_args.
@@ -63,7 +67,8 @@ ALL_C := $(patsubst ./%,%,$(shell find . -name '*.c'))
 IO_C       := $(wildcard *.c)
 LIBCTYPE_C := lib/libctype/libctype.c
 LIBSTDLIB_C := lib/libstdlib/libstdlib.c
-HELPER_C   := $(IO_C) $(LIBCTYPE_C) $(LIBSTDLIB_C)
+LIBSTR_C   := lib/libstr/libstr.c
+HELPER_C   := $(IO_C) $(LIBCTYPE_C) $(LIBSTDLIB_C) $(LIBSTR_C)
 DEMO_C     := $(filter-out $(HELPER_C),$(ALL_C))
 
 # Parallel .s listing for *every* translation unit (demos + helpers).
@@ -77,11 +82,12 @@ EXES := $(addprefix bin/,$(notdir $(basename $(DEMO_C))))
 
 # Helper objects, archived so the linker pulls only the members a
 # given demo actually references -- which means every demo can link
-# against all three archives without caring which it needs.
+# against all the archives without caring which it needs.
 # Order at link time: libio (print_*), then libstdlib (atoi), then
-# libctype (isspace, called by libstdlib).
+# libctype (isspace, called by libstdlib), then libstr (string/mem
+# primitives, used by str-demo; independent of the others).
 IO_OBJ := $(IO_C:.c=.o)
-ARCHIVES := libio.a libstdlib.a libctype.a
+ARCHIVES := libio.a libstdlib.a libctype.a libstr.a
 
 .PHONY: all listings executables clean
 all: listings executables
@@ -106,6 +112,9 @@ libctype.a: lib/libctype/libctype.o
 libstdlib.a: lib/libstdlib/libstdlib.o
 	$(AR) rcs $@ $^
 
+libstr.a: lib/libstr/libstr.o
+	$(AR) rcs $@ $^
+
 # ---------- demo executables ----------------------------------------------
 # Locate each demo's .s by basename via vpath (the .s sits in the
 # demo's own topic/name/ folder).  bin/<name> links that .s against
@@ -116,8 +125,8 @@ bin:
 	mkdir -p bin
 
 bin/%: %.s $(ARCHIVES) | bin
-	$(CC) $(LINK_FLAGS) $< libio.a libstdlib.a libctype.a -o $@
+	$(CC) $(LINK_FLAGS) $< libio.a libstdlib.a libctype.a libstr.a -o $@
 
 clean:
-	rm -f $(ALL_S) $(IO_OBJ) lib/libctype/libctype.o lib/libstdlib/libstdlib.o $(ARCHIVES)
+	rm -f $(ALL_S) $(IO_OBJ) lib/libctype/libctype.o lib/libstdlib/libstdlib.o lib/libstr/libstr.o $(ARCHIVES)
 	rm -rf bin
