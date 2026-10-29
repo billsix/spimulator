@@ -53,6 +53,19 @@ Studying the current curriculum (`examples/READING-ORDER.md`, Parts 0–9):
 
 This triage is the proposed scope, not a commitment to decompose all of them — see Q3.
 
+Studying all the demos also surfaced the **recurring decomposition patterns** they share — peel off
+file-or-stdin (18 demos), peel off argv+`atoi` (17), peel off flag parsing, leaf-before-non-leaf
+(libraries), iterative-before-recursive, one-operator-at-a-time — so a ladder reuses a shared shape
+rather than a bespoke per-example split. The catalog (grounded in `rg` over `examples/src`) is in the
+method doc, `tasks/reference/incremental-example-decomposition.md` › "Recurring decomposition
+patterns."
+
+**Every rung is a PAIRED demo — the C and the spim MIPS `.asm` move together.** A rung ships the
+`.c` (+ its generated `.s` + native binary) *and* the matching hand-written `.asm` that runs under
+spim, updated in the same change and golden-tested on both sides (`examples/tests/run-demo.sh`).
+Adding a C rung without updating its spim version — or vice versa — is not allowed; see the invariant
+in the method doc.
+
 ## Rollout (step-tasks, once the questions are answered)
 
 Express ordering with Priority + "Depends on", not `blocked` (each step is within our control):

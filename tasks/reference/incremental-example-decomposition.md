@@ -34,6 +34,38 @@ independent new ideas at once**. Classify each example:
 The triage itself is part of "studying the example": decide the class, and for a ladder, list the
 independent ideas before ordering them.
 
+## Recurring decomposition patterns across the curriculum
+
+Studying all the demos (2026-10-29, grounded in `rg` over `examples/src` + `READING-ORDER.md`), the
+same peelable layers recur — a ladder should reuse these shared shapes, not invent a bespoke split
+per example. When you decompose any demo, check it against this catalog first:
+
+- **Peel off "where the input comes from."** 18 demos accept a FILE argument *or* bare stdin
+  (`cat`, `wc`, `head`, `rev`, `cut`, `od`, `tac`, `tail`, `uniq`, `nl`, `expand`, `base64`, …). The
+  ladder rung order is: operate on a **fixed in-program buffer** → read **stdin** → accept a **FILE
+  arg**. The core transform is the lesson; file-vs-stdin plumbing is a later, separate rung.
+- **Peel off argv + `atoi`.** 17 demos take a number from the command line via `atoi`
+  (`factorial`, `gcd`, `seq`, `factor`, `binary-search`, `fizzbuzz`, `hanoi`, `queens`, …). Rung
+  order: run the core on a **hardcoded** value → add **argv + `atoi`**. (`echo` is the pure "just
+  walk argv, no atoi" first rung this pattern builds on.)
+- **Peel off flag parsing.** `head -n N`, `cut -c N-M`, `od -c` mix a dash-flag parser with the
+  core filter. Rung order: the filter with the parameter **fixed** → add the **`-flag` parse**.
+- **Leaf before non-leaf (libraries).** `libctype` is all one-line leaf functions; `libstdlib`'s
+  `atoi` is the first function that *calls* another (saving `$ra`, keeping state in `$s*`). Rung
+  order: a library of **leaves** → the first **non-leaf** member.
+- **Iterative/base case before the recursive case.** `fibonacci` already ships iterative and
+  recursive in one demo; the general rung order is **iterative** (state in `$s*`) → **recursive**
+  (per-call stack frame), which is the whole point of the recursion chapter.
+- **One operator / one case at a time.** `calc` (numbers → `+`/`-` → `*`/`/` → parens → unary minus)
+  and `fizzbuzz` (the multi-way branch, one arm at a time) add a single grammar rule / branch per
+  rung.
+- **Same algorithm, second architecture (an epilogue, not a rung).** `calc-sdt` (evaluate while
+  parsing) vs `calc-tree` (build an AST, then walk it) is a *comparison* read after the ladder, not
+  a step within it.
+
+These patterns also compose: a demo like `factor N` is "argv+atoi" **over** a core trial-division
+loop, so its ladder is `core-on-hardcoded-N` → `+argv/atoi`.
+
 ## Ordering principle — least knowledge first, one concept per rung
 
 The ladder is ordered so each version needs **strictly less prior knowledge** than the next, and
@@ -82,6 +114,15 @@ For every version, the example's reference doc records:
 - **Every rung is a real, runnable, golden-tested program** (the examples bar: `.c` + `.asm` +
   `.expected`/`.input`, both the native C binary and the asm-under-spim diffed against the golden,
   per `examples/tests/run-demo.sh`). A rung that can't run isn't a teaching version.
+- **The C and the spim MIPS asm move together — this is non-negotiable.** Each rung is a *paired*
+  demo: the `.c` (and its generated `.s` listing + native binary) **and** the hand-written `.asm`
+  that runs under spim, kept in lockstep. When a rung adds a concept to the C, its `.asm` port is
+  written/updated **in the same change** so the two read as one lesson and both sides pass the
+  golden. You never add a C rung and leave the spim version behind, and never update one side
+  without the other. (The curriculum already uses the inverse of this freedom deliberately — one
+  `.c` with *two* `.asm` variants: `get-char-from-user` ships a `-1.asm` bug and a `-2.asm` fix,
+  `subrountines` a longhand/idiomatic pair — so an asm-only variant rung is legitimate where the
+  *lesson itself* is an asm distinction, but the default is one matched `.c`+`.asm` per rung.)
 - **Each rung keeps the paired-demo teaching-C style** (`example-c-teaching-style.md`): declare
   locals at the top, flat control flow, no modern-C idioms that hide the codegen.
 - **Naming/layout** (proposed, pending the maintainer's call — see the umbrella task): versions live

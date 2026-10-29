@@ -34,7 +34,10 @@ the technique the planned mini C compiler reuses, `tasks/mini-c-compiler.md`). `
 
 Two candidate orderings; they differ only in **where unary minus lands** (umbrella Q1). Each rung is
 a real program with its own `.c`/`.asm`/`.input`/`.expected`, passing `examples/tests/run-demo.sh`;
-each adds exactly one concept; the last rung is today's `calc-sdt`.
+each adds exactly one concept; the last rung is today's `calc-sdt`. **The C and the hand-written spim
+`.asm` move together at every rung** — the MIPS port is written to match the C in the same change and
+both sides are golden-tested (method-doc lockstep invariant); a rung is not done until its spim
+version matches.
 
 ### Candidate (b) — math-teaching order (RECOMMENDED)
 
