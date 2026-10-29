@@ -111,6 +111,12 @@ For every version, the example's reference doc records:
   is a path *to* the shipped program, not a replacement — the finished `calc-sdt.asm` /
   `calc-tree.asm` stay the destination, and the final version's golden equals the current golden on
   the overlapping input.
+- **Goldens are stable within a representation, and may change only at a deliberate
+  representation-change rung.** Prefer that a rung's `.expected` be a prefix/subset of the next
+  rung's for the same inputs; the one sanctioned exception is a rung whose whole lesson is a change
+  of data representation — e.g. calc's integer→double `calc-6-float`, where `10 / 4` legitimately goes
+  from `2` to `2.500000`. Call out such a rung explicitly in the example's task doc; everywhere else,
+  a changed golden across rungs is a bug.
 - **Every rung is a real, runnable, golden-tested program** (the examples bar: `.c` + `.asm` +
   `.expected`/`.input`, both the native C binary and the asm-under-spim diffed against the golden,
   per `examples/tests/run-demo.sh`). A rung that can't run isn't a teaching version.
