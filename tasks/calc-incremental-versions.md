@@ -1,6 +1,6 @@
 # calc — incremental teaching versions (the exemplar)
 
-**Status:** proposed — needs go-ahead (ladder ordering is Q1 of the umbrella)
+**Status:** in progress — ladder (b) chosen 2026-10-29; per-version reference doc + rung files next
 **Priority:** 4
 **Difficulty:** 5
 **Part of:** `tasks/incremental-example-versions.md`
@@ -39,7 +39,7 @@ each adds exactly one concept; the last rung is today's `calc-sdt`. **The C and 
 both sides are golden-tested (method-doc lockstep invariant); a rung is not done until its spim
 version matches.
 
-### Candidate (b) — math-teaching order (RECOMMENDED)
+### Candidate (b) — math-teaching order (CHOSEN 2026-10-29)
 
 | Rung | Adds | Grammar at this rung | Learning objectives (asm + math) | Math anchor |
 |---|---|---|---|---|
@@ -57,7 +57,7 @@ It keeps rung 1 genuinely minimal (the thing the current demo skips over), which
 complaint. Six rungs (vs. the five in the original sketch) because it separates unary minus from the
 first number rung and separates whitespace from error recovery.
 
-### Candidate (a) — parser-minimal (the original sketch)
+### Candidate (a) — parser-minimal (NOT chosen — kept for the record)
 
 Same spine, but unary minus joins rung 1 (`factor := NUMBER | '-' factor`), and whitespace +
 newlines are one final rung — five rungs total: `1` numbers±sign → `2` addsub → `3` muldiv → `4`
@@ -67,13 +67,13 @@ parens → `5` whitespace(=calc-sdt). Argument for it: `-5` is one trivial gramm
 **Recommendation: (b).** This is a teaching curriculum; the stronger "least knowledge first" axis is
 the learner's math background, not the parser's line count, and (b) keeps rung 1 truly minimal.
 
-## Open questions
+## Decisions
 
-1. **(= umbrella Q1) Ladder (a) or (b)?** Recommendation (b). This is the only thing blocking the
-   per-version reference doc + the rung files.
-2. Keep `calc-tree` as the post-ladder architectural epilogue (diff against `calc-sdt`), rather than
-   giving it its own ladder? Recommendation: yes — its lesson is "same language, tree architecture,"
-   which only lands once the SDT version is understood.
+1. **Ladder (b) chosen** (2026-10-29) — the math-teaching order above; negatives are rung 5 (late),
+   whitespace rung 6. Candidate (a) is kept above only for the record.
+2. **`calc-tree` stays the post-ladder architectural epilogue** (diff against `calc-sdt`), not its
+   own ladder — its lesson, "same language, tree architecture," only lands once the SDT version is
+   understood.
 
 ## Next (after Q1/Q2)
 

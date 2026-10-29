@@ -1,6 +1,6 @@
 # Incremental teaching versions of the worked examples
 
-**Status:** in progress — open questions block the rollout (see below)
+**Status:** in progress — decisions made 2026-10-29; calc rung implementation is next
 **Priority:** 4
 **Difficulty:** 5
 
@@ -77,28 +77,27 @@ Express ordering with Priority + "Depends on", not `blocked` (each step is withi
 Each step gets its own task doc + reference doc (the per-version spec) and archives on its own
 completion; this umbrella archives when the last greenlit step lands.
 
-## Open questions (block the rollout — answer by number)
+## Decisions (2026-10-29, maintainer — William Emerison Six <billsix@gmail.com>)
 
-1. **Unary-minus / negative-number placement.** Parser complexity makes `-5` trivial (one rule,
-   `factor := '-' factor`) and argues for an early rung; the school math order makes negatives *late*
-   (grade 6/7, after whole-number arithmetic and parentheses). Your sketch put negatives in v1; the
-   research pulls the other way. Which wins for the ladders — (a) parser-minimal (negatives early,
-   your sketch), or (b) math-teaching order (negatives late)? See the two candidate calc ladders in
-   `tasks/calc-incremental-versions.md`. **Recommendation: (b)** — this is a *teaching* curriculum,
-   so mirroring how a student met these ideas in school is the stronger ordering, and it keeps v1
-   genuinely minimal (read/print a whole number).
-2. **Is whitespace its own final rung?** It's orthogonal to every math concept (a tokenizer-robustness
-   idea, not an arithmetic one). Keep it as the last rung (my plan, and your sketch's v5), or fold it
-   in earlier? **Recommendation: keep it last** — it teaches nothing arithmetical and is the one
-   change that touches every rule.
-3. **Scope — how far does "each example" go?** All ~44 demos, or only the ladder candidates in the
-   triage above (leaving the already-minimal ones alone)? **Recommendation: only the candidates** —
-   decomposing `exit`/`helloworld` invents nothing; they are already rung 1 of the whole curriculum.
-4. **This turn's deliverable — docs only, or also the version files?** I've written the method +
-   exemplar *docs*; do you want me to also implement the actual per-rung `.c`/`.asm`/golden files for
-   `calc` once the ordering is settled, or produce all the design docs first and implement later?
-   **Recommendation: finish the calc reference doc on your Q1/Q2 answers, then implement calc's rungs
-   as the proof-of-concept before rolling the docs out to the rest.**
-5. **File/naming + reading-order placement.** Proposed: rungs beside the finished demo
-   (`calc/calc-1-numbers.asm` … final = today's `calc-sdt.asm`), listed as sub-entries under the
-   demo's existing `READING-ORDER.md` number. OK, or do you want a different layout?
+1. **Ladder ordering: (b) math-teaching order** — negatives land *late* (after whole numbers, +/−,
+   ×/÷, and parentheses), not in v1. A teaching curriculum tracks the learner's math background, not
+   the parser's line count, and (b) keeps rung 1 genuinely minimal. Whitespace is the **last** rung
+   in the ladder. The chosen calc ladder is in `tasks/calc-incremental-versions.md` (candidate (b)).
+2. **Scope: ladder candidates only.** Decompose demos that hit a novice with 2+ ideas at once
+   (`calc`, `rpn`, and the short-ladder candidates in the triage); leave the already-minimal demos
+   (`exit`, `helloworld`, `yes`, `clear`, …) alone — they are already rung 1 of the whole curriculum.
+3. **Next: implement calc's rung files as the proof-of-concept.** Finalize calc's per-version
+   reference doc, then write the actual C + matching spim `.asm` + goldens for each calc rung and wire
+   them into `examples/` + `READING-ORDER.md`, proving the pattern end-to-end before rolling the docs
+   out to `rpn` and the short-ladder candidates.
+4. **File layout: beside the demo, rung-suffixed.** `calc/calc-1-numbers.{c,asm,input,expected}` …
+   with the final rung being today's `calc-sdt.{c,asm}` (unchanged) and `calc-tree` the epilogue;
+   listed as sub-entries under calc's existing `READING-ORDER.md` number.
+
+## Related follow-up (orthogonal axis)
+
+`tasks/examples-separate-io-from-algorithm.md` (proposed) — a *second* axis of refactoring: separate
+the I/O from the algorithm so the core operates on an in-memory buffer (e.g. the calculator evaluates
+a `char` array and returns the value) rather than doing its own stdin/stdout. It composes with this
+ladder (the "operate on a fixed in-program buffer" first rung of the file-or-stdin pattern is exactly
+this separation) but is tracked separately so each can be greenlit on its own.
