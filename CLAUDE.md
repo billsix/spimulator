@@ -30,10 +30,15 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
   table), `registers.h`, `spim.h`, parser/AST headers.
 - `examples/` — paired **C + MIPS-asm** teaching demos (`intro/`, `algorithms/`,
   `transforms/`, `fileio/`, `arguments/`, `recursion/`, `extras/`, plus
-  `lib/libctype` + `libstdlib` adapted from musl). `examples/src/meson.build`
+  `lib/libctype` + `libstdlib` + `libstr` adapted from musl). `examples/src/meson.build`
   builds them; `examples/src/Makefile` materializes native `.s` listings +
   binaries; `examples/tests/run-demo.sh` runs C and asm and diffs both against
-  goldens. Curriculum design is in `examples/READING-ORDER.md` and the curriculum task docs in `tasks/`.
+  goldens. **The two build systems are independent and must be kept in sync** — the
+  Makefile sets its own `-std=gnu23` (matching meson's `c_std`) and keeps its own
+  helper/include/archive inventory, so adding a lib or demo to `meson.build` means
+  mirroring it in the Makefile (see
+  `tasks/archive/2026/10/28/fix-examples-listing-std-flag.md`). Curriculum design is in
+  `examples/READING-ORDER.md` and the curriculum task docs in `tasks/`.
 - `pgu/` — the *Programming from the Ground Up* book ported to MIPS/spim (its own
   `Dockerfile`/`Makefile`/`docs/`). Port **complete**
   (`tasks/archive/2026/06/14/port-pgu.md`, 2026-05-25).
