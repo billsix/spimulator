@@ -104,6 +104,13 @@ case "$NAME" in
     input=$SRC_DIR/algorithms/rpn/rpn.input
     asm_files="-f $SRC_DIR/algorithms/rpn/rpn.asm"
     ;;
+  calc-1-numbers)
+    # Rung 1 of the calc ladder (tasks/calc-incremental-versions.md): read &
+    # print one whole integer per line.
+    expected=$SRC_DIR/lang/calc/calc-1-numbers.expected
+    input=$SRC_DIR/lang/calc/calc-1-numbers.input
+    asm_files="-f $SRC_DIR/lang/calc/calc-1-numbers.asm"
+    ;;
   calc-sdt)
     expected=$SRC_DIR/lang/calc/calc-sdt.expected
     input=$SRC_DIR/lang/calc/calc-sdt.input
