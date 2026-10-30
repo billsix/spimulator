@@ -115,7 +115,7 @@ completion; umbrella + the I/O-separation task archive last; gpg back on at the 
 Progress checklist:
 - [x] `calc` — 6 rungs (archived)
 - [x] `rpn` — 3 rungs (archived)
-- [x] I/O-separation — realized as `calc-eval` (archived)
+- [x] I/O-separation — realized as `calc-eval` + unit tests `calc-eval-test` (archived)
 - [x] short-ladder candidates — all triaged 2026-10-30 (per the method's "two independent ideas at
   once" test); verdicts:
   - [x] **bubble-sort** → DECOMPOSED: `bubble-sort-1-fixed` (the nested-loop sort on a fixed array)
@@ -140,7 +140,7 @@ Progress checklist:
 
 ## Related follow-up (orthogonal axis)
 
-`tasks/examples-separate-io-from-algorithm.md` (proposed) — a *second* axis of refactoring: separate
+`tasks/archive/2026/10/30/examples-separate-io-from-algorithm.md` (done+archived) — a *second* axis of refactoring: separate
 the I/O from the algorithm so the core operates on an in-memory buffer (e.g. the calculator evaluates
 a `char` array and returns the value) rather than doing its own stdin/stdout. It composes with this
 ladder (the "operate on a fixed in-program buffer" first rung of the file-or-stdin pattern is exactly

@@ -1,10 +1,12 @@
 # Separate I/O from the algorithm in the worked examples
 
-**Status:** done + archived 2026-10-30 — realized as `examples/src/lang/calc/calc-eval` (C + spim
-asm), the pure `double eval(const char* expr)` core over a line buffer with `my_main` doing the I/O;
-shares calc-sdt's golden, verified (C + asm). Branch `incremental-example-versions`. The pattern is
-established on the calculator (the maintainer's named example); applying it to rpn and the transform
-filters is the same shape and can follow on request.
+**Status:** done 2026-10-30. The I/O split is realized as `examples/src/lang/calc/calc-eval` (C +
+spim asm; pure `double eval(const char* expr)` core over a line buffer, `my_main` does the I/O;
+shares calc-sdt's golden). **Unit tests added:** `calc-eval-test` (C + spim asm) drives `eval()` over
+a hardcoded battery of expressions with NO stdin, printing `<expr> => <result>` per case against a
+pinned golden — the test the separation enables. Both verified (C binary and asm-under-spim match;
+`meson test --suite examples calc-eval-test`). The same pattern applies to rpn/filters on request.
+Branch `incremental-example-versions`.
 **Priority:** 5
 **Difficulty:** 4
 **Related:** `tasks/archive/2026/10/30/incremental-example-versions.md` (orthogonal axis),
@@ -75,3 +77,30 @@ separate out.
 2. **Beside the finished demos**, as the orthogonal axis — not a rung of the calc ladder. `calc-eval`
    keeps the full calculator behaviour (it shares calc-sdt's golden); only the algorithm↔I/O boundary
    moved (`eval(const char*)` is pure; `my_main` reads a line into a buffer and calls it).
+
+## Unit tests (added 2026-10-30, maintainer request)
+
+The point of separating I/O from the algorithm: the core becomes a **pure function of its input**, so
+it can be exercised directly — no stdin, no golden-I/O round trip. Add a unit-test harness that calls
+the separated core on a battery of cases and reports PASS/FAIL per case (the shape `libstr`'s
+`str-demo` already uses: hardcoded subcases, one `name=PASS` line each, golden-tested so a regression
+turns the golden red).
+
+Plan for `calc-eval`:
+- **Make the core linkable.** Factor calc-eval's pure core — `double eval(const char* expr)` plus a
+  way to read the error flag (e.g. `int eval_had_error(void)`) — into a shared translation unit
+  (`calc_eval.c` + `calc_eval.h`), the way the `libNAME`/`libNAME-demo` demos share a library. The
+  `calc-eval` demo then `#include`s the header and links the core; the I/O (read a line, print) stays
+  in the demo's `my_main`.
+- **Add `calc-eval-test`** — a demo whose `my_main` runs a table of `{expr, expected, expect_error}`
+  cases through `eval()` and prints a PASS/FAIL line each: e.g. `"2+3" => 5`, `"10/4" => 2.5`,
+  `"(3+4)*2-10/4" => 11.5`, `"-5+3" => -2`, `"3*-2" => -6`, and an error case `"(2+3" => error`.
+  Compare doubles within a small tolerance (the deterministic printer's 6 digits are the bar). It
+  needs no stdin — that is the whole demonstration.
+- **Wire + golden-test it** like the other demos (meson demo table + `lib_demo_tests` +
+  `run-demo.sh`), pinned golden = all PASS. Pair the C with a spim `.asm` per the house rule; if the
+  asm assertion harness proves disproportionate, land the C unit-test demo first and note the asm as
+  a follow-up in this task.
+
+This extends the "separated I/O ⇒ testable core" lesson into an actual test, and seeds the test
+harness the mini C compiler's front end will want.
