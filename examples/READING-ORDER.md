@@ -143,6 +143,8 @@ concept on territory you walk in confident about.
    branching; N from argv (default 100).
 7. **`bubble-sort`** — reads ints from stdin (syscall 5 +
    `$a3` EOF flag); nested loops, in-place swap.
+   *Ladder (tasks/reference/incremental-example-decomposition.md):* `bubble-sort-1-fixed`
+   (sort a fixed array — the algorithm alone) → this (add reading ints from stdin).
 8. **`pascals-triangle [N]`** — in-place right-to-left row
    update; N from argv (default 10).
 9. **`sieve [N]`** — byte-granular `lb`/`sb`; **sbrk
@@ -157,6 +159,8 @@ forms (13/14) which take no file arg.
 10. **`wc`** — byte + line counters; stdin or file.
 11. **`head`** — `-n N` flag + stdin or file (subsumes the
     old `head-file` variant).
+    *Ladder (tasks/reference/incremental-example-decomposition.md):* `head-1-count` (the
+    fixed-N stdin filter alone) → this (add argv: the `-n` flag + a FILE).
 12. **`rev`** — line buffer + reverse walk; stdin or file.
 13. **`tr`** *(sidebar)* — uppercase byte transform; pure
     stdin filter (matches real `tr`).
@@ -175,6 +179,9 @@ forms (13/14) which take no file arg.
     table, bitwise ops, private `print_uint` subroutine;
     stdin or file (prints filename column in file mode, like
     real `cksum`).
+    *Ladder (tasks/reference/incremental-example-decomposition.md):*
+    `cksum-1-stdin` (the CRC32 algorithm over stdin alone) → this (add
+    reading from a named FILE + the filename output column).
 
 ## Part 5 — argv: taking inputs from the command line (5 demos)
 
@@ -258,6 +265,29 @@ recursion demos taught.
     `addi $sp,8`), and an `atof`-style tokenizer builds each double
     from its digits.  The gentle (postfix, no precedence) step before
     the infix calculator.
+
+    **Incremental ladder — read these FIRST if rpn is your first stack
+    machine.**  rpn stacks several ideas at once, so a gentler on-ramp
+    builds it one concept per step; each rung is a runnable, golden-tested
+    demo beside this one (the ladder method is in
+    `../tasks/reference/incremental-example-decomposition.md`):
+    - 41a. **`rpn-1-stack`** — push whitespace-separated integers, print the top.
+    - 41b. **`rpn-2-ops`**   — the four operators (pop two, apply, push), integer.
+    - 41c. **`rpn-3-float`** — the FPU: doubles + decimals (so `/` yields `0.333333`).
+
+    rpn-3-float plus error handling (under/overflow, bad input, empty) IS this
+    rpn — the destination of the ladder.
+
+    **I/O-separated variant: `rpn-eval`** — the same calculator and output, but
+    the algorithm is split from the I/O: the core is a pure
+    `double eval(const char* expr)` over an input buffer (it reports an error in
+    a `status` instead of printing one), and `my_main` slurps stdin, calls it,
+    and prints.  Shares rpn's golden; shows the evaluator as a reusable, testable
+    pure function.  **Its unit tests are `rpn-eval-test`** — it drives `eval()`
+    over a hardcoded battery of RPN expressions with no stdin, printing
+    `<expr> => <result>` (golden-pinned): the payoff of making the evaluator
+    depend on a character array instead of I/O.  The infix calculator has the
+    same pair (`calc-eval` / `calc-eval-test`, #42).
 42. **`calc-sdt`** — a TI-83-style **infix** calculator by
     syntax-directed translation: a recursive-descent parser that
     *evaluates while parsing* (no tree), one expression per line.
@@ -268,6 +298,30 @@ recursion demos taught.
     unary minus, parentheses, and per-line error recovery are handled.
     This is the SDT technique the mini C compiler will use; the
     tree-building companion is calc-tree (#43).
+
+    **Incremental ladder — read these FIRST if calc-sdt is your first
+    parser.**  calc-sdt stacks several ideas at once, so a gentler on-ramp
+    builds it one concept per step; each rung is a runnable, golden-tested
+    demo beside this one (see `../tasks/reference/calc-incremental-versions.md`):
+    - 42a. **`calc-1-numbers`** — read & print one whole integer per line.
+    - 42b. **`calc-2-addsub`**  — integer `+`/`-`, left to right.
+    - 42c. **`calc-3-muldiv`**  — integer `*`/`/`, precedence by grammar layering.
+    - 42d. **`calc-4-parens`**  — parentheses (mutual recursion `expr`↔`factor`).
+    - 42e. **`calc-5-neg`**     — unary minus / negative integers.
+    - 42f. **`calc-6-float`**   — the FPU: doubles + decimals (so `/` yields `2.5`).
+
+    calc-6-float plus intra-line whitespace and per-line error recovery IS this
+    calc-sdt — the destination of the ladder.
+
+    **I/O-separated variant: `calc-eval`** — the same calculator and output, but
+    the algorithm is split from the I/O: the core is a pure
+    `double eval(const char* expr)` over a line buffer, and `my_main` does the
+    reading/printing.  Shares calc-sdt's golden; shows the parser as a reusable,
+    testable pure function (the shape the mini C compiler's front end needs).
+    **Its unit tests are `calc-eval-test`** — it drives `eval()` over a hardcoded
+    battery of expressions with no stdin, printing `<expr> => <result>` (golden-
+    pinned): the direct payoff of making `parse_factor`/`parse_term`/`parse_expr`
+    depend on a character array instead of I/O.
 43. **`calc-tree`** — the SAME language and grammar as calc-sdt, but
     the parser *builds an abstract syntax tree* and a SEPARATE
     recursive walker (`eval`) evaluates it — so nothing is computed

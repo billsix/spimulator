@@ -96,16 +96,41 @@ demos = [
   ['yes',                    'intro/yes/yes.c'],
   # ---- algorithms: familiar algorithms in asm ----
   ['fizzbuzz',               'algorithms/fizzbuzz/fizzbuzz.c'],
+  # bubble-sort ladder (tasks/incremental-example-versions.md): rung 1 sorts a
+  # fixed array; rung 2 (the finished demo) adds reading ints from stdin.
+  ['bubble-sort-1-fixed',    'algorithms/bubble-sort/bubble-sort-1-fixed.c'],
   ['bubble-sort',            'algorithms/bubble-sort/bubble-sort.c'],
   ['pascals-triangle',       'algorithms/pascals-triangle/pascals-triangle.c'],
   ['sieve',                  'algorithms/sieve/sieve.c'],
   ['binary-search',          'algorithms/binary-search/binary-search.c'],
+  # rpn ladder — incremental teaching rungs leading to rpn
+  # (tasks/rpn-incremental-versions.md)
+  ['rpn-1-stack',            'algorithms/rpn/rpn-1-stack.c'],
+  ['rpn-2-ops',              'algorithms/rpn/rpn-2-ops.c'],
+  ['rpn-3-float',            'algorithms/rpn/rpn-3-float.c'],
   ['rpn',                    'algorithms/rpn/rpn.c'],
+  # I/O-separated variant + its unit tests (tasks/examples-separate-io-from-algorithm.md)
+  ['rpn-eval',               'algorithms/rpn/rpn-eval.c'],
+  ['rpn-eval-test',          'algorithms/rpn/rpn-eval-test.c'],
   # ---- lang: little languages (infix parsers / evaluators) ----
+  # calc ladder — incremental teaching rungs leading to calc-sdt
+  # (tasks/calc-incremental-versions.md)
+  ['calc-1-numbers',         'lang/calc/calc-1-numbers.c'],
+  ['calc-2-addsub',          'lang/calc/calc-2-addsub.c'],
+  ['calc-3-muldiv',          'lang/calc/calc-3-muldiv.c'],
+  ['calc-4-parens',          'lang/calc/calc-4-parens.c'],
+  ['calc-5-neg',             'lang/calc/calc-5-neg.c'],
+  ['calc-6-float',           'lang/calc/calc-6-float.c'],
   ['calc-sdt',               'lang/calc/calc-sdt.c'],
   ['calc-tree',              'lang/calc/calc-tree.c'],
+  # I/O-separated variant + its unit tests (tasks/examples-separate-io-from-algorithm.md)
+  ['calc-eval',              'lang/calc/calc-eval.c'],
+  ['calc-eval-test',         'lang/calc/calc-eval-test.c'],
   # ---- transforms: stdin -> stdout stream transforms ----
   ['wc',                     'transforms/wc/wc.c'],
+  # head ladder (tasks/incremental-example-versions.md): rung 1 is the fixed-N
+  # stdin filter; rung 2 (the finished demo) adds argv (-n flag + FILE).
+  ['head-1-count',           'transforms/head/head-1-count.c'],
   ['head',                   'transforms/head/head.c'],
   ['rev',                    'transforms/rev/rev.c'],
   ['tr',                     'transforms/tr/tr.c'],
@@ -122,6 +147,9 @@ demos = [
   # ---- fileio: open/close/read/write of named files ----
   ['cat',                    'fileio/cat/cat.c'],
   ['nologin',                'fileio/nologin/nologin.c'],
+  # cksum ladder (tasks/reference/incremental-example-decomposition.md): rung 1
+  # is the CRC32 algorithm over stdin; rung 2 (finished) adds file-or-stdin.
+  ['cksum-1-stdin',          'fileio/cksum/cksum-1-stdin.c'],
   ['cksum',                  'fileio/cksum/cksum.c'],
   ['touch',                  'fileio/touch/touch.c'],
   ['cp',                     'fileio/cp/cp.c'],
@@ -245,7 +273,12 @@ lib_demo_tests = [
   'ctype-demo', 'str-demo', 'atoi-demo', 'abs-demo', 'exit-demo', 'bsearch-demo',
   'atexit-demo',
   # Regular demos with pinned goldens (stdin-driven; see run-demo.sh)
-  'strings', 'rpn', 'calc-sdt', 'calc-tree',
+  'strings', 'bubble-sort-1-fixed', 'bubble-sort', 'head-1-count', 'head',
+  'cksum-1-stdin', 'cksum',
+  'rpn-1-stack', 'rpn-2-ops', 'rpn-3-float', 'rpn', 'rpn-eval', 'rpn-eval-test',
+  'calc-1-numbers', 'calc-2-addsub', 'calc-3-muldiv',
+  'calc-4-parens', 'calc-5-neg', 'calc-6-float', 'calc-sdt', 'calc-tree', 'calc-eval',
+  'calc-eval-test',
 ]
 foreach name : lib_demo_tests
   test(name,

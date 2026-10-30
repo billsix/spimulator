@@ -87,7 +87,7 @@ EXES := $(addprefix bin/,$(notdir $(basename $(DEMO_C))))
 # libctype (isspace, called by libstdlib), then libstr (string/mem
 # primitives, used by str-demo; independent of the others).
 IO_OBJ := $(IO_C:.c=.o)
-ARCHIVES := libio.a libstdlib.a libctype.a libstr.a
+ARCHIVES := libio.a libstdlib.a libstr.a libctype.a
 
 .PHONY: all listings executables clean
 all: listings executables
@@ -125,7 +125,7 @@ bin:
 	mkdir -p bin
 
 bin/%: %.s $(ARCHIVES) | bin
-	$(CC) $(LINK_FLAGS) $< libio.a libstdlib.a libctype.a libstr.a -o $@
+	$(CC) $(LINK_FLAGS) $< libio.a libstdlib.a libstr.a libctype.a -o $@
 
 clean:
 	rm -f $(ALL_S) $(IO_OBJ) lib/libctype/libctype.o lib/libstdlib/libstdlib.o lib/libstr/libstr.o $(ARCHIVES)

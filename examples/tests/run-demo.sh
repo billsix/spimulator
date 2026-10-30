@@ -99,10 +99,112 @@ case "$NAME" in
                -f $LIB_DIR/libstdlib/libstdlib.asm \
                -f $LIB_DIR/libstdlib-demo/atexit-demo.asm"
     ;;
+  cksum-1-stdin)
+    # Rung 1 of the cksum ladder: the CRC32 algorithm over stdin.
+    expected=$SRC_DIR/fileio/cksum/cksum-1-stdin.expected
+    input=$SRC_DIR/fileio/cksum/cksum-1-stdin.input
+    asm_files="-f $SRC_DIR/fileio/cksum/cksum-1-stdin.asm"
+    ;;
+  cksum)
+    # Rung 2 (the finished demo), default stdin path (no filename column).
+    expected=$SRC_DIR/fileio/cksum/cksum.expected
+    input=$SRC_DIR/fileio/cksum/cksum.input
+    asm_files="-f $SRC_DIR/fileio/cksum/cksum.asm"
+    ;;
+  head-1-count)
+    # Rung 1 of the head ladder: fixed-N stdin line filter (no argv).
+    expected=$SRC_DIR/transforms/head/head-1-count.expected
+    input=$SRC_DIR/transforms/head/head-1-count.input
+    asm_files="-f $SRC_DIR/transforms/head/head-1-count.asm"
+    ;;
+  head)
+    # Rung 2 (the finished demo), default stdin path (N=10, no args).
+    expected=$SRC_DIR/transforms/head/head.expected
+    input=$SRC_DIR/transforms/head/head.input
+    asm_files="-f $SRC_DIR/transforms/head/head.asm"
+    ;;
+  bubble-sort-1-fixed)
+    # Rung 1 of the bubble-sort ladder: sort a fixed array (no stdin).
+    expected=$SRC_DIR/algorithms/bubble-sort/bubble-sort-1-fixed.expected
+    asm_files="-f $SRC_DIR/algorithms/bubble-sort/bubble-sort-1-fixed.asm"
+    ;;
+  bubble-sort)
+    # Rung 2 (the finished demo): read ints from stdin, then sort.
+    expected=$SRC_DIR/algorithms/bubble-sort/bubble-sort.expected
+    input=$SRC_DIR/algorithms/bubble-sort/bubble-sort.input
+    asm_files="-f $SRC_DIR/algorithms/bubble-sort/bubble-sort.asm"
+    ;;
+  rpn-1-stack)
+    # Rung 1 of the rpn ladder: push whitespace-separated integers, print top.
+    expected=$SRC_DIR/algorithms/rpn/rpn-1-stack.expected
+    input=$SRC_DIR/algorithms/rpn/rpn-1-stack.input
+    asm_files="-f $SRC_DIR/algorithms/rpn/rpn-1-stack.asm"
+    ;;
+  rpn-2-ops)
+    # Rung 2 of the rpn ladder: the four operators, integer.
+    expected=$SRC_DIR/algorithms/rpn/rpn-2-ops.expected
+    input=$SRC_DIR/algorithms/rpn/rpn-2-ops.input
+    asm_files="-f $SRC_DIR/algorithms/rpn/rpn-2-ops.asm"
+    ;;
+  rpn-3-float)
+    # Rung 3 of the rpn ladder: the FPU — doubles + decimals.
+    expected=$SRC_DIR/algorithms/rpn/rpn-3-float.expected
+    input=$SRC_DIR/algorithms/rpn/rpn-3-float.input
+    asm_files="-f $SRC_DIR/algorithms/rpn/rpn-3-float.asm"
+    ;;
   rpn)
     expected=$SRC_DIR/algorithms/rpn/rpn.expected
     input=$SRC_DIR/algorithms/rpn/rpn.input
     asm_files="-f $SRC_DIR/algorithms/rpn/rpn.asm"
+    ;;
+  rpn-eval)
+    # I/O-separated rpn: shares rpn's golden (same behavior; pure eval(str) core).
+    expected=$SRC_DIR/algorithms/rpn/rpn.expected
+    input=$SRC_DIR/algorithms/rpn/rpn.input
+    asm_files="-f $SRC_DIR/algorithms/rpn/rpn-eval.asm"
+    ;;
+  rpn-eval-test)
+    # Unit tests for the pure eval() core: a hardcoded battery, no stdin; the
+    # golden pins "<expr> => <result>" per case.
+    expected=$SRC_DIR/algorithms/rpn/rpn-eval-test.expected
+    asm_files="-f $SRC_DIR/algorithms/rpn/rpn-eval-test.asm"
+    ;;
+  calc-1-numbers)
+    # Rung 1 of the calc ladder (tasks/calc-incremental-versions.md): read &
+    # print one whole integer per line.
+    expected=$SRC_DIR/lang/calc/calc-1-numbers.expected
+    input=$SRC_DIR/lang/calc/calc-1-numbers.input
+    asm_files="-f $SRC_DIR/lang/calc/calc-1-numbers.asm"
+    ;;
+  calc-2-addsub)
+    # Rung 2: integer '+'/'-' left-to-right.
+    expected=$SRC_DIR/lang/calc/calc-2-addsub.expected
+    input=$SRC_DIR/lang/calc/calc-2-addsub.input
+    asm_files="-f $SRC_DIR/lang/calc/calc-2-addsub.asm"
+    ;;
+  calc-3-muldiv)
+    # Rung 3: integer '*'/'/' binding tighter than '+'/'-'.
+    expected=$SRC_DIR/lang/calc/calc-3-muldiv.expected
+    input=$SRC_DIR/lang/calc/calc-3-muldiv.input
+    asm_files="-f $SRC_DIR/lang/calc/calc-3-muldiv.asm"
+    ;;
+  calc-4-parens)
+    # Rung 4: parentheses for grouping (mutual recursion expr<->factor).
+    expected=$SRC_DIR/lang/calc/calc-4-parens.expected
+    input=$SRC_DIR/lang/calc/calc-4-parens.input
+    asm_files="-f $SRC_DIR/lang/calc/calc-4-parens.asm"
+    ;;
+  calc-5-neg)
+    # Rung 5: unary minus / negative integers.
+    expected=$SRC_DIR/lang/calc/calc-5-neg.expected
+    input=$SRC_DIR/lang/calc/calc-5-neg.input
+    asm_files="-f $SRC_DIR/lang/calc/calc-5-neg.asm"
+    ;;
+  calc-6-float)
+    # Rung 6: the FPU — doubles + decimal literals; '/' now yields decimals.
+    expected=$SRC_DIR/lang/calc/calc-6-float.expected
+    input=$SRC_DIR/lang/calc/calc-6-float.input
+    asm_files="-f $SRC_DIR/lang/calc/calc-6-float.asm"
     ;;
   calc-sdt)
     expected=$SRC_DIR/lang/calc/calc-sdt.expected
@@ -115,6 +217,18 @@ case "$NAME" in
     expected=$SRC_DIR/lang/calc/calc-sdt.expected
     input=$SRC_DIR/lang/calc/calc-sdt.input
     asm_files="-f $SRC_DIR/lang/calc/calc-tree.asm"
+    ;;
+  calc-eval)
+    # I/O-separated calc: shares calc-sdt's golden (same behavior; pure eval(str) core).
+    expected=$SRC_DIR/lang/calc/calc-sdt.expected
+    input=$SRC_DIR/lang/calc/calc-sdt.input
+    asm_files="-f $SRC_DIR/lang/calc/calc-eval.asm"
+    ;;
+  calc-eval-test)
+    # Unit tests for the pure eval() core: a hardcoded battery, no stdin; the
+    # golden pins "<expr> => <result>" per case.
+    expected=$SRC_DIR/lang/calc/calc-eval-test.expected
+    asm_files="-f $SRC_DIR/lang/calc/calc-eval-test.asm"
     ;;
   *)
     fail "unknown demo: $NAME"
