@@ -1,6 +1,11 @@
 # Incremental teaching versions of the worked examples
 
-**Status:** in progress — decisions made 2026-10-29; calc rung implementation is next
+**Status:** done + archived 2026-10-30 — initiative complete for the agreed scope: calc (6 rungs),
+rpn (3 rungs), and the I/O-separation (calc-eval) all built + verified + archived; the short-ladder
+candidates all triaged (bubble-sort + head decomposed; the rest LEFT WHOLE with reasons below). All
+on branch `incremental-example-versions` (unmerged). Method + patterns live durably in
+`tasks/reference/incremental-example-decomposition.md`. Reopen (a new task) to decompose a
+LEFT-WHOLE candidate (cksum is the strongest).
 **Priority:** 4
 **Difficulty:** 5
 

@@ -6,7 +6,7 @@
 Durable spec: `tasks/reference/calc-incremental-versions.md`.
 **Priority:** 4
 **Difficulty:** 5
-**Part of:** `tasks/incremental-example-versions.md`
+**Part of:** `tasks/archive/2026/10/30/incremental-example-versions.md`
 **Method:** `tasks/reference/incremental-example-decomposition.md`
 
 ## BLUF

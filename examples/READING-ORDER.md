@@ -143,7 +143,7 @@ concept on territory you walk in confident about.
    branching; N from argv (default 100).
 7. **`bubble-sort`** — reads ints from stdin (syscall 5 +
    `$a3` EOF flag); nested loops, in-place swap.
-   *Ladder (tasks/incremental-example-versions.md):* `bubble-sort-1-fixed`
+   *Ladder (tasks/reference/incremental-example-decomposition.md):* `bubble-sort-1-fixed`
    (sort a fixed array — the algorithm alone) → this (add reading ints from stdin).
 8. **`pascals-triangle [N]`** — in-place right-to-left row
    update; N from argv (default 10).
@@ -159,7 +159,7 @@ forms (13/14) which take no file arg.
 10. **`wc`** — byte + line counters; stdin or file.
 11. **`head`** — `-n N` flag + stdin or file (subsumes the
     old `head-file` variant).
-    *Ladder (tasks/incremental-example-versions.md):* `head-1-count` (the
+    *Ladder (tasks/reference/incremental-example-decomposition.md):* `head-1-count` (the
     fixed-N stdin filter alone) → this (add argv: the `-n` flag + a FILE).
 12. **`rev`** — line buffer + reverse walk; stdin or file.
 13. **`tr`** *(sidebar)* — uppercase byte transform; pure

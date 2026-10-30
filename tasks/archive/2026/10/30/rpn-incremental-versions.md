@@ -5,7 +5,7 @@ implemented + verified (C binary and asm-under-spim both green); `rpn` unchanged
 `incremental-example-versions` (unmerged). Method: `tasks/reference/incremental-example-decomposition.md`.
 **Priority:** 4
 **Difficulty:** 4
-**Part of:** `tasks/incremental-example-versions.md` (step 2)
+**Part of:** `tasks/archive/2026/10/30/incremental-example-versions.md` (step 2)
 **Method:** `tasks/reference/incremental-example-decomposition.md`
 
 ## BLUF

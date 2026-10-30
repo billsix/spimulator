@@ -7,7 +7,7 @@ established on the calculator (the maintainer's named example); applying it to r
 filters is the same shape and can follow on request.
 **Priority:** 5
 **Difficulty:** 4
-**Related:** `tasks/incremental-example-versions.md` (orthogonal axis),
+**Related:** `tasks/archive/2026/10/30/incremental-example-versions.md` (orthogonal axis),
 `tasks/reference/incremental-example-decomposition.md` (method)
 
 ## BLUF
