@@ -111,8 +111,25 @@ Progress checklist:
 - [x] `calc` — 6 rungs (archived)
 - [x] `rpn` — 3 rungs (archived)
 - [x] I/O-separation — realized as `calc-eval` (archived)
-- [ ] short-ladder candidates: fizzbuzz, bubble-sort, cksum, head, fibonacci, hanoi, queens,
-  libraries (libctype/libstr/libstdlib) — each decomposed or logged as left-whole
+- [x] short-ladder candidates — all triaged 2026-10-30 (per the method's "two independent ideas at
+  once" test); verdicts:
+  - [x] **bubble-sort** → DECOMPOSED: `bubble-sort-1-fixed` (the nested-loop sort on a fixed array)
+    → finished `bubble-sort` (adds reading ints from stdin, syscall 5 + `$a3` EOF) — two genuinely
+    independent ideas. (Finished demo also gained the golden it previously lacked.)
+  - [x] **head** → DECOMPOSED: `head-1-count` (the fixed-N stdin line filter) → finished `head`
+    (adds argv — the `-n N` flag + a FILE); filter vs. command-line handling are distinct (argv is
+    its own curriculum topic, Part 5). (Finished demo also gained a golden on its default path.)
+  - [ ] **fizzbuzz** — LEFT WHOLE: one coherent idea (modulo + the multi-way branch); N defaults to
+    100 and argv/`atoi` is already taught by `echo`/`factorial`, so a fixed-N → +argv split is low value.
+  - [ ] **fibonacci** — LEFT WHOLE: already a two-version demo (computes iterative AND recursive in
+    one file to compare them; splitting fragments a deliberately-unified comparison).
+  - [ ] **hanoi** — LEFT WHOLE: one coherent idea (the 4-arg recursive frame); argv-N is optional.
+  - [ ] **queens** — LEFT WHOLE: one coherent idea (backtracking); argv-N is optional.
+  - [ ] **cksum** — LEFT WHOLE: the checksum (`$s*` discipline + 256-entry table + bitwise) is one
+    lesson; file-or-stdin is a thin peel — the strongest remaining candidate if the maintainer wants one.
+  - [ ] **libraries (libctype/libstr/libstdlib)** — LEFT WHOLE: already a leaf → non-leaf sequence
+    across separate library files, which `READING-ORDER.md` already orders (libctype's one-line
+    leaves before libstdlib's `atoi`, the first non-leaf).
 
 ## Related follow-up (orthogonal axis)
 

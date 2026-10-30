@@ -99,6 +99,29 @@ case "$NAME" in
                -f $LIB_DIR/libstdlib/libstdlib.asm \
                -f $LIB_DIR/libstdlib-demo/atexit-demo.asm"
     ;;
+  head-1-count)
+    # Rung 1 of the head ladder: fixed-N stdin line filter (no argv).
+    expected=$SRC_DIR/transforms/head/head-1-count.expected
+    input=$SRC_DIR/transforms/head/head-1-count.input
+    asm_files="-f $SRC_DIR/transforms/head/head-1-count.asm"
+    ;;
+  head)
+    # Rung 2 (the finished demo), default stdin path (N=10, no args).
+    expected=$SRC_DIR/transforms/head/head.expected
+    input=$SRC_DIR/transforms/head/head.input
+    asm_files="-f $SRC_DIR/transforms/head/head.asm"
+    ;;
+  bubble-sort-1-fixed)
+    # Rung 1 of the bubble-sort ladder: sort a fixed array (no stdin).
+    expected=$SRC_DIR/algorithms/bubble-sort/bubble-sort-1-fixed.expected
+    asm_files="-f $SRC_DIR/algorithms/bubble-sort/bubble-sort-1-fixed.asm"
+    ;;
+  bubble-sort)
+    # Rung 2 (the finished demo): read ints from stdin, then sort.
+    expected=$SRC_DIR/algorithms/bubble-sort/bubble-sort.expected
+    input=$SRC_DIR/algorithms/bubble-sort/bubble-sort.input
+    asm_files="-f $SRC_DIR/algorithms/bubble-sort/bubble-sort.asm"
+    ;;
   rpn-1-stack)
     # Rung 1 of the rpn ladder: push whitespace-separated integers, print top.
     expected=$SRC_DIR/algorithms/rpn/rpn-1-stack.expected

@@ -96,6 +96,9 @@ demos = [
   ['yes',                    'intro/yes/yes.c'],
   # ---- algorithms: familiar algorithms in asm ----
   ['fizzbuzz',               'algorithms/fizzbuzz/fizzbuzz.c'],
+  # bubble-sort ladder (tasks/incremental-example-versions.md): rung 1 sorts a
+  # fixed array; rung 2 (the finished demo) adds reading ints from stdin.
+  ['bubble-sort-1-fixed',    'algorithms/bubble-sort/bubble-sort-1-fixed.c'],
   ['bubble-sort',            'algorithms/bubble-sort/bubble-sort.c'],
   ['pascals-triangle',       'algorithms/pascals-triangle/pascals-triangle.c'],
   ['sieve',                  'algorithms/sieve/sieve.c'],
@@ -121,6 +124,9 @@ demos = [
   ['calc-eval',              'lang/calc/calc-eval.c'],
   # ---- transforms: stdin -> stdout stream transforms ----
   ['wc',                     'transforms/wc/wc.c'],
+  # head ladder (tasks/incremental-example-versions.md): rung 1 is the fixed-N
+  # stdin filter; rung 2 (the finished demo) adds argv (-n flag + FILE).
+  ['head-1-count',           'transforms/head/head-1-count.c'],
   ['head',                   'transforms/head/head.c'],
   ['rev',                    'transforms/rev/rev.c'],
   ['tr',                     'transforms/tr/tr.c'],
@@ -260,7 +266,8 @@ lib_demo_tests = [
   'ctype-demo', 'str-demo', 'atoi-demo', 'abs-demo', 'exit-demo', 'bsearch-demo',
   'atexit-demo',
   # Regular demos with pinned goldens (stdin-driven; see run-demo.sh)
-  'strings', 'rpn-1-stack', 'rpn-2-ops', 'rpn-3-float', 'rpn',
+  'strings', 'bubble-sort-1-fixed', 'bubble-sort', 'head-1-count', 'head',
+  'rpn-1-stack', 'rpn-2-ops', 'rpn-3-float', 'rpn',
   'calc-1-numbers', 'calc-2-addsub', 'calc-3-muldiv',
   'calc-4-parens', 'calc-5-neg', 'calc-6-float', 'calc-sdt', 'calc-tree', 'calc-eval',
 ]
