@@ -1,6 +1,7 @@
 # Separate I/O from the algorithm (+ unit tests) for the remaining demos
 
-**Status:** proposed — needs go-ahead
+**Status:** in progress (away-batch 2026-10-30) — maintainer authorized completing it with
+discretion, gpg off on branch `separate-io-remaining-demos`, no questions. Decisions logged below.
 **Priority:** 6
 **Difficulty:** 4
 
@@ -48,7 +49,35 @@ Preliminary read of the curriculum:
   predicate; argv is already its own rung). `strings` is borderline (printable-run extraction
   has a small state machine) — decide in Q2.
 
+## Decisions (2026-10-30, away-batch; William Emerison Six <billsix@gmail.com> authorized, I chose)
+
+Resolving the open questions below with discretion (maintainer away, "cksum and bubble-sort, and
+anything else"):
+
+1. **Scope = `cksum` + `bubble-sort`.** Both have a clean pure seam and existing goldens/rungs to
+   reuse. **`wc` left whole / deferred** (not "anything else" material): its "algorithm" is a
+   two-counter byte loop — no nontrivial pure core, the same discriminator that keeps the per-byte
+   maps whole — and it has **no golden baseline today**, so decomposing it well first means giving
+   `wc` its own golden + run-demo wiring, a separate coverage-gap task, not I/O separation.
+2. **`strings` = out (left whole).** Borderline (a small printable-run state machine) but closer to
+   "the loop is the lesson" than cksum/bubble-sort; per my own recommendation.
+3. **Naming = `-core` / `-core-test`.** Uniform suffix; the evaluators keep their verb-named
+   `-eval` / `-eval-test`.
+
+Per-demo shape (one more refinement found while reading the sources):
+- **`cksum`** gets BOTH — `cksum-core` (I/O-separated whole program: pure
+  `unsigned int cksum_of(const unsigned char*, unsigned int)`, `my_main` slurps stdin, shares
+  `cksum.expected`) and `cksum-core-test` (battery vs. system-`cksum` vectors). The existing
+  `cksum-1-stdin` computes inline (not a pure function), so the factoring is genuinely new.
+- **`bubble-sort`** gets ONLY `bubble-sort-core-test`. Its `bubble_sort(int*, int)` is **already** a
+  pure function called from `my_main`, and `bubble-sort-1-fixed` already runs it over a fixed array —
+  so a whole-program `-core` variant would just duplicate the finished demo. The missing piece is the
+  unit-test battery.
+
 ## Open questions
+
+> Resolved above (away-batch). Left here for the record.
+
 
 1. Scope: do all three strong candidates (`cksum`, `bubble-sort`, `wc`), or just `cksum` +
    `bubble-sort` (the cleanest cores), or `cksum` only as a second proof? Recommendation:
