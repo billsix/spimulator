@@ -20,8 +20,8 @@
 
 /* PURPOSE: Unit tests for the I/O-separated RPN core
  * (tasks/examples-separate-io-from-algorithm.md).  Because rpn-eval's evaluator
- * depends on a CHARACTER ARRAY, not on I/O, it can be tested directly: this demo
- * runs `eval()` on a battery of HARDCODED RPN strings and prints
+ * depends on a CHARACTER ARRAY, not on I/O, it can be tested directly: this
+ * demo runs `eval()` on a battery of HARDCODED RPN strings and prints
  * "<expr> => <result>" for each — a value, or the error kind eval() reported.
  * No stdin is read at all — that is the whole point of separating the algorithm
  * from the I/O.
@@ -33,10 +33,10 @@
  *     ...
  *
  * This is a golden-tested unit test: run-demo.sh pins the expected output, so a
- * regression in the evaluator (which now walks the buffer) turns the golden red.
- * The eval core below is rpn-eval's, verbatim (each demo is self-contained, like
- * the rest of the ladder); only the driver — a case table instead of a stdin
- * slurp — differs.  Mirrored in rpn-eval-test.asm.
+ * regression in the evaluator (which now walks the buffer) turns the golden
+ * red. The eval core below is rpn-eval's, verbatim (each demo is
+ * self-contained, like the rest of the ladder); only the driver — a case table
+ * instead of a stdin slurp — differs.  Mirrored in rpn-eval-test.asm.
  */
 
 #include "crt0.h"
@@ -174,16 +174,8 @@ static double eval(const char* expr) {
  * float division, a negative result, the whole-golden expression, a single
  * value and leftover operands, and each of eval()'s error kinds. */
 static const char* cases[] = {
-    "3 4 +",
-    "3 4 + 2 *",
-    "1 3 /",
-    "3 4 -",
-    "3 4 + 2 * 1 3 / -",
-    "5",
-    "1 2 3",
-    "+",
-    "",
-    "1 2 x",
+    "3 4 +", "3 4 + 2 *", "1 3 /", "3 4 -", "3 4 + 2 * 1 3 / -",
+    "5",     "1 2 3",     "+",     "",      "1 2 x",
 };
 
 int my_main(int argc, char** argv) {

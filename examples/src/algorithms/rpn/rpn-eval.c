@@ -45,9 +45,12 @@
 #include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 #include "io.h"
 
-#define STACK_MAX 64   /* maximum evaluation-stack depth */
-#define FRAC_DIGITS 6  /* fractional digits printed for a non-integral result */
-#define INPUT_MAX 256  /* longest whole input eval() is handed */
+/* STACK_MAX: maximum evaluation-stack depth.
+ * FRAC_DIGITS: fractional digits printed for a non-integral result.
+ * INPUT_MAX: longest whole input eval() is handed. */
+#define STACK_MAX 64
+#define FRAC_DIGITS 6
+#define INPUT_MAX 256
 
 /* The outcome of an eval(): a value (EVAL_OK) or which error stopped it.
  * my_main turns each error into rpn's message + exit 1. */
