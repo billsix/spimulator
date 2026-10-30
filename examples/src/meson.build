@@ -120,8 +120,9 @@ demos = [
   ['calc-6-float',           'lang/calc/calc-6-float.c'],
   ['calc-sdt',               'lang/calc/calc-sdt.c'],
   ['calc-tree',              'lang/calc/calc-tree.c'],
-  # I/O-separated variant (tasks/examples-separate-io-from-algorithm.md)
+  # I/O-separated variant + its unit tests (tasks/examples-separate-io-from-algorithm.md)
   ['calc-eval',              'lang/calc/calc-eval.c'],
+  ['calc-eval-test',         'lang/calc/calc-eval-test.c'],
   # ---- transforms: stdin -> stdout stream transforms ----
   ['wc',                     'transforms/wc/wc.c'],
   # head ladder (tasks/incremental-example-versions.md): rung 1 is the fixed-N
@@ -274,6 +275,7 @@ lib_demo_tests = [
   'rpn-1-stack', 'rpn-2-ops', 'rpn-3-float', 'rpn',
   'calc-1-numbers', 'calc-2-addsub', 'calc-3-muldiv',
   'calc-4-parens', 'calc-5-neg', 'calc-6-float', 'calc-sdt', 'calc-tree', 'calc-eval',
+  'calc-eval-test',
 ]
 foreach name : lib_demo_tests
   test(name,

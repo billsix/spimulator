@@ -212,6 +212,12 @@ case "$NAME" in
     input=$SRC_DIR/lang/calc/calc-sdt.input
     asm_files="-f $SRC_DIR/lang/calc/calc-eval.asm"
     ;;
+  calc-eval-test)
+    # Unit tests for the pure eval() core: a hardcoded battery, no stdin; the
+    # golden pins "<expr> => <result>" per case.
+    expected=$SRC_DIR/lang/calc/calc-eval-test.expected
+    asm_files="-f $SRC_DIR/lang/calc/calc-eval-test.asm"
+    ;;
   *)
     fail "unknown demo: $NAME"
     ;;

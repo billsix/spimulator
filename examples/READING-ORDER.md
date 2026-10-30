@@ -307,6 +307,10 @@ recursion demos taught.
     `double eval(const char* expr)` over a line buffer, and `my_main` does the
     reading/printing.  Shares calc-sdt's golden; shows the parser as a reusable,
     testable pure function (the shape the mini C compiler's front end needs).
+    **Its unit tests are `calc-eval-test`** — it drives `eval()` over a hardcoded
+    battery of expressions with no stdin, printing `<expr> => <result>` (golden-
+    pinned): the direct payoff of making `parse_factor`/`parse_term`/`parse_expr`
+    depend on a character array instead of I/O.
 43. **`calc-tree`** — the SAME language and grammar as calc-sdt, but
     the parser *builds an abstract syntax tree* and a SEPARATE
     recursive walker (`eval`) evaluates it — so nothing is computed
