@@ -146,6 +146,12 @@ case "$NAME" in
     input=$SRC_DIR/algorithms/bubble-sort/bubble-sort.input
     asm_files="-f $SRC_DIR/algorithms/bubble-sort/bubble-sort.asm"
     ;;
+  bubble-sort-core-test)
+    # Unit tests for the pure bubble_sort(): a hardcoded array battery, no stdin;
+    # the golden pins "<input> => <sorted>" per case.
+    expected=$SRC_DIR/algorithms/bubble-sort/bubble-sort-core-test.expected
+    asm_files="-f $SRC_DIR/algorithms/bubble-sort/bubble-sort-core-test.asm"
+    ;;
   rpn-1-stack)
     # Rung 1 of the rpn ladder: push whitespace-separated integers, print top.
     expected=$SRC_DIR/algorithms/rpn/rpn-1-stack.expected

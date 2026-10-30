@@ -100,6 +100,8 @@ demos = [
   # fixed array; rung 2 (the finished demo) adds reading ints from stdin.
   ['bubble-sort-1-fixed',    'algorithms/bubble-sort/bubble-sort-1-fixed.c'],
   ['bubble-sort',            'algorithms/bubble-sort/bubble-sort.c'],
+  # unit tests for the pure sort (tasks/separate-io-from-algorithm-remaining-demos.md)
+  ['bubble-sort-core-test',  'algorithms/bubble-sort/bubble-sort-core-test.c'],
   ['pascals-triangle',       'algorithms/pascals-triangle/pascals-triangle.c'],
   ['sieve',                  'algorithms/sieve/sieve.c'],
   ['binary-search',          'algorithms/binary-search/binary-search.c'],
@@ -276,7 +278,8 @@ lib_demo_tests = [
   'ctype-demo', 'str-demo', 'atoi-demo', 'abs-demo', 'exit-demo', 'bsearch-demo',
   'atexit-demo',
   # Regular demos with pinned goldens (stdin-driven; see run-demo.sh)
-  'strings', 'bubble-sort-1-fixed', 'bubble-sort', 'head-1-count', 'head',
+  'strings', 'bubble-sort-1-fixed', 'bubble-sort', 'bubble-sort-core-test',
+  'head-1-count', 'head',
   'cksum-1-stdin', 'cksum', 'cksum-core', 'cksum-core-test',
   'rpn-1-stack', 'rpn-2-ops', 'rpn-3-float', 'rpn', 'rpn-eval', 'rpn-eval-test',
   'calc-1-numbers', 'calc-2-addsub', 'calc-3-muldiv',
