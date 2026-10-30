@@ -1,9 +1,11 @@
 # Separate I/O from the algorithm for rpn, and add unit tests
 
-**Status:** done — verified in a standalone meson build (examples suite 30/30, both C
-and asm byte-diffed against goldens); containerized `make image` gate run to confirm.
-Staged on branch `incremental-example-versions`, awaiting the maintainer's commit; archive
-is this task's own commit AFTER that work commit.
+**Status:** done + archived 2026-10-30 — verified in a standalone meson build (examples
+suite 30/30, both C and asm byte-diffed against goldens) and the containerized `make image`
+gate (examples suite 55/55 + both sanitizer regression runs; native listings + binaries for
+both new demos). Committed and merged by the maintainer (William Emerison Six
+<billsix@gmail.com>). Durable lessons harvested into
+`tasks/reference/incremental-example-decomposition.md`.
 **Priority:** 4
 **Difficulty:** 4
 
@@ -70,7 +72,5 @@ needs no edit — it globs `*.c`.
 
 ## Follow-ups
 
-- Recommended: after the maintainer commits the work, archive this doc (its own commit) to
-  `tasks/archive/2026/10/30/`.
-- Optional (not started): the same split for the stream filters (`wc`, `head`, …) — most are
-  already a single tight loop, so lower value; a fresh task would decide per-filter.
+- Optional (filed): the same split for the stream filters / other I/O-coupled demos —
+  `tasks/separate-io-from-algorithm-remaining-demos.md` (`proposed — needs go-ahead`).

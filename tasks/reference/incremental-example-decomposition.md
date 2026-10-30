@@ -80,6 +80,15 @@ loop, so its ladder is `core-on-hardcoded-N` → `+argv/atoi`.
 - **Integer-first with a dedicated float/FPU rung** worked for both (whole-number arithmetic before
   decimals, mirroring the school sequence), and that float rung is the sanctioned
   representation-change rung where the golden legitimately changes (`/` gains decimals).
+- **I/O-separating a monolith into a *called* core may force state out of a register or off `$sp`.**
+  The I/O-separation variant (`calc-eval`/`rpn-eval`) factors the algorithm into a function the driver
+  calls, so in asm the core now needs a normal `$sp` frame for its saved `$ra`. Any state the
+  monolithic demo kept *in* `$sp` must relocate: `rpn.asm`'s operand stack IS the hardware `$sp`
+  stack, but `rpn-eval.asm`'s `eval` holds it in a `.data` array indexed by `depth` instead (a
+  non-recursive routine's local array behaves like static storage). Say so in-file — the
+  `$sp`-is-the-operand-stack lesson stays in the monolithic rpn ladder; the I/O-separated variant's
+  lesson is the algorithm/I/O split. Also: an error is I/O the pure core cannot do, so it records
+  *which* error in a `status`/flag and returns, and the driver maps that to the message + exit code.
 
 ## Ordering principle — least knowledge first, one concept per rung
 
