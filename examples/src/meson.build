@@ -279,7 +279,7 @@ lib_demo_tests = [
   'atexit-demo',
   # Regular demos with pinned goldens (stdin-driven; see run-demo.sh)
   'strings', 'bubble-sort-1-fixed', 'bubble-sort', 'bubble-sort-core-test',
-  'head-1-count', 'head',
+  'head-1-count', 'head', 'wc',
   'cksum-1-stdin', 'cksum', 'cksum-core', 'cksum-core-test',
   'rpn-1-stack', 'rpn-2-ops', 'rpn-3-float', 'rpn', 'rpn-eval', 'rpn-eval-test',
   'calc-1-numbers', 'calc-2-addsub', 'calc-3-muldiv',

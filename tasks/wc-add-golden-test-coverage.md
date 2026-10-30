@@ -1,19 +1,23 @@
 # Give the `wc` demo golden-test coverage
 
-**Status:** proposed — needs go-ahead
+**Status:** done 2026-10-30 (William Emerison Six <billsix@gmail.com>) — verified
+standalone (`meson test --suite examples` 34/34, `wc` OK on both C and asm) and
+in the containerized `make image` gate (examples suite 59/59 with `wc` OK both
+sides; UBSan 25/25; ASan 25/25; image tagged). Staged for the maintainer's
+commit; archives on its own commit after the work commit.
 **Priority:** 6
 **Difficulty:** 3
 
 ## BLUF
 
-`examples/src/transforms/wc/wc.{c,asm}` is built by `meson.build` but has **no
-golden test** — it is the lone counting demo that `examples/tests/run-demo.sh`
-never exercises, so a regression on either the C side or the spim-asm side would
-pass CI unnoticed. This task pins its output with a fixed-input golden
+`examples/src/transforms/wc/wc.{c,asm}` was built by `meson.build` but had **no
+golden test** — the lone counting demo `examples/tests/run-demo.sh` never
+exercised, so a regression on either the C side or the spim-asm side would have
+passed CI unnoticed. This task pins its output with a fixed-input golden
 (`wc.input` / `wc.expected`), wires it into the examples suite, and verifies both
 the native binary and the asm-under-spim match. **Done** = `wc` runs in
 `run-demo.sh` on both sides against a golden computed from the system `wc`
-oracle, and the containerized `make image` gate is green.
+oracle, and the containerized `make image` gate is green. **(Done.)**
 
 This is **test coverage, not I/O separation.** `wc` was deliberately left whole
 in the 2026-10-30 remaining-demos I/O-split batch: its "algorithm" is a
@@ -53,25 +57,32 @@ Wiring reference — the established shape (any recent golden-tested demo, e.g.
   so at most a one-line "golden-tested on a fixed input" touch if the existing
   entry implies otherwise (check; likely nothing to change).
 
-## Plan
+## What was done
 
-1. **Pick a fixed input** that exercises both counters (multiple lines, a line
-   without a trailing newline is a good edge — it still counts bytes but adds no
-   line). Write it to `wc.input`.
-2. **Compute the golden from the oracle** and write `wc.expected`:
-   `bytes=$(wc -c < wc.input)`, `lines=$(wc -l < wc.input)`, so the file holds
-   `<bytes> bytes, <lines> lines`. Worked example: input `hello world\nfoo\nbar\n`
-   → `wc -c`=20, `wc -l`=3 → golden line `20 bytes, 3 lines`.
-   (Note `wc -l` counts newline *characters*, which equals `line_count` in `wc.c`;
-   if the chosen input ends without a newline, hand-check that the demo's count
-   and `wc -l` still agree.)
-3. **Wire** the three files above (meson golden list + run-demo.sh case; no
-   Makefile/reading-order change expected).
-4. **Verify** standalone: `meson test --suite examples` — the new `wc` test
-   registers and passes on **both** the C binary and the spim asm; byte-diff each
-   built binary's stdout against `wc.expected`.
-5. **Gate:** containerized `make image` green (examples suite count +1, both
-   sanitizer runs unaffected, native `.s`+`bin` for `wc` already built).
+1. **Fixed input** `examples/src/transforms/wc/wc.input` =
+   `hello world\nfoo bar\nbaz\nno newline here` — three newlines plus a final
+   line with **no trailing newline**, the chosen edge: `byte_count` counts that
+   line, `line_count` (newlines only, matching `wc -l`) does not.
+2. **Golden** `wc.expected` = `39 bytes, 3 lines`, computed from the oracle
+   (`wc -c`=39, `wc -l`=3 on that input). The demo's `line_count` and `wc -l`
+   agree on the no-trailing-newline case (both count `\n` characters).
+3. **Wiring:** added `'wc'` to the `lib_demo_tests` golden list in
+   `examples/src/meson.build` (it was already in the build list) and a `wc)` case
+   block in `examples/tests/run-demo.sh` (stdin path, piping `wc.input` to both
+   the C binary and spim). No `examples/src/Makefile` edit (it globs `*.c`); no
+   `READING-ORDER.md` change (the existing `wc` entry needed none).
+
+## Verification
+
+- Standalone: `meson test -C builddir --suite examples` → 34/34 OK (was 33; `wc`
+  is the +1), and the `wc` test passed on **both** the C binary and the
+  spim-asm side (`run-demo.sh` byte-diffs each against `wc.expected`).
+- Containerized `make image` gate (nested): examples suite **59/59** (`wc` OK on
+  both sides), UBSan-trap regression **25/25**, ASan regression **25/25**,
+  `Successfully tagged localhost/spimulator:latest`. (One earlier run hit a
+  transient 30s TIMEOUT on the UBSan `core` regression test — nested-container
+  slowness under instrumentation, unrelated to this examples-only change, which
+  the sanitizer gate never touches; a re-run was clean.)
 
 ## Scope / decisions
 

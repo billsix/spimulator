@@ -135,6 +135,15 @@ case "$NAME" in
     input=$SRC_DIR/transforms/head/head.input
     asm_files="-f $SRC_DIR/transforms/head/head.asm"
     ;;
+  wc)
+    # Byte/line counter (a port of `sbase/wc -cl`), stdin path. The fixed input's
+    # last line has no trailing newline, so byte_count still counts it while
+    # line_count (newlines only, matching `wc -l`) does not. Golden from the
+    # system `wc -c`/`wc -l` oracle.
+    expected=$SRC_DIR/transforms/wc/wc.expected
+    input=$SRC_DIR/transforms/wc/wc.input
+    asm_files="-f $SRC_DIR/transforms/wc/wc.asm"
+    ;;
   bubble-sort-1-fixed)
     # Rung 1 of the bubble-sort ladder: sort a fixed array (no stdin).
     expected=$SRC_DIR/algorithms/bubble-sort/bubble-sort-1-fixed.expected
