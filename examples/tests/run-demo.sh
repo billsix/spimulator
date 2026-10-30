@@ -111,6 +111,18 @@ case "$NAME" in
     input=$SRC_DIR/fileio/cksum/cksum.input
     asm_files="-f $SRC_DIR/fileio/cksum/cksum.asm"
     ;;
+  cksum-core)
+    # I/O-separated cksum: shares cksum's golden (same behavior; pure cksum_of(buf,len) core).
+    expected=$SRC_DIR/fileio/cksum/cksum.expected
+    input=$SRC_DIR/fileio/cksum/cksum.input
+    asm_files="-f $SRC_DIR/fileio/cksum/cksum-core.asm"
+    ;;
+  cksum-core-test)
+    # Unit tests for the pure cksum_of() core: a hardcoded battery, no stdin; the
+    # golden pins "<label> => <crc> <byte_count>" per case (oracle: system cksum).
+    expected=$SRC_DIR/fileio/cksum/cksum-core-test.expected
+    asm_files="-f $SRC_DIR/fileio/cksum/cksum-core-test.asm"
+    ;;
   head-1-count)
     # Rung 1 of the head ladder: fixed-N stdin line filter (no argv).
     expected=$SRC_DIR/transforms/head/head-1-count.expected
@@ -133,6 +145,12 @@ case "$NAME" in
     expected=$SRC_DIR/algorithms/bubble-sort/bubble-sort.expected
     input=$SRC_DIR/algorithms/bubble-sort/bubble-sort.input
     asm_files="-f $SRC_DIR/algorithms/bubble-sort/bubble-sort.asm"
+    ;;
+  bubble-sort-core-test)
+    # Unit tests for the pure bubble_sort(): a hardcoded array battery, no stdin;
+    # the golden pins "<input> => <sorted>" per case.
+    expected=$SRC_DIR/algorithms/bubble-sort/bubble-sort-core-test.expected
+    asm_files="-f $SRC_DIR/algorithms/bubble-sort/bubble-sort-core-test.asm"
     ;;
   rpn-1-stack)
     # Rung 1 of the rpn ladder: push whitespace-separated integers, print top.

@@ -145,6 +145,9 @@ concept on territory you walk in confident about.
    `$a3` EOF flag); nested loops, in-place swap.
    *Ladder (tasks/reference/incremental-example-decomposition.md):* `bubble-sort-1-fixed`
    (sort a fixed array — the algorithm alone) → this (add reading ints from stdin).
+   *Unit tests:* `bubble-sort-core-test` drives the already-pure `bubble_sort(int*, int)`
+   over a hardcoded array battery (unsorted, sorted, reversed, duplicates, single, empty,
+   negatives) with no stdin, printing `<input> => <sorted>` (golden-pinned).
 8. **`pascals-triangle [N]`** — in-place right-to-left row
    update; N from argv (default 10).
 9. **`sieve [N]`** — byte-granular `lb`/`sb`; **sbrk
@@ -182,6 +185,12 @@ forms (13/14) which take no file arg.
     *Ladder (tasks/reference/incremental-example-decomposition.md):*
     `cksum-1-stdin` (the CRC32 algorithm over stdin alone) → this (add
     reading from a named FILE + the filename output column).
+    *I/O-separated variant:* `cksum-core` factors the CRC into a pure
+    `unsigned int cksum_of(const unsigned char*, unsigned int)` (my_main slurps
+    stdin, shares cksum's golden), and `cksum-core-test` runs it over a hardcoded
+    battery of byte buffers with no stdin, printing `<label> => <crc> <count>`
+    (golden-pinned, oracle = system `cksum`) — the same algorithm/I/O split as
+    `calc-eval`/`rpn-eval`.
 
 ## Part 5 — argv: taking inputs from the command line (5 demos)
 

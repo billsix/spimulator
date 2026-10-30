@@ -89,6 +89,16 @@ loop, so its ladder is `core-on-hardcoded-N` → `+argv/atoi`.
   `$sp`-is-the-operand-stack lesson stays in the monolithic rpn ladder; the I/O-separated variant's
   lesson is the algorithm/I/O split. Also: an error is I/O the pure core cannot do, so it records
   *which* error in a `status`/flag and returns, and the driver maps that to the message + exit code.
+- **Separate only where a nontrivial pure core actually hides in the I/O loop; and if the core is
+  ALREADY a pure function, add only the unit-test demo, not a redundant whole-program variant.**
+  `cksum` (table-driven CRC) and `bubble_sort` (an array sort) have obvious pure seams, so they earn
+  the split. `wc`'s "algorithm" is a two-counter byte loop — the loop IS the lesson, no hidden core —
+  so it stays whole, the same call as the per-byte-map filters (`tr`, `rot13`, `yes`). And where the
+  seam is already cut (`bubble_sort(int*, int)` is already called from `my_main`, and
+  `bubble-sort-1-fixed` already runs it over a fixed array), a `-core` whole-program variant would
+  just duplicate the finished demo — ship `bubble-sort-core-test` (the unit battery) alone. Naming:
+  `-core` / `-core-test` where the pure function has no single obvious verb; the evaluators keep
+  `-eval` / `-eval-test`.
 
 ## Ordering principle — least knowledge first, one concept per rung
 
