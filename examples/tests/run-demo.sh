@@ -129,6 +129,12 @@ case "$NAME" in
     input=$SRC_DIR/lang/calc/calc-4-parens.input
     asm_files="-f $SRC_DIR/lang/calc/calc-4-parens.asm"
     ;;
+  calc-5-neg)
+    # Rung 5: unary minus / negative integers.
+    expected=$SRC_DIR/lang/calc/calc-5-neg.expected
+    input=$SRC_DIR/lang/calc/calc-5-neg.input
+    asm_files="-f $SRC_DIR/lang/calc/calc-5-neg.asm"
+    ;;
   calc-sdt)
     expected=$SRC_DIR/lang/calc/calc-sdt.expected
     input=$SRC_DIR/lang/calc/calc-sdt.input
