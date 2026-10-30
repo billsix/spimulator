@@ -182,6 +182,12 @@ forms (13/14) which take no file arg.
     *Ladder (tasks/reference/incremental-example-decomposition.md):*
     `cksum-1-stdin` (the CRC32 algorithm over stdin alone) → this (add
     reading from a named FILE + the filename output column).
+    *I/O-separated variant:* `cksum-core` factors the CRC into a pure
+    `unsigned int cksum_of(const unsigned char*, unsigned int)` (my_main slurps
+    stdin, shares cksum's golden), and `cksum-core-test` runs it over a hardcoded
+    battery of byte buffers with no stdin, printing `<label> => <crc> <count>`
+    (golden-pinned, oracle = system `cksum`) — the same algorithm/I/O split as
+    `calc-eval`/`rpn-eval`.
 
 ## Part 5 — argv: taking inputs from the command line (5 demos)
 
