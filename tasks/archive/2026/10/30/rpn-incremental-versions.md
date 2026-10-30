@@ -1,8 +1,8 @@
 # rpn — incremental teaching versions
 
-**Status:** done 2026-10-30 — all 3 rungs (`rpn-1-stack`, `rpn-2-ops`, `rpn-3-float`) implemented +
-verified (C binary and asm-under-spim both green); `rpn` unchanged (rung 4). On branch
-`incremental-example-versions` (unmerged); archive on merge.
+**Status:** done + archived 2026-10-30 — all 3 rungs (`rpn-1-stack`, `rpn-2-ops`, `rpn-3-float`)
+implemented + verified (C binary and asm-under-spim both green); `rpn` unchanged (rung 4). On branch
+`incremental-example-versions` (unmerged). Method: `tasks/reference/incremental-example-decomposition.md`.
 **Priority:** 4
 **Difficulty:** 4
 **Part of:** `tasks/incremental-example-versions.md` (step 2)

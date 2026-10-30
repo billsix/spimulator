@@ -262,7 +262,8 @@ recursion demos taught.
     **Incremental ladder — read these FIRST if rpn is your first stack
     machine.**  rpn stacks several ideas at once, so a gentler on-ramp
     builds it one concept per step; each rung is a runnable, golden-tested
-    demo beside this one (see `../tasks/rpn-incremental-versions.md`):
+    demo beside this one (the ladder method is in
+    `../tasks/reference/incremental-example-decomposition.md`):
     - 41a. **`rpn-1-stack`** — push whitespace-separated integers, print the top.
     - 41b. **`rpn-2-ops`**   — the four operators (pop two, apply, push), integer.
     - 41c. **`rpn-3-float`** — the FPU: doubles + decimals (so `/` yields `0.333333`).
@@ -283,7 +284,7 @@ recursion demos taught.
     **Incremental ladder — read these FIRST if calc-sdt is your first
     parser.**  calc-sdt stacks several ideas at once, so a gentler on-ramp
     builds it one concept per step; each rung is a runnable, golden-tested
-    demo beside this one (see `../tasks/calc-incremental-versions.md`):
+    demo beside this one (see `../tasks/reference/calc-incremental-versions.md`):
     - 42a. **`calc-1-numbers`** — read & print one whole integer per line.
     - 42b. **`calc-2-addsub`**  — integer `+`/`-`, left to right.
     - 42c. **`calc-3-muldiv`**  — integer `*`/`/`, precedence by grammar layering.

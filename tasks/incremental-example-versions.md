@@ -69,11 +69,14 @@ in the method doc.
 ## Rollout (step-tasks, once the questions are answered)
 
 Express ordering with Priority + "Depends on", not `blocked` (each step is within our control):
-1. **`calc`** — ✅ DONE 2026-10-30 (the proof-of-concept): 6 rungs implemented + verified on branch
-   `incremental-example-versions`. Record: `tasks/calc-incremental-versions.md`, spec:
+1. **`calc`** — ✅ DONE + ARCHIVED 2026-10-30 (the proof-of-concept): 6 rungs implemented + verified
+   on branch `incremental-example-versions`. Record:
+   `tasks/archive/2026/10/30/calc-incremental-versions.md`, spec (durable):
    `tasks/reference/calc-incremental-versions.md`.
-2. **`rpn`** — ✅ DONE 2026-10-30: 3 rungs (`rpn-1-stack`/`rpn-2-ops`/`rpn-3-float`) implemented +
-   verified on branch `incremental-example-versions`. Record: `tasks/rpn-incremental-versions.md`.
+2. **`rpn`** — ✅ DONE + ARCHIVED 2026-10-30: 3 rungs (`rpn-1-stack`/`rpn-2-ops`/`rpn-3-float`)
+   implemented + verified on branch `incremental-example-versions`. Record:
+   `tasks/archive/2026/10/30/rpn-incremental-versions.md`; method:
+   `tasks/reference/incremental-example-decomposition.md`.
 3. The short-ladder candidates, in curriculum order, as the maintainer greenlights each.
 
 Each step gets its own task doc + reference doc (the per-version spec) and archives on its own
@@ -95,6 +98,21 @@ completion; this umbrella archives when the last greenlit step lands.
 4. **File layout: beside the demo, rung-suffixed.** `calc/calc-1-numbers.{c,asm,input,expected}` …
    with the final rung being today's `calc-sdt.{c,asm}` (unchanged) and `calc-tree` the epilogue;
    listed as sub-entries under calc's existing `READING-ORDER.md` number.
+
+## Autonomous run 2026-10-30 — scope + progress
+
+The maintainer (away) authorized completing the **whole** initiative autonomously, using discretion
+and logging decisions: calc, rpn, the I/O-separation follow-up, and the short-ladder candidates.
+Per-demo discretion: study each; decompose where it genuinely helps, else log why it stays a single
+demo. Every rung verified under spim (`meson test --suite examples`), committed per demo, archived on
+completion; umbrella + the I/O-separation task archive last; gpg back on at the end.
+
+Progress checklist:
+- [x] `calc` — 6 rungs (archived)
+- [x] `rpn` — 3 rungs (archived)
+- [ ] I/O-separation (`tasks/examples-separate-io-from-algorithm.md`)
+- [ ] short-ladder candidates: fizzbuzz, bubble-sort, cksum, head, fibonacci, hanoi, queens,
+  libraries (libctype/libstr/libstdlib) — each decomposed or logged as left-whole
 
 ## Related follow-up (orthogonal axis)
 

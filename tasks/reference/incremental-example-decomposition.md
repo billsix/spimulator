@@ -66,6 +66,21 @@ per example. When you decompose any demo, check it against this catalog first:
 These patterns also compose: a demo like `factor N` is "argv+atoi" **over** a core trial-division
 loop, so its ladder is `core-on-hardcoded-N` → `+argv/atoi`.
 
+### Lessons from the first two ladders (calc, rpn — 2026-10-30)
+
+- **A concept the example makes *fundamental* cannot be deferred to a late rung.** In calc,
+  whitespace was an add-on (space-free grammar first, whitespace last). In rpn, whitespace is the
+  token *separator* — a sequence of numbers is unreadable without it — so it is present from rung 1.
+  Decide per example whether a given concern is incidental (defer it) or constitutive (it is in the
+  foundation), rather than copying another ladder's rung order.
+- **Combine into one rung the steps that teach the *same shape*; split only where a step adds a new
+  idea.** calc split `*`/`/` from `+`/`-` because `*`/`/` introduced *precedence*. rpn did **not**
+  split its operators: RPN has no precedence, so all four are the identical pop-two-apply-push step —
+  one concept, one rung. "One concept per rung" is about concepts, not operator count.
+- **Integer-first with a dedicated float/FPU rung** worked for both (whole-number arithmetic before
+  decimals, mirroring the school sequence), and that float rung is the sanctioned
+  representation-change rung where the golden legitimately changes (`/` gains decimals).
+
 ## Ordering principle — least knowledge first, one concept per rung
 
 The ladder is ordered so each version needs **strictly less prior knowledge** than the next, and
