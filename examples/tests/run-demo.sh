@@ -105,6 +105,12 @@ case "$NAME" in
     input=$SRC_DIR/algorithms/rpn/rpn-1-stack.input
     asm_files="-f $SRC_DIR/algorithms/rpn/rpn-1-stack.asm"
     ;;
+  rpn-2-ops)
+    # Rung 2 of the rpn ladder: the four operators, integer.
+    expected=$SRC_DIR/algorithms/rpn/rpn-2-ops.expected
+    input=$SRC_DIR/algorithms/rpn/rpn-2-ops.input
+    asm_files="-f $SRC_DIR/algorithms/rpn/rpn-2-ops.asm"
+    ;;
   rpn)
     expected=$SRC_DIR/algorithms/rpn/rpn.expected
     input=$SRC_DIR/algorithms/rpn/rpn.input
