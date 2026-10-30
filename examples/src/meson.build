@@ -106,6 +106,7 @@ demos = [
   # (tasks/calc-incremental-versions.md)
   ['calc-1-numbers',         'lang/calc/calc-1-numbers.c'],
   ['calc-2-addsub',          'lang/calc/calc-2-addsub.c'],
+  ['calc-3-muldiv',          'lang/calc/calc-3-muldiv.c'],
   ['calc-sdt',               'lang/calc/calc-sdt.c'],
   ['calc-tree',              'lang/calc/calc-tree.c'],
   # ---- transforms: stdin -> stdout stream transforms ----
@@ -249,7 +250,8 @@ lib_demo_tests = [
   'ctype-demo', 'str-demo', 'atoi-demo', 'abs-demo', 'exit-demo', 'bsearch-demo',
   'atexit-demo',
   # Regular demos with pinned goldens (stdin-driven; see run-demo.sh)
-  'strings', 'rpn', 'calc-1-numbers', 'calc-2-addsub', 'calc-sdt', 'calc-tree',
+  'strings', 'rpn', 'calc-1-numbers', 'calc-2-addsub', 'calc-3-muldiv',
+  'calc-sdt', 'calc-tree',
 ]
 foreach name : lib_demo_tests
   test(name,

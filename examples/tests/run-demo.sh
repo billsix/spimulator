@@ -117,6 +117,12 @@ case "$NAME" in
     input=$SRC_DIR/lang/calc/calc-2-addsub.input
     asm_files="-f $SRC_DIR/lang/calc/calc-2-addsub.asm"
     ;;
+  calc-3-muldiv)
+    # Rung 3: integer '*'/'/' binding tighter than '+'/'-'.
+    expected=$SRC_DIR/lang/calc/calc-3-muldiv.expected
+    input=$SRC_DIR/lang/calc/calc-3-muldiv.input
+    asm_files="-f $SRC_DIR/lang/calc/calc-3-muldiv.asm"
+    ;;
   calc-sdt)
     expected=$SRC_DIR/lang/calc/calc-sdt.expected
     input=$SRC_DIR/lang/calc/calc-sdt.input
