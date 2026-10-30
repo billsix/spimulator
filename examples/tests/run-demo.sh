@@ -157,6 +157,18 @@ case "$NAME" in
     input=$SRC_DIR/algorithms/rpn/rpn.input
     asm_files="-f $SRC_DIR/algorithms/rpn/rpn.asm"
     ;;
+  rpn-eval)
+    # I/O-separated rpn: shares rpn's golden (same behavior; pure eval(str) core).
+    expected=$SRC_DIR/algorithms/rpn/rpn.expected
+    input=$SRC_DIR/algorithms/rpn/rpn.input
+    asm_files="-f $SRC_DIR/algorithms/rpn/rpn-eval.asm"
+    ;;
+  rpn-eval-test)
+    # Unit tests for the pure eval() core: a hardcoded battery, no stdin; the
+    # golden pins "<expr> => <result>" per case.
+    expected=$SRC_DIR/algorithms/rpn/rpn-eval-test.expected
+    asm_files="-f $SRC_DIR/algorithms/rpn/rpn-eval-test.asm"
+    ;;
   calc-1-numbers)
     # Rung 1 of the calc ladder (tasks/calc-incremental-versions.md): read &
     # print one whole integer per line.

@@ -277,6 +277,17 @@ recursion demos taught.
 
     rpn-3-float plus error handling (under/overflow, bad input, empty) IS this
     rpn — the destination of the ladder.
+
+    **I/O-separated variant: `rpn-eval`** — the same calculator and output, but
+    the algorithm is split from the I/O: the core is a pure
+    `double eval(const char* expr)` over an input buffer (it reports an error in
+    a `status` instead of printing one), and `my_main` slurps stdin, calls it,
+    and prints.  Shares rpn's golden; shows the evaluator as a reusable, testable
+    pure function.  **Its unit tests are `rpn-eval-test`** — it drives `eval()`
+    over a hardcoded battery of RPN expressions with no stdin, printing
+    `<expr> => <result>` (golden-pinned): the payoff of making the evaluator
+    depend on a character array instead of I/O.  The infix calculator has the
+    same pair (`calc-eval` / `calc-eval-test`, #42).
 42. **`calc-sdt`** — a TI-83-style **infix** calculator by
     syntax-directed translation: a recursive-descent parser that
     *evaluates while parsing* (no tree), one expression per line.

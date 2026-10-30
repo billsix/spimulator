@@ -109,6 +109,9 @@ demos = [
   ['rpn-2-ops',              'algorithms/rpn/rpn-2-ops.c'],
   ['rpn-3-float',            'algorithms/rpn/rpn-3-float.c'],
   ['rpn',                    'algorithms/rpn/rpn.c'],
+  # I/O-separated variant + its unit tests (tasks/examples-separate-io-from-algorithm.md)
+  ['rpn-eval',               'algorithms/rpn/rpn-eval.c'],
+  ['rpn-eval-test',          'algorithms/rpn/rpn-eval-test.c'],
   # ---- lang: little languages (infix parsers / evaluators) ----
   # calc ladder — incremental teaching rungs leading to calc-sdt
   # (tasks/calc-incremental-versions.md)
@@ -272,7 +275,7 @@ lib_demo_tests = [
   # Regular demos with pinned goldens (stdin-driven; see run-demo.sh)
   'strings', 'bubble-sort-1-fixed', 'bubble-sort', 'head-1-count', 'head',
   'cksum-1-stdin', 'cksum',
-  'rpn-1-stack', 'rpn-2-ops', 'rpn-3-float', 'rpn',
+  'rpn-1-stack', 'rpn-2-ops', 'rpn-3-float', 'rpn', 'rpn-eval', 'rpn-eval-test',
   'calc-1-numbers', 'calc-2-addsub', 'calc-3-muldiv',
   'calc-4-parens', 'calc-5-neg', 'calc-6-float', 'calc-sdt', 'calc-tree', 'calc-eval',
   'calc-eval-test',
