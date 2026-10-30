@@ -258,6 +258,17 @@ recursion demos taught.
     `addi $sp,8`), and an `atof`-style tokenizer builds each double
     from its digits.  The gentle (postfix, no precedence) step before
     the infix calculator.
+
+    **Incremental ladder — read these FIRST if rpn is your first stack
+    machine.**  rpn stacks several ideas at once, so a gentler on-ramp
+    builds it one concept per step; each rung is a runnable, golden-tested
+    demo beside this one (see `../tasks/rpn-incremental-versions.md`):
+    - 41a. **`rpn-1-stack`** — push whitespace-separated integers, print the top.
+    - 41b. **`rpn-2-ops`**   — the four operators (pop two, apply, push), integer.
+    - 41c. **`rpn-3-float`** — the FPU: doubles + decimals (so `/` yields `0.333333`).
+
+    rpn-3-float plus error handling (under/overflow, bad input, empty) IS this
+    rpn — the destination of the ladder.
 42. **`calc-sdt`** — a TI-83-style **infix** calculator by
     syntax-directed translation: a recursive-descent parser that
     *evaluates while parsing* (no tree), one expression per line.

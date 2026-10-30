@@ -111,6 +111,12 @@ case "$NAME" in
     input=$SRC_DIR/algorithms/rpn/rpn-2-ops.input
     asm_files="-f $SRC_DIR/algorithms/rpn/rpn-2-ops.asm"
     ;;
+  rpn-3-float)
+    # Rung 3 of the rpn ladder: the FPU — doubles + decimals.
+    expected=$SRC_DIR/algorithms/rpn/rpn-3-float.expected
+    input=$SRC_DIR/algorithms/rpn/rpn-3-float.input
+    asm_files="-f $SRC_DIR/algorithms/rpn/rpn-3-float.asm"
+    ;;
   rpn)
     expected=$SRC_DIR/algorithms/rpn/rpn.expected
     input=$SRC_DIR/algorithms/rpn/rpn.input

@@ -72,8 +72,8 @@ Express ordering with Priority + "Depends on", not `blocked` (each step is withi
 1. **`calc`** — ✅ DONE 2026-10-30 (the proof-of-concept): 6 rungs implemented + verified on branch
    `incremental-example-versions`. Record: `tasks/calc-incremental-versions.md`, spec:
    `tasks/reference/calc-incremental-versions.md`.
-2. **`rpn`** — NEXT: the postfix predecessor to calc (shares the FPU/stack lessons; see
-   `tasks/reference/mips-fpu-and-float-demos.md`).
+2. **`rpn`** — ✅ DONE 2026-10-30: 3 rungs (`rpn-1-stack`/`rpn-2-ops`/`rpn-3-float`) implemented +
+   verified on branch `incremental-example-versions`. Record: `tasks/rpn-incremental-versions.md`.
 3. The short-ladder candidates, in curriculum order, as the maintainer greenlights each.
 
 Each step gets its own task doc + reference doc (the per-version spec) and archives on its own
