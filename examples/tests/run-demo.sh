@@ -99,6 +99,12 @@ case "$NAME" in
                -f $LIB_DIR/libstdlib/libstdlib.asm \
                -f $LIB_DIR/libstdlib-demo/atexit-demo.asm"
     ;;
+  rpn-1-stack)
+    # Rung 1 of the rpn ladder: push whitespace-separated integers, print top.
+    expected=$SRC_DIR/algorithms/rpn/rpn-1-stack.expected
+    input=$SRC_DIR/algorithms/rpn/rpn-1-stack.input
+    asm_files="-f $SRC_DIR/algorithms/rpn/rpn-1-stack.asm"
+    ;;
   rpn)
     expected=$SRC_DIR/algorithms/rpn/rpn.expected
     input=$SRC_DIR/algorithms/rpn/rpn.input

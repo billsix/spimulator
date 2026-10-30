@@ -100,6 +100,9 @@ demos = [
   ['pascals-triangle',       'algorithms/pascals-triangle/pascals-triangle.c'],
   ['sieve',                  'algorithms/sieve/sieve.c'],
   ['binary-search',          'algorithms/binary-search/binary-search.c'],
+  # rpn ladder — incremental teaching rungs leading to rpn
+  # (tasks/rpn-incremental-versions.md)
+  ['rpn-1-stack',            'algorithms/rpn/rpn-1-stack.c'],
   ['rpn',                    'algorithms/rpn/rpn.c'],
   # ---- lang: little languages (infix parsers / evaluators) ----
   # calc ladder — incremental teaching rungs leading to calc-sdt
@@ -253,7 +256,7 @@ lib_demo_tests = [
   'ctype-demo', 'str-demo', 'atoi-demo', 'abs-demo', 'exit-demo', 'bsearch-demo',
   'atexit-demo',
   # Regular demos with pinned goldens (stdin-driven; see run-demo.sh)
-  'strings', 'rpn', 'calc-1-numbers', 'calc-2-addsub', 'calc-3-muldiv',
+  'strings', 'rpn-1-stack', 'rpn', 'calc-1-numbers', 'calc-2-addsub', 'calc-3-muldiv',
   'calc-4-parens', 'calc-5-neg', 'calc-6-float', 'calc-sdt', 'calc-tree',
 ]
 foreach name : lib_demo_tests
