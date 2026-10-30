@@ -69,8 +69,10 @@ in the method doc.
 ## Rollout (step-tasks, once the questions are answered)
 
 Express ordering with Priority + "Depends on", not `blocked` (each step is within our control):
-1. **`calc`** — the exemplar and motivating case. Task drafted: `tasks/calc-incremental-versions.md`.
-2. **`rpn`** — the postfix predecessor to calc (shares the FPU/stack lessons; see
+1. **`calc`** — ✅ DONE 2026-10-30 (the proof-of-concept): 6 rungs implemented + verified on branch
+   `incremental-example-versions`. Record: `tasks/calc-incremental-versions.md`, spec:
+   `tasks/reference/calc-incremental-versions.md`.
+2. **`rpn`** — NEXT: the postfix predecessor to calc (shares the FPU/stack lessons; see
    `tasks/reference/mips-fpu-and-float-demos.md`).
 3. The short-ladder candidates, in curriculum order, as the maintainer greenlights each.
 

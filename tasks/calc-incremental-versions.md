@@ -1,6 +1,9 @@
 # calc — incremental teaching versions (the exemplar)
 
-**Status:** in progress — ladder (b) chosen 2026-10-29; per-version reference doc + rung files next
+**Status:** done 2026-10-30 — all 6 rungs (`calc-1-numbers` … `calc-6-float`) implemented + verified
+(C binary and asm-under-spim both green via `meson test --suite examples`); `calc-sdt`/`calc-tree`
+unchanged; no regression (17/17 examples pass). On branch `incremental-example-versions` (unmerged);
+archive on merge.
 **Priority:** 4
 **Difficulty:** 5
 **Part of:** `tasks/incremental-example-versions.md`

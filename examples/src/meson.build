@@ -109,6 +109,7 @@ demos = [
   ['calc-3-muldiv',          'lang/calc/calc-3-muldiv.c'],
   ['calc-4-parens',          'lang/calc/calc-4-parens.c'],
   ['calc-5-neg',             'lang/calc/calc-5-neg.c'],
+  ['calc-6-float',           'lang/calc/calc-6-float.c'],
   ['calc-sdt',               'lang/calc/calc-sdt.c'],
   ['calc-tree',              'lang/calc/calc-tree.c'],
   # ---- transforms: stdin -> stdout stream transforms ----
@@ -253,7 +254,7 @@ lib_demo_tests = [
   'atexit-demo',
   # Regular demos with pinned goldens (stdin-driven; see run-demo.sh)
   'strings', 'rpn', 'calc-1-numbers', 'calc-2-addsub', 'calc-3-muldiv',
-  'calc-4-parens', 'calc-5-neg', 'calc-sdt', 'calc-tree',
+  'calc-4-parens', 'calc-5-neg', 'calc-6-float', 'calc-sdt', 'calc-tree',
 ]
 foreach name : lib_demo_tests
   test(name,

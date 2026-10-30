@@ -268,6 +268,20 @@ recursion demos taught.
     unary minus, parentheses, and per-line error recovery are handled.
     This is the SDT technique the mini C compiler will use; the
     tree-building companion is calc-tree (#43).
+
+    **Incremental ladder — read these FIRST if calc-sdt is your first
+    parser.**  calc-sdt stacks several ideas at once, so a gentler on-ramp
+    builds it one concept per step; each rung is a runnable, golden-tested
+    demo beside this one (see `../tasks/calc-incremental-versions.md`):
+    - 42a. **`calc-1-numbers`** — read & print one whole integer per line.
+    - 42b. **`calc-2-addsub`**  — integer `+`/`-`, left to right.
+    - 42c. **`calc-3-muldiv`**  — integer `*`/`/`, precedence by grammar layering.
+    - 42d. **`calc-4-parens`**  — parentheses (mutual recursion `expr`↔`factor`).
+    - 42e. **`calc-5-neg`**     — unary minus / negative integers.
+    - 42f. **`calc-6-float`**   — the FPU: doubles + decimals (so `/` yields `2.5`).
+
+    calc-6-float plus intra-line whitespace and per-line error recovery IS this
+    calc-sdt — the destination of the ladder.
 43. **`calc-tree`** — the SAME language and grammar as calc-sdt, but
     the parser *builds an abstract syntax tree* and a SEPARATE
     recursive walker (`eval`) evaluates it — so nothing is computed

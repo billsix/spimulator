@@ -135,6 +135,12 @@ case "$NAME" in
     input=$SRC_DIR/lang/calc/calc-5-neg.input
     asm_files="-f $SRC_DIR/lang/calc/calc-5-neg.asm"
     ;;
+  calc-6-float)
+    # Rung 6: the FPU — doubles + decimal literals; '/' now yields decimals.
+    expected=$SRC_DIR/lang/calc/calc-6-float.expected
+    input=$SRC_DIR/lang/calc/calc-6-float.input
+    asm_files="-f $SRC_DIR/lang/calc/calc-6-float.asm"
+    ;;
   calc-sdt)
     expected=$SRC_DIR/lang/calc/calc-sdt.expected
     input=$SRC_DIR/lang/calc/calc-sdt.input
