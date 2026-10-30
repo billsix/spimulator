@@ -171,6 +171,12 @@ case "$NAME" in
     input=$SRC_DIR/lang/calc/calc-sdt.input
     asm_files="-f $SRC_DIR/lang/calc/calc-tree.asm"
     ;;
+  calc-eval)
+    # I/O-separated calc: shares calc-sdt's golden (same behavior; pure eval(str) core).
+    expected=$SRC_DIR/lang/calc/calc-sdt.expected
+    input=$SRC_DIR/lang/calc/calc-sdt.input
+    asm_files="-f $SRC_DIR/lang/calc/calc-eval.asm"
+    ;;
   *)
     fail "unknown demo: $NAME"
     ;;

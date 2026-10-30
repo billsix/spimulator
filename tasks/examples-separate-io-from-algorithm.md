@@ -1,6 +1,10 @@
 # Separate I/O from the algorithm in the worked examples
 
-**Status:** proposed — needs go-ahead
+**Status:** done + archived 2026-10-30 — realized as `examples/src/lang/calc/calc-eval` (C + spim
+asm), the pure `double eval(const char* expr)` core over a line buffer with `my_main` doing the I/O;
+shares calc-sdt's golden, verified (C + asm). Branch `incremental-example-versions`. The pattern is
+established on the calculator (the maintainer's named example); applying it to rpn and the transform
+filters is the same shape and can follow on request.
 **Priority:** 5
 **Difficulty:** 4
 **Related:** `tasks/incremental-example-versions.md` (orthogonal axis),
@@ -63,9 +67,11 @@ plumbing are clearly separable (`wc`, `rev`, `cut`, `rot13`, `tr`, `expand`). A 
 lesson *is* the I/O (`cat`, `nologin`, `cp`, `touch`) is not a candidate — there is no algorithm to
 separate out.
 
-## Open questions
+## Decisions (2026-10-30, agent discretion under the maintainer's away go-ahead)
 
-1. Is this a **new paired demo** (e.g. a `calc` rung/variant showing the split) or an **in-place
-   refactor** of the existing demos' internal structure (same files, cleaner boundary, same golden)?
-2. If it's its own rung, does it slot into the calc ladder (as the "operate on a buffer" base) or sit
-   beside the finished demos as a separate variant?
+1. **A new paired demo**, `calc-eval` — NOT an in-place refactor of `calc-sdt` (that one is the
+   ladder's final rung and must stay unchanged, and a separate demo lets a student compare the
+   I/O-coupled `calc-sdt` with the I/O-separated `calc-eval`).
+2. **Beside the finished demos**, as the orthogonal axis — not a rung of the calc ladder. `calc-eval`
+   keeps the full calculator behaviour (it shares calc-sdt's golden); only the algorithm↔I/O boundary
+   moved (`eval(const char*)` is pure; `my_main` reads a line into a buffer and calls it).

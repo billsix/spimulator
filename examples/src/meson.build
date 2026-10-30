@@ -117,6 +117,8 @@ demos = [
   ['calc-6-float',           'lang/calc/calc-6-float.c'],
   ['calc-sdt',               'lang/calc/calc-sdt.c'],
   ['calc-tree',              'lang/calc/calc-tree.c'],
+  # I/O-separated variant (tasks/examples-separate-io-from-algorithm.md)
+  ['calc-eval',              'lang/calc/calc-eval.c'],
   # ---- transforms: stdin -> stdout stream transforms ----
   ['wc',                     'transforms/wc/wc.c'],
   ['head',                   'transforms/head/head.c'],
@@ -260,7 +262,7 @@ lib_demo_tests = [
   # Regular demos with pinned goldens (stdin-driven; see run-demo.sh)
   'strings', 'rpn-1-stack', 'rpn-2-ops', 'rpn-3-float', 'rpn',
   'calc-1-numbers', 'calc-2-addsub', 'calc-3-muldiv',
-  'calc-4-parens', 'calc-5-neg', 'calc-6-float', 'calc-sdt', 'calc-tree',
+  'calc-4-parens', 'calc-5-neg', 'calc-6-float', 'calc-sdt', 'calc-tree', 'calc-eval',
 ]
 foreach name : lib_demo_tests
   test(name,

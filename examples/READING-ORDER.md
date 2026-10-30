@@ -294,6 +294,12 @@ recursion demos taught.
 
     calc-6-float plus intra-line whitespace and per-line error recovery IS this
     calc-sdt — the destination of the ladder.
+
+    **I/O-separated variant: `calc-eval`** — the same calculator and output, but
+    the algorithm is split from the I/O: the core is a pure
+    `double eval(const char* expr)` over a line buffer, and `my_main` does the
+    reading/printing.  Shares calc-sdt's golden; shows the parser as a reusable,
+    testable pure function (the shape the mini C compiler's front end needs).
 43. **`calc-tree`** — the SAME language and grammar as calc-sdt, but
     the parser *builds an abstract syntax tree* and a SEPARATE
     recursive walker (`eval`) evaluates it — so nothing is computed

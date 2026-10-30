@@ -110,7 +110,7 @@ completion; umbrella + the I/O-separation task archive last; gpg back on at the 
 Progress checklist:
 - [x] `calc` — 6 rungs (archived)
 - [x] `rpn` — 3 rungs (archived)
-- [ ] I/O-separation (`tasks/examples-separate-io-from-algorithm.md`)
+- [x] I/O-separation — realized as `calc-eval` (archived)
 - [ ] short-ladder candidates: fizzbuzz, bubble-sort, cksum, head, fibonacci, hanoi, queens,
   libraries (libctype/libstr/libstdlib) — each decomposed or logged as left-whole
 
