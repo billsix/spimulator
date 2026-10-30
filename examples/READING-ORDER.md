@@ -179,6 +179,9 @@ forms (13/14) which take no file arg.
     table, bitwise ops, private `print_uint` subroutine;
     stdin or file (prints filename column in file mode, like
     real `cksum`).
+    *Ladder (tasks/reference/incremental-example-decomposition.md):*
+    `cksum-1-stdin` (the CRC32 algorithm over stdin alone) → this (add
+    reading from a named FILE + the filename output column).
 
 ## Part 5 — argv: taking inputs from the command line (5 demos)
 

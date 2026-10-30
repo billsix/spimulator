@@ -99,6 +99,18 @@ case "$NAME" in
                -f $LIB_DIR/libstdlib/libstdlib.asm \
                -f $LIB_DIR/libstdlib-demo/atexit-demo.asm"
     ;;
+  cksum-1-stdin)
+    # Rung 1 of the cksum ladder: the CRC32 algorithm over stdin.
+    expected=$SRC_DIR/fileio/cksum/cksum-1-stdin.expected
+    input=$SRC_DIR/fileio/cksum/cksum-1-stdin.input
+    asm_files="-f $SRC_DIR/fileio/cksum/cksum-1-stdin.asm"
+    ;;
+  cksum)
+    # Rung 2 (the finished demo), default stdin path (no filename column).
+    expected=$SRC_DIR/fileio/cksum/cksum.expected
+    input=$SRC_DIR/fileio/cksum/cksum.input
+    asm_files="-f $SRC_DIR/fileio/cksum/cksum.asm"
+    ;;
   head-1-count)
     # Rung 1 of the head ladder: fixed-N stdin line filter (no argv).
     expected=$SRC_DIR/transforms/head/head-1-count.expected

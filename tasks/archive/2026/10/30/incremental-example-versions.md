@@ -130,8 +130,10 @@ Progress checklist:
     one file to compare them; splitting fragments a deliberately-unified comparison).
   - [ ] **hanoi** — LEFT WHOLE: one coherent idea (the 4-arg recursive frame); argv-N is optional.
   - [ ] **queens** — LEFT WHOLE: one coherent idea (backtracking); argv-N is optional.
-  - [ ] **cksum** — LEFT WHOLE: the checksum (`$s*` discipline + 256-entry table + bitwise) is one
-    lesson; file-or-stdin is a thin peel — the strongest remaining candidate if the maintainer wants one.
+  - [x] **cksum** — DECOMPOSED (2026-10-30, maintainer asked): `cksum-1-stdin` (the POSIX CRC32
+    algorithm over stdin — the table + bitwise loop + private `print_uint`) → finished `cksum` (adds
+    reading a named FILE + the filename output column). Both verified against system `cksum`
+    (`printf 'hello\n' | cksum` → `3015617425 6`); finished `cksum` also gained a golden it lacked.
   - [ ] **libraries (libctype/libstr/libstdlib)** — LEFT WHOLE: already a leaf → non-leaf sequence
     across separate library files, which `READING-ORDER.md` already orders (libctype's one-line
     leaves before libstdlib's `atoi`, the first non-leaf).

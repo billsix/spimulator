@@ -143,6 +143,9 @@ demos = [
   # ---- fileio: open/close/read/write of named files ----
   ['cat',                    'fileio/cat/cat.c'],
   ['nologin',                'fileio/nologin/nologin.c'],
+  # cksum ladder (tasks/reference/incremental-example-decomposition.md): rung 1
+  # is the CRC32 algorithm over stdin; rung 2 (finished) adds file-or-stdin.
+  ['cksum-1-stdin',          'fileio/cksum/cksum-1-stdin.c'],
   ['cksum',                  'fileio/cksum/cksum.c'],
   ['touch',                  'fileio/touch/touch.c'],
   ['cp',                     'fileio/cp/cp.c'],
@@ -267,6 +270,7 @@ lib_demo_tests = [
   'atexit-demo',
   # Regular demos with pinned goldens (stdin-driven; see run-demo.sh)
   'strings', 'bubble-sort-1-fixed', 'bubble-sort', 'head-1-count', 'head',
+  'cksum-1-stdin', 'cksum',
   'rpn-1-stack', 'rpn-2-ops', 'rpn-3-float', 'rpn',
   'calc-1-numbers', 'calc-2-addsub', 'calc-3-muldiv',
   'calc-4-parens', 'calc-5-neg', 'calc-6-float', 'calc-sdt', 'calc-tree', 'calc-eval',
