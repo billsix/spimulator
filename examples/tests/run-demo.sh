@@ -123,6 +123,12 @@ case "$NAME" in
     input=$SRC_DIR/lang/calc/calc-3-muldiv.input
     asm_files="-f $SRC_DIR/lang/calc/calc-3-muldiv.asm"
     ;;
+  calc-4-parens)
+    # Rung 4: parentheses for grouping (mutual recursion expr<->factor).
+    expected=$SRC_DIR/lang/calc/calc-4-parens.expected
+    input=$SRC_DIR/lang/calc/calc-4-parens.input
+    asm_files="-f $SRC_DIR/lang/calc/calc-4-parens.asm"
+    ;;
   calc-sdt)
     expected=$SRC_DIR/lang/calc/calc-sdt.expected
     input=$SRC_DIR/lang/calc/calc-sdt.input
