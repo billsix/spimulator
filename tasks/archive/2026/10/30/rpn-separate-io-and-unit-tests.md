@@ -73,4 +73,5 @@ needs no edit — it globs `*.c`.
 ## Follow-ups
 
 - Optional (filed): the same split for the stream filters / other I/O-coupled demos —
-  `tasks/separate-io-from-algorithm-remaining-demos.md` (`proposed — needs go-ahead`).
+  `tasks/archive/2026/10/30/separate-io-from-algorithm-remaining-demos.md` (done 2026-10-30:
+  cksum + bubble-sort).

@@ -1,7 +1,10 @@
 # Separate I/O from the algorithm (+ unit tests) for the remaining demos
 
-**Status:** in progress (away-batch 2026-10-30) — maintainer authorized completing it with
-discretion, gpg off on branch `separate-io-remaining-demos`, no questions. Decisions logged below.
+**Status:** done + archived 2026-10-30 (away-batch) — cksum (`cksum-core` + `cksum-core-test`) and
+bubble-sort (`bubble-sort-core-test`) built + verified (examples suite 33/33, both C and asm
+byte-diffed against goldens; cksum vectors from the system `cksum` oracle) and the containerized
+`make image` gate run. Branch `separate-io-remaining-demos` (gpg off for the batch, restored after).
+wc / strings / per-byte maps left whole (reasons below). Decisions logged below.
 **Priority:** 6
 **Difficulty:** 4
 
@@ -89,6 +92,23 @@ Per-demo shape (one more refinement found while reading the sources):
 3. Naming: the evaluators used `-eval` / `-eval-test` (the core's verb). For these, what suffix —
    `-core` / `-core-test`? `cksum-crc` / `cksum-crc-test`? `bubble-sort-core`? Recommendation:
    `<demo>-core` / `<demo>-core-test` as a uniform convention, documented in the reference doc.
+
+## What was done
+
+- **cksum** (`examples/src/fileio/cksum/`): `cksum-core.{c,asm}` factors the POSIX CRC32 into a pure
+  `unsigned int cksum_of(const unsigned char*, unsigned int)`; `my_main` slurps stdin and calls it.
+  Shares `cksum.expected`. `cksum-core-test.{c,asm,expected}` drives `cksum_of` over a hardcoded
+  byte-buffer battery (empty, `"a"`, `"abc"`, `"hello"+LF`, `"123456789"`), `<label> => <crc> <count>`,
+  golden from the system `cksum` oracle. Gotcha: spim's assembler renders `\n` inside an `.asciiz`
+  label as a real newline, so the label for the newline case is written `"hello"+LF`, not `"hello\n"`
+  (the data buffer still holds a real newline — only the human label changed).
+- **bubble-sort** (`examples/src/algorithms/bubble-sort/`): only `bubble-sort-core-test.{c,asm,expected}`
+  — `bubble_sort(int*, int)` is already pure (see Decisions), so no `-core`. Battery: unsorted,
+  sorted, reversed, duplicates, single, empty, negatives; `<input> => <sorted>`.
+- Wiring per demo: `examples/src/meson.build` (build list + `lib_demo_tests` golden list),
+  `examples/tests/run-demo.sh`, `examples/READING-ORDER.md`. Native-listings `Makefile` needs no edit
+  (globs `*.c`; no new lib). Durable lesson harvested into
+  `tasks/reference/incremental-example-decomposition.md`.
 
 ## Done =
 
