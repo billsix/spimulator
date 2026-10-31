@@ -22,24 +22,44 @@
 # C source — see print-out-ascii.c
 
 
-#PURPOSE:  Walk a signed value from -128 up to 127, printing each
-#          on its own line.  Demonstrates a do-while loop and the
+#PURPOSE:  Walk a signed value from -128 up to 127, printing each on
+#          its own line.  Demonstrates a do-while loop and the
 #          two's-complement representation of a negative number
 #          (-128 is stored as 0xffffff80 in a 32-bit register).
 #
-#SYMBOL TABLE  (C variable -> MIPS location)
+#          STACK-VISIBLE STYLE: the C local `c` lives in a stack slot;
+#          a scratch register ($t0) holds a working COPY only while an
+#          instruction needs it, then the value is stored back.  This
+#          demo makes NO `jal` (only syscalls, which preserve $ra), so
+#          it saves $fp but not $ra.  (The old version held c in $t0
+#          for the whole run.)
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
 #
-#   In main:
-#     c             $t0                  (signed counter; walked -128..127
-#                                          across the do-while body)
+#          No #CANONICAL block: the output is all 256 values -128..127,
+#          one per line — too long for a comment anchor.  Correctness
+#          is gated by before/after output equivalence (256 lines;
+#          first -128, last 127).
 #
-#   No subroutine calls and no cross-call saves to record — $t0
-#   holds `c` for the entire program.  The syscalls in between
-#   iterations clobber $a0/$v0 but spim doesn't touch $t0.
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: main)
 #
-#   Volatile (no preserved meaning across a syscall):
-#     $a0   syscall arg
-#     $v0   syscall selector (1 = print_int, 4 = print_string)
+#  C variable  | memory addr | register   | C type    | bytes | role / notes
+#  ------------+-------------+------------+-----------+-------+---------------------------
+#  c           | -8($fp)     | $t0 (copy) | char      |   4   | signed counter -128..127 (held sign-extended in a word slot)
+#  (saved $fp) | -4($fp)     | —          | frame ptr |   4   | caller's frame pointer
+#
+# ------------------------------------------------------------------
+#  SNAPSHOT (no args; mid-loop, just after c was incremented to 0)
+#
+#        main's stack frame        scratch
+#   +----------------------+      +--------------------+
+#   | -4($fp) saved $fp    |      | $t0 = 0 (copy of c)
+#   | -8($fp) c      =  0  | <--- | $t0
+#   +----------------------+      +--------------------+
+#         $sp = $fp - 8
+#
+#   Prints -128..127 (256 lines) — the negatives show the two's
+#   complement wrap of the signed value — then exits 0.
 
         .data
 nl:    .asciiz     "\n"
@@ -47,10 +67,17 @@ nl:    .asciiz     "\n"
         .text
         .globl main
 main:
-        li $t0, -128                 # c = CHAR_MIN  (stored as 0xffffff80)
+        # ---- prologue: build an 8-byte frame (no $ra: no `jal`) ----
+        addiu $sp, $sp, -8
+        sw $fp, 4($sp)               # save caller's $fp -> -4($fp)
+        addiu $fp, $sp, 8
+
+        # char c = CHAR_MIN;
+        li $t0, -128                 # -128 is stored as 0xffffff80
+        sw $t0, -8($fp)              # c = -128
 
         # Pre-loop print — emit CHAR_MIN before entering the do-while body.
-        move $a0, $t0
+        lw $a0, -8($fp)              # c
         li $v0, 1                    # syscall 1 = print_int
         syscall
         li $v0, 4                    # syscall 4 = print_string
@@ -59,17 +86,25 @@ main:
 
 loopBegin:
         # c = c + 1;                  -- the do-while body
-        add $t0, $t0, 1
+        lw $t0, -8($fp)              # $t0 = c
+        addi $t0, $t0, 1
+        sw $t0, -8($fp)              # store the new c back
 
-        move $a0, $t0
-        li $v0, 1                    # print_int(c)
+        # print_int(c);
+        lw $a0, -8($fp)
+        li $v0, 1
         syscall
-        li $v0, 4                    # print_string("\n")
+        # print_string("\n");
+        li $v0, 4
         la $a0, nl
         syscall
 
         # } while (c != CHAR_MAX);    -- branch back while c != 127
+        lw $t0, -8($fp)              # $t0 = c
         bne $t0, 127, loopBegin
 
+        # ---- epilogue ----------------------------------------------
         li $v0, 0                    # exit status 0
-        jr $ra                       # return to the runtime
+        lw $fp, -4($fp)              # restore caller's $fp
+        addiu $sp, $sp, 8            # pop the frame
+        jr $ra                       # $ra untouched (we made no `jal`)

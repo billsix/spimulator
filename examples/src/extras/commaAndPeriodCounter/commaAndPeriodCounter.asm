@@ -22,34 +22,53 @@
 # C source — see commaAndPeriodCounter.c
 
 
-#PURPOSE:  Count the commas and periods on standard input and
-#          print a summary line of the form
-#             <N> commas, <M> stops
+#PURPOSE:  Count the commas and periods on standard input and print a
+#          summary line of the form   <N> commas, <M> stops
 #
 #NOTES:    `read_char` returns -1 at EOF; the loop branches on
-#          `bltz $t2, loopEnd`.  (This demo's only purpose vs
-#          wc is the comma/period counts; same byte-loop shape.)
+#          `bltz ..., loopEnd`.  (Same byte-loop shape as wc; the
+#          comma/period tallies are the only difference.)
 #
-#SYMBOL TABLE  (C variable -> MIPS location)
+#          STACK-VISIBLE STYLE: the three C locals comma_count,
+#          period_count, and this_char each live in a stack slot; a
+#          scratch register holds only a working COPY while an
+#          instruction needs it, then the value is stored straight
+#          back.  (The old version kept all three in $t0/$t1/$t2 across
+#          every syscall, relying on spim preserving $t*; the stack
+#          homes make the counters' lifetime explicit.)  This demo
+#          makes NO `jal` (only syscalls, which preserve $ra), so it
+#          saves $fp but not $ra.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
 #
-#   In main:
-#     comma_count   $t0                  (running tally)
-#     period_count  $t1                  (running tally)
-#     this_char     $t2                  (most recently read byte)
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: main)
 #
-#   Three $t-regs reused across every read_char / print_int /
-#   print_string syscall.  Strictly speaking MIPS $t* are CALLER-
-#   save and these should be spilled across each syscall — but
-#   spim's syscalls preserve $t-regs in practice, and this demo
-#   predates the introduction of the $s* save discipline (which
-#   shows up first in cksum where it becomes load-bearing).
+#  C variable   | memory addr | register   | C type    | bytes | role / notes
+#  -------------+-------------+------------+-----------+-------+---------------------------
+#  comma_count  | -8($fp)     | $t1 (copy) | int       |   4   | running tally of ','
+#  period_count | -12($fp)    | $t1 (copy) | int       |   4   | running tally of '.'
+#  this_char    | -16($fp)    | $t0 (copy) | int       |   4   | most recent read_char() byte; -1 at EOF
+#  (saved $fp)  | -4($fp)     | —          | frame ptr |   4   | caller's frame pointer
 #
-#   No subroutine calls, hence no Cross-call saves section.
+# ------------------------------------------------------------------
+#  SNAPSHOT (stdin "a,b.c,,.."; mid-loop, having just read the 2nd ','
+#            — so two commas and zero periods counted so far)
 #
-#   Volatile (no preserved meaning across a syscall, by convention):
-#     $a0   syscall arg
-#     $v0   syscall selector / read_char return
-#           (12 = read_char, 4 = print_string, 1 = print_int)
+#        main's stack frame             scratch
+#   +----------------------------+     +----------------------+
+#   | -4($fp)  saved $fp         |     | $t0 = ',' (this_char)
+#   | -8($fp)  comma_count  = 2  |     | $t1 = 2   (a count)
+#   | -12($fp) period_count = 0  |     +----------------------+
+#   | -16($fp) this_char    = ','|
+#   +----------------------------+
+#         $sp = $fp - 16
+#
+#   Runs to EOF, then prints "3 commas, 3 stops".
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  stdin: extras/commaAndPeriodCounter/commaAndPeriodCounter.input
+#  stdout:
+#  | 3 commas, 3 stops
 
         .data
 commasText:    .asciiz     " commas, "
@@ -58,38 +77,52 @@ stopsText:    .asciiz     " stops\n"
         .text
         .globl main
 main:
-        li $t0, 0                    # comma_count = 0
-        li $t1, 0                    # period_count = 0
+        # ---- prologue: build a 16-byte frame (no $ra: no `jal`) ----
+        addiu $sp, $sp, -16
+        sw $fp, 12($sp)              # save caller's $fp -> -4($fp)
+        addiu $fp, $sp, 16
+
+        # comma_count = 0; period_count = 0;
+        li $t0, 0
+        sw $t0, -8($fp)              # comma_count = 0
+        sw $t0, -12($fp)             # period_count = 0
 
         # this_char = read_char();
         li $v0, 12                   # syscall 12 = read_char
-        syscall                      # result in $v0
-        move $t2, $v0                # this_char = $v0
+        syscall
+        sw $v0, -16($fp)             # this_char = result
 
 loopBegin:
         # while (this_char != -1) { ...    -- -1 is the EOF signal
-        bltz $t2, loopEnd
+        lw $t0, -16($fp)             # $t0 = this_char
+        bltz $t0, loopEnd
 
         # if (this_char == '.') period_count++;
-        bne $t2, '.', notAPeriod
+        lw $t0, -16($fp)
+        bne $t0, '.', notAPeriod
+        lw $t1, -12($fp)             # period_count
         addi $t1, $t1, 1
+        sw $t1, -12($fp)             # store back
 notAPeriod:
 
         # if (this_char == ',') comma_count++;
-        bne $t2, ',', notAComma
-        addi $t0, $t0, 1
+        lw $t0, -16($fp)
+        bne $t0, ',', notAComma
+        lw $t1, -8($fp)              # comma_count
+        addi $t1, $t1, 1
+        sw $t1, -8($fp)              # store back
 notAComma:
 
         # this_char = read_char();
         li $v0, 12
         syscall
-        move $t2, $v0
+        sw $v0, -16($fp)             # this_char = result
 
         j loopBegin                  # } end of while
 
 loopEnd:
         # print_int(comma_count);
-        move $a0, $t0
+        lw $a0, -8($fp)
         li $v0, 1
         syscall
 
@@ -99,7 +132,7 @@ loopEnd:
         syscall
 
         # print_int(period_count);
-        move $a0, $t1
+        lw $a0, -12($fp)
         li $v0, 1
         syscall
 
@@ -108,5 +141,8 @@ loopEnd:
         la $a0, stopsText
         syscall
 
+        # ---- epilogue ----------------------------------------------
         li $v0, 0                    # exit status 0
-        jr $ra                       # return to the runtime
+        lw $fp, -4($fp)              # restore caller's $fp
+        addiu $sp, $sp, 16           # pop the frame
+        jr $ra                       # $ra untouched (we made no `jal`)

@@ -25,59 +25,69 @@
 # and a newline.  The student can add it back as an exercise.
 
 
-#PURPOSE:  Compare three string pairs with `int str_eq(const char*,
+#PURPOSE:  Compare three string pairs with `int streq(const char*,
 #          const char*)` and print each result on its own line.
-#          Demonstrates a byte-at-a-time loop over a C string and
-#          the idiomatic MIPS register-passing + `jal`/`jr $ra`
-#          subroutine convention.
+#          streq returns 0 when equal and 1 when different — the
+#          inverse of what the name suggests, matching the book demo.
 #
-#STORAGE LAYOUT
+#          STACK-VISIBLE STYLE: main makes three `jal streq` calls, so
+#          it saves $ra on its frame.  streq's returns r1/r2/r3 are
+#          transient (each printed immediately), so they stay in $v0.
+#          streq itself is a leaf helper (register-passing: args in
+#          $a0/$a1 walked in place, no frame), kept register-based.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
 #
-#   Single-cell stack frame in main; streq needs no frame.
+#          INTENTIONAL BUG preserved: main's C never initializes its
+#          return value, yet reads it on the way out.  Here that is a
+#          `return_value` slot at -12($fp) that is NEVER written; the
+#          epilogue reads it into $v0.  On a fresh spim stack it
+#          surfaces 0, but it is formally reading uninitialized memory
+#          — the quirk this demo carries.  (It does not affect the
+#          printed output, only the process exit status.)
 #
-#         higher addresses
-#           +-------------+
-#$fp,$sp -> | saved $ra   |   0($fp)
-#           +-------------+
-#         lower addresses
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: main)
 #
-#SYMBOL TABLE  (C variable -> MIPS location)
+#  C variable    | memory addr     | register   | C type    | bytes | role / notes
+#  --------------+-----------------+------------+-----------+-------+---------------------------
+#  r1, r2, r3    | —               | $v0        | int       |   4   | streq results; each printed at once
+#  str1,str2,str3| str* (.data)    | $a0/$a1    | char *    |   4   | addresses loaded before each jal
+#  return_value  | -12($fp)        | $v0 (copy) | int       |   4   | NEVER written (intentional bug); read at exit
+#  (saved $ra)   | -4($fp)         | —          | code addr |   4   | survives the three jal streq calls
+#  (saved $fp)   | -8($fp)         | —          | frame ptr |   4   | caller's frame pointer
 #
-#   In main:
-#     saved $ra      0($fp)             the runtime's $ra, parked on the
-#                                       stack so the three `jal streq`s
-#                                       can't lose it; reloaded into $ra
-#                                       just before the final `jr $ra`
-#     return_value   (never written — the body reads `4($fp)` on the
-#                     way out, one word past the 1-cell frame.  See
-#                     the in-body NOTE; this is the intentional bug
-#                     this demo carries.)
-#     r1, r2, r3     $v0 (transient)    streq's returns; each consumed
-#                                       immediately by `move $a0, $v0`
-#                                       before the print_int that follows
-#     str1, str2, str3   `str1`, `str2`, `str3` (.data)
-#                                       addresses loaded into $a0/$a1
-#                                       just before each `jal streq`
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: streq — leaf helper, register-passing)
 #
-#   In streq (callee — register-passing, no frame):
-#     s1             $a0                input arg (advanced in place as
-#                                       the byte loop walks the string)
-#     s2             $a1                input arg  (")
-#     *s1            $t0                one byte loaded each iteration
-#     *s2            $t1                one byte loaded each iteration
-#     return value   $v0                0 (equal) or 1 (different)
+#  C variable   | memory addr | register | C type       | bytes | role / notes
+#  -------------+-------------+----------+--------------+-------+------------------------------
+#  (arg) s1     | —           | $a0      | const char * |   4   | walked in place over string 1
+#  (arg) s2     | —           | $a1      | const char * |   4   | walked in place over string 2
+#  *s1          | —           | $t0      | char         |   4   | one byte of s1 this pass
+#  *s2          | —           | $t1      | char         |   4   | one byte of s2 this pass
+#  return value | —           | $v0      | int          |   4   | 0 if equal, 1 if different
 #
-#   Cross-call saves (callee-save $s* values held LIVE across `jal`):
-#     (none — like 07, this demo uses the older "save $ra to stack"
-#      idiom rather than "save $ra in $s0".  The intermediate
-#      returns r1/r2/r3 are short-lived enough that no save is
-#      needed for them either.)
+# ------------------------------------------------------------------
+#  SNAPSHOT (no args; just after the 1st `jal streq(str1, str2)`
+#            returned — the strings differ, so $v0 = 1, about to print)
 #
-#   Volatile working registers:
-#     $a0..$a1  function args at the call sites; $a0 also reused as
-#               syscall arg between calls
-#     $v0       syscall selector / function return value
-#     $t0, $t1  byte-load scratch for the streq byte loop
+#        main's stack frame             scratch
+#   +----------------------------+     +----------------------+
+#   | -4($fp)  saved $ra         |     | $v0 = 1 (r1: differ)
+#   | -8($fp)  saved $fp         |     +----------------------+
+#   | -12($fp) return_value =  ? |   (never written)
+#   +----------------------------+
+#         $sp = $fp - 12
+#
+#   Prints 1 (str1 vs str2 differ), 0 (str1 vs str3 equal), 1
+#   (str2 vs str3 differ), each on its own line.
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  args:
+#  stdout:
+#  | 1
+#  | 0
+#  | 1
 
         .data
 nl:    .asciiz     "\n"
@@ -90,8 +100,8 @@ str3:    .asciiz     "str1"
 
 
 # ---------- int streq(const char *s1, const char *s2) ----------
-# No frame is needed: we only use caller-save scratch registers and the
-# argument registers.  $sp and $fp are not touched.
+# Leaf helper: only $a0/$a1 (the args, walked in place) and $t0/$t1
+# scratch; $sp and $fp are not touched, and $ra returns to the caller.
 streq:
 
 loopBegin:
@@ -100,95 +110,80 @@ loopBegin:
         lb $t1, ($a1)                # $t1 = *s2
         bne $t0, $t1, loopEnd        # bytes differ -> jump to "return 1"
 
-        #   if (*s1 == 0) return 0;  -- both bytes are equal; if both NUL
-        #                               then both strings ended together,
-        #                               so the strings are equal.
+        #   if (*s1 == 0) return 0;  -- both bytes equal; if both NUL
+        #                               the strings ended together, equal
         bne $t0, 0, incrementAndContinue
         li $v0, 0                    # equal -> return value = 0
-        j str_eq_exit                # unconditional jump to the epilogue
+        j streq_exit
 
 incrementAndContinue:
-        #   s1++;
+        #   s1++;  s2++;
         addi $a0, $a0, 1             # advance the s1 pointer by one byte
-        #   s2++;
         addi $a1, $a1, 1             # advance the s2 pointer by one byte
-        # }                           -- back to the top of the loop
-        j loopBegin                  # unconditional jump to the loop top
+        j loopBegin                  # } back to the top of the loop
 
 loopEnd:
         # return 1;                   -- bytes differed
-        li $v0, 1                    # not equal -> return value = 1
+        li $v0, 1
 
-str_eq_exit:
-        # The caller-saved $ra still has the address we should return
-        # to (set by the `jal` that brought us here).
-        jr $ra                       # jump to the address in $ra
+streq_exit:
+        jr $ra                       # $ra holds the caller's return address
 
 
 # ---------- _start (main) ----------
 main:
-        # ---- frame setup ----
-        move $fp, $sp                # set the frame pointer to the stack pointer
-        addi $fp, $fp, -4            # reserve 1 cell for saved $ra
-
-        # Save $ra — the upcoming `jal`s would otherwise clobber it.
-        sw $ra, 0($fp)               # store $ra into the saved-$ra slot
-        move $sp, $fp                # $sp pinned at $fp
+        # ---- prologue: 12-byte frame (saved $ra, saved $fp, and the
+        #      never-written return_value slot) ------------------------
+        addiu $sp, $sp, -12
+        sw $ra, 8($sp)               # save $ra          -> -4($fp)
+        sw $fp, 4($sp)               # save caller's $fp -> -8($fp)
+        addiu $fp, $sp, 12
+        # NOTE: -12($fp) (return_value) is intentionally left unwritten.
 
         # int r1 = streq(str1, str2);
-        la $a0, str1                 # arg = address of str1
-        la $a1, str2                 # arg = address of str2
-        jal streq                    # call streq; $v0 = result (1, differ)
+        la $a0, str1
+        la $a1, str2
+        jal streq                    # $v0 = result (1: "str1" != "str2")
 
-        # print_int(r1);
-        move $a0, $v0                # arg = r1
-        li $v0, 1                    # syscall 1 = print_int
+        # print_int(r1); print_string("\n");
+        move $a0, $v0
+        li $v0, 1
         syscall
-
-        # print_string("\n");
-        li $v0, 4                    # syscall 4 = print_string
-        la $a0, nl                   # arg = address of "\n"
+        li $v0, 4
+        la $a0, nl
         syscall
-
 
         # int r2 = streq(str1, str3);
         la $a0, str1
         la $a1, str3
-        jal streq                    # call streq; $v0 = 0 ("str1" == "str1")
+        jal streq                    # $v0 = 0 ("str1" == "str1")
 
-        # print_int(r2);
+        # print_int(r2); print_string("\n");
         move $a0, $v0
         li $v0, 1
         syscall
-
-        # print_string("\n");
         li $v0, 4
         la $a0, nl
         syscall
-
 
         # int r3 = streq(str2, str3);
         la $a0, str2
         la $a1, str3
-        jal streq                    # call streq; $v0 = 1 ("str2" != "str1")
+        jal streq                    # $v0 = 1 ("str2" != "str1")
 
-        # print_int(r3);
+        # print_int(r3); print_string("\n");
         move $a0, $v0
         li $v0, 1
         syscall
-
-        # print_string("\n");
         li $v0, 4
         la $a0, nl
         syscall
 
-
-        # Restore $ra and return.
-        lw $ra, 0($fp)               # restore caller's $ra
-        # NOTE: the next line reads 4($fp), one word past our 1-word
-        # frame.  In the original source the return-value cell was never
-        # set up; SPIM tends to surface a 0 here on a fresh stack, but
-        # this is technically reading garbage.
-        lw $v0, 4($fp)               # return code goes in $v0
-        addi $fp, $fp, 4             # tear down the frame
-        jr $ra                       # jump to the address in $ra
+        # ---- epilogue ----------------------------------------------
+        # return return_value;  -- reads the UNINITIALIZED -12($fp) slot
+        # (the intentional bug; surfaces 0 on a fresh spim stack).
+        lw $v0, -12($fp)
+        lw $ra, -4($fp)              # restore $ra
+        lw $fp, -8($fp)              # restore caller's $fp
+        addiu $sp, $sp, 12           # pop the frame
+        jr $ra
