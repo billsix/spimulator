@@ -109,7 +109,11 @@ faithful. The traced-value checker (above) is the SECOND gate the goldens don't 
     Converted `echo`, `factor`, `seq`, `tee` (the capstone — `int fds[8]` array onto the
     stack; `static buf` stays in .data). All byte-identical (tee files md5-identical);
     checker green. Added `arguments/tee/tee.input` for tee's stdout-only anchor.
-  - [ ] Step 4 — `recursion/` · [ ] Step 5 — `extras/`
+  - [x] **Step 4 — `recursion/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-4-recursion.md`).
+    Converted `fibonacci`, `hanoi`, `queens` (already frame-based; regularized to the $fp
+    convention, moved register-held locals onto the stack). All byte-identical; fib/hanoi
+    checker-green, queens gated by before/after equivalence (trailing-space output).
+  - [ ] Step 5 — `extras/`
     · [ ] Step 6 — `fileio/` · [ ] Step 7 — `lib/` · [ ] Step 8 — `lang/`
     · [ ] Step 9 — `algorithms/` · [ ] Step 10 — `transforms/`
 
@@ -123,7 +127,7 @@ faithful. The traced-value checker (above) is the SECOND gate the goldens don't 
   |---|-------|-------|----------------------|----------------------------|
   | 2 | `intro/` ✅   |  6 | 4 done | `exit/exit.asm`; (pilot did `increment-ints-1`) |
   | 3 | `arguments/` ✅ |  6 | 4 done | — (pilot did `factorial`, `gcd`) |
-  | 4 | `recursion/`  |  5 | 3 | `get-char-from-user/-1`,`-2` |
+  | 4 | `recursion/` ✅ |  5 | 3 done | `get-char-from-user/-1`,`-2` |
   | 5 | `extras/`     |  5 | 3 | `subrountines/-1`,`-2` |
   | 6 | `fileio/`     |  9 | 9 | — (confirm during the step) |
   | 7 | `lib/`        | 11 | 11 | — (library routines; confirm their shape fits) |
