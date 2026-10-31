@@ -15,6 +15,40 @@
 
 
 #PURPOSE:  tail -n N [FILE|-] via a ring buffer.
+#
+#          STACK-VISIBLE STYLE: all of main's C locals — fd, the line count n,
+#          the file_arg pointer, the argv vector, the ring write index `slot`,
+#          the `total` line count, and the `cur_line_len` — live in stack slots;
+#          a scratch register holds only a working COPY.  Homing them also frees
+#          the emit phase's count/start/i to be plain transients (the old version
+#          had to juggle $s* registers there).  The ring buffer, its per-slot
+#          lengths, and the current-line buffer are file-scope, so they stay in
+#          .data.  main makes jals (str_eq, atoi), so it saves $ra; those are
+#          leaf helpers.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+#  SYMBOL TABLE (routine: main)
+#
+#  C variable    | memory addr    | register   | C type    | bytes | role / notes
+#  --------------+----------------+------------+-----------+-------+---------------------------
+#  fd            | -12($fp)       | $t0 (copy) | int       |   4   | STDIN (0) or opened file descriptor
+#  n             | -16($fp)       | $t1 (copy) | int       |   4   | number of trailing lines (1..64)
+#  file_arg      | -20($fp)       | $t0 (copy) | char *    |   4   | NULL, "-", or FILE from argv
+#  argv          | -24($fp)       | $t0 (copy) | char **   |   4   | entry $a1, kept across the jals
+#  slot          | -28($fp)       | $t7 (copy) | int       |   4   | ring write index (mod n)
+#  total         | -32($fp)       | $t7 (copy) | int       |   4   | total lines committed
+#  cur_line_len  | -36($fp)       | $t8 (copy) | int       |   4   | bytes in the current (unterminated) line
+#  ring/ringLen/ | .data          | —          | buffers   |       | file-scope ring of lines + per-slot lengths
+#   curLine      |                |            |           |       |
+#  (saved $ra)   | -4($fp)        | —          | code addr |   4   | jal str_eq / jal atoi
+#  (saved $fp)   | -8($fp)        | —          | frame ptr |   4   | caller's frame pointer
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  args: -n 2
+#  stdin: transforms/tail/tail.input
+#  stdout:
+#  | 4
+#  | 5
 
         .data
 usageMsg:   .asciiz "usage: tail [-n N] [FILE|-]\n"
@@ -30,15 +64,20 @@ curLine:    .space 1024
         .text
         .globl main
 main:
-        move $s0, $ra
-        li $s1, 0                    # fd = STDIN
-        li $s2, 10                   # n = 10
-        move $s3, $0                 # file_arg = NULL
-        move $s4, $a1                # argv
+        addiu $sp, $sp, -40
+        sw $ra, 36($sp)              # -> -4($fp)
+        sw $fp, 32($sp)              # -> -8($fp)
+        addiu $fp, $sp, 40
+
+        li $t0, 0
+        sw $t0, -12($fp)             # fd = STDIN (0)
+        li $t0, 10
+        sw $t0, -16($fp)             # n = 10
+        sw $zero, -20($fp)           # file_arg = NULL
+        sw $a1, -24($fp)             # argv
 
         li $t0, 1
         beq $a0, $t0, after_argv
-
         li $t0, 2
         beq $a0, $t0, argc_2
         li $t0, 3
@@ -48,61 +87,72 @@ main:
         j usage
 
 argc_2:
-        lw $s3, 4($s4)
+        lw $t0, -24($fp)
+        lw $t0, 4($t0)
+        sw $t0, -20($fp)             # file_arg = argv[1]
         j after_argv
 
 argc_3:
-        # head -n N (no file)
-        lw $a0, 4($s4)
+        # tail -n N (no file)
+        lw $t0, -24($fp)
+        lw $a0, 4($t0)
         la $a1, flagN
         jal str_eq
         beqz $v0, usage
-        lw $a0, 8($s4)
+        lw $t0, -24($fp)
+        lw $a0, 8($t0)
         jal atoi
-        move $s2, $v0
+        sw $v0, -16($fp)             # n
         j after_argv
 
 argc_4:
-        lw $a0, 4($s4)
+        lw $t0, -24($fp)
+        lw $a0, 4($t0)
         la $a1, flagN
         jal str_eq
         beqz $v0, usage
-        lw $a0, 8($s4)
+        lw $t0, -24($fp)
+        lw $a0, 8($t0)
         jal atoi
-        move $s2, $v0
-        lw $s3, 12($s4)
+        sw $v0, -16($fp)             # n
+        lw $t0, -24($fp)
+        lw $t0, 12($t0)
+        sw $t0, -20($fp)             # file_arg = argv[3]
 
 after_argv:
         # bounds: 1 <= n <= 64
+        lw $t1, -16($fp)             # n
         li $t0, 1
-        blt $s2, $t0, badn
+        blt $t1, $t0, badn
         li $t0, 64
-        bgt $s2, $t0, badn
+        bgt $t1, $t0, badn
 
         # if file_arg && !is_dash open
-        beqz $s3, read_setup
-        lb $t0, 0($s3)
-        bne $t0, '-', open_file
-        lb $t0, 1($s3)
-        beq $t0, $0, read_setup
+        lw $t0, -20($fp)             # file_arg
+        beqz $t0, read_setup
+        lb $t1, 0($t0)
+        bne $t1, '-', open_file
+        lb $t1, 1($t0)
+        beq $t1, $0, read_setup
 
 open_file:
-        move $a0, $s3
+        lw $a0, -20($fp)
         li $v0, 13
         li $a1, 0
         li $a2, 0
         syscall
         bltz $v0, open_failed
-        move $s1, $v0
+        sw $v0, -12($fp)             # fd
 
 read_setup:
-        li $s5, 0                    # slot = 0
-        li $s6, 0                    # total = 0
-        li $s7, 0                    # cur_line_len = 0
+        li $t0, 0
+        sw $t0, -28($fp)             # slot = 0
+        sw $t0, -32($fp)             # total = 0
+        sw $t0, -36($fp)             # cur_line_len = 0
 
 read_loop:
         li $v0, 14
-        move $a0, $s1
+        lw $a0, -12($fp)             # fd
         la $a1, oneByte
         li $a2, 1
         syscall
@@ -112,16 +162,15 @@ read_loop:
         bne $t0, '\n', append_char
 
         # newline: commit cur_line to ring[slot]
-        # ring[slot] = ring + slot * 1024
-        sll $t1, $s5, 10             # slot * 1024
+        lw $t7, -28($fp)             # slot
+        sll $t1, $t7, 10             # slot * 1024
         la $t2, ring
         add $t2, $t2, $t1            # &ring[slot]
-
-        # Copy cur_line[0..cur_line_len] into ring[slot]
         la $t3, curLine
         li $t4, 0                    # i
+        lw $t8, -36($fp)             # cur_line_len
 copy_in:
-        bge $t4, $s7, copy_in_done
+        bge $t4, $t8, copy_in_done
         add $t5, $t3, $t4
         lb $t6, ($t5)
         add $t5, $t2, $t4
@@ -130,64 +179,66 @@ copy_in:
         j copy_in
 copy_in_done:
         # ringLen[slot] = cur_line_len
-        sll $t1, $s5, 2
+        lw $t7, -28($fp)             # slot
+        sll $t1, $t7, 2
         la $t2, ringLen
         add $t2, $t2, $t1
-        sw $s7, ($t2)
+        lw $t8, -36($fp)             # cur_line_len
+        sw $t8, ($t2)
 
         # slot = (slot + 1) % n
-        addi $s5, $s5, 1
-        bne $s5, $s2, slot_ok
-        li $s5, 0
+        lw $t7, -28($fp)
+        addi $t7, $t7, 1
+        lw $t1, -16($fp)             # n
+        bne $t7, $t1, slot_ok
+        li $t7, 0
 slot_ok:
-        addi $s6, $s6, 1             # total++
-        li $s7, 0                    # cur_line_len = 0
+        sw $t7, -28($fp)             # slot
+        lw $t7, -32($fp)             # total
+        addi $t7, $t7, 1
+        sw $t7, -32($fp)             # total++
+        sw $zero, -36($fp)           # cur_line_len = 0
         j read_loop
 
 append_char:
         # if (cur_line_len < 1024) cur_line[cur_line_len++] = c
+        lw $t8, -36($fp)             # cur_line_len
         li $t1, 1024
-        bge $s7, $t1, read_loop
+        bge $t8, $t1, read_loop
         la $t1, curLine
-        add $t1, $t1, $s7
+        add $t1, $t1, $t8
         sb $t0, ($t1)
-        addi $s7, $s7, 1
+        addi $t8, $t8, 1
+        sw $t8, -36($fp)             # cur_line_len++
         j read_loop
 
 after_read:
         # count = min(total, n);  start = (total <= n) ? 0 : slot
-        ble $s6, $s2, full_history
-        move $t0, $s2                # count = n
-        move $t1, $s5                # start = slot
+        lw $t6, -32($fp)             # total
+        lw $t7, -16($fp)             # n
+        ble $t6, $t7, full_history
+        move $t2, $t7                # count = n
+        lw $t3, -28($fp)             # start = slot
         j emit_loop_setup
-
 full_history:
-        move $t0, $s6                # count = total
-        li $t1, 0                    # start = 0
+        move $t2, $t6                # count = total
+        li $t3, 0                    # start = 0
 
 emit_loop_setup:
-        # Use $s4 = count, $s5 = start (clobbering argv since we're done with it)
-        # No wait, $s5 = slot is already used.  Use new regs.
-        # Actually $s4 (argv) we still need? No — we're past argv parsing.
-        # Reuse $s4 = count, $s5 = i_loop... wait that clobbers slot.
-        # OK use $t* — we don't need $t* after this point.
-        # Let $t2 = count, $t3 = start, $t4 = i.  $s* preserved.
-        move $t2, $t0                # count
-        move $t3, $t1                # start
-        li $t4, 0                    # i = 0
+        li $t4, 0                    # i = 0  ($t2=count, $t3=start, $t4=i transient)
 
 emit_loop:
         bge $t4, $t2, after_ring_emit
 
         # s = (start + i) % n
         add $t5, $t3, $t4
-        rem $t5, $t5, $s2            # s = (start+i) % n
+        lw $t7, -16($fp)             # n
+        rem $t5, $t5, $t7
 
         # write ring[s], ringLen[s] bytes
         sll $t6, $t5, 10
         la $t7, ring
         add $t7, $t7, $t6            # &ring[s]
-
         sll $t6, $t5, 2
         la $t8, ringLen
         add $t8, $t8, $t6
@@ -210,11 +261,12 @@ emit_loop:
 
 after_ring_emit:
         # Trailing partial line if any
-        blez $s7, close_and_exit
+        lw $t8, -36($fp)             # cur_line_len
+        blez $t8, close_and_exit
         li $v0, 15
         li $a0, 1
         la $a1, curLine
-        move $a2, $s7
+        lw $a2, -36($fp)             # cur_line_len
         syscall
         li $v0, 15
         li $a0, 1
@@ -223,13 +275,16 @@ after_ring_emit:
         syscall
 
 close_and_exit:
-        beqz $s1, exit_ok
+        lw $t0, -12($fp)             # fd
+        beqz $t0, exit_ok
         li $v0, 16
-        move $a0, $s1
+        lw $a0, -12($fp)
         syscall
 exit_ok:
-        move $ra, $s0
         li $v0, 0                    # exit status: __start passes this through syscall 17
+        lw $ra, -4($fp)
+        lw $fp, -8($fp)
+        addiu $sp, $sp, 40
         jr $ra
 
 open_failed:
@@ -237,7 +292,7 @@ open_failed:
         la $a0, errMsg
         syscall
         li $v0, 4
-        move $a0, $s3
+        lw $a0, -20($fp)             # file_arg
         syscall
         li $v0, 4
         la $a0, nlMsg
@@ -263,6 +318,7 @@ usage:
         syscall
 
 
+# ---------- str_eq (leaf helper) — $v0 = 1 if equal, 0 if not --------
 str_eq:
         lb $t0, ($a0)
         lb $t1, ($a1)
@@ -279,6 +335,7 @@ str_eq_no:
         jr $ra
 
 
+# ---------- atoi (leaf helper) — parse decimal int from $a0 ----------
 atoi:
         li $v0, 0
         li $t1, 1

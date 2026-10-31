@@ -14,8 +14,23 @@
 #   printf 'hi\t\\\n' | spimulator -f od.asm # see the per-byte escapes
 
 
-#PURPOSE:  Hex/octal dump with per-byte formatted output.
-#          Demonstrates row-oriented output + character escapes.
+#PURPOSE:  Hex/octal dump with per-byte formatted output.  Row-oriented output
+#          + character escapes.
+#
+#          STACK-VISIBLE STYLE: main's C locals — fd, the argv[1] path, the
+#          running byte `offset`, and the within-row `col` — live in stack slots;
+#          a scratch register holds only a working COPY.  main makes jals
+#          (print_offset, print_byte_c), so it saves $ra.  print_offset and
+#          print_byte_c are register-based display helpers (they use offBuf/the
+#          esc_* strings in .data).
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+#  SYMBOL TABLE (routine: main): fd -> -12($fp), argv1 -> -16($fp), offset ->
+#  -20($fp), col -> -24($fp); saved $ra/$fp at -4/-8($fp).
+#
+#  No #CANONICAL block: od's rows carry fixed column spacing (and a trailing
+#  offset line) that a comment anchor would have to reproduce exactly; gated by
+#  before/after output equivalence.
 
 
         .data
@@ -36,82 +51,97 @@ oneByte:    .space 1
         .text
         .globl main
 main:
-        move $s0, $ra
-        li $s1, 0                    # fd = STDIN
-        move $s4, $0
-        li $s2, 0                    # offset
-        li $s3, 0                    # col
+        addiu $sp, $sp, -24
+        sw $ra, 20($sp)              # -> -4($fp)
+        sw $fp, 16($sp)              # -> -8($fp)
+        addiu $fp, $sp, 24
+
+        li $t0, 0
+        sw $t0, -12($fp)             # fd = STDIN (0)
+        sw $zero, -16($fp)           # argv1 = 0
+        sw $t0, -20($fp)             # offset = 0
+        sw $t0, -24($fp)             # col = 0
 
         li $t0, 1
         beq $a0, $t0, read_loop
         li $t0, 2
         bne $a0, $t0, usage
-
-        lw $s4, 4($a1)
-        lb $t0, 0($s4)
-        bne $t0, '-', do_open
-        lb $t0, 1($s4)
-        beq $t0, $0, read_loop
+        lw $t0, 4($a1)
+        sw $t0, -16($fp)             # argv1
+        lb $t1, 0($t0)
+        bne $t1, '-', do_open
+        lb $t1, 1($t0)
+        beq $t1, $0, read_loop
 
 do_open:
-        move $a0, $s4
+        lw $a0, -16($fp)
         li $v0, 13
         li $a1, 0
         li $a2, 0
         syscall
         bltz $v0, open_failed
-        move $s1, $v0
+        sw $v0, -12($fp)             # fd
 
 read_loop:
         li $v0, 14
-        move $a0, $s1
+        lw $a0, -12($fp)             # fd
         la $a1, oneByte
         li $a2, 1
         syscall
         blez $v0, after_read
 
         # if col == 0: print offset
-        bnez $s3, after_offset
-        move $a0, $s2
+        lw $t0, -24($fp)             # col
+        bnez $t0, after_offset
+        lw $a0, -20($fp)             # offset
         jal print_offset
 
 after_offset:
         lbu $a0, oneByte
         jal print_byte_c
 
-        addi $s3, $s3, 1
-        addi $s2, $s2, 1
-        li $t0, 16
-        bne $s3, $t0, read_loop
+        lw $t0, -24($fp)             # col
+        addi $t0, $t0, 1
+        sw $t0, -24($fp)             # col++
+        lw $t1, -20($fp)             # offset
+        addi $t1, $t1, 1
+        sw $t1, -20($fp)             # offset++
+        li $t2, 16
+        bne $t0, $t2, read_loop
         # row full -> newline + reset col
         li $a0, '\n'
         li $v0, 11
         syscall
-        li $s3, 0
+        li $t0, 0
+        sw $t0, -24($fp)             # col = 0
         j read_loop
 
 after_read:
         # if (col > 0) print '\n'
-        blez $s3, print_final_offset
+        lw $t0, -24($fp)             # col
+        blez $t0, print_final_offset
         li $a0, '\n'
         li $v0, 11
         syscall
 
 print_final_offset:
-        move $a0, $s2
+        lw $a0, -20($fp)             # offset
         jal print_offset
         li $a0, '\n'
         li $v0, 11
         syscall
 
 close_and_exit:
-        beqz $s1, exit_ok
+        lw $t0, -12($fp)             # fd
+        beqz $t0, exit_ok
         li $v0, 16
-        move $a0, $s1
+        lw $a0, -12($fp)
         syscall
 exit_ok:
-        move $ra, $s0
         li $v0, 0                    # exit status: __start passes this through syscall 17
+        lw $ra, -4($fp)
+        lw $fp, -8($fp)
+        addiu $sp, $sp, 24
         jr $ra
 
 open_failed:
@@ -119,7 +149,7 @@ open_failed:
         la $a0, errMsg
         syscall
         li $v0, 4
-        move $a0, $s4
+        lw $a0, -16($fp)             # argv1
         syscall
         li $v0, 4
         la $a0, nlMsg
