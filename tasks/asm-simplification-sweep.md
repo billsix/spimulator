@@ -93,10 +93,11 @@ faithful. The traced-value checker (above) is the SECOND gate the goldens don't 
 
 ## Steps (the index — each its own step-task; file rollout steps after the pilot)
 
-- [ ] **Step 1 — pilot + style reference doc** (`asm-simplification-sweep-step-1-pilot-and-style-doc.md`).
-  Convert ~4 representative demos to the full target style; author
-  `tasks/reference/mips-asm-teaching-style.md`; build the traced-value checker. Maintainer
-  signs off on the style before any rollout. **Ready now.**
+- [x] **Step 1 — pilot + style reference doc**
+  (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-1-pilot-and-style-doc.md`).
+  DONE 2026-10-31: converted `increment-ints-1`, `factorial`, `gcd`, `wc`; authored
+  `tasks/reference/mips-asm-teaching-style.md`; built `tools/check_asm_canonical.py`.
+  Maintainer signed off on the style and the transient-temporary boundary.
 - [ ] **Step 2+ — per-topic rollout** (filed after Step 1 fixes the style): `intro/`,
   `arguments/`, `transforms/`, `fileio/`, `algorithms/`, `recursion/`, `lang/calc/`,
   `extras/`, `lib/`. One step-task per topic folder (roughly), each converting its
