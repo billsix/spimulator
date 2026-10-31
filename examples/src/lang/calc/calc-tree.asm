@@ -30,41 +30,42 @@
 
 #PURPOSE:  The tree-building companion to calc-sdt: the SAME infix calculator
 #          and grammar, but the parser BUILDS AN AST and a SEPARATE recursive
-#          walker (eval) evaluates it.  Output is byte-identical to calc-sdt —
-#          they share one golden.  See calc-tree.c for the reference.
-#
-#          Grammar (precedence baked into the rule layering):
+#          walker (eval) evaluates it.  Output is byte-identical to calc-sdt.
 #            expr   := term   (('+'|'-') term)*
 #            term   := factor (('*'|'/') factor)*
 #            factor := NUMBER | '-' factor | '(' expr ')'
 #
-#          The parser returns a NODE POINTER (in $v0) up the call chain instead
-#          of calc-sdt's double; nothing is computed until eval walks the tree.
-#          Left operands held across a recursive call are node pointers saved on
-#          the $sp frame (a word), where calc-sdt saved doubles.
+#          STACK-VISIBLE STYLE: `cur` and `had_error` are C `static` GLOBALS in
+#          .data.  Every C local a routine must hold across a recursive call
+#          lives in its own frame at a fixed -N($fp) slot: the parser holds Node
+#          POINTERS (words) — the child/subtree in parse_factor, the left/right
+#          operands in parse_term/parse_expr — and main holds the finished tree
+#          pointer; eval holds the left operand (a DOUBLE) at an 8-aligned slot
+#          while it recurses into the right child.  A scratch register holds
+#          only a working COPY.  Nodes themselves live in the sbrk heap (new_node
+#          is a leaf allocator); the lookahead/error state are globals.  Every
+#          routine that `jal`s saves $ra.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
 #
-#          Nodes are bump-allocated off the program break with syscall 9 (sbrk):
-#          new_node grabs 24 bytes and returns the region base in $v0.  sbrk's
-#          base is 8-aligned and 24 keeps the value field (offset 8) 8-aligned,
-#          so sdc1/ldc1 to it work with no manual alignment.  Nodes are never
-#          freed; a malformed line's partial tree is simply leaked.
-
-
-#SYMBOL TABLE  (C name -> MIPS location)
+#  SYMBOL TABLE: cur -> curchar (.data); had_error -> errflag (.data).  main's
+#  tree -> -12($fp).  parse_factor's held Node* -> -12($fp).  parse_term/
+#  parse_expr: left -> -12($fp), right -> -16($fp).  eval: node ptr -> -12($fp),
+#  left operand (double, 8 bytes) -> -24($fp).  saved $ra/$fp at -4/-8($fp).
+#  advance()/skip_blanks()/new_node() are helpers; print_double is shared.
 #
-#   cur (lookahead char)  ->  word at `curchar` (.data)
-#   had_error             ->  word at `errflag`  (.data)
-#   a Node*               ->  $v0 (returned up the parse call chain)
-#   the finished tree      ->  $s2 (held in main across skip_blanks/advance)
-#   a parse accumulator (left Node*) held across a call -> 0($sp) frame (word)
-#   eval's left operand held across eval(right) -> 0($sp) frame (double)
+#  Node layout (24 bytes, from new_node): 0 kind (0=NUM,1=BINOP,2=NEG);
+#  4 op; 8 value (double); 16 left (Node*); 20 right (Node*).
 #
-#   Node layout (24 bytes, from new_node):
-#     0  kind  (word: 0=NUM, 1=BINOP, 2=NEG)
-#     4  op    (word: operator char, BINOP only)
-#     8  value (double, NUM only)
-#     16 left  (word Node*: BINOP left / NEG child)
-#     20 right (word Node*: BINOP right)
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  (shares calc-sdt's input + golden — the AST version must match calc-sdt)
+#  stdin: lang/calc/calc-sdt.input
+#  stdout:
+#  | 11.500000
+#  | 14
+#  | -2
+#  | 2.500000
+#  | -10
+#  | error
 
         .data
 curchar:    .word 0
@@ -76,7 +77,11 @@ infMsg:     .asciiz "inf"
         .text
         .globl main
 main:
-        move $s0, $ra                # save return address
+        addiu $sp, $sp, -16
+        sw   $ra, 12($sp)            # -> -4($fp)
+        sw   $fp, 8($sp)             # -> -8($fp)
+        addiu $fp, $sp, 16
+
         li   $v0, 12                 # prime the first lookahead char
         syscall
         sw   $v0, curchar
@@ -100,8 +105,8 @@ ml_not_blank:
 
         sw   $zero, errflag          # had_error = 0
         jal  parse_expr              # tree -> $v0
-        move $s2, $v0                # hold the tree across skip_blanks/advance
-                                     # (syscall 12 in advance would clobber $v0)
+        sw   $v0, -12($fp)           # tree (held across skip_blanks/eval, whose
+                                     # syscall-12/jal would clobber $v0)
         jal  skip_blanks
         lw   $t0, curchar
         li   $t1, 10
@@ -128,7 +133,7 @@ ml_recover:                          # discard the rest of the bad line
         sw   $v0, curchar
         j    ml_recover
 ml_print:
-        move $a0, $s2                # eval(tree)
+        lw   $a0, -12($fp)           # eval(tree)
         jal  eval
         mov.d $f12, $f0
         jal  print_double
@@ -145,12 +150,14 @@ ml_eol:
         j    main_loop
 
 main_done:
-        move $ra, $s0
         li   $v0, 0
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr   $ra
 
 
-# ---------- advance() — cur = read_char() ----------
+# ---------- advance() — cur = read_char()  (leaf helper) ----------
 advance:
         li   $v0, 12
         syscall
@@ -160,8 +167,10 @@ advance:
 
 # ---------- skip_blanks() — skip ' ' '\t' '\r' (NOT '\n') ----------
 skip_blanks:
-        addi $sp, $sp, -4
-        sw   $ra, 0($sp)
+        addiu $sp, $sp, -8
+        sw   $ra, 4($sp)             # -> -4($fp)
+        sw   $fp, 0($sp)             # -> -8($fp)
+        addiu $fp, $sp, 8
 sb_loop:
         lw   $t0, curchar
         li   $t1, ' '
@@ -170,8 +179,9 @@ sb_loop:
         beq  $t0, $t1, sb_adv
         li   $t1, 13
         beq  $t0, $t1, sb_adv
-        lw   $ra, 0($sp)
-        addi $sp, $sp, 4
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 8
         jr   $ra
 sb_adv:
         jal  advance
@@ -179,7 +189,6 @@ sb_adv:
 
 
 # ---------- new_node() -> $v0 — bump-allocate a 24-byte node via sbrk ----------
-#   syscall 9 grows the data segment by $a0 and returns the OLD top in $v0.
 #   Leaf (only a syscall); the returned base is 8-aligned.
 new_node:
         li   $a0, 24
@@ -188,12 +197,13 @@ new_node:
         jr   $ra
 
 
-# ---------- parse_factor() -> $v0 (Node*) ----------
-#   factor := NUMBER | '-' factor | '(' expr ')'
-#   frame: 0($sp)=held Node* (child/subtree across a call), 4($sp)=$ra
+# ---------- parse_factor() -> $v0 (Node*)   factor := NUMBER | '-' factor | '(' expr ')' ----------
+#   -12($fp) = held Node* (child/subtree across a call)
 parse_factor:
-        addi $sp, $sp, -8
-        sw   $ra, 4($sp)
+        addiu $sp, $sp, -12
+        sw   $ra, 8($sp)             # -> -4($fp)
+        sw   $fp, 4($sp)             # -> -8($fp)
+        addiu $fp, $sp, 12
         jal  skip_blanks
         lw   $t0, curchar
 
@@ -201,11 +211,11 @@ parse_factor:
         bne  $t0, $t1, pf_not_neg
         jal  advance
         jal  parse_factor            # child -> $v0
-        sw   $v0, 0($sp)             # hold child across new_node
+        sw   $v0, -12($fp)           # hold child across new_node
         jal  new_node                # node -> $v0
         li   $t0, 2
         sw   $t0, 0($v0)             # kind = NEG
-        lw   $t1, 0($sp)
+        lw   $t1, -12($fp)
         sw   $t1, 16($v0)            # left = child
         j    pf_ret
 pf_not_neg:
@@ -213,18 +223,18 @@ pf_not_neg:
         bne  $t0, $t1, pf_not_paren
         jal  advance
         jal  parse_expr              # subtree -> $v0
-        sw   $v0, 0($sp)             # hold subtree across the ')' handling
+        sw   $v0, -12($fp)           # hold subtree across the ')' handling
         jal  skip_blanks
         lw   $t0, curchar
         li   $t1, ')'
         bne  $t0, $t1, pf_paren_err
         jal  advance
-        lw   $v0, 0($sp)
+        lw   $v0, -12($fp)
         j    pf_ret
 pf_paren_err:
         li   $t0, 1                  # unbalanced parenthesis
         sw   $t0, errflag
-        lw   $v0, 0($sp)
+        lw   $v0, -12($fp)
         j    pf_ret
 pf_not_paren:
         li   $t1, '.'                # NUMBER starts with a digit or '.'
@@ -239,8 +249,8 @@ pf_number:
         li   $t1, 10
         mtc1 $t1, $f4
         cvt.d.w $f4, $f4             # ten = 10.0
-        li   $t2, 0                  # fractional_digits
-        li   $t3, 0                  # seen_digit
+        li   $t2, 0                  # fractional_digits (transient)
+        li   $t3, 0                  # seen_digit (transient)
 pfn_int:
         lw   $t0, curchar
         li   $t1, '0'
@@ -297,29 +307,32 @@ pfn_build:
         sw   $zero, 0($v0)           # kind = NUM (0)
         sdc1 $f0, 8($v0)             # value = $f0
 pf_ret:
-        lw   $ra, 4($sp)
-        addi $sp, $sp, 8
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 12
         jr   $ra
 
 
-# ---------- parse_term() -> $v0 (Node*) ----------
-#   term := factor (('*'|'/') factor)*  — left-associative BINOP nesting
-#   frame: 0($sp)=left Node*, 4($sp)=right Node*, 8($sp)=$ra
+# ---------- parse_term() -> $v0 (Node*)   term := factor (('*'|'/') factor)* ----------
+#   -12($fp) = left Node*, -16($fp) = right Node*
 parse_term:
-        addi $sp, $sp, -16
-        sw   $ra, 8($sp)
+        addiu $sp, $sp, -16
+        sw   $ra, 12($sp)            # -> -4($fp)
+        sw   $fp, 8($sp)             # -> -8($fp)
+        addiu $fp, $sp, 16
         jal  parse_factor            # left -> $v0
 pt_loop:
-        sw   $v0, 0($sp)             # save left across the next call
+        sw   $v0, -12($fp)           # save left across the next call
         jal  skip_blanks
         lw   $t0, curchar
         li   $t1, '*'
         beq  $t0, $t1, pt_mul
         li   $t1, '/'
         beq  $t0, $t1, pt_div
-        lw   $v0, 0($sp)             # neither: restore and return left
-        lw   $ra, 8($sp)
-        addi $sp, $sp, 16
+        lw   $v0, -12($fp)           # neither: restore and return left
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr   $ra
 pt_mul:
         jal  advance
@@ -331,36 +344,38 @@ pt_div:
         jal  parse_factor
         li   $t4, '/'
 pt_build:
-        sw   $v0, 4($sp)             # save right; $t4 = op (safe: no calls until
+        sw   $v0, -16($fp)           # save right; $t4 = op (safe: no calls until
         jal  new_node                # it is stored below)
         li   $t0, 1
         sw   $t0, 0($v0)             # kind = BINOP
         sw   $t4, 4($v0)             # op
-        lw   $t1, 0($sp)
+        lw   $t1, -12($fp)
         sw   $t1, 16($v0)            # left
-        lw   $t1, 4($sp)
+        lw   $t1, -16($fp)
         sw   $t1, 20($v0)            # right
         j    pt_loop                 # new node becomes the left operand
 
 
-# ---------- parse_expr() -> $v0 (Node*) ----------
-#   expr := term (('+'|'-') term)*  — left-associative BINOP nesting
-#   frame: 0($sp)=left Node*, 4($sp)=right Node*, 8($sp)=$ra
+# ---------- parse_expr() -> $v0 (Node*)   expr := term (('+'|'-') term)* ----------
+#   -12($fp) = left Node*, -16($fp) = right Node*
 parse_expr:
-        addi $sp, $sp, -16
-        sw   $ra, 8($sp)
+        addiu $sp, $sp, -16
+        sw   $ra, 12($sp)            # -> -4($fp)
+        sw   $fp, 8($sp)             # -> -8($fp)
+        addiu $fp, $sp, 16
         jal  parse_term              # left -> $v0
 pe_loop:
-        sw   $v0, 0($sp)
+        sw   $v0, -12($fp)
         jal  skip_blanks
         lw   $t0, curchar
         li   $t1, '+'
         beq  $t0, $t1, pe_add
         li   $t1, '-'
         beq  $t0, $t1, pe_sub
-        lw   $v0, 0($sp)
-        lw   $ra, 8($sp)
-        addi $sp, $sp, 16
+        lw   $v0, -12($fp)
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr   $ra
 pe_add:
         jal  advance
@@ -372,26 +387,26 @@ pe_sub:
         jal  parse_term
         li   $t4, '-'
 pe_build:
-        sw   $v0, 4($sp)
+        sw   $v0, -16($fp)
         jal  new_node
         li   $t0, 1
         sw   $t0, 0($v0)             # kind = BINOP
         sw   $t4, 4($v0)             # op
-        lw   $t1, 0($sp)
+        lw   $t1, -12($fp)
         sw   $t1, 16($v0)            # left
-        lw   $t1, 4($sp)
+        lw   $t1, -16($fp)
         sw   $t1, 20($v0)            # right
         j    pe_loop
 
 
 # ---------- eval($a0 = Node*) -> $f0 — the recursive tree walker ----------
-#   NUM   -> value ; NEG -> -eval(left) ; BINOP -> apply op to eval(l), eval(r)
-#   frame: 0($sp)=left operand (double, held across eval(right)),
-#          8($sp)=node ptr, 12($sp)=$ra
+#   -12($fp) = node ptr, -24($fp) = left operand (double, held across eval(right))
 eval:
-        addi $sp, $sp, -16
-        sw   $ra, 12($sp)
-        sw   $a0, 8($sp)             # save node ptr
+        addiu $sp, $sp, -24
+        sw   $ra, 20($sp)            # -> -4($fp)
+        sw   $fp, 16($sp)            # -> -8($fp)
+        addiu $fp, $sp, 24
+        sw   $a0, -12($fp)           # save node ptr
         lw   $t0, 0($a0)             # kind
         beqz $t0, ev_num             # 0 = NUM
         li   $t1, 2
@@ -399,12 +414,12 @@ eval:
         # else BINOP (1)
         lw   $a0, 16($a0)            # left child
         jal  eval                    # $f0 = eval(left)
-        sdc1 $f0, 0($sp)             # hold left value across eval(right)
-        lw   $t0, 8($sp)
+        sdc1 $f0, -24($fp)           # hold left value across eval(right)
+        lw   $t0, -12($fp)
         lw   $a0, 20($t0)            # right child
         jal  eval                    # $f0 = eval(right)
-        ldc1 $f2, 0($sp)             # $f2 = left value, $f0 = right value
-        lw   $t0, 8($sp)
+        ldc1 $f2, -24($fp)           # $f2 = left value, $f0 = right value
+        lw   $t0, -12($fp)
         lw   $t1, 4($t0)             # op
         li   $t2, '+'
         beq  $t1, $t2, ev_add
@@ -431,14 +446,16 @@ ev_neg:
         jal  eval
         neg.d $f0, $f0
 ev_ret:
-        lw   $ra, 12($sp)
-        addi $sp, $sp, 16
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 24
         jr   $ra
 
 
-# ---------- print_double($f12) — fixed deterministic format (see rpn.asm) ----
+# ---------- print_double($f12) — fixed deterministic format (shared display
+#            helper; leaf, register-based; see rpn.asm) ----------
 #   nan -> "nan"; sign; inf -> "inf"; else integer part, and if a fraction
-#   remains, '.' + 6 truncated fractional digits.  Leaf (only syscalls).
+#   remains, '.' + 6 truncated fractional digits.
 print_double:
         c.eq.d $f12, $f12            # nan is the only value != itself
         bc1t pd_not_nan

@@ -25,14 +25,43 @@
 #   printf '42\n100\n' | spimulator -f calc-1-numbers.asm   ->  42 / 100
 
 # PURPOSE:  Rung 1 of the calculator ladder — read one whole non-negative
-#           INTEGER per line of stdin and print it.  line := DIGITS.  Integers
-#           only (the FPU arrives at calc-6-float); input assumed well-formed
-#           (error recovery is the final calc-sdt).  Reading is byte-at-a-time
-#           via syscall 12 (-1 at EOF); printing via syscall 1 (print_int).
-
-# SYMBOL TABLE  (C name -> MIPS location)
-#   cur (lookahead char) -> word at `curchar` (.data)
-#   parse_number's value -> $t2 ; a digit -> $t0
+#           INTEGER per line of stdin and print it.  line := DIGITS.
+#
+#           STACK-VISIBLE STYLE: the lookahead char `cur` is a C `static`
+#           GLOBAL, so it lives in .data (label `curchar`), shared by main and
+#           the parse routines — not on any frame.  parse_number's C local
+#           `value` lives in its stack frame, reloaded/stored as digits accrue;
+#           a scratch register holds only a working COPY.  main and parse_number
+#           save $ra (they `jal`); advance is a leaf helper.
+#           Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: main)
+#
+#  C variable  | memory addr      | register   | C type    | bytes | role / notes
+#  ------------+------------------+------------+-----------+-------+---------------------------
+#  cur         | curchar (.data)  | $t0 (copy) | int       |   4   | GLOBAL lookahead char (-1 at EOF)
+#  (saved $ra) | -4($fp)          | —          | code addr |   4   | jal parse_number / advance
+#  (saved $fp) | -8($fp)          | —          | frame ptr |   4   | caller's frame pointer
+#
+#  SYMBOL TABLE (routine: parse_number — recursive-descent leaf of the grammar)
+#
+#  C variable  | memory addr | register   | C type    | bytes | role / notes
+#  ------------+-------------+------------+-----------+-------+---------------------------
+#  value       | -12($fp)    | $t2 (copy) | int       |   4   | accumulated DIGITS value
+#  (a digit)   | —           | $t0        | int       |   4   | transient cur - '0'
+#  (saved $ra) | -4($fp)     | —          | code addr |   4   | jal advance
+#  (saved $fp) | -8($fp)     | —          | frame ptr |   4   | caller's frame pointer
+#
+#  advance() is a leaf helper (one syscall; updates the `cur` global).
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  stdin: lang/calc/calc-1-numbers.input
+#  stdout:
+#  | 0
+#  | 7
+#  | 42
+#  | 100
 
         .data
 curchar:    .word 0
@@ -40,7 +69,12 @@ curchar:    .word 0
         .text
         .globl main
 main:
-        move $s0, $ra                # save return address
+        # ---- prologue: save $ra (and $fp) across the jals -----------
+        addiu $sp, $sp, -8
+        sw   $ra, 4($sp)             # -> -4($fp)
+        sw   $fp, 0($sp)             # -> -8($fp)
+        addiu $fp, $sp, 8
+
         li   $v0, 12                 # prime the first lookahead char
         syscall
         sw   $v0, curchar
@@ -72,12 +106,14 @@ ml_number:
         j    main_loop
 
 main_done:
-        move $ra, $s0
         li   $v0, 0
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 8
         jr   $ra
 
 
-# ---------- advance() — cur = read_char() ----------
+# ---------- advance() — cur = read_char()  (leaf helper) ----------
 advance:
         li   $v0, 12
         syscall
@@ -87,10 +123,12 @@ advance:
 
 # ---------- parse_number() -> $v0  (DIGITS; assumes at least one digit) ----------
 parse_number:
-        addi $sp, $sp, -4
-        sw   $ra, 0($sp)
-        li   $t2, 0                  # value = 0
-        li   $t3, 10
+        addi $sp, $sp, -16
+        sw   $ra, 12($sp)            # -> -4($fp)
+        sw   $fp, 8($sp)             # -> -8($fp)
+        addiu $fp, $sp, 16
+        li   $t2, 0
+        sw   $t2, -12($fp)           # value = 0
 pn_loop:
         lw   $t0, curchar
         li   $t1, '0'
@@ -98,12 +136,16 @@ pn_loop:
         li   $t1, '9'
         bgt  $t0, $t1, pn_done
         addi $t0, $t0, -48           # digit = cur - '0'
-        mul  $t2, $t2, $t3           # value = value * 10 + digit
-        add  $t2, $t2, $t0
+        lw   $t2, -12($fp)           # value
+        li   $t3, 10
+        mul  $t2, $t2, $t3           # value * 10
+        add  $t2, $t2, $t0           # + digit
+        sw   $t2, -12($fp)           # store value back
         jal  advance
         j    pn_loop
 pn_done:
-        move $v0, $t2
-        lw   $ra, 0($sp)
-        addi $sp, $sp, 4
+        lw   $v0, -12($fp)           # return value
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addi $sp, $sp, 16
         jr   $ra

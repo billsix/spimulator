@@ -28,13 +28,33 @@
 #           the algorithm is split from the I/O.  main reads one line of stdin
 #           into the .data buffer `lineBuf`, then `eval` parses+evaluates that
 #           BUFFER (the parser's `advance` walks the buffer; nothing in it calls
-#           read_char).  So the parser is a pure function of a string.  Shares
-#           calc-sdt's golden.  The parse routines below are calc-sdt's verbatim;
-#           only `advance`, `main`, and the `eval` wrapper differ.
-
-#SYMBOL TABLE  (C name -> MIPS location)
-#   cursor (buffer read ptr) -> word at `cursor` ; cur (lookahead) -> `curchar`
-#   had_error -> `errflag` ; a parsed value -> $f0 ; line buffer -> `lineBuf`
+#           read_char).  So the parser is a pure function of a string.
+#
+#           STACK-VISIBLE STYLE: the buffer `lineBuf`, the read cursor `cursor`,
+#           the lookahead `cur`, and `had_error` are C `static` GLOBALS in .data.
+#           main homes the between-lines lookahead `c` at -12($fp) (its line
+#           reader's pointer/count are transient scratch).  The parse routines
+#           hold their running DOUBLE at the 8-aligned slot -16($fp) (as in
+#           calc-sdt).  eval is a thin wrapper (no C locals; resets the globals,
+#           primes, parses).  A scratch register holds only a working COPY;
+#           every routine that `jal`s saves $ra.  advance/skip_blanks/blank_line
+#           are helpers; print_double is shared.
+#           Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+#  SYMBOL TABLE: lineBuf/cursor/cur/had_error -> .data GLOBALS.  main's c ->
+#  -12($fp).  parse_expr/parse_term/parse_factor running DOUBLE -> -16($fp).
+#  saved $ra/$fp at -4/-8($fp).
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  (shares calc-sdt's input + golden)
+#  stdin: lang/calc/calc-sdt.input
+#  stdout:
+#  | 11.500000
+#  | 14
+#  | -2
+#  | 2.500000
+#  | -10
+#  | error
 
         .data
 lineBuf:    .space 256
@@ -48,40 +68,48 @@ infMsg:     .asciiz "inf"
         .text
         .globl main
 main:
-        move $s0, $ra                # save return address
+        addiu $sp, $sp, -16
+        sw   $ra, 12($sp)            # -> -4($fp)
+        sw   $fp, 8($sp)             # -> -8($fp)
+        addiu $fp, $sp, 16
+
         li   $v0, 12                 # c = read_char()  (between-lines lookahead)
         syscall
-        move $s3, $v0
+        sw   $v0, -12($fp)           # c
 
 mloop:
-        li   $t0, -1
-        beq  $s3, $t0, mdone         # while (c != EOF)
+        lw   $t0, -12($fp)           # c
+        li   $t1, -1
+        beq  $t0, $t1, mdone         # while (c != EOF)
 
-        # read one line (up to 255 bytes) into lineBuf, NUL-terminated
+        # read one line (up to 255 bytes) into lineBuf, NUL-terminated.
+        # $t1 = write pointer, $t2 = n  (transient line-reader scratch)
         la   $t1, lineBuf
-        li   $t2, 0                  # n
+        li   $t2, 0
 rl_loop:
-        li   $t0, -1
-        beq  $s3, $t0, rl_end
-        li   $t0, 10                 # '\n' ends the line
-        beq  $s3, $t0, rl_end
-        li   $t0, 255                # LINE_MAX - 1
-        bge  $t2, $t0, rl_consume    # buffer full: keep consuming, don't store
-        sb   $s3, 0($t1)
+        lw   $t0, -12($fp)           # c
+        li   $t3, -1
+        beq  $t0, $t3, rl_end
+        li   $t3, 10                 # '\n' ends the line
+        beq  $t0, $t3, rl_end
+        li   $t3, 255                # LINE_MAX - 1
+        bge  $t2, $t3, rl_consume    # buffer full: keep consuming, don't store
+        sb   $t0, 0($t1)
         addi $t1, $t1, 1
         addi $t2, $t2, 1
 rl_consume:
         li   $v0, 12
         syscall
-        move $s3, $v0
+        sw   $v0, -12($fp)           # c = read_char()
         j    rl_loop
 rl_end:
         sb   $zero, 0($t1)           # NUL-terminate
-        li   $t0, 10                 # consume the newline, prime next lookahead
-        bne  $s3, $t0, rl_no_nl
+        lw   $t0, -12($fp)           # c
+        li   $t3, 10                 # consume the newline, prime next lookahead
+        bne  $t0, $t3, rl_no_nl
         li   $v0, 12
         syscall
-        move $s3, $v0
+        sw   $v0, -12($fp)           # c
 rl_no_nl:
         jal  blank_line              # blank line -> no output
         bnez $v0, mloop
@@ -103,12 +131,15 @@ m_eol:
         j    mloop
 
 mdone:
-        move $ra, $s0
         li   $v0, 0
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr   $ra
 
 
 # ---------- blank_line() -> $v0 (1 if lineBuf is empty or all blanks) ----------
+# Leaf helper: walks lineBuf in a scratch register.
 blank_line:
         la   $t0, lineBuf
 bl_loop:
@@ -132,9 +163,12 @@ bl_blank:
 
 # ---------- eval() -> $f0 : the pure core over lineBuf ----------
 #   cursor = lineBuf; errflag = 0; parse_expr; flag trailing garbage.
+#   No C locals (cursor/errflag are globals); saves $ra for its jals.
 eval:
-        addi $sp, $sp, -8
-        sw   $ra, 0($sp)
+        addiu $sp, $sp, -8
+        sw   $ra, 4($sp)             # -> -4($fp)
+        sw   $fp, 0($sp)             # -> -8($fp)
+        addiu $fp, $sp, 8
         la   $t0, lineBuf
         sw   $t0, cursor             # cursor = lineBuf
         sw   $zero, errflag
@@ -147,12 +181,14 @@ eval:
         li   $t1, 1                  # trailing garbage after a full expression
         sw   $t1, errflag
 eval_ret:
-        lw   $ra, 0($sp)
-        addi $sp, $sp, 8
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 8
         jr   $ra
 
 
 # ---------- advance() — cur = next byte of the buffer (-1 at the NUL) ----------
+# Leaf helper (no jal): walks the `cursor` global over lineBuf.
 advance:
         lw   $t0, cursor
         lbu  $t1, 0($t0)
@@ -167,12 +203,12 @@ adv_eof:
         jr   $ra
 
 
-# ======== the following parse routines are calc-sdt.asm's, verbatim ========
-
 # ---------- skip_blanks() — skip ' ' '\t' '\r' (NOT '\n') ----------
 skip_blanks:
-        addi $sp, $sp, -4
-        sw   $ra, 0($sp)
+        addiu $sp, $sp, -8
+        sw   $ra, 4($sp)             # -> -4($fp)
+        sw   $fp, 0($sp)             # -> -8($fp)
+        addiu $fp, $sp, 8
 sb_loop:
         lw   $t0, curchar
         li   $t1, ' '
@@ -181,19 +217,22 @@ sb_loop:
         beq  $t0, $t1, sb_adv
         li   $t1, 13
         beq  $t0, $t1, sb_adv
-        lw   $ra, 0($sp)
-        addi $sp, $sp, 4
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 8
         jr   $ra
 sb_adv:
         jal  advance
         j    sb_loop
 
 
-# ---------- parse_factor() -> $f0 ----------
-#   factor := NUMBER | '-' factor | '(' expr ')'
+# ---------- parse_factor() -> $f0   factor := NUMBER | '-' factor | '(' expr ')' ----------
+#   -16($fp) = held double value (parens case, 8 bytes via sdc1/ldc1)
 parse_factor:
-        addi $sp, $sp, -16
-        sw   $ra, 8($sp)
+        addiu $sp, $sp, -16
+        sw   $ra, 12($sp)            # -> -4($fp)
+        sw   $fp, 8($sp)             # -> -8($fp)
+        addiu $fp, $sp, 16
         jal  skip_blanks
         lw   $t0, curchar
 
@@ -208,18 +247,18 @@ pf_not_neg:
         bne  $t0, $t1, pf_not_paren
         jal  advance
         jal  parse_expr
-        sdc1 $f0, 0($sp)             # hold the value across the ')' handling
+        sdc1 $f0, -16($fp)           # hold the value across the ')' handling
         jal  skip_blanks
         lw   $t0, curchar
         li   $t1, ')'
         bne  $t0, $t1, pf_paren_err
         jal  advance
-        ldc1 $f0, 0($sp)
+        ldc1 $f0, -16($fp)
         j    pf_ret
 pf_paren_err:
         li   $t0, 1                  # unbalanced parenthesis
         sw   $t0, errflag
-        ldc1 $f0, 0($sp)
+        ldc1 $f0, -16($fp)
         j    pf_ret
 pf_not_paren:
         li   $t1, '.'                # NUMBER starts with a digit or '.'
@@ -234,8 +273,8 @@ pf_number:
         li   $t1, 10
         mtc1 $t1, $f4
         cvt.d.w $f4, $f4             # ten = 10.0
-        li   $t2, 0                  # fractional_digits
-        li   $t3, 0                  # seen_digit
+        li   $t2, 0                  # fractional_digits (transient)
+        li   $t3, 0                  # seen_digit (transient)
 pfn_int:
         lw   $t0, curchar
         li   $t1, '0'
@@ -288,76 +327,86 @@ pf_bad:
         mtc1 $zero, $f0
         cvt.d.w $f0, $f0
 pf_ret:
-        lw   $ra, 8($sp)
-        addi $sp, $sp, 16
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr   $ra
 
 
-# ---------- parse_term() -> $f0 ----------
-#   term := factor (('*'|'/') factor)*
+# ---------- parse_term() -> $f0   term := factor (('*'|'/') factor)* ----------
+#   -16($fp) = accumulator (double, 8 bytes via sdc1/ldc1)
 parse_term:
-        addi $sp, $sp, -16
-        sw   $ra, 8($sp)
+        addiu $sp, $sp, -16
+        sw   $ra, 12($sp)            # -> -4($fp)
+        sw   $fp, 8($sp)             # -> -8($fp)
+        addiu $fp, $sp, 16
         jal  parse_factor
 pt_loop:
-        sdc1 $f0, 0($sp)             # save accumulator across the next call
+        sdc1 $f0, -16($fp)           # save accumulator across the next call
         jal  skip_blanks
         lw   $t0, curchar
         li   $t1, '*'
         beq  $t0, $t1, pt_mul
         li   $t1, '/'
         beq  $t0, $t1, pt_div
-        ldc1 $f0, 0($sp)             # neither: restore and return
-        lw   $ra, 8($sp)
-        addi $sp, $sp, 16
+        ldc1 $f0, -16($fp)           # neither: restore and return
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr   $ra
 pt_mul:
         jal  advance
         jal  parse_factor            # rhs -> $f0
-        ldc1 $f2, 0($sp)             # lhs
+        ldc1 $f2, -16($fp)           # lhs
         mul.d $f0, $f2, $f0
         j    pt_loop
 pt_div:
         jal  advance
         jal  parse_factor
-        ldc1 $f2, 0($sp)
+        ldc1 $f2, -16($fp)
         div.d $f0, $f2, $f0
         j    pt_loop
 
 
-# ---------- parse_expr() -> $f0 ----------
-#   expr := term (('+'|'-') term)*
+# ---------- parse_expr() -> $f0   expr := term (('+'|'-') term)* ----------
+#   -16($fp) = accumulator (double, 8 bytes via sdc1/ldc1)
 parse_expr:
-        addi $sp, $sp, -16
-        sw   $ra, 8($sp)
+        addiu $sp, $sp, -16
+        sw   $ra, 12($sp)            # -> -4($fp)
+        sw   $fp, 8($sp)             # -> -8($fp)
+        addiu $fp, $sp, 16
         jal  parse_term
 pe_loop:
-        sdc1 $f0, 0($sp)
+        sdc1 $f0, -16($fp)
         jal  skip_blanks
         lw   $t0, curchar
         li   $t1, '+'
         beq  $t0, $t1, pe_add
         li   $t1, '-'
         beq  $t0, $t1, pe_sub
-        ldc1 $f0, 0($sp)
-        lw   $ra, 8($sp)
-        addi $sp, $sp, 16
+        ldc1 $f0, -16($fp)
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr   $ra
 pe_add:
         jal  advance
         jal  parse_term
-        ldc1 $f2, 0($sp)
+        ldc1 $f2, -16($fp)
         add.d $f0, $f2, $f0
         j    pe_loop
 pe_sub:
         jal  advance
         jal  parse_term
-        ldc1 $f2, 0($sp)
+        ldc1 $f2, -16($fp)
         sub.d $f0, $f2, $f0
         j    pe_loop
 
 
-# ---------- print_double($f12) — fixed deterministic format (see rpn.asm) ----
+# ---------- print_double($f12) — fixed deterministic format (shared display
+#            helper; leaf, register-based; see rpn.asm) ----------
+#   nan -> "nan"; sign; inf -> "inf"; else integer part, and if a fraction
+#   remains, '.' + 6 truncated fractional digits.
 print_double:
         c.eq.d $f12, $f12            # nan is the only value != itself
         bc1t pd_not_nan
