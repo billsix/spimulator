@@ -1,7 +1,10 @@
 # Examples Makefile: a debuggable C build alongside the readable listings
 
-**Status:** proposed — needs go-ahead to implement (design settled with the maintainer,
-William Emerison Six <billsix@gmail.com>, 2026-10-31)
+**Status:** done + archived 2026-10-31 — `make debug` builds 75 debuggable
+`bin-debug/<demo>` binaries; verified they run and carry DWARF, and `gdb bin-debug/factorial`
+breaks on `my_main`, shows `factorial.c` source, and reads args. Image bake added to the
+Dockerfile. Implemented under the maintainer's commit authorization (William Emerison Six
+<billsix@gmail.com>, 2026-10-31).
 **Priority:** 5
 **Difficulty:** 3
 
@@ -63,18 +66,17 @@ compiler *output* for reading; this task is debuggable *binaries*. No overlap.
 - **Baked into the image**: extend the Dockerfile so the examples `make` run also builds
   `bin-debug/`.
 
-## Open questions
+## Decisions made during implementation
 
-None blocking — the design above is settled. One mechanism choice to make during
-implementation (record the decision in this doc):
-
-1. **Debug helper archives.** The readable flow archives the IO/libctype/libstdlib/libstr
-   helpers (built with `EDU_FLAGS`, no `-g`) so the linker pulls only referenced members.
-   To let a student *step into* `print_uint`/`atoi` too, the debug binaries should link
-   `-g` helper archives. Recommended: a parallel `libio-debug.a` etc. built with
-   `DEBUG_FLAGS` (clean, mirrors the existing archive rules). Alternative: one-shot compile
-   each demo's `.c` with the helper `.c` set (no archives) — simpler rule, but recompiles
-   helpers per demo. Pick during implementation; default to the parallel debug archives.
+- **Debug helper archives (the defaulted choice):** parallel `libio-debug.a` /
+  `libstdlib-debug.a` / `libstr-debug.a` / `libctype-debug.a`, compiled from the same
+  helper `.c` with `DEBUG_FLAGS` (`%.debug.o: %.c` rule), so a student can step INTO
+  `print_uint`/`atoi` as well as `my_main`. Mirrors the existing archive rules.
+- **`DEBUG_FLAGS`** settled at `-std=gnu23 -g -O0 -fno-omit-frame-pointer -fno-stack-protector`
+  (dropped the unwind-table suppressions so gdb backtraces work; still freestanding
+  `-nostdlib`, own `_start`).
+- **`*.debug.o` and `lib*-debug.a` need no new gitignore rule** — the existing `*.o` / `*.a`
+  patterns in `examples/.gitignore` cover them; only `src/bin-debug/` was added.
 
 ## Verification (when implemented)
 

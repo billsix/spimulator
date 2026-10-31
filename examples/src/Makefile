@@ -25,8 +25,9 @@
 #   make             # listings + executables (native arch)
 #   make listings     # just the <demo>.s files
 #   make executables  # just the bin/<demo> binaries
+#   make debug        # debuggable bin-debug/<demo> binaries (-g, for gdb/lldb)
 #   make CC=clang ...  # pick the compiler (the container uses clang)
-#   make clean        # remove listings, objects, archives, bin/
+#   make clean        # remove listings, objects, archives, bin/, bin-debug/
 
 CC ?= cc
 
@@ -54,6 +55,18 @@ INCLUDES = -I. -Ilib/libctype -Ilib/libstdlib -Ilib/libstr
 # touches libc.  Matches meson's edu_link_args.
 LINK_FLAGS = -nostdlib
 
+# Debug flags -- the OPPOSITE tradeoff from EDU_FLAGS: keep the frame
+# pointer and emit DWARF (-g) so a student can set a breakpoint on
+# my_main and step the C in gdb/lldb.  Still freestanding (own _start,
+# -nostdlib).  These binaries are NOT meant to be read as assembly;
+# the readable listing is the <demo>.s from EDU_FLAGS.  See the task
+# tasks/examples-makefile-debug-build.md.
+DEBUG_FLAGS = -std=gnu23 \
+              -g \
+              -O0 \
+              -fno-omit-frame-pointer \
+              -fno-stack-protector
+
 # ---------------------------------------------------------------------------
 # Source inventory.  Strip the leading ./ that `find` prepends so the
 # top-level helper paths (wildcard, no ./) compare equal in filter-out.
@@ -80,6 +93,9 @@ ALL_S := $(ALL_C:.c=.s)
 # .gitignore'd, unlike extensionless binaries strewn beside sources.
 EXES := $(addprefix bin/,$(notdir $(basename $(DEMO_C))))
 
+# One debuggable executable per demo, collected flat in bin-debug/.
+DEBUG_EXES := $(addprefix bin-debug/,$(notdir $(basename $(DEMO_C))))
+
 # Helper objects, archived so the linker pulls only the members a
 # given demo actually references -- which means every demo can link
 # against all the archives without caring which it needs.
@@ -89,10 +105,20 @@ EXES := $(addprefix bin/,$(notdir $(basename $(DEMO_C))))
 IO_OBJ := $(IO_C:.c=.o)
 ARCHIVES := libio.a libstdlib.a libstr.a libctype.a
 
-.PHONY: all listings executables clean
+# Parallel debug helper archives, compiled from the same .c with
+# DEBUG_FLAGS so a student can step INTO print_string/atoi too.
+IO_DEBUG_OBJ := $(IO_C:.c=.debug.o)
+DEBUG_ARCHIVES := libio-debug.a libstdlib-debug.a libstr-debug.a libctype-debug.a
+
+.PHONY: all listings executables debug clean
 all: listings executables
 listings: $(ALL_S)
 executables: $(EXES)
+
+# `make debug` is the SECOND, independent build: debuggable binaries
+# in bin-debug/, compiled straight from the .c (no listing in between).
+# It does not touch the readable listings/bin/ flow above.
+debug: $(DEBUG_EXES)
 
 # ---------- .c -> .s (the readable listing, beside the source) -------------
 %.s: %.c
@@ -127,6 +153,35 @@ bin:
 bin/%: %.s $(ARCHIVES) | bin
 	$(CC) $(LINK_FLAGS) $< libio.a libstdlib.a libstr.a libctype.a -o $@
 
+# ---------- debug build (bin-debug/, compiled from .c with -g) -------------
+# Also resolve a demo's .c by basename so bin-debug/<name> finds it.
+vpath %.c $(sort $(dir $(DEMO_C)))
+
+# Debug helper objects + archives (straight from .c with DEBUG_FLAGS).
+%.debug.o: %.c
+	$(CC) $(DEBUG_FLAGS) $(INCLUDES) -c $< -o $@
+
+libio-debug.a: $(IO_DEBUG_OBJ)
+	$(AR) rcs $@ $^
+
+libctype-debug.a: lib/libctype/libctype.debug.o
+	$(AR) rcs $@ $^
+
+libstdlib-debug.a: lib/libstdlib/libstdlib.debug.o
+	$(AR) rcs $@ $^
+
+libstr-debug.a: lib/libstr/libstr.debug.o
+	$(AR) rcs $@ $^
+
+bin-debug:
+	mkdir -p bin-debug
+
+# Compile and link each demo directly from its .c with -g into bin-debug/.
+bin-debug/%: %.c $(DEBUG_ARCHIVES) | bin-debug
+	$(CC) $(DEBUG_FLAGS) $(INCLUDES) $(LINK_FLAGS) $< \
+	    libio-debug.a libstdlib-debug.a libstr-debug.a libctype-debug.a -o $@
+
 clean:
 	rm -f $(ALL_S) $(IO_OBJ) lib/libctype/libctype.o lib/libstdlib/libstdlib.o lib/libstr/libstr.o $(ARCHIVES)
-	rm -rf bin
+	rm -f $(IO_DEBUG_OBJ) lib/libctype/libctype.debug.o lib/libstdlib/libstdlib.debug.o lib/libstr/libstr.debug.o $(DEBUG_ARCHIVES)
+	rm -rf bin bin-debug

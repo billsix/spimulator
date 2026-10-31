@@ -147,7 +147,12 @@ RUN if [ "$RUN_SANITIZERS" = "1" ]; then \
 # that run under spim + their golden tests are owned by the meson
 # build above.  CC=clang to match the rest of the image.
 # See examples/tasks/PLAN-asm-listings-makefile.md.
-RUN make -C ${SPIM_SRC_DIR}/examples/src CC=clang all
+#
+# `debug` additionally builds bin-debug/<demo> with -g (frame pointer
+# kept, DWARF emitted) so a student can `gdb bin-debug/<demo>`, break
+# on my_main and step the C.  The container already ships gdb/lldb/
+# valgrind.  See tasks/examples-makefile-debug-build.md.
+RUN make -C ${SPIM_SRC_DIR}/examples/src CC=clang all debug
 
 # Optional: build and test the editor-integration tree-sitter grammar.
 # Gated by --build-arg BUILD_TREE_SITTER=1 because Node + tree-sitter-cli
