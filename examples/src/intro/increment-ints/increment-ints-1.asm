@@ -25,15 +25,48 @@
 #PURPOSE:  Demonstrate pre- and post-increment of integer variables.
 #          Two locals `a` and `b` both start at 5.  Prints
 #          ++a + 5, then a, then b++ + 5, then b — each on its own
-#          line.
+#          line (11, 6, 10, 6).
 #
-#VARIABLES:
-#   $t0   the variable `a`  (kept in this register for the whole
-#           program — no stack frame needed)
-#   $t1   the variable `b`
-#   $t2   scratch for (a + 5) or (b + 5) while we set up the print
-#   $a0   syscall argument
-#   $v0   syscall selector (1 = print_int, 4 = print_string)
+#          STACK-VISIBLE STYLE: `a` and `b` live in stack slots, not
+#          registers.  A scratch register ($t0) holds a working copy
+#          only while an instruction needs it, then the value is
+#          stored straight back.  This demo makes NO `jal`, so it
+#          saves no $ra (syscalls preserve $ra) — only the frame
+#          pointer is saved.  (Save $ra on the stack only when a
+#          routine calls another with `jal`; see factorial.)
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: main)
+#
+#  C variable  | memory addr | register   | C type    | bytes | role / notes
+#  ------------+-------------+------------+-----------+-------+-----------------------
+#  a           | -8($fp)     | $t0 (copy) | int       |   4   | first int; home on stack
+#  b           | -12($fp)    | $t0 (copy) | int       |   4   | second int; home on stack
+#  (saved $fp) | -4($fp)     | —          | frame ptr |   4   | caller's frame pointer
+#
+# ------------------------------------------------------------------
+#  SNAPSHOT (no args; just after `++a` is computed and stored,
+#            before the first print)
+#
+#        main's stack frame             scratch
+#   +--------------------------+       +---------------------------+
+#   | -4($fp)  saved $fp       |       | $t0 = 6 (copy of a, ++'d)
+#   | -8($fp)  a       =  6    | <---- | $t0
+#   | -12($fp) b       =  5    |       +---------------------------+
+#   +--------------------------+
+#         $sp = $fp - 12
+#
+#   Then prints 11 (a+5 with new a), 6 (a), 10 (OLD b + 5), 6 (b
+#   after b++).
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  args:
+#  stdout:
+#  | 11
+#  | 6
+#  | 10
+#  | 6
 
         .data
 nl:    .asciiz     "\n"
@@ -41,25 +74,31 @@ nl:    .asciiz     "\n"
         .text
         .globl main
 main:
-        li $t0, 5                    # a = 5
-        li $t1, 5                    # b = 5
+        # ---- prologue: build a 12-byte frame (no $ra: no `jal`) ----
+        addiu $sp, $sp, -12          # allocate the frame
+        sw $fp, 8($sp)               # save caller's $fp -> -4($fp)
+        addiu $fp, $sp, 12           # $fp = top of our frame
 
-        # ++a   — write back BEFORE the value is used
-        addiu $t0, $t0, 1
+        # a = b = 5;
+        li $t0, 5
+        sw $t0, -8($fp)              # a = 5
+        sw $t0, -12($fp)             # b = 5
 
-        # print_int(a + 5);    -- with the *new* a, so this prints 11
-        addiu $t2, $t0, 5            # $t2 = a + 5
-        move $a0, $t2
-        li $v0, 1                    # syscall 1 = print_int
+        # print_int(++a + 5);   -- increment a FIRST, then use it (prints 11)
+        lw $t0, -8($fp)             # $t0 = a
+        addiu $t0, $t0, 1           # ++a
+        sw $t0, -8($fp)             # store the new a back to its slot
+        addiu $a0, $t0, 5           # a + 5   (with the new a)
+        li $v0, 1                   # syscall 1 = print_int
         syscall
 
         # print_string("\n");
-        li $v0, 4                    # syscall 4 = print_string
+        li $v0, 4
         la $a0, nl
         syscall
 
         # print_int(a);              -- prints 6
-        move $a0, $t0
+        lw $a0, -8($fp)             # a
         li $v0, 1
         syscall
 
@@ -68,22 +107,21 @@ main:
         la $a0, nl
         syscall
 
-        # print_int(b + 5);          -- uses the *old* b, so prints 10
-        addiu $t2, $t1, 5            # $t2 = b + 5
-        move $a0, $t2
+        # print_int(b++ + 5);        -- use the OLD b (prints 10), then b++
+        lw $t0, -12($fp)            # $t0 = b   (old value)
+        addiu $a0, $t0, 5           # b + 5   (with the old b)
         li $v0, 1
         syscall
+        addiu $t0, $t0, 1           # b++
+        sw $t0, -12($fp)            # store the new b back
 
         # print_string("\n");
         li $v0, 4
         la $a0, nl
         syscall
-
-        # b++                         -- write back AFTER the previous use
-        addiu $t1, $t1, 1
 
         # print_int(b);              -- prints 6
-        move $a0, $t1
+        lw $a0, -12($fp)            # b
         li $v0, 1
         syscall
 
@@ -92,5 +130,8 @@ main:
         la $a0, nl
         syscall
 
+        # ---- epilogue: tear down the frame, return to the runtime --
         li $v0, 0                    # exit status 0
-        jr $ra                       # return to the runtime
+        lw $fp, -4($fp)             # restore caller's $fp
+        addiu $sp, $sp, 12           # pop the frame
+        jr $ra                       # $ra untouched (we made no `jal`)

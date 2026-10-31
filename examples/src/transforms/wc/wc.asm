@@ -29,32 +29,62 @@
 #PURPOSE:  wc -cl with real-Unix argv handling.  No file arg (or
 #          explicit "-") -> stdin.  Filename arg -> open and read.
 #
-#NOTES:    Switched from syscall 12 (read_char, stdin-fixed) to
-#          syscall 14 (read fd into buffer) so the same loop body
-#          works for both stdin and a file fd.  Loop reads 1 byte
-#          at a time; a real wc would block-buffer for speed, but
-#          the byte loop matches the demo's pedagogical shape.
-
-
-#SYMBOL TABLE  (C variable -> MIPS location)
+#NOTES:    Uses syscall 14 (read fd into buffer) so the same loop
+#          body works for both stdin and a file fd.  Reads 1 byte at
+#          a time; a real wc would block-buffer, but the byte loop
+#          matches the demo's pedagogical shape.
 #
-#   In main:
-#     fd            $s1                  (0 = STDIN, else open's return)
-#     argv[1]       $s4                  (saved address for error message)
-#     byte_count    $s2                  (running tally)
-#     line_count    $s3                  (running tally)
-#     c (one byte)  `oneByte` (.data)    (1-byte read landing pad)
+#          STACK-VISIBLE STYLE: fd, byte_count, line_count, file_arg
+#          and the read byte `c` all live in stack slots.  `c` is a
+#          genuine stack local whose ADDRESS (&c) is handed to read —
+#          `addiu $a1,$fp,-24` computes that address.  A scratch
+#          register ($t0/$t1) holds a working copy only while an
+#          instruction needs it.  This routine makes no `jal` (only
+#          syscalls, which preserve $ra), so it saves no $ra.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
 #
-#   Cross-call saves (callee-save $s* values held LIVE across syscalls):
-#     $s0   <- runtime's $ra
-#     $s1   <- fd (held across every syscall in the loop)
-#     $s2   <- byte_count
-#     $s3   <- line_count
-#     $s4   <- argv[1] address (only meaningful in the file path)
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: main)
 #
-#   Volatile:
-#     $a0..$a2  syscall args
-#     $v0       syscall selector / return value
+#  C variable   | memory addr | register   | C type    | bytes | role / notes
+#  -------------+-------------+------------+-----------+-------+-------------------------
+#  argc         | —           | $a0        | int       |   4   | entry only; argc dispatch
+#  argv         | —           | $a1        | char **   |   4   | entry only; argv[1] read
+#  fd           | -8($fp)     | $t0 (copy) | int       |   4   | 0 = STDIN, else open()'s return
+#  byte_count   | -12($fp)    | $t0 (copy) | int       |   4   | running tally (every byte)
+#  line_count   | -16($fp)    | $t0 (copy) | int       |   4   | running tally (newlines only)
+#  file_arg     | -20($fp)    | $t1 (copy) | char *    |   4   | argv[1] (name or "-"); 0 if none
+#  c            | -24($fp)    | —          | char      |   1   | read landing pad; &c passed to read
+#  n (read ret) | —           | $v0        | long      |   4   | bytes read this call; tested, transient
+#  (saved $fp)  | -4($fp)     | —          | frame ptr |   4   | caller's frame pointer
+#
+#  (fd, byte_count and line_count each use $t0 as their scratch copy
+#   at different times — $t0 is reused, never holding two at once.)
+#
+# ------------------------------------------------------------------
+#  SNAPSHOT (input: piped wc.input, just after the first '\n' is
+#            counted — the end of "hello world\n")
+#
+#        main's stack frame                 scratch
+#   +-----------------------------+        +-------------------------+
+#   | -4($fp)  saved $fp          |        | $t0 = 1 (line_count, ++'d)
+#   | -8($fp)  fd          =  0   |        +-------------------------+
+#   | -12($fp) byte_count  = 12   |
+#   | -16($fp) line_count  =  1   |
+#   | -20($fp) file_arg    =  0   |   (stdin: no filename)
+#   | -24($fp) c           ='\n'  |
+#   +-----------------------------+
+#         $sp = $fp - 24
+#
+#   The loop reads one byte into c's slot, does byte_count++ always
+#   and line_count++ only on '\n'.  wc.input is 39 bytes with 3
+#   newlines (its last line has no trailing '\n'), so the program
+#   ends by printing "39 bytes, 3 lines".
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  stdin: transforms/wc/wc.input
+#  stdout:
+#  | 39 bytes, 3 lines
 
         .data
 usageMsg:   .asciiz "usage: wc [FILE|-]\n"
@@ -62,67 +92,76 @@ errMsg:     .asciiz "wc: cannot open "
 nlMsg:      .asciiz "\n"
 bytesText:  .asciiz " bytes, "
 linesText:  .asciiz " lines\n"
-oneByte:    .space 1
 
         .text
         .globl main
 main:
-        move $s0, $ra
-        li $s1, 0                    # fd = STDIN (default)
-        move $s4, $0                 # no argv[1] yet
+        # ---- prologue: build main's 24-byte frame (no $ra: no jal) -
+        addiu $sp, $sp, -24          # allocate the frame
+        sw $fp, 20($sp)              # save caller's $fp -> -4($fp)
+        addiu $fp, $sp, 24           # $fp = top of our frame
 
-        # argc dispatch
+        sw $0, -8($fp)               # fd = STDIN (0)
+        sw $0, -20($fp)              # file_arg = NULL
+
+        # argc dispatch   ($a0 = argc, $a1 = argv)
         li $t0, 1
         beq $a0, $t0, read_setup     # argc == 1 -> stdin
         li $t0, 2
         bgt $a0, $t0, usage          # argc > 2 -> usage
 
         # argc == 2: inspect argv[1]
-        lw $s4, 4($a1)               # save argv[1] address
-        lb $t0, 0($s4)
+        lw $t1, 4($a1)               # $t1 = argv[1] address
+        sw $t1, -20($fp)             # file_arg = argv[1]
+        lb $t0, 0($t1)
         bne $t0, '-', do_open        # doesn't start with '-' -> filename
-        lb $t0, 1($s4)
+        lb $t0, 1($t1)
         beq $t0, $0, read_setup      # argv[1] is exactly "-" -> stdin
 
 do_open:
-        # fd = open(argv[1], O_RDONLY, 0)
-        move $a0, $s4
+        # fd = open(file_arg, O_RDONLY, 0)
+        lw $a0, -20($fp)             # file_arg
         li $v0, 13                   # 13 = open
         li $a1, 0                    # O_RDONLY
         li $a2, 0                    # mode (ignored)
         syscall
         bltz $v0, open_failed
-        move $s1, $v0                # save fd
+        sw $v0, -8($fp)              # fd = open's return
 
 read_setup:
-        li $s2, 0                    # byte_count = 0
-        li $s3, 0                    # line_count = 0
+        sw $0, -12($fp)              # byte_count = 0
+        sw $0, -16($fp)              # line_count = 0
 
 read_loop:
-        # n = read(fd, &oneByte, 1)
+        # n = read(fd, &c, 1)
         li $v0, 14                   # 14 = read
-        move $a0, $s1                # fd
-        la $a1, oneByte
+        lw $a0, -8($fp)              # fd
+        addiu $a1, $fp, -24          # &c  (address of c's stack slot)
         li $a2, 1
         syscall
         blez $v0, read_done          # 0 = EOF, <0 = error
 
-        addi $s2, $s2, 1             # byte_count++
-        lb $t0, oneByte
+        lw $t0, -12($fp)             # byte_count
+        addi $t0, $t0, 1
+        sw $t0, -12($fp)             # byte_count++
+        lb $t0, -24($fp)             # c
         bne $t0, '\n', read_loop
-        addi $s3, $s3, 1             # line_count++
+        lw $t0, -16($fp)             # line_count
+        addi $t0, $t0, 1
+        sw $t0, -16($fp)             # line_count++
         j read_loop
 
 read_done:
         # close fd if it's not STDIN
-        beqz $s1, print_results
+        lw $t0, -8($fp)              # fd
+        beqz $t0, print_results
         li $v0, 16                   # 16 = close
-        move $a0, $s1
+        move $a0, $t0
         syscall
 
 print_results:
         # print_int(byte_count)
-        move $a0, $s2
+        lw $a0, -12($fp)
         li $v0, 1
         syscall
 
@@ -132,7 +171,7 @@ print_results:
         syscall
 
         # print_int(line_count)
-        move $a0, $s3
+        lw $a0, -16($fp)
         li $v0, 1
         syscall
 
@@ -141,8 +180,10 @@ print_results:
         la $a0, linesText
         syscall
 
-        move $ra, $s0
-        li $v0, 0                    # exit status: __start passes this through syscall 17
+        # ---- epilogue: tear down the frame, return to the runtime --
+        li $v0, 0                    # exit status 0
+        lw $fp, -4($fp)              # restore caller's $fp
+        addiu $sp, $sp, 24           # pop the frame
         jr $ra
 
 open_failed:
@@ -150,7 +191,7 @@ open_failed:
         li $v0, 4
         la $a0, errMsg
         syscall
-        move $a0, $s4
+        lw $a0, -20($fp)             # file_arg
         li $v0, 4
         syscall
         li $v0, 4

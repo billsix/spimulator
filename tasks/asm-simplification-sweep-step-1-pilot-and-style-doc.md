@@ -4,9 +4,37 @@
 **Depends on:** nothing (first step)
 **Next:** the per-topic rollout steps (filed once this pilot fixes the style)
 
-**Status:** proposed — needs go-ahead to implement
+**Status:** in progress (2026-10-31) — four pilot demos converted + verified, reference
+doc + value-checker written; awaiting maintainer sign-off on the style before the rollout.
 **Priority:** 5
 **Difficulty:** 5
+
+## Done so far (2026-10-31)
+
+- Converted + verified byte-identical to pre-change output (before/after diff over an input
+  range, incl. edge/error cases): `intro/increment-ints/increment-ints-1.asm` (no-frame →
+  frame; no `jal` so no saved `$ra`), `arguments/factorial/factorial.asm` (loop; the worked
+  example from the design discussion), `arguments/gcd/gcd.asm` (two `jal atoi`, `$ra` + argv
+  on the stack), `transforms/wc/wc.asm` (I/O byte loop; `&c` on the stack). `meson test
+  --suite examples` 34/34 (wc's golden passes).
+- Wrote `tasks/reference/mips-asm-teaching-style.md` (the durable style guide).
+- Wrote `tools/check_asm_canonical.py` + a `#CANONICAL` block in each converted file;
+  verified it passes on all four and FAILS on a deliberately corrupted value.
+
+### Decisions settled during the pilot (recorded in the reference doc)
+
+- **Column order:** `C variable | memory addr | register | C type | bytes | role / notes`.
+- **Frame convention:** `$fp` is a fixed base; layout `-4` saved `$ra` / `-8` saved `$fp` /
+  locals below; **save `$ra` only when the routine makes a `jal`** (syscalls preserve it).
+- **"How few registers":** persistent C locals get stack homes; a transient sub-expression
+  temporary consumed immediately (e.g. gcd's `t = a % b`) may stay in a scratch register.
+  **Flag for sign-off:** confirm this boundary, vs full memory-machine spilling of `t` too.
+- **Shared leaf helpers** (`atoi`/`print_uint`) stay register-based (labelled as such).
+- **Checker scope:** guarantees the canonical run's final output; intermediate snapshot
+  values are human-traced from that same run. Not auto-wired into the gate.
+- **Width:** SYMBOL TABLE / SNAPSHOT blocks are exempt from 80 cols; instruction lines ≤80.
+- **Verification reality:** most demos have NO golden (~⅓ do), so the rollout's primary gate
+  is before/after output equivalence, plus goldens where they exist, plus the checker.
 
 ## BLUF
 
@@ -38,18 +66,19 @@ Pick the smallest clear example of each shape so the reference doc can show all 
 - `recursion/fibonacci/fibonacci.asm` or `arguments/gcd/gcd.asm` — a routine that **must
   save `$ra`/locals across a `jal`**, so the frame earns its keep and the SYMBOL TABLE's
   dual register+memory columns are fully exercised.
-- one `transforms/` filter (e.g. `transforms/head/head.asm`) — a **byte-loop over I/O**, to
-  confirm the style reads well when the "value" is a running count rather than arithmetic.
+- one `transforms/` filter — a **byte-loop over I/O**. Used `transforms/wc/wc.asm` (simple
+  two-counter loop, and it has a golden) rather than `head` (whose multi-shape argv parsing
+  and `os_open` error paths make it a poor *first* example).
 
-(Confirm/adjust during the pilot; the goal is to cover: no-frame→frame, loop, cross-`jal`
-save, I/O loop.)
+(Final pilot set: increment-ints-1, factorial, gcd, wc — covers no-frame→frame, loop,
+cross-`jal` save, I/O loop.)
 
 ## What to produce
 
 1. **Converted pilot `.asm` files**, each in the full target style:
    - every C local given a `-N($fp)` home; scratch registers are working copies only;
    - a **per-routine columnar SYMBOL TABLE**
-     (`C variable | C type | bytes | register | memory addr | role / notes`, ~76 cols);
+     (`C variable | memory addr | register | C type | bytes | role / notes`);
    - an **ascii-art frame snapshot with traced values** at a few key points, for one
      canonical input stated in the file;
    - the existing 4-layer comments (L1 C block, L3 block comments, L4 inline) preserved;

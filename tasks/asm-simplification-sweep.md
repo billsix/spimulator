@@ -39,12 +39,14 @@ they'll mainly see the values on the stack."
   `tasks/archive/2026/05/23/PLAN-asm-comments.md`: "Most of those frames were ceremony")
   made simple demos register-only on purpose. We are overturning it knowingly; the pilot's
   reference doc must state the new default and why it changed.
-- **Columnar SYMBOL TABLE, one table per routine**, six columns:
-  `C variable | C type | bytes | register | memory addr | role / notes`.
-  A stack-homed value fills BOTH `register` (its current scratch copy) and `memory addr`
-  (its `-N($fp)` home) — that is how "a stack position that is also in a register" reads in
+- **Columnar SYMBOL TABLE, one table per routine**, six columns in this order (location
+  grouped right after the name, per the maintainer 2026-10-31):
+  `C variable | memory addr | register | C type | bytes | role / notes`.
+  A stack-homed value fills BOTH `memory addr` (its `-N($fp)` home) and `register` (its
+  current scratch copy) — that is how "a stack position that is also in a register" reads in
   the table. A register-only value (`argc` at entry) has `—` in `memory addr`; a `.data`
-  value has `—` in `register`. Target width ~76 cols (inside the 80-col book width).
+  value has `—` in `register`. These table/diagram comment blocks are exempt from the
+  80-column rule (they are tables, like `-fverbose-asm` output); instruction lines stay ≤80.
 - **Traced values.** The ascii-art frame snapshot shows concrete runtime values from ONE
   canonical input per demo (e.g. `factorial 5` → `result = 60` at loop pass 4), with the
   slot value and its register shadow both shown. Static layout alone was rejected — the
