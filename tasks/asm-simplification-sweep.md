@@ -117,7 +117,11 @@ faithful. The traced-value checker (above) is the SECOND gate the goldens don't 
     Converted `commaAndPeriodCounter`, `print-out-ascii-1`, `testStringsForEquality-1`
     (intentional uninitialized-return bug PRESERVED). All byte-identical; comma/testStrings
     checker-green, print-out-ascii gated by equivalence (256-line output).
-  - [ ] Step 6 — `fileio/` · [ ] Step 7 — `lib/` · [ ] Step 8 — `lang/`
+  - [x] **Step 6 — `fileio/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-6-fileio.md`).
+    Converted all 9 (touch, nologin, cat, cp, comm, cksum-1-stdin, cksum, cksum-core,
+    cksum-core-test). Static buffers + CRC table stay in .data; scalars move to the stack.
+    All byte-identical; checker green on 7; the 3 cksum goldens unaffected.
+  - [ ] Step 7 — `lib/` (drivers only; library routines stay register-based) · [ ] Step 8 — `lang/`
     · [ ] Step 9 — `algorithms/` · [ ] Step 10 — `transforms/`
 
   Each: convert its non-exempt demos to the style
@@ -132,7 +136,7 @@ faithful. The traced-value checker (above) is the SECOND gate the goldens don't 
   | 3 | `arguments/` ✅ |  6 | 4 done | — (pilot did `factorial`, `gcd`) |
   | 4 | `recursion/` ✅ |  5 | 3 done | `get-char-from-user/-1`,`-2` |
   | 5 | `extras/` ✅  |  5 | 3 done | `subrountines/-1`,`-2` |
-  | 6 | `fileio/`     |  9 | 9 | — (confirm during the step) |
+  | 6 | `fileio/` ✅  |  9 | 9 done | — (none exempt) |
   | 7 | `lib/`        | 11 | 11 | — (library routines; confirm their shape fits) |
   | 8 | `lang/`       | 10 | 10 | — (the calc family) |
   | 9 | `algorithms/` | 13 | 12 | `rpn/rpn.asm`,`rpn/rpn-1-stack.asm` ($sp operand stack) |
