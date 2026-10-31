@@ -7,7 +7,9 @@ and an extension of the 4-layer comment system in
 `tasks/archive/2026/05/23/PLAN-asm-comments.md`.
 
 Established 2026-10-31 with the maintainer (William Emerison Six <billsix@gmail.com>) via
-the pilot in `tasks/asm-simplification-sweep.md`. Worked examples (converted in the pilot):
+the pilot in `tasks/archive/2026/10/31/asm-simplification-sweep.md` (the corpus-wide rollout
+is complete; that umbrella and its per-topic step docs are archived there). Worked examples
+(converted in the pilot):
 `intro/increment-ints/increment-ints-1.asm`, `arguments/factorial/factorial.asm`,
 `arguments/gcd/gcd.asm`, `transforms/wc/wc.asm`.
 
@@ -185,7 +187,8 @@ counter-examples:
   `rpn-eval`/`rpn-eval-test` siblings instead use a `.data` operand array and ARE converted.)
 - `intro/exit/exit.asm` — the `set $v0 before jr $ra` exit lesson.
 
-(Confirm the full exempt set as the rollout proceeds; these are the known ones.)
+(The rollout is complete and this exempt set is final — confirmed with the maintainer
+(William Emerison Six <billsix@gmail.com>) at the close of the 2026-10-31 sweep.)
 
 ## Verifying a conversion (the rollout method)
 
