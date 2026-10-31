@@ -130,7 +130,12 @@ faithful. The traced-value checker (above) is the SECOND gate the goldens don't 
     Converted all 10 calc demos (integer rungs 1-5, FPU rung 6, calc-sdt, calc-tree, calc-eval,
     calc-eval-test). Parser state is global/heap (stays .data); each parse routine homes its
     running local (int or 8-aligned double) at -N($fp). All byte-identical; checker green on all 10.
-  - [ ] Step 9 — `algorithms/` · [ ] Step 10 — `transforms/`
+  - [x] **Step 9 — `algorithms/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-9-algorithms.md`).
+    Converted 9 (binary-search, bubble-sort ×3, fizzbuzz, pascals-triangle, sieve, rpn-eval,
+    rpn-eval-test). EXEMPT SET EXPANDED 2→4: all four $sp-operand-stack rpn rungs (rpn,
+    rpn-1-stack, rpn-2-ops, rpn-3-float) left register-based — flagged for the maintainer.
+    All byte-identical; checker green; exempt rpn files untouched.
+  - [ ] Step 10 — `transforms/`
 
   Each: convert its non-exempt demos to the style
   in `tasks/reference/mips-asm-teaching-style.md`, verify each with before/after output
@@ -147,7 +152,7 @@ faithful. The traced-value checker (above) is the SECOND gate the goldens don't 
   | 6 | `fileio/` ✅  |  9 | 9 done | — (none exempt) |
   | 7 | `lib/` ✅     | 11 | 7 done | 4 library files (shared leaf helpers) — NOT converted (maintainer: drivers only) |
   | 8 | `lang/` ✅    | 10 | 10 done | — (the calc family) |
-  | 9 | `algorithms/` | 13 | 12 | `rpn/rpn.asm`,`rpn/rpn-1-stack.asm` ($sp operand stack) |
+  | 9 | `algorithms/` ✅ | 13 | 9 done | 4 exempt: `rpn.asm`,`rpn-1-stack`,`rpn-2-ops`,`rpn-3-float` (all $sp operand stack — set EXPANDED 2→4) |
   | 10| `transforms/` | 15 | 14 | — (pilot did `wc`) |
 
   Total ~80 files; ~72 to convert after the pilot and the known exempt set. Confirm the full
