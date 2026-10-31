@@ -121,8 +121,12 @@ faithful. The traced-value checker (above) is the SECOND gate the goldens don't 
     Converted all 9 (touch, nologin, cat, cp, comm, cksum-1-stdin, cksum, cksum-core,
     cksum-core-test). Static buffers + CRC table stay in .data; scalars move to the stack.
     All byte-identical; checker green on 7; the 3 cksum goldens unaffected.
-  - [ ] Step 7 — `lib/` (drivers only; library routines stay register-based) · [ ] Step 8 — `lang/`
-    · [ ] Step 9 — `algorithms/` · [ ] Step 10 — `transforms/`
+  - [x] **Step 7 — `lib/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-7-lib.md`).
+    DRIVERS ONLY (maintainer's call): converted the 7 `*-demo` drivers (ctype, str, atoi, abs,
+    bsearch, exit, atexit); left the 4 library files register-based + untouched. All
+    byte-identical (incl. exit statuses); golden-tested (no #CANONICAL — drivers need the
+    library loaded, which the single-file checker can't do).
+  - [ ] Step 8 — `lang/` · [ ] Step 9 — `algorithms/` · [ ] Step 10 — `transforms/`
 
   Each: convert its non-exempt demos to the style
   in `tasks/reference/mips-asm-teaching-style.md`, verify each with before/after output
@@ -137,7 +141,7 @@ faithful. The traced-value checker (above) is the SECOND gate the goldens don't 
   | 4 | `recursion/` ✅ |  5 | 3 done | `get-char-from-user/-1`,`-2` |
   | 5 | `extras/` ✅  |  5 | 3 done | `subrountines/-1`,`-2` |
   | 6 | `fileio/` ✅  |  9 | 9 done | — (none exempt) |
-  | 7 | `lib/`        | 11 | 11 | — (library routines; confirm their shape fits) |
+  | 7 | `lib/` ✅     | 11 | 7 done | 4 library files (shared leaf helpers) — NOT converted (maintainer: drivers only) |
   | 8 | `lang/`       | 10 | 10 | — (the calc family) |
   | 9 | `algorithms/` | 13 | 12 | `rpn/rpn.asm`,`rpn/rpn-1-stack.asm` ($sp operand stack) |
   | 10| `transforms/` | 15 | 14 | — (pilot did `wc`) |
