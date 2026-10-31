@@ -27,23 +27,29 @@
 #   spimulator -f pascals-triangle.asm 6      # 6 rows
 
 
-#PURPOSE:  Print first N rows of Pascal's triangle.  Default N=10.
-#          Static 35-cell row array (last row that fits in int32).
+#PURPOSE:  Print first N rows of Pascal's triangle.  Default N=10.  Right-to-left
+#          in-place row update: each row[j] = old row[j] + old row[j-1].
 #
-#NOTES:    Right-to-left in-place update: each row[j] = old row[j]
-#          + old row[j-1].  Walking right-to-left means the new
-#          row[j-1] hasn't been written yet when we read it.
-
-
-#SYMBOL TABLE  (C variable -> MIPS location)
+#          STACK-VISIBLE STYLE: the C locals `rows`, the outer counter `n`, and
+#          the inner counter `j` live in stack slots; a scratch register holds
+#          only a working COPY (element addresses are transient).  The row array
+#          is file-scope data, so it stays in .data.  main makes `jal atoi`, so
+#          it saves $ra.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
 #
-#   In main:
-#     argc          $a0 at entry
-#     argv          $a1 at entry
-#     rows          $s1                  (from argv or 10)
-#     n             $s2                  (outer loop)
-#     j             $s3                  (inner loops; both update and print)
-#     row           `row` (.data)        (35 .word cells; first is 1)
+#  SYMBOL TABLE (routine: main)
+#
+#  C variable  | memory addr | register   | C type    | bytes | role / notes
+#  ------------+-------------+------------+-----------+-------+---------------------------
+#  rows        | -12($fp)    | $t1 (copy) | int       |   4   | number of rows (argv[1] or 10)
+#  n           | -16($fp)    | $t0 (copy) | int       |   4   | outer loop: current row index
+#  j           | -20($fp)    | $t0 (copy) | int       |   4   | inner loop: update + print index
+#  row[]       | row (.data) | —          | int[35]   | 140   | file-scope row buffer (first cell is 1)
+#  (saved $ra) | -4($fp)     | —          | code addr |   4   | jal atoi
+#  (saved $fp) | -8($fp)     | —          | frame ptr |   4   | caller's frame pointer
+#
+#  No #CANONICAL block: each row line ends with a trailing space, which a
+#  comment-based anchor can't carry.  Gated by before/after output equivalence.
 
         .data
 row:    .word 1
@@ -53,77 +59,89 @@ usageMsg:   .asciiz "usage: pascals-triangle [N]   (1 <= N <= 34)\n"
         .text
         .globl main
 main:
-        move $s0, $ra
-        li $s1, 10                   # rows = 10 (default)
+        addiu $sp, $sp, -24
+        sw $ra, 20($sp)              # -> -4($fp)
+        sw $fp, 16($sp)              # -> -8($fp)
+        addiu $fp, $sp, 24
+
+        li $t0, 10
+        sw $t0, -12($fp)             # rows = 10 (default)
 
         li $t0, 1
         beq $a0, $t0, run
         li $t0, 2
         bne $a0, $t0, usage
-
         lw $a0, 4($a1)
         jal atoi
-        move $s1, $v0
-        # bounds check: 1 <= rows <= 34
-        blez $s1, usage
-        li $t0, 34
-        bgt $s1, $t0, usage
+        sw $v0, -12($fp)             # rows = atoi(argv[1])
+        lw $t0, -12($fp)
+        blez $t0, usage              # 1 <= rows <= 34
+        li $t1, 34
+        bgt $t0, $t1, usage
 
 run:
-        li $s2, 0                    # n = 0
+        li $t0, 0
+        sw $t0, -16($fp)             # n = 0
 
 outer:
-        bge $s2, $s1, done
+        lw $t0, -16($fp)             # n
+        lw $t1, -12($fp)             # rows
+        bge $t0, $t1, done
 
-        # right-to-left update
-        move $s3, $s2                # j = n
-
+        # right-to-left update: j = n
+        lw $t0, -16($fp)
+        sw $t0, -20($fp)             # j = n
 inner_update:
-        blez $s3, after_update
-
-        sll $t0, $s3, 2
-        la $t1, row
-        add $t1, $t1, $t0            # &row[j]
-        lw $t2, 0($t1)
-        lw $t3, -4($t1)
-        add $t2, $t2, $t3
-        sw $t2, 0($t1)
-
-        addi $s3, $s3, -1
+        lw $t0, -20($fp)             # j
+        blez $t0, after_update
+        sll $t1, $t0, 2
+        la $t2, row
+        add $t2, $t2, $t1            # &row[j]
+        lw $t3, 0($t2)
+        lw $t4, -4($t2)
+        add $t3, $t3, $t4
+        sw $t3, 0($t2)               # row[j] += row[j-1]
+        lw $t0, -20($fp)
+        addi $t0, $t0, -1
+        sw $t0, -20($fp)             # j--
         j inner_update
 
 after_update:
         # print this row
-        li $s3, 0                    # j = 0
-
+        li $t0, 0
+        sw $t0, -20($fp)             # j = 0
 print_loop:
-        bgt $s3, $s2, after_print
-
-        sll $t0, $s3, 2
-        la $t1, row
-        add $t1, $t1, $t0
-        lw $a0, 0($t1)
+        lw $t0, -20($fp)             # j
+        lw $t1, -16($fp)             # n
+        bgt $t0, $t1, after_print
+        sll $t1, $t0, 2
+        la $t2, row
+        add $t2, $t2, $t1
+        lw $a0, 0($t2)               # row[j]
         li $v0, 1
         syscall
-
         li $a0, ' '
         li $v0, 11
         syscall
-
-        addi $s3, $s3, 1
+        lw $t0, -20($fp)
+        addi $t0, $t0, 1
+        sw $t0, -20($fp)             # j++
         j print_loop
 
 after_print:
         li $a0, '\n'
         li $v0, 11
         syscall
-
-        addi $s2, $s2, 1
+        lw $t0, -16($fp)
+        addi $t0, $t0, 1
+        sw $t0, -16($fp)             # n++
         j outer
 
 done:
-        move $ra, $s0
         li $v0, 0                    # exit status: __start passes this through syscall 17
+        lw $ra, -4($fp)
+        lw $fp, -8($fp)
+        addiu $sp, $sp, 24
         jr $ra
 
 usage:
@@ -135,7 +153,7 @@ usage:
         syscall
 
 
-# ---------- atoi subroutine -----------------------------------------
+# ---------- atoi subroutine (shared leaf helper, register-based) ----
 atoi:
         li $v0, 0
         li $t1, 1

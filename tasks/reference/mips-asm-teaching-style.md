@@ -178,8 +178,11 @@ counter-examples:
   calling convention) — the register-vs-stack contrast IS the demo.
 - `recursion/get-char-from-user/get-char-from-user-1.asm` vs `-2.asm` — a deliberate bug/fix
   pair.
-- `algorithms/rpn/rpn.asm` + `algorithms/rpn/rpn-1-stack.asm` — the operand stack is `$sp`
-  on purpose.
+- `algorithms/rpn/rpn.asm`, `rpn-1-stack.asm`, `rpn-2-ops.asm`, `rpn-3-float.asm` — the whole
+  RPN ladder uses `$sp` AS the operand stack on purpose (push = `addiu $sp,-N` + store, pop =
+  load + `addiu $sp,N`); Shape B is incompatible with that lesson. (Confirmed/expanded from the
+  original rpn.asm + rpn-1-stack.asm pair during the 2026-10-31 algorithms rollout; the
+  `rpn-eval`/`rpn-eval-test` siblings instead use a `.data` operand array and ARE converted.)
 - `intro/exit/exit.asm` — the `set $v0 before jr $ra` exit lesson.
 
 (Confirm the full exempt set as the rollout proceeds; these are the known ones.)

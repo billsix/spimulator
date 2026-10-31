@@ -34,6 +34,18 @@
 #
 #           `status` codes (mirror enum eval_status in rpn-eval-test.c):
 #             0 = OK   1 = overflow   2 = underflow   3 = bad input   4 = empty
+#
+#           STACK-VISIBLE STYLE: main homes its two C locals — the case-table
+#           pointer and the current expression string — at -12($fp) and -16($fp);
+#           a scratch register holds only a working COPY.  The eval core
+#           (eval/advance/print_double) is rpn-eval.asm's verbatim: its state is
+#           in .data GLOBALS (opstack/depth/status/cursor), so eval just carries
+#           the standard $ra/$fp frame.  main saves $ra for its jals.
+#           Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+#           No #CANONICAL block: the empty-expression case prints the line
+#           " => empty", whose leading space a comment-based anchor can't carry.
+#           Golden-tested via run-demo.sh.
 
         .data
 opstack:    .space 512               # evaluation stack: 64 doubles (8 bytes each)
@@ -65,15 +77,21 @@ cases:      .word case0, case1, case2, case3, case4, case5, case6, case7, case8,
         .text
         .globl main
 main:
-        move $s0, $ra
-        la   $s1, cases              # pointer into the case table
+        addiu $sp, $sp, -16
+        sw   $ra, 12($sp)            # -> -4($fp)
+        sw   $fp, 8($sp)             # -> -8($fp)
+        addiu $fp, $sp, 16
+        la   $t0, cases
+        sw   $t0, -12($fp)           # casep = &cases[0]
 mt_loop:
-        lw   $s2, 0($s1)             # current case string
-        beqz $s2, mt_done
-        move $a0, $s2                # eval(this string): value -> $f0, status set
+        lw   $t0, -12($fp)           # casep
+        lw   $t1, 0($t0)             # current case string
+        sw   $t1, -16($fp)           # cur_case
+        beqz $t1, mt_done
+        move $a0, $t1                # eval(this string): value -> $f0, status set
         jal  eval
         li   $v0, 4                  # print the expression
-        move $a0, $s2
+        lw   $a0, -16($fp)
         syscall
         li   $v0, 4                  # print " => "
         la   $a0, arrow
@@ -107,11 +125,15 @@ mt_eol:
         li   $v0, 11                 # newline
         li   $a0, 10
         syscall
-        addi $s1, $s1, 4             # next case
+        lw   $t0, -12($fp)           # casep++ (next case)
+        addi $t0, $t0, 4
+        sw   $t0, -12($fp)
         j    mt_loop
 mt_done:
-        move $ra, $s0
         li   $v0, 0
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr   $ra
 
 
@@ -119,8 +141,10 @@ mt_done:
 
 # ---------- eval($a0 = expr buffer) -> $f0  (sets `status`) ----------
 eval:
-        addi $sp, $sp, -4
-        sw   $ra, 0($sp)
+        addiu $sp, $sp, -8
+        sw   $ra, 4($sp)             # -> -4($fp)
+        sw   $fp, 0($sp)             # -> -8($fp)
+        addiu $fp, $sp, 8
         sw   $a0, cursor             # cursor = expr
         sw   $zero, status           # status = OK
         sw   $zero, depth            # depth = 0
@@ -281,8 +305,9 @@ ev_empty:
         li   $t1, 4
         sw   $t1, status
 ev_ret:
-        lw   $ra, 0($sp)
-        addi $sp, $sp, 4
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 8
         jr   $ra
 
 

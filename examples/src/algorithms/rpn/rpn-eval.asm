@@ -42,7 +42,21 @@
 #           array behaves like static storage, which keeps the asm legible).
 #           This differs from rpn.asm's operand-stack-is-$sp lesson on purpose —
 #           here the lesson is the algorithm/I/O split, and eval must be an
-#           ordinary function with a normal $sp frame for its saved $ra.
+#           ordinary function with a normal frame for its saved $ra.
+#
+#           STACK-VISIBLE STYLE: this demo has no persistent scalar C locals on
+#           a frame — its state lives in .data GLOBALS (the operand stack
+#           `opstack`, the `depth`, the `status`, the read `cursor`/`curchar`).
+#           main and eval therefore just carry the standard $ra/$fp frame for
+#           their jals; main's slurp write-pointer and eval's fractional_digits
+#           are transient scratch registers.  advance is a leaf buffer walker;
+#           print_double is a shared display helper.
+#           Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  stdin: algorithms/rpn/rpn.input
+#  stdout:
+#  | 13.666666
 
         .data
 line:           .space 256          # stdin is slurped here, then NUL-terminated
@@ -61,23 +75,26 @@ infMsg:         .asciiz "inf"
         .text
         .globl main
 main:
-        move $s0, $ra                # save return address
+        addiu $sp, $sp, -8
+        sw   $ra, 4($sp)             # -> -4($fp)
+        sw   $fp, 0($sp)             # -> -8($fp)
+        addiu $fp, $sp, 8
 
         # --- slurp all of stdin into `line`, then NUL-terminate ---
-        la   $s1, line               # write pointer
-        la   $s2, line
-        addi $s2, $s2, 255           # cap (reserve the last byte for the NUL)
+        la   $t1, line               # write pointer (transient)
+        la   $t2, line
+        addi $t2, $t2, 255           # cap (reserve the last byte for the NUL)
 rd_loop:
         li   $v0, 12                 # read_char
         syscall
         li   $t0, -1
         beq  $v0, $t0, rd_done       # EOF
-        bge  $s1, $s2, rd_loop       # buffer full: drop the byte, keep draining
-        sb   $v0, 0($s1)
-        addi $s1, $s1, 1
+        bge  $t1, $t2, rd_loop       # buffer full: drop the byte, keep draining
+        sb   $v0, 0($t1)
+        addi $t1, $t1, 1
         j    rd_loop
 rd_done:
-        sb   $zero, 0($s1)           # NUL terminator
+        sb   $zero, 0($t1)           # NUL terminator
 
         la   $a0, line               # eval(line)
         jal  eval                    # value -> $f0, status set
@@ -112,15 +129,19 @@ m_value:
         li   $v0, 11
         li   $a0, 10                 # '\n'
         syscall
-        move $ra, $s0
         li   $v0, 0                  # return 0
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 8
         jr   $ra
 
 
 # ---------- eval($a0 = expr buffer) -> $f0  (sets `status`) ----------
 eval:
-        addi $sp, $sp, -4
-        sw   $ra, 0($sp)
+        addiu $sp, $sp, -8
+        sw   $ra, 4($sp)             # -> -4($fp)
+        sw   $fp, 0($sp)             # -> -8($fp)
+        addiu $fp, $sp, 8
         sw   $a0, cursor             # cursor = expr
         sw   $zero, status           # status = OK
         sw   $zero, depth            # depth = 0
@@ -290,8 +311,9 @@ ev_empty:
         li   $t1, 4
         sw   $t1, status
 ev_ret:
-        lw   $ra, 0($sp)
-        addi $sp, $sp, 4
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 8
         jr   $ra
 
 

@@ -25,31 +25,46 @@
 #   spimulator -f fizzbuzz.asm 30          # 1..30
 
 
-#PURPOSE:  FizzBuzz with upper bound from argv.  Default N=100.
-#          Three things going on at once:
-#            - modulo via `div` + `mfhi`
-#            - multi-way branching cascade
-#            - mixed-format output (string OR int per line)
+#PURPOSE:  FizzBuzz with upper bound from argv.  Default N=100.  Modulo via
+#          `div`+`mfhi`, a multi-way branch cascade (15 check first), mixed
+#          string/int output.
 #
-#NOTES:    The 15-check comes FIRST so the FizzBuzz lines hit
-#          BEFORE the 3-only check would match them.
-
-
-#SYMBOL TABLE  (C variable -> MIPS location)
+#          STACK-VISIBLE STYLE: the C locals `n` (upper bound) and `i` (loop
+#          counter) live in stack slots; a scratch register holds only a working
+#          COPY (and the modulo remainder is a transient in $t1).  argc/argv are
+#          used once at entry, so they stay in $a0/$a1.  main makes `jal atoi`,
+#          so it saves $ra.  atoi is a shared leaf helper.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
 #
-#   In main:
-#     argc          $a0 at entry only
-#     argv          $a1 at entry only
-#     n             $s1                  (upper bound from argv, or 100)
-#     i             $t0                  (loop counter, 1..n)
-#     i % {15,3,5}  $t1                  (divisor going in, remainder
-#                                          after mfhi)
+#  SYMBOL TABLE (routine: main)
 #
-#   In atoi (same as factorial / gcd):
-#     standard.
+#  C variable  | memory addr | register   | C type    | bytes | role / notes
+#  ------------+-------------+------------+-----------+-------+---------------------------
+#  argc        | —           | $a0        | int       |   4   | entry only; 1 -> default, 2 -> parse N
+#  argv        | —           | $a1        | char **   |   4   | entry only; argv[1] for atoi
+#  n           | -12($fp)    | $t1 (copy) | int       |   4   | upper bound (argv[1] or 100)
+#  i           | -16($fp)    | $t0 (copy) | int       |   4   | loop counter 1..n
+#  (saved $ra) | -4($fp)     | —          | code addr |   4   | jal atoi
+#  (saved $fp) | -8($fp)     | —          | frame ptr |   4   | caller's frame pointer
 #
-#   Cross-call saves: $s0 ← runtime's $ra; $s1 ← n (held across
-#   `jal atoi` and through the body).
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  args: 15
+#  stdout:
+#  | 1
+#  | 2
+#  | Fizz
+#  | 4
+#  | Buzz
+#  | Fizz
+#  | 7
+#  | 8
+#  | Fizz
+#  | Buzz
+#  | 11
+#  | Fizz
+#  | 13
+#  | 14
+#  | FizzBuzz
 
         .data
 fizzMsg:        .asciiz "Fizz"
@@ -61,27 +76,34 @@ usageMsg:       .asciiz "usage: fizzbuzz [N]\n"
         .text
         .globl main
 main:
-        move $s0, $ra
-        li $s1, 100                  # n = 100 (default)
+        addiu $sp, $sp, -16
+        sw $ra, 12($sp)              # -> -4($fp)
+        sw $fp, 8($sp)               # -> -8($fp)
+        addiu $fp, $sp, 16
 
-        # argc dispatch
+        li $t0, 100
+        sw $t0, -12($fp)             # n = 100 (default)
+
+        # argc dispatch   (argc arrives in $a0)
         li $t0, 1
         beq $a0, $t0, run            # argc == 1 -> default
         li $t0, 2
         bne $a0, $t0, usage          # argc != 2 -> usage
-
-        # parse argv[1] as N
-        lw $a0, 4($a1)
+        lw $a0, 4($a1)               # parse argv[1] as N
         jal atoi
-        move $s1, $v0
+        sw $v0, -12($fp)             # n = atoi(argv[1])
 
 run:
-        li $t0, 1                    # i = 1
+        li $t0, 1
+        sw $t0, -16($fp)             # i = 1
 
 loop:
-        bgt $t0, $s1, done
+        lw $t0, -16($fp)             # i
+        lw $t1, -12($fp)             # n
+        bgt $t0, $t1, done
 
         # if (i % 15 == 0)
+        lw $t0, -16($fp)
         li $t1, 15
         div $t0, $t1
         mfhi $t1
@@ -90,8 +112,8 @@ loop:
         li $v0, 4
         syscall
         j newline
-
 try3:
+        lw $t0, -16($fp)
         li $t1, 3
         div $t0, $t1
         mfhi $t1
@@ -100,8 +122,8 @@ try3:
         li $v0, 4
         syscall
         j newline
-
 try5:
+        lw $t0, -16($fp)
         li $t1, 5
         div $t0, $t1
         mfhi $t1
@@ -110,9 +132,8 @@ try5:
         li $v0, 4
         syscall
         j newline
-
 printNum:
-        move $a0, $t0
+        lw $a0, -16($fp)             # i
         li $v0, 1
         syscall
 
@@ -121,12 +142,16 @@ newline:
         li $v0, 4
         syscall
 
+        lw $t0, -16($fp)             # i++
         addi $t0, $t0, 1
+        sw $t0, -16($fp)
         j loop
 
 done:
-        move $ra, $s0
         li $v0, 0                    # exit status: __start passes this through syscall 17
+        lw $ra, -4($fp)
+        lw $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr $ra
 
 usage:
@@ -138,8 +163,7 @@ usage:
         syscall
 
 
-# ---------- atoi subroutine -----------------------------------------
-# Standard atoi pattern, same as factorial.
+# ---------- atoi subroutine (shared leaf helper, register-based) ----
 atoi:
         li $v0, 0
         li $t1, 1

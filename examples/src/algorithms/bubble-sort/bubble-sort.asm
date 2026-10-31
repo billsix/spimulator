@@ -22,38 +22,39 @@
 # C source — see bubble-sort.c
 
 
-#PURPOSE:  Bubble sort N ints read from stdin.  N up to 256.
-#          First demo to use syscall 5 (read_int) with the
-#          $a3 EOF flag.  Output is one int per line, sorted
-#          ascending — same shape as `sort -n` for small inputs.
+#PURPOSE:  Bubble sort N ints read from stdin.  N up to 256.  Uses syscall 5
+#          (read_int) with the $a3 EOF flag; output is one int per line, sorted.
 #
 #INVOCATION (one int per line, pipe-friendly):
-#
 #    printf '10\n2\n11\n4\n' | spimulator -f bubble-sort.asm
-#    seq 100 -1 1            | spimulator -f bubble-sort.asm
 #    spimulator -f bubble-sort.asm < nums.txt
 #
-#          spim's read_int (syscall 5) consumes one line per call
-#          and atols it, so the ints must be newline-separated.
-#          `echo 10 2 11 4` (all on one line) only yields the first
-#          int — atol stops at the first space.
+#NOTES:    spim's read_int (syscall 5): $v0 = parsed int, $a3 = 0 ok / 1 EOF.
 #
-#NOTES:    spim's read_int (syscall 5):
-#            $v0 = parsed int  (0 on EOF, but $a3 is the truth)
-#            $a3 = 0 on success, 1 on EOF
-#          We branch on $a3 to know when to stop reading.
-
-
-#SYMBOL TABLE  (C variable -> MIPS location)
+#          STACK-VISIBLE STYLE: the C locals `n` (count read), `i` (outer), and
+#          `j` (inner) live in stack slots; a scratch register holds only a
+#          working COPY (compared elements / addresses are transient).  The array
+#          `data` is file-scope, so it stays in .data.  This demo makes NO `jal`
+#          (only syscalls, which preserve $ra), so it saves $fp but not $ra.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
 #
-#   In main:
-#     n             $s1                  (count of ints read so far)
-#     data          `data` (.data)       (256 .word cells, BSS-zeroed)
-#     value         $v0 (transient)      (each read_int's return)
+#  SYMBOL TABLE (routine: main)
 #
-#   In bubble_sort: same shape as before — $s2=i, $s3=j, etc.,
-#   but here main+bubble_sort+print all live in one function so
-#   we just use $t-regs for the sort body.
+#  C variable  | memory addr | register   | C type    | bytes | role / notes
+#  ------------+-------------+------------+-----------+-------+---------------------------
+#  n           | -8($fp)     | $t8 (copy) | int       |   4   | count of ints read (also print bound)
+#  i           | -12($fp)    | $t0 (copy) | int       |   4   | outer pass index (also the print index)
+#  j           | -16($fp)    | $t3 (copy) | int       |   4   | inner comparison index
+#  data[]      | data (.data)| —          | int[256]  | 1024  | file-scope array; sorted in place
+#  (saved $fp) | -4($fp)     | —          | frame ptr |   4   | caller's frame pointer
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  stdin: algorithms/bubble-sort/bubble-sort.input
+#  stdout:
+#  | 1
+#  | 4
+#  | 7
+#  | 9
 
         .data
 data:       .space 1024                  # 256 ints * 4 bytes
@@ -62,87 +63,95 @@ usageMsg:   .asciiz "usage: bubble-sort   (reads ints from stdin)\n"
         .text
         .globl main
 main:
-        move $s0, $ra
+        addiu $sp, $sp, -16
+        sw $fp, 12($sp)              # -> -4($fp)
+        addiu $fp, $sp, 16
 
         # if (argc != 1) usage
         li $t0, 1
         bne $a0, $t0, usage
 
         # Read ints from stdin until EOF.
-        li $s1, 0                    # n = 0
-
+        li $t0, 0
+        sw $t0, -8($fp)              # n = 0
 read_loop:
-        li $t0, 256
-        bge $s1, $t0, after_read     # cap at 256
-
+        lw $t0, -8($fp)              # n
+        li $t1, 256
+        bge $t0, $t1, after_read     # cap at 256
         li $v0, 5                    # syscall 5 = read_int
         syscall
         bnez $a3, after_read         # $a3 = 1 -> EOF
-
-        # data[n++] = $v0
-        sll $t0, $s1, 2
-        la $t1, data
-        add $t1, $t1, $t0
-        sw $v0, ($t1)
-        addi $s1, $s1, 1
+        lw $t0, -8($fp)              # n
+        sll $t1, $t0, 2
+        la $t2, data
+        add $t2, $t2, $t1
+        sw $v0, ($t2)                # data[n] = value
+        addi $t0, $t0, 1
+        sw $t0, -8($fp)              # n++
         j read_loop
 
 after_read:
-        # bubble_sort(data, n)
-        # Outer: i = 0..n-2
-        li $t0, 0                    # i
-        addi $t1, $s1, -1            # n - 1
-
+        # bubble sort data[0 .. n)
+        li $t0, 0
+        sw $t0, -12($fp)             # i = 0
 outer:
-        bge $t0, $t1, after_sort
-
-        sub $t2, $t1, $t0            # n - 1 - i
-        li $t3, 0                    # j = 0
-
+        lw $t0, -12($fp)             # i
+        lw $t8, -8($fp)              # n
+        addi $t1, $t8, -1            # n - 1
+        bge $t0, $t1, after_sort     # for (i = 0; i < n-1; i++)
+        li $t0, 0
+        sw $t0, -16($fp)             # j = 0
 inner:
-        bge $t3, $t2, next_outer
-
-        # &a[j]
+        lw $t3, -16($fp)             # j
+        lw $t8, -8($fp)              # n
+        lw $t0, -12($fp)             # i
+        sub $t2, $t8, $t0
+        addi $t2, $t2, -1            # n - 1 - i
+        bge $t3, $t2, next_outer     # for (j = 0; j < n-1-i; j++)
         sll $t4, $t3, 2
         la $t5, data
-        add $t5, $t5, $t4
-        lw $t6, 0($t5)               # a[j]
-        lw $t7, 4($t5)               # a[j+1]
+        add $t5, $t5, $t4            # &data[j]
+        lw $t6, 0($t5)               # data[j]
+        lw $t7, 4($t5)               # data[j+1]
         ble $t6, $t7, no_swap
         sw $t7, 0($t5)
         sw $t6, 4($t5)
 no_swap:
+        lw $t3, -16($fp)
         addi $t3, $t3, 1
+        sw $t3, -16($fp)             # j++
         j inner
-
 next_outer:
+        lw $t0, -12($fp)
         addi $t0, $t0, 1
+        sw $t0, -12($fp)             # i++
         j outer
 
 after_sort:
-        # Print: for (i = 0; i < n; i++) print_int(data[i]); print_char('\n');
-        li $t0, 0                    # i
-
+        li $t0, 0
+        sw $t0, -12($fp)             # reuse i's slot as the print index
 print_loop:
-        bge $t0, $s1, print_done
-
+        lw $t0, -12($fp)
+        lw $t8, -8($fp)              # n
+        bge $t0, $t8, print_done
         sll $t1, $t0, 2
         la $t2, data
         add $t2, $t2, $t1
         lw $a0, ($t2)
         li $v0, 1                    # print_int
         syscall
-
         li $a0, '\n'
         li $v0, 11                   # print_char
         syscall
-
+        lw $t0, -12($fp)
         addi $t0, $t0, 1
+        sw $t0, -12($fp)
         j print_loop
 
 print_done:
-        move $ra, $s0
         li $v0, 0                    # exit status: __start passes this through syscall 17
+        lw $fp, -4($fp)
+        addiu $sp, $sp, 16
         jr $ra
 
 usage:

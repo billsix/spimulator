@@ -24,11 +24,24 @@
 # Invocation (no input; runs the test battery):
 #   spimulator -f bubble-sort-core-test.asm   ->  "<input> => <sorted>" per case
 
-# PURPOSE:  Unit tests for the bubble-sort core.  bubble_sort($a0=a, $a1=n) sorts
+# PURPOSE:  Unit tests for the bubble-sort core.  bubble_sort($a0=a,$a1=n) sorts
 #           an array in place (no I/O), so it can be driven by a table of
-#           hardcoded arrays.  main loops the cases, printing "<input> => <sorted>"
-#           (print the array, sort, print it again); run-demo.sh pins the golden.
-#           bubble_sort is bubble-sort.asm's, verbatim.
+#           hardcoded arrays.  main loops the cases, printing "<input> => <sorted>".
+#
+#           STACK-VISIBLE STYLE: main's C locals — the case index i, the current
+#           array pointer, and its length n — live in stack slots.  bubble_sort
+#           (the algorithm under test) is a leaf: it homes its own `i`/`j` on its
+#           frame (args a=$a0, n=$a1).  The case arrays are file-scope data in
+#           .data.  print_ints is a register-based display helper.  main makes
+#           jals, so it saves $ra.
+#           Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+#  SYMBOL TABLE: main — i -> -12($fp), arr -> -16($fp), n -> -20($fp); saved
+#  $ra/$fp at -4/-8($fp).  bubble_sort — i -> -8($fp), j -> -12($fp); saved $fp
+#  at -4($fp); a/n in $a0/$a1.
+#
+#  No #CANONICAL block: the empty-array case prints the line " => " (a trailing
+#  space), which a comment-based anchor can't carry.  Golden-tested via run-demo.sh.
 
         .data
 arrow:      .asciiz " => "
@@ -44,49 +57,71 @@ lens:       .word 7, 5, 5, 5, 1, 0, 5
         .text
         .globl main
 main:
-        move $s0, $ra
-        li   $s1, 0                  # i = 0
-        li   $s2, 7                  # case_count
+        addiu $sp, $sp, -24
+        sw   $ra, 20($sp)            # -> -4($fp)
+        sw   $fp, 16($sp)            # -> -8($fp)
+        addiu $fp, $sp, 24
+
+        li   $t0, 0
+        sw   $t0, -12($fp)           # i = 0
 mt_loop:
-        bge  $s1, $s2, mt_done
-        sll  $t0, $s1, 2
+        lw   $t0, -12($fp)           # i
+        li   $t1, 7                  # case_count = 7
+        bge  $t0, $t1, mt_done
+        sll  $t2, $t0, 2
         la   $t1, cases
-        add  $t1, $t1, $t0
-        lw   $s3, 0($t1)             # arr ptr
+        add  $t1, $t1, $t2
+        lw   $t3, 0($t1)             # arr ptr
+        sw   $t3, -16($fp)           # arr
         la   $t1, lens
-        add  $t1, $t1, $t0
-        lw   $s4, 0($t1)             # n
-        move $a0, $s3                # print the input
-        move $a1, $s4
+        add  $t1, $t1, $t2
+        lw   $t3, 0($t1)             # n
+        sw   $t3, -20($fp)           # n
+
+        lw   $a0, -16($fp)           # print the input array
+        lw   $a1, -20($fp)
         jal  print_ints
         la   $a0, arrow              # " => "
         li   $v0, 4
         syscall
-        move $a0, $s3                # sort in place
-        move $a1, $s4
+        lw   $a0, -16($fp)           # sort in place
+        lw   $a1, -20($fp)
         jal  bubble_sort
-        move $a0, $s3                # print the sorted array
-        move $a1, $s4
+        lw   $a0, -16($fp)           # print the sorted array
+        lw   $a1, -20($fp)
         jal  print_ints
         li   $v0, 11                 # newline
         li   $a0, 10
         syscall
-        addi $s1, $s1, 1
+
+        lw   $t0, -12($fp)           # i++
+        addi $t0, $t0, 1
+        sw   $t0, -12($fp)
         j    mt_loop
 mt_done:
-        move $ra, $s0
         li   $v0, 0
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 24
         jr   $ra
 
 
-# ---------- bubble_sort($a0 = a, $a1 = n) — in place (bubble-sort.asm, verbatim) ----------
+# ---------- bubble_sort($a0 = a, $a1 = n) — sort in place (leaf) ----------
 bubble_sort:
-        li   $t0, 0                  # i = 0
+        addiu $sp, $sp, -16
+        sw   $fp, 12($sp)            # -> -4($fp)
+        addiu $fp, $sp, 16
+        li   $t0, 0
+        sw   $t0, -8($fp)            # i = 0
 bs_outer:
+        lw   $t0, -8($fp)            # i
         addi $t1, $a1, -1            # n - 1
         bge  $t0, $t1, bs_done       # for (i = 0; i < n-1; i++)
-        li   $t2, 0                  # j = 0
+        li   $t0, 0
+        sw   $t0, -12($fp)           # j = 0
 bs_inner:
+        lw   $t2, -12($fp)           # j
+        lw   $t0, -8($fp)            # i
         sub  $t3, $a1, $t0
         addi $t3, $t3, -1            # n - 1 - i
         bge  $t2, $t3, bs_inner_done # for (j = 0; j < n-1-i; j++)
@@ -98,16 +133,24 @@ bs_inner:
         sw   $t7, 0($t5)
         sw   $t6, 4($t5)
 bs_noswap:
+        lw   $t2, -12($fp)
         addi $t2, $t2, 1
+        sw   $t2, -12($fp)           # j++
         j    bs_inner
 bs_inner_done:
+        lw   $t0, -8($fp)
         addi $t0, $t0, 1
+        sw   $t0, -8($fp)            # i++
         j    bs_outer
 bs_done:
+        lw   $fp, -4($fp)
+        addiu $sp, $sp, 16
         jr   $ra
 
 
 # ---------- print_ints($a0 = a, $a1 = n) — space-separated, no trailing space ----------
+# Register-based display helper: base in $t1 / n in $t8 survive the print
+# syscalls; no trailing space before the first element.
 print_ints:
         move $t1, $a0                # base (kept out of $a0, which syscalls use)
         move $t8, $a1                # n
