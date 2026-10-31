@@ -105,7 +105,11 @@ faithful. The traced-value checker (above) is the SECOND gate the goldens don't 
   - [x] **Step 2 — `intro/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-2-intro.md`).
     Converted `print1through10` (loop counter → stack), `clear`, `helloworld`, `yes`
     (no locals → SYMBOL TABLE only). All byte-identical; checker green.
-  - [ ] Step 3 — `arguments/` · [ ] Step 4 — `recursion/` · [ ] Step 5 — `extras/`
+  - [x] **Step 3 — `arguments/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-3-arguments.md`).
+    Converted `echo`, `factor`, `seq`, `tee` (the capstone — `int fds[8]` array onto the
+    stack; `static buf` stays in .data). All byte-identical (tee files md5-identical);
+    checker green. Added `arguments/tee/tee.input` for tee's stdout-only anchor.
+  - [ ] Step 4 — `recursion/` · [ ] Step 5 — `extras/`
     · [ ] Step 6 — `fileio/` · [ ] Step 7 — `lib/` · [ ] Step 8 — `lang/`
     · [ ] Step 9 — `algorithms/` · [ ] Step 10 — `transforms/`
 
@@ -118,7 +122,7 @@ faithful. The traced-value checker (above) is the SECOND gate the goldens don't 
   | # | topic | total | remaining to convert | exempt (deliberate-lesson) |
   |---|-------|-------|----------------------|----------------------------|
   | 2 | `intro/` ✅   |  6 | 4 done | `exit/exit.asm`; (pilot did `increment-ints-1`) |
-  | 3 | `arguments/`  |  6 | 4 | — (pilot did `factorial`, `gcd`) |
+  | 3 | `arguments/` ✅ |  6 | 4 done | — (pilot did `factorial`, `gcd`) |
   | 4 | `recursion/`  |  5 | 3 | `get-char-from-user/-1`,`-2` |
   | 5 | `extras/`     |  5 | 3 | `subrountines/-1`,`-2` |
   | 6 | `fileio/`     |  9 | 9 | — (confirm during the step) |
