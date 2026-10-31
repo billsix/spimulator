@@ -4,8 +4,12 @@
 **Depends on:** nothing (first step)
 **Next:** the per-topic rollout steps (filed once this pilot fixes the style)
 
-**Status:** in progress (2026-10-31) — four pilot demos converted + verified, reference
-doc + value-checker written; awaiting maintainer sign-off on the style before the rollout.
+**Status:** done + archived 2026-10-31 — four pilot demos converted + verified, reference
+doc + value-checker written, and the maintainer (William Emerison Six <billsix@gmail.com>)
+signed off on the style ("1) yes"). The style is durable in
+`tasks/reference/mips-asm-teaching-style.md`; the per-topic rollout is tracked by the
+umbrella `asm-simplification-sweep.md`. The transient-temporary boundary (gcd's `t = a % b`
+stays in a register) was confirmed ("2) that's fine").
 **Priority:** 5
 **Difficulty:** 5
 
