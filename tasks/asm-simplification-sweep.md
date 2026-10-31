@@ -1,7 +1,13 @@
 # Assembly simplification sweep for novices (umbrella)
 
-**Status:** proposed — needs go-ahead to start the pilot (design settled with the
-maintainer, William Emerison Six <billsix@gmail.com>, 2026-10-31)
+**Status:** done + archived 2026-10-31 — the full sweep is COMPLETE. Pilot (step 1) + all 9
+rollout topics (steps 2-10) done: every non-exempt hand-written `.asm` demo converted to the
+stack-visible style, each byte-identical to its pre-change output, 47/47 annotated demos pass
+`tools/check_asm_canonical.py --all`, and all golden-tested demos stay green. The durable style
+lives in `tasks/reference/mips-asm-teaching-style.md`. One judgment call for the maintainer to
+confirm: the `$sp`-operand-stack exempt set was expanded 2 -> 4 (rpn-2-ops/rpn-3-float added;
+see step 9). Done on the maintainer's go-ahead "roll out the asm sweep topic by topic" +
+"continue with lang, then algorithms and transforms" (William Emerison Six <billsix@gmail.com>).
 **Priority:** 6
 **Difficulty:** 7
 
@@ -135,7 +141,10 @@ faithful. The traced-value checker (above) is the SECOND gate the goldens don't 
     rpn-eval-test). EXEMPT SET EXPANDED 2→4: all four $sp-operand-stack rpn rungs (rpn,
     rpn-1-stack, rpn-2-ops, rpn-3-float) left register-based — flagged for the maintainer.
     All byte-identical; checker green; exempt rpn files untouched.
-  - [ ] Step 10 — `transforms/`
+  - [x] **Step 10 — `transforms/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-10-transforms.md`).
+    Converted all 14 non-pilot demos (base64, cut, expand, head×2, nl, od, rev, rot13, strings,
+    tac, tail, tr, uniq). Scalars to the stack; buffers/tables stay .data/heap. All
+    byte-identical; checker green. **SWEEP COMPLETE.**
 
   Each: convert its non-exempt demos to the style
   in `tasks/reference/mips-asm-teaching-style.md`, verify each with before/after output
@@ -153,7 +162,7 @@ faithful. The traced-value checker (above) is the SECOND gate the goldens don't 
   | 7 | `lib/` ✅     | 11 | 7 done | 4 library files (shared leaf helpers) — NOT converted (maintainer: drivers only) |
   | 8 | `lang/` ✅    | 10 | 10 done | — (the calc family) |
   | 9 | `algorithms/` ✅ | 13 | 9 done | 4 exempt: `rpn.asm`,`rpn-1-stack`,`rpn-2-ops`,`rpn-3-float` (all $sp operand stack — set EXPANDED 2→4) |
-  | 10| `transforms/` | 15 | 14 | — (pilot did `wc`) |
+  | 10| `transforms/` ✅ | 15 | 14 done | — (pilot did `wc`) |
 
   Total ~80 files; ~72 to convert after the pilot and the known exempt set. Confirm the full
   exempt set per step. Ordering is Priority + a "Depends on: Step 1 (style)" note, not
