@@ -4,7 +4,8 @@
 **Depends on:** Step 1 (the pilot + `tasks/reference/mips-asm-teaching-style.md`)
 **Next:** Step 3 — `arguments/`
 
-**Status:** in progress — converting the 4 non-exempt `intro/` demos.
+**Status:** done + archived 2026-10-31 — 4 demos converted, all byte-identical to
+pre-change output, both annotated demos pass `tools/check_asm_canonical.py`.
 **Priority:** 5
 **Difficulty:** 3
 

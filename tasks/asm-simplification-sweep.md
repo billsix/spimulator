@@ -98,10 +98,18 @@ faithful. The traced-value checker (above) is the SECOND gate the goldens don't 
   DONE 2026-10-31: converted `increment-ints-1`, `factorial`, `gcd`, `wc`; authored
   `tasks/reference/mips-asm-teaching-style.md`; built `tools/check_asm_canonical.py`.
   Maintainer signed off on the style and the transient-temporary boundary.
-- [ ] **Step 2+ — per-topic rollout** (NOT yet started; awaiting the maintainer's go-ahead
-  to grind through it — flagged 2026-10-31 as a large, multi-session, instruction-changing
+- **Step 2+ — per-topic rollout** (STARTED 2026-10-31 on the maintainer's go-ahead
+  "roll out the asm sweep topic by topic" — a large, multi-session, instruction-changing
   effort). One step-task per topic folder, created and executed when its turn comes (not
-  pre-stubbed, to avoid over-scaffolding). Each: convert its non-exempt demos to the style
+  pre-stubbed, to avoid over-scaffolding). Progress (archived step-task per topic):
+  - [x] **Step 2 — `intro/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-2-intro.md`).
+    Converted `print1through10` (loop counter → stack), `clear`, `helloworld`, `yes`
+    (no locals → SYMBOL TABLE only). All byte-identical; checker green.
+  - [ ] Step 3 — `arguments/` · [ ] Step 4 — `recursion/` · [ ] Step 5 — `extras/`
+    · [ ] Step 6 — `fileio/` · [ ] Step 7 — `lib/` · [ ] Step 8 — `lang/`
+    · [ ] Step 9 — `algorithms/` · [ ] Step 10 — `transforms/`
+
+  Each: convert its non-exempt demos to the style
   in `tasks/reference/mips-asm-teaching-style.md`, verify each with before/after output
   equivalence (+ goldens where they exist, + `tools/check_asm_canonical.py`), gate green.
   Proposed order (easy-wins / smallest first), with `.asm` counts (total; remaining after
@@ -109,7 +117,7 @@ faithful. The traced-value checker (above) is the SECOND gate the goldens don't 
 
   | # | topic | total | remaining to convert | exempt (deliberate-lesson) |
   |---|-------|-------|----------------------|----------------------------|
-  | 2 | `intro/`      |  6 | 4 | `exit/exit.asm`; (pilot did `increment-ints-1`) |
+  | 2 | `intro/` ✅   |  6 | 4 done | `exit/exit.asm`; (pilot did `increment-ints-1`) |
   | 3 | `arguments/`  |  6 | 4 | — (pilot did `factorial`, `gcd`) |
   | 4 | `recursion/`  |  5 | 3 | `get-char-from-user/-1`,`-2` |
   | 5 | `extras/`     |  5 | 3 | `subrountines/-1`,`-2` |
