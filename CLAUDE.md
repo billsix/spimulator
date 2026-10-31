@@ -32,7 +32,8 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
   `transforms/`, `fileio/`, `arguments/`, `recursion/`, `extras/`, plus
   `lib/libctype` + `libstdlib` + `libstr` adapted from musl). `examples/src/meson.build`
   builds them; `examples/src/Makefile` materializes native `.s` listings +
-  binaries; `examples/tests/run-demo.sh` runs C and asm and diffs both against
+  binaries (and `make debug` builds debuggable `bin-debug/` binaries with `-g`
+  for gdb/lldb); `examples/tests/run-demo.sh` runs C and asm and diffs both against
   goldens. **The two build systems are independent and must be kept in sync** — the
   Makefile sets its own `-std=gnu23` (matching meson's `c_std`) and keeps its own
   helper/include/archive inventory, so adding a lib or demo to `meson.build` means
@@ -105,7 +106,13 @@ not spim's intentional exit-time leaks) + the integer-UB primer:
   of a function**, mirroring the stack-frame prologue — not for modern-C style. Opt
   out of any idiom (declare-at-use, heavy `const`, designated initializers,
   `typeof`/`auto`, helper extraction) that obscures the codegen a demo exists to show.
-  Rationale + opt-out list: `tasks/reference/example-c-teaching-style.md`.
+  Rationale + opt-out list: `tasks/reference/example-c-teaching-style.md`. The
+  hand-written MIPS `.asm` demos follow a parallel **stack-visible** style (each C
+  local in a `-N($fp)` slot, a per-routine columnar SYMBOL TABLE, and an ascii
+  stack-frame SNAPSHOT with hand-traced values checked by
+  `tools/check_asm_canonical.py`); deliberate register/idiom/bug demos are exempt.
+  Guide: `tasks/reference/mips-asm-teaching-style.md`; rollout across the ~80 files:
+  `tasks/asm-simplification-sweep.md`.
 
 ## Tasks (in-flight)
 
