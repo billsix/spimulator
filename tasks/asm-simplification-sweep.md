@@ -98,14 +98,33 @@ faithful. The traced-value checker (above) is the SECOND gate the goldens don't 
   DONE 2026-10-31: converted `increment-ints-1`, `factorial`, `gcd`, `wc`; authored
   `tasks/reference/mips-asm-teaching-style.md`; built `tools/check_asm_canonical.py`.
   Maintainer signed off on the style and the transient-temporary boundary.
-- [ ] **Step 2+ — per-topic rollout** (filed after Step 1 fixes the style): `intro/`,
-  `arguments/`, `transforms/`, `fileio/`, `algorithms/`, `recursion/`, `lang/calc/`,
-  `extras/`, `lib/`. One step-task per topic folder (roughly), each converting its
-  non-exempt demos, gated green per batch. Ordering by Priority + "Depends on: Step 1";
-  not `blocked` (within our control).
+- [ ] **Step 2+ — per-topic rollout** (NOT yet started; awaiting the maintainer's go-ahead
+  to grind through it — flagged 2026-10-31 as a large, multi-session, instruction-changing
+  effort). One step-task per topic folder, created and executed when its turn comes (not
+  pre-stubbed, to avoid over-scaffolding). Each: convert its non-exempt demos to the style
+  in `tasks/reference/mips-asm-teaching-style.md`, verify each with before/after output
+  equivalence (+ goldens where they exist, + `tools/check_asm_canonical.py`), gate green.
+  Proposed order (easy-wins / smallest first), with `.asm` counts (total; remaining after
+  the pilot and the exempt deliberate-lesson files):
 
-Don't over-scaffold: the rollout step docs are written once the pilot pins the exact style,
-so they can cite it instead of guessing.
+  | # | topic | total | remaining to convert | exempt (deliberate-lesson) |
+  |---|-------|-------|----------------------|----------------------------|
+  | 2 | `intro/`      |  6 | 4 | `exit/exit.asm`; (pilot did `increment-ints-1`) |
+  | 3 | `arguments/`  |  6 | 4 | — (pilot did `factorial`, `gcd`) |
+  | 4 | `recursion/`  |  5 | 3 | `get-char-from-user/-1`,`-2` |
+  | 5 | `extras/`     |  5 | 3 | `subrountines/-1`,`-2` |
+  | 6 | `fileio/`     |  9 | 9 | — (confirm during the step) |
+  | 7 | `lib/`        | 11 | 11 | — (library routines; confirm their shape fits) |
+  | 8 | `lang/`       | 10 | 10 | — (the calc family) |
+  | 9 | `algorithms/` | 13 | 12 | `rpn/rpn.asm`,`rpn/rpn-1-stack.asm` ($sp operand stack) |
+  | 10| `transforms/` | 15 | 14 | — (pilot did `wc`) |
+
+  Total ~80 files; ~72 to convert after the pilot and the known exempt set. Confirm the full
+  exempt set per step. Ordering is Priority + a "Depends on: Step 1 (style)" note, not
+  `blocked` (within our control).
+
+Don't over-scaffold: each rollout step-task is written when it is started, citing the pinned
+style doc rather than guessing.
 
 ## Open questions
 
