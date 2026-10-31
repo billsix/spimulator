@@ -17,6 +17,23 @@
 # resolve at load time because spim's symbol table accumulates
 # across -f files.
 #==============================================================
+#
+# STACK-VISIBLE STYLE: this driver has NO C local variables — it is a
+# straight-line sequence of libstr calls, each computing a transient
+# PASS/FAIL in $a1 and reporting it at once.  main saves $ra on its
+# frame for the many `jal`s.  report is a leaf helper; the work buffers
+# (buf, mm_*) are file-scope data in .data.  No #CANONICAL: a driver
+# that `jal`s into libstr can't be assembled standalone by the value-
+# checker; golden-tested via run-demo.sh.
+# Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+#  SYMBOL TABLE (routine: main)
+#
+#  C variable  | memory addr | register   | C type    | bytes | role / notes
+#  ------------+-------------+------------+-----------+-------+---------------------------
+#  (none)      | —           | —          | —         |   —   | no persistent locals; per-test ok is transient in $a1
+#  (saved $ra) | -4($fp)     | —          | code addr |   4   | across the many jal <libstr fn> / jal report
+#  (saved $fp) | -8($fp)     | —          | frame ptr |   4   | caller's frame pointer
 
         .data
 # ---- subcase labels (printed verbatim, then "=PASS"/"=FAIL") ----
@@ -72,8 +89,11 @@ mm_dst:     .space  8
         .text
         .globl  main
 main:
-        addiu   $sp, $sp, -4
-        sw      $ra, 0($sp)         # save the runtime's return address
+        # ---- prologue: save $ra (and $fp) across the many jals -----
+        addiu   $sp, $sp, -8
+        sw      $ra, 4($sp)         # -> -4($fp)
+        sw      $fp, 0($sp)         # -> -8($fp)
+        addiu   $fp, $sp, 8
 
         # ---- strlen_empty: strlen("") == 0 ----
         la      $a0, s_empty
@@ -413,9 +433,10 @@ main:
         jal     report
 
         # ---- done ----
-        lw      $ra, 0($sp)
-        addiu   $sp, $sp, 4
         li      $v0, 0              # exit status 0 (via runtime __start)
+        lw      $ra, -4($fp)
+        lw      $fp, -8($fp)
+        addiu   $sp, $sp, 8
         jr      $ra
 
 #--------------------------------------------------------------

@@ -27,11 +27,39 @@
 
 #PURPOSE:  Print "hello world" to standard output and exit zero.
 #
-#VARIABLES:
-#   $a0       syscall argument register
-#   $v0       syscall selector; also main's return value
-#               (syscall 4 = print_string;
-#                see https://www.doc.ic.ac.uk/lab/secondyear/spim/node8.html)
+#          STACK-VISIBLE STYLE: this program has NO C local variables
+#          — just a fixed string in .data — and makes NO `jal`, so
+#          there is no stack frame (a frame with nothing in it would
+#          be ceremony).  The string lives in .data; its ADDRESS is
+#          what travels in a register ($a0).  Contrast
+#          print1through10, whose loop counter does get a stack slot.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
+#          (syscall 4 = print_string; see
+#           https://www.doc.ic.ac.uk/lab/secondyear/spim/node8.html)
+#
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: main)
+#
+#  C variable      | memory addr        | register   | C type   | bytes | role / notes
+#  ----------------+--------------------+------------+----------+-------+---------------------------
+#  "hello world\n" | helloworld (.data) | $a0 (addr) | char[13] |  13   | string literal (12 bytes + NUL); address passed to print_string
+#
+# ------------------------------------------------------------------
+#  SNAPSHOT (no args; just before the syscall)
+#
+#        .data                          scratch
+#   +-------------------------+        +-------------------------------+
+#   | helloworld:             |        | $a0 = &helloworld (its addr)
+#   |   "hello world\n"       | <----- | $v0 = 4 (print_string)
+#   +-------------------------+        +-------------------------------+
+#
+#   Writes the 12 bytes of the string, then exits 0.  There is no
+#   frame and no C variable to trace — the text lives in .data.
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  args:
+#  stdout:
+#  | hello world
 
         .data
 helloworld:

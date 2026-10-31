@@ -15,6 +15,24 @@
 # accumulates across -f files (see /spimulator/tasks/
 # cli-multi-file-load.md).
 #==============================================================
+#
+# STACK-VISIBLE STYLE: the one C local, the loop variable c, lives in
+# a stack slot; each use reloads a working COPY into $a0 (c is passed
+# to every ctype function and to the int/char printers).  main saves
+# $ra for its many `jal`s.  The ctype functions are library routines
+# (loaded separately, register-based); _ps/_pi/_pc are leaf print
+# helpers.  No #CANONICAL: a driver that `jal`s into libctype can't be
+# assembled standalone by the value-checker; golden-tested via
+# run-demo.sh.
+# Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+#  SYMBOL TABLE (routine: main)
+#
+#  C variable  | memory addr | register   | C type    | bytes | role / notes
+#  ------------+-------------+------------+-----------+-------+---------------------------
+#  c           | -12($fp)    | $a0 (copy) | int       |   4   | loop variable 32..126 (one row per byte)
+#  (saved $ra) | -4($fp)     | —          | code addr |   4   | across the per-row jal <ctype fn> / jal _p*
+#  (saved $fp) | -8($fp)     | —          | frame ptr |   4   | caller's frame pointer
 
         .data
 msg_c_eq:    .asciiz "c="
@@ -32,29 +50,32 @@ msg_q_nl:    .asciiz "'\n"
         .text
         .globl  main
 main:
-        # Save the runtime's return address (we'll jal a lot;
-        # restore at the end so __start can exit cleanly with $v0).
-        move    $s0, $ra
-        li      $s1, 32             # $s1 = c (loop variable)
-        li      $s2, 127            # $s2 = end-exclusive
+        # ---- prologue: build main's 16-byte stack frame ------------
+        addiu   $sp, $sp, -16
+        sw      $ra, 12($sp)        # -> -4($fp)
+        sw      $fp, 8($sp)         # -> -8($fp)
+        addiu   $fp, $sp, 16
+
+        li      $t0, 32
+        sw      $t0, -12($fp)       # c = 32
 
 loop:
         # ---- "c=" + int(c) ----
         la      $a0, msg_c_eq
         jal     _ps
-        move    $a0, $s1
+        lw      $a0, -12($fp)       # c
         jal     _pi
 
         # ---- " '" + char(c) ----
         la      $a0, msg_sp_quote
         jal     _ps
-        move    $a0, $s1
+        lw      $a0, -12($fp)       # c
         jal     _pc
 
         # ---- "'  alpha=" + isalpha(c) ----
         la      $a0, msg_q_alpha
         jal     _ps
-        move    $a0, $s1
+        lw      $a0, -12($fp)       # c
         jal     isalpha
         move    $a0, $v0
         jal     _pi
@@ -62,7 +83,7 @@ loop:
         # ---- " alnum=" + isalnum(c) ----
         la      $a0, msg_alnum
         jal     _ps
-        move    $a0, $s1
+        lw      $a0, -12($fp)       # c
         jal     isalnum
         move    $a0, $v0
         jal     _pi
@@ -70,7 +91,7 @@ loop:
         # ---- " digit=" + isdigit(c) ----
         la      $a0, msg_digit
         jal     _ps
-        move    $a0, $s1
+        lw      $a0, -12($fp)       # c
         jal     isdigit
         move    $a0, $v0
         jal     _pi
@@ -78,7 +99,7 @@ loop:
         # ---- " upper=" + isupper(c) ----
         la      $a0, msg_upper
         jal     _ps
-        move    $a0, $s1
+        lw      $a0, -12($fp)       # c
         jal     isupper
         move    $a0, $v0
         jal     _pi
@@ -86,7 +107,7 @@ loop:
         # ---- " lower=" + islower(c) ----
         la      $a0, msg_lower
         jal     _ps
-        move    $a0, $s1
+        lw      $a0, -12($fp)       # c
         jal     islower
         move    $a0, $v0
         jal     _pi
@@ -94,7 +115,7 @@ loop:
         # ---- " space=" + isspace(c) ----
         la      $a0, msg_space
         jal     _ps
-        move    $a0, $s1
+        lw      $a0, -12($fp)       # c
         jal     isspace
         move    $a0, $v0
         jal     _pi
@@ -102,7 +123,7 @@ loop:
         # ---- "  up='" + char(toupper(c)) ----
         la      $a0, msg_up_q
         jal     _ps
-        move    $a0, $s1
+        lw      $a0, -12($fp)       # c
         jal     toupper
         move    $a0, $v0
         jal     _pc
@@ -110,25 +131,29 @@ loop:
         # ---- "' lo='" + char(tolower(c)) + "'\n" ----
         la      $a0, msg_q_lo_q
         jal     _ps
-        move    $a0, $s1
+        lw      $a0, -12($fp)       # c
         jal     tolower
         move    $a0, $v0
         jal     _pc
         la      $a0, msg_q_nl
         jal     _ps
 
-        # ---- advance and loop ----
-        addiu   $s1, $s1, 1
-        blt     $s1, $s2, loop
+        # ---- advance: c++; while (c < 127) ----
+        lw      $t0, -12($fp)       # c
+        addiu   $t0, $t0, 1
+        sw      $t0, -12($fp)
+        blt     $t0, 127, loop
 
-        # ---- done ----
-        move    $ra, $s0
+done:
+        # ---- epilogue ----------------------------------------------
         li      $v0, 0              # exit status 0 (via __start's syscall 17)
+        lw      $ra, -4($fp)
+        lw      $fp, -8($fp)
+        addiu   $sp, $sp, 16
         jr      $ra
 
 #--------------------------------------------------------------
 # Private print helpers — leaf wrappers around the syscalls.
-# Future work: factor these into a libio.asm.
 #--------------------------------------------------------------
 
 # _ps($a0=ptr) — print NUL-terminated string via syscall 4

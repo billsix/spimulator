@@ -26,16 +26,33 @@
 #   printf '(3+4)*2-10/4\n'  | spimulator -f calc-6-float.asm   ->  11.500000
 
 # PURPOSE:  Rung 6 of the calculator ladder — introduce the FPU.  Values are now
-#           DOUBLES on $f0..$f31, numbers gain an optional '.'-fraction, and
-#           every operator is a '.d' op, so '/' yields decimals (10/4 -> 2.5).
-#           Same grammar as rung 5; display reuses rpn/calc-sdt's fixed printer.
-#           This is calc-sdt minus skip_blanks and the error path (well-formed
-#           input assumed); add those and it becomes calc-sdt.
-
-# SYMBOL TABLE  (C name -> MIPS location)
-#   cur (lookahead char) -> word at `curchar` (.data)
-#   a parsed value -> $f0 (returned up the parse call chain)
-#   a value held across a recursive call -> 0($sp) frame (sdc1/ldc1)
+#           DOUBLES, numbers gain an optional '.'-fraction, every operator is a
+#           '.d' op, so '/' yields decimals (10/4 -> 2.5).  Same grammar as rung 5.
+#
+#           STACK-VISIBLE STYLE: `cur` is a C `static` GLOBAL in .data.  The
+#           numeric value a parse routine must hold across a recursive call is a
+#           DOUBLE, and it lives at -16($fp) — an 8-byte, 8-aligned frame slot
+#           read/written with ldc1/sdc1.  So the actual computed values are
+#           visibly on the stack between calls (the return travels up in $f0).
+#           parse_number's `fractional_digits` is a transient parse-internal
+#           counter kept in $t2 (the leaf advance preserves it) — the gcd-`t`
+#           boundary.  Every routine that `jal`s saves $ra.  print_double is a
+#           shared display helper (leaf, register-based).
+#           Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+#  SYMBOL TABLE: cur -> curchar (.data, GLOBAL).  In parse_expr / parse_term /
+#  parse_factor the running DOUBLE (accumulator / parenthesised value) is the
+#  8-byte slot at -16($fp) (working copy in $f0, lhs loaded to $f2); saved $ra at
+#  -4($fp), saved $fp at -8($fp).  parse_number's fractional_digits -> $t2
+#  (transient).  advance() is a leaf helper.
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  stdin: lang/calc/calc-6-float.input
+#  stdout:
+#  | 2.500000
+#  | 4.500000
+#  | 11.500000
+#  | 1
 
         .data
 curchar:    .word 0
@@ -45,7 +62,11 @@ infMsg:     .asciiz "inf"
         .text
         .globl main
 main:
-        move $s0, $ra                # save return address
+        addiu $sp, $sp, -8
+        sw   $ra, 4($sp)             # -> -4($fp)
+        sw   $fp, 0($sp)             # -> -8($fp)
+        addiu $fp, $sp, 8
+
         li   $v0, 12                 # prime the first lookahead char
         syscall
         sw   $v0, curchar
@@ -76,12 +97,14 @@ ml_expr:
         j    main_loop
 
 main_done:
-        move $ra, $s0
         li   $v0, 0
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 8
         jr   $ra
 
 
-# ---------- advance() — cur = read_char() ----------
+# ---------- advance() — cur = read_char()  (leaf helper) ----------
 advance:
         li   $v0, 12
         syscall
@@ -90,10 +113,12 @@ advance:
 
 
 # ---------- parse_factor() -> $f0   factor := NUMBER | '-' factor | '(' expr ')' ----------
-#   frame: 0($sp)=saved value (double, parens case), 8($sp)=$ra
+#   -16($fp) = held double value (parens case, 8 bytes via sdc1/ldc1)
 parse_factor:
-        addi $sp, $sp, -16
-        sw   $ra, 8($sp)
+        addiu $sp, $sp, -16
+        sw   $ra, 12($sp)            # -> -4($fp)
+        sw   $fp, 8($sp)             # -> -8($fp)
+        addiu $fp, $sp, 16
         lw   $t0, curchar
 
         li   $t1, '-'                # unary minus
@@ -107,13 +132,13 @@ pf_not_neg:
         bne  $t0, $t1, pf_number
         jal  advance
         jal  parse_expr
-        sdc1 $f0, 0($sp)             # hold the value across the ')' handling
+        sdc1 $f0, -16($fp)           # hold the value across the ')' handling
         lw   $t0, curchar
         li   $t1, ')'
         bne  $t0, $t1, pf_paren_ret  # well-formed input assumed
         jal  advance
 pf_paren_ret:
-        ldc1 $f0, 0($sp)
+        ldc1 $f0, -16($fp)
         j    pf_ret
 pf_number:
         mtc1 $zero, $f0
@@ -121,7 +146,7 @@ pf_number:
         li   $t1, 10
         mtc1 $t1, $f4
         cvt.d.w $f4, $f4             # ten = 10.0
-        li   $t2, 0                  # fractional_digits
+        li   $t2, 0                  # fractional_digits (transient; advance preserves $t2)
 pfn_int:
         lw   $t0, curchar
         li   $t1, '0'
@@ -160,76 +185,84 @@ pfn_div:
         addi $t2, $t2, -1
         j    pfn_div
 pf_ret:
-        lw   $ra, 8($sp)
-        addi $sp, $sp, 16
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr   $ra
 
 
 # ---------- parse_term() -> $f0   term := factor (('*'|'/') factor)* ----------
-#   frame: 0($sp)=accumulator (double), 8($sp)=$ra
+#   -16($fp) = accumulator (double, 8 bytes via sdc1/ldc1)
 parse_term:
-        addi $sp, $sp, -16
-        sw   $ra, 8($sp)
+        addiu $sp, $sp, -16
+        sw   $ra, 12($sp)            # -> -4($fp)
+        sw   $fp, 8($sp)             # -> -8($fp)
+        addiu $fp, $sp, 16
         jal  parse_factor
 pt_loop:
-        sdc1 $f0, 0($sp)             # save accumulator across the next call
+        sdc1 $f0, -16($fp)           # save accumulator across the next call
         lw   $t0, curchar
         li   $t1, '*'
         beq  $t0, $t1, pt_mul
         li   $t1, '/'
         beq  $t0, $t1, pt_div
-        ldc1 $f0, 0($sp)             # neither: restore and return
-        lw   $ra, 8($sp)
-        addi $sp, $sp, 16
+        ldc1 $f0, -16($fp)           # neither: restore and return
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr   $ra
 pt_mul:
         jal  advance
         jal  parse_factor            # rhs -> $f0
-        ldc1 $f2, 0($sp)             # lhs
+        ldc1 $f2, -16($fp)           # lhs
         mul.d $f0, $f2, $f0
         j    pt_loop
 pt_div:
         jal  advance
         jal  parse_factor
-        ldc1 $f2, 0($sp)
+        ldc1 $f2, -16($fp)
         div.d $f0, $f2, $f0
         j    pt_loop
 
 
 # ---------- parse_expr() -> $f0   expr := term (('+'|'-') term)* ----------
-#   frame: 0($sp)=accumulator (double), 8($sp)=$ra
+#   -16($fp) = accumulator (double, 8 bytes via sdc1/ldc1)
 parse_expr:
-        addi $sp, $sp, -16
-        sw   $ra, 8($sp)
+        addiu $sp, $sp, -16
+        sw   $ra, 12($sp)            # -> -4($fp)
+        sw   $fp, 8($sp)             # -> -8($fp)
+        addiu $fp, $sp, 16
         jal  parse_term
 pe_loop:
-        sdc1 $f0, 0($sp)
+        sdc1 $f0, -16($fp)
         lw   $t0, curchar
         li   $t1, '+'
         beq  $t0, $t1, pe_add
         li   $t1, '-'
         beq  $t0, $t1, pe_sub
-        ldc1 $f0, 0($sp)
-        lw   $ra, 8($sp)
-        addi $sp, $sp, 16
+        ldc1 $f0, -16($fp)
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr   $ra
 pe_add:
         jal  advance
         jal  parse_term
-        ldc1 $f2, 0($sp)
+        ldc1 $f2, -16($fp)
         add.d $f0, $f2, $f0
         j    pe_loop
 pe_sub:
         jal  advance
         jal  parse_term
-        ldc1 $f2, 0($sp)
+        ldc1 $f2, -16($fp)
         sub.d $f0, $f2, $f0
         j    pe_loop
 
 
-# ---------- print_double($f12) — fixed deterministic format (see rpn.asm / calc-sdt.asm) ----
+# ---------- print_double($f12) — fixed deterministic format (shared display
+#            helper; leaf, register-based; see rpn.asm / calc-sdt.asm) ----------
 #   nan -> "nan"; sign; inf -> "inf"; else integer part, and if a fraction
-#   remains, '.' + 6 truncated fractional digits.  Leaf (only syscalls).
+#   remains, '.' + 6 truncated fractional digits.
 print_double:
         c.eq.d $f12, $f12            # nan is the only value != itself
         bc1t pd_not_nan

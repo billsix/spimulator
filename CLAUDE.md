@@ -111,8 +111,9 @@ not spim's intentional exit-time leaks) + the integer-UB primer:
   local in a `-N($fp)` slot, a per-routine columnar SYMBOL TABLE, and an ascii
   stack-frame SNAPSHOT with hand-traced values checked by
   `tools/check_asm_canonical.py`); deliberate register/idiom/bug demos are exempt.
-  Guide: `tasks/reference/mips-asm-teaching-style.md`; rollout across the ~80 files:
-  `tasks/asm-simplification-sweep.md`.
+  Guide: `tasks/reference/mips-asm-teaching-style.md` (the living reference). The
+  corpus-wide rollout is COMPLETE (2026-10-31): every non-exempt demo converted; record +
+  per-topic archive under `tasks/archive/2026/10/31/asm-simplification-sweep*.md`.
 
 ## Tasks (in-flight)
 

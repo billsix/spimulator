@@ -22,18 +22,32 @@
 # C source — see calc-4-parens.c
 
 # Invocation (one expression per line on stdin):
-#   printf '(2+3)*4\n' | spimulator -f calc-4-parens.asm   ->  20
+#   printf '2*(3+4)\n' | spimulator -f calc-4-parens.asm   ->  14
 
 # PURPOSE:  Rung 4 of the calculator ladder — parentheses for grouping.
-#           expr := term (('+'|'-') term)*, term := factor (('*'|'/') factor)*,
-#           factor := DIGITS | '(' expr ')'.  factor and expr are MUTUALLY
-#           RECURSIVE via '(' expr ')', so the operand is saved on the stack
-#           across the recursive parse_expr() call.  Integers; no spaces; no
-#           error path (well-formed input assumed).
-
-# SYMBOL TABLE  (C name -> MIPS location)
-#   cur (lookahead char) -> word at `curchar` (.data)
-#   each routine's accumulator / saved value -> 0($sp) in its own frame
+#           expr := term (('+'|'-') term)*;  term := factor (('*'|'/') factor)*;
+#           factor := DIGITS | '(' expr ')'.
+#
+#           STACK-VISIBLE STYLE: `cur` is a C `static` GLOBAL in .data.  Each
+#           parse routine homes its running C local at -12($fp): parse_expr /
+#           parse_term the accumulator, parse_factor the parenthesised value
+#           (held across the ')'), parse_number the digit value.  A scratch
+#           register holds a working COPY; a freshly parsed operand is transient
+#           in $v0.  Every routine that `jal`s saves $ra.
+#           Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+#  SYMBOL TABLE: cur -> curchar (.data, GLOBAL).  parse_expr/parse_term/
+#  parse_factor/parse_number each keep their running local at -12($fp) (working
+#  copy in $t2/$v0); saved $ra at -4($fp), saved $fp at -8($fp).  advance() is a
+#  leaf helper.
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  stdin: lang/calc/calc-4-parens.input
+#  stdout:
+#  | 20
+#  | 14
+#  | 3
+#  | 2
 
         .data
 curchar:    .word 0
@@ -41,7 +55,11 @@ curchar:    .word 0
         .text
         .globl main
 main:
-        move $s0, $ra                # save return address
+        addiu $sp, $sp, -8
+        sw   $ra, 4($sp)             # -> -4($fp)
+        sw   $fp, 0($sp)             # -> -8($fp)
+        addiu $fp, $sp, 8
+
         li   $v0, 12                 # prime the first lookahead char
         syscall
         sw   $v0, curchar
@@ -73,12 +91,14 @@ ml_expr:
         j    main_loop
 
 main_done:
-        move $ra, $s0
         li   $v0, 0
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 8
         jr   $ra
 
 
-# ---------- advance() — cur = read_char() ----------
+# ---------- advance() — cur = read_char()  (leaf helper) ----------
 advance:
         li   $v0, 12
         syscall
@@ -87,117 +107,130 @@ advance:
 
 
 # ---------- parse_factor() -> $v0   factor := DIGITS | '(' expr ')' ----------
-#   frame: 0($sp)=saved value (parens case), 4($sp)=$ra
 parse_factor:
-        addi $sp, $sp, -8
-        sw   $ra, 4($sp)
+        addiu $sp, $sp, -12
+        sw   $ra, 8($sp)             # -> -4($fp)
+        sw   $fp, 4($sp)             # -> -8($fp)
+        addiu $fp, $sp, 12
         lw   $t0, curchar
         li   $t1, '('
         bne  $t0, $t1, pf_number
         jal  advance                 # consume '('
         jal  parse_expr              # value -> $v0
-        sw   $v0, 0($sp)             # hold it across the ')' handling
+        sw   $v0, -12($fp)           # hold it across the ')' handling
         lw   $t0, curchar
         li   $t1, ')'
         bne  $t0, $t1, pf_ret        # well-formed input assumed
         jal  advance                 # consume ')'
 pf_ret:
-        lw   $v0, 0($sp)
-        lw   $ra, 4($sp)
-        addi $sp, $sp, 8
+        lw   $v0, -12($fp)
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 12
         jr   $ra
 pf_number:
         jal  parse_number            # $v0 = the number
-        lw   $ra, 4($sp)
-        addi $sp, $sp, 8
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 12
         jr   $ra
 
 
 # ---------- parse_term() -> $v0   term := factor (('*'|'/') factor)* ----------
-#   frame: 0($sp)=accumulator, 4($sp)=$ra
 parse_term:
-        addi $sp, $sp, -8
-        sw   $ra, 4($sp)
+        addiu $sp, $sp, -12
+        sw   $ra, 8($sp)             # -> -4($fp)
+        sw   $fp, 4($sp)             # -> -8($fp)
+        addiu $fp, $sp, 12
         jal  parse_factor
-        sw   $v0, 0($sp)
+        sw   $v0, -12($fp)           # acc = first factor
 pt_loop:
         lw   $t0, curchar
         li   $t1, '*'
         beq  $t0, $t1, pt_mul
         li   $t1, '/'
         beq  $t0, $t1, pt_div
-        lw   $v0, 0($sp)
-        lw   $ra, 4($sp)
-        addi $sp, $sp, 8
+        lw   $v0, -12($fp)
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 12
         jr   $ra
 pt_mul:
         jal  advance
         jal  parse_factor
-        lw   $t2, 0($sp)
+        lw   $t2, -12($fp)
         mul  $t2, $t2, $v0
-        sw   $t2, 0($sp)
+        sw   $t2, -12($fp)
         j    pt_loop
 pt_div:
         jal  advance
         jal  parse_factor
-        lw   $t2, 0($sp)
+        lw   $t2, -12($fp)
         div  $t2, $t2, $v0           # integer, truncating
-        sw   $t2, 0($sp)
+        sw   $t2, -12($fp)
         j    pt_loop
 
 
 # ---------- parse_expr() -> $v0   expr := term (('+'|'-') term)* ----------
-#   frame: 0($sp)=accumulator, 4($sp)=$ra
 parse_expr:
-        addi $sp, $sp, -8
-        sw   $ra, 4($sp)
+        addiu $sp, $sp, -12
+        sw   $ra, 8($sp)             # -> -4($fp)
+        sw   $fp, 4($sp)             # -> -8($fp)
+        addiu $fp, $sp, 12
         jal  parse_term
-        sw   $v0, 0($sp)
+        sw   $v0, -12($fp)           # acc = first term
 pe_loop:
         lw   $t0, curchar
         li   $t1, '+'
         beq  $t0, $t1, pe_add
         li   $t1, '-'
         beq  $t0, $t1, pe_sub
-        lw   $v0, 0($sp)
-        lw   $ra, 4($sp)
-        addi $sp, $sp, 8
+        lw   $v0, -12($fp)
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 12
         jr   $ra
 pe_add:
         jal  advance
         jal  parse_term
-        lw   $t2, 0($sp)
+        lw   $t2, -12($fp)
         add  $t2, $t2, $v0
-        sw   $t2, 0($sp)
+        sw   $t2, -12($fp)
         j    pe_loop
 pe_sub:
         jal  advance
         jal  parse_term
-        lw   $t2, 0($sp)
+        lw   $t2, -12($fp)
         sub  $t2, $t2, $v0
-        sw   $t2, 0($sp)
+        sw   $t2, -12($fp)
         j    pe_loop
 
 
 # ---------- parse_number() -> $v0  (DIGITS; assumes at least one digit) ----------
 parse_number:
-        addi $sp, $sp, -4
-        sw   $ra, 0($sp)
-        li   $t2, 0                  # value = 0
-        li   $t3, 10
+        addiu $sp, $sp, -16
+        sw   $ra, 12($sp)            # -> -4($fp)
+        sw   $fp, 8($sp)             # -> -8($fp)
+        addiu $fp, $sp, 16
+        li   $t2, 0
+        sw   $t2, -12($fp)           # value = 0
 pn_loop:
         lw   $t0, curchar
         li   $t1, '0'
         blt  $t0, $t1, pn_done
         li   $t1, '9'
         bgt  $t0, $t1, pn_done
-        addi $t0, $t0, -48
-        mul  $t2, $t2, $t3
-        add  $t2, $t2, $t0
+        addi $t0, $t0, -48           # digit = cur - '0'
+        lw   $t2, -12($fp)           # value
+        li   $t3, 10
+        mul  $t2, $t2, $t3           # value * 10
+        add  $t2, $t2, $t0           # + digit
+        sw   $t2, -12($fp)           # store value back
         jal  advance
         j    pn_loop
 pn_done:
-        move $v0, $t2
-        lw   $ra, 0($sp)
-        addi $sp, $sp, 4
+        lw   $v0, -12($fp)           # return value
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr   $ra

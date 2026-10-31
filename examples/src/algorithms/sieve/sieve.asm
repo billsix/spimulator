@@ -27,32 +27,31 @@
 #   spimulator -f sieve.asm 200       # primes up to 200
 
 
-#PURPOSE:  Sieve of Eratosthenes with N from argv.  Default 100.
-#          **First curriculum demo to use sbrk (syscall 9)** — the
-#          flag array is allocated dynamically because LIMIT is
-#          only known at runtime.
+#PURPOSE:  Sieve of Eratosthenes with N from argv.  Default 100.  Uses sbrk
+#          (syscall 9) because the flag array size is only known at runtime; the
+#          kernel zero-fills the new pages.
 #
-#NOTES:    Syscall 9 (sbrk) on spim:
-#            $a0 = bytes to add to the data segment
-#            $v0 = PREVIOUS top (the base of the new region)
-#          The kernel zero-fills new pages, so we don't need to
-#          memset the flag array to zero ourselves.
-
-
-#SYMBOL TABLE  (C variable -> MIPS location)
+#          STACK-VISIBLE STYLE: the C locals `limit`, the sieve base pointer, and
+#          the two loop counters `i`/`j` live in stack slots; a scratch register
+#          holds only a working COPY (i*i and element addresses are transient).
+#          The flag array itself lives in the sbrk heap (its base pointer is the
+#          stack-homed local).  main makes `jal atoi`, so it saves $ra.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
 #
-#   In main:
-#     limit         $s1                  (from argv or 100)
-#     sieve base    $s3                  (returned by sbrk)
-#     i             $s4                  (loop counter, mark + print)
-#     j             $s5                  (inner mark loop)
-#     i*i           $t0                  (transient outer-bound check)
-#     &sieve[i/j]   $t1                  (transient address)
+#  SYMBOL TABLE (routine: main)
 #
-#   Cross-call saves:
-#     $s0   <- runtime's $ra
-#     $s1   <- limit
-#     $s3   <- sieve base address (from sbrk)
+#  C variable  | memory addr | register   | C type    | bytes | role / notes
+#  ------------+-------------+------------+-----------+-------+---------------------------
+#  limit       | -12($fp)    | $t1 (copy) | int       |   4   | upper bound (argv[1] or 100)
+#  sieve       | -16($fp)    | $t3 (copy) | char *    |   4   | flag array base (from sbrk; heap)
+#  i           | -20($fp)    | $t0 (copy) | int       |   4   | outer counter (mark + print)
+#  j           | -24($fp)    | $t0 (copy) | int       |   4   | inner mark counter (i*i, i*i+i, ...)
+#  (saved $ra) | -4($fp)     | —          | code addr |   4   | jal atoi
+#  (saved $fp) | -8($fp)     | —          | frame ptr |   4   | caller's frame pointer
+#
+#  No #CANONICAL block: the single output line ends with a trailing space (a
+#  space after every prime), which a comment-based anchor can't carry.  Gated by
+#  before/after output equivalence (default -> the 25 primes 2..97).
 
         .data
 usageMsg:   .asciiz "usage: sieve [N]   (N >= 2)\n"
@@ -60,73 +59,96 @@ usageMsg:   .asciiz "usage: sieve [N]   (N >= 2)\n"
         .text
         .globl main
 main:
-        move $s0, $ra
-        li $s1, 100                  # limit = 100 (default)
+        addiu $sp, $sp, -24
+        sw $ra, 20($sp)              # -> -4($fp)
+        sw $fp, 16($sp)              # -> -8($fp)
+        addiu $fp, $sp, 24
+
+        li $t0, 100
+        sw $t0, -12($fp)             # limit = 100 (default)
 
         li $t0, 1
         beq $a0, $t0, alloc
         li $t0, 2
         bne $a0, $t0, usage
-
         lw $a0, 4($a1)
         jal atoi
-        move $s1, $v0
-        li $t0, 2
-        blt $s1, $t0, usage
+        sw $v0, -12($fp)             # limit = atoi(argv[1])
+        lw $t0, -12($fp)
+        li $t1, 2
+        blt $t0, $t1, usage
 
 alloc:
         # sbrk(limit + 1) — returns base of new region in $v0
-        addi $a0, $s1, 1
+        lw $t0, -12($fp)
+        addi $a0, $t0, 1
         li $v0, 9                    # 9 = sbrk
         syscall
-        move $s3, $v0                # sieve base address
+        sw $v0, -16($fp)             # sieve base
 
         # ---- Mark composites ----
-        li $s4, 2                    # i = 2
+        li $t0, 2
+        sw $t0, -20($fp)             # i = 2
 mark_outer:
-        mult $s4, $s4
-        mflo $t0                     # i*i
-        bgt $t0, $s1, after_mark
+        lw $t0, -20($fp)             # i
+        mult $t0, $t0
+        mflo $t2                     # i*i (transient)
+        lw $t1, -12($fp)             # limit
+        bgt $t2, $t1, after_mark
 
         # if (!sieve[i])
-        add $t1, $s3, $s4
-        lbu $t2, ($t1)
-        bnez $t2, mark_next_i
+        lw $t3, -16($fp)             # sieve base
+        add $t1, $t3, $t0            # &sieve[i]
+        lbu $t4, ($t1)
+        bnez $t4, mark_next_i
 
-        move $s5, $t0                # j = i*i
+        sw $t2, -24($fp)             # j = i*i
 
 mark_inner:
-        bgt $s5, $s1, mark_next_i
-        add $t1, $s3, $s5
+        lw $t0, -24($fp)             # j
+        lw $t1, -12($fp)             # limit
+        bgt $t0, $t1, mark_next_i
+        lw $t3, -16($fp)             # sieve base
+        add $t1, $t3, $t0            # &sieve[j]
         li $t2, 1
-        sb $t2, ($t1)
-        add $s5, $s5, $s4
+        sb $t2, ($t1)                # sieve[j] = 1
+        lw $t0, -24($fp)             # j
+        lw $t4, -20($fp)             # i
+        add $t0, $t0, $t4            # j += i
+        sw $t0, -24($fp)
         j mark_inner
 
 mark_next_i:
-        addi $s4, $s4, 1
+        lw $t0, -20($fp)             # i++
+        addi $t0, $t0, 1
+        sw $t0, -20($fp)
         j mark_outer
 
 after_mark:
         # ---- Print survivors ----
-        li $s4, 2
+        li $t0, 2
+        sw $t0, -20($fp)             # i = 2
 print_outer:
-        bgt $s4, $s1, print_done
+        lw $t0, -20($fp)             # i
+        lw $t1, -12($fp)             # limit
+        bgt $t0, $t1, print_done
 
-        add $t1, $s3, $s4
-        lbu $t2, ($t1)
-        bnez $t2, print_next_i
+        lw $t3, -16($fp)             # sieve base
+        add $t1, $t3, $t0            # &sieve[i]
+        lbu $t4, ($t1)
+        bnez $t4, print_next_i
 
-        move $a0, $s4
+        lw $a0, -20($fp)             # i
         li $v0, 1
         syscall
-
         li $a0, ' '
         li $v0, 11
         syscall
 
 print_next_i:
-        addi $s4, $s4, 1
+        lw $t0, -20($fp)             # i++
+        addi $t0, $t0, 1
+        sw $t0, -20($fp)
         j print_outer
 
 print_done:
@@ -134,8 +156,10 @@ print_done:
         li $v0, 11
         syscall
 
-        move $ra, $s0
         li $v0, 0                    # exit status: __start passes this through syscall 17
+        lw $ra, -4($fp)
+        lw $fp, -8($fp)
+        addiu $sp, $sp, 24
         jr $ra
 
 usage:
@@ -147,7 +171,7 @@ usage:
         syscall
 
 
-# ---------- atoi subroutine -----------------------------------------
+# ---------- atoi subroutine (shared leaf helper, register-based) ----
 atoi:
         li $v0, 0
         li $t1, 1

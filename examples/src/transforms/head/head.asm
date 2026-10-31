@@ -29,24 +29,41 @@
 #   seq 1 100 | spimulator -f head.asm -n 4      # pipe in, first 4 lines
 
 
-#PURPOSE:  head with real-Unix argv handling.  Accepts the
-#          full `head [-n N] [FILE|-]` shape.  Subsumes both the
-#          old "head" (stdin, hardcoded N=10) and the old
-#          "head-file" (-n N FILE) into a single demo.
-
-
-#SYMBOL TABLE  (C variable -> MIPS location)
+#PURPOSE:  head with real-Unix argv handling: the full `head [-n N] [FILE|-]`
+#          shape.
 #
-#   In main:
-#     fd            $s1                  (STDIN=0 or opened fd)
-#     n             $s2                  (line limit, default 10)
-#     file_arg      $s3                  (NULL or pointer to argv[i])
-#     argv          $s4                  (entry $a1, kept across calls)
-#     line_count    $s5                  (0..n)
-#     c             `oneByte` (.data)    (1-byte read pad)
+#          STACK-VISIBLE STYLE: all of main's C locals — fd, the line limit n,
+#          the file_arg pointer, the argv vector, and the running line_count —
+#          live in stack slots; a scratch register holds only a working COPY.
+#          main makes jals (str_eq, atoi), so it saves $ra.  str_eq and atoi are
+#          leaf helpers, kept register-based.  The one-byte read pad stays .data.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
 #
-#   In str_eq:  $a0, $a1 = pointers; $v0 = 1 if equal, 0 if not.
-#   In atoi:    $a0 = pointer; $v0 = parsed int.
+#  SYMBOL TABLE (routine: main)
+#
+#  C variable  | memory addr | register   | C type    | bytes | role / notes
+#  ------------+-------------+------------+-----------+-------+---------------------------
+#  fd          | -12($fp)    | $t0 (copy) | int       |   4   | STDIN (0) or opened file descriptor
+#  n           | -16($fp)    | $t1 (copy) | int       |   4   | line limit (default 10, or -n N)
+#  file_arg    | -20($fp)    | $t0 (copy) | char *    |   4   | NULL, "-", or FILE from argv
+#  argv        | -24($fp)    | $t0 (copy) | char **   |   4   | entry $a1, kept across the jals
+#  line_count  | -28($fp)    | $t0 (copy) | int       |   4   | newlines echoed so far (stop at n)
+#  (saved $ra) | -4($fp)     | —          | code addr |   4   | jal str_eq / jal atoi
+#  (saved $fp) | -8($fp)     | —          | frame ptr |   4   | caller's frame pointer
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  stdin: transforms/head/head.input
+#  stdout:
+#  | line01
+#  | line02
+#  | line03
+#  | line04
+#  | line05
+#  | line06
+#  | line07
+#  | line08
+#  | line09
+#  | line10
 
         .data
 usageMsg:   .asciiz "usage: head [-n N] [FILE|-]\n"
@@ -58,80 +75,94 @@ oneByte:    .space 1
         .text
         .globl main
 main:
-        move $s0, $ra
-        li $s1, 0                    # fd = STDIN
-        li $s2, 10                   # n = 10
-        move $s3, $0                 # file_arg = NULL
-        move $s4, $a1                # argv
+        addiu $sp, $sp, -32
+        sw $ra, 28($sp)              # -> -4($fp)
+        sw $fp, 24($sp)              # -> -8($fp)
+        addiu $fp, $sp, 32
 
-        # Dispatch on argc.
+        li $t0, 0
+        sw $t0, -12($fp)             # fd = STDIN (0)
+        li $t0, 10
+        sw $t0, -16($fp)             # n = 10
+        sw $zero, -20($fp)           # file_arg = NULL
+        sw $a1, -24($fp)             # argv
+
+        # Dispatch on argc ($a0).
         li $t0, 1
         beq $a0, $t0, open_if_needed   # argc==1 -> stdin, n=10
-
         li $t0, 2
         beq $a0, $t0, argc_two
-
         li $t0, 3
         beq $a0, $t0, argc_three
-
         li $t0, 4
         beq $a0, $t0, argc_four
-
         j usage
 
 argc_two:
         # head FILE_OR_DASH
-        lw $s3, 4($s4)               # file_arg = argv[1]
+        lw $t0, -24($fp)             # argv
+        lw $t0, 4($t0)               # argv[1]
+        sw $t0, -20($fp)             # file_arg
         j open_if_needed
 
 argc_three:
         # head -n N
-        lw $a0, 4($s4)               # argv[1]
+        lw $t0, -24($fp)
+        lw $a0, 4($t0)               # argv[1]
         la $a1, flagN
         jal str_eq
         beqz $v0, usage
-        lw $a0, 8($s4)               # argv[2]
+        lw $t0, -24($fp)
+        lw $a0, 8($t0)               # argv[2]
         jal atoi
-        move $s2, $v0
+        sw $v0, -16($fp)             # n
         j open_if_needed
 
 argc_four:
         # head -n N FILE_OR_DASH
-        lw $a0, 4($s4)
+        lw $t0, -24($fp)
+        lw $a0, 4($t0)
         la $a1, flagN
         jal str_eq
         beqz $v0, usage
-        lw $a0, 8($s4)
+        lw $t0, -24($fp)
+        lw $a0, 8($t0)
         jal atoi
-        move $s2, $v0
-        lw $s3, 12($s4)              # file_arg = argv[3]
+        sw $v0, -16($fp)             # n
+        lw $t0, -24($fp)
+        lw $t0, 12($t0)              # argv[3]
+        sw $t0, -20($fp)             # file_arg
         # fall through
 
 open_if_needed:
-        beqz $s3, read_setup         # no file_arg -> stdin
-        lb $t0, 0($s3)
-        bne $t0, '-', do_open
-        lb $t0, 1($s3)
-        beq $t0, $0, read_setup      # file_arg is "-" -> stdin
+        lw $t0, -20($fp)             # file_arg
+        beqz $t0, read_setup         # no file_arg -> stdin
+        lb $t1, 0($t0)
+        bne $t1, '-', do_open
+        lb $t1, 1($t0)
+        beq $t1, $0, read_setup      # file_arg is "-" -> stdin
 
 do_open:
-        move $a0, $s3
+        lw $a0, -20($fp)             # file_arg
         li $v0, 13
         li $a1, 0
         li $a2, 0
         syscall
         bltz $v0, open_failed
-        move $s1, $v0
+        sw $v0, -12($fp)             # fd
 
 read_setup:
-        li $s5, 0                    # line_count = 0
+        li $t0, 0
+        sw $t0, -28($fp)             # line_count = 0
 
 read_loop:
         # while (line_count < n)
-        bge $s5, $s2, read_done
+        lw $t0, -28($fp)             # line_count
+        lw $t1, -16($fp)             # n
+        bge $t0, $t1, read_done
         # read(fd, &oneByte, 1)
         li $v0, 14
-        move $a0, $s1
+        lw $a0, -12($fp)             # fd
         la $a1, oneByte
         li $a2, 1
         syscall
@@ -142,16 +173,22 @@ read_loop:
         li $v0, 11
         syscall
         bne $a0, '\n', read_loop
-        addi $s5, $s5, 1
+        lw $t0, -28($fp)
+        addi $t0, $t0, 1
+        sw $t0, -28($fp)             # line_count++
         j read_loop
 
 read_done:
-        beqz $s1, exit_ok
+        lw $t0, -12($fp)             # fd
+        beqz $t0, exit_ok
         li $v0, 16
-        move $a0, $s1
+        lw $a0, -12($fp)
         syscall
 exit_ok:
-        move $ra, $s0
+        li $v0, 0
+        lw $ra, -4($fp)
+        lw $fp, -8($fp)
+        addiu $sp, $sp, 32
         jr $ra
 
 open_failed:
@@ -159,7 +196,7 @@ open_failed:
         la $a0, errMsg
         syscall
         li $v0, 4
-        move $a0, $s3
+        lw $a0, -20($fp)             # file_arg
         syscall
         li $v0, 4
         la $a0, nlMsg
@@ -177,9 +214,8 @@ usage:
         syscall
 
 
-# ---------- str_eq subroutine ---------------------------------------
-# Returns $v0 = 1 if equal, 0 if not.
-# Input:  $a0, $a1 = pointers
+# ---------- str_eq (leaf helper) — $v0 = 1 if equal, 0 if not --------
+# Input: $a0, $a1 = pointers
 str_eq:
         lb $t0, ($a0)
         lb $t1, ($a1)
@@ -196,8 +232,7 @@ str_eq_no:
         jr $ra
 
 
-# ---------- atoi subroutine -----------------------------------------
-# Parse decimal int from $a0 (a NUL-terminated string).  $v0 = result.
+# ---------- atoi (leaf helper) — parse decimal int from $a0 ----------
 atoi:
         li $v0, 0
         li $t1, 1

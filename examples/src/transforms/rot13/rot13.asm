@@ -21,96 +21,88 @@
 
 # C source — see rot13-1.c
 # Invocation:
-#   echo "Hello, World!~" | spimulator -f rot13.asm
-#   # => Uryyb, Jbeyq!
+#   echo "Hello, World!~" | spimulator -f rot13.asm   # => Uryyb, Jbeyq!~
 
 
-#PURPOSE:  ROT13: rotate each alphabetic byte 13 places forward
-#          in its case-respective alphabet, with wraparound.
-#          Non-alphabetic bytes pass through unchanged.  Same
-#          byte-stream shape as tr; the new idea is the
-#          modulo-26 step that handles the wraparound.
+#PURPOSE:  ROT13: rotate each alphabetic byte 13 places forward in its
+#          case-respective alphabet, with wraparound (modulo 26).
+#          Non-alphabetic bytes pass through unchanged.
 #
-#NOTES:    `read_char` returns -1 at EOF.  The loop branches on
-#          `bltz $t0, done` — no sentinel character is needed.
+#NOTES:    `read_char` returns -1 at EOF; the loop branches on `bltz`.
+#          ROT13 is self-inverse.  The modulo `(offset + 13) % 26` is
+#          `div`/`mfhi` (remainder in HI; the LO quotient is ignored).
 #
-#          ROT13 is self-inverse.  Piping the same text through
-#          the program twice gets the original back -- a free
-#          end-to-end sanity check.
+#          STACK-VISIBLE STYLE: the C local `ch` (current byte) lives in a stack
+#          slot; the transformed byte is stored back before it is printed.  The
+#          `offset`/modulus are transient sub-expression temporaries kept in
+#          registers (produced and consumed within one iteration).  This demo
+#          makes NO `jal` (only syscalls, which preserve $ra), so it saves $fp
+#          but not $ra.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
 #
-#          The modulo: `(offset + 13) % 26` becomes
-#              addi $t, $t, 13
-#              li   $tx, 26
-#              div  $t, $tx
-#              mfhi $t            ; remainder lands in HI
-#          The quotient goes in LO and we ignore it.
-
-
-#SYMBOL TABLE  (C variable -> MIPS location)
+#  SYMBOL TABLE (routine: main)
 #
-#   In main:
-#     ch            $t0                  (current byte being processed)
-#     offset        $t1                  ((ch - base) + 13 before the
-#                                          div; the remainder after the
-#                                          mfhi)
-#     26            $t2                  (modulus, loaded just before
-#                                          each div)
+#  C variable  | memory addr | register   | C type    | bytes | role / notes
+#  ------------+-------------+------------+-----------+-------+---------------------------
+#  ch          | -8($fp)     | $t0 (copy) | int       |   4   | current byte (-1 at EOF); rotated in place
+#  offset      | —           | $t1        | int       |   4   | transient (ch-base+13), then the % 26 result
+#  (saved $fp) | -4($fp)     | —          | frame ptr |   4   | caller's frame pointer
 #
-#   No subroutine calls; no Cross-call saves section.  Three
-#   $t-regs reused across the read_char/print_char syscalls per
-#   the spim-preserves-$t convention (same shape as
-#   06/12/13/16/17).
-#
-#   Volatile:
-#     $a0   syscall arg
-#     $v0   syscall selector / read_char return
-#           (12 = read_char, 11 = print_char)
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  stdin: transforms/rot13/rot13.input
+#  stdout:
+#  | Uryyb, Jbeyq!~
 
         .text
         .globl main
 main:
+        addiu $sp, $sp, -8
+        sw $fp, 4($sp)               # save caller's $fp -> -4($fp)
+        addiu $fp, $sp, 8
+
 loop:
         # ch = read_char()
         li $v0, 12
         syscall
-        move $t0, $v0
-
+        sw $v0, -8($fp)              # ch = result
+        lw $t0, -8($fp)
         bltz $t0, done               # -1 -> EOF
 
         # if (ch >= 'a' && ch <= 'z')
         blt $t0, 'a', try_upper
         bgt $t0, 'z', try_upper
-
-        # ch = 'a' + (ch - 'a' + 13) % 26
-        # (spim's assembler doesn't accept -'a', so we use -97 explicitly)
-        addi $t1, $t0, -97           # offset = ch - 'a'   ('a' = 97)
+        # ch = 'a' + (ch - 'a' + 13) % 26  ('a' = 97; spim rejects -'a')
+        addi $t1, $t0, -97           # offset = ch - 'a'
         addi $t1, $t1, 13            # offset + 13
         li $t2, 26
         div $t1, $t2                 # lo = q, hi = r
         mfhi $t1                     # offset = (offset + 13) % 26
         addi $t0, $t1, 'a'           # ch = 'a' + offset
+        sw $t0, -8($fp)              # store the rotated byte back
         j emit
 
 try_upper:
-        # if (ch >= 'A' && ch <= 'Z')
+        # if (ch >= 'A' && ch <= 'Z')   ($t0 still holds ch)
         blt $t0, 'A', emit
         bgt $t0, 'Z', emit
-
-        # ch = 'A' + (ch - 'A' + 13) % 26
-        addi $t1, $t0, -65           # offset = ch - 'A'   ('A' = 65)
+        # ch = 'A' + (ch - 'A' + 13) % 26  ('A' = 65)
+        addi $t1, $t0, -65
         addi $t1, $t1, 13
         li $t2, 26
         div $t1, $t2
         mfhi $t1
         addi $t0, $t1, 'A'
+        sw $t0, -8($fp)              # store the rotated byte back
 
 emit:
         # print_char(ch)
-        move $a0, $t0
+        lw $a0, -8($fp)
         li $v0, 11
         syscall
         j loop
 
 done:
         li $v0, 0
+        lw $fp, -4($fp)
+        addiu $sp, $sp, 8
         jr $ra

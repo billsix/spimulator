@@ -27,46 +27,60 @@
 #   spimulator -f tr.asm < /etc/motd            # upcase a file via redirect
 
 
-#PURPOSE:  Copy stdin to stdout, upcasing every lowercase ASCII
-#          byte.  Demonstrates byte-level conditional transformation:
-#          read a byte, check whether it falls in a range, optionally
-#          mutate it, write it.
+#PURPOSE:  Copy stdin to stdout, upcasing every lowercase ASCII byte.
+#          Byte-level conditional transformation: read a byte, test a range,
+#          optionally mutate it, write it.
 #
-#NOTES:    `read_char` returns -1 at EOF.  The loop branches on
-#          `bltz $t0, done` — no sentinel character is needed.
+#NOTES:    `read_char` returns -1 at EOF; the loop branches on `bltz`.
 #
-#VARIABLES:
-#   $t0   current char
-#   $a0   syscall arg
-#   $v0   syscall selector / read result
-#           (12 = read_char, 11 = print_char)
+#          STACK-VISIBLE STYLE: the C local `ch` (current byte) lives in a stack
+#          slot; a scratch register holds a working COPY, and the upcased byte is
+#          stored back before it is printed.  This demo makes NO `jal` (only
+#          syscalls, which preserve $ra), so it saves $fp but not $ra.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+#  SYMBOL TABLE (routine: main)
+#
+#  C variable  | memory addr | register   | C type    | bytes | role / notes
+#  ------------+-------------+------------+-----------+-------+---------------------------
+#  ch          | -8($fp)     | $t0 (copy) | int       |   4   | current byte (-1 at EOF); upcased in place
+#  (saved $fp) | -4($fp)     | —          | frame ptr |   4   | caller's frame pointer
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  stdin: transforms/tr/tr.input
+#  stdout:
+#  | HELLO
 
         .text
         .globl main
 main:
+        addiu $sp, $sp, -8
+        sw $fp, 4($sp)               # save caller's $fp -> -4($fp)
+        addiu $fp, $sp, 8
+
 loop:
         # ch = read_char();
         li $v0, 12
         syscall
-        move $t0, $v0
-
+        sw $v0, -8($fp)              # ch = result
+        lw $t0, -8($fp)
         bltz $t0, done               # -1 -> EOF
 
-        # if (ch < 'a') goto write;          // skip lower bound
+        # if (ch < 'a' || ch > 'z') pass through; else ch -= 32 (upcase)
         blt $t0, 'a', write
-        # if (ch > 'z') goto write;          // skip upper bound
         bgt $t0, 'z', write
-        # ch = ch - 32;
         addi $t0, $t0, -32
+        sw $t0, -8($fp)              # store the upcased byte back
 
 write:
         # print_char(ch);
-        move $a0, $t0
+        lw $a0, -8($fp)
         li $v0, 11
         syscall
-
         j loop
 
 done:
         li $v0, 0
+        lw $fp, -4($fp)
+        addiu $sp, $sp, 8
         jr $ra

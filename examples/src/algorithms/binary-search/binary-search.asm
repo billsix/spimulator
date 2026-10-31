@@ -28,18 +28,41 @@
 #   spimulator -f binary-search.asm 5 < sorted-ints.txt
 
 
-#PURPOSE:  linear + binary search for TARGET on a sorted array
-#          read from stdin.  TARGET from argv[1].  Array up to
-#          256 ints.  Same stdin-int-reader pattern as
-#          bubble-sort.
-
-
-#SYMBOL TABLE  (C variable -> MIPS location)
+#PURPOSE:  linear + binary search for TARGET on a sorted array read from stdin.
+#          TARGET from argv[1].  Array up to 256 ints.  (The .asm reads the array
+#          from stdin and tracks a runtime count n, unlike binary-search.c's
+#          fixed static array — there is no shared golden.)
 #
-#   In main:
-#     target        $s1                  (parsed argv[1])
-#     n             $s2                  (count of ints read)
-#     data          `data` (.data)       (256 .word cells)
+#          STACK-VISIBLE STYLE: main's C locals — the target and the count n of
+#          ints read — live in stack slots; `n` is passed to the search routines
+#          in $a1 (instead of a de-facto shared register).  Each search routine
+#          homes its own cursor on its frame: linear_search's index `i`,
+#          binary_search's `lo`/`hi` (the `mid` is a transient recomputed each
+#          iteration).  The array `data` is file-scope, so it stays in .data.
+#          main makes jals, so it saves $ra; the searches are leaf.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+#  SYMBOL TABLE (routine: main)
+#
+#  C variable  | memory addr | register   | C type    | bytes | role / notes
+#  ------------+-------------+------------+-----------+-------+---------------------------
+#  target      | -12($fp)    | $a0 (copy) | int       |   4   | search key (argv[1]); passed in $a0
+#  n           | -16($fp)    | $a1 (copy) | int       |   4   | count of ints read; passed in $a1
+#  data[]      | data (.data)| —          | int[256]  | 1024  | file-scope array filled from stdin
+#  (saved $ra) | -4($fp)     | —          | code addr |   4   | jal atoi / *_search / print_idx_or_nf
+#  (saved $fp) | -8($fp)     | —          | frame ptr |   4   | caller's frame pointer
+#
+#  SYMBOL TABLE (routine: linear_search — leaf; args target=$a0, n=$a1)
+#    i -> -8($fp) (working copy in $t0); saved $fp -> -4($fp).
+#  SYMBOL TABLE (routine: binary_search — leaf; args target=$a0, n=$a1)
+#    lo -> -8($fp), hi -> -12($fp) (mid is a transient in $t3); saved $fp -> -4($fp).
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  args: 5
+#  stdin: algorithms/binary-search/binary-search.input
+#  stdout:
+#  | linear: 2
+#  | binary: 2
 
         .data
 data:       .space 1024                  # 256 ints * 4 bytes
@@ -51,7 +74,10 @@ usageMsg:   .asciiz "usage: binary-search TARGET   (sorted ints from stdin)\n"
         .text
         .globl main
 main:
-        move $s0, $ra
+        addiu $sp, $sp, -16
+        sw $ra, 12($sp)              # -> -4($fp)
+        sw $fp, 8($sp)               # -> -8($fp)
+        addiu $fp, $sp, 16
 
         li $t0, 2
         bne $a0, $t0, usage
@@ -59,24 +85,25 @@ main:
         # target = atoi(argv[1])
         lw $a0, 4($a1)
         jal atoi
-        move $s1, $v0
+        sw $v0, -12($fp)             # target
 
-        # Read ints from stdin
-        li $s2, 0                    # n = 0
-
+        # Read ints from stdin into data[], counting n.
+        li $t0, 0
+        sw $t0, -16($fp)             # n = 0
 read_loop:
-        li $t0, 256
-        bge $s2, $t0, after_read
-
+        lw $t0, -16($fp)             # n
+        li $t1, 256
+        bge $t0, $t1, after_read
         li $v0, 5                    # read_int
         syscall
         bnez $a3, after_read         # EOF
-
-        sll $t0, $s2, 2
-        la $t1, data
-        add $t1, $t1, $t0
-        sw $v0, ($t1)
-        addi $s2, $s2, 1
+        lw $t0, -16($fp)             # n
+        sll $t1, $t0, 2
+        la $t2, data
+        add $t2, $t2, $t1
+        sw $v0, ($t2)                # data[n] = value
+        addi $t0, $t0, 1
+        sw $t0, -16($fp)             # n++
         j read_loop
 
 after_read:
@@ -84,8 +111,8 @@ after_read:
         li $v0, 4
         la $a0, linMsg
         syscall
-
-        move $a0, $s1
+        lw $a0, -12($fp)             # target
+        lw $a1, -16($fp)             # n
         jal linear_search
         jal print_idx_or_nf
 
@@ -93,13 +120,15 @@ after_read:
         li $v0, 4
         la $a0, binMsg
         syscall
-
-        move $a0, $s1
+        lw $a0, -12($fp)             # target
+        lw $a1, -16($fp)             # n
         jal binary_search
         jal print_idx_or_nf
 
-        move $ra, $s0
         li $v0, 0                    # exit status: __start passes this through syscall 17
+        lw $ra, -4($fp)
+        lw $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr $ra
 
 usage:
@@ -111,56 +140,78 @@ usage:
         syscall
 
 
-# ---------- linear_search($a0 = target) -> $v0 ----------
+# ---------- linear_search(target=$a0, n=$a1) -> $v0 (leaf) ----------
 linear_search:
-        la $t0, data
-        li $t1, 0                    # i
+        addiu $sp, $sp, -8
+        sw $fp, 4($sp)               # -> -4($fp)
+        addiu $fp, $sp, 8
+        li $t0, 0
+        sw $t0, -8($fp)              # i = 0
 ls_loop:
-        bge $t1, $s2, ls_no
-        sll $t2, $t1, 2
-        add $t3, $t0, $t2
-        lw $t4, ($t3)
+        lw $t0, -8($fp)              # i
+        bge $t0, $a1, ls_no          # i >= n
+        la $t1, data
+        sll $t2, $t0, 2
+        add $t3, $t1, $t2
+        lw $t4, ($t3)                # data[i]
         beq $t4, $a0, ls_yes
-        addi $t1, $t1, 1
+        lw $t0, -8($fp)
+        addi $t0, $t0, 1
+        sw $t0, -8($fp)              # i++
         j ls_loop
 ls_yes:
-        move $v0, $t1
+        lw $v0, -8($fp)              # return i
+        lw $fp, -4($fp)
+        addiu $sp, $sp, 8
         jr $ra
 ls_no:
         li $v0, -1
+        lw $fp, -4($fp)
+        addiu $sp, $sp, 8
         jr $ra
 
 
-# ---------- binary_search($a0 = target) -> $v0 ----------
+# ---------- binary_search(target=$a0, n=$a1) -> $v0 (leaf) ----------
 binary_search:
-        la $t0, data
-        li $t1, 0                    # lo
-        addi $t2, $s2, -1            # hi = n - 1
+        addiu $sp, $sp, -16
+        sw $fp, 12($sp)              # -> -4($fp)
+        addiu $fp, $sp, 16
+        li $t0, 0
+        sw $t0, -8($fp)              # lo = 0
+        addi $t0, $a1, -1            # hi = n - 1
+        sw $t0, -12($fp)
 bs_loop:
+        lw $t1, -8($fp)              # lo
+        lw $t2, -12($fp)             # hi
         bgt $t1, $t2, bs_no
-
         add $t3, $t1, $t2
-        srl $t3, $t3, 1              # mid = (lo+hi)/2
+        srl $t3, $t3, 1              # mid = (lo+hi)/2  (transient)
+        la $t0, data
         sll $t4, $t3, 2
         add $t4, $t0, $t4
         lw $t5, ($t4)                # data[mid]
-
         beq $t5, $a0, bs_yes
         bgt $t5, $a0, bs_high
-        addi $t1, $t3, 1
+        addi $t1, $t3, 1             # data[mid] < target: lo = mid+1
+        sw $t1, -8($fp)
         j bs_loop
 bs_high:
-        addi $t2, $t3, -1
+        addi $t2, $t3, -1            # hi = mid-1
+        sw $t2, -12($fp)
         j bs_loop
 bs_yes:
-        move $v0, $t3
+        move $v0, $t3                # return mid
+        lw $fp, -4($fp)
+        addiu $sp, $sp, 16
         jr $ra
 bs_no:
         li $v0, -1
+        lw $fp, -4($fp)
+        addiu $sp, $sp, 16
         jr $ra
 
 
-# ---------- print_idx_or_nf — print $v0 as int, or "not found" + '\n'
+# ---------- print_idx_or_nf — print $v0 as int, or "not found", + '\n' (leaf) ----------
 print_idx_or_nf:
         bltz $v0, pin_nf
         move $a0, $v0
@@ -178,7 +229,7 @@ pin_nl:
         jr $ra
 
 
-# ---------- atoi subroutine -----------------------------------------
+# ---------- atoi subroutine (shared leaf helper, register-based) ----
 atoi:
         li $v0, 0
         li $t1, 1

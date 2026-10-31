@@ -27,8 +27,54 @@
 # PURPOSE:  Unit tests for the I/O-separated cksum core.  cksum_of walks a BYTE
 #           BUFFER (no I/O), so it can be driven by a table of hardcoded buffers.
 #           main loops the cases, printing "<label> => <crc> <byte_count>";
-#           run-demo.sh pins the golden (the oracle is system `cksum`).  The
-#           cksum_of / print_uint cores are cksum-core.asm's, verbatim.
+#           run-demo.sh pins the golden (the oracle is system `cksum`).
+#
+#           STACK-VISIBLE STYLE: main's C locals — the case index i, and the
+#           current case's crc ck and byte count len — live in stack slots; a
+#           scratch register holds only a working COPY.  main saves $ra for its
+#           jals.  cksum_of is cksum-core.asm's pure core verbatim (ck/i in its
+#           own frame).  The case tables (labels, data buffers, lengths) and
+#           crctab are C `static`, so they stay in .data; print_uint is a shared
+#           leaf helper.
+#           Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: main)
+#
+#  C variable  | memory addr   | register   | C type       | bytes | role / notes
+#  ------------+---------------+------------+--------------+-------+---------------------------
+#  i           | -12($fp)      | $t0 (copy) | int          |    4  | case index 0..4
+#  ck          | -16($fp)      | $v0 (copy) | unsigned int |    4  | this case's crc (from cksum_of)
+#  len         | -20($fp)      | $a1 (copy) | unsigned int |    4  | this case's byte count
+#  dptrs/lens/ | *ptrs (.data) | —          | tables       |       | static case fixtures
+#   lptrs      |               |            |              |       |
+#  (saved $ra) | -4($fp)       | —          | code addr    |    4  | jal cksum_of / jal print_uint
+#  (saved $fp) | -8($fp)       | —          | frame ptr    |    4  | caller's frame pointer
+#
+# ------------------------------------------------------------------
+#  SNAPSHOT (no args; case i = 3 — label "hello"+LF, data "hello\n",
+#            len 6 — just after cksum_of returned)
+#
+#        main's stack frame             scratch
+#   +----------------------------+     +----------------------+
+#   | -4  saved $ra              |     | $v0 = 3015617425 (ck)
+#   | -8  saved $fp              |     +----------------------+
+#   | -12 i   = 3                |
+#   | -16 ck  = 3015617425       |
+#   | -20 len = 6                |
+#   +----------------------------+
+#         $sp = $fp - 20
+#
+#   Prints 'hello"+LF => 3015617425 6', then advances to case 4.
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  args:
+#  stdout:
+#  | "" => 4294967295 0
+#  | "a" => 1220704766 1
+#  | "abc" => 1219131554 3
+#  | "hello"+LF => 3015617425 6
+#  | "123456789" => 930766865 9
 
         .data
 arrow:      .asciiz " => "
@@ -92,58 +138,94 @@ crctab:
         .text
         .globl main
 main:
-        move $s0, $ra
-        li   $s1, 0                  # i = 0
-        li   $s2, 5                  # case_count
+        # ---- prologue: build main's 20-byte stack frame ------------
+        addiu $sp, $sp, -20
+        sw $ra, 16($sp)              # save $ra          -> -4($fp)
+        sw $fp, 12($sp)              # save caller's $fp -> -8($fp)
+        addiu $fp, $sp, 20
+
+        li   $t0, 0
+        sw   $t0, -12($fp)           # i = 0
+
 mt_loop:
-        bge  $s1, $s2, mt_done
-        sll  $t0, $s1, 2             # ck = cksum_of(datas[i], lens[i])
+        lw   $t0, -12($fp)           # i
+        li   $t1, 5
+        bge  $t0, $t1, mt_done       # while (i < 5)
+
+        # ck = cksum_of(dptrs[i], lens[i]);
+        sll  $t2, $t0, 2             # i * 4
         la   $t1, dptrs
-        add  $t1, $t1, $t0
-        lw   $a0, 0($t1)
+        add  $t1, $t1, $t2
+        lw   $a0, 0($t1)             # datas[i]
         la   $t1, lens
-        add  $t1, $t1, $t0
-        lw   $a1, 0($t1)
-        move $s3, $a1                # save len for printing
+        add  $t1, $t1, $t2
+        lw   $a1, 0($t1)             # lens[i]
+        sw   $a1, -20($fp)           # len = lens[i]  (save for printing)
         jal  cksum_of
-        move $s4, $v0                # save ck
-        sll  $t0, $s1, 2             # print the label
+        sw   $v0, -16($fp)           # ck = result
+
+        # print the label: dptrs[i] -> lptrs[i]
+        lw   $t0, -12($fp)           # i
+        sll  $t2, $t0, 2
         la   $t1, lptrs
-        add  $t1, $t1, $t0
+        add  $t1, $t1, $t2
         lw   $a0, 0($t1)
         li   $v0, 4
         syscall
-        la   $a0, arrow              # print " => "
+        # print " => "
+        la   $a0, arrow
         li   $v0, 4
         syscall
-        move $a0, $s4                # print the crc
+        # print_uint(ck)
+        lw   $a0, -16($fp)
         jal  print_uint
-        la   $a0, space              # print " "
+        # print " "
+        la   $a0, space
         li   $v0, 4
         syscall
-        move $a0, $s3                # print the byte count
+        # print_uint(len)
+        lw   $a0, -20($fp)
         jal  print_uint
+        # print "\n"
         la   $a0, newline
         li   $v0, 4
         syscall
-        addi $s1, $s1, 1
+
+        # i++;
+        lw   $t0, -12($fp)
+        addi $t0, $t0, 1
+        sw   $t0, -12($fp)
         j    mt_loop
+
 mt_done:
-        move $ra, $s0
+        # ---- epilogue ----------------------------------------------
         li   $v0, 0
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 20
         jr   $ra
 
 
 # ======== cores — cksum-core.asm's routines, verbatim ========
 
-# ---------- cksum_of($a0 = data, $a1 = len) -> $v0  (pure; no I/O) ----------
+# ---------- unsigned int cksum_of(const uchar *data, unsigned int len) ------
+# The PURE core (no I/O).  Leaf (no jal) -> saves $fp but not $ra; ck and i
+# live in this frame, data/len stay in $a0/$a1.
 cksum_of:
-        li   $t0, 0                  # ck = 0
-        li   $t1, 0                  # i = 0
+        addiu $sp, $sp, -12
+        sw $fp, 8($sp)               # save caller's $fp -> -4($fp)
+        addiu $fp, $sp, 12
+        li   $t0, 0
+        sw   $t0, -8($fp)            # ck = 0
+        li   $t0, 0
+        sw   $t0, -12($fp)           # i = 0
+
 co_loop:
-        bge  $t1, $a1, co_fold
-        add  $t2, $a0, $t1
-        lbu  $t4, 0($t2)
+        lw   $t1, -12($fp)           # i
+        bge  $t1, $a1, co_fold       # while (i < len)
+        lw   $t0, -8($fp)            # ck
+        add  $t2, $a0, $t1           # &data[i]
+        lbu  $t4, 0($t2)             # data[i]
         srl  $t5, $t0, 24
         xor  $t5, $t5, $t4
         sll  $t6, $t5, 2
@@ -152,12 +234,17 @@ co_loop:
         lw   $t7, 0($t6)
         sll  $t8, $t0, 8
         xor  $t0, $t8, $t7
+        sw   $t0, -8($fp)            # ck
+        lw   $t1, -12($fp)           # i
         addi $t1, $t1, 1
+        sw   $t1, -12($fp)           # i++
         j    co_loop
+
 co_fold:
-        move $t4, $a1
+        move $t4, $a1                # n = len (transient fold copy)
 cf_loop:
         beq  $t4, $0, cf_done
+        lw   $t0, -8($fp)            # ck
         andi $t5, $t4, 0xff
         srl  $t6, $t0, 24
         xor  $t5, $t6, $t5
@@ -167,15 +254,21 @@ cf_loop:
         lw   $t7, 0($t6)
         sll  $t8, $t0, 8
         xor  $t0, $t8, $t7
+        sw   $t0, -8($fp)            # ck
         srl  $t4, $t4, 8
         j    cf_loop
+
 cf_done:
-        nor  $t0, $t0, $0
+        lw   $t0, -8($fp)
+        nor  $t0, $t0, $0            # ck = ~ck
         move $v0, $t0
+        lw   $fp, -4($fp)
+        addiu $sp, $sp, 12
         jr   $ra
 
 
 # ---------- print_uint($a0) — hand-format an unsigned 32-bit value ----------
+# Shared leaf helper, register-based.
 print_uint:
         la   $t0, digitsBuf
         addi $t9, $t0, 16

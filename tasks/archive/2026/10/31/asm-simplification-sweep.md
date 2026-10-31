@@ -1,7 +1,13 @@
 # Assembly simplification sweep for novices (umbrella)
 
-**Status:** proposed — needs go-ahead to start the pilot (design settled with the
-maintainer, William Emerison Six <billsix@gmail.com>, 2026-10-31)
+**Status:** done + archived 2026-10-31 — the full sweep is COMPLETE. Pilot (step 1) + all 9
+rollout topics (steps 2-10) done: every non-exempt hand-written `.asm` demo converted to the
+stack-visible style, each byte-identical to its pre-change output, 47/47 annotated demos pass
+`tools/check_asm_canonical.py --all`, and all golden-tested demos stay green. The durable style
+lives in `tasks/reference/mips-asm-teaching-style.md`. One judgment call for the maintainer to
+confirm: the `$sp`-operand-stack exempt set was expanded 2 -> 4 (rpn-2-ops/rpn-3-float added;
+see step 9). Done on the maintainer's go-ahead "roll out the asm sweep topic by topic" +
+"continue with lang, then algorithms and transforms" (William Emerison Six <billsix@gmail.com>).
 **Priority:** 6
 **Difficulty:** 7
 
@@ -98,10 +104,49 @@ faithful. The traced-value checker (above) is the SECOND gate the goldens don't 
   DONE 2026-10-31: converted `increment-ints-1`, `factorial`, `gcd`, `wc`; authored
   `tasks/reference/mips-asm-teaching-style.md`; built `tools/check_asm_canonical.py`.
   Maintainer signed off on the style and the transient-temporary boundary.
-- [ ] **Step 2+ — per-topic rollout** (NOT yet started; awaiting the maintainer's go-ahead
-  to grind through it — flagged 2026-10-31 as a large, multi-session, instruction-changing
+- **Step 2+ — per-topic rollout** (STARTED 2026-10-31 on the maintainer's go-ahead
+  "roll out the asm sweep topic by topic" — a large, multi-session, instruction-changing
   effort). One step-task per topic folder, created and executed when its turn comes (not
-  pre-stubbed, to avoid over-scaffolding). Each: convert its non-exempt demos to the style
+  pre-stubbed, to avoid over-scaffolding). Progress (archived step-task per topic):
+  - [x] **Step 2 — `intro/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-2-intro.md`).
+    Converted `print1through10` (loop counter → stack), `clear`, `helloworld`, `yes`
+    (no locals → SYMBOL TABLE only). All byte-identical; checker green.
+  - [x] **Step 3 — `arguments/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-3-arguments.md`).
+    Converted `echo`, `factor`, `seq`, `tee` (the capstone — `int fds[8]` array onto the
+    stack; `static buf` stays in .data). All byte-identical (tee files md5-identical);
+    checker green. Added `arguments/tee/tee.input` for tee's stdout-only anchor.
+  - [x] **Step 4 — `recursion/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-4-recursion.md`).
+    Converted `fibonacci`, `hanoi`, `queens` (already frame-based; regularized to the $fp
+    convention, moved register-held locals onto the stack). All byte-identical; fib/hanoi
+    checker-green, queens gated by before/after equivalence (trailing-space output).
+  - [x] **Step 5 — `extras/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-5-extras.md`).
+    Converted `commaAndPeriodCounter`, `print-out-ascii-1`, `testStringsForEquality-1`
+    (intentional uninitialized-return bug PRESERVED). All byte-identical; comma/testStrings
+    checker-green, print-out-ascii gated by equivalence (256-line output).
+  - [x] **Step 6 — `fileio/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-6-fileio.md`).
+    Converted all 9 (touch, nologin, cat, cp, comm, cksum-1-stdin, cksum, cksum-core,
+    cksum-core-test). Static buffers + CRC table stay in .data; scalars move to the stack.
+    All byte-identical; checker green on 7; the 3 cksum goldens unaffected.
+  - [x] **Step 7 — `lib/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-7-lib.md`).
+    DRIVERS ONLY (maintainer's call): converted the 7 `*-demo` drivers (ctype, str, atoi, abs,
+    bsearch, exit, atexit); left the 4 library files register-based + untouched. All
+    byte-identical (incl. exit statuses); golden-tested (no #CANONICAL — drivers need the
+    library loaded, which the single-file checker can't do).
+  - [x] **Step 8 — `lang/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-8-lang.md`).
+    Converted all 10 calc demos (integer rungs 1-5, FPU rung 6, calc-sdt, calc-tree, calc-eval,
+    calc-eval-test). Parser state is global/heap (stays .data); each parse routine homes its
+    running local (int or 8-aligned double) at -N($fp). All byte-identical; checker green on all 10.
+  - [x] **Step 9 — `algorithms/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-9-algorithms.md`).
+    Converted 9 (binary-search, bubble-sort ×3, fizzbuzz, pascals-triangle, sieve, rpn-eval,
+    rpn-eval-test). EXEMPT SET EXPANDED 2→4: all four $sp-operand-stack rpn rungs (rpn,
+    rpn-1-stack, rpn-2-ops, rpn-3-float) left register-based — flagged for the maintainer.
+    All byte-identical; checker green; exempt rpn files untouched.
+  - [x] **Step 10 — `transforms/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-10-transforms.md`).
+    Converted all 14 non-pilot demos (base64, cut, expand, head×2, nl, od, rev, rot13, strings,
+    tac, tail, tr, uniq). Scalars to the stack; buffers/tables stay .data/heap. All
+    byte-identical; checker green. **SWEEP COMPLETE.**
+
+  Each: convert its non-exempt demos to the style
   in `tasks/reference/mips-asm-teaching-style.md`, verify each with before/after output
   equivalence (+ goldens where they exist, + `tools/check_asm_canonical.py`), gate green.
   Proposed order (easy-wins / smallest first), with `.asm` counts (total; remaining after
@@ -109,15 +154,15 @@ faithful. The traced-value checker (above) is the SECOND gate the goldens don't 
 
   | # | topic | total | remaining to convert | exempt (deliberate-lesson) |
   |---|-------|-------|----------------------|----------------------------|
-  | 2 | `intro/`      |  6 | 4 | `exit/exit.asm`; (pilot did `increment-ints-1`) |
-  | 3 | `arguments/`  |  6 | 4 | — (pilot did `factorial`, `gcd`) |
-  | 4 | `recursion/`  |  5 | 3 | `get-char-from-user/-1`,`-2` |
-  | 5 | `extras/`     |  5 | 3 | `subrountines/-1`,`-2` |
-  | 6 | `fileio/`     |  9 | 9 | — (confirm during the step) |
-  | 7 | `lib/`        | 11 | 11 | — (library routines; confirm their shape fits) |
-  | 8 | `lang/`       | 10 | 10 | — (the calc family) |
-  | 9 | `algorithms/` | 13 | 12 | `rpn/rpn.asm`,`rpn/rpn-1-stack.asm` ($sp operand stack) |
-  | 10| `transforms/` | 15 | 14 | — (pilot did `wc`) |
+  | 2 | `intro/` ✅   |  6 | 4 done | `exit/exit.asm`; (pilot did `increment-ints-1`) |
+  | 3 | `arguments/` ✅ |  6 | 4 done | — (pilot did `factorial`, `gcd`) |
+  | 4 | `recursion/` ✅ |  5 | 3 done | `get-char-from-user/-1`,`-2` |
+  | 5 | `extras/` ✅  |  5 | 3 done | `subrountines/-1`,`-2` |
+  | 6 | `fileio/` ✅  |  9 | 9 done | — (none exempt) |
+  | 7 | `lib/` ✅     | 11 | 7 done | 4 library files (shared leaf helpers) — NOT converted (maintainer: drivers only) |
+  | 8 | `lang/` ✅    | 10 | 10 done | — (the calc family) |
+  | 9 | `algorithms/` ✅ | 13 | 9 done | 4 exempt: `rpn.asm`,`rpn-1-stack`,`rpn-2-ops`,`rpn-3-float` (all $sp operand stack — set EXPANDED 2→4) |
+  | 10| `transforms/` ✅ | 15 | 14 done | — (pilot did `wc`) |
 
   Total ~80 files; ~72 to convert after the pilot and the known exempt set. Confirm the full
   exempt set per step. Ordering is Priority + a "Depends on: Step 1 (style)" note, not

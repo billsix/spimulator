@@ -22,42 +22,53 @@
 # C source — see nologin.c
 
 
-#PURPOSE:  Print /etc/nologin.txt if it exists, else a fallback
-#          message.  Always exit 1.  First demo using the open
-#          (13) and close (16) syscalls.
+#PURPOSE:  Print /etc/nologin.txt if it exists, else a fallback message.
+#          Always exit 1.  First demo using open (13) and close (16).
 #
-#NOTES:    Returning from `main` via `jr $ra` ALWAYS makes spim
-#          exit with status 0 — the runtime's `__start` code in
-#          exceptions.s does `li $v0, 10; syscall` after the call
-#          and the syscall-10 handler ignores $v0 and stores 0.
-#          To exit with any non-zero status from spim we have to
-#          issue syscall 17 (exit2) ourselves and put the desired
-#          status in $a0.  Both paths in this demo do exactly that.
+#NOTES:    Returning from `main` via `jr $ra` ALWAYS makes spim exit 0
+#          (the runtime's __start does `li $v0,10; syscall`, which
+#          stores status 0).  To exit non-zero we issue syscall 17
+#          (exit2) ourselves with the status in $a0 — BOTH paths here
+#          do that, so this routine never returns and never tears its
+#          frame down (process exit reclaims the stack).
 #
-#SYMBOL TABLE  (C variable -> MIPS location)
+#          STACK-VISIBLE STYLE: the C locals fd and n live in stack
+#          slots; a scratch register holds only a working COPY.  The
+#          read buffer `buf` is `static` in C, so it stays in .data,
+#          not on the frame.  No `jal` (only syscalls), so $fp is set
+#          up for -N($fp) addressing but $ra is never at risk.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
 #
-#   In main:
-#     fd            $t0                  (return from open; held across
-#                                          the entire read/write loop
-#                                          AND the close syscall)
-#     n             $t1                  (bytes read; held across the
-#                                          write syscall)
-#     buf           `buf` (.data)        (256-byte read buffer)
-#     path          `path` (.data)       ("/etc/nologin.txt" string)
+#          No #CANONICAL block: the output depends on whether
+#          /etc/nologin.txt exists on the host (the fallback string is
+#          printed otherwise), so it is not a deterministic anchor.
+#          Gated by before/after output equivalence in a fixed env.
 #
-#   No subroutine calls; no Cross-call saves section.  This is
-#   the first demo where a $t-reg has to hold a value across more
-#   than one syscall in a row — `fd` lives in $t0 through read,
-#   write, AND close — which is why the in-body comment notes
-#   "(saved across the read/write loop)".  Same spim-preserves-$t
-#   reliance as 06/12/13/14.
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: main)
 #
-#   Volatile (no preserved meaning across a syscall, by convention):
-#     $a0   syscall arg 1 (path / fd / char)
-#     $a1   syscall arg 2 (flags / buffer)
-#     $a2   syscall arg 3 (mode / length)
-#     $v0   syscall selector / return value
-#           (4=print_string, 13=open, 14=read, 15=write, 16=close, 17=exit2)
+#  C variable  | memory addr  | register   | C type     | bytes | role / notes
+#  ------------+--------------+------------+------------+-------+---------------------------
+#  fd          | -8($fp)      | $v0 (copy) | int        |    4  | open() result; used by read and close
+#  n           | -12($fp)     | $v0 (copy) | int        |    4  | bytes read; passed to write
+#  buf         | buf (.data)  | —          | char[256]  |  256  | static read buffer (C `static` -> .data)
+#  path        | path (.data) | —          | char[]     |       | "/etc/nologin.txt"
+#  (saved $fp) | -4($fp)      | —          | frame ptr  |    4  | caller's $fp (never restored: always exits via syscall 17)
+#
+# ------------------------------------------------------------------
+#  SNAPSHOT (no args; in read_loop, having just read n bytes of the
+#            file into buf, about to write them to stdout)
+#
+#        main's stack frame             .data
+#   +----------------------------+     +---------------------------+
+#   | -4($fp)  saved $fp         |     | buf: <file bytes...>      |
+#   | -8($fp)  fd  = 3           |     | path: "/etc/nologin.txt"  |
+#   | -12($fp) n   = 42          |     +---------------------------+
+#   +----------------------------+
+#         $sp = $fp - 12
+#
+#   Loops read->write until EOF, closes fd, exits 1.  If the open
+#   fails it prints the fallback string and exits 1.
 
         .data
 path:           .asciiz     "/etc/nologin.txt"
@@ -67,32 +78,35 @@ buf:            .space 256
         .text
         .globl main
 main:
+        # ---- prologue: build a 12-byte frame (no $ra: no `jal`) ----
+        addiu $sp, $sp, -12
+        sw $fp, 8($sp)               # save caller's $fp -> -4($fp)
+        addiu $fp, $sp, 12
+
         # fd = open(path, O_RDONLY, 0);
         li $v0, 13                   # syscall 13 = open
-        la $a0, path                 # arg = address of "/etc/nologin.txt"
-        li $a1, 0                    # arg = O_RDONLY (= 0 on Linux)
-        li $a2, 0                    # arg = mode (ignored for O_RDONLY)
-        syscall                      # $v0 = fd (negative on error)
-
+        la $a0, path
+        li $a1, 0                    # O_RDONLY (= 0 on Linux)
+        li $a2, 0                    # mode (ignored for O_RDONLY)
+        syscall
         bltz $v0, open_failed
-        move $t0, $v0                # stash fd in $t0
+        sw $v0, -8($fp)              # fd
 
 read_loop:
         # n = read(fd, buf, 256);
-        li $v0, 14                   # syscall 14 = read
-        move $a0, $t0                # fd
+        li $v0, 14
+        lw $a0, -8($fp)              # fd
         la $a1, buf
         li $a2, 256
-        syscall                      # $v0 = bytes read
-
+        syscall
         blez $v0, close_and_exit     # 0 = EOF, <0 = error
-        move $t1, $v0                # stash n
+        sw $v0, -12($fp)             # n
 
         # write(STDOUT, buf, n);
-        li $v0, 15                   # syscall 15 = write
+        li $v0, 15
         li $a0, 1                    # fd = stdout
         la $a1, buf
-        move $a2, $t1
+        lw $a2, -12($fp)             # n
         syscall
 
         j read_loop
@@ -100,22 +114,18 @@ read_loop:
 close_and_exit:
         # close(fd);
         li $v0, 16
-        move $a0, $t0
+        lw $a0, -8($fp)              # fd
         syscall
-
-        # exit2(1) — see NOTES above for why we use syscall 17 here
-        # instead of `li $v0, 1; jr $ra`.
+        # exit2(1)  (see NOTES)
         li $a0, 1
         li $v0, 17
         syscall
 
 open_failed:
-        # print fallback string
-        li $v0, 4                    # syscall 4 = print_string
+        # print the fallback string, then exit2(1)
+        li $v0, 4
         la $a0, altMessage
         syscall
-
-        # exit2(1)
         li $a0, 1
         li $v0, 17
         syscall

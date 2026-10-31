@@ -29,24 +29,59 @@
 #   echo -n hello | spimulator -f cksum.asm  # cross-check vs system cksum
 
 
-#PURPOSE:  cksum with real-Unix argv handling.  Stdin mode
-#          prints "<crc> <bytes>"; file mode prints
-#          "<crc> <bytes> <filename>" (matches `cksum FILE`).
-
-
-#SYMBOL TABLE  (C variable -> MIPS location)
+#PURPOSE:  cksum with real-Unix argv handling.  Stdin mode prints
+#          "<crc> <bytes>"; file mode prints "<crc> <bytes> <filename>"
+#          (matches `cksum FILE`).
 #
-#   In main:
-#     fd            $s4                  (STDIN=0 or opened fd)
-#     filename ptr  $s5                  (0 if stdin, else argv[1])
-#     ck            $t0                  (running CRC)
-#     len           $t1                  (byte count)
-#     buf           `buf` (.data)        (4 KiB read buffer)
-#     crctab        `crctab` (.data)     (256 .word polynomial table)
+#          STACK-VISIBLE STYLE: main's C locals — the file descriptor
+#          fd, the filename pointer, the running checksum ck, and the
+#          byte count len — live in stack slots; a scratch register
+#          holds only a working COPY.  ck is reloaded/stored around
+#          each byte's update, so the stack slot always holds the live
+#          running value (slower, but the checksum is visibly ON the
+#          stack).  With len on the stack it survives the first
+#          `jal print_uint` automatically.  buf and crctab (C `static`)
+#          stay in .data; print_uint is a shared leaf helper.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
 #
-#   $s0 holds runtime's $ra across BOTH `jal print_uint` calls.
-#   print_uint promises not to touch $t1 (so `len` survives the
-#   first jal) — see the NOTE at the top of print_uint below.
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: main)
+#
+#  C variable  | memory addr    | register   | C type       | bytes | role / notes
+#  ------------+----------------+------------+--------------+-------+---------------------------
+#  argc        | —              | $a0        | int          |    4  | entry only; selects stdin/file mode
+#  argv        | —              | $a1        | char **      |    4  | entry only; argv[1] inspected
+#  fd          | -12($fp)       | $t0 (copy) | int          |    4  | STDIN (0) or opened file descriptor
+#  filename    | -16($fp)       | $t0 (copy) | char *       |    4  | 0 in stdin mode, else argv[1]
+#  ck          | -20($fp)       | $t0 (copy) | unsigned int |    4  | running CRC32
+#  len         | -24($fp)       | $t1 (copy) | unsigned int |    4  | byte count; also folded into ck
+#  buf         | buf (.data)    | —          | char[4096]   | 4096  | static read buffer (-> .data)
+#  crctab      | crctab (.data) | —          | uint[256]    | 1024  | static const CRC polynomial table
+#  (saved $ra) | -4($fp)        | —          | code addr    |    4  | jal print_uint (x2)
+#  (saved $fp) | -8($fp)        | —          | frame ptr    |    4  | caller's frame pointer
+#
+# ------------------------------------------------------------------
+#  SNAPSHOT (stdin "hello\n"; in byte_loop after a 6-byte read, about
+#            to fold the next byte into ck)
+#
+#        main's stack frame             scratch
+#   +----------------------------+     +----------------------+
+#   | -4  saved $ra              |     | $t0 = ck (partial)
+#   | -8  saved $fp              |     | $t2 = buf cursor
+#   | -12 fd       = 0 (STDIN)   |     | $t3 = buf + 6 (end)
+#   | -16 filename = 0 (none)    |     +----------------------+
+#   | -20 ck       = <partial>   |
+#   | -24 len      = 6           |
+#   +----------------------------+
+#         $sp = $fp - 24
+#
+#   Folds len into ck, complements, prints "3015617425 6" (stdin mode,
+#   no filename column).
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  stdin: fileio/cksum/cksum.input
+#  stdout:
+#  | 3015617425 6
 
         .data
 usageMsg:   .asciiz "usage: cksum [FILE|-]\n"
@@ -93,17 +128,23 @@ crctab:
         .text
         .globl main
 main:
-        move $s0, $ra
-        li $s4, 0                    # fd = STDIN
-        move $s5, $0                 # filename = NULL
+        # ---- prologue: build main's 24-byte stack frame ------------
+        addiu $sp, $sp, -24
+        sw $ra, 20($sp)              # save $ra          -> -4($fp)
+        sw $fp, 16($sp)              # save caller's $fp -> -8($fp)
+        addiu $fp, $sp, 24
 
-        # argc dispatch
+        li $t0, 0
+        sw $t0, -12($fp)             # fd = STDIN (0)
+        sw $t0, -16($fp)             # filename = NULL (0)
+
+        # argc dispatch   (argc arrives in $a0)
         li $t0, 1
         beq $a0, $t0, start_crc
         li $t0, 2
         bgt $a0, $t0, usage
 
-        # argc == 2
+        # argc == 2: inspect argv[1]   (argv arrives in $a1)
         lw $t1, 4($a1)               # argv[1]
         lb $t0, 0($t1)
         bne $t0, '-', do_open
@@ -111,36 +152,39 @@ main:
         beq $t0, $0, start_crc       # exactly "-" -> stdin
 
 do_open:
-        move $s5, $t1                # filename = argv[1]
+        sw $t1, -16($fp)             # filename = argv[1]
         move $a0, $t1
         li $v0, 13
         li $a1, 0
         li $a2, 0
         syscall
         bltz $v0, open_failed
-        move $s4, $v0
+        sw $v0, -12($fp)             # fd
 
 start_crc:
-        # ck = 0; len = 0;
         li $t0, 0
-        li $t1, 0
+        sw $t0, -20($fp)             # ck = 0
+        sw $t0, -24($fp)             # len = 0
 
 read_loop:
-        # n = read(fd, buf, 4096)
+        # n = read(fd, buf, 4096);
         li $v0, 14
-        move $a0, $s4
+        lw $a0, -12($fp)             # fd
         la $a1, buf
         li $a2, 4096
         syscall
-
         blez $v0, after_read
 
-        la $t2, buf
-        add $t3, $t2, $v0
+        # len += n;  walk buf[0 .. n)
+        lw $t1, -24($fp)             # len
         add $t1, $t1, $v0
+        sw $t1, -24($fp)             # len += n
+        la $t2, buf                  # cursor
+        add $t3, $t2, $v0            # end = buf + n
 
 byte_loop:
         beq $t2, $t3, read_loop
+        lw $t0, -20($fp)             # ck
         lbu $t4, ($t2)
         srl $t5, $t0, 24
         xor $t5, $t5, $t4
@@ -150,15 +194,16 @@ byte_loop:
         lw $t7, ($t6)
         sll $t8, $t0, 8
         xor $t0, $t8, $t7
+        sw $t0, -20($fp)             # ck updated
         addi $t2, $t2, 1
         j byte_loop
 
 after_read:
-        # fold len into ck
-        move $t4, $t1
-
+        # fold len into ck, one byte at a time (on a transient copy)
+        lw $t4, -24($fp)             # $t4 = len (copy to shift down)
 fold_loop:
         beq $t4, $0, after_fold
+        lw $t0, -20($fp)             # ck
         andi $t5, $t4, 0xff
         srl $t6, $t0, 24
         xor $t5, $t6, $t5
@@ -168,49 +213,50 @@ fold_loop:
         lw $t7, ($t6)
         sll $t8, $t0, 8
         xor $t0, $t8, $t7
+        sw $t0, -20($fp)             # ck
         srl $t4, $t4, 8
         j fold_loop
 
 after_fold:
         # close fd if not STDIN
-        beqz $s4, do_print
+        lw $t0, -12($fp)             # fd
+        beqz $t0, do_print
         li $v0, 16
-        move $a0, $s4
+        lw $a0, -12($fp)
         syscall
 
 do_print:
-        nor $t0, $t0, $0              # ck = ~ck
+        lw $t0, -20($fp)
+        nor $t0, $t0, $0             # ck = ~ck
+        sw $t0, -20($fp)
 
-        # print_uint(ck)
-        move $a0, $t0
+        lw $a0, -20($fp)             # print_uint(ck)
+        jal print_uint
+        li $v0, 4                    # print_char(' ')
+        la $a0, space
+        syscall
+        lw $a0, -24($fp)             # print_uint(len)
         jal print_uint
 
-        # print_char(' ')
+        # if (filename) { print_char(' '); print_string(filename); }
+        lw $t0, -16($fp)             # filename
+        beqz $t0, no_filename
         li $v0, 4
         la $a0, space
         syscall
-
-        # print_uint(len)
-        move $a0, $t1
-        jal print_uint
-
-        # if (filename) print_char(' '); print_string(filename);
-        beqz $s5, no_filename
         li $v0, 4
-        la $a0, space
-        syscall
-        li $v0, 4
-        move $a0, $s5
+        lw $a0, -16($fp)             # filename
         syscall
 no_filename:
-
-        # print_char('\n')
-        li $v0, 4
+        li $v0, 4                    # print_char('\n')
         la $a0, newline
         syscall
 
-        move $ra, $s0
+        # ---- epilogue ----------------------------------------------
         li $v0, 0                    # exit status: __start passes this through syscall 17
+        lw $ra, -4($fp)
+        lw $fp, -8($fp)
+        addiu $sp, $sp, 24
         jr $ra
 
 open_failed:
@@ -218,7 +264,7 @@ open_failed:
         la $a0, errMsg
         syscall
         li $v0, 4
-        move $a0, $t1                # argv[1]
+        lw $a0, -16($fp)             # filename (= argv[1], stored in do_open)
         syscall
         li $v0, 4
         la $a0, newline
@@ -237,9 +283,9 @@ usage:
 
 
 # ---------- print_uint subroutine -----------------------------------
-# Same as before: hand-format an unsigned 32-bit value into a
-# decimal string and print via syscall 4.  Avoids $t1 so main's
-# `len` survives the first call.
+# Shared leaf helper, register-based: hand-format an unsigned 32-bit
+# value into a decimal string and print via syscall 4.  main homes
+# ck/len on the stack, so this routine may use any temporary.
 print_uint:
         la $t0, digitsBuf
         addi $t9, $t0, 16

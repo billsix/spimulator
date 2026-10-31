@@ -34,12 +34,36 @@
 
 
 #PURPOSE:  Clear the terminal and home the cursor.  Suckless
-#          `ubase/clear` in 6 instructions.
+#          `ubase/clear` in a handful of instructions.
 #
-#VARIABLES:
-#   $a0       syscall argument register
-#   $v0       syscall selector; also main's return value
-#               (syscall 4 = print_string)
+#          STACK-VISIBLE STYLE: this program has NO C local variables
+#          — just a fixed string in .data — and makes NO `jal`, so
+#          there is no stack frame (a frame with nothing in it would
+#          be ceremony).  The string lives in .data; its ADDRESS is
+#          what travels in a register ($a0).  Contrast
+#          print1through10, whose loop counter does get a stack slot.
+#          There is no #CANONICAL block: the output is terminal
+#          control bytes (ESC ...), not text the checker can diff.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: main)
+#
+#  C variable      | memory addr         | register   | C type  | bytes | role / notes
+#  ----------------+---------------------+------------+---------+-------+---------------------------
+#  "\033[2J\033[H" | clearString (.data) | $a0 (addr) | char[8] |   8   | escape sequence (7 bytes + NUL); address passed to print_string
+#
+# ------------------------------------------------------------------
+#  SNAPSHOT (no args; just before the syscall)
+#
+#        .data                             scratch
+#   +-----------------------------+       +-------------------------------+
+#   | clearString: 1b 5b 32 4a    |       | $a0 = &clearString (its addr)
+#   |              1b 5b 48 00     | <---- | $v0 = 4 (print_string)
+#   +-----------------------------+       +-------------------------------+
+#
+#   Writes the 7 control bytes, then exits 0.  There is no frame and
+#   no C variable to trace — the bytes live in .data the whole time.
 
         .data
 clearString:

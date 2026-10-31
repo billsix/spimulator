@@ -9,6 +9,27 @@
 #
 #   spimulator -f libctype.asm -f libstdlib.asm -f abs-demo.asm
 #==============================================================
+#
+# STACK-VISIBLE STYLE: main's C locals — the loop index i and the
+# current case value v — live in stack slots; a scratch register holds
+# only a working COPY.  v needs a home because it is used across
+# several `jal`s (printed, passed to absolute, printed again, passed
+# to labsolute).  main saves $ra for its jals.  The case table is
+# file-scope data in .data; _ps/_pi are leaf print helpers; absolute/
+# labsolute are library routines (loaded separately).  No #CANONICAL:
+# a driver that `jal`s into libstdlib can't be assembled standalone by
+# the value-checker; golden-tested via run-demo.sh.
+# Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+#  SYMBOL TABLE (routine: main)
+#
+#  C variable  | memory addr   | register   | C type    | bytes | role / notes
+#  ------------+---------------+------------+-----------+-------+---------------------------
+#  i           | -12($fp)      | $t0 (copy) | int       |   4   | loop index 0..n_cases-1
+#  v           | -16($fp)      | $t0 (copy) | int       |   4   | cases[i]; printed and passed to abs/labs
+#  cases[]     | cases (.data) | —          | int[8]    |  32   | file-scope table of test values
+#  (saved $ra) | -4($fp)       | —          | code addr |   4   | jal _ps / absolute / labsolute / _pi
+#  (saved $fp) | -8($fp)       | —          | frame ptr |   4   | caller's frame pointer
 
         .data
 # Inputs as a .word table.  Same set as abs-demo.c.
@@ -33,38 +54,38 @@ fmt_nl:   .asciiz "\n"
         .text
         .globl  main
 main:
-        # ── Prologue ──
-        addiu   $sp, $sp, -24
-        sw      $ra,  0($sp)
-        sw      $s0,  4($sp)        # i (loop counter)
-        sw      $s1,  8($sp)        # base of cases table
-        sw      $s2, 12($sp)        # loop bound
-        sw      $s3, 16($sp)        # current input value (cached so we
-                                    # don't re-load between abs and labs)
+        # ---- prologue: build main's 16-byte stack frame ------------
+        addiu   $sp, $sp, -16
+        sw      $ra, 12($sp)        # -> -4($fp)
+        sw      $fp, 8($sp)         # -> -8($fp)
+        addiu   $fp, $sp, 16
 
-        li      $s0, 0
-        la      $s1, cases
-        lw      $s2, n_cases
+        li      $t0, 0
+        sw      $t0, -12($fp)       # i = 0
 
 loop:
-        bge     $s0, $s2, done
+        lw      $t0, -12($fp)       # i
+        lw      $t1, n_cases
+        bge     $t0, $t1, done
 
-        # Load cases[i] into $s3.
-        sll     $t0, $s0, 2
-        addu    $t0, $s1, $t0
-        lw      $s3, 0($t0)
+        # v = cases[i];
+        sll     $t2, $t0, 2         # i * 4
+        la      $t1, cases
+        addu    $t1, $t1, $t2
+        lw      $t0, 0($t1)
+        sw      $t0, -16($fp)       # v = cases[i]
 
-        # print "abs("
+        # print "absolute("
         la      $a0, fmt_abs
         jal     _ps
-        # print input value
-        move    $a0, $s3
+        # print v
+        lw      $a0, -16($fp)
         jal     _pi
         # print ") = "
         la      $a0, fmt_mid
         jal     _ps
-        # call absolute(input)
-        move    $a0, $s3
+        # absolute(v)
+        lw      $a0, -16($fp)
         jal     absolute
         move    $a0, $v0
         jal     _pi
@@ -72,14 +93,14 @@ loop:
         # print "    labsolute("
         la      $a0, fmt_lab
         jal     _ps
-        # print input value (same value, as long)
-        move    $a0, $s3
+        # print v (same value, as long)
+        lw      $a0, -16($fp)
         jal     _pi
         # print ") = "
         la      $a0, fmt_mid
         jal     _ps
-        # call labsolute(input)
-        move    $a0, $s3
+        # labsolute(v)
+        lw      $a0, -16($fp)
         jal     labsolute
         move    $a0, $v0
         jal     _pi
@@ -88,22 +109,22 @@ loop:
         la      $a0, fmt_nl
         jal     _ps
 
-        addiu   $s0, $s0, 1
+        # i++;
+        lw      $t0, -12($fp)
+        addiu   $t0, $t0, 1
+        sw      $t0, -12($fp)
         j       loop
 
 done:
-        # ── Epilogue ──
-        lw      $ra,  0($sp)
-        lw      $s0,  4($sp)
-        lw      $s1,  8($sp)
-        lw      $s2, 12($sp)
-        lw      $s3, 16($sp)
-        addiu   $sp, $sp, 24
+        # ---- epilogue ----------------------------------------------
         li      $v0, 0
+        lw      $ra, -4($fp)
+        lw      $fp, -8($fp)
+        addiu   $sp, $sp, 16
         jr      $ra
 
 #--------------------------------------------------------------
-# Private print helpers (factor into libio.asm later).
+# Private print helpers (leaf wrappers around the syscalls).
 #--------------------------------------------------------------
 
 _ps:

@@ -22,31 +22,40 @@
 # C source — see strings.c
 
 
-#PURPOSE:  Simplified `strings`: print every run of 4+ printable
-#          ASCII bytes (0x20..0x7e) from stdin, one per line.
-#          Control bytes, high-bit bytes, and EOF terminate a run.
+#PURPOSE:  Simplified `strings`: print every run of 4+ printable ASCII bytes
+#          (0x20..0x7e) from stdin, one per line.  Control/high-bit bytes and EOF
+#          terminate a run.  Only the first 4 bytes of a candidate run are held
+#          back (in `pending`); once a run reaches 4 they are flushed and later
+#          bytes stream straight through — a two-phase state machine.
 #
-#          No line buffer, no length limit: only the first 4 bytes of
-#          a candidate run are held back (in `pending`).  Once a run
-#          reaches 4 the held bytes are flushed and every later byte
-#          streams straight through — a two-phase state machine.
-#
-#INVOCATION (binary-ish input comes from a file or pipe):
-#
+#INVOCATION (binary-ish input from a file or pipe):
 #    spimulator -f strings.asm < /some/binary
 #    printf 'Hi\0Hello\1World!' | spimulator -f strings.asm
 #
-#SYMBOL TABLE  (C variable -> MIPS location)
+#          STACK-VISIBLE STYLE: the C locals `run` (current printable-run length)
+#          and `ch` (the byte just read) live in stack slots; a scratch register
+#          holds only a working COPY (the flush index is a transient).  The 4-byte
+#          `pending` hold-back buffer is file-scope, so it stays in .data.  This
+#          demo makes NO `jal` (only syscalls, which preserve $ra), so it saves
+#          $fp but not $ra.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
 #
-#   In main:
-#     run           $s1                  (current printable-run length)
-#     pending       `pending` (.data)    (first 4 bytes of a candidate run)
-#     ch            $t0                  (byte from read_char; -1 = EOF)
-#     i             $t3                  (flush-loop index)
+#  SYMBOL TABLE (routine: main)
 #
-#   Volatile:
-#     $a0   syscall arg (byte to print)
-#     $v0   syscall selector / read_char result
+#  C variable  | memory addr     | register   | C type    | bytes | role / notes
+#  ------------+-----------------+------------+-----------+-------+---------------------------
+#  run         | -8($fp)         | $t1 (copy) | int       |   4   | current printable-run length
+#  ch          | -12($fp)        | $t0 (copy) | int       |   4   | byte from read_char (-1 at EOF)
+#  pending     | pending (.data) | —          | char[4]   |   4   | first 4 bytes of a candidate run
+#  (saved $fp) | -4($fp)         | —          | frame ptr |   4   | caller's frame pointer
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  stdin: transforms/strings/strings.input
+#  stdout:
+#  | Hello
+#  | World!
+#  | Assembly rocks
+#  | tail
 
         .data
 pending:    .space 4                     # first MINRUN bytes of a run
@@ -54,42 +63,48 @@ pending:    .space 4                     # first MINRUN bytes of a run
         .text
         .globl main
 main:
-        li $s1, 0                    # run = 0
+        addiu $sp, $sp, -16
+        sw $fp, 12($sp)              # save caller's $fp -> -4($fp)
+        addiu $fp, $sp, 16
+
+        li $t0, 0
+        sw $t0, -8($fp)              # run = 0
 
 loop:
         # ch = read_char();
         li $v0, 12
         syscall
-        move $t0, $v0
-
+        sw $v0, -12($fp)             # ch = result
+        lw $t0, -12($fp)
         bltz $t0, eof                # -1 -> EOF
 
         # printable?  ' ' (0x20) <= ch <= '~' (0x7e)
         blt $t0, ' ', nonprintable
         bgt $t0, '~', nonprintable
 
-        # printable byte:
-        #   if (run < 4) pending[run] = ch;
-        bge $s1, 4, past_pending
+        # printable byte: if (run < 4) pending[run] = ch;
+        lw $t1, -8($fp)              # run
+        bge $t1, 4, past_pending
         la $t2, pending
-        add $t2, $t2, $s1
+        add $t2, $t2, $t1
+        lw $t0, -12($fp)             # ch
         sb $t0, ($t2)
 past_pending:
-        #   run++;
-        addi $s1, $s1, 1
-
-        #   if (run == 4) flush the 4 pending bytes
-        li $t1, 4
-        beq $s1, $t1, flush_pending
-        #   else if (run > 4) print ch directly
-        ble $s1, $t1, loop           # run < 4: still buffering
-        move $a0, $t0                # run > 4: stream straight through
+        # run++;
+        lw $t1, -8($fp)
+        addi $t1, $t1, 1
+        sw $t1, -8($fp)
+        # if (run == 4) flush; else if (run > 4) stream ch; else keep buffering
+        li $t4, 4
+        beq $t1, $t4, flush_pending
+        ble $t1, $t4, loop           # run < 4: still buffering
+        lw $a0, -12($fp)             # run > 4: stream ch straight through
         li $v0, 11
         syscall
         j loop
 
 flush_pending:
-        # for (i = 0; i < 4; i++) print_char(pending[i]);
+        # for (i = 0; i < 4; i++) print_char(pending[i]);   (i transient in $t3)
         li $t3, 0
 flush_loop:
         la $t2, pending
@@ -103,20 +118,25 @@ flush_loop:
 
 nonprintable:
         # if (run >= 4) print_char('\n');  run = 0;
-        blt $s1, 4, reset_run
+        lw $t1, -8($fp)              # run
+        blt $t1, 4, reset_run
         li $a0, '\n'
         li $v0, 11
         syscall
 reset_run:
-        li $s1, 0
+        li $t0, 0
+        sw $t0, -8($fp)              # run = 0
         j loop
 
 eof:
         # final run may end at EOF rather than at a non-printable byte
-        blt $s1, 4, done
+        lw $t1, -8($fp)              # run
+        blt $t1, 4, done
         li $a0, '\n'
         li $v0, 11
         syscall
 done:
         li $v0, 0                    # exit status: __start passes this through
+        lw $fp, -4($fp)
+        addiu $sp, $sp, 16
         jr $ra

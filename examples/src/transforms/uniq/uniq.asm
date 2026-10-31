@@ -13,9 +13,36 @@
 #   printf 'a\na\nb\nb\nc\n' | spimulator -f uniq.asm   # => a b c
 
 
-#PURPOSE:  uniq.  Maintain `prev_line` buffer; compare each new
-#          line to it.  Emit line + '\n' if it differs from prev,
-#          then copy current into prev.
+#PURPOSE:  uniq.  Maintain a `prevLine` buffer; compare each new line to it.
+#          Emit line + '\n' if it differs from prev, then copy current into prev.
+#
+#          STACK-VISIBLE STYLE: main's C locals fd and the argv[1] path live in
+#          stack slots.  The line buffers (curLine/prevLine) and their lengths
+#          (curLen/prevLen) are file-scope state, so they stay in .data — shared
+#          between main and the comparison helper.  main makes `jal emit_if_new`,
+#          so it saves $ra.  emit_if_new is a leaf helper (syscalls only) that
+#          works on the .data globals with transient scratch registers.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+#  SYMBOL TABLE (routine: main)
+#
+#  C variable  | memory addr      | register   | C type     | bytes | role / notes
+#  ------------+------------------+------------+------------+-------+---------------------------
+#  fd          | -12($fp)         | $t0 (copy) | int        |    4  | STDIN (0) or opened file descriptor
+#  argv1       | -16($fp)         | $t0 (copy) | char *     |    4  | argv[1]; "-"/FILE, kept for error msg
+#  curLine/    | *Line (.data)    | —          | char[1024] | 1024  | file-scope current/previous line buffers
+#   prevLine   |                  |            |            |       |
+#  curLen/     | *Len (.data)     | —          | int        |    4  | file-scope current/previous lengths
+#   prevLen    |                  |            |            |       |  (prevLen = -1 means "no previous line")
+#  (saved $ra) | -4($fp)          | —          | code addr  |    4  | jal emit_if_new
+#  (saved $fp) | -8($fp)          | —          | frame ptr  |    4  | caller's frame pointer
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  stdin: transforms/uniq/uniq.input
+#  stdout:
+#  | a
+#  | b
+#  | c
 
         .data
 usageMsg:   .asciiz "usage: uniq [FILE|-]\n"
@@ -30,34 +57,39 @@ curLen:     .word 0
         .text
         .globl main
 main:
-        move $s0, $ra
-        li $s1, 0                    # fd = STDIN
-        move $s4, $0                 # argv[1] address (for error msg)
+        addiu $sp, $sp, -16
+        sw $ra, 12($sp)              # -> -4($fp)
+        sw $fp, 8($sp)               # -> -8($fp)
+        addiu $fp, $sp, 16
+
+        li $t0, 0
+        sw $t0, -12($fp)             # fd = STDIN (0)
+        sw $zero, -16($fp)           # argv1 = 0
 
         li $t0, 1
         beq $a0, $t0, read_setup
         li $t0, 2
         bne $a0, $t0, usage
-
-        lw $s4, 4($a1)
-        lb $t0, 0($s4)
-        bne $t0, '-', do_open
-        lb $t0, 1($s4)
-        beq $t0, $0, read_setup
+        lw $t0, 4($a1)               # argv[1]
+        sw $t0, -16($fp)             # argv1
+        lb $t1, 0($t0)
+        bne $t1, '-', do_open
+        lb $t1, 1($t0)
+        beq $t1, $0, read_setup
 
 do_open:
-        move $a0, $s4
+        lw $a0, -16($fp)
         li $v0, 13
         li $a1, 0
         li $a2, 0
         syscall
         bltz $v0, open_failed
-        move $s1, $v0
+        sw $v0, -12($fp)             # fd
 
 read_setup:
 read_loop:
         li $v0, 14
-        move $a0, $s1
+        lw $a0, -12($fp)             # fd
         la $a1, oneByte
         li $a2, 1
         syscall
@@ -66,7 +98,7 @@ read_loop:
         lb $t0, oneByte
         bne $t0, '\n', append
 
-        # newline: emit_if_new
+        # newline: emit_if_new; curLen = 0
         jal emit_if_new
         la $t1, curLen
         sw $0, ($t1)
@@ -93,13 +125,16 @@ after_read:
         jal emit_if_new
 
 close_and_exit:
-        beqz $s1, exit_ok
+        lw $t0, -12($fp)             # fd
+        beqz $t0, exit_ok
         li $v0, 16
-        move $a0, $s1
+        lw $a0, -12($fp)
         syscall
 exit_ok:
-        move $ra, $s0
         li $v0, 0                    # exit status: __start passes this through syscall 17
+        lw $ra, -4($fp)
+        lw $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr $ra
 
 open_failed:
@@ -107,7 +142,7 @@ open_failed:
         la $a0, errMsg
         syscall
         li $v0, 4
-        move $a0, $s4
+        lw $a0, -16($fp)             # argv1
         syscall
         li $v0, 4
         la $a0, nlMsg
@@ -125,11 +160,11 @@ usage:
         syscall
 
 
-# ---------- emit_if_new ----------
-# Compare curLine[0..curLen] to prevLine[0..prevLen].  If they
-# differ (or there's no prev yet), write the current line +
-# '\n' to stdout and copy current into prev.  Trashes lots of
-# $t-regs; main uses $s* so it survives.
+# ---------- emit_if_new (leaf helper) ----------
+# Compare curLine[0..curLen] to prevLine[0..prevLen].  If they differ (or there
+# is no prev yet), write the current line + '\n' and copy current into prev.
+# Operates entirely on the .data globals with transient scratch registers; no
+# frame needed (no jal; $ra is untouched).
 emit_if_new:
         # First-line case: prevLen == -1 -> always emit
         la $t0, prevLen

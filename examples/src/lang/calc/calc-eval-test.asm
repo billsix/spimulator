@@ -27,10 +27,32 @@
 # PURPOSE:  Unit tests for the I/O-separated calculator core.  Because the parser
 #           walks a .data CHARACTER BUFFER (advance reads `cursor`, not stdin), it
 #           can be driven by a table of hardcoded expression strings with no I/O.
-#           main loops the `cases` table, printing "<expr> => <result>" for each;
-#           run-demo.sh pins the golden, so a parser regression turns it red.
-#           The eval core (advance/skip_blanks/parse_*/print_double) is
-#           calc-eval.asm's, verbatim.
+#           main loops the `cases` table, printing "<expr> => <result>" for each.
+#
+#           STACK-VISIBLE STYLE: `cursor`, `cur`, `had_error` and the case table
+#           are C `static` GLOBALS in .data.  main homes its two C locals — the
+#           case-table pointer and the current expression string — at -12($fp)
+#           and -16($fp); a scratch register holds only a working COPY.  The eval
+#           core (advance/skip_blanks/parse_*/print_double) is calc-eval.asm's,
+#           verbatim: the parse routines keep their running DOUBLE at the
+#           8-aligned slot -16($fp).  Every routine that `jal`s saves $ra.
+#           Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+#  SYMBOL TABLE: cursor/cur/had_error/cases -> .data GLOBALS.  main's case
+#  pointer -> -12($fp), current string -> -16($fp).  parse routines' running
+#  DOUBLE -> -16($fp).  saved $ra/$fp at -4/-8($fp).
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  args:
+#  stdout:
+#  | 2+3 => 5
+#  | 10/4 => 2.500000
+#  | (3+4)*2-10/4 => 11.500000
+#  | -5+3 => -2
+#  | 3*-2 => -6
+#  | 2 + 3 * 4 => 14
+#  | .5*2 => 1
+#  | (2+3 => error
 
         .data
 cursor:     .word 0
@@ -54,18 +76,25 @@ cases:      .word case0, case1, case2, case3, case4, case5, case6, case7, 0
         .text
         .globl main
 main:
-        move $s0, $ra
-        la   $s1, cases              # pointer into the case table
+        addiu $sp, $sp, -16
+        sw   $ra, 12($sp)            # -> -4($fp)
+        sw   $fp, 8($sp)             # -> -8($fp)
+        addiu $fp, $sp, 16
+        la   $t0, cases
+        sw   $t0, -12($fp)           # casep = &cases[0]
 mt_loop:
-        lw   $s2, 0($s1)             # current case string
-        beqz $s2, mt_done
+        lw   $t0, -12($fp)           # casep
+        lw   $t1, 0($t0)             # current case string
+        sw   $t1, -16($fp)           # cur_case
+        beqz $t1, mt_done
         li   $v0, 4                  # print the expression
-        move $a0, $s2
+        move $a0, $t1
         syscall
         li   $v0, 4                  # print " => "
         la   $a0, arrow
         syscall
-        sw   $s2, cursor             # eval(this string): cursor = string
+        lw   $t0, -16($fp)           # eval(this string): cursor = string
+        sw   $t0, cursor
         sw   $zero, errflag
         jal  advance                 # prime the first lookahead
         jal  parse_expr              # value -> $f0 (preserved across skip_blanks)
@@ -89,17 +118,22 @@ mt_eol:
         li   $v0, 11                 # newline
         li   $a0, 10
         syscall
-        addi $s1, $s1, 4             # next case
+        lw   $t0, -12($fp)           # casep++ (next case)
+        addi $t0, $t0, 4
+        sw   $t0, -12($fp)
         j    mt_loop
 mt_done:
-        move $ra, $s0
         li   $v0, 0
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr   $ra
 
 
 # ======== eval core — calc-eval.asm's parse routines, verbatim ========
 
 # ---------- advance() — cur = next byte of the buffer (-1 at the NUL) ----------
+# Leaf helper (no jal): walks the `cursor` global.
 advance:
         lw   $t0, cursor
         lbu  $t1, 0($t0)
@@ -116,8 +150,10 @@ adv_eof:
 
 # ---------- skip_blanks() — skip ' ' '\t' '\r' ----------
 skip_blanks:
-        addi $sp, $sp, -4
-        sw   $ra, 0($sp)
+        addiu $sp, $sp, -8
+        sw   $ra, 4($sp)             # -> -4($fp)
+        sw   $fp, 0($sp)             # -> -8($fp)
+        addiu $fp, $sp, 8
 sb_loop:
         lw   $t0, curchar
         li   $t1, ' '
@@ -126,8 +162,9 @@ sb_loop:
         beq  $t0, $t1, sb_adv
         li   $t1, 13
         beq  $t0, $t1, sb_adv
-        lw   $ra, 0($sp)
-        addi $sp, $sp, 4
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 8
         jr   $ra
 sb_adv:
         jal  advance
@@ -135,9 +172,12 @@ sb_adv:
 
 
 # ---------- parse_factor() -> $f0   factor := NUMBER | '-' factor | '(' expr ')' ----------
+#   -16($fp) = held double value (parens case, 8 bytes via sdc1/ldc1)
 parse_factor:
-        addi $sp, $sp, -16
-        sw   $ra, 8($sp)
+        addiu $sp, $sp, -16
+        sw   $ra, 12($sp)            # -> -4($fp)
+        sw   $fp, 8($sp)             # -> -8($fp)
+        addiu $fp, $sp, 16
         jal  skip_blanks
         lw   $t0, curchar
 
@@ -152,18 +192,18 @@ pf_not_neg:
         bne  $t0, $t1, pf_not_paren
         jal  advance
         jal  parse_expr
-        sdc1 $f0, 0($sp)
+        sdc1 $f0, -16($fp)
         jal  skip_blanks
         lw   $t0, curchar
         li   $t1, ')'
         bne  $t0, $t1, pf_paren_err
         jal  advance
-        ldc1 $f0, 0($sp)
+        ldc1 $f0, -16($fp)
         j    pf_ret
 pf_paren_err:
         li   $t0, 1
         sw   $t0, errflag
-        ldc1 $f0, 0($sp)
+        ldc1 $f0, -16($fp)
         j    pf_ret
 pf_not_paren:
         li   $t1, '.'
@@ -178,8 +218,8 @@ pf_number:
         li   $t1, 10
         mtc1 $t1, $f4
         cvt.d.w $f4, $f4
-        li   $t2, 0
-        li   $t3, 0
+        li   $t2, 0                  # fractional_digits (transient)
+        li   $t3, 0                  # seen_digit (transient)
 pfn_int:
         lw   $t0, curchar
         li   $t1, '0'
@@ -232,74 +272,84 @@ pf_bad:
         mtc1 $zero, $f0
         cvt.d.w $f0, $f0
 pf_ret:
-        lw   $ra, 8($sp)
-        addi $sp, $sp, 16
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr   $ra
 
 
 # ---------- parse_term() -> $f0   term := factor (('*'|'/') factor)* ----------
+#   -16($fp) = accumulator (double, 8 bytes via sdc1/ldc1)
 parse_term:
-        addi $sp, $sp, -16
-        sw   $ra, 8($sp)
+        addiu $sp, $sp, -16
+        sw   $ra, 12($sp)            # -> -4($fp)
+        sw   $fp, 8($sp)             # -> -8($fp)
+        addiu $fp, $sp, 16
         jal  parse_factor
 pt_loop:
-        sdc1 $f0, 0($sp)
+        sdc1 $f0, -16($fp)
         jal  skip_blanks
         lw   $t0, curchar
         li   $t1, '*'
         beq  $t0, $t1, pt_mul
         li   $t1, '/'
         beq  $t0, $t1, pt_div
-        ldc1 $f0, 0($sp)
-        lw   $ra, 8($sp)
-        addi $sp, $sp, 16
+        ldc1 $f0, -16($fp)
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr   $ra
 pt_mul:
         jal  advance
         jal  parse_factor
-        ldc1 $f2, 0($sp)
+        ldc1 $f2, -16($fp)
         mul.d $f0, $f2, $f0
         j    pt_loop
 pt_div:
         jal  advance
         jal  parse_factor
-        ldc1 $f2, 0($sp)
+        ldc1 $f2, -16($fp)
         div.d $f0, $f2, $f0
         j    pt_loop
 
 
 # ---------- parse_expr() -> $f0   expr := term (('+'|'-') term)* ----------
+#   -16($fp) = accumulator (double, 8 bytes via sdc1/ldc1)
 parse_expr:
-        addi $sp, $sp, -16
-        sw   $ra, 8($sp)
+        addiu $sp, $sp, -16
+        sw   $ra, 12($sp)            # -> -4($fp)
+        sw   $fp, 8($sp)             # -> -8($fp)
+        addiu $fp, $sp, 16
         jal  parse_term
 pe_loop:
-        sdc1 $f0, 0($sp)
+        sdc1 $f0, -16($fp)
         jal  skip_blanks
         lw   $t0, curchar
         li   $t1, '+'
         beq  $t0, $t1, pe_add
         li   $t1, '-'
         beq  $t0, $t1, pe_sub
-        ldc1 $f0, 0($sp)
-        lw   $ra, 8($sp)
-        addi $sp, $sp, 16
+        ldc1 $f0, -16($fp)
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr   $ra
 pe_add:
         jal  advance
         jal  parse_term
-        ldc1 $f2, 0($sp)
+        ldc1 $f2, -16($fp)
         add.d $f0, $f2, $f0
         j    pe_loop
 pe_sub:
         jal  advance
         jal  parse_term
-        ldc1 $f2, 0($sp)
+        ldc1 $f2, -16($fp)
         sub.d $f0, $f2, $f0
         j    pe_loop
 
 
-# ---------- print_double($f12) ----------
+# ---------- print_double($f12) — fixed deterministic format (shared display
+#            helper; leaf, register-based; see rpn.asm) ----------
 print_double:
         c.eq.d $f12, $f12
         bc1t pd_not_nan

@@ -25,11 +25,34 @@
 #   spimulator -f bubble-sort-1-fixed.asm   ->  1 2 3 5 8 9 (one per line)
 
 # PURPOSE:  Rung 1 of the bubble-sort ladder — bubble sort a FIXED array (in
-#           .data) in place and print it.  Just the nested-loop in-place swap;
-#           the finished bubble-sort adds reading the ints from stdin.
-
-# SYMBOL TABLE  (C name -> MIPS location)
-#   data[] -> .word list at `data` ; n -> $t9 ; i -> $t0 ; j -> $t2
+#           .data) in place and print it.  Just the nested-loop in-place swap.
+#
+#           STACK-VISIBLE STYLE: the C locals `n`, `i` (outer), and `j` (inner)
+#           live in stack slots; a scratch register holds only a working COPY
+#           (the two compared elements and addresses are transient).  The array
+#           is file-scope data, so it stays in .data.  This demo makes NO `jal`
+#           (only syscalls, which preserve $ra), so it saves $fp but not $ra.
+#           Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+#  SYMBOL TABLE (routine: main)
+#
+#  C variable  | memory addr | register   | C type    | bytes | role / notes
+#  ------------+-------------+------------+-----------+-------+---------------------------
+#  n           | -8($fp)     | $t9 (copy) | int       |   4   | element count (6)
+#  i           | -12($fp)    | $t0 (copy) | int       |   4   | outer pass index (also the print index)
+#  j           | -16($fp)    | $t2 (copy) | int       |   4   | inner comparison index
+#  data[]      | data (.data)| —          | int[6]    |  24   | file-scope array sorted in place
+#  (saved $fp) | -4($fp)     | —          | frame ptr |   4   | caller's frame pointer
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  args:
+#  stdout:
+#  | 1
+#  | 2
+#  | 3
+#  | 5
+#  | 8
+#  | 9
 
         .data
 data:   .word 5, 2, 8, 1, 9, 3
@@ -37,15 +60,25 @@ data:   .word 5, 2, 8, 1, 9, 3
         .text
         .globl main
 main:
-        move $s0, $ra
-        li   $t9, 6                  # n = 6
+        addiu $sp, $sp, -16
+        sw   $fp, 12($sp)            # -> -4($fp)
+        addiu $fp, $sp, 16
 
-        li   $t0, 0                  # i = 0
+        li   $t0, 6
+        sw   $t0, -8($fp)            # n = 6
+        li   $t0, 0
+        sw   $t0, -12($fp)           # i = 0
 outer:
+        lw   $t0, -12($fp)           # i
+        lw   $t9, -8($fp)            # n
         addi $t1, $t9, -1            # n - 1
         bge  $t0, $t1, outer_done    # for (i = 0; i < n-1; i++)
-        li   $t2, 0                  # j = 0
+        li   $t0, 0
+        sw   $t0, -16($fp)           # j = 0
 inner:
+        lw   $t2, -16($fp)           # j
+        lw   $t9, -8($fp)            # n
+        lw   $t0, -12($fp)           # i
         sub  $t3, $t9, $t0
         addi $t3, $t3, -1            # n - 1 - i
         bge  $t2, $t3, inner_done    # for (j = 0; j < n-1-i; j++)
@@ -58,14 +91,21 @@ inner:
         sw   $t7, 0($t5)
         sw   $t6, 4($t5)
 no_swap:
+        lw   $t2, -16($fp)
         addi $t2, $t2, 1
+        sw   $t2, -16($fp)           # j++
         j    inner
 inner_done:
+        lw   $t0, -12($fp)
         addi $t0, $t0, 1
+        sw   $t0, -12($fp)           # i++
         j    outer
 outer_done:
-        li   $t0, 0                  # print data[0..n-1]
+        li   $t0, 0
+        sw   $t0, -12($fp)           # reuse i's slot as the print index
 print_loop:
+        lw   $t0, -12($fp)
+        lw   $t9, -8($fp)            # n
         bge  $t0, $t9, print_done
         sll  $t4, $t0, 2
         la   $t5, data
@@ -76,9 +116,12 @@ print_loop:
         li   $v0, 11                 # '\n'
         li   $a0, 10
         syscall
+        lw   $t0, -12($fp)
         addi $t0, $t0, 1
+        sw   $t0, -12($fp)
         j    print_loop
 print_done:
-        move $ra, $s0
         li   $v0, 0
+        lw   $fp, -4($fp)
+        addiu $sp, $sp, 16
         jr   $ra

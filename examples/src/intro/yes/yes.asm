@@ -34,9 +34,21 @@
 #          the pipe; spimulator has no SIGPIPE so the program only
 #          stops on Ctrl+C inside the simulator.
 #
-#VARIABLES:
-#   $a0       syscall argument register (pinned at &yesString)
-#   $v0       syscall selector (pinned at 4 = print_string)
+#          STACK-VISIBLE STYLE: this program has NO C local variables
+#          — just a fixed string in .data — and makes NO `jal`, so
+#          there is no stack frame.  The string lives in .data; its
+#          ADDRESS is pinned in $a0 for the whole run.  There is no
+#          #CANONICAL block: the loop never terminates, so the
+#          value-checker (which runs the demo to completion) cannot
+#          anchor it.  Style reference:
+#          tasks/reference/mips-asm-teaching-style.md
+#
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: main)
+#
+#  C variable | memory addr       | register   | C type  | bytes | role / notes
+#  -----------+-------------------+------------+---------+-------+---------------------------
+#  "y\n"      | yesString (.data) | $a0 (addr) | char[3] |   3   | string literal (2 bytes + NUL); address pinned in $a0, printed forever
 
         .data
 yesString:
