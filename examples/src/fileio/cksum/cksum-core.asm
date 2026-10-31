@@ -25,12 +25,60 @@
 #   printf 'hello\n' | spimulator -f cksum-core.asm   ->  3015617425 6
 
 # PURPOSE:  The I/O-separated cksum.  Same output as cksum's stdin path, but the
-#           ALGORITHM is a function: `cksum_of($a0=data, $a1=len) -> $v0` computes
-#           the POSIX CRC32 of a BYTE BUFFER (table loop + length fold + ~), with
-#           no I/O; `main` slurps stdin into `buf`, calls cksum_of, prints
-#           "<crc> <byte_count>".  Shares cksum's golden.  cksum-1-stdin computes
-#           the CRC inline; here it is a named pure function.  print_uint is an
-#           unsigned 32-bit print (syscall 1 would show the high-bit CRC negative).
+#           ALGORITHM is a named pure function: cksum_of(data, len) -> crc does
+#           the CRC32 of a byte BUFFER with no I/O; main slurps stdin into buf,
+#           calls cksum_of, prints "<crc> <byte_count>".  Shares cksum's golden.
+#
+#           STACK-VISIBLE STYLE: because cksum_of IS the lesson (the pure
+#           algorithm), its C locals — the running checksum ck and the loop
+#           index i — live in its own stack frame, reloaded/stored each byte, so
+#           the checksum is visibly on the stack.  Its args data/len stay in
+#           $a0/$a1 (a leaf: no jal/syscall clobbers them).  main homes the byte
+#           count len.  buf and crctab (C `static`) stay in .data; print_uint is
+#           a shared leaf helper.
+#           Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: main)
+#
+#  C variable  | memory addr | register   | C type       | bytes | role / notes
+#  ------------+-------------+------------+--------------+-------+---------------------------
+#  len         | -12($fp)    | $t0 (copy) | unsigned int |    4  | bytes slurped; passed to cksum_of, printed
+#  (saved $ra) | -4($fp)     | —          | code addr    |    4  | jal cksum_of / jal print_uint
+#  (saved $fp) | -8($fp)     | —          | frame ptr    |    4  | caller's frame pointer
+#  buf         | buf (.data) | —          | char[4096]   | 4096  | static slurp buffer (C `static` -> .data)
+#
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: cksum_of — the pure core; leaf, no jal)
+#
+#  C variable  | memory addr    | register   | C type        | bytes | role / notes
+#  ------------+----------------+------------+---------------+-------+---------------------------
+#  (arg) data  | —              | $a0        | const uchar * |    4  | buffer base; read-only
+#  (arg) len   | —              | $a1        | unsigned int  |    4  | buffer length; read-only
+#  ck          | -8($fp)        | $t0 (copy) | unsigned int  |    4  | running CRC32
+#  i           | -12($fp)       | $t1 (copy) | unsigned int  |    4  | byte index 0..len-1
+#  crctab      | crctab (.data) | —          | uint[256]     | 1024  | static const CRC polynomial table
+#  (saved $fp) | -4($fp)        | —          | frame ptr     |    4  | caller's frame pointer
+#
+# ------------------------------------------------------------------
+#  SNAPSHOT (stdin "hello\n"; inside cksum_of's co_loop at i = 3,
+#            folding data[3] = 'l' into ck)
+#
+#     main's frame            cksum_of's frame (its own)
+#   +----------------+       +--------------------------+       scratch
+#   | -12 len = 6    |       | -4  saved $fp (-> main)  |      $t0 = ck
+#   +----------------+       | -8  ck  = <partial>      | <--- $t0
+#      ($a0 = &buf,          | -12 i   = 3              | <--- $t1
+#       $a1 = 6)             +--------------------------+
+#                                  $sp = $fp - 12
+#
+#   cksum_of walks all 6 bytes, folds in len = 6, complements, returns
+#   the CRC in $v0; main prints "3015617425 6".
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  stdin: fileio/cksum/cksum.input
+#  stdout:
+#  | 3015617425 6
 
         .data
 buf:        .space 4096                 # stdin slurped here (teaching inputs are small)
@@ -75,47 +123,71 @@ crctab:
         .text
         .globl main
 main:
-        move $s0, $ra
-        la   $s2, buf                # write pointer base
-        li   $s1, 0                  # len = 0
-        li   $t9, 4096               # cap
+        # ---- prologue: build main's 16-byte stack frame ------------
+        addiu $sp, $sp, -16
+        sw $ra, 12($sp)              # save $ra          -> -4($fp)
+        sw $fp, 8($sp)               # save caller's $fp -> -8($fp)
+        addiu $fp, $sp, 16
+
+        li   $t0, 0
+        sw   $t0, -12($fp)           # len = 0
+
 rd_loop:
         li   $v0, 12                 # c = read_char()
         syscall
         li   $t0, -1
         beq  $v0, $t0, rd_done       # EOF
-        bge  $s1, $t9, rd_loop       # buffer full: drop (not hit by teaching inputs)
-        add  $t1, $s2, $s1
-        sb   $v0, 0($t1)
-        addi $s1, $s1, 1             # len++
+        lw   $t0, -12($fp)           # len
+        li   $t1, 4096
+        bge  $t0, $t1, rd_loop       # buffer full: drop (teaching inputs never hit)
+        la   $t1, buf
+        add  $t1, $t1, $t0           # &buf[len]
+        sb   $v0, 0($t1)             # buf[len] = c
+        addi $t0, $t0, 1
+        sw   $t0, -12($fp)           # len++
         j    rd_loop
+
 rd_done:
-        la   $a0, buf                # ck = cksum_of(buf, len)
-        move $a1, $s1
+        # ck = cksum_of(buf, len);
+        la   $a0, buf
+        lw   $a1, -12($fp)           # len
         jal  cksum_of
-        move $a0, $v0                # print_uint(ck)
+        move $a0, $v0                # print_uint(ck)  (ck transient -> print)
         jal  print_uint
         li   $v0, 4                  # print_char(' ')
         la   $a0, space
         syscall
-        move $a0, $s1                # print_uint(len)
+        lw   $a0, -12($fp)           # print_uint(len)
         jal  print_uint
         li   $v0, 4                  # print_char('\n')
         la   $a0, newline
         syscall
-        move $ra, $s0
+
+        # ---- epilogue ----------------------------------------------
         li   $v0, 0
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr   $ra
 
 
-# ---------- cksum_of($a0 = data, $a1 = len) -> $v0  (pure; no I/O) ----------
-# ck in $t0, i in $t1; folds the byte count, then complements.
+# ---------- unsigned int cksum_of(const uchar *data, unsigned int len) ------
+# The PURE core (no I/O): POSIX CRC32 of a byte buffer.  Leaf (no jal) -> saves
+# $fp but not $ra.  ck and i live in this frame; data/len stay in $a0/$a1.
 cksum_of:
-        li   $t0, 0                  # ck = 0
-        li   $t1, 0                  # i = 0
+        addiu $sp, $sp, -12
+        sw $fp, 8($sp)               # save caller's $fp -> -4($fp)
+        addiu $fp, $sp, 12
+        li   $t0, 0
+        sw   $t0, -8($fp)            # ck = 0
+        li   $t0, 0
+        sw   $t0, -12($fp)           # i = 0
+
 co_loop:
-        bge  $t1, $a1, co_fold
-        add  $t2, $a0, $t1
+        lw   $t1, -12($fp)           # i
+        bge  $t1, $a1, co_fold       # while (i < len)
+        lw   $t0, -8($fp)            # ck
+        add  $t2, $a0, $t1           # &data[i]
         lbu  $t4, 0($t2)             # data[i]
         srl  $t5, $t0, 24
         xor  $t5, $t5, $t4           # (ck >> 24) ^ byte
@@ -125,12 +197,17 @@ co_loop:
         lw   $t7, 0($t6)             # crctab[...]
         sll  $t8, $t0, 8
         xor  $t0, $t8, $t7           # ck = (ck << 8) ^ crctab[...]
-        addi $t1, $t1, 1             # i++
+        sw   $t0, -8($fp)            # store ck
+        lw   $t1, -12($fp)           # i
+        addi $t1, $t1, 1
+        sw   $t1, -12($fp)           # i++
         j    co_loop
+
 co_fold:
-        move $t4, $a1                # n = len
+        move $t4, $a1                # n = len  (transient fold copy)
 cf_loop:
         beq  $t4, $0, cf_done
+        lw   $t0, -8($fp)            # ck
         andi $t5, $t4, 0xff
         srl  $t6, $t0, 24
         xor  $t5, $t6, $t5
@@ -140,15 +217,21 @@ cf_loop:
         lw   $t7, 0($t6)
         sll  $t8, $t0, 8
         xor  $t0, $t8, $t7
+        sw   $t0, -8($fp)            # ck
         srl  $t4, $t4, 8
         j    cf_loop
+
 cf_done:
+        lw   $t0, -8($fp)
         nor  $t0, $t0, $0            # ck = ~ck
-        move $v0, $t0
+        move $v0, $t0                # return ck
+        lw   $fp, -4($fp)
+        addiu $sp, $sp, 12
         jr   $ra
 
 
 # ---------- print_uint($a0) — hand-format an unsigned 32-bit value ----------
+# Shared leaf helper, register-based.
 print_uint:
         la   $t0, digitsBuf
         addi $t9, $t0, 16

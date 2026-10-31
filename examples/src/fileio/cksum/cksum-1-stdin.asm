@@ -27,14 +27,51 @@
 # PURPOSE:  Rung 1 of the cksum ladder — the POSIX CRC32 algorithm over stdin
 #           only.  Read bytes (syscall 12), run each through the 256-word
 #           polynomial table (ck = (ck<<8) ^ crctab[(ck>>24) ^ byte]), fold in
-#           the byte count, complement, print "<crc> <bytes>".  No argv/file/
-#           filename column (that is the finished cksum).  print_uint is private
-#           (an unsigned 32-bit print; syscall 1 would show the CRC negative).
-
-# SYMBOL TABLE  (C variable -> MIPS location)
-#   ck  -> $t0 ; len -> $t1 ; a byte -> $t4 ; crctab -> `crctab` (.data)
-#   $s0 holds the runtime's $ra across both print_uint calls; print_uint
-#   avoids $t1 so `len` survives the first call.
+#           the byte count, complement, print "<crc> <bytes>".  print_uint is
+#           private (an unsigned 32-bit print; syscall 1 would show the CRC
+#           negative).
+#
+#           STACK-VISIBLE STYLE: the two C locals — the running checksum `ck`
+#           and the byte count `len` — live in stack slots; a scratch register
+#           holds only a working COPY while an instruction needs it.  Because
+#           len now lives on the stack, it automatically survives the first
+#           `jal print_uint` (the old version needed print_uint to dodge $t1
+#           for exactly this reason — no longer).  main saves $ra for its jals.
+#           crctab (C `static const`) and digitsBuf stay in .data.  print_uint
+#           is a shared leaf helper, kept register-based.
+#           Style reference: tasks/reference/mips-asm-teaching-style.md
+#
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: main)
+#
+#  C variable  | memory addr      | register   | C type       | bytes | role / notes
+#  ------------+------------------+------------+--------------+-------+---------------------------
+#  ck          | -12($fp)         | $t0 (copy) | unsigned int |    4  | running CRC32
+#  len         | -16($fp)         | $t1 (copy) | unsigned int |    4  | byte count; also folded into ck
+#  (a byte)    | —                | $t4        | int          |    4  | transient: one input byte (0..255)
+#  crctab      | crctab (.data)   | —          | uint[256]    | 1024  | static const CRC polynomial table
+#  (saved $ra) | -4($fp)          | —          | code addr    |    4  | jal print_uint (x2)
+#  (saved $fp) | -8($fp)          | —          | frame ptr    |    4  | caller's frame pointer
+#
+# ------------------------------------------------------------------
+#  SNAPSHOT (stdin "hello\n"; in after_read, all 6 bytes consumed,
+#            about to fold len into ck)
+#
+#        main's stack frame             scratch
+#   +----------------------------+     +----------------------+
+#   | -4($fp)  saved $ra         |     | $t0 = ck (partial)
+#   | -8($fp)  saved $fp         |     | $t4 = 6 (len copy to fold)
+#   | -12($fp) ck     = <crc so far>
+#   | -16($fp) len    = 6        |
+#   +----------------------------+
+#         $sp = $fp - 16
+#
+#   Folds 6 into ck, complements, prints "3015617425 6".
+#
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  stdin: fileio/cksum/cksum-1-stdin.input
+#  stdout:
+#  | 3015617425 6
 
         .data
 space:      .asciiz " "
@@ -78,9 +115,15 @@ crctab:
         .text
         .globl main
 main:
-        move $s0, $ra
-        li   $t0, 0                  # ck = 0
-        li   $t1, 0                  # len = 0
+        # ---- prologue: build main's 16-byte stack frame ------------
+        addiu $sp, $sp, -16
+        sw $ra, 12($sp)              # save $ra          -> -4($fp)
+        sw $fp, 8($sp)               # save caller's $fp -> -8($fp)
+        addiu $fp, $sp, 16
+
+        li   $t0, 0
+        sw   $t0, -12($fp)           # ck = 0
+        sw   $t0, -16($fp)           # len = 0
 
 read_loop:
         li   $v0, 12                 # c = read_char()
@@ -88,6 +131,7 @@ read_loop:
         li   $t4, -1
         beq  $v0, $t4, after_read    # EOF
         move $t4, $v0                # byte (0..255)
+        lw   $t0, -12($fp)           # ck
         srl  $t5, $t0, 24
         xor  $t5, $t5, $t4           # (ck >> 24) ^ byte
         sll  $t6, $t5, 2
@@ -96,14 +140,18 @@ read_loop:
         lw   $t7, 0($t6)             # crctab[...]
         sll  $t8, $t0, 8
         xor  $t0, $t8, $t7           # ck = (ck << 8) ^ crctab[...]
+        sw   $t0, -12($fp)           # store ck back
+        lw   $t1, -16($fp)           # len
         addi $t1, $t1, 1             # len++
+        sw   $t1, -16($fp)           # store len back
         j    read_loop
 
 after_read:
-        # fold len into ck, one byte at a time
-        move $t4, $t1
+        # fold len into ck, one byte at a time (on a transient copy)
+        lw   $t4, -16($fp)           # $t4 = len  (copy to shift down)
 fold_loop:
         beq  $t4, $0, after_fold
+        lw   $t0, -12($fp)           # ck
         andi $t5, $t4, 0xff
         srl  $t6, $t0, 24
         xor  $t5, $t6, $t5
@@ -113,30 +161,37 @@ fold_loop:
         lw   $t7, 0($t6)
         sll  $t8, $t0, 8
         xor  $t0, $t8, $t7
+        sw   $t0, -12($fp)           # ck
         srl  $t4, $t4, 8
         j    fold_loop
 
 after_fold:
+        lw   $t0, -12($fp)
         nor  $t0, $t0, $0            # ck = ~ck
+        sw   $t0, -12($fp)
 
-        move $a0, $t0                # print_uint(ck)
+        lw   $a0, -12($fp)           # print_uint(ck)
         jal  print_uint
         li   $v0, 4                  # print_char(' ')
         la   $a0, space
         syscall
-        move $a0, $t1                # print_uint(len)
+        lw   $a0, -16($fp)           # print_uint(len)
         jal  print_uint
         li   $v0, 4                  # print_char('\n')
         la   $a0, newline
         syscall
 
-        move $ra, $s0
+        # ---- epilogue ----------------------------------------------
         li   $v0, 0
+        lw   $ra, -4($fp)
+        lw   $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr   $ra
 
 
 # ---------- print_uint subroutine (hand-format an unsigned 32-bit value) ------
-# Avoids $t1 so main's `len` survives the first call.
+# Shared leaf helper, register-based.  main homes ck/len on the stack, so this
+# routine is free to use any temporary ($t0/$t2/$t3/$t9 + digitsBuf in .data).
 print_uint:
         la   $t0, digitsBuf
         addi $t9, $t0, 16
