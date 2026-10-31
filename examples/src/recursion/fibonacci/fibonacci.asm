@@ -24,133 +24,101 @@
 #   spimulator -f fibonacci.asm 10
 
 
-#PURPOSE:  Fibonacci(N) computed two ways from the same N.
-#          Second demo from PLAN-cs-demos.md and the FIRST demo
-#          to require a per-call stack frame for recursion.
+#PURPOSE:  Fibonacci(N) computed two ways from the same N — iterative
+#          and recursive — so the reader can compare a flat loop with
+#          a recursion that needs a per-call stack frame.
 #
-#          Earlier demos (07, 18, 20, 22, 23, 24) saved $ra and
-#          a couple of locals in callee-save registers
-#          ($s0..$s7) and relied on those surviving across a
-#          single jal.  That works as long as the demo never
-#          re-enters the same function — but fib_rec calls
-#          itself, and the second invocation would overwrite the
-#          same $s register the first invocation set up.  So
-#          this demo introduces the standard MIPS pattern: each
-#          recursive entry allocates its own stack frame holding
-#          $ra and the live arguments, and releases it on exit.
+#NOTES:    Overflow.  fib(46) doesn't fit in a signed 32-bit int;
+#          print_int renders N >= 46 as negative.  Both implementations
+#          overflow identically (it comes from the int type).
 #
-#NOTES:    Overflow.  fib(46) doesn't fit in a signed 32-bit int.
-#          print_int will render the result as negative for any
-#          N >= 46.  Both implementations overflow identically
-#          since the overflow comes from the int type, not from
-#          the algorithm.
+#          Recursion depth.  fib_rec(N) nests N+1 frames deep at worst;
+#          at 16 bytes/frame spim's 64 KiB stack is plenty.  The O(phi^N)
+#          running time blows up long before the stack does.
 #
-#          Recursion depth.  fib_rec(N) needs N+1 frames deep at
-#          worst.  Spim's default stack is 64 KiB; at 12 bytes
-#          per frame we can recurse ~5000 levels before
-#          exhausting it.  N up to ~40 is fine in practice (the
-#          time it takes blows up exponentially long before the
-#          stack runs out).
+#          STACK-VISIBLE STYLE: every C local lives on the stack.
+#          - main homes `n` in its frame (it is reused for both the
+#            fib_iter and fib_rec calls), and saves $ra (it makes jals).
+#          - fib_iter keeps its running locals a, b, i in stack slots
+#            (the transient `t = a + b` stays in a register); it makes
+#            no jal, so it saves $fp but not $ra.
+#          - fib_rec is the lesson: because it calls ITSELF, the same
+#            register would be overwritten by the inner call, so n, the
+#            saved $ra, and the fib(n-1) intermediate all live in THIS
+#            call's own frame at fixed -N($fp) offsets.  Each recursive
+#            entry gets an independent frame.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
 #
-#          Iterative time: O(N).
-#          Recursive time: O(phi^N) -- fib_rec(30) is already
-#          ~1.3 million calls.  Try `time spimulator -f
-#          fibonacci.asm 30` to feel the difference.
-
-
-#STORAGE LAYOUT
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: main)
 #
-#   fib_iter needs no stack frame at all -- it never calls
-#   anything, so it can keep all of (a, b, t, i) in $t* registers.
+#  C variable  | memory addr | register   | C type    | bytes | role / notes
+#  ------------+-------------+------------+-----------+-------+---------------------------
+#  argc        | —           | $a0        | int       |   4   | entry only; tested (== 2), then dead
+#  argv        | —           | $a1        | char **   |   4   | entry only; argv[1] fetched for atoi
+#  n           | -12($fp)    | $a0 (copy) | int       |   4   | parsed N; passed to both fib_iter and fib_rec
+#  (saved $ra) | -4($fp)     | —          | code addr |   4   | jal atoi / fib_iter / fib_rec
+#  (saved $fp) | -8($fp)     | —          | frame ptr |   4   | caller's frame pointer
 #
-#   fib_rec is where the new pattern shows up.  On EACH recursive
-#   entry, fib_rec allocates a 12-byte frame:
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: fib_iter — iterative; no jal)
 #
-#         higher addresses
-#           +---------------+
-#           | fib(n-1)      |   8($sp)   intermediate; saved BETWEEN
-#           |               |            the two recursive calls so
-#           |               |            the addition at the bottom
-#           |               |            can find it
-#           | saved n       |   4($sp)   needed for the 2nd call --
-#           |               |            the 1st call clobbered $a0
-#    $sp -> | saved $ra     |   0($sp)   so we can return to the
-#           |               |            caller (which might itself
-#           |               |            be another fib_rec frame!)
-#           +---------------+
-#         lower addresses
+#  C variable  | memory addr | register   | C type | bytes | role / notes
+#  ------------+-------------+------------+--------+-------+---------------------------
+#  (arg) n     | —           | $a0        | int    |   4   | loop bound; never clobbered (no jal)
+#  a           | -8($fp)     | $t0 (copy) | int    |   4   | fib(i-1) -> fib(i)
+#  b           | -12($fp)    | $t1 (copy) | int    |   4   | fib(i)   -> fib(i+1)
+#  i           | -16($fp)    | $t0 (copy) | int    |   4   | loop counter 0..n-1
+#  t           | —           | $t2        | int    |   4   | transient a + b (consumed at once)
+#  (saved $fp) | -4($fp)     | —          | frame ptr |  4  | caller's frame pointer
 #
-#   With this discipline, recursion of depth N consumes 12*N
-#   bytes of stack.  At fib_rec(10) that's 120 bytes peak --
-#   trivial.  At fib_rec(40) it's 480 bytes -- still fine.
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: fib_rec — recursive; one frame PER call)
 #
-#   main and atoi use the same $s*-only pattern as factorial
-#   and gcd; no per-call frames there.
-
-
-#SYMBOL TABLE  (C variable -> MIPS location)
+#  C variable     | memory addr | register   | C type    | bytes | role / notes
+#  ---------------+-------------+------------+-----------+-------+------------------------
+#  (arg) n        | -12($fp)    | $a0 (copy) | int       |   4   | saved so the 2nd call can reload n-2
+#  fib(n-1)       | -16($fp)    | $t0 (copy) | int       |   4   | 1st call's result, held across 2nd call
+#  return value   | —           | $v0        | int       |   4   | n (base) or fib(n-1)+fib(n-2)
+#  (saved $ra)    | -4($fp)     | —          | code addr |   4   | return into THIS frame's caller
+#  (saved $fp)    | -8($fp)     | —          | frame ptr |   4   | caller fib_rec frame's $fp
 #
-#   In main:
-#     argc          $a0 at entry only
-#     argv          $a1 at entry only
-#     n             $s1                  (parsed from argv[1]; held
-#                                          across `jal fib_iter` AND
-#                                          `jal fib_rec` so we can
-#                                          call them with the same N)
-#     iterMsg, recMsg, usageMsg   `.data` strings
+# ------------------------------------------------------------------
+#  SNAPSHOT (input: fibonacci 4; the recursion has descended to
+#            fib_rec(2), which is about to call fib_rec(1).  Each
+#            active call has its OWN frame; $fp points at the
+#            innermost one.)
 #
-#   In fib_iter (no frame, no jal):
-#     n             $a0                  (input arg; never modified)
-#     a             $t0                  (running fib(i-1) -> fib(i))
-#     b             $t1                  (running fib(i)   -> fib(i+1))
-#     t             $t3                  (a + b scratch)
-#     i             $t2                  (loop counter 0..n-1)
-#     return value  $v0                  (= a at the end)
+#      stack, higher addresses at top        (one 16-byte frame per call)
+#     +------------------------------+
+#     | main's frame ... n = 4       |
+#     +------------------------------+  fib_rec(4):
+#     | -4  saved $ra (-> main)      |
+#     | -8  saved $fp (-> main)      |
+#     | -12 n        = 4             |
+#     | -16 fib(n-1) = (pending)     |
+#     +------------------------------+  fib_rec(3):
+#     | -4  saved $ra (-> fib_rec 4) |
+#     | -8  saved $fp (-> fib_rec 4) |
+#     | -12 n        = 3             |
+#     | -16 fib(n-1) = (pending)     |
+#     +------------------------------+  fib_rec(2):  <-- $fp here
+#     | -4  saved $ra (-> fib_rec 3) |
+#     | -8  saved $fp (-> fib_rec 3) |
+#     | -12 n        = 2             |           $a0 = 1 (n-1 for the
+#     | -16 fib(n-1) = (pending)     |                   next call)
+#     +------------------------------+
+#           $sp = $fp - 16
 #
-#   In fib_rec (per-call 12-byte frame; recursive):
-#     n             $a0                  (input arg; reloaded from
-#                                          4($sp) between the two
-#                                          recursive calls because
-#                                          the first call clobbered $a0)
-#     saved $ra     0($sp)               (so each frame returns to
-#                                          ITS caller, which may be
-#                                          another fib_rec frame
-#                                          one level up)
-#     saved n       4($sp)               (the second `jal fib_rec`
-#                                          needs n - 2; we reload n
-#                                          and decrement)
-#     fib(n-1)      8($sp)               (intermediate result of the
-#                                          first recursive call;
-#                                          held across the second
-#                                          recursive call)
-#     return value  $v0                  (= n at the base case;
-#                                          = fib(n-1) + fib(n-2) at
-#                                          the recursive case)
+#   fib_rec(2) calls fib_rec(1) (base case -> 1), stores it at -16,
+#   then calls fib_rec(0) (-> 0); returns 1.  Unwinding gives
+#   fib(4) = 3.  Final output: "iter: 3" then "rec:  3".
 #
-#   In atoi (same shape as factorial):
-#     value         $v0                  (accumulator -> return)
-#     sign          $t1                  (+1 or -1)
-#     digit         $t0                  (one byte, decoded to 0..9)
-#     ten           $t2                  (constant multiplier)
-#
-#   Cross-call saves (callee-save $s* values held LIVE across `jal`):
-#     $s0   <- runtime's $ra      (across `jal atoi`, `jal fib_iter`,
-#                                  `jal fib_rec`; restored before the
-#                                  final `jr $ra`)
-#     $s1   <- n                  (parsed once; held across BOTH the
-#                                  fib_iter and the fib_rec calls)
-#
-#   Per-frame saves (stack-resident; the NEW pattern this demo
-#   introduces):
-#     fib_rec's $ra, n, and fib(n-1) all live on the stack rather
-#     than in $s* registers.  $s* registers wouldn't work here
-#     because each recursive call would overwrite them.  Each
-#     frame is independent of every other frame in the call
-#     chain.
-#
-#   Volatile (no preserved meaning across a syscall, by convention):
-#     $a0   syscall arg / function arg
-#     $v0   syscall selector / function return value
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  args: 10
+#  stdout:
+#  | iter: 55
+#  | rec:  55
 
         .data
 iterMsg:    .asciiz "iter: "
@@ -160,53 +128,60 @@ usageMsg:   .asciiz "usage: fibonacci N\n"
         .text
         .globl main
 main:
-        move $s0, $ra
+        # ---- prologue: build main's 16-byte stack frame ------------
+        addiu $sp, $sp, -16
+        sw $ra, 12($sp)              # save $ra          -> -4($fp)
+        sw $fp, 8($sp)               # save caller's $fp -> -8($fp)
+        addiu $fp, $sp, 16
 
-        # if (argc != 2) usage
+        # if (argc != 2) usage;   (argc arrives in $a0)
         li $t0, 2
         bne $a0, $t0, usage
 
-        # n = atoi(argv[1])
+        # n = atoi(argv[1]);      (argv arrives in $a1)
         lw $a0, 4($a1)               # argv[1]
         jal atoi
-        move $s1, $v0                # save N (held across both calls)
+        sw $v0, -12($fp)             # n = atoi(argv[1])
 
-        # print "iter: "
+        # print_string("iter: ");
         li $v0, 4
         la $a0, iterMsg
         syscall
 
-        # print_int(fib_iter(N))
-        move $a0, $s1
+        # print_int(fib_iter(n));
+        lw $a0, -12($fp)             # $a0 = n
         jal fib_iter
         move $a0, $v0
         li $v0, 1
         syscall
 
-        # print '\n'
+        # print_char('\n');
         li $v0, 11
         li $a0, '\n'
         syscall
 
-        # print "rec:  "
+        # print_string("rec:  ");
         li $v0, 4
         la $a0, recMsg
         syscall
 
-        # print_int(fib_rec(N))
-        move $a0, $s1
+        # print_int(fib_rec(n));
+        lw $a0, -12($fp)             # $a0 = n (reloaded; unchanged)
         jal fib_rec
         move $a0, $v0
         li $v0, 1
         syscall
 
-        # print '\n'
+        # print_char('\n');
         li $v0, 11
         li $a0, '\n'
         syscall
 
-        move $ra, $s0
+        # ---- epilogue ----------------------------------------------
         li $v0, 0                    # exit status: __start passes this through syscall 17
+        lw $ra, -4($fp)
+        lw $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr $ra
 
 usage:
@@ -219,75 +194,99 @@ usage:
 
 
 # ---------- int fib_iter(int n) --------------------------------------
-# Input:  $a0 = n
-# Output: $v0 = fib(n)
-# Trashes: $t0..$t3
-# No frame, no jal -- nothing to save.
+# Iterative Fibonacci.  No jal -> saves $fp but not $ra.  a, b, i live
+# in the frame; the sum t = a + b is a transient kept in a register.
+# Input:  $a0 = n    Output: $v0 = fib(n)
 fib_iter:
-        li $t0, 0                    # a = 0
-        li $t1, 1                    # b = 1
-        li $t2, 0                    # i = 0
+        addiu $sp, $sp, -16
+        sw $fp, 12($sp)              # save caller's $fp -> -4($fp)
+        addiu $fp, $sp, 16
+
+        # a = 0; b = 1; i = 0;
+        li $t0, 0
+        sw $t0, -8($fp)              # a = 0
+        li $t0, 1
+        sw $t0, -12($fp)             # b = 1
+        li $t0, 0
+        sw $t0, -16($fp)             # i = 0
+
 fi_loop:
-        bge $t2, $a0, fi_done        # while (i < n)
-        add $t3, $t0, $t1            # t = a + b
-        move $t0, $t1                # a = b
-        move $t1, $t3                # b = t
-        addi $t2, $t2, 1             # i++
+        lw $t0, -16($fp)             # $t0 = i
+        bge $t0, $a0, fi_done        # while (i < n)
+
+        # t = a + b;  a = b;  b = t;
+        lw $t0, -8($fp)              # $t0 = a
+        lw $t1, -12($fp)             # $t1 = b
+        add $t2, $t0, $t1            # t = a + b  (transient)
+        sw $t1, -8($fp)              # a = b
+        sw $t2, -12($fp)             # b = t
+
+        # i++;
+        lw $t0, -16($fp)             # $t0 = i
+        addi $t0, $t0, 1
+        sw $t0, -16($fp)
         j fi_loop
+
 fi_done:
-        move $v0, $t0                # return a
+        lw $v0, -8($fp)              # return a
+        lw $fp, -4($fp)
+        addiu $sp, $sp, 16
         jr $ra
 
 
 # ---------- int fib_rec(int n) ---------------------------------------
-# Input:  $a0 = n
-# Output: $v0 = fib(n)
-# Frame:  12 bytes  -- see #STORAGE LAYOUT above
-# Trashes: $t0 + everything caller-save  (callee-save preserved
-#          via stack-resident saves of $ra and n)
+# Recursive Fibonacci.  Calls itself, so every live value lives in
+# THIS call's own 16-byte frame: saved $ra, saved $fp, n, and the
+# fib(n-1) intermediate held across the second recursive call.
+# Input:  $a0 = n    Output: $v0 = fib(n)
 fib_rec:
-        # if (n < 2) return n;
+        # if (n < 2) return n;   (base case: no frame needed)
         li $t0, 2
         bge $a0, $t0, fr_recurse
-        move $v0, $a0                # base case: return n
+        move $v0, $a0
         jr $ra
 
 fr_recurse:
-        # Allocate a 12-byte frame: 0 = saved $ra,
-        #                           4 = saved n,
-        #                           8 = fib(n-1) intermediate.
-        addi $sp, $sp, -12
-        sw $ra, 0($sp)
-        sw $a0, 4($sp)               # save n before the first call
-                                     # clobbers $a0
+        addiu $sp, $sp, -16
+        sw $ra, 12($sp)              # save $ra          -> -4($fp)
+        sw $fp, 8($sp)               # save caller's $fp -> -8($fp)
+        addiu $fp, $sp, 16
+        sw $a0, -12($fp)             # save n (the 1st call clobbers $a0)
 
         # fib_rec(n - 1)
-        addi $a0, $a0, -1
+        lw $a0, -12($fp)             # $a0 = n
+        addi $a0, $a0, -1            # n - 1
         jal fib_rec
-        sw $v0, 8($sp)               # save fib(n-1) for the addition
-                                     # at the bottom -- the next jal
-                                     # would overwrite $v0
+        sw $v0, -16($fp)             # fib(n-1)  (held across the 2nd call)
 
         # fib_rec(n - 2)
-        lw $a0, 4($sp)               # reload n
-        addi $a0, $a0, -2
+        lw $a0, -12($fp)             # reload n
+        addi $a0, $a0, -2            # n - 2
         jal fib_rec
-        # $v0 now holds fib(n-2)
+        # $v0 = fib(n-2)
 
-        # return fib(n-1) + fib(n-2)
-        lw $t0, 8($sp)               # $t0 = fib(n-1)
-        add $v0, $v0, $t0            # $v0 = fib(n-2) + fib(n-1)
+        # return fib(n-1) + fib(n-2);
+        lw $t0, -16($fp)             # $t0 = fib(n-1)
+        add $v0, $v0, $t0            # fib(n-2) + fib(n-1)
 
-        # Tear down the frame and return.
-        lw $ra, 0($sp)
-        addi $sp, $sp, 12
+        lw $ra, -4($fp)
+        lw $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr $ra
 
 
 # ---------- atoi subroutine -----------------------------------------
-# Same shape as factorial / gcd / head.
-# Input:  $a0 = address of decimal string
-# Output: $v0 = parsed signed int
+# Shared leaf helper (string -> signed int), kept register-based.
+#
+#  SYMBOL TABLE (routine: atoi — leaf helper, register-based)
+#
+#  C variable | memory addr | register | C type | bytes | role / notes
+#  -----------+-------------+----------+--------+-------+------------------------------
+#  (arg) str  | —           | $a0      | char * |   4   | address of the string, walked
+#  value      | —           | $v0      | int    |   4   | accumulator; becomes the return
+#  sign       | —           | $t1      | int    |   4   | +1 or -1
+#  digit      | —           | $t0      | int    |   4   | one byte decoded to 0..9
+#  ten        | —           | $t2      | int    |   4   | constant multiplier
 atoi:
         li $v0, 0
         li $t1, 1                    # sign = +1

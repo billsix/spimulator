@@ -24,100 +24,79 @@
 #   spimulator -f hanoi.asm 3
 
 
-#PURPOSE:  Print the move sequence that solves Towers of Hanoi
-#          for a tower of N disks: A -> C using B as auxiliary.
-#          Sixth demo from PLAN-cs-demos.md.  Deepest stack-frame
-#          demo so far — each recursive entry pushes FOUR
-#          arguments plus $ra onto a 20-byte frame.
-#
-#          fibonacci introduced the stack-frame-per-call
-#          pattern with one saved value plus $ra (and an
-#          intermediate); this demo extends the pattern to four
-#          saved values.  Future demos with even more state per
-#          frame would just grow the frame — the discipline is
-#          the same.
-#
-#NOTES:    Why all four args are saved:
-#
-#            - src AND dst are needed for the print step between
-#              the two recursive calls (the print line references
-#              both).
-#            - All four values (n, src, dst, tmp) are needed to
-#              compute the arg vector for the SECOND recursive
-#              call: hanoi(n-1, tmp, dst, src).  The first
-#              recursive call has long since clobbered $a0..$a3,
-#              so we reload everything from the frame.
-#
-#          Recursion depth equals N.  Output length is 2^N - 1
-#          moves; classroom-friendly values are N=3 (7 moves)
+#PURPOSE:  Print the move sequence that solves Towers of Hanoi for a
+#          tower of N disks: A -> C using B as auxiliary.  Output is
+#          2^N - 1 moves; classroom-friendly values are N=3 (7 moves)
 #          through N=5 (31 moves).
-
-
-#STORAGE LAYOUT
 #
-#   Per-call 20-byte stack frame for hanoi.  Allocated AFTER the
-#   n==0 base case test, so leaf calls return without touching
-#   the stack.
+#          STACK-VISIBLE STYLE: this is the deepest-frame demo.  hanoi
+#          calls ITSELF twice, so all four C parameters (n, src, dst,
+#          tmp) live in THIS call's own frame at fixed -N($fp) offsets,
+#          alongside the saved $ra and $fp.  Between the two recursive
+#          calls (which clobber $a0..$a3) every argument is reloaded
+#          from its slot; the frame, not a register, is where a call's
+#          state survives.  The base case n == 0 returns before any
+#          frame is built.  main saves $ra (it jals) and homes n.
+#          Style reference: tasks/reference/mips-asm-teaching-style.md
 #
-#         higher addresses
-#           +-------------+
-#           | tmp         |  16($sp)
-#           | dst         |  12($sp)
-#           | src         |   8($sp)
-#           | n           |   4($sp)
-#    $sp -> | saved $ra   |   0($sp)
-#           +-------------+
-#         lower addresses
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: main)
 #
-#   main and atoi use the same $s*-only pattern as the other
-#   argv-using demos; no per-call frames in those.
+#  C variable  | memory addr | register   | C type    | bytes | role / notes
+#  ------------+-------------+------------+-----------+-------+---------------------------
+#  argc        | —           | $a0        | int       |   4   | entry only; tested (== 2), then dead
+#  argv        | —           | $a1        | char **   |   4   | entry only; argv[1] fetched for atoi
+#  n           | -12($fp)    | $a0 (copy) | int       |   4   | parsed N; passed to hanoi(n,'A','C','B')
+#  (saved $ra) | -4($fp)     | —          | code addr |   4   | jal atoi / jal hanoi
+#  (saved $fp) | -8($fp)     | —          | frame ptr |   4   | caller's frame pointer
 #
-#SYMBOL TABLE  (C variable -> MIPS location)
+# ------------------------------------------------------------------
+#  SYMBOL TABLE (routine: hanoi — recursive; one frame PER call)
 #
-#   In main:
-#     argc          $a0 at entry only
-#     argv          $a1 at entry only
-#     n             $s1                  (parsed from argv[1])
-#     usageMsg                                .data
+#  C variable  | memory addr | register   | C type    | bytes | role / notes
+#  ------------+-------------+------------+-----------+-------+---------------------------
+#  (arg) n     | -12($fp)    | $a0 (copy) | int       |   4   | disks to move this level
+#  (arg) src   | -16($fp)    | $a1 (copy) | char      |   4   | source peg ('A'/'B'/'C')
+#  (arg) dst   | -20($fp)    | $a2 (copy) | char      |   4   | destination peg
+#  (arg) tmp   | -24($fp)    | $a3 (copy) | char      |   4   | spare peg
+#  (saved $ra) | -4($fp)     | —          | code addr |   4   | return into THIS frame's caller
+#  (saved $fp) | -8($fp)     | —          | frame ptr |   4   | caller hanoi (or main) frame's $fp
 #
-#   In hanoi (per-call 20-byte frame; recursive):
-#     n             $a0                  (input arg)
-#     src           $a1                  (input arg)
-#     dst           $a2                  (input arg)
-#     tmp           $a3                  (input arg)
-#     saved $ra     0($sp)               (so each frame returns
-#                                          to ITS caller, which is
-#                                          another hanoi frame one
-#                                          level up — or main, at
-#                                          the outermost call)
-#     saved n       4($sp)               (needed to compute n-1 for
-#                                          the second recursive call)
-#     saved src     8($sp)               (needed for the print AND
-#                                          for the second call)
-#     saved dst     12($sp)              (needed for the print AND
-#                                          for the second call)
-#     saved tmp     16($sp)              (needed for the second call)
+# ------------------------------------------------------------------
+#  SNAPSHOT (input: hanoi 3; descended to hanoi(1, A, C, B), about to
+#            print its move.  Three frames are live; $fp = innermost.)
 #
-#   In atoi (same shape as factorial / gcd / fibonacci):
-#     value         $v0
-#     sign          $t1
-#     digit         $t0
-#     ten           $t2
+#      stack, higher addresses at top        (one 24-byte frame per call)
+#     +------------------------------+  hanoi(3, A, C, B):
+#     | -12 n=3  -16 src=A           |
+#     | -20 dst=C  -24 tmp=B  ...    |
+#     +------------------------------+  hanoi(2, A, B, C):
+#     | -12 n=2  -16 src=A           |
+#     | -20 dst=B  -24 tmp=C  ...    |
+#     +------------------------------+  hanoi(1, A, C, B):  <-- $fp here
+#     | -4  saved $ra (-> hanoi 2)   |
+#     | -8  saved $fp (-> hanoi 2)   |
+#     | -12 n   = 1                  |
+#     | -16 src = 'A'                |
+#     | -20 dst = 'C'                |
+#     | -24 tmp = 'B'                |
+#     +------------------------------+
+#           $sp = $fp - 24
 #
-#   Cross-call saves (callee-save $s* values held LIVE across `jal`):
-#     $s0   <- runtime's $ra        (across `jal atoi`, `jal hanoi`;
-#                                    restored before the final `jr $ra`)
-#     $s1   <- n                    (parsed once; passed to hanoi)
+#   hanoi(1,...) calls hanoi(0,...) (base case, returns at once),
+#   prints "Move disk from A to C", then calls hanoi(0,...) again.
+#   The full N=3 run prints 7 moves.
 #
-#   Per-frame saves (stack-resident; the multi-arg extension of
-#   the fibonacci pattern):
-#     hanoi's frame holds $ra and ALL four input args.  $s*
-#     wouldn't work because each recursive call would overwrite
-#     them.  Each frame is independent.
-#
-#   Volatile:
-#     $a0..$a3   function args
-#     $v0        syscall selector / atoi return value
+#CANONICAL (machine-checked by tools/check_asm_canonical.py)
+#  args: 3
+#  stdout:
+#  | Move disk from A to C
+#  | Move disk from A to B
+#  | Move disk from C to B
+#  | Move disk from A to C
+#  | Move disk from B to A
+#  | Move disk from B to C
+#  | Move disk from A to C
 
         .data
 moveMsg:    .asciiz "Move disk from "
@@ -127,26 +106,33 @@ usageMsg:   .asciiz "usage: hanoi N\n"
         .text
         .globl main
 main:
-        move $s0, $ra
+        # ---- prologue: build main's 16-byte stack frame ------------
+        addiu $sp, $sp, -16
+        sw $ra, 12($sp)              # save $ra          -> -4($fp)
+        sw $fp, 8($sp)               # save caller's $fp -> -8($fp)
+        addiu $fp, $sp, 16
 
-        # if (argc != 2) usage
+        # if (argc != 2) usage;   (argc arrives in $a0)
         li $t0, 2
         bne $a0, $t0, usage
 
-        # n = atoi(argv[1])
+        # n = atoi(argv[1]);      (argv arrives in $a1)
         lw $a0, 4($a1)
         jal atoi
-        move $s1, $v0                # save N
+        sw $v0, -12($fp)             # n = atoi(argv[1])
 
-        # hanoi(n, 'A', 'C', 'B')
-        move $a0, $s1
+        # hanoi(n, 'A', 'C', 'B');
+        lw $a0, -12($fp)             # $a0 = n
         li $a1, 'A'
         li $a2, 'C'
         li $a3, 'B'
         jal hanoi
 
-        move $ra, $s0
+        # ---- epilogue ----------------------------------------------
         li $v0, 0                    # exit status: __start passes this through syscall 17
+        lw $ra, -4($fp)
+        lw $fp, -8($fp)
+        addiu $sp, $sp, 16
         jr $ra
 
 usage:
@@ -159,69 +145,75 @@ usage:
 
 
 # ---------- void hanoi(int n, char src, char dst, char tmp) ----------
-# Input:  $a0=n, $a1=src, $a2=dst, $a3=tmp
-# Frame:  20 bytes -- see #STORAGE LAYOUT above
+# Input:  $a0=n, $a1=src, $a2=dst, $a3=tmp.  Recursive: each call owns
+# a 24-byte frame holding $ra, $fp, and all four args.
 hanoi:
         beqz $a0, h_done             # base case: n == 0 -> return
 
-        # Allocate frame and save everything.
-        addi $sp, $sp, -20
-        sw $ra, 0($sp)
-        sw $a0, 4($sp)               # n
-        sw $a1, 8($sp)               # src
-        sw $a2, 12($sp)              # dst
-        sw $a3, 16($sp)              # tmp
+        # ---- prologue: build this call's 24-byte frame -------------
+        addiu $sp, $sp, -24
+        sw $ra, 20($sp)              # save $ra  -> -4($fp)
+        sw $fp, 16($sp)              # save $fp  -> -8($fp)
+        addiu $fp, $sp, 24
+        sw $a0, -12($fp)             # n
+        sw $a1, -16($fp)             # src
+        sw $a2, -20($fp)             # dst
+        sw $a3, -24($fp)             # tmp
 
-        # ---- hanoi(n-1, src, tmp, dst); ----
-        # New arg vector: ($a0-1, $a1, $a3, $a2).
-        # Only $a2 and $a3 need to swap; $a1 stays, $a0 decrements.
+        # hanoi(n - 1, src, tmp, dst);
+        lw $a0, -12($fp)             # n
         addi $a0, $a0, -1            # n - 1
-        move $t0, $a2                # stash old dst
-        move $a2, $a3                # new $a2 = old $a3 (tmp)
-        move $a3, $t0                # new $a3 = old $a2 (dst)
+        lw $a1, -16($fp)             # src
+        lw $a2, -24($fp)             # tmp  (becomes the destination)
+        lw $a3, -20($fp)             # dst  (becomes the spare)
         jal hanoi
 
-        # ---- print "Move disk from <src> to <dst>\n" ----
+        # print "Move disk from <src> to <dst>\n";
         li $v0, 4
         la $a0, moveMsg
         syscall
-
-        lw $a0, 8($sp)               # src
+        lw $a0, -16($fp)             # src
         li $v0, 11
         syscall
-
         li $v0, 4
         la $a0, toMsg
         syscall
-
-        lw $a0, 12($sp)              # dst
+        lw $a0, -20($fp)             # dst
         li $v0, 11
         syscall
-
         li $a0, '\n'
         li $v0, 11
         syscall
 
-        # ---- hanoi(n-1, tmp, dst, src); ----
-        # Reload everything from the frame; the print syscalls and
-        # the first recursive call clobbered $a0..$a3.
-        lw $a0, 4($sp)               # n
+        # hanoi(n - 1, tmp, dst, src);
+        lw $a0, -12($fp)             # n
         addi $a0, $a0, -1            # n - 1
-        lw $a1, 16($sp)              # tmp -> 1st arg position (src slot)
-        lw $a2, 12($sp)              # dst stays in 2nd arg position
-        lw $a3, 8($sp)               # src -> 4th arg position (tmp slot)
+        lw $a1, -24($fp)             # tmp  (becomes the source)
+        lw $a2, -20($fp)             # dst
+        lw $a3, -16($fp)             # src  (becomes the spare)
         jal hanoi
 
-        # Tear down frame and return.
-        lw $ra, 0($sp)
-        addi $sp, $sp, 20
+        # ---- epilogue ----------------------------------------------
+        lw $ra, -4($fp)
+        lw $fp, -8($fp)
+        addiu $sp, $sp, 24
 
 h_done:
         jr $ra
 
 
 # ---------- atoi subroutine -----------------------------------------
-# Same shape as the other argv-using demos.
+# Shared leaf helper (string -> signed int), kept register-based.
+#
+#  SYMBOL TABLE (routine: atoi — leaf helper, register-based)
+#
+#  C variable | memory addr | register | C type | bytes | role / notes
+#  -----------+-------------+----------+--------+-------+------------------------------
+#  (arg) str  | —           | $a0      | char * |   4   | address of the string, walked
+#  value      | —           | $v0      | int    |   4   | accumulator; becomes the return
+#  sign       | —           | $t1      | int    |   4   | +1 or -1
+#  digit      | —           | $t0      | int    |   4   | one byte decoded to 0..9
+#  ten        | —           | $t2      | int    |   4   | constant multiplier
 atoi:
         li $v0, 0
         li $t1, 1                    # sign = +1
