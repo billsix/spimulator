@@ -16,8 +16,12 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
   `parser.c`); parses to an AST, then `emit_ast` walks it to commit code. Single
   parse mode. History (flex+bison and PARSE_DIRECT removal) + design:
   `tasks/reference/parser-ast-emit.md`.
-- **Teaching mode:** `explain.c` renders instructions at levels 0–4 (mnemonic →
-  disassembly → register before/after → bit-layout diagram → field decoding).
+- **Teaching mode:** `-explain=N` (N 0–4; bare `-explain` = 3) narrates each executed
+  instruction (`explain.c`): L1 a step header (PC, encoding, disassembly, source line),
+  L2 adds category, meaning, inputs, writes and try-it hints, L3 adds a bit-field box,
+  L4 swaps it for decode frames. Known bugs (it hides exceptions) and a learner-model
+  redesign are tracked in `tasks/explain-mode-correctness-bugs.md` and
+  `tasks/explain-levels-redesign.md`; target design: `tasks/reference/teaching-mode-learner-model.md`.
 - The image builds + runs the full test suite at build time and fails on any
   regression.
 

@@ -50,6 +50,13 @@ several docs' internal claims were refreshed the same day.)
 - `mini-c-compiler` (capstone) comes after the library chain — its output
   links against the shared asm library, and its acceptance harness is the
   demo goldens.
+- `explain-mode-correctness-bugs` → `explain-levels-redesign` (added
+  2026-11-05) — fix the teaching-mode bugs first so the redesign's goldens
+  start from correct output; the target design is
+  `reference/teaching-mode-learner-model.md`.
+- `examples-c-debug-build-via-meson` (added 2026-11-05) drops the native `.s`
+  listings, which contradicts `examples-build-matrix` below; that task's fate
+  is open question 1 in the debug-build task.
 
 **Explicitly NOT dependencies (verified):**
 
