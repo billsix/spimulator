@@ -64,7 +64,12 @@ static mem_addr next_text_pc;
 
 static mem_addr next_k_text_pc;
 
-static bool enable_text_auto_alignment =
+/* Set by align_text (.align) and the text_begins_at_point pair; its value is
+   not currently read anywhere, so [[maybe_unused]] silences clang's
+   -Wunused-but-set-global (new in the LLVM 23 / Fedora 45 toolchain) under
+   -Werror.  Whether .align 0 should actually consult this to disable
+   auto-alignment is a latent question noted in tasks/upgrade-to-fedora-45.md. */
+[[maybe_unused]] static bool enable_text_auto_alignment =
     true; /* => align literal to natural bound */
 
 #define INST_PC (in_kernel ? next_k_text_pc : next_text_pc)
