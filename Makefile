@@ -149,14 +149,47 @@ docs: html pdf epub ## Build the PGU book in HTML, PDF, and EPUB form
 
 .PHONY: html
 html: image ## Build the PGU book in HTML form
+	@[ "$(BUILD_DOCS)" = 1 ] || { \
+	  echo 'ERROR: make html needs the Sphinx + TeX Live docs toolchain,'; \
+	  echo '       gated by the build-time flag BUILD_DOCS (currently BUILD_DOCS=$(BUILD_DOCS)).'; \
+	  echo ''; \
+	  echo 'Enable it persistently, then rebuild and run:'; \
+	  echo "  echo 'export BUILD_DOCS=1' >> ~/.bashrc && source ~/.bashrc"; \
+	  echo '  make image'; \
+	  echo '  make html'; \
+	  echo ''; \
+	  echo '(This session only: run  export BUILD_DOCS=1  instead of the echo/source line.)'; \
+	  exit 2; }
 	$(call run_in_container,$(RENDER_FIGURES) && sphinx-build -M html $(DOCS_SRC) $(DOCS_BUILD))
 
 .PHONY: pdf
 pdf: image ## Build the PGU book in PDF form
+	@[ "$(BUILD_DOCS)" = 1 ] || { \
+	  echo 'ERROR: make pdf needs the Sphinx + TeX Live docs toolchain,'; \
+	  echo '       gated by the build-time flag BUILD_DOCS (currently BUILD_DOCS=$(BUILD_DOCS)).'; \
+	  echo ''; \
+	  echo 'Enable it persistently, then rebuild and run:'; \
+	  echo "  echo 'export BUILD_DOCS=1' >> ~/.bashrc && source ~/.bashrc"; \
+	  echo '  make image'; \
+	  echo '  make pdf'; \
+	  echo ''; \
+	  echo '(This session only: run  export BUILD_DOCS=1  instead of the echo/source line.)'; \
+	  exit 2; }
 	$(call run_in_container,$(RENDER_FIGURES) && sphinx-build -M latexpdf $(DOCS_SRC) $(DOCS_BUILD))
 
 .PHONY: epub
 epub: image ## Build the PGU book in EPUB form
+	@[ "$(BUILD_DOCS)" = 1 ] || { \
+	  echo 'ERROR: make epub needs the Sphinx + TeX Live docs toolchain,'; \
+	  echo '       gated by the build-time flag BUILD_DOCS (currently BUILD_DOCS=$(BUILD_DOCS)).'; \
+	  echo ''; \
+	  echo 'Enable it persistently, then rebuild and run:'; \
+	  echo "  echo 'export BUILD_DOCS=1' >> ~/.bashrc && source ~/.bashrc"; \
+	  echo '  make image'; \
+	  echo '  make epub'; \
+	  echo ''; \
+	  echo '(This session only: run  export BUILD_DOCS=1  instead of the echo/source line.)'; \
+	  exit 2; }
 	$(call run_in_container,$(RENDER_FIGURES) && sphinx-build -M epub $(DOCS_SRC) $(DOCS_BUILD))
 
 
