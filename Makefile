@@ -28,7 +28,9 @@ FILES_TO_MOUNT = -v .:/spimulator/:Z \
 # container so an interactive `make shell` can *use* the vendored packages (:U
 # chowns it to the container user, :z relabels for SELinux). Mounting ONLY elpa/
 # (not the whole .emacs.d/) keeps the build-time tree-sitter grammar dropped into
-# /root/.emacs.d/tree-sitter/ intact. Set USE_EMACS=0 to skip the mount. To
+# /root/.emacs.d/tree-sitter/ intact. The image holds only the Emacs binary; init.el
+# byte-compiles the vendored elpa/ into this mount on Emacs's first start (the .elc
+# files are gitignored). Set USE_EMACS=0 to skip the mount. To
 # *refresh* the vendored packages, use `make update-emacs-packages` below.
 ifeq ($(USE_EMACS), 1)
   ELPA_MOUNT= -v $(CURDIR)/entrypoint/dotfiles/.emacs.d/elpa:/root/.emacs.d/elpa:U,z
@@ -85,9 +87,9 @@ shell-exec: image ## Run a script/command in the container env (no TTY): make sh
 # install-melpa-packages.el is mounted read-only, so edits to it take effect
 # without a rebuild). Mounting ONLY elpa/ leaves the build-time tree-sitter
 # grammar (/root/.emacs.d/tree-sitter/) untouched. Finally strips compiled
-# *.elc/*.eln (regenerated, machine-specific artifacts) and force-stages the elpa
-# tree (git add -A -f overrides .gitignore's *.elc/*.eln/...) so it is ready to
-# commit. Needs network access.
+# *.elc/*.eln (machine-specific; init.el recompiles them on the next Emacs
+# start) and force-stages the elpa tree (git add -A -f overrides .gitignore's
+# *.elc/*.eln/...) so it is ready to commit. Needs network access.
 .PHONY: update-emacs-packages
 update-emacs-packages: ## USE_EMACS=1: rebuild image, wipe+reinstall elpa, strip *.elc/*.eln, git add -f
 	$(MAKE) image USE_EMACS=1
