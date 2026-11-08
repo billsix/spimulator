@@ -44,8 +44,10 @@ COPY entrypoint/shell.sh /usr/local/bin
 # host-runnable with no container runtime; the scripts take no options -- WHICH optional
 # groups run is decided by the ARG `if` blocks below. base is always installed;
 # emacs/docs/tree-sitter are flag-gated. The dnf cache mount, tsflags `sed`, and keepcache
-# stay in the Dockerfile (build plumbing); config (emacs MELPA bootstrap, the tree-sitter
-# grammar build) stays too. 01-install-base.sh does `dnf upgrade` + the base install.
+# stay in the Dockerfile (build plumbing); config (the tree-sitter grammar build) stays
+# too. 01-install-base.sh does `dnf upgrade` + the base install. Emacs packages are never
+# installed here: `make shell` mounts the vendored elpa/ and init.el byte-compiles it on
+# Emacs's first start.
 COPY entrypoint/01-install-base.sh /usr/local/bin
 COPY entrypoint/02-install-emacs.sh /usr/local/bin
 COPY entrypoint/03-install-docs.sh /usr/local/bin
@@ -61,8 +63,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
     /usr/local/bin/01-install-base.sh && \
     echo 'set debuginfod enabled off' > /root/.gdbinit ; \
     if [ "$USE_EMACS" = "1" ]; then \
-      /usr/local/bin/02-install-emacs.sh && \
-      emacs --batch --load /root/.emacs.d/install-melpa-packages.el; \
+      /usr/local/bin/02-install-emacs.sh ; \
     fi ;
 
 # PGU book toolchain (gated by BUILD_DOCS).  Mirrors the deps in

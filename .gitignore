@@ -7,6 +7,12 @@ compile_commands.json
 \#*\#
 .\#*
 
+# Emacs byte-compiled files: init.el compiles the vendored elpa/ on Emacs's first
+# start, into the bind-mounted host tree.
+*.elc
+*.eln
+eln-cache/
+
 # Local debug captures
 foo.txt
 

@@ -1,4 +1,5 @@
 (package-initialize)
+(byte-recompile-directory package-user-dir 0)
 
 (load-file "~/.emacs.d/helm.el")
 (load-file "~/.emacs.d/preferences.el")

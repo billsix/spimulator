@@ -1,48 +1,36 @@
 # Emacs packages are not installed or compiled in the Dockerfile
 
-**Status:** in progress
-**Priority:** 3
-**Difficulty:** 1
-Created 2026-11-08 (William Emerison Six <billsix@gmail.com> asked for it).
-**Part of:** github.com/billsix/runClaudeInContainer `tasks/emacs-contract-conformance.md` (item 1, the
-build-time MELPA install, and item 5, the run-time compile).
+Done 2026-11-08 (William Emerison Six <billsix@gmail.com> asked for it). Part of github.com/billsix/runClaudeInContainer
+`tasks/emacs-contract-conformance.md` (the build-time MELPA install and the run-time compile items).
 
-## BLUF
+## What was wrong
 
-Under `USE_EMACS=1` the image build downloads and byte-compiles the whole MELPA set
-(`emacs --batch --load install-melpa-packages.el`), although `make shell` mounts the vendored `elpa/`
-over it. Done = the image installs only the Emacs binary (+ the LSP server), `init.el` byte-compiles the
-vendored `elpa/` on Emacs's first start, `make image` builds with no MELPA fetch, and Emacs starts
-cleanly against the mount.
+`entrypoint/02-install-emacs.sh` installed the Emacs binary + `python3-lsp-server`, and the Makefile
+already mounted only the vendored `elpa/` (with the config baked by the dotfiles `COPY`, and
+`.dockerignore` keeping `elpa/` out). But the install `RUN` still ran
+`emacs --batch --load install-melpa-packages.el` under `USE_EMACS=1`: a network download plus
+byte-compile of the MELPA set at image build, hidden at `make shell` by the `elpa/` mount.
 
-## Context
+## What changed
 
-- The Emacs contract: the `emacs-container-contract.md` reference doc in
-  github.com/billsix/runClaudeInContainer `tasks/reference/`. Worked example: github.com/billsix/Craft
-  `tasks/archive/2026/11/08/emacs-packages-not-built-in-dockerfile.md`.
-- Today: `entrypoint/02-install-emacs.sh` installs the binary + `python3-lsp-server`; the `Dockerfile`
-  copies `entrypoint/dotfiles/` to `/root/` (`.dockerignore` already excludes `elpa/`) and the Makefile
-  already mounts only `elpa/`, but the install `RUN` still runs
-  `emacs --batch --load install-melpa-packages.el`, whose result the `elpa/` mount hides. `init.el` has
-  no run-time compile.
-- The tree-sitter grammar the image writes to `/root/.emacs.d/tree-sitter/` is outside the `elpa/`
-  mount and unaffected.
+- `Dockerfile`: the `emacs --batch` step is gone; the install comment and `entrypoint/02-install-emacs.sh`'s
+  header say the packages are vendored and compiled at run time.
+- `init.el` runs `(byte-recompile-directory package-user-dir 0)` after `(package-initialize)`; the first
+  Emacs start in `make shell` compiles the vendored packages into the mounted host `elpa/`.
+- `.gitignore` now ignores `*.elc`, `*.eln` and `eln-cache/`. It did not before, so the first run-time
+  compile left 314 untracked `.elc` files in `elpa/`.
+- The Makefile's `ELPA_MOUNT` and `update-emacs-packages` comments describe this.
+- The tree-sitter grammar the image writes to `/root/.emacs.d/tree-sitter/` is outside the `elpa/` mount
+  and unchanged.
 
-## Plan
+## Verification (2026-11-08, nested podman in the runClaudeInContainer sandbox)
 
-1. `Dockerfile`: drop the `emacs --batch` step; fix the comments, here and in
-   `entrypoint/02-install-emacs.sh`.
-2. `init.el`: `(byte-recompile-directory package-user-dir 0)` after `(package-initialize)`.
-3. Makefile comments and `CLAUDE.md`/`README.md` where they describe the build-time install.
-
-## Verification
-
-- `make image` (default flags): no MELPA fetch; `/usr/bin/emacs` present; `/root/.emacs.d/elpa` absent
-  or empty.
-- `make shell-exec CMD='emacs --batch -l /root/.emacs.d/init.el ...'`: exits 0, compiles `.elc` into
-  the host `elpa/`, `git status` clean.
+- `make image` (default flags) succeeded with no MELPA fetch; meson test 59 ok / 0 fail, sanitizer
+  gate (UBSan trap, ASan) 25 ok / 0 fail each. The image has `/usr/bin/emacs`, the baked config, the
+  tree-sitter grammar, and no `/root/.emacs.d/elpa`.
+- Emacs in batch with the Makefile's `elpa/` mount, `--network=none`
+  (runClaudeInContainer `tasks/adhoc/emacs-no-build-time-compile/emacs-start-check.sh`): exit 0, 314 `.elc`
+  in the host `elpa/`; with the `.gitignore` fix, `git status` showed only this change.
 - `tools/check_helm_file_at_point.sh` (runClaudeInContainer): 7/7.
-
-## Open questions
-
-None.
+- Found, not fixed (contract-level): the run-time compile logs `Cannot open load file … compat-macs.el`
+  for compat's `compat-26.el`…`compat-30.el` on every start; harmless on Emacs 31.
