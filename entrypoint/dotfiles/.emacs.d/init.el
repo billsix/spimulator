@@ -1,5 +1,14 @@
 (package-initialize)
-(byte-recompile-directory package-user-dir 0)
+;; Byte-compile each vendored package that has no .elc yet, through package.el's own
+;; compile (package-recompile), the same path package-install uses. The .elc land in
+;; the bind-mounted elpa/ and persist, so later starts find them and compile nothing;
+;; a package whose files cannot all compile (compat's compat-2x.el backports on a
+;; newer Emacs) still gets its other .elc and is not retried on every start.
+(dolist (entry package-alist)
+  (let ((desc (cadr entry)))
+    (unless (directory-files-recursively (package-desc-dir desc) "\\.elc\\'")
+      (with-demoted-errors "Error while compiling: %S"
+        (package-recompile desc)))))
 
 (load-file "~/.emacs.d/helm.el")
 (load-file "~/.emacs.d/preferences.el")
@@ -53,6 +62,7 @@
         company-idle-delay 0.0))
 
 (use-package clang-format
+  :after cc-mode               ; c-mode-base-map is defined by cc-mode; wait for it
   :bind (:map c-mode-base-map
               ("C-c f" . clang-format-buffer)))
 
