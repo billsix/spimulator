@@ -94,6 +94,7 @@ def run(engine: str, case: Case, exception_file: str, timeout: float) -> Run:
                 [engine, *args],
                 input=case.stdin if case.stdin is not None else b"",
                 capture_output=True,
+                check=False,  # a nonzero exit status is part of what is compared
                 cwd=cwd,
                 env={},
                 timeout=timeout,
