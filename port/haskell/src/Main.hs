@@ -163,6 +163,13 @@ spimMain s argv listingRef = do
         | otherwise = do
             let a = argv !! i
                 next o' = loop (i + 1) o' ld
+                -- A flag that takes a value, given last: say so, and show
+                -- the usage (C: flag_value_missing).
+                withValue act
+                  | i + 1 < n = act
+                  | otherwise = do
+                      cError ("spimulator: " ++ a ++ " requires a value\n")
+                      loop (i + 1) o ld {badUsage = True}
                 is xs = a `elem` xs
             case () of
               _
@@ -173,7 +180,7 @@ spimMain s argv listingRef = do
                 | is ["-exception", "-e", "-trap", "-t"] -> next o {loadHandler = True}
                 | is ["-noexception", "-ne", "-notrap", "-nt"] -> next o {loadHandler = False}
                 | is ["-exception_file", "-ef", "-trap_file", "-tf"] ->
-                    loop (i + 2) o {exceptionFile = Just (maybe "" id (arg (i + 1))), loadHandler = True} ld
+                    withValue $ loop (i + 2) o {exceptionFile = Just (maybe "" id (arg (i + 1))), loadHandler = True} ld
                 | is ["-mapped_io", "-mio"] -> setB optMappedIo True >> next o
                 | is ["-nomapped_io", "-nmio"] -> setB optMappedIo False >> next o
                 | is ["-pseudo", "-p"] -> setB optAcceptPseudo True >> next o
@@ -184,14 +191,14 @@ spimMain s argv listingRef = do
                 | is ["-explain", "-x"] || "-explain=" `isPrefixOf` a || "-x=" `isPrefixOf` a -> do
                     writeErr "spimulator-haskell: the teaching mode (-explain) is not supported by this port\n"
                     exitSpim 2
-                | is ["-stext", "-st"] -> sizes (\(_, b, c, d, e, f, g, h) -> (int (i + 1), b, c, d, e, f, g, h)) >> loop (i + 2) o ld
-                | is ["-sdata", "-sd"] -> sizes (\(t, _, c, d, e, f, g, h) -> (t, int (i + 1), c, d, e, f, g, h)) >> loop (i + 2) o ld
-                | is ["-ldata", "-ld"] -> sizes (\(t, b, _, d, e, f, g, h) -> (t, b, int (i + 1), d, e, f, g, h)) >> loop (i + 2) o ld
-                | is ["-sstack", "-ss"] -> sizes (\(t, b, c, _, e, f, g, h) -> (t, b, c, int (i + 1), e, f, g, h)) >> loop (i + 2) o ld
-                | is ["-lstack", "-ls"] -> sizes (\(t, b, c, d, _, f, g, h) -> (t, b, c, d, int (i + 1), f, g, h)) >> loop (i + 2) o ld
-                | is ["-sktext", "-skt"] -> sizes (\(t, b, c, d, e, _, g, h) -> (t, b, c, d, e, int (i + 1), g, h)) >> loop (i + 2) o ld
-                | is ["-skdata", "-skd"] -> sizes (\(t, b, c, d, e, f, _, h) -> (t, b, c, d, e, f, int (i + 1), h)) >> loop (i + 2) o ld
-                | is ["-lkdata", "-lkd"] -> sizes (\(t, b, c, d, e, f, g, _) -> (t, b, c, d, e, f, g, int (i + 1))) >> loop (i + 2) o ld
+                | is ["-stext", "-st"] -> withValue $ sizes (\(_, b, c, d, e, f, g, h) -> (int (i + 1), b, c, d, e, f, g, h)) >> loop (i + 2) o ld
+                | is ["-sdata", "-sd"] -> withValue $ sizes (\(t, _, c, d, e, f, g, h) -> (t, int (i + 1), c, d, e, f, g, h)) >> loop (i + 2) o ld
+                | is ["-ldata", "-ld"] -> withValue $ sizes (\(t, b, _, d, e, f, g, h) -> (t, b, int (i + 1), d, e, f, g, h)) >> loop (i + 2) o ld
+                | is ["-sstack", "-ss"] -> withValue $ sizes (\(t, b, c, _, e, f, g, h) -> (t, b, c, int (i + 1), e, f, g, h)) >> loop (i + 2) o ld
+                | is ["-lstack", "-ls"] -> withValue $ sizes (\(t, b, c, d, _, f, g, h) -> (t, b, c, d, int (i + 1), f, g, h)) >> loop (i + 2) o ld
+                | is ["-sktext", "-skt"] -> withValue $ sizes (\(t, b, c, d, e, _, g, h) -> (t, b, c, d, e, int (i + 1), g, h)) >> loop (i + 2) o ld
+                | is ["-skdata", "-skd"] -> withValue $ sizes (\(t, b, c, d, e, f, _, h) -> (t, b, c, d, e, f, int (i + 1), h)) >> loop (i + 2) o ld
+                | is ["-lkdata", "-lkd"] -> withValue $ sizes (\(t, b, c, d, e, f, g, _) -> (t, b, c, d, e, f, g, int (i + 1))) >> loop (i + 2) o ld
                 | (is ["-file", "-f"] && i + 1 < n) || take 1 a /= "-" -> do
                     let explicit = take 1 a == "-"
                     if not explicit && loaded ld

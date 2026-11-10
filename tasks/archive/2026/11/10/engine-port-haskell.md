@@ -217,3 +217,18 @@ and zeroed the new memory. As first found (before the fix):
   34 demos; `tools/check_example_commands.py --spimulator <C> --port haskell=<port>` 74/74;
   `port/harness/compare_engines.py` 23/23; `port/harness/compare_all_programs.py` 1218 passed, 0
   warned, 0 failed; `tasks/adhoc/engine-port-haskell/repl.py` 24/24.
+
+### 2026-11-10 — matched to the C fixes of `6c27911` (bugs the Rust port found)
+
+- Constant arithmetic in the assembler: the port already wrapped at 32 bits (`Int32`), with
+  `INT_MIN / -1` giving `INT_MIN` and division by zero 0 (`parseTerm` in `port/haskell/src/Parser.hs`);
+  no change.
+- `port/haskell/src/Main.hs`: the ten value-taking flags (`-stext -sdata -ldata -sstack -lstack -sktext
+  -skdata -lkdata -exception_file -trap_file` and their short forms) given last now print
+  `spimulator: FLAG requires a value` and the usage text, as C does. Before, the size flags read 0 and
+  `-exception_file` loaded no handler.
+- Worked in the worktree, not the main checkout as asked: the session's sandbox refuses git in the
+  shared checkout, so the commit is on `worktree-agent-a57d66e8781a2f9c4`, fast-forwarded first to
+  `engine-ports` at `b965190`, for the coordinator to merge.
+- Gate: `meson test --suite port-haskell` in a fresh build directory of the current tree (results in
+  the commit message).
