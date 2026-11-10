@@ -254,6 +254,14 @@ static char** spim_completion(const char* text, int start,
 static void console_to_program(void);
 static void console_to_spim(void);
 [[noreturn]] static void control_c_seen(int arg);
+/* True, after reporting it, if flag argv[i] -- one that takes a value -- is the
+   last argument, so there is no value to read. */
+static bool flag_value_missing(int i, int argc, char** argv) {
+  if (i + 1 < argc) return false;
+  fprintf(stderr, "spimulator: %s requires a value\n", argv[i]);
+  return true;
+}
+
 static void flush_to_newline(void);
 static int get_opt_int(void);
 static bool parse_spim_command(bool redo);
@@ -432,8 +440,12 @@ int main(int argc, char** argv) {
     } else if (streq(argv[i], "-noexception") || streq(argv[i], "-ne")) {
       load_exception_handler = false;
     } else if (streq(argv[i], "-exception_file") || streq(argv[i], "-ef")) {
-      exception_file_name = argv[++i];
-      load_exception_handler = true;
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else {
+        exception_file_name = argv[++i];
+        load_exception_handler = true;
+      }
     } else if (streq(argv[i], "-mapped_io") || streq(argv[i], "-mio")) {
       mapped_io = true;
     } else if (streq(argv[i], "-nomapped_io") || streq(argv[i], "-nmio")) {
@@ -474,24 +486,52 @@ int main(int argc, char** argv) {
     } else if (streq(argv[i], "-notrap") || streq(argv[i], "-nt")) {
       load_exception_handler = false;
     } else if (streq(argv[i], "-trap_file") || streq(argv[i], "-tf")) {
-      exception_file_name = argv[++i];
-      load_exception_handler = true;
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else {
+        exception_file_name = argv[++i];
+        load_exception_handler = true;
+      }
     } else if (streq(argv[i], "-stext") || streq(argv[i], "-st")) {
-      initial_text_size = atoi(argv[++i]);
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else
+        initial_text_size = atoi(argv[++i]);
     } else if (streq(argv[i], "-sdata") || streq(argv[i], "-sd")) {
-      initial_data_size = atoi(argv[++i]);
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else
+        initial_data_size = atoi(argv[++i]);
     } else if (streq(argv[i], "-ldata") || streq(argv[i], "-ld")) {
-      initial_data_limit = (mem_addr)atoi(argv[++i]);
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else
+        initial_data_limit = (mem_addr)atoi(argv[++i]);
     } else if (streq(argv[i], "-sstack") || streq(argv[i], "-ss")) {
-      initial_stack_size = atoi(argv[++i]);
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else
+        initial_stack_size = atoi(argv[++i]);
     } else if (streq(argv[i], "-lstack") || streq(argv[i], "-ls")) {
-      initial_stack_limit = (mem_addr)atoi(argv[++i]);
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else
+        initial_stack_limit = (mem_addr)atoi(argv[++i]);
     } else if (streq(argv[i], "-sktext") || streq(argv[i], "-skt")) {
-      initial_k_text_size = atoi(argv[++i]);
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else
+        initial_k_text_size = atoi(argv[++i]);
     } else if (streq(argv[i], "-skdata") || streq(argv[i], "-skd")) {
-      initial_k_data_size = atoi(argv[++i]);
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else
+        initial_k_data_size = atoi(argv[++i]);
     } else if (streq(argv[i], "-lkdata") || streq(argv[i], "-lkd")) {
-      initial_k_data_limit = (mem_addr)atoi(argv[++i]);
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else
+        initial_k_data_limit = (mem_addr)atoi(argv[++i]);
     } else if (((streq(argv[i], "-file") || streq(argv[i], "-f")) &&
                 (i + 1 < argc))
                /* Assume this argument is a program's file name and everything

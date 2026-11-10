@@ -142,7 +142,7 @@ regression_tests = [
   # Engine fixes made before the ports (self-checking), and the ones the
   # ports found
   'engine_fixes', 'text_before_data', 'load_error', 'repl_no_operand',
-  'repl_dot',
+  'repl_dot', 'missing_flag_value',
   # Exception-handler paths
   'divide_by_zero', 'core_default_handler',
   # Full-output goldens

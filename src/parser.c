@@ -536,10 +536,17 @@ static int parse_term(void) {
   while (scanner_peek() == '*' || scanner_peek() == '/') {
     int op = scanner_advance();
     int r = parse_factor();
+    /* The assembler's constant arithmetic wraps at 32 bits, as the machine's
+       does; C's signed overflow (and INT_MIN / -1) would be undefined
+       behavior.  Division by zero gives 0. */
     if (op == '*')
-      v *= r;
+      v = (int)((unsigned)v * (unsigned)r);
+    else if (r == 0)
+      v = 0;
+    else if (r == -1)
+      v = (int)(0u - (unsigned)v);
     else
-      v = (r == 0) ? 0 : v / r;
+      v = v / r;
   }
   return v;
 }
@@ -551,9 +558,9 @@ static int parse_expr(void) {
     int op = scanner_advance();
     int r = parse_term();
     if (op == '+')
-      v += r;
+      v = (int)((unsigned)v + (unsigned)r);
     else
-      v -= r;
+      v = (int)((unsigned)v - (unsigned)r);
   }
   return v;
 }

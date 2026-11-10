@@ -192,6 +192,16 @@ case "$NAME" in
     [ "$n" = 3 ] || fail "expected 3 instructions in the text segment, got $n"
     grep -q '^\[0x00400008\].*addiu \$t0, \$r0, 7' "$out" || fail "the . line is not at 0x00400008"
     ;;
+  missing_flag_value)
+    # A flag that takes a value, given last: report it and print the usage,
+    # like any other bad flag.  -sdata read atoi(NULL) and crashed;
+    # -exception_file silently loaded no handler.
+    for flag in -sdata -exception_file; do
+      timeout 10 "$SPIM" $flag </dev/null >"$out" 2>&1; rc=$?
+      [ "$rc" -lt 128 ] || fail "$flag as the last argument died of a signal (exit $rc)"
+      grep -q "spimulator: $flag requires a value" "$out" || fail "no message for $flag"
+    done
+    ;;
   engine_fixes)
     # Self-checking: the engine fixes of tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md.
     timeout 10 "$SPIM" -exception_file "$EF" -f tt.engine_fixes.s >"$out" 2>&1
