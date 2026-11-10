@@ -17,8 +17,7 @@ engine stays the oracle until the maintainer decides otherwise.
 ## Context
 
 - Language choice, the fixed-width-integer answer, subsystem map and the test plan:
-  `tasks/reference/engine-port-language-choice.md` (read first). Rust is the documented alternative;
-  the maintainer picks the language at go-ahead.
+  `tasks/reference/engine-port-language-choice.md` (read first). The language is Python (Decisions).
 - What to match: audit record `tasks/review/2026/11/10/repo-review.md` §5 (behavior inventory) and §7
   (which oracle to trust).
 - Old grammar, as a second syntax spec: `git show 6cb6a08:CPU/parser.y`, `git show 6bafa31^:src/parser.y`.
@@ -38,6 +37,14 @@ engine stays the oracle until the maintainer decides otherwise.
 
 ## Open questions
 
-1. Python or Rust? Recommendation: Python (reference doc, "Recommendation").
-2. Does the port live in this repo (e.g. `port/`) or a new repo? Recommendation: this repo, so the
+1. Does the port live in this repo (e.g. `port/`) or a new repo? Recommendation: this repo, so the
    harness can build the C oracle in the same image.
+
+## Decisions
+
+- The port is in **Python** (William Emerison Six <billsix@gmail.com>, 2026-11-10).
+- The C engine's wrong-value bugs (`tasks/review/2026/11/10/repo-review.md` §3, F5) are **fixed before
+  the port**, so the port is compared against correct output (William Emerison Six <billsix@gmail.com>, 2026-11-10). Plan step 1.
+- `,` as a floating-point decimal separator is **dropped** from the C scanner before the port (it
+  makes `.word 1,2` a syntax error); the maintainer left the call to the agent, who recommended
+  dropping it (William Emerison Six <billsix@gmail.com>, 2026-11-10). No task doc exists for it yet; scaffold one with the step 1 prerequisites.
