@@ -183,6 +183,11 @@ def compare(want: Run, got: Run) -> tuple[str, list[str]]:
     return worst, [note for _, notes in results for note in notes]
 
 
+def resolve_engine(path: str) -> str:
+    """An absolute path for an engine named by a path; a bare name stays a PATH lookup."""
+    return os.path.abspath(path) if os.sep in path else path
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--reference", required=True, help="the C spimulator")
@@ -193,13 +198,17 @@ def main() -> int:
     parser.add_argument("--timeout", type=float, default=600.0)
     parser.add_argument("cases", nargs="*", help="case names (default: all)")
     options = parser.parse_args()
+    # The cases run from tests/, so an engine given by a relative path is
+    # resolved against the directory the harness was started from.
+    reference: str = resolve_engine(options.reference)
+    engine: str = resolve_engine(options.engine)
     cases: list[Case] = [
         c for c in load_corpus() if not options.cases or c.name in options.cases
     ]
     counts: dict[str, int] = {"PASS": 0, "WARN": 0, "FAIL": 0}
     for case in cases:
-        want: Run = run(options.reference, case, options.exception_file, options.timeout)
-        got: Run = run(options.engine, case, options.exception_file, options.timeout)
+        want: Run = run(reference, case, options.exception_file, options.timeout)
+        got: Run = run(engine, case, options.exception_file, options.timeout)
         verdict, notes = compare(want, got)
         counts[verdict] += 1
         print(f"{verdict} {case.name}")
