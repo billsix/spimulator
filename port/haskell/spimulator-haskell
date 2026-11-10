@@ -12,17 +12,23 @@
 # with `env -i`.
 here=$(dirname "$(/usr/bin/readlink -f "${BASH_SOURCE[0]}")")
 bin="$here/build/spimulator-haskell"
-PATH=/usr/bin:/bin
+# For the build only (ghc runs gcc); the program gets the original
+# environment below.
+export PATH=/usr/bin:/bin
 
 stale() {
   [ ! -x "$bin" ] || [ -n "$(find "$here/src" -name '*.hs' -newer "$bin" -print -quit 2>/dev/null)" ]
 }
 
+# Build quietly: the compiler's progress must not show up in the program's
+# stderr.  On failure, show the log.
 if stale; then
   mkdir -p "$here/build"
   (
     flock 9
-    if stale; then "$here/build.sh" >&2; fi
+    if stale; then
+      "$here/build.sh" > "$here/build/build.log" 2>&1 || { cat "$here/build/build.log" >&2; exit 1; }
+    fi
   ) 9> "$here/build/.lock" || exit 1
 fi
 

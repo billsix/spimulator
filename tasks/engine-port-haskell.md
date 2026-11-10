@@ -232,3 +232,8 @@ Logged, not fixed (the port's rule). The port follows C unless noted.
   were right); Ctrl-C (the C engine longjmps back to the prompt; the port is stopped by GHC's default
   handler); `-mapped_io` on a real terminal.
 - `hlint` is not installed, so the Plan's "hlint if it can run offline" was skipped.
+- A final run from a clean `port/haskell/build/` failed every harness case: the harness runs engines
+  with an empty environment, the launcher's `PATH` was not exported, so ghc could not find gcc, and the
+  compiler's progress went to the program's stderr. Fixed in the launcher (export `PATH` for the build,
+  build into `build/build.log`, show it only on failure); then, from a clean build directory, the harness
+  passed 23/23, and six concurrent first runs under `env -i` all built once and ran correctly.
