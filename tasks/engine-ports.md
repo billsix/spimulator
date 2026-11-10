@@ -107,5 +107,8 @@ milestones.
   but the Haskell and Rust ports would start late in the day and finish less), or all three at
   once (more parallel, but three ports building at the same time compete for the machine, and three
   sets of shared-file edits to reconcile). The agent's call, under "use your discretion".
+- **The Rust port also started right away, in its own worktree**, once the machine's headroom was
+  checked (16 cores, 30 GB of memory). Same rule: it is merged and registered after the Haskell
+  port.
 - Each port is written by a separate agent with a written brief. The coordinator reviews its
   commits, merges, registers the port, runs the gate (`make image`), and writes the done-record.
