@@ -23,3 +23,6 @@ text.asm
 
 # exported OCI image tars (make image-export) — large, never commit
 spimulator-*.tar
+
+# Python bytecode caches (port/harness, tools/)
+__pycache__/
