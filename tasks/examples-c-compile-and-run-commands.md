@@ -1,6 +1,6 @@
 # Every example C program documents a one-line native compile and a spimulator run
 
-**Status:** proposed — open questions below
+**Status:** in progress
 **Priority:** 3
 **Difficulty:** 3
 **Created:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
@@ -33,4 +33,8 @@ small checker (`tools/`) keeps it that way.
 2. Generate the two lines per file; insert into the existing header comment in a consistent block.
 3. Verify every documented command by running it verbatim from its directory, in the image.
 4. Add `tools/check_example_commands.py` (extract + run the documented lines) and wire it into the
-   examples suite if cheap (pending question).
+   examples suite if cheap (Decisions).
+
+## Decisions
+
+- The checker for the documented commands joins the examples meson suite if it adds under a minute; otherwise it stays a hand-run tool (William Emerison Six <billsix@gmail.com>, 2026-11-10).

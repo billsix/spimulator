@@ -1,6 +1,6 @@
 # C23 modernization pass 3 — make the core as clean as C23 allows before any port
 
-**Status:** proposed — depends on `tasks/source-and-history-deep-audit.md`
+**Status:** in progress — after the audit
 **Priority:** 3
 **Difficulty:** 6
 **Created:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
@@ -24,7 +24,7 @@ UBSan/ASan builds) is green, and `BUILD_TREE_SITTER=1` is on if `opcodes.h` is t
 - Scope is `src/` + `include/` only. `examples/` and `pgu/` C is deliberately not modernized
   (`tasks/reference/example-c-teaching-style.md`).
 - Prior passes: `tasks/archive/*/c23-modernization.md`, `.../c23-modernization-pass2.md`.
-- Overlap: `tasks/codebase-cleanup-plan.md` — fold its C-standard items in here (pending question).
+- Overlap: `tasks/codebase-cleanup-plan.md` — its C-standard items are folded in here (Decisions).
 
 ## Plan
 
@@ -34,3 +34,7 @@ UBSan/ASan builds) is green, and `BUILD_TREE_SITTER=1` is on if `opcodes.h` is t
 2. Apply one idiom group per commit; gate after each (`make image` nested; run the gate's own
    `podman run` line if the target would rebuild).
 3. Opt-outs written in-code with the reason; reported in the done-record.
+
+## Decisions
+
+- The C-standard items of `tasks/codebase-cleanup-plan.md` move into this task; its non-C23 refactors stay there (William Emerison Six <billsix@gmail.com>, 2026-11-10).

@@ -1,7 +1,6 @@
 # Investigate porting the simulator engine from C to another language
 
-**Status:** proposed — depends on `tasks/source-and-history-deep-audit.md` and
-`tasks/c23-modernization-pass3.md`
+**Status:** in progress — after the C23 pass
 **Priority:** 5
 **Difficulty:** 7
 **Created:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
@@ -42,3 +41,7 @@ a per-language effort estimate, the compatibility test plan, and a scaffolded fo
 3. Design the differential harness (C engine vs port over regression + historical + example
    programs).
 4. Write the reference doc; scaffold `tasks/engine-port-<language>.md` as `proposed — needs go-ahead`.
+
+## Decisions
+
+- Run it the same night, after the C23 pass passes its gate: investigation only (reference doc + throwaway spikes), no port code (William Emerison Six <billsix@gmail.com>, 2026-11-10).

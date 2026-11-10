@@ -1,6 +1,6 @@
 # Deep audit of the simulator core and its full git history (C23 plan + port-behavior inventory)
 
-**Status:** proposed — open questions below
+**Status:** in progress
 **Priority:** 3
 **Difficulty:** 6
 **Created:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
@@ -52,6 +52,6 @@ its sections.
 3. Verify any claim the record will be trusted on (dead code, "behavior X is relied on").
 4. Write the frozen record; add the `CLAUDE.md` pointer.
 
-## Open questions
+## Decisions
 
-See the closing list in chat; decisions get written here.
+- One combined deep audit with two lenses (C23, port behavior) and one record, instead of two audits (William Emerison Six <billsix@gmail.com>, 2026-11-10).
