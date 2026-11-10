@@ -271,6 +271,8 @@ executable('spimulator-example-atexit-demo',
 # `.expected-status`.  Mirrors the pattern in /spimulator/tests/.
 # ---------------------------------------------------------------------------
 demo_test_runner = files('../tests/run-demo.sh')
+# The directory holding the demos' native binaries, for run-demo.sh (port/meson.build too).
+examples_build_dir = meson.current_build_dir()
 
 # `spimulator_exe` and `exception_file` come from the parent project's
 # meson.build via subdir scope.

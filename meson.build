@@ -165,3 +165,6 @@ endforeach
 # Builds the demos and registers `examples`-suite tests that validate
 # both the C and asm sides against pinned `.expected` goldens.
 subdir('examples/src')
+
+# --- Ports of the engine, tested against the C engine (tasks/engine-ports.md)
+subdir('port')
