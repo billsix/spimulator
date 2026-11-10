@@ -29,7 +29,7 @@ REPL's redo state) fights the borrow checker more than it helps.
 `0.300000000000000040` where C prints `...044` (measured), so `print_double` needs a hand-written
 formatter. Haskell's purity also makes the stateful machine the least direct transcription. The
 maintainer chose to port to Haskell and Rust **as well**, as further implementations
-(`tasks/engine-ports.md`; `tasks/engine-port-rust.md`),
+(`tasks/engine-ports.md`; `tasks/archive/2026/11/10/engine-port-rust.md`),
 and its formatter problem is solved (below, "Haskell's float formatting"). Go and C# are
 workable (both format correctly, both have fixed-width ints) but offer nothing over Python for
 readability or over Rust for checked widths.
@@ -265,7 +265,7 @@ Traps beyond the table above, each one a byte-level difference until handled:
 
 ## What the Rust port found (2026-11-10)
 
-The port (`port/rust/`, `tasks/engine-port-rust.md`) reached zero differences on the corpus, the
+The port (`port/rust/`, `tasks/archive/2026/11/10/engine-port-rust.md`) reached zero differences on the corpus, the
 regression suite, the demos, the documented commands and a wider sweep, with the standard library
 only. What the study predicted held: the widths are in the types (`wrapping_add` for `addu`,
 `checked_add` for `add`, `checked_div` where C guards `i32::MIN / -1`), and f32 is IEEE single as in
