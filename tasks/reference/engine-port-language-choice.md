@@ -263,6 +263,33 @@ Traps beyond the table above, each one a byte-level difference until handled:
   Python modules that import each other must only use each other's attributes at call time, and
   the package `__init__` imports the entry module first so any module can be imported alone.
 
+## What the Rust port found (2026-11-10)
+
+The port (`port/rust/`, `tasks/engine-port-rust.md`) reached zero differences on the corpus, the
+regression suite, the demos, the documented commands and a wider sweep, with the standard library
+only. What the study predicted held: the widths are in the types (`wrapping_add` for `addu`,
+`checked_add` for `add`, `checked_div` where C guards `i32::MIN / -1`), and f32 is IEEE single as in
+C. Beyond the table above:
+
+- **The borrow checker was not the obstacle the study expected.** One `Machine` struct holds every C
+  global, passed as `&mut self`; methods on it live in the module of the C file they come from. The
+  one shared-mutable structure is the instruction: a forward reference patches the instruction in the
+  text segment in place, and the breakpoint instruction is one object compared by address, so
+  instructions are `Rc<RefCell<Instruction>>` (`Rc::ptr_eq` for the breakpoint test).
+- **`longjmp` maps to an unwind.** `run_error` is a panic with a private payload, caught where C calls
+  `setjmp`; a panic hook keeps it silent. Threading a `Result` through every memory access would have
+  bent the executor away from `run.c`.
+- **Rust also ignores SIGPIPE at start-up**, like Python: restore `SIG_DFL` or `... | head` never ends.
+  And Rust installs its own SIGSEGV handler, so dying of the C engine's crash signal needs `SIG_DFL`
+  first, then `raise`.
+- **`std::io::stdin` buffers**, so input goes through the C library's `read(2)` (`extern "C"`, no
+  crate); a launcher written in bash adds `PWD` and `SHLVL` to the environment the engine copies onto
+  the stack, so it re-execs with `/proc/$$/environ`.
+- **Speed is no problem**: `tt.core.s` runs in 0.11 s (0.10 s for the debug C build); the timer polls
+  `Instant::now()` per instruction where C calls `getitimer`.
+- **Float text came out identical** with the promoted `cformat.rs` (58,028 doubles against glibc in
+  `cargo test`); no case of the corpus warned.
+
 ## Cross-links
 
 - `tasks/review/2026/11/10/repo-review.md` — §5 behavior inventory, §6 test oracle quality, §7 which
