@@ -71,8 +71,8 @@ several docs' internal claims were refreshed the same day.)
   much cheaper — do it first if the H&P performance lesson is the goal.
 - `engine-ports` (umbrella; the C engine is the standard, every port must
   behave equivalently): `engine-port-prereq-c-fixes` → `engine-port-python`
-  (builds the shared harness) → `engine-port-haskell` (once the harness
-  exists). The prerequisite fixes the F5 bugs, closes the F7 test gaps and
+  (builds the shared harness) → `engine-port-haskell` and `engine-port-rust`
+  (once the harness exists, either order). The prerequisite fixes the F5 bugs, closes the F7 test gaps and
   drops `,` as an FP decimal separator (`tasks/review/2026/11/10/repo-review.md`),
   so the standard is correct and fully pinned; `explain-mode-correctness-bugs`
   should land before any port's explain-mode milestone.

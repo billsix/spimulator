@@ -10,9 +10,10 @@
 The maintainer wants several implementations of the engine side by side in this repo. **The C
 engine is the standard** for now. Every other implementation is required to behave equivalently, meaning
 the same output and the same exit status as the C engine on every case in the shared corpus. How a floating-point number is turned into text does not gate a port (Cross-step
-decisions). Two ports are planned, Python and GHC Haskell, and one differential harness runs every case
-through the C engine and every port. Done for the umbrella: both ports report zero functional differences on
-the whole corpus in the meson gate.
+decisions). Three ports are planned, Python, GHC Haskell and Rust. One differential harness runs every case
+through the C engine and every port. Done for the umbrella:
+- every port reports zero functional differences on the whole corpus in the meson gate;
+- every example's header shows how to run its `.asm` through each port.
 
 ## Context
 
@@ -28,8 +29,11 @@ the whole corpus in the meson gate.
    anything is compared with it.
 2. [ ] `tasks/engine-port-python.md` — the Python port. It also builds the shared harness (its Plan
    step 2), generic over any number of engines.
-3. [ ] `tasks/engine-port-haskell.md` — the GHC Haskell port. It can start once the harness exists,
-   in parallel with the Python port's later milestones.
+3. [ ] `tasks/engine-port-haskell.md` — the GHC Haskell port.
+4. [ ] `tasks/engine-port-rust.md` — the Rust port.
+
+Steps 3 and 4 can start once the harness exists, in either order, alongside the Python port's later
+milestones.
 
 ## Cross-step decisions
 
@@ -59,8 +63,28 @@ the whole corpus in the meson gate.
   with the reason.
 - **One harness for all engines**: each engine is a command line, so adding a port is one entry.
   It runs as a meson suite, so `make image` gates every port.
-- **Layout:** `port/python/`, `port/haskell/`, the harness under `port/harness/` (William Emerison
-  Six <billsix@gmail.com>, 2026-11-10: "port works for now").
+- **Layout:** `port/python/`, `port/haskell/`, `port/rust/`, the harness under `port/harness/`
+  (William Emerison Six <billsix@gmail.com>, 2026-11-10: "port works for now").
+- **Each port is a command with the C engine's CLI**: `spimulator-python`, `spimulator-haskell`,
+  `spimulator-rust`. It takes the same flags and arguments as `spimulator`, so the harness and the
+  example headers call each one the same way.
+- **The image installs every port's toolchain, unconditionally** (William Emerison Six
+  <billsix@gmail.com>, 2026-11-10: "no conditions for that in the Dockerfile"). One group script,
+  `entrypoint/0N-install-ports.sh` (`python3`, `ghc`, `rust`, `cargo`), runs from the Dockerfile with
+  no `ARG` and no `if`. A lean image keeps it too, since the ports are part of the test gate. The
+  first port to start adds the script and lists every language; later ports only use it. GHC adds
+  about 1 GB.
+- **When a port is done, the examples show it** (William Emerison Six <billsix@gmail.com>,
+  2026-11-10). Every example's BUILD AND RUN header gains a line per finished port, after the
+  `spimulator` line:
+
+      *   the same assembly, in the Python port:
+      *     $ spimulator-python -f echo.asm hello world
+
+  `tools/check_example_commands.py` runs each documented `spimulator*` line and compares it with the
+  native run, as it does for `spimulator`, so the documented commands stay tested. Its docstring,
+  `tasks/reference/example-c-teaching-style.md` and the example template get the new line too. This
+  is the last step of each port's task.
 - **Order of milestones, the same for every port:** machine arithmetic → assembler (gate: AST-parity
   bytes) → executor + syscalls (gate: regression + examples) → CLI/REPL → teaching mode
   (`-explain`, after `tasks/explain-mode-correctness-bugs.md` lands in C).

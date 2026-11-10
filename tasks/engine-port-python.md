@@ -13,7 +13,8 @@ Write a Python implementation of the spimulator engine (assembler, executor, sys
 last the teaching mode) that behaves equivalently to the C engine, the standard: the same stdout, stderr and exit status on
 the shared corpus, float-to-text differences being warnings only (`tasks/engine-ports.md`), checked by a differential harness in the
 meson gate. This port also builds that harness, for every engine. Done means: the harness reports
-zero differences on the whole corpus.
+zero functional differences on the whole corpus, and every example's
+header shows how to run its `.asm` through `spimulator-python`.
 
 ## Context
 
@@ -34,7 +35,11 @@ zero differences on the whole corpus.
 3. Port in this order, each milestone gated by the harness: machine-arithmetic module → assembler
    (gate: AST-parity bytes) → executor + syscalls (gate: regression + examples) → CLI/REPL → explain.
 4. Package layout, typing and test gate per the python-coding-standard.md reference doc from
-   github.com/billsix/runClaudeInContainer (`ty`, ruff, doctests).
+   github.com/billsix/runClaudeInContainer (`ty`, ruff, doctests). The command is `spimulator-python`.
+   Its interpreter comes from the unconditional `entrypoint/0N-install-ports.sh`
+   (`tasks/engine-ports.md`); this port starts first, so it adds that script, listing every language.
+5. When the harness is clean: the examples step from `tasks/engine-ports.md`, a `spimulator-python`
+   line in every example header, checked by `tools/check_example_commands.py`.
 
 ## Findings
 

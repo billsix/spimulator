@@ -14,8 +14,10 @@ engine, the standard: the same stdout, stderr and exit status on the whole share
 checked by the differential harness (`tasks/engine-ports.md`). The maintainer wants to see how a
 pure functional language handles a stateful machine. The language study's blocker, GHC printing
 `%.18g` wrongly, would not gate the port anyway, since float-to-text differences are warnings
-(`tasks/engine-ports.md`). It is also solved and measured (Findings). Done means: the harness reports zero differences
-for the Haskell engine (float-to-text warnings allowed), and it builds offline in the image with GHC's own libraries only.
+(`tasks/engine-ports.md`). It is also solved and measured (Findings). Done means:
+- the harness reports zero differences for the Haskell engine (float-to-text warnings allowed);
+- every example's header shows how to run its `.asm` through `spimulator-haskell`;
+- it builds offline in the image with GHC's own libraries only.
 
 ## Context
 
@@ -88,16 +90,16 @@ download.
 
 ## Plan
 
-1. Image: add `ghc` through a new `entrypoint/0N-install-haskell.sh` group script, dispatched by the
-   Dockerfile under a `BUILD_HASKELL_PORT` flag (the Makefile defaults it to `1`, the Dockerfile to
-   `0`, per the template). It is a gate flag, so `MINIMAL_IMAGE` does not drop it. GHC adds about
-   1 GB, which is why it gets its own flag.
+1. Image: `ghc` comes from the unconditional `entrypoint/0N-install-ports.sh` (`tasks/engine-ports.md`);
+   add the script if this port starts first.
 2. `port/haskell/`: a cabal package with only GHC's own libraries; `meson.build` builds it and
    registers the engine with the shared harness.
 3. Milestones in the umbrella's order, each gated by the harness: arithmetic (with `CFormat` promoted
    from the ad-hoc proof, plus its C-vs-Haskell check as a test) → assembler (AST-parity bytes) →
    executor + syscalls → CLI/REPL → teaching mode.
-4. Style: `-Wall -Werror`, every top-level binding with a type signature, `hlint` if it can run
+4. When the harness is clean: the examples step from `tasks/engine-ports.md`, a `spimulator-haskell`
+   line in every example header, checked by `tools/check_example_commands.py`.
+5. Style: `-Wall -Werror`, every top-level binding with a type signature, `hlint` if it can run
    offline. No Haskell coding-standard doc exists in github.com/billsix/runClaudeInContainer yet;
    write the port's conventions in `port/haskell/README.md`, and propose a shared standard doc only if
    a second Haskell project needs it.

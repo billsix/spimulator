@@ -28,7 +28,8 @@ REPL's redo state) fights the borrow checker more than it helps.
 **Not recommended as the first port:** Java and Haskell. Both format `%.18g` wrongly: they print
 `0.300000000000000040` where C prints `...044` (measured), so `print_double` needs a hand-written
 formatter. Haskell's purity also makes the stateful machine the least direct transcription. The
-maintainer chose to port to Haskell **as well**, as a second implementation (`tasks/engine-ports.md`),
+maintainer chose to port to Haskell and Rust **as well**, as further implementations
+(`tasks/engine-ports.md`; `tasks/engine-port-rust.md`),
 and its formatter problem is solved (below, "Haskell's float formatting"). Go and C# are
 workable (both format correctly, both have fixed-width ints) but offer nothing over Python for
 readability or over Rust for checked widths.
