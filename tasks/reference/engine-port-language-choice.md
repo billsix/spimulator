@@ -25,9 +25,12 @@ port to replace the C binary for speed. Its cost is readability for an undergrad
 ownership and lifetimes; the engine's global mutable machine state (registers, memory segments, the
 REPL's redo state) fights the borrow checker more than it helps.
 
-**Not recommended:** Java and Haskell, because both format `%.18g` wrongly (they print
-`0.300000000000000040` where C prints `...044`, measured), so `print_double` needs a hand-written
-formatter, and Haskell's purity makes the stateful machine the least readable. Go and C# are
+**Not recommended as the first port:** Java and Haskell. Both format `%.18g` wrongly: they print
+`0.300000000000000040` where C prints `...044` (measured), so `print_double` needs a hand-written
+formatter. Haskell's purity also makes the stateful machine the least direct transcription. The
+maintainer chose to port to Haskell and Rust **as well**, as further implementations
+(`tasks/engine-ports.md`; `tasks/engine-port-rust.md`),
+and its formatter problem is solved (below, "Haskell's float formatting"). Go and C# are
 workable (both format correctly, both have fixed-width ints) but offer nothing over Python for
 readability or over Rust for checked widths.
 
@@ -38,7 +41,7 @@ readability or over Rust for checked widths.
 | Go | low | good | types (`int32`/`uint32` wrap) | 7–10 weeks |
 | C# | low | good | types (`unchecked`) | 7–10 weeks |
 | Java | medium: no unsigned types; `%g` wrong | good | `int` wraps; unsigned via `Integer.*Unsigned` | 7–10 weeks |
-| Haskell | medium: `printf %g` wrong; state threading | low | `Data.Int`/`Data.Word` | 10–14 weeks |
+| Haskell | medium: `printf %g` wrong (solved: exact-`Rational` formatter, below); state threading | low | `Data.Int`/`Data.Word` | 10–14 weeks |
 
 The effort column is one experienced person, full-time, reaching parity with today's test suites; it
 is an estimate from line counts per subsystem (below), not a measurement, and is mostly the same
@@ -65,7 +68,7 @@ integer and float semantic the engine uses:
 | FP register file is raw bits (`mtc1`/`mfc1`) | `struct.pack('<I')`/`unpack('<f')` | — |
 | single-precision arithmetic (`add.s`) | round every result through `struct.pack('<f')` | **computing in binary64 prints `0.30000000` instead of spim's `0.30000001` for 0.1f+0.2f** |
 | `cvt.w.s` truncates; spim's `round.w` is `(int)(x+0.5)` | `int(x)`, `int(x + 0.5)` | — |
-| `print_float` `%.8f`, `print_double` `%.18g` | `f"{x:.8f}"`, `f"{x:.18g}"` match glibc exactly | — |
+| `print_float` `%.8f`, `print_double` `%.18g` | `f"{x:.8f}"`, `f"{x:.18g}"` match glibc, except a negative NaN (`nan`, not glibc's `-nan`) | — |
 
 Cost of masking everywhere: in the spike, the decode+execute loop ran ~9M instructions in 1.8 s in
 CPython 3.15 (C: 0.01 s; Rust 0.01 s; Java 0.02 s). `ctypes`/`numpy` fixed-width scalars are
@@ -159,13 +162,41 @@ All four implementations printed identical output for the edge-case table and th
 | | loop of ~9M instructions | notes |
 |---|---|---|
 | C (`gcc -O2`) | 0.008 s | reference |
-| Rust 1.99 (release) | 0.011 s | no `%g` in `std::fmt`: `print_double` needs a small `%.18g` formatter |
+| Rust 1.99 (release) | 0.011 s | no `%g` in `std::fmt`: `print_double` needs a small `%.18g` formatter (written 2026-11-10; see "Float formatting across ports") |
 | Java 25 | 0.021 s | `String.format("%.18g")` prints `0.300000000000000040`; `BigDecimal` rounding fixes it |
 | Python 3.15 | 1.73 s | `%`/f-string formatting matches glibc; `//` and `%` floor, so `div` needs truncation |
 
 Formatting probes, no spike: Go's `%.18g` and C#'s `"G18"` match C (Go only when the sum is computed
 at run time: untyped constant arithmetic is exact); GHC's `Text.Printf` `%.18g` prints
 `0.300000000000000040`, like Java.
+
+## Float formatting across ports (2026-11-10)
+
+**Formatting does not gate a port.** The maintainer's rule (William Emerison Six
+<billsix@gmail.com>, 2026-11-10): a port must match the C engine functionally. A float printed with
+different digits, when the values are the same or very close, is reported as a warning, not a
+failure. The tolerance and how the harness detects it: `tasks/engine-ports.md`. Matching glibc
+exactly is still the goal where it is cheap, and it is cheap in all three languages measured.
+`bash tasks/adhoc/engine-ports-float-format/run.sh` checks each one against glibc `printf` on 158,029
+doubles, in all five formats the C engine prints (`%.8f`, `%.18g`, `%.17g`, `%g`, `%#-13.6g`):
+
+| Language | Formatter | Result |
+|---|---|---|
+| Python | `cformat.py`: the `%` operator; adds the `-nan` sign Python drops | identical |
+| Rust | `cformat.rs`, about 60 lines, std only: `{:.N}` and `{:.Ne}` are already correctly rounded, so it applies C's `%g` rules (fixed vs exponential, stripping zeros, `#`, the two-digit exponent) and `nan`/`inf` | identical |
+| GHC Haskell | `CFormat.hs`, about 90 lines: rounds the exact `Rational` value (below) | identical |
+
+Java was not re-tested; `BigDecimal` rounding fixed its one measured case.
+
+### Haskell's float formatting (solved 2026-11-10)
+
+GHC's `Text.Printf` and `Numeric.showFFloat` format from the shortest round-trip digits
+(`floatToDigits`) and pad with zeros. glibc formats the exact binary value. A Double's exact value is
+`toRational x`, so a pure-Haskell formatter rounds it with integer arithmetic: exact decimal
+exponent, ties-to-even rounding, the `%g` fixed/exponential rule, `#`, width, `inf`/`nan` by the sign
+bit. `tasks/adhoc/engine-ports-float-format/CFormat.hs` implements all five formats the C engine uses
+(`%.8f`, `%.18g`, `%.17g`, `%g`, `%#-13.6g`). It is byte-identical to glibc on 158,029 values
+(`bash tasks/adhoc/engine-ports-float-format/run.sh`). Detail: `tasks/engine-port-haskell.md`.
 
 ## Cross-links
 

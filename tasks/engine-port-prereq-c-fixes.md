@@ -5,7 +5,8 @@
 **Difficulty:** 5
 **Created:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
 **Source:** tasks/review/2026/11/10/repo-review.md §3 (F5), §6 (F7), §3.20 (F12)
-**Next:** `tasks/engine-port-python.md` (its Plan step 1 is this task)
+**Part of:** `tasks/engine-ports.md`
+**Next:** `tasks/engine-port-python.md` (its Plan step 1 is this task), then `tasks/engine-port-haskell.md` and `tasks/engine-port-rust.md`
 
 ## BLUF
 
