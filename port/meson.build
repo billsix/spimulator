@@ -19,6 +19,7 @@
 # [name, executable relative to the source root].
 ports = [
   ['python', 'port/python/spimulator-python'],
+  ['haskell', 'port/haskell/spimulator-haskell'],
 ]
 
 # Not run against ports, with the reason:
