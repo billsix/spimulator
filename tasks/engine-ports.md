@@ -92,3 +92,20 @@ milestones.
 - **Order of milestones, the same for every port:** machine arithmetic → assembler (gate: AST-parity
   bytes) → executor + syscalls (gate: regression + examples) → CLI/REPL → teaching mode
   (`-explain`, after `tasks/explain-mode-correctness-bugs.md` lands in C).
+
+## Log (2026-11-10, the autonomous day run)
+
+- The prerequisites were done first and archived (`tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md`).
+- **The shared harness was built by the coordinator, ahead of the Python port** (`port/harness/`,
+  `port/meson.build`, `entrypoint/05-install-ports.sh`; commit `0e618c7`), so all three ports are
+  judged by the same tests from the start. The Python task's Plan step 2 is therefore already done.
+- **The Haskell port started in parallel with the Python port, in a separate git worktree** (its
+  own branch, merged into `engine-ports` when done). The maintainer's order (Python, then Haskell,
+  then Rust) is kept for finishing and merging: the files every port touches (the `ports` list in
+  `port/meson.build`, the example headers, `tools/check_example_commands.py`) are changed only
+  after the Python port's version is in. Options weighed: strictly one port after another (simple,
+  but the Haskell and Rust ports would start late in the day and finish less), or all three at
+  once (more parallel, but three ports building at the same time compete for the machine, and three
+  sets of shared-file edits to reconcile). The agent's call, under "use your discretion".
+- Each port is written by a separate agent with a written brief. The coordinator reviews its
+  commits, merges, registers the port, runs the gate (`make image`), and writes the done-record.
