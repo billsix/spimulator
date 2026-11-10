@@ -45,6 +45,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f head.asm -n 3 head.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f head.asm -n 3 head.input
  */
 /* clang-format on */
 

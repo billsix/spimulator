@@ -31,6 +31,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f tail.asm -n 3 tail.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f tail.asm -n 3 tail.input
  */
 /* clang-format on */
 

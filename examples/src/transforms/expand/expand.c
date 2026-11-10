@@ -41,6 +41,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ printf 'a\tb\n' | spimulator-python -f expand.asm
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ printf 'a\tb\n' | spimulator-haskell -f expand.asm
  */
 /* clang-format on */
 

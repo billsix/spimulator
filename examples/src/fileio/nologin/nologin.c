@@ -41,6 +41,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f nologin.asm
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f nologin.asm
  */
 /* clang-format on */
 

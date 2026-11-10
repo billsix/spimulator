@@ -51,6 +51,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f rpn-eval-test.asm
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f rpn-eval-test.asm
  */
 /* clang-format on */
 

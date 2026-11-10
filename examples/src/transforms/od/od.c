@@ -33,6 +33,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ printf 'hi\n' | spimulator-python -f od.asm
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ printf 'hi\n' | spimulator-haskell -f od.asm
  */
 /* clang-format on */
 

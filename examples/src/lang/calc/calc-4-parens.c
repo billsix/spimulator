@@ -47,6 +47,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f calc-4-parens.asm < calc-4-parens.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f calc-4-parens.asm < calc-4-parens.input
  */
 /* clang-format on */
 

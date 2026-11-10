@@ -31,6 +31,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f base64.asm base64.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f base64.asm base64.input
  */
 /* clang-format on */
 

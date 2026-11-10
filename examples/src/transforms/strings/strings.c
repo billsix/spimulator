@@ -46,6 +46,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f strings.asm < strings.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f strings.asm < strings.input
  */
 /* clang-format on */
 

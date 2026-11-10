@@ -48,6 +48,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f cksum.asm cksum.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f cksum.asm cksum.input
  */
 /* clang-format on */
 

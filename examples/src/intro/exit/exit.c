@@ -50,6 +50,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f exit.asm
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f exit.asm
  */
 /* clang-format on */
 

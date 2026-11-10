@@ -68,6 +68,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f rpn.asm < rpn.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f rpn.asm < rpn.input
  */
 /* clang-format on */
 

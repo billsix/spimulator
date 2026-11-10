@@ -46,6 +46,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f cksum-1-stdin.asm < cksum-1-stdin.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f cksum-1-stdin.asm < cksum-1-stdin.input
  */
 /* clang-format on */
 

@@ -48,6 +48,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f echo.asm hello world
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f echo.asm hello world
  */
 /* clang-format on */
 

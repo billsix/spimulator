@@ -45,6 +45,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f seq.asm 1 5
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f seq.asm 1 5
  */
 /* clang-format on */
 
