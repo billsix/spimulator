@@ -42,7 +42,7 @@ static const unsigned char embedded_exceptions_bytes[] = {
 #embed "exceptions.s"
 };
 
-int exception_occurred;
+bool exception_occurred;
 
 /* Records the ExcCode of the first non-syscall, non-breakpoint, non-interrupt
    exception seen during a run of the user program.  Set by raise_exception()
@@ -121,7 +121,7 @@ void initialize_world(char* exception_file_names, bool print_message) {
 
     if (!bare_machine) {
       (void)make_label_global("main"); /* In case .globl main forgotten */
-      (void)record_label("main", 0, 0);
+      (void)record_label("main", 0, false);
     }
   }
   scanner_init(stdin);
@@ -310,14 +310,14 @@ bool run_program(mem_addr pc, int steps, bool display, bool cont_bkpt,
     mem_addr addr = PC == 0 ? pc : PC;
 
     delete_breakpoint(addr);
-    exception_occurred = 0;
+    exception_occurred = false;
     *continuable = run_spim(addr, 1, display);
     add_breakpoint(addr);
     steps -= 1;
     pc = PC;
   }
 
-  exception_occurred = 0;
+  exception_occurred = false;
   *continuable = run_spim(pc, steps, display);
   if (exception_occurred && (uint32_t)CP0_ExCode == ExcCode_Bp) {
     /* Turn off EXL bit, so subsequent interrupts set EPC since the break is
@@ -361,7 +361,7 @@ void add_breakpoint(mem_addr addr) {
 
 void delete_breakpoint(mem_addr addr) {
   bkpt *p, *b;
-  int deleted_one = 0;
+  bool deleted_one = false;
 
   for (p = nullptr, b = bkpts; b != nullptr;)
     if (b->addr == addr) {
@@ -373,7 +373,7 @@ void delete_breakpoint(mem_addr addr) {
       bkpt* n = b->next;
       free(b);
       b = n;
-      deleted_one = 1;
+      deleted_one = true;
     } else
       p = b, b = b->next;
   if (!deleted_one) error("No breakpoint to delete at 0x%08x\n", addr);

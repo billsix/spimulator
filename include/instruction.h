@@ -136,7 +136,7 @@ constexpr uint32_t UIMM_MAX = 0xffff;
 
 /* Raise an exception! */
 
-extern int exception_occurred;
+extern bool exception_occurred;
 extern int first_bad_exception;
 
 /* The MISC arg is injected as-is into the macro body and is expected to

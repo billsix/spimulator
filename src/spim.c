@@ -268,11 +268,11 @@ extern void scanner_push_source(FILE* in_file);
 extern void scanner_pop_source(void);
 extern void scanner_init(FILE* in_file);
 extern void set_input_file_name(char* file_name);
-static int print_fp_reg(int reg_no);
+static void print_fp_reg(int reg_no);
 static int print_reg_from_string(char* reg);
-static void print_all_regs(int hex_flag);
+static void print_all_regs(bool hex_flag);
 static int read_assembly_command(void);
-static int str_prefix(char* s1, char* s2, int min_match);
+static bool str_prefix(char* s1, char* s2, int min_match);
 static void top_level(void);
 static int read_token(void);
 static bool write_assembled_code(char* program_name);
@@ -303,7 +303,7 @@ int spim_return_value = 0; /* Value returned when spim exits */
 
 /* => load standard exception handler */
 static bool load_exception_handler = true;
-static int console_state_saved;
+static bool console_state_saved;
 
 static struct termios saved_console_state;
 static int program_argc;
@@ -1032,9 +1032,9 @@ static bool parse_spim_command(bool redo) {
       return (0);
 
     case PRINT_ALL_REGS_CMD: {
-      int hex_flag = 0;
+      bool hex_flag = false;
       int token = (redo ? prev_token : read_token());
-      if (token == TOK_ID && streq((char*)scan_value.p, "hex")) hex_flag = 1;
+      if (token == TOK_ID && streq((char*)scan_value.p, "hex")) hex_flag = true;
       print_all_regs(hex_flag);
       if (!redo) flush_to_newline();
       prev_cmd = NOP_CMD;
@@ -1327,9 +1327,10 @@ static int read_assembly_command(void) {
     return (UNKNOWN_CMD);
 }
 
-/* Return non-nil if STRING1 is a (proper) prefix of STRING2. */
+/* Return true if STRING1 is a prefix of STRING2 at least MIN_MATCH
+   characters long. */
 
-static int str_prefix(char* s1, char* s2, int min_match) {
+static bool str_prefix(char* s1, char* s2, int min_match) {
   for (; *s1 == *s2 && *s1 != '\0'; s1++, s2++) min_match--;
   return (*s1 == '\0' && min_match <= 0);
 }
@@ -1363,12 +1364,11 @@ static void print_reg(int reg_no) {
                gpr[reg_no]);
 }
 
-static int print_fp_reg(int reg_no) {
+static void print_fp_reg(int reg_no) {
   if ((reg_no & 1) == 0)
     write_output(message_out, "FP reg %d = %g (double)\n", reg_no,
                  FPR_D(reg_no));
   write_output(message_out, "FP reg %d = %g (single)\n", reg_no, FPR_S(reg_no));
-  return (1);
 }
 
 static int print_reg_from_string(char* reg_num) {
@@ -1407,7 +1407,7 @@ static int print_reg_from_string(char* reg_num) {
   return (1);
 }
 
-static void print_all_regs(int hex_flag) {
+static void print_all_regs(bool hex_flag) {
   static str_stream ss;
 
   ss_clear(&ss);
@@ -1511,12 +1511,12 @@ void fatal_error(char* fmt, ...) {
 void write_output(port fp, char* fmt, ...) {
   va_list args;
   FILE* f = fp.f != nullptr ? fp.f : stdout;
-  int restore_console_to_program = 0;
+  bool restore_console_to_program = false;
 
   va_start(args, fmt);
 
   if (console_state_saved) {
-    restore_console_to_program = 1;
+    restore_console_to_program = true;
     console_to_spim();
   }
 
@@ -1536,11 +1536,11 @@ void write_output(port fp, char* fmt, ...) {
  */
 
 int read_input(char* str, int str_size) {
-  int restore_console_to_program = 0;
+  bool restore_console_to_program = false;
   int count = 0;
 
   if (console_state_saved) {
-    restore_console_to_program = 1;
+    restore_console_to_program = true;
     console_to_spim();
   }
 
@@ -1584,10 +1584,10 @@ int read_input(char* str, int str_size) {
  */
 
 int read_int_input(long* value) {
-  int restore_console_to_program = 0;
+  bool restore_console_to_program = false;
 
   if (console_state_saved) {
-    restore_console_to_program = 1;
+    restore_console_to_program = true;
     console_to_spim();
   }
 
@@ -1635,7 +1635,7 @@ static void console_to_program(void) {
     params.c_cc[VTIME] = 1;
 
     tcsetattr(console_in.i, TCSANOW, &params);
-    console_state_saved = 1;
+    console_state_saved = true;
   }
 }
 
@@ -1644,7 +1644,7 @@ static void console_to_program(void) {
 static void console_to_spim(void) {
   if (mapped_io && console_state_saved)
     tcsetattr(console_in.i, TCSANOW, &saved_console_state);
-  console_state_saved = 0;
+  console_state_saved = false;
 }
 
 int console_input_available(void) {

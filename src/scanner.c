@@ -62,7 +62,7 @@ static name_val_val keyword_tbl[] = {
 #include "opcodes.h"
 };
 
-static int check_keyword(char* id, int allow_pseudo_ops) {
+static int check_keyword(char* id, bool allow_pseudo_ops) {
   name_val_val* entry = map_string_to_name_val_val(
       keyword_tbl, sizeof(keyword_tbl) / sizeof(name_val_val), id);
   if (entry == nullptr) return 0;

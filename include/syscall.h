@@ -8,7 +8,7 @@
 
 /* Exported functions. */
 
-int do_syscall(void);
+bool do_syscall(void);
 void handle_exception(void);
 
 #define PRINT_INT_SYSCALL 1

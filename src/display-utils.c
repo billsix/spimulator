@@ -23,7 +23,7 @@ static mem_addr format_partial_line(str_stream* ss, mem_addr addr);
 /* Write to the stream the contents of the machine's registers, in a wide
    variety of formats. */
 
-void format_registers(str_stream* ss, int print_gpr_hex, int print_fpr_hex) {
+void format_registers(str_stream* ss, bool print_gpr_hex, bool print_fpr_hex) {
   int i;
   char *grstr, *fpstr;
   char *grfill, *fpfill;

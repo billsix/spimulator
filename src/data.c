@@ -24,7 +24,7 @@ static mem_addr next_data_pc; /* Location for next datum in user process */
 
 static mem_addr next_k_data_pc; /* Location for next datum in kernel */
 
-static bool in_kernel = 0; /* => data goes to kdata, not data */
+static bool in_kernel = false; /* => data goes to kdata, not data */
 
 #define DATA_PC (in_kernel ? next_k_data_pc : next_data_pc)
 
@@ -124,7 +124,7 @@ void extern_directive(char* name, int size) {
   if (!bare_machine && !sym->gp_flag  // Not already a global symbol
       && size > 0 && size <= SMALL_DATA_SEG_MAX_SIZE &&
       next_gp_item_addr + (mem_addr)size < gp_midpoint + 32 * kilo) {
-    sym->gp_flag = 1;
+    sym->gp_flag = true;
     sym->addr = next_gp_item_addr;
     next_gp_item_addr += (mem_addr)size;
   }
@@ -135,13 +135,13 @@ void extern_directive(char* name, int size) {
 void lcomm_directive(char* name, int size) {
   if (!bare_machine && size > 0 && size <= SMALL_DATA_SEG_MAX_SIZE &&
       next_gp_item_addr + (mem_addr)size < gp_midpoint + 32 * kilo) {
-    label* sym = record_label(name, next_gp_item_addr, 1);
-    sym->gp_flag = 1;
+    label* sym = record_label(name, next_gp_item_addr, true);
+    sym->gp_flag = true;
 
     next_gp_item_addr += (mem_addr)size;
     /* Don't need to initialize since memory starts with 0's */
   } else {
-    (void)record_label(name, next_data_pc, 1);
+    (void)record_label(name, next_data_pc, true);
 
     for (; size > 0; size--) {
       store_byte(0);

@@ -2309,7 +2309,7 @@ static void emit_one(const ast_node* node) {
       const char* sym = node->u.dir_named_size.name;
       make_label_global((char*)sym);
       if (lookup_label((char*)sym)->addr == 0)
-        record_label((char*)sym, current_data_pc(), 1);
+        record_label((char*)sym, current_data_pc(), true);
       increment_data_pc(node->u.dir_named_size.size);
       return;
     }
@@ -2318,7 +2318,7 @@ static void emit_one(const ast_node* node) {
       const char* sym = node->u.dir_named_size.name;
       align_data(2);
       if (lookup_label((char*)sym)->addr == 0)
-        record_label((char*)sym, current_data_pc(), 1);
+        record_label((char*)sym, current_data_pc(), true);
       increment_data_pc(node->u.dir_named_size.size);
       return;
     }
@@ -2359,12 +2359,12 @@ static void emit_one(const ast_node* node) {
     case AST_LABEL_DEF:
       if (node->u.label_def.kind == AST_LABEL_NORMAL) {
         mem_addr addr = text_dir ? current_text_pc() : current_data_pc();
-        label* l = record_label((char*)node->u.label_def.name, addr, 0);
+        label* l = record_label((char*)node->u.label_def.name, addr, false);
         cons_label(l);
       } else {
         label* l = record_label((char*)node->u.label_def.name,
-                                (mem_addr)node->u.label_def.value, 1);
-        l->const_flag = 1;
+                                (mem_addr)node->u.label_def.value, true);
+        l->const_flag = true;
       }
       return;
 

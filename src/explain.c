@@ -420,7 +420,7 @@ static const struct pseudo_info* find_pseudo_in_source(const char* src) {
    exception_occurred / CP0 state out from under the real dispatch, so wrap
    peeks in save/restore. */
 static reg_word peek_word(mem_addr addr) {
-  int se = exception_occurred;
+  bool se = exception_occurred;
   reg_word sbv = CP0_BadVAddr;
   reg_word v = mem_read_word(addr);
   exception_occurred = se;
@@ -429,7 +429,7 @@ static reg_word peek_word(mem_addr addr) {
 }
 
 static reg_word peek_half(mem_addr addr) {
-  int se = exception_occurred;
+  bool se = exception_occurred;
   reg_word sbv = CP0_BadVAddr;
   reg_word v = mem_read_half(addr);
   exception_occurred = se;
@@ -438,7 +438,7 @@ static reg_word peek_half(mem_addr addr) {
 }
 
 static reg_word peek_byte(mem_addr addr) {
-  int se = exception_occurred;
+  bool se = exception_occurred;
   reg_word sbv = CP0_BadVAddr;
   reg_word v = mem_read_byte(addr);
   exception_occurred = se;

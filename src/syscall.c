@@ -18,10 +18,10 @@
 #include "symbol-table.h"
 #include "syscall.h"
 
-/* Decides which syscall to execute or simulate.  Returns zero upon
-   exit syscall and non-zero to continue execution. */
+/* Decides which syscall to execute or simulate.  Returns false upon
+   exit syscall and true to continue execution. */
 
-int do_syscall(void) {
+bool do_syscall(void) {
   /* Syscalls for the source-language version of SPIM.  These are easier to
      use than the real syscall and are portable to non-MIPS operating
      systems. */
@@ -110,11 +110,11 @@ int do_syscall(void) {
 
     case EXIT_SYSCALL:
       spim_return_value = 0;
-      return (0);
+      return (false);
 
     case EXIT2_SYSCALL:
       spim_return_value = gpr[REG_A0]; /* value passed to spim's exit() call */
-      return (0);
+      return (false);
 
     case OPEN_SYSCALL: {
       gpr[REG_RES] = open((char*)mem_reference((mem_addr)gpr[REG_A0]),
@@ -151,14 +151,14 @@ int do_syscall(void) {
       break;
   }
 
-  return (1);
+  return (true);
 }
 
 void handle_exception(void) {
   if (!quiet && CP0_ExCode != ExcCode_Int)
     error("Exception occurred at PC=0x%08x\n", CP0_EPC);
 
-  exception_occurred = 0;
+  exception_occurred = false;
   PC = EXCEPTION_ADDR;
 
   switch (CP0_ExCode) {
@@ -189,7 +189,7 @@ void handle_exception(void) {
       break;
 
     case ExcCode_Bp:
-      exception_occurred = 0;
+      exception_occurred = false;
       return;
 
     case ExcCode_RI:

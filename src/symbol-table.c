@@ -116,7 +116,7 @@ label* lookup_label(char* name) {
 /* Record that the label named NAME refers to ADDRESS.	If RESOLVE_USES is
    true, resolve all references to it.  Return the label structure. */
 
-label* record_label(char* name, mem_addr address, int resolve_uses) {
+label* record_label(char* name, mem_addr address, bool resolve_uses) {
   label* l = lookup_label(name);
 
   if (!l->gp_flag) {
@@ -145,7 +145,7 @@ label* record_label(char* name, mem_addr address, int resolve_uses) {
 label* make_label_global(char* name) {
   label* l = lookup_label(name);
 
-  l->global_flag = 1;
+  l->global_flag = true;
   return (l);
 }
 
@@ -295,7 +295,7 @@ static void resolve_a_label_sub(label* sym, mips_instruction* instruction,
 
 /* Remove all local (non-global) label from the table. */
 
-void flush_local_labels(int issue_undef_warnings) {
+void flush_local_labels(bool issue_undef_warnings) {
   for (label* l = local_labels; l != nullptr; l = l->next_local) {
     int hi;
     label *entry, *cursor, *prev;

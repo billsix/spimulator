@@ -32,7 +32,7 @@ static imm_expr* upper_bits_of_expr(imm_expr* old_expr);
 static int compare_pair_value(const void* a, const void* b);
 static void format_imm_expr(str_stream* ss, imm_expr* expr, int base_reg);
 static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
-                                  int value_known, int32_t value);
+                                  bool value_known, int32_t value);
 static void inst_cmp(mips_instruction* inst1, mips_instruction* inst2);
 static mips_instruction* make_r_type_inst(int opcode, int rd, int rs, int rt);
 static mips_instruction* mk_i_inst(int32_t value, int opcode, int rs, int rt,
@@ -42,7 +42,7 @@ static mips_instruction* mk_r_inst(int32_t value, int opcode, int rs, int rt,
                                    int rd, int shamt);
 static mips_instruction* mk_co_r_inst(int32_t value, int opcode, int fd, int fs,
                                       int ft);
-static void produce_immediate(imm_expr* expr, int rt, int value_known,
+static void produce_immediate(imm_expr* expr, int rt, bool value_known,
                               int32_t value);
 static void sort_a_opcode_table(void);
 static void sort_i_opcode_table(void);
@@ -52,7 +52,7 @@ static void sort_name_table(void);
 
 /* True means store instructions in kernel, not user, text segment */
 
-static bool in_kernel = 0;
+static bool in_kernel = false;
 
 /* Instruction used as breakpoint by SPIM: */
 
@@ -169,7 +169,7 @@ static void store_instruction(mips_instruction* instruction) {
     free_inst(instruction);
   } else if (text_dir) {
     mem_addr at = INST_PC;
-    exception_occurred = 0;
+    exception_occurred = false;
     mem_write_inst(at, instruction);
     if (exception_occurred)
       error("Invalid address (0x%08x) for instruction\n", at);
@@ -224,7 +224,7 @@ void i_type_inst(int opcode, int rt, int rs, imm_expr* expr) {
               : ((unsigned int)value & 0xffff0000) != 0))) {
       // Non-immediate value
       free_inst(instruction);
-      i_type_inst_full_word(opcode, rt, rs, expr, 1, value);
+      i_type_inst_full_word(opcode, rt, rs, expr, true, value);
       return;
     } else
       resolve_a_label(expr->symbol, instruction);
@@ -238,7 +238,7 @@ void i_type_inst(int opcode, int rt, int rs, imm_expr* expr) {
        sequence for 32 bit value. */
     free_inst(instruction);
 
-    i_type_inst_full_word(opcode, rt, rs, expr, 0, 0);
+    i_type_inst_full_word(opcode, rt, rs, expr, false, 0);
     return;
   }
 
@@ -249,7 +249,7 @@ void i_type_inst(int opcode, int rt, int rs, imm_expr* expr) {
    Build the value from its piece with separate instructions. */
 
 static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
-                                  int value_known, int32_t value) {
+                                  bool value_known, int32_t value) {
   if (opcode_is_load_store(opcode)) {
     int32_t offset;
 
@@ -321,7 +321,7 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
   }
 }
 
-static void produce_immediate(imm_expr* expr, int rt, int value_known,
+static void produce_immediate(imm_expr* expr, int rt, bool value_known,
                               int32_t value) {
   if (value_known && (value & 0xffff) == 0) {
     i_type_inst_free(TOK_LUI_OPCODE, rt, 0, upper_bits_of_expr(expr));
@@ -596,7 +596,7 @@ const char* op_token_name(int op_token) {
 
 char* inst_to_string(mem_addr addr) {
   /* Clear the flag first: mem_read_inst sets it on a bad address. */
-  exception_occurred = 0;
+  exception_occurred = false;
   mips_instruction* instruction = mem_read_inst(addr);
 
   if (exception_occurred) {
@@ -944,7 +944,7 @@ mips_instruction* set_breakpoint(mem_addr addr) {
   if (break_inst == nullptr)
     break_inst = make_r_type_inst(TOK_BREAK_OPCODE, 1, 0, 0);
 
-  exception_occurred = 0;
+  exception_occurred = false;
   mips_instruction* old_inst = mem_read_inst(addr);
   if (old_inst == break_inst) return (nullptr);
 

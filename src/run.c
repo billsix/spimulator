@@ -46,7 +46,7 @@ static void unsigned_multiply(reg_word v1, reg_word v2);
 
 /* True when delayed_branches is true and instruction is executing in delay
 slot of another instruction. */
-static int running_in_delay_slot = 0;
+static bool running_in_delay_slot = false;
 
 /* Executed delayed branch and jump instructions by running the
    instruction from the delay slot before transfering control.  Note,
@@ -76,11 +76,11 @@ static int running_in_delay_slot = 0;
 #define JUMP_INST(TARGET)                                     \
   do {                                                        \
     if (delayed_branches) {                                   \
-      running_in_delay_slot = 1;                              \
+      running_in_delay_slot = true;                           \
       /* Continuation flag from the delay-slot instruction is \
          discarded — the outer run_spim owns that. */       \
       (void)run_spim(PC + BYTES_PER_WORD, 1, display);        \
-      running_in_delay_slot = 0;                              \
+      running_in_delay_slot = false;                          \
     }                                                         \
     /* -4 since PC is bumped after this instruction */        \
     PC = (TARGET) - BYTES_PER_WORD;                           \
@@ -184,11 +184,11 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         }
       }
 
-      exception_occurred = 0;
+      exception_occurred = false;
       instruction = mem_read_inst(PC);
       if (exception_occurred) /* In reading instruction */
       {
-        exception_occurred = 0;
+        exception_occurred = false;
         handle_exception();
         continue;
       } else if (instruction == nullptr) {
@@ -1580,14 +1580,14 @@ static void unsigned_multiply(reg_word v1, reg_word v2) {
 }
 
 static void signed_multiply(reg_word v1, reg_word v2) {
-  int neg_sign = 0;
+  bool neg_sign = false;
 
   /* Negate as unsigned: -v is UB when v == INT_MIN.  The two's-complement
      bit pattern (which unsigned_multiply consumes as a magnitude) is identical.
    */
   if (v1 < 0) {
     v1 = (reg_word)(-(u_reg_word)v1);
-    neg_sign = 1;
+    neg_sign = true;
   }
   if (v2 < 0) {
     v2 = (reg_word)(-(u_reg_word)v2);
@@ -1619,7 +1619,7 @@ void raise_exception(mips_exc_code excode) {
         CP0_Status_IE) /* Allow interrupt if IE and !EXL */
        && !((uint32_t)CP0_Status & CP0_Status_EXL))) {
     /* Ignore interrupt exception when interrupts disabled.  */
-    exception_occurred = 1;
+    exception_occurred = true;
     /* Record the FIRST "bad" exception — anything other than a normal-flow
        interrupt (0), syscall (8), or breakpoint (9).  Used by main() to
        set a non-zero shell exit status when the user program took a fault.
