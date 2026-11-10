@@ -153,6 +153,9 @@ def main(arguments: list[str]) -> int:
     Returns:
         int: the exit status.
     """
+    # Python ignores SIGPIPE; C does not, so `spimulator ... | head` ends the
+    # simulator when head exits.  Restore the default.
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
     try:
         return _main(arguments)
     except (console.RunError, console.CrashError):

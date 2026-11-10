@@ -48,13 +48,14 @@ def from_bytes(data: bytes) -> str:
 
 
 def write_fd(fd: int, data: bytes) -> None:
-    """Write all of data to the file descriptor fd, ignoring a closed pipe."""
+    """Write all of data to the file descriptor fd.
+
+    A write to a closed pipe kills the process with SIGPIPE, as in C (spim.main
+    restores the signal's default action).
+    """
     view: memoryview = memoryview(data)
     while view:
-        try:
-            written: int = os.write(fd, view)
-        except BrokenPipeError:
-            return
+        written: int = os.write(fd, view)
         view = view[written:]
 
 

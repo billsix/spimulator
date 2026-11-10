@@ -15,6 +15,7 @@
 # build (which runs `meson test`) gates it from then on.  Each entry is
 # [name, executable relative to the source root].
 ports = [
+  ['python', 'port/python/spimulator-python'],
 ]
 
 # Not run against ports, with the reason:

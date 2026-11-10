@@ -171,3 +171,12 @@ The port matches the C engine in each case (the C engine is the standard); none 
    `bad_mem_read` reads `ENCODING(text_seg[...])` without checking for a null slot (the word
    case checks). Reproducer: a program doing `lui $t1 0x40; ori $t1 $t1 0x4000; lb $t0 0($t1)`
    (past the end of the code) exits 139. The port exits 139 too (`console.CrashError`).
+
+### 2026-11-10 — milestone 5: registered in port/meson.build
+
+- `['python', 'port/python/spimulator-python']` is in `port/meson.build`'s `ports` list.
+  `meson test --suite port-python`: **64 OK, 0 failed** (28 regression tests, 34 demos,
+  `python-documented`, `python-compare`); the whole `meson test` (128 tests) passes.
+- Found by `python-documented`: `spimulator -f yes.asm | head -3` never ended. Python ignores
+  SIGPIPE and the port swallowed `BrokenPipeError`, so it kept printing into a closed pipe
+  forever; C dies of SIGPIPE. `spim.main` now restores SIGPIPE's default action.
