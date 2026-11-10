@@ -10,7 +10,7 @@ lenses:
 - **C23 lens** — what the core could still do more cleanly in C23 (struct initialization first).
   Feeds `tasks/archive/2026/11/10/c23-modernization-pass3.md` (§4).
 - **Port lens** — every user-observable behavior a reimplementation of the engine in another language
-  must match, and which oracle to trust. Feeds `tasks/engine-port-language-investigation.md` (§5, §6, §7).
+  must match, and which oracle to trust. Feeds `tasks/archive/2026/11/10/engine-port-language-investigation.md` (§5, §6, §7).
 
 **Requested by** William Emerison Six <billsix@gmail.com>, 2026-11-10 (`tasks/archive/2026/11/10/source-and-history-deep-audit.md`).
 
@@ -462,7 +462,7 @@ port without a wall-clock timer hangs there; `time.s` is a benchmark.
 
 - [F1] **Required** — apply the §4 worklist in `tasks/archive/2026/11/10/c23-modernization-pass3.md` (struct init first;
   setjmp functions opted out) (§4.1–§4.8).
-- [F2] **Required** — feed §5–§7 into `tasks/engine-port-language-investigation.md` (§5, §6, §7).
+- [F2] **Required** — feed §5–§7 into `tasks/archive/2026/11/10/engine-port-language-investigation.md` (§5, §6, §7).
 - [F3] **Recommended** — fix the memory-safety bugs: `print_reg_from_string` overflow, `expand_k_data`,
   REPL redo out-of-bounds, `addrs[10000]`, `atoi(NULL)`, `read_string` bounds, unchecked `fopen`,
   `.align` shift (§3.1, §3.3, §3.14–§3.17, §3.19, §3.23).
@@ -497,3 +497,8 @@ port without a wall-clock timer hangs there; `time.s` is a benchmark.
 2. Should the port match today's bug-compatible behaviors (divu guard, forward `.word lab+4`, branch
    reach) or should the C be fixed first so the oracle is correct? Recommendation: fix the C first
    (F5), then port against the fixed C (§7).
+
+---
+
+*Note, 2026-11-10 (same day): the three task paths this record cites were repointed to their
+`tasks/archive/2026/11/10/` locations when those tasks were archived; no finding was changed.*
