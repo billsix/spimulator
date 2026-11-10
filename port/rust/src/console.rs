@@ -33,6 +33,7 @@ mod sys {
         pub fn close(fd: c_int) -> c_int;
         pub fn poll(fds: *mut PollFd, nfds: u64, timeout: c_int) -> c_int;
         pub fn signal(signum: c_int, handler: usize) -> usize;
+        pub fn raise(signum: c_int) -> c_int;
     }
 }
 
@@ -88,6 +89,26 @@ pub fn restore_sigpipe() {
     unsafe {
         sys::signal(SIGPIPE, SIG_DFL);
     }
+}
+
+/// The signal a C integer division `i32::MIN / -1` dies of on x86.
+pub const SIGFPE: i32 = 8;
+/// The signal a C null-pointer read dies of.
+pub const SIGSEGV: i32 = 11;
+
+/// End the process with `signal`, where the C engine crashes the same
+/// way (see "C engine bugs found" in `tasks/engine-port-rust.md`): the
+/// port is to behave as the C engine does, and a test sees the signal.
+pub fn die_of_signal(signal: i32) -> ! {
+    const SIG_DFL: usize = 0;
+    // SAFETY: restoring the default disposition is always valid (Rust's
+    // runtime installs its own SIGSEGV handler); `raise` then delivers
+    // the signal to this thread, which ends the process.
+    unsafe {
+        sys::signal(signal as c_int, SIG_DFL);
+        sys::raise(signal as c_int);
+    }
+    std::process::abort()
 }
 
 /// `close(fd)`: 0, or -1.

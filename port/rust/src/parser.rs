@@ -324,7 +324,10 @@ impl Machine {
             } else if right == 0 {
                 0
             } else {
-                value.wrapping_div(right)
+                value.checked_div(right).unwrap_or_else(|| {
+                    // i32::MIN / -1: the C engine dies of SIGFPE here.
+                    crate::console::die_of_signal(crate::console::SIGFPE)
+                })
             };
         }
         value

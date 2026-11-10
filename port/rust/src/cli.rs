@@ -811,8 +811,11 @@ e.g., ex(it), re(ad), l(oad), ru(n), s(tep), p(rint)
 
 /// The value of a numeric flag's argument, like `atoi(argv[++i])`.
 fn numeric_argument(args: &[Vec<u8>], index: usize) -> i32 {
-    args.get(index)
-        .map_or(0, |text: &Vec<u8>| crate::arith::c_atoi(text))
+    match args.get(index) {
+        Some(text) => crate::arith::c_atoi(text),
+        // C calls atoi(NULL) and dies of SIGSEGV.
+        None => crate::console::die_of_signal(crate::console::SIGSEGV),
+    }
 }
 
 /// Refuse the teaching mode, which this port does not have.

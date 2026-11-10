@@ -12,7 +12,15 @@
 here=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
 binary="$here/target/release/spimulator-rust"
 if [ ! -x "$binary" ]; then
-    cargo build --release --offline --quiet --manifest-path "$here/Cargo.toml" >&2 || exit 255
+    # Quiet unless the build fails: a test compares this command's stderr.
+    log=$(mktemp)
+    # An empty environment (the tests run with one) still needs a PATH.
+    if ! PATH=${PATH:-/usr/local/bin:/usr/bin:/bin} cargo build --release --offline --quiet --manifest-path "$here/Cargo.toml" > "$log" 2>&1; then
+        cat "$log" >&2
+        rm -f "$log"
+        exit 255
+    fi
+    rm -f "$log"
 fi
 if [ -r "/proc/$$/environ" ]; then
     mapfile -d '' original_environment < "/proc/$$/environ"
