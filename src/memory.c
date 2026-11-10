@@ -163,7 +163,6 @@ void expand_data(int addl_bytes) {
   int delta = ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
   int old_size = (int)(data_top - DATA_BOT);
   int new_size = old_size + delta;
-  int8_t* p;
 
   if ((addl_bytes < 0) || (new_size > data_size_limit)) {
     error("Can't expand data segment by %d bytes to %d bytes\n", addl_bytes,
@@ -178,7 +177,7 @@ void expand_data(int addl_bytes) {
   data_top += (mem_addr)delta;
 
   /* Zero new memory */
-  for (p = data_seg_b + old_size; p < data_seg_b + new_size;) *p++ = 0;
+  for (int8_t* p = data_seg_b + old_size; p < data_seg_b + new_size;) *p++ = 0;
 }
 
 /* Expand the stack segment by adding N bytes.  Can't use REALLOC

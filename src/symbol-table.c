@@ -42,12 +42,10 @@ static label* label_hash_table[LABEL_HASH_TABLE_SIZE];
 /* Initialize the symbol table by removing and freeing old entries. */
 
 void initialize_symbol_table(void) {
-  int i;
+  for (int i = 0; i < LABEL_HASH_TABLE_SIZE; i++) {
+    label* n;
 
-  for (i = 0; i < LABEL_HASH_TABLE_SIZE; i++) {
-    label *x, *n;
-
-    for (x = label_hash_table[i]; x != nullptr; x = n) {
+    for (label* x = label_hash_table[i]; x != nullptr; x = n) {
       free(x->name);
       n = x->next;
       free(x);
@@ -64,24 +62,19 @@ void initialize_symbol_table(void) {
    set ENTRY to be nullptr. */
 
 static void get_hash(char* name, int* slot_no, label** entry) {
-  unsigned hi;
-  int i;
-  label* cursor;
-  int len;
+  int len = (int)strlen(name);
 
-  /* Compute length of name in len.  */
-  for (len = 0; name[len]; len++);
-
-  /* Compute hash code */
-  hi = (unsigned int)len;
-  for (i = 0; i < len; i++) hi = ((hi * 613) + (unsigned)(name[i]));
+  /* Compute hash code.  (unsigned)(name[i]) sign-extends a negative
+     plain char first; the symbol dump order depends on it. */
+  unsigned hi = (unsigned int)len;
+  for (int i = 0; i < len; i++) hi = ((hi * 613) + (unsigned)(name[i]));
 
   hi &= (1 << HASHBITS) - 1;
   hi %= LABEL_HASH_TABLE_SIZE;
 
   *slot_no = (int)hi;
   /* Search table for entry */
-  for (cursor = label_hash_table[hi]; cursor; cursor = cursor->next)
+  for (label* cursor = label_hash_table[hi]; cursor; cursor = cursor->next)
     if (streq(cursor->name, name)) {
       *entry = cursor; /* <-- return if found */
       return;
@@ -187,10 +180,9 @@ void record_data_uses_symbol(mem_addr location, label* sym) {
    instructions and data locations that refer to the label. */
 
 void resolve_label_uses(label* sym) {
-  label_use* use;
   label_use* next_use;
 
-  for (use = sym->uses; use != nullptr; use = next_use) {
+  for (label_use* use = sym->uses; use != nullptr; use = next_use) {
     resolve_a_label_sub(sym, use->instruction, use->addr);
     if (use->instruction != nullptr && use->addr >= DATA_BOT &&
         use->addr < stack_bot) {
@@ -228,10 +220,8 @@ static void resolve_a_label_sub(label* sym, mips_instruction* instruction,
       int32_t field_mask;
 
       if (opcode_is_branch(OPCODE(instruction))) {
-        int val;
-
         /* Drop low two bits since instructions are on word boundaries. */
-        val = sign_ex(eval_imm_expr(EXPR(instruction))); /* 16->32 bits */
+        int val = sign_ex(eval_imm_expr(EXPR(instruction))); /* 16->32 bits */
         val = (val >> 2) & 0xffff; /* right shift, 32->16 bits */
 
         if (delayed_branches) val -= 1;
@@ -259,10 +249,9 @@ static void resolve_a_label_sub(label* sym, mips_instruction* instruction,
         if (value & 0x8000) {
           /* LW/SW sign extends offset. Compensate by adding 1 to high 16 bits.
            */
-          mips_instruction* prev_inst;
-          mips_instruction* prev_prev_inst;
-          prev_inst = mem_read_inst(pc - BYTES_PER_WORD);
-          prev_prev_inst = mem_read_inst(pc - 2 * BYTES_PER_WORD);
+          mips_instruction* prev_inst = mem_read_inst(pc - BYTES_PER_WORD);
+          mips_instruction* prev_prev_inst =
+              mem_read_inst(pc - 2 * BYTES_PER_WORD);
 
           if (prev_inst != nullptr && OPCODE(prev_inst) == TOK_LUI_OPCODE &&
               EXPR(instruction)->symbol == EXPR(prev_inst)->symbol &&
@@ -307,9 +296,7 @@ static void resolve_a_label_sub(label* sym, mips_instruction* instruction,
 /* Remove all local (non-global) label from the table. */
 
 void flush_local_labels(int issue_undef_warnings) {
-  label* l;
-
-  for (l = local_labels; l != nullptr; l = l->next_local) {
+  for (label* l = local_labels; l != nullptr; l = l->next_local) {
     int hi;
     label *entry, *cursor, *prev;
 
@@ -345,11 +332,8 @@ mem_addr find_symbol_address(char* symbol) {
 /* Print all symbols in the table. */
 
 void print_symbols(void) {
-  int i;
-  label* l;
-
-  for (i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
-    for (l = label_hash_table[i]; l != nullptr; l = l->next)
+  for (int i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
+    for (label* l = label_hash_table[i]; l != nullptr; l = l->next)
       write_output(message_out, "%s%s at 0x%08x\n",
                    l->global_flag ? "g\t" : "\t", l->name, l->addr);
 }
@@ -357,21 +341,16 @@ void print_symbols(void) {
 /* Iterate over every currently-defined symbol in the table. */
 
 void for_each_label(void (*cb)(const label* l, void* ctx), void* ctx) {
-  int i;
-  label* l;
-  for (i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
-    for (l = label_hash_table[i]; l != nullptr; l = l->next)
+  for (int i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
+    for (label* l = label_hash_table[i]; l != nullptr; l = l->next)
       if (SYMBOL_IS_DEFINED(l)) cb(l, ctx);
 }
 
 /* Print all undefined symbols in the table. */
 
 void print_undefined_symbols(void) {
-  int i;
-  label* l;
-
-  for (i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
-    for (l = label_hash_table[i]; l != nullptr; l = l->next)
+  for (int i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
+    for (label* l = label_hash_table[i]; l != nullptr; l = l->next)
       if (l->addr == 0) write_output(message_out, "%s\n", l->name);
 }
 
@@ -384,11 +363,8 @@ char* undefined_symbol_string(void) {
   int string_length = 0;
   char* buffer = (char*)malloc((size_t)buffer_length);
 
-  int i;
-  label* l;
-
-  for (i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
-    for (l = label_hash_table[i]; l != nullptr; l = l->next)
+  for (int i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
+    for (label* l = label_hash_table[i]; l != nullptr; l = l->next)
       if (l->addr == 0) {
         int name_length = (int)strlen(l->name);
         int after_length = string_length + name_length + 2;

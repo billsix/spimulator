@@ -435,9 +435,8 @@ static int scan_identifier(scan_token* out, bool force_id) {
 
 /* Scan a $register reference. */
 static int scan_register(scan_token* out) {
-  int start;
   next_char(); /* skip the $ */
-  start = line_pos;
+  int start = line_pos;
   while (peek_char() == '_' || peek_char() == '.' || peek_char() == '$' ||
          isalnum(peek_char())) {
     next_char();

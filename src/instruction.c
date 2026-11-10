@@ -259,10 +259,8 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
       i_type_inst_free(opcode, rt, REG_GP,
                        make_imm_expr(offset, nullptr, false));
     } else if (value_known) {
-      int low, high;
-
-      high = (value >> 16) & 0xffff;
-      low = value & 0xffff;
+      int high = (value >> 16) & 0xffff;
+      int low = value & 0xffff;
 
       if (!(high == 0 && !(low & 0x8000)) &&
           !(high == 0xffff && (low & 0x8000))) {
@@ -597,11 +595,9 @@ const char* op_token_name(int op_token) {
 }
 
 char* inst_to_string(mem_addr addr) {
-  str_stream ss;
-  mips_instruction* instruction;
-
+  /* Clear the flag first: mem_read_inst sets it on a bad address. */
   exception_occurred = 0;
-  instruction = mem_read_inst(addr);
+  mips_instruction* instruction = mem_read_inst(addr);
 
   if (exception_occurred) {
     error("Can't print instruction not in text segment (0x%08x)\n", addr);
@@ -610,6 +606,7 @@ char* inst_to_string(mem_addr addr) {
     return strdup("");
   }
 
+  str_stream ss;
   ss_init(&ss);
   format_an_inst(&ss, instruction, addr);
   /* Transfer the buffer to the caller (who frees it); ss is a local,
@@ -944,13 +941,11 @@ bool inst_is_breakpoint(mem_addr addr) {
    breakpoint cannot be set, return nullptr. */
 
 mips_instruction* set_breakpoint(mem_addr addr) {
-  mips_instruction* old_inst;
-
   if (break_inst == nullptr)
     break_inst = make_r_type_inst(TOK_BREAK_OPCODE, 1, 0, 0);
 
   exception_occurred = 0;
-  old_inst = mem_read_inst(addr);
+  mips_instruction* old_inst = mem_read_inst(addr);
   if (old_inst == break_inst) return (nullptr);
 
   mem_write_inst(addr, break_inst);
@@ -1133,17 +1128,14 @@ static void sort_i_opcode_table(void) {
 #define REGS(R, O) (((R) & 0x1f) << O)
 
 int32_t inst_encode(mips_instruction* instruction) {
-  int32_t a_opcode = 0;
-  name_val_val* entry;
-
   if (instruction == nullptr) return (0);
 
-  entry = map_int_to_name_val_val(i_opcode_tbl,
-                                  sizeof(i_opcode_tbl) / sizeof(name_val_val),
-                                  OPCODE(instruction));
+  name_val_val* entry = map_int_to_name_val_val(
+      i_opcode_tbl, sizeof(i_opcode_tbl) / sizeof(name_val_val),
+      OPCODE(instruction));
   if (entry == nullptr) return 0;
 
-  a_opcode = entry->value2;
+  int32_t a_opcode = entry->value2;
   entry = map_int_to_name_val_val(
       name_tbl, sizeof(name_tbl) / sizeof(name_val_val), OPCODE(instruction));
 
@@ -1263,8 +1255,6 @@ static void sort_a_opcode_table(void) {
 
 mips_instruction* inst_decode(int32_t val) {
   int32_t a_opcode = (int32_t)((unsigned int)val & 0xfc000000);
-  name_val_val* entry;
-  int32_t i_opcode;
 
   /* Field classes: (opcode is continued in other part of instruction): */
   if (a_opcode == 0 || a_opcode == 0x70000000) /* SPECIAL or SPECIAL2 */
@@ -1284,12 +1274,12 @@ mips_instruction* inst_decode(int32_t val) {
              || a_opcode == 0x4c000000)
     a_opcode |= (val & 0x03e00000);
 
-  entry = map_int_to_name_val_val(
+  name_val_val* entry = map_int_to_name_val_val(
       a_opcode_tbl, sizeof(a_opcode_tbl) / sizeof(name_val_val), a_opcode);
   if (entry == nullptr)
     return (mk_r_inst(val, 0, 0, 0, 0, 0)); /* Invalid instruction */
 
-  i_opcode = entry->value2;
+  int32_t i_opcode = entry->value2;
 
   switch (map_int_to_name_val_val(
               name_tbl, sizeof(name_tbl) / sizeof(name_val_val), i_opcode)

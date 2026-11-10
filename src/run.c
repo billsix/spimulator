@@ -130,13 +130,12 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
   mips_instruction* instruction;
   static reg_word *delayed_load_addr1 = nullptr, delayed_load_value1;
   static reg_word *delayed_load_addr2 = nullptr, delayed_load_value2;
-  int step, step_size, next_step;
+  int step_size;
 
   PC = initial_PC;
-  if (!bare_machine && mapped_io)
-    next_step = IO_INTERVAL;
-  else
-    next_step = steps_to_run; /* Run to completion */
+  /* Without mapped IO, run to completion in one chunk. */
+  const int next_step =
+      (!bare_machine && mapped_io) ? IO_INTERVAL : steps_to_run;
 
   /* Start a timer running */
   start_CP0_timer();
@@ -163,7 +162,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
     }
 
     force_break = false;
-    for (step = 0; step < step_size; step += 1) {
+    for (int step = 0; step < step_size; step += 1) {
       if (force_break) {
         return true;
       }
@@ -508,11 +507,9 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         case TOK_LWL_OPCODE: {
           mem_addr addr = (u_reg_word)gpr[BASE(instruction)] +
                           (u_reg_word)IOFFSET(instruction);
-          reg_word word; /* Can't be register */
           int byte = addr & 0x3;
           reg_word reg_val = gpr[RT(instruction)];
-
-          word = mem_read_word(addr & 0xfffffffc);
+          reg_word word = mem_read_word(addr & 0xfffffffc);
           if (!exception_occurred)
 #ifdef SPIM_BIGENDIAN
             switch (byte) {
@@ -560,11 +557,9 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         case TOK_LWR_OPCODE: {
           mem_addr addr = (u_reg_word)gpr[BASE(instruction)] +
                           (u_reg_word)IOFFSET(instruction);
-          reg_word word; /* Can't be register */
           int byte = addr & 0x3;
           reg_word reg_val = gpr[RT(instruction)];
-
-          word = mem_read_word(addr & 0xfffffffc);
+          reg_word word = mem_read_word(addr & 0xfffffffc);
           if (!exception_occurred)
 #ifdef SPIM_BIGENDIAN
             switch (byte) {
@@ -616,14 +611,13 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         case TOK_MADDU_OPCODE: {
           u_reg_word product_low = (u_reg_word)LO,
                      product_high = (u_reg_word)HI;
-          u_reg_word tmp;
           if (OPCODE(instruction) == TOK_MADD_OPCODE) {
             signed_multiply(gpr[RS(instruction)], gpr[RT(instruction)]);
           } else /* TOK_MADDU_OPCODE */
           {
             unsigned_multiply(gpr[RS(instruction)], gpr[RT(instruction)]);
           }
-          tmp = product_low + (u_reg_word)LO;
+          u_reg_word tmp = product_low + (u_reg_word)LO;
           if ((unsigned)tmp < (unsigned)LO ||
               (unsigned)tmp < (unsigned)product_low) {
             /* Addition of low-order word overflows */
@@ -664,8 +658,6 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         case TOK_MSUBU_OPCODE: {
           u_reg_word product_low = (u_reg_word)LO,
                      product_high = (u_reg_word)HI;
-          u_reg_word tmp;
-
           if (OPCODE(instruction) == TOK_MSUB_OPCODE) {
             signed_multiply(gpr[RS(instruction)], gpr[RT(instruction)]);
           } else /* TOK_MSUBU_OPCODE */
@@ -673,7 +665,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
             unsigned_multiply(gpr[RS(instruction)], gpr[RT(instruction)]);
           }
 
-          tmp = product_low - (u_reg_word)LO;
+          u_reg_word tmp = product_low - (u_reg_word)LO;
           if ((unsigned)LO > (unsigned)product_low) {
             /* Subtraction of low-order word borrows */
             product_high -= 1;
@@ -917,11 +909,9 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         case TOK_SWL_OPCODE: {
           mem_addr addr = (u_reg_word)gpr[BASE(instruction)] +
                           (u_reg_word)IOFFSET(instruction);
-          mem_word data;
           reg_word reg = gpr[RT(instruction)];
           int byte = addr & 0x3;
-
-          data = mem_read_word(addr & 0xfffffffc);
+          mem_word data = mem_read_word(addr & 0xfffffffc);
 #ifdef SPIM_BIGENDIAN
           switch (byte) {
             case 0:
@@ -969,11 +959,9 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         case TOK_SWR_OPCODE: {
           mem_addr addr = (u_reg_word)gpr[BASE(instruction)] +
                           (u_reg_word)IOFFSET(instruction);
-          mem_word data;
           reg_word reg = gpr[RT(instruction)];
           int byte = addr & 0x3;
-
-          data = mem_read_word(addr & 0xfffffffc);
+          mem_word data = mem_read_word(addr & 0xfffffffc);
 #ifdef SPIM_BIGENDIAN
           switch (byte) {
             case 0:
@@ -1567,25 +1555,22 @@ static void start_CP0_timer(void) {
  overflow. */
 
 static void unsigned_multiply(reg_word v1, reg_word v2) {
-  u_reg_word a, b, c, d;
-  u_reg_word bd, ad, cb, ac;
-  u_reg_word mid, mid2, carry_mid = 0;
+  const u_reg_word a = (u_reg_word)((v1 >> 16) & 0xffff);
+  const u_reg_word b = v1 & 0xffff;
+  const u_reg_word c = (u_reg_word)((v2 >> 16) & 0xffff);
+  const u_reg_word d = v2 & 0xffff;
 
-  a = (u_reg_word)((v1 >> 16) & 0xffff);
-  b = v1 & 0xffff;
-  c = (u_reg_word)((v2 >> 16) & 0xffff);
-  d = v2 & 0xffff;
+  const u_reg_word bd = b * d;
+  const u_reg_word ad = a * d;
+  const u_reg_word cb = c * b;
+  const u_reg_word ac = a * c;
 
-  bd = b * d;
-  ad = a * d;
-  cb = c * b;
-  ac = a * c;
-
-  mid = ad + cb;
+  const u_reg_word mid = ad + cb;
+  u_reg_word carry_mid = 0;
   if (mid < ad || mid < cb) /* Arithmetic overflow or carry-out */
     carry_mid = 1;
 
-  mid2 = mid + ((bd >> 16) & 0xffff);
+  const u_reg_word mid2 = mid + ((bd >> 16) & 0xffff);
   if (mid2 < mid || mid2 < ((bd >> 16) & 0xffff))
     /* Arithmetic overflow or carry-out */
     carry_mid += 1;

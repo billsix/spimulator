@@ -99,15 +99,12 @@ void initialize_world(char* exception_file_names, bool print_message) {
       if (!load_embedded_exception_handler(print_message))
         fatal_error("Cannot parse embedded exception handler\n");
     } else {
-      char* filename;
-      char* files;
-
       /* strtok modifies the string, so we must back up the string prior to
          use. */
-      if ((files = strdup(exception_file_names)) == nullptr)
-        fatal_error("Insufficient memory to complete.\n");
+      char* files = strdup(exception_file_names);
+      if (files == nullptr) fatal_error("Insufficient memory to complete.\n");
 
-      for (filename = strtok(files, ";"); filename != nullptr;
+      for (char* filename = strtok(files, ";"); filename != nullptr;
            filename = strtok(nullptr, ";")) {
         if (!read_assembly_file(filename))
           fatal_error("Cannot read exception handler: %s\n", filename);
@@ -368,14 +365,12 @@ void delete_breakpoint(mem_addr addr) {
 
   for (p = nullptr, b = bkpts; b != nullptr;)
     if (b->addr == addr) {
-      bkpt* n;
-
       mem_write_inst(addr, b->instruction);
       if (p == nullptr)
         bkpts = b->next;
       else
         p->next = b->next;
-      n = b->next;
+      bkpt* n = b->next;
       free(b);
       b = n;
       deleted_one = 1;
@@ -385,9 +380,9 @@ void delete_breakpoint(mem_addr addr) {
 }
 
 static void delete_all_breakpoints(void) {
-  bkpt *b, *n;
+  bkpt* n = nullptr;
 
-  for (b = bkpts, n = nullptr; b != nullptr; b = n) {
+  for (bkpt* b = bkpts; b != nullptr; b = n) {
     n = b->next;
     free(b);
   }
@@ -397,10 +392,8 @@ static void delete_all_breakpoints(void) {
 /* List all breakpoints. */
 
 void list_breakpoints(void) {
-  bkpt* b;
-
   if (bkpts)
-    for (b = bkpts; b != nullptr; b = b->next)
+    for (bkpt* b = bkpts; b != nullptr; b = b->next)
       write_output(message_out, "Breakpoint at 0x%08x\n", b->addr);
   else
     write_output(message_out, "No breakpoints set\n");

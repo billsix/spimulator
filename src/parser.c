@@ -850,20 +850,13 @@ static void parse_r1s(int op) {
    use `ori $k0, 0x1`. */
 static void parse_i2(int op) {
   int rt = parse_register();
-  int rs;
-  if (scanner_peek() == TOK_REG) {
-    rs = parse_register();
-  } else {
-    rs = rt;
-  }
+  int rs = scanner_peek() == TOK_REG ? parse_register() : rt;
   /* andi/ori/xori take unsigned; addi/addiu/slti signed.  The
      range check happens inside parse_imm16/parse_uimm16. */
-  imm_expr* imm;
-  if (op == TOK_ANDI_OPCODE || op == TOK_ORI_OPCODE || op == TOK_XORI_OPCODE) {
-    imm = parse_uimm16();
-  } else {
-    imm = parse_imm16();
-  }
+  imm_expr* imm =
+      (op == TOK_ANDI_OPCODE || op == TOK_ORI_OPCODE || op == TOK_XORI_OPCODE)
+          ? parse_uimm16()
+          : parse_imm16();
   emit_i_free(op, rt, rs, imm);
 }
 
@@ -1388,11 +1381,8 @@ static void do_parse_pseudo(int op) {
       /* mfc1.d REG COP_REG  →  two mfc1 instructions
        */
       int reg = parse_register();
-      int copreg;
-      if (scanner_peek() == TOK_FP_REG)
-        copreg = parse_fp_register();
-      else
-        copreg = parse_register();
+      int copreg =
+          scanner_peek() == TOK_FP_REG ? parse_fp_register() : parse_register();
       emit_fp_r(TOK_MFC1_OPCODE, 0, copreg, reg);
       emit_fp_r(TOK_MFC1_OPCODE, 0, copreg + 1, reg + 1);
       break;
@@ -1401,11 +1391,8 @@ static void do_parse_pseudo(int op) {
       /* mtc1.d REG COP_REG  →  two mtc1 instructions
        */
       int reg = parse_register();
-      int copreg;
-      if (scanner_peek() == TOK_FP_REG)
-        copreg = parse_fp_register();
-      else
-        copreg = parse_register();
+      int copreg =
+          scanner_peek() == TOK_FP_REG ? parse_fp_register() : parse_register();
       emit_fp_r(TOK_MTC1_OPCODE, 0, copreg, reg);
       emit_fp_r(TOK_MTC1_OPCODE, 0, copreg + 1, reg + 1);
       break;
@@ -1749,12 +1736,8 @@ static void parse_asm_code(void) {
       /* mfc0/mtc0/etc.: <op> REG COP_REG.  COP_REG accepts
          TOK_REG or TOK_FP_REG. */
       int reg = parse_register();
-      int copreg;
-      if (scanner_peek() == TOK_FP_REG) {
-        copreg = parse_fp_register();
-      } else {
-        copreg = parse_register();
-      }
+      int copreg =
+          scanner_peek() == TOK_FP_REG ? parse_fp_register() : parse_register();
       emit_fp_r(op, 0, copreg, reg);
       break;
     }
@@ -1961,12 +1944,8 @@ static void parse_asm_code(void) {
          COP_REG accepts either TOK_REG OR TOK_FP_REG (
          2574) — both name the coprocessor register number. */
       int reg = parse_register();
-      int copreg;
-      if (scanner_peek() == TOK_FP_REG) {
-        copreg = parse_fp_register();
-      } else {
-        copreg = parse_register();
-      }
+      int copreg =
+          scanner_peek() == TOK_FP_REG ? parse_fp_register() : parse_register();
       emit_fp_r(op, 0, copreg, reg);
       break;
     }

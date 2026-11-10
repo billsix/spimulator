@@ -879,9 +879,9 @@ enum {
 static bool parse_spim_command(bool redo) {
   static int prev_cmd = NOP_CMD; /* Default redo */
   static int prev_token;
-  int cmd;
+  const int cmd = redo ? prev_cmd : read_assembly_command();
 
-  switch (cmd = (redo ? prev_cmd : read_assembly_command())) {
+  switch (cmd) {
     case EXIT_CMD:
       console_to_spim();
       exit(0);
@@ -940,10 +940,9 @@ static bool parse_spim_command(bool redo) {
 
     case STEP_CMD: {
       static int steps;
-      mem_addr addr;
 
       steps = (redo ? steps : get_opt_int());
-      addr = PC == 0 ? starting_address() : PC;
+      mem_addr addr = PC == 0 ? starting_address() : PC;
 
       if (steps == 0) steps = 1;
       if (addr != 0) {
@@ -1214,13 +1213,7 @@ static bool parse_spim_command(bool redo) {
     case DUMP_TEXT_CMD: {
       int token = (redo ? prev_token : read_token());
 
-      FILE* fp = nullptr;
       char* filename = nullptr;
-
-      int words = 0;
-      mem_addr addr;
-      mem_addr dump_start;
-      mem_addr dump_end;
 
       if (token == TOK_STR)
         filename = (char*)scan_value.p;
@@ -1232,17 +1225,20 @@ static bool parse_spim_command(bool redo) {
         return (0);
       }
 
-      fp = fopen(filename, "wbt");
+      FILE* fp = fopen(filename, "wbt");
       if (fp == nullptr) {
         perror(filename);
         return (0);
       }
 
       user_kernel_text_segment(false);
-      dump_start = find_symbol_address(END_OF_TRAP_HANDLER_SYMBOL);
-      dump_end = current_text_pc();
+      const mem_addr dump_start =
+          find_symbol_address(END_OF_TRAP_HANDLER_SYMBOL);
+      const mem_addr dump_end = current_text_pc();
 
-      for (addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
+      int words = 0;
+      for (mem_addr addr = dump_start; addr < dump_end;
+           addr += BYTES_PER_WORD) {
         int32_t code = inst_encode(mem_read_inst(addr));
         if (cmd == DUMP_TEXT_CMD)
           code =
@@ -1343,9 +1339,9 @@ static int str_prefix(char* s1, char* s2, int min_match) {
    rest of the line, including the newline. */
 
 static int get_opt_int(void) {
-  int token;
+  const int token = read_token();
 
-  if ((token = read_token()) == TOK_INT) {
+  if (token == TOK_INT) {
     flush_to_newline();
     return (scan_value.i);
   } else if (token == TOK_NL)
@@ -1426,9 +1422,8 @@ static bool write_assembled_code(char* program_name) {
 
   FILE* fp = nullptr;
   {
-    char* filename = nullptr;
     const unsigned long filename_len = strlen(program_name) + 5;
-    filename = (char*)xmalloc(filename_len);
+    char* filename = (char*)xmalloc(filename_len);
     strlcpy(filename, program_name, filename_len);
     strlcat(filename, ".out", filename_len);
 
@@ -1515,24 +1510,18 @@ void fatal_error(char* fmt, ...) {
 
 void write_output(port fp, char* fmt, ...) {
   va_list args;
-  FILE* f;
+  FILE* f = fp.f != nullptr ? fp.f : stdout;
   int restore_console_to_program = 0;
 
   va_start(args, fmt);
-  f = fp.f;
 
   if (console_state_saved) {
     restore_console_to_program = 1;
     console_to_spim();
   }
 
-  if (f != 0) {
-    vfprintf(f, fmt, args);
-    fflush(f);
-  } else {
-    vfprintf(stdout, fmt, args);
-    fflush(stdout);
-  }
+  vfprintf(f, fmt, args);
+  fflush(f);
   va_end(args);
 
   if (restore_console_to_program) console_to_program();
@@ -1547,7 +1536,6 @@ void write_output(port fp, char* fmt, ...) {
  */
 
 int read_input(char* str, int str_size) {
-  char* ptr;
   int restore_console_to_program = 0;
   int count = 0;
 
@@ -1556,7 +1544,7 @@ int read_input(char* str, int str_size) {
     console_to_spim();
   }
 
-  ptr = str;
+  char* ptr = str;
 
   while (1 < str_size) /* Reserve space for null */
   {
@@ -1737,8 +1725,7 @@ static void dump_text_seg(bool kernel_also) {
     format_insts(&ss, TEXT_BOT, text_top);
   }
 
-  FILE* fp;
-  fp = fopen("text.asm", "w");
+  FILE* fp = fopen("text.asm", "w");
   fprintf(fp, "%s", ss_to_string(&ss));
   fclose(fp);
 }
