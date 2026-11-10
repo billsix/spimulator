@@ -1,6 +1,6 @@
 # Port the simulator engine to Python, proven against the C engine
 
-**Status:** proposed — needs go-ahead
+**Status:** ready — decisions made (Decisions); not started
 **Priority:** 6
 **Difficulty:** 8
 **Created:** 2026-11-10 (from `tasks/archive/2026/11/10/engine-port-language-investigation.md`)
@@ -35,11 +35,6 @@ engine stays the oracle until the maintainer decides otherwise.
 4. Package layout, typing and test gate per the python-coding-standard.md reference doc from
    github.com/billsix/runClaudeInContainer (`ty`, ruff, doctests).
 
-## Open questions
-
-1. Does the port live in this repo (e.g. `port/`) or a new repo? Recommendation: this repo, so the
-   harness can build the C oracle in the same image.
-
 ## Decisions
 
 - The port is in **Python** (William Emerison Six <billsix@gmail.com>, 2026-11-10).
@@ -48,3 +43,5 @@ engine stays the oracle until the maintainer decides otherwise.
 - `,` as a floating-point decimal separator is **dropped** from the C scanner before the port (it
   makes `.word 1,2` a syntax error); the maintainer left the call to the agent, who recommended
   dropping it (William Emerison Six <billsix@gmail.com>, 2026-11-10). No task doc exists for it yet; scaffold one with the step 1 prerequisites.
+- The port lives **in this repo**, under `port/`, so the harness builds the C oracle in the same
+  image ("for now"; William Emerison Six <billsix@gmail.com>, 2026-11-10).
