@@ -10,8 +10,8 @@
 ## BLUF
 
 Write a Python implementation of the spimulator engine (assembler, executor, syscalls, REPL, and
-last the teaching mode) that behaves equivalently to the C engine, the standard: byte-identical stdout, stderr and exit
-status on the shared corpus (`tasks/engine-ports.md`), checked by a differential harness in the
+last the teaching mode) that behaves equivalently to the C engine, the standard: the same stdout, stderr and exit status on
+the shared corpus, float-to-text differences being warnings only (`tasks/engine-ports.md`), checked by a differential harness in the
 meson gate. This port also builds that harness, for every engine. Done means: the harness reports
 zero differences on the whole corpus.
 
@@ -40,10 +40,10 @@ zero differences on the whole corpus.
 
 - **Python prints a negative NaN as `nan`; glibc prints `-nan`** (measured 2026-11-10 for
   `0xfff8000000000000` in `%.18g`, `%.8f` and `%#-13.6g`). On x86, `0.0 / 0.0` produces that NaN, so a
-  MIPS program that divides zero by zero prints `-nan` in C. The float printing therefore needs a
-  wrapper that reads the sign bit of a NaN and prepends `-`. The C engine's five float formats are
-  listed in `tasks/engine-port-haskell.md` (Findings); each needs a check against C over many values
-  (the ad-hoc generator `tasks/adhoc/engine-port-haskell/gen.py` gives the inputs).
+  MIPS program that divides zero by zero prints `-nan` in C. This difference would only be a
+  warning (float-to-text does not gate a port; `tasks/engine-ports.md`). The fix is cheap and done:
+  `tasks/adhoc/engine-ports-float-format/cformat.py`, the `%` operator plus a `-nan` sign fix, matches
+  glibc exactly in all five of the C engine's float formats on 158,029 values. Promote it into the port.
 
 ## Decisions
 

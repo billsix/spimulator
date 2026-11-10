@@ -10,11 +10,12 @@
 ## BLUF
 
 Write a GHC Haskell implementation of the spimulator engine that behaves equivalently to the C
-engine, the standard: byte-identical stdout, stderr and exit status on the whole shared corpus, as
+engine, the standard: the same stdout, stderr and exit status on the whole shared corpus, as
 checked by the differential harness (`tasks/engine-ports.md`). The maintainer wants to see how a
-pure functional language handles a stateful machine. The language study's one blocker, GHC printing
-`%.18g` wrongly, is solved and measured (Findings). Done means: the harness reports zero differences
-for the Haskell engine, and it builds offline in the image with GHC's own libraries only.
+pure functional language handles a stateful machine. The language study's blocker, GHC printing
+`%.18g` wrongly, would not gate the port anyway, since float-to-text differences are warnings
+(`tasks/engine-ports.md`). It is also solved and measured (Findings). Done means: the harness reports zero differences
+for the Haskell engine (float-to-text warnings allowed), and it builds offline in the image with GHC's own libraries only.
 
 ## Context
 
@@ -23,7 +24,7 @@ for the Haskell engine, and it builds offline in the image with GHC's own librar
 - `tasks/reference/engine-port-language-choice.md` — why the study did not recommend Haskell
   (formatting, state threading), and the measured `%.18g` fix.
 - `tasks/review/2026/11/10/repo-review.md` §5 — the behavior inventory to match.
-- `tasks/adhoc/engine-port-haskell/` — the formatter proof (run `bash tasks/adhoc/engine-port-haskell/run.sh`).
+- `tasks/adhoc/engine-ports-float-format/` — the formatter proof (run `bash tasks/adhoc/engine-ports-float-format/run.sh`).
 
 ## Findings (2026-11-10)
 
@@ -52,7 +53,7 @@ The C engine prints floats in five formats:
 - `%.18g` and `%g`: the data listing and the REPL `print` (`src/spim.c`);
 - `%#-13.6g`: the FP register display (`src/display-utils.c`).
 
-`tasks/adhoc/engine-port-haskell/CFormat.hs` (about 90 lines) implements all five. On 158,029
+`tasks/adhoc/engine-ports-float-format/CFormat.hs` (about 90 lines) implements all five. Rust and Python formatters sit beside it, tested the same way. On 158,029
 values it is **byte-identical to glibc `printf`** in every one of them. The values were random
 64-bit patterns, values near every decimal exponent from 1e-30 to 1e30, subnormals, the extremes,
 ±0, ±inf, ±nan, eighths and single-precision values.
