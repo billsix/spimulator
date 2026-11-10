@@ -76,6 +76,13 @@ EXPLAIN_UNSUPPORTED: str = (
     "spimulator-python: the teaching mode (-explain) is not supported by this port\n"
 )
 
+_VALUE_FLAGS: frozenset[str] = frozenset(
+    ("-stext", "-st", "-sdata", "-sd", "-ldata", "-ld", "-sstack", "-ss",
+     "-lstack", "-ls", "-sktext", "-skt", "-skdata", "-skd", "-lkdata", "-lkd",
+     "-exception_file", "-ef", "-trap_file", "-tf")
+)  # fmt: skip
+"""The flags that take the next argument as their value."""
+
 exception_file_name: str = spim_utils.DEFAULT_EXCEPTIONS
 load_exception_handler: bool = True
 program_argv: list[str] = []
@@ -193,7 +200,11 @@ def _main(argv: list[str]) -> int:  # noqa: C901 - the C engine's flag loop
     i: int = 1
     while i < argc:
         arg: str = args[i]
-        if arg in ("-asm", "-a"):
+        if arg in _VALUE_FLAGS and i + 1 >= argc:
+            # The flag's value is missing: report it, then the usage.
+            console.error(f"spimulator: {arg} requires a value\n")
+            print_usage = True
+        elif arg in ("-asm", "-a"):
             options.bare_machine = False
             options.delayed_branches = False
             options.delayed_loads = False
