@@ -185,7 +185,7 @@ void format_data_segs(str_stream* ss) {
   format_mem(ss, K_DATA_BOT, k_data_top);
 }
 
-#define BYTES_PER_LINE (4 * BYTES_PER_WORD)
+constexpr int BYTES_PER_LINE = 4 * BYTES_PER_WORD;
 
 /* Write to the stream a printable representation of the data in memory
    address: FROM...TO. */

@@ -31,9 +31,9 @@ static void resolve_a_label_sub(label* sym, mips_instruction* instruction,
 
 static label* local_labels = nullptr; /* Labels local to current file. */
 
-#define HASHBITS 30
+constexpr int HASHBITS = 30;
 
-#define LABEL_HASH_TABLE_SIZE 8191
+constexpr int LABEL_HASH_TABLE_SIZE = 8191;
 
 /* Map from name of a label to a label structure. */
 

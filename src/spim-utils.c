@@ -207,7 +207,7 @@ mem_addr starting_address(void) {
   return (find_symbol_address(DEFAULT_RUN_LOCATION));
 }
 
-#define MAX_ARGS 10000
+constexpr int MAX_ARGS = 10000;
 
 /* Initialize the SPIM stack from a string containing the command line. */
 

@@ -76,7 +76,7 @@ static int check_keyword(char* id, bool allow_pseudo_ops) {
    `line_pos` within the buffer.  When `line_pos` reaches the
    end (or NUL), the next line is read on demand. */
 
-#define LINE_BUF_MAX 4096
+constexpr int LINE_BUF_MAX = 4096;
 
 static FILE* input_file = nullptr;
 static char line_buf[LINE_BUF_MAX];
@@ -721,7 +721,7 @@ int scanner_next(void) { return scanner_advance(); }
  * and pushes it; parse_spim_command consumes tokens; then pops.
  */
 
-#define SCANNER_STACK_DEPTH 8
+constexpr int SCANNER_STACK_DEPTH = 8;
 typedef struct {
   FILE* input_file;
   char line_buf[LINE_BUF_MAX];

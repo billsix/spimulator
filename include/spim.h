@@ -20,6 +20,7 @@
    exactly 32 bits wide regardless of host word size.  Use the fixed-width
    integer types from <stdint.h>. */
 
+#include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -116,17 +117,15 @@ constexpr int STACK_LIMIT = 256 * kilo; /* Max stack segment.  1/4 MB */
 #define END_OF_TRAP_HANDLER_SYMBOL "__eoth"
 
 /* Default number of instructions to execute. */
-constexpr int DEFAULT_RUN_STEPS = 2147483647;
+constexpr int DEFAULT_RUN_STEPS = INT_MAX;
 
-/* Address to branch to when exception occurs.  Macro rather than
-   constexpr so the #ifdef MIPS1 branch can select between values at
-   preprocessing time. */
+/* Address to branch to when exception occurs. */
 #ifdef MIPS1
 /* MIPS R2000 */
-#define EXCEPTION_ADDR 0x80000080
+constexpr mem_addr EXCEPTION_ADDR = 0x80000080;
 #else
 /* MIPS32 */
-#define EXCEPTION_ADDR 0x80000180
+constexpr mem_addr EXCEPTION_ADDR = 0x80000180;
 #endif
 
 /* Maximum size of object stored in the small data segment pointed to by $gp */
