@@ -21,9 +21,13 @@ scratch copy) and requires the compile to succeed and every spimulator run to ma
 stdout and exit status; a teaching `.c` with no block is a failure. It takes about a second, so per
 the maintainer's decision it joined the examples meson suite as `documented-commands`.
 
-Verified in the image: the in-image gate passed with 60/60 tests (the new test included), and the
-checker run with the image's installed `/usr/local/bin/spimulator` and `/usr/bin/gcc` on PATH
-reported 74/74.
+Verified in the image: run against the built image with the repo bind-mounted, the build/test
+stages passed 60/60 (the new test included), and the checker run with the image's installed
+`/usr/local/bin/spimulator` and `/usr/bin/gcc` on PATH reported 74/74. The first full `make image`
+after the commit failed, though: the Dockerfile copied `src/`, `include/`, `tests/`,
+`Documentation/` and `examples/` but not `tools/`, so the new test could not find its script (the
+bind-mounted runs had hidden that). A follow-up commit added `COPY tools/` to the Dockerfile, and
+`make image` then passed.
 
 ## How it was done
 
