@@ -138,6 +138,9 @@ regression_tests = [
   'read_char_eof', 'args_cmd', 'disasm',
   # Unix-process conformance (exit codes)
   'return_value', 'unaligned', 'missing_main', 'parse_error', 'stderr_split',
+  'parse_error_data_list',
+  # Engine fixes made before the ports (self-checking)
+  'engine_fixes',
   # Exception-handler paths
   'divide_by_zero',
   # Teaching-mode golden output + parity sanity

@@ -1036,7 +1036,14 @@ static void parse_dir_space(void) {
    accumulator; data_int_finalize builds the AST node. */
 static void parse_expr_list(void) {
   while (true) {
+    int errors_before = parse_errors_seen;
     int v = parse_expression();
+    if (parse_errors_seen != errors_before) {
+      /* parse_expression reports a token it cannot use without consuming
+         it; skip the rest of the line instead of asking again forever. */
+      sync_to_nl();
+      break;
+    }
     data_int_push(v);
     /* commas are skipped by the scanner; same with whitespace */
     if (scanner_peek() == TOK_NL || scanner_peek() == TOK_EOF) break;
@@ -2198,7 +2205,8 @@ void emit_ast(const ast_node* file) {
    and record the use at the (now-correct) data PC; the existing
    resolve_label_uses mechanism patches it when the label is later
    defined. */
-static void emit_data_int_node(const ast_node* node, void (*store)(int)) {
+static void emit_data_int_node(const ast_node* node, void (*store)(int),
+                               int width) {
   for (int i = 0; i < node->u.data_int.count; i++) {
     imm_expr* e = node->u.data_int.exprs[i];
     if (e == nullptr) {
@@ -2206,7 +2214,7 @@ static void emit_data_int_node(const ast_node* node, void (*store)(int)) {
       continue;
     }
     if (e->symbol != nullptr && !SYMBOL_IS_DEFINED(e->symbol)) {
-      record_data_uses_symbol(current_data_pc(), e->symbol);
+      record_data_uses_symbol(current_data_pc(), e->symbol, e->offset, width);
       store(e->offset);
     } else {
       store(eval_imm_expr(e));
@@ -2311,17 +2319,17 @@ static void emit_one(const ast_node* node) {
 
     /* Data. */
     case AST_DATA_BYTE:
-      emit_data_int_node(node, store_byte);
+      emit_data_int_node(node, store_byte, 1);
       return;
     case AST_DATA_HALF:
       align_labels_to(1);
       if (data_dir) set_data_alignment(1);
-      emit_data_int_node(node, store_half);
+      emit_data_int_node(node, store_half, 2);
       return;
     case AST_DATA_WORD:
       align_labels_to(2);
       if (data_dir) set_data_alignment(2);
-      emit_data_int_node(node, store_word);
+      emit_data_int_node(node, store_word, 4);
       return;
     case AST_DATA_FLOAT:
       align_labels_to(2);

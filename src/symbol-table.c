@@ -166,14 +166,33 @@ void record_inst_uses_symbol(mips_instruction* instruction, label* sym) {
   asm_fire_forward_ref(u->addr, sym->name);
 }
 
-/* Record that a memory LOCATION uses the as-yet undefined SYMBOL. */
+/* Record that the WIDTH-byte datum at memory LOCATION holds the as-yet
+   undefined SYMBOL plus OFFSET. */
 
-void record_data_uses_symbol(mem_addr location, label* sym) {
+void record_data_uses_symbol(mem_addr location, label* sym, int32_t offset,
+                             int width) {
   label_use* u = (label_use*)xmalloc(sizeof(label_use));
 
-  *u = (label_use){.addr = location, .next = sym->uses};
+  *u = (label_use){
+      .addr = location, .offset = offset, .width = width, .next = sym->uses};
   sym->uses = u;
   asm_fire_forward_ref(location, sym->name);
+}
+
+/* Store the low WIDTH bytes of VALUE at AT in target byte order, one byte at a
+   time, as store_byte/store_half/store_word laid them down (AT need not be
+   aligned). */
+
+static void write_data_value(mem_addr at, int32_t value, int width) {
+  for (int i = 0; i < width; i++) {
+#ifdef SPIM_BIGENDIAN
+    int shift = 8 * (width - 1 - i);
+#else
+    int shift = 8 * i;
+#endif
+    mem_write_byte(at + (mem_addr)i,
+                   (reg_word)(((uint32_t)value >> shift) & 0xffu));
+  }
 }
 
 /* Given a newly-defined LABEL, resolve the previously encountered
@@ -183,7 +202,10 @@ void resolve_label_uses(label* sym) {
   label_use* next_use;
 
   for (label_use* use = sym->uses; use != nullptr; use = next_use) {
-    resolve_a_label_sub(sym, use->instruction, use->addr);
+    if (use->instruction == nullptr)
+      write_data_value(use->addr, (int32_t)sym->addr + use->offset, use->width);
+    else
+      resolve_a_label_sub(sym, use->instruction, use->addr);
     if (use->instruction != nullptr && use->addr >= DATA_BOT &&
         use->addr < stack_bot) {
       mem_write_word(use->addr, inst_encode(use->instruction));
@@ -220,13 +242,22 @@ static void resolve_a_label_sub(label* sym, mips_instruction* instruction,
       int32_t field_mask;
 
       if (opcode_is_branch(OPCODE(instruction))) {
+        /* The full 32-bit byte offset: the expression asks for its low 16
+           bits, which would truncate a branch more than 32 KB away. */
+        imm_expr whole = *EXPR(instruction);
+        whole.bits = 0;
+        int32_t byte_offset = eval_imm_expr(&whole);
         /* Drop low two bits since instructions are on word boundaries. */
-        int val = sign_ex(eval_imm_expr(EXPR(instruction))); /* 16->32 bits */
-        val = (val >> 2) & 0xffff; /* right shift, 32->16 bits */
+        int32_t word_offset = byte_offset / BYTES_PER_WORD;
 
-        if (delayed_branches) val -= 1;
+        if (delayed_branches) word_offset -= 1;
+        if (word_offset < -32768 || word_offset > 32767)
+          error(
+              "Branch target is out of range (more than 128 KB away) at pc "
+              "0x%x\n",
+              pc);
 
-        value = val;
+        value = (int32_t)((uint32_t)word_offset & 0xffffu);
         field_mask = 0xffff;
       } else if (opcode_is_jump(OPCODE(instruction))) {
         value = eval_imm_expr(EXPR(instruction));

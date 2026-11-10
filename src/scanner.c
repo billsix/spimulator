@@ -183,7 +183,7 @@ static inline int hex_digit_value(int c) {
 }
 
 /* Look-ahead: starting from line_pos, decide if the next token
-   is a floating-point literal (matches `[0-9]+[.,'][0-9]+(e[+-]?[0-9]+)?`)
+   is a floating-point literal (matches `[0-9]+[.][0-9]+(e[+-]?[0-9]+)?`)
    vs a plain integer.  Returns the position past the FP-literal
    on success; line_pos on no-match.  Does NOT mutate line_pos. */
 static int scan_fp_check(void) {
@@ -191,10 +191,8 @@ static int scan_fp_check(void) {
   /* digits */
   if (p >= line_len || !isdigit((unsigned char)line_buf[p])) return line_pos;
   while (p < line_len && isdigit((unsigned char)line_buf[p])) p++;
-  /* separator */
-  if (p >= line_len) return line_pos;
-  char sep = line_buf[p];
-  if (sep != '.' && sep != ',' && sep != '\'') return line_pos;
+  /* the decimal point; `,` separates operands, so `.word 1,2` is two words */
+  if (p >= line_len || line_buf[p] != '.') return line_pos;
   p++;
   /* more digits */
   if (p >= line_len || !isdigit((unsigned char)line_buf[p])) return line_pos;
@@ -210,20 +208,12 @@ static int scan_fp_check(void) {
 
 static int scan_fp(int sign, int end_pos, scan_token* out) {
   static double scratch;
-  /* Copy literal text into a temp buffer for atof.  Replace any
-     `,` or `'` separator with `.` since atof wants a `.`. */
+  /* Copy the literal text into a temp buffer for atof. */
   char buf[64];
   int len = end_pos - line_pos;
   if (len >= (int)sizeof(buf)) len = sizeof(buf) - 1;
   memcpy(buf, line_buf + line_pos, (size_t)len);
   buf[len] = '\0';
-  /* Normalize separator */
-  for (int i = 0; i < len; i++) {
-    if (buf[i] == ',' || buf[i] == '\'') {
-      buf[i] = '.';
-      break;
-    }
-  }
   scratch = sign * atof(buf);
   line_pos = end_pos;
   *out =

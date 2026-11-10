@@ -129,6 +129,19 @@ case "$NAME" in
     "$SPIM" -exception_file "$EF" -f tt.parse_error.s >"$out" 2>&1; rc=$?
     expect_exit 2 "$rc"
     ;;
+  parse_error_data_list)
+    # A float in a .word list: one parse error, exit 2 -- not an endless
+    # repeat of the error (the timeout catches a regression to the loop).
+    timeout 10 "$SPIM" -exception_file "$EF" -f tt.parse_error_data_list.s >"$out" 2>&1; rc=$?
+    expect_exit 2 "$rc"
+    n=$(grep -c 'Expected expression' "$out")
+    [ "$n" = 1 ] || fail "expected one 'Expected expression' error, got $n"
+    ;;
+  engine_fixes)
+    # Self-checking: the engine fixes of tasks/engine-port-prereq-c-fixes.md.
+    timeout 10 "$SPIM" -exception_file "$EF" -f tt.engine_fixes.s >"$out" 2>&1
+    expect_sentinel
+    ;;
   stderr_split)
     # Banner on stderr, 'ok' on stdout.  Verify stdout is exactly 'ok\n'.
     stdout_only=$("$SPIM" -exception_file "$EF" -f tt.stderr_split.s 2>/dev/null)

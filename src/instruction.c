@@ -757,8 +757,21 @@ void format_an_inst(str_stream* ss, mips_instruction* instruction,
       break;
 
     case FP_MOVC_TYPE_INST:
-      ss_printf(ss, " $f%d, $f%d, %d", FD(instruction), FS(instruction),
-                CC(instruction));
+      switch (OPCODE(instruction)) {
+        case TOK_MOVN_S_OPCODE:
+        case TOK_MOVN_D_OPCODE:
+        case TOK_MOVZ_S_OPCODE:
+        case TOK_MOVZ_D_OPCODE:
+          /* movn/movz test a general register */
+          ss_printf(ss, " $f%d, $f%d, $%s", FD(instruction), FS(instruction),
+                    int_reg_names[RT(instruction)]);
+          break;
+        default:
+          /* movf/movt test a condition code */
+          ss_printf(ss, " $f%d, $f%d, %d", FD(instruction), FS(instruction),
+                    CC(instruction));
+          break;
+      }
       break;
 
     case J_TYPE_INST:
@@ -1215,7 +1228,9 @@ int32_t inst_encode(mips_instruction* instruction) {
               REGS(RD(instruction), 11));
 
     case FP_MOVC_TYPE_INST:
-      return (a_opcode | REGS(CC(instruction), 18) | REGS(FS(instruction), 11) |
+      /* The whole rt field: a GPR for movn/movz, cc<<2 for movf/movt (whose tf
+         bit is already in a_opcode). */
+      return (a_opcode | REGS(RT(instruction), 16) | REGS(FS(instruction), 11) |
               REGS(FD(instruction), 6));
 
     case J_TYPE_INST:
@@ -1340,8 +1355,10 @@ mips_instruction* inst_decode(int32_t val) {
       return (mk_r_inst(val, i_opcode, 0, BIN_RT(val), BIN_FS(val), 0));
 
     case FP_CMP_FS_FT_INST: {
+      /* mk_co_r_inst, not mk_r_inst: FS lives in the rd slot, so passing FD as
+         rd would overwrite it.  The condition goes in the rs slot. */
       mips_instruction* instruction =
-          mk_r_inst(val, i_opcode, BIN_FS(val), BIN_FT(val), BIN_FD(val), 0);
+          mk_co_r_inst(val, i_opcode, BIN_FS(val), BIN_FT(val), BIN_FD(val));
       SET_COND(instruction, val & 0xf);
       return (instruction);
     }
@@ -1355,8 +1372,10 @@ mips_instruction* inst_decode(int32_t val) {
           mk_r_inst(val, i_opcode, BIN_RS(val), BIN_RT(val), BIN_RD(val), 0));
 
     case FP_MOVC_TYPE_INST:
+      /* FS in the rd slot, the GPR (movn/movz) or cc<<2|tf (movf/movt) in rt,
+         FD in shamt -- the layout emit_fp_r builds. */
       return (
-          mk_r_inst(val, i_opcode, BIN_FS(val), BIN_RT(val), BIN_FD(val), 0));
+          mk_co_r_inst(val, i_opcode, BIN_FS(val), BIN_RT(val), BIN_FD(val)));
 
     case J_TYPE_INST:
       return (mk_j_inst(val, i_opcode, val & 0x3ffffff));

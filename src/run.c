@@ -401,10 +401,8 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
         case TOK_DIVU_OPCODE:
           /* The behavior of this instruction is undefined on divide by
-             zero or overflow. */
-          if (gpr[RT(instruction)] != 0 &&
-              !(gpr[RS(instruction)] == (reg_word)0x80000000 &&
-                gpr[RT(instruction)] == (reg_word)0xffffffff)) {
+             zero.  Unsigned division cannot overflow. */
+          if (gpr[RT(instruction)] != 0) {
             LO = (reg_word)((u_reg_word)gpr[RS(instruction)] /
                             (u_reg_word)gpr[RT(instruction)]);
             HI = (reg_word)((u_reg_word)gpr[RS(instruction)] %
@@ -1598,10 +1596,10 @@ static void signed_multiply(reg_word v1, reg_word v2) {
 
   unsigned_multiply(v1, v2);
   if (neg_sign) {
-    LO = ~LO;
-    HI = ~HI;
-    LO += 1;
-    if (LO == 0) HI += 1;
+    /* Two's-complement negation of the 64-bit HI:LO, in unsigned arithmetic
+       (LO + 1 overflows int32_t when ~LO is INT32_MAX). */
+    LO = (reg_word)(~(u_reg_word)LO + 1u);
+    HI = (reg_word)(~(u_reg_word)HI + (LO == 0 ? 1u : 0u));
   }
 }
 

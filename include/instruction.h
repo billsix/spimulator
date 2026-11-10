@@ -94,7 +94,9 @@ typedef struct inst_s {
 /* Shift as unsigned: IOFFSET is a signed int16_t, and `<< 2` on a negative
    value is UB.  sign_ex() then re-derives the signed offset from the low bits.
  */
-#define BRANCH_OFFSET(INST) (sign_ex((int)((unsigned)IOFFSET(INST) << 2)))
+/* The 16-bit word offset, sign-extended, then scaled to bytes (an 18-bit
+   signed byte offset). */
+#define BRANCH_OFFSET(INST) ((int32_t)((uint32_t)sign_ex(IOFFSET(INST)) << 2))
 
 #define COND(INST) RS(INST)
 #define SET_COND(INST, VAL) SET_RS(INST, VAL)

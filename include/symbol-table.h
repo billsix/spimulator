@@ -12,6 +12,8 @@
 typedef struct label_use {
   mips_instruction* instruction; /* nullptr => Data, not code */
   mem_addr addr;
+  int32_t offset; /* Data only: the constant added to the label (`lab+4`) */
+  int width; /* Data only: bytes stored, 1 (.byte), 2 (.half) or 4 (.word) */
   struct label_use* next;
 } label_use;
 
@@ -41,7 +43,8 @@ label* make_label_global(char* name);
 void print_symbols(void);
 void print_undefined_symbols(void);
 label* record_label(char* name, mem_addr address, bool resolve_uses);
-void record_data_uses_symbol(mem_addr location, label* sym);
+void record_data_uses_symbol(mem_addr location, label* sym, int32_t offset,
+                             int width);
 void record_inst_uses_symbol(mips_instruction* instruction, label* sym);
 [[nodiscard]] char* undefined_symbol_string(void);
 void resolve_a_label(label* sym, mips_instruction* instruction);
