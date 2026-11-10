@@ -11,6 +11,8 @@
 #                           (tools/check_example_commands.py --port)
 #     <name>-compare        port/harness/compare_engines.py: stdout, stderr
 #                           and exit status against the C engine, case by case
+#     <name>-all-programs   port/harness/compare_all_programs.py: every .s/.asm
+#                           in the repo, assembled six ways and run, against C
 #
 # A port is listed here when its task's harness milestone is done, so the image
 # build (which runs `meson test`) gates it from then on.  Each entry is
@@ -51,6 +53,12 @@ foreach port : ports
 
   test(port_name + '-compare', python3,
        args: [meson.current_source_dir() / 'harness' / 'compare_engines.py',
+              '--reference', spimulator_exe.full_path(),
+              '--engine', port_exe],
+       depends: spimulator_exe,
+       suite: port_suite, timeout: 3600)
+  test(port_name + '-all-programs', python3,
+       args: [meson.current_source_dir() / 'harness' / 'compare_all_programs.py',
               '--reference', spimulator_exe.full_path(),
               '--engine', port_exe],
        depends: spimulator_exe,
