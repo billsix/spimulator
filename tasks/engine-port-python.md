@@ -26,7 +26,7 @@ header shows how to run its `.asm` through `spimulator-python`.
 
 ## Plan
 
-1. **Prerequisites in C** (`tasks/engine-port-prereq-c-fixes.md`, before porting): fix the wrong-value bugs the record lists
+1. **Prerequisites in C** (`tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md`, before porting): fix the wrong-value bugs the record lists
    in §3 (F5) and pin the self-checking tests' full output as goldens (§6.4, F7), so the oracle is
    right and complete.
 2. Harness first, shared by every port (`port/harness/`): a driver that runs each case through the
@@ -58,7 +58,7 @@ header shows how to run its `.asm` through `spimulator-python`.
 - `,` as a floating-point decimal separator is **dropped** from the C scanner before the port (it
   makes `.word 1,2` a syntax error); the maintainer left the call to the agent, who recommended
   dropping it (William Emerison Six <billsix@gmail.com>, 2026-11-10). Tracked with the other
-  step 1 prerequisites in `tasks/engine-port-prereq-c-fixes.md`.
+  step 1 prerequisites in `tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md`.
 - The port lives **in this repo**, under `port/`, so the harness builds the C oracle in the same
   image ("for now"; William Emerison Six <billsix@gmail.com>, 2026-11-10).
 - Go-ahead (William Emerison Six <billsix@gmail.com>, 2026-11-10). The teaching mode (`-explain`) is out of scope for now (`tasks/engine-ports.md`).
@@ -150,27 +150,18 @@ Design and decisions:
 
 ## C engine bugs found
 
-The port matches the C engine in each case (the C engine is the standard); none is fixed here.
+All three were **fixed in C in `a0eefb8`** (with three more the Haskell port found), each with a
+regression test; the port then followed the fixed C engine (Log, "after the C fixes").
 
-1. **A file whose code comes before its first `.data`, with no `.text`, is assembled into the
-   data segment.** `emit_ast` starts with `data_dir`/`text_dir` as the parse left them (the
-   file's last segment), not as `parser_init` set them, so the leading instructions are stored
-   with `store_word` into user data. Reproducer:
-
-       printf 'main: li $v0 1\n li $a0 7\n syscall\n li $v0 10\n syscall\n .data\nx: .word 1\n' > t.s
-       spimulator -dump -f t.s    # data.asm holds 0x34020001 0x34040007 0x0000000c ...
-
-   Running it prints `Target of jump differs in high-order 4 bits` and loops on bad-PC
-   exceptions. Fix (in C): reset `data_dir = false; text_dir = true` at the start of
-   `emit_ast`.
-2. **A run-time error while the `-f` files load crashes with SIGSEGV** (exit 139): `run_error`
-   longjmps to `spim_top_level_env` before any `setjmp` filled it. Reproducer:
-   `spimulator -stext 64 -f tests/tt.le.s` prints `Can't expand text segment`, then dumps core.
-   The port prints the same and exits 139.
-3. **A byte or halfword load from an empty user-text word crashes with SIGSEGV**:
-   `bad_mem_read` reads `ENCODING(text_seg[...])` without checking for a null slot (the word
-   case checks). Reproducer: a program doing `lui $t1 0x40; ori $t1 $t1 0x4000; lb $t0 0($t1)`
-   (past the end of the code) exits 139. The port exits 139 too (`console.CrashError`).
+1. **Code before the first `.data`, with no `.text`, was assembled into the data segment**: the
+   emit pass started in the segment the parse ended in. Test `text_before_data`. Reproducer:
+   `printf 'main: li $v0 1\n li $a0 7\n syscall\n li $v0 10\n syscall\n .data\nx: .word 1\n'`
+   assembled with `-dump`.
+2. **A run-time error while the `-f` files load crashed with SIGSEGV**: `run_error` longjmp-ed
+   through a `jmp_buf` no `setjmp` had filled (`-stext 64 -f tests/tt.le.s`). Now it prints the
+   message and exits 1. Test `load_error`.
+3. **A byte or halfword load from an empty user-text word crashed** (a null pointer in
+   `bad_mem_read`); it now reads 0, as a word load did. Test `engine_fixes` case 9.
 
 ### 2026-11-10 — milestone 5: registered in port/meson.build
 
@@ -211,3 +202,25 @@ The port matches the C engine in each case (the C engine is the standard); none 
   meson suite covers the 34 demos and the documented example commands.
 - Lessons for the other ports are in `tasks/reference/engine-port-language-choice.md`, "What the
   Python port found".
+
+### 2026-11-10 — after the C fixes (`a0eefb8`)
+
+The C engine fixed six bugs (the three above and three from the Haskell port); the port now
+matches the fixed engine:
+
+1. `parser.parse_file` emits starting in the segment that was current when the parse began
+   (code before a first `.data` goes in the text segment);
+2. it emits only the nodes added after the tree's previous last child, so the REPL `.` command
+   emits just its line;
+3. REPL `print_all_regs`, `breakpoint` and `delete` with no operand do not read on into the next
+   line; `breakpoint`/`delete` with no address print `Must supply an address for breakpoint`
+   and return;
+4. a run-time error while the `-f` files load prints its message and exits 1 (the port's
+   emulated SIGSEGV exit 139 is gone);
+5. `lb`/`lh` of an empty text word reads 0 (`console.CrashError` is gone);
+6. `expand_k_data`'s zeroing: no change, `bytearray.extend` already zeroes.
+
+Checked against a C reference rebuilt from the current tree: `meson test --suite port-python`
+69 OK, 0 failed (including the new `text_before_data`, `load_error`, `repl_no_operand`,
+`repl_dot` and `engine_fixes` case 9); `compare_engines.py` 23 passed, 0 warned, 0 failed;
+`compare_all_programs.py` (`python-all-programs`) 1218 passed, 0 warned, 0 failed.

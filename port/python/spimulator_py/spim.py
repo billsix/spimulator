@@ -158,12 +158,10 @@ def main(arguments: list[str]) -> int:
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)
     try:
         return _main(arguments)
-    except (console.RunError, console.CrashError):
-        # Where the C engine dies of SIGSEGV, exit the same way: a run-time
-        # error while loading the -f files (C longjmps to a jmp_buf no setjmp
-        # has filled yet), or a byte/half load from an empty text word
-        # (tasks/engine-port-python.md, "C engine bugs found").
-        return 128 + signal.SIGSEGV
+    except console.RunError:
+        # A run-time error before there is a top level to return to (while
+        # the -f files load): the message is printed; the run ends with 1.
+        return 1
     except SystemExit as stop:
         code: object = stop.code
         if code is None:
@@ -752,7 +750,7 @@ def parse_spim_command(redo: bool) -> bool:  # noqa: C901 - one case per command
         token = _prev_token if redo else _read_token()
         hex_flag: bool = token == TOK_ID and _value_str() == "hex"
         console.message(display.format_registers(hex_flag, hex_flag) + "\n")
-        if not redo:
+        if not redo and token != TOK_NL:  # a bare newline ends the line already
             _flush_to_newline()
         _prev_cmd = _NOP
     elif cmd == _REINITIALIZE:
@@ -785,7 +783,7 @@ def parse_spim_command(redo: bool) -> bool:  # noqa: C901 - one case per command
         _prev_cmd = _HELP
     elif cmd in (_SET_BKPT, _DELETE_BKPT):
         token = _prev_token if redo else _read_token()
-        if not redo:
+        if not redo and token != TOK_NL:  # a bare newline ends the line already
             _flush_to_newline()
         if token == TOK_INT:
             _bkpt_addr = (
@@ -799,6 +797,7 @@ def parse_spim_command(redo: bool) -> bool:  # noqa: C901 - one case per command
             )
         else:
             console.error("Must supply an address for breakpoint\n")
+            return False
         if cmd == _SET_BKPT:
             spim_utils.add_breakpoint(_bkpt_addr)
         else:

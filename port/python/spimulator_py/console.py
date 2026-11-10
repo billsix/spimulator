@@ -29,14 +29,6 @@ class RunError(Exception):
     """A run-time error that abandons the current command (C ``run_error``)."""
 
 
-class CrashError(BaseException):
-    """Where the C engine dies of SIGSEGV, the port exits the same way.
-
-    Raised for the C engine bugs listed in tasks/engine-port-python.md under
-    "C engine bugs found"; only spim.main catches it, to exit with 139.
-    """
-
-
 def to_bytes(text: str) -> bytes:
     """The bytes that a one-character-per-byte string stands for."""
     return text.encode("latin-1")

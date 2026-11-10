@@ -1207,6 +1207,15 @@ def parse_file() -> int:
     Returns:
         int: the number of parse errors.
     """
+    global data_dir, text_dir
+    # Emit only what this call parses, starting in the segment that was
+    # current when it began.  The REPL's `.` command parses one line onto the
+    # tree of the file loaded last, whose nodes were emitted already; and the
+    # parse moves data_dir/text_dir as it meets .data and .text, so the emit
+    # pass must replay them from the start.
+    already_emitted: int = len(_current_file.children) if _current_file else 0
+    start_data_dir: bool = data_dir
+    start_text_dir: bool = text_dir
     while scanner.peek() != TOK_EOF:
         pseudo_op.parse_error_occurred = False
         scanner.start_line()
@@ -1226,16 +1235,18 @@ def parse_file() -> int:
         if print_ast_json:
             console.output(ast_nodes.format_json(_current_file))
         if not print_ast_only:
-            emit_ast(_current_file)
+            data_dir = start_data_dir
+            text_dir = start_text_dir
+            emit_ast(_current_file, already_emitted)
     return pseudo_op.parse_errors_seen
 
 
 # --- the emit pass --------------------------------------------------------------------
 
 
-def emit_ast(file: Node) -> None:
-    """Store every node of the file into memory, in source order."""
-    for node in file.children:
+def emit_ast(file: Node, skip: int = 0) -> None:
+    """Store the file's nodes after the first skip into memory, in order."""
+    for node in file.children[skip:]:
         _emit_one(node)
         if node.kind not in (Kind.LABEL_DEF, Kind.DIR_GLOBL):
             _clear_labels()

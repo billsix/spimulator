@@ -310,9 +310,6 @@ def _bad_read(addr: int, mask: int) -> int:
     if addr & mask:
         _bad_address(ExcCode.ADEL, addr)
     elif layout.TEXT_BOT <= addr < text_top:
-        if mask != 3 and text_seg[(addr - layout.TEXT_BOT) >> 2] is None:
-            # C reads the encoding through the slot's null pointer.
-            raise console.CrashError(addr)
         word: int = machine.u32(_text_word(addr))
         if mask == 0:
             return (word >> (8 * (addr & 3))) & 0xFF
