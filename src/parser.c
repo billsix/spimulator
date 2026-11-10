@@ -1393,12 +1393,13 @@ static void do_parse_pseudo(int op) {
         break;
       }
       scanner_advance();
-      int* x = (int*)scan_value.p;
+      int32_t words[2]; /* the double's two words, in host order */
+      memcpy(words, scan_value.p, sizeof words);
       /* emit_i_free (not emit_i): the const_imm_expr node is allocated
          inline with no other owner, so transfer it to be freed. */
-      emit_i_free(TOK_ORI_OPCODE, 1, 0, const_imm_expr(*x));
+      emit_i_free(TOK_ORI_OPCODE, 1, 0, const_imm_expr(words[0]));
       emit_fp_r(TOK_MTC1_OPCODE, 0, fd, 1);
-      emit_i_free(TOK_ORI_OPCODE, 1, 0, const_imm_expr(*(x + 1)));
+      emit_i_free(TOK_ORI_OPCODE, 1, 0, const_imm_expr(words[1]));
       emit_fp_r(TOK_MTC1_OPCODE, 0, fd + 1, 1);
       break;
     }
@@ -1412,9 +1413,10 @@ static void do_parse_pseudo(int op) {
       }
       scanner_advance();
       float fval = (float)*((double*)scan_value.p);
-      int* y = (int*)&fval;
+      int32_t bits; /* the float's bit pattern, not its value */
+      memcpy(&bits, &fval, sizeof bits);
       /* emit_i_free: inline const_imm_expr node has no other owner. */
-      emit_i_free(TOK_ORI_OPCODE, 1, 0, const_imm_expr(*y));
+      emit_i_free(TOK_ORI_OPCODE, 1, 0, const_imm_expr(bits));
       emit_fp_r(TOK_MTC1_OPCODE, 0, fd, 1);
       break;
     }

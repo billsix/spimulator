@@ -127,7 +127,11 @@ constexpr int FPR_LENGTH = 16;
 
 extern double* fp_double_view; /* Dynamically allocate so overlay */
 extern float* fp_single_view;  /* is possible */
-extern int* fp_int_view;       /* is possible */
+extern int32_t* fp_int_view;   /* is possible */
+
+/* The views above overlay one buffer: 16 doubles = 32 floats = 32 words. */
+static_assert(sizeof(float) == 4 && sizeof(double) == 8,
+              "the FP register views assume IEEE binary32/binary64 sizes");
 
 #define FPR_S(REGNO) (fp_single_view[REGNO])
 
@@ -176,16 +180,23 @@ constexpr uint32_t FCSR_FCC = 0xfe800000;
 constexpr uint32_t FCSR_MASK = FCSR_FCC;
 constexpr int CC0_bit = 23;
 constexpr int CC1_bit = 25;
-/* 1u: for n==7 the shift is `1 << 31`, which is UB on a signed `1`. */
-#define CC_mask(n) \
-  ((((n) == 0) || ((n) > 7)) ? (1u << CC0_bit) : (1u << (CC1_bit + (n) - 1)))
-#define FCC(n) ((((u_reg_word)FCSR & CC_mask(n)) == 0) ? 0 : 1)
-#define SET_FCC(n, v)                                  \
-  if ((v) == 0) {                                      \
-    FCSR = (reg_word)((u_reg_word)FCSR & ~CC_mask(n)); \
-  } else {                                             \
-    FCSR = (reg_word)((u_reg_word)FCSR | CC_mask(n));  \
-  }
+/* The FCSR bit for condition code N (cc 0 is bit 23, cc 1..7 are bits
+   25..31; out-of-range N means cc 0).  1u: for n==7 the shift is
+   `1 << 31`, which is UB on a signed `1`. */
+static inline u_reg_word cc_mask(int n) {
+  return ((n == 0) || (n > 7)) ? (1u << CC0_bit) : (1u << (CC1_bit + n - 1));
+}
+
+static inline int fcc(int n) {
+  return (((u_reg_word)FCSR & cc_mask(n)) == 0) ? 0 : 1;
+}
+
+static inline void set_fcc(int n, int v) {
+  if (v == 0)
+    FCSR = (reg_word)((u_reg_word)FCSR & ~cc_mask(n));
+  else
+    FCSR = (reg_word)((u_reg_word)FCSR | cc_mask(n));
+}
 
 /* Floating point Cause (not implemented): */
 constexpr uint32_t FCSR_Cause_E = 0x00020000;

@@ -18,7 +18,7 @@ int HI_present, LO_present;
 mem_addr PC, nPC;
 double* fp_double_view; /* Dynamically allocate so overlay */
 float* fp_single_view;  /* is possible */
-int* fp_int_view;       /* is possible */
+int32_t* fp_int_view;   /* is possible */
 reg_word coprocessor_control_registers[4][32], coprocessor_registers[4][32];
 
 mips_instruction** text_seg;

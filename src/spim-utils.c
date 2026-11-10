@@ -140,7 +140,7 @@ void write_startup_message(void) {
 void initialize_registers(void) {
   memset(fp_double_view, 0, FPR_LENGTH * sizeof(double));
   fp_single_view = (float*)fp_double_view;
-  fp_int_view = (int*)fp_double_view;
+  fp_int_view = (int32_t*)fp_double_view;
 
   memset(gpr, 0, R_LENGTH * sizeof(reg_word));
   gpr[REG_SP] = STACK_TOP - BYTES_PER_WORD - 4096; /* Initialize $sp */

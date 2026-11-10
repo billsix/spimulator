@@ -177,6 +177,11 @@ static void maybe_snapshot_line(void) {
 
 /* --- token scanners --------------------------------------- */
 
+/* The value of hex digit C; the caller has checked isxdigit(C). */
+static inline int hex_digit_value(int c) {
+  return c <= '9' ? c - '0' : (c <= 'F' ? c - 'A' + 10 : c - 'a' + 10);
+}
+
 /* Look-ahead: starting from line_pos, decide if the next token
    is a floating-point literal (matches `[0-9]+[.,'][0-9]+(e[+-]?[0-9]+)?`)
    vs a plain integer.  Returns the position past the FP-literal
@@ -239,9 +244,7 @@ static int scan_int(int sign, scan_token* out) {
     next_char(); /* consume "0x" */
     while (isxdigit(peek_char())) {
       int c = next_char();
-      value = (value << 4) | (c <= '9' ? (uint32_t)(c - '0')
-                                       : (c <= 'F' ? (uint32_t)(c - 'A' + 10)
-                                                   : (uint32_t)(c - 'a' + 10)));
+      value = (value << 4) | (uint32_t)hex_digit_value(c);
     }
   } else {
     while (isdigit(peek_char())) {
@@ -283,14 +286,12 @@ static int scan_escape_char(const char** pp) {
       int hi = **pp, lo = *(*pp + 1);
       int v = 0;
       if (isxdigit(hi))
-        v = (hi <= '9' ? hi - '0' : (hi <= 'F' ? hi - 'A' + 10 : hi - 'a' + 10))
-            << 4;
+        v = hex_digit_value(hi) << 4;
       else {
         error("Bad character in \\X construct in char literal\n");
       }
       if (isxdigit(lo))
-        v |= (lo <= '9' ? lo - '0'
-                        : (lo <= 'F' ? lo - 'A' + 10 : lo - 'a' + 10));
+        v |= hex_digit_value(lo);
       else {
         error("Bad character in \\X construct in char literal\n");
       }
@@ -368,15 +369,13 @@ static char* decode_string(const char* src, int len) {
         int c2 = *(s + 2), c3 = *(s + 3);
         int b = 0;
         if (isxdigit(c2))
-          b = (c2 <= '9' ? c2 - '0'
-                         : (c2 <= 'F' ? c2 - 'A' + 10 : c2 - 'a' + 10));
+          b = hex_digit_value(c2);
         else {
           error("Bad character in \\X construct in string\n");
         }
         b <<= 4;
         if (isxdigit(c3))
-          b |= (c3 <= '9' ? c3 - '0'
-                          : (c3 <= 'F' ? c3 - 'A' + 10 : c3 - 'a' + 10));
+          b |= hex_digit_value(c3);
         else {
           error("Bad character in \\X construct in string\n");
         }

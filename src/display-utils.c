@@ -23,6 +23,17 @@ static mem_addr format_partial_line(str_stream* ss, mem_addr addr);
 /* Write to the stream the contents of the machine's registers, in a wide
    variety of formats. */
 
+/* The bit patterns of FP register contents, for hex display. */
+static void double_words(double d, int32_t w[2]) {
+  memcpy(w, &d, 2 * sizeof w[0]);
+}
+
+static int32_t float_bits(float f) {
+  int32_t bits;
+  memcpy(&bits, &f, sizeof bits);
+  return bits;
+}
+
 void format_registers(str_stream* ss, bool print_gpr_hex, bool print_fpr_hex) {
   int i;
 
@@ -60,28 +71,22 @@ void format_registers(str_stream* ss, bool print_gpr_hex, bool print_fpr_hex) {
 
   if (print_fpr_hex)
     for (i = 0; i < 4; i += 1) {
-      int *r1, *r2;
+      int32_t w[2];
 
-      /* Use pointers to cast to ints without invoking float->int conversion
-         so we can just print the bits. */
-      r1 = (int*)&fp_double_view[i];
-      r2 = r1 + 1;
-      ss_printf(ss, fpstr, 2 * i, *r1, *r2);
+      double_words(fp_double_view[i], w);
+      ss_printf(ss, fpstr, 2 * i, w[0], w[1]);
       ss_printf(ss, "%s", fpfill);
 
-      r1 = (int*)&fp_double_view[i + 4];
-      r2 = r1 + 1;
-      ss_printf(ss, fpstr, 2 * i + 8, *r1, *r2);
+      double_words(fp_double_view[i + 4], w);
+      ss_printf(ss, fpstr, 2 * i + 8, w[0], w[1]);
       ss_printf(ss, "%s", fpfill);
 
-      r1 = (int*)&fp_double_view[i + 8];
-      r2 = r1 + 1;
-      ss_printf(ss, fpstr, 2 * i + 16, *r1, *r2);
+      double_words(fp_double_view[i + 8], w);
+      ss_printf(ss, fpstr, 2 * i + 16, w[0], w[1]);
       ss_printf(ss, "%s", fpfill);
 
-      r1 = (int*)&fp_double_view[i + 12];
-      r2 = r1 + 1;
-      ss_printf(ss, fpstr, 2 * i + 24, *r1, *r2);
+      double_words(fp_double_view[i + 12], w);
+      ss_printf(ss, fpstr, 2 * i + 24, w[0], w[1]);
       ss_printf(ss, "\n");
     }
   else
@@ -104,16 +109,16 @@ void format_registers(str_stream* ss, bool print_gpr_hex, bool print_fpr_hex) {
     for (i = 0; i < 8; i += 1) {
       /* Use pointers to cast to ints without invoking float->int conversion
          so we can just print the bits. */
-      ss_printf(ss, fpstr, i, *(int*)&FPR_S(i));
+      ss_printf(ss, fpstr, i, float_bits(FPR_S(i)));
       ss_printf(ss, "%s", fpfill);
 
-      ss_printf(ss, fpstr, i + 8, *(int*)&FPR_S(i + 8));
+      ss_printf(ss, fpstr, i + 8, float_bits(FPR_S(i + 8)));
       ss_printf(ss, "%s", fpfill);
 
-      ss_printf(ss, fpstr, i + 16, *(int*)&FPR_S(i + 16));
+      ss_printf(ss, fpstr, i + 16, float_bits(FPR_S(i + 16)));
       ss_printf(ss, "%s", fpfill);
 
-      ss_printf(ss, fpstr, i + 24, *(int*)&FPR_S(i + 24));
+      ss_printf(ss, fpstr, i + 24, float_bits(FPR_S(i + 24)));
       ss_printf(ss, "\n");
     }
   else
