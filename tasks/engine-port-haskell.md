@@ -1,34 +1,23 @@
-# Port the simulator engine to GHC Haskell, equivalent to the C engine
+# Ported the simulator engine to GHC Haskell, equivalent to the C engine
 
-**Status:** in progress: the engine is written, merged into `engine-ports` (`eff193a`), matched to
-the C fixes of `a0eefb8`, and passes every check (Log, 2026-11-10); registration in
-`port/meson.build` is the coordinator's
-**Priority:** 7
-**Difficulty:** 8
-**Created:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
+**Created:** 2026-11-10 · **Completed:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
 **Part of:** `tasks/engine-ports.md`
-**Depends on:** `tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md` (done); the shared harness from `tasks/engine-port-python.md` (Plan step 2)
 
-## BLUF
+## Summary
 
-Write a GHC Haskell implementation of the spimulator engine that behaves equivalently to the C
-engine, the standard: the same stdout, stderr and exit status on the whole shared corpus, as
-checked by the differential harness (`tasks/engine-ports.md`). The maintainer wants to see how a
-pure functional language handles a stateful machine. The language study's blocker, GHC printing
-`%.18g` wrongly, would not gate the port anyway, since float-to-text differences are warnings
-(`tasks/engine-ports.md`). It is also solved and measured (Findings). Done means:
-- the harness reports zero differences for the Haskell engine (float-to-text warnings allowed);
-- every example's header shows how to run its `.asm` through `spimulator-haskell`;
-- it builds offline in the image with GHC's own libraries only.
+`port/haskell/spimulator-haskell` (a launcher that builds `port/haskell/` with `ghc --make`, using
+only the libraries that ship with GHC) is a Haskell implementation of the engine without the teaching
+mode. It behaves the same as the C engine, the standard, everywhere tested:
+- the `port-haskell` meson suite: 69 tests;
+- `port/harness/compare_engines.py`: 23 cases;
+- `port/harness/compare_all_programs.py`: 1,218 cases.
 
-## Context
-
-- `tasks/engine-ports.md` — the shared rules: the C engine is the standard, what equivalent means,
-  the layout (`port/haskell/`), the milestone order.
-- `tasks/reference/engine-port-language-choice.md` — why the study did not recommend Haskell
-  (formatting, state threading), and the measured `%.18g` fix.
-- `tasks/review/2026/11/10/repo-review.md` §5 — the behavior inventory to match.
-- `tasks/adhoc/engine-ports-float-format/` — the formatter proof (run `bash tasks/adhoc/engine-ports-float-format/run.sh`).
+There were no float-formatting warnings: the exact-`Rational` formatter from the language study
+(Findings) went into the port. Every example's BUILD AND RUN header shows the `spimulator-haskell`
+run. The port was written in parallel with the Python one, in a separate git worktree, by an agent
+from a written brief. The coordinating session merged it after the Python port, as
+`tasks/engine-ports.md` planned, and registered it. The port found five C engine bugs; three were
+fixed in C in `a0eefb8` (below).
 
 ## Findings (2026-11-10)
 
@@ -89,22 +78,6 @@ GHC 9.10.3 (Fedora `ghc-compiler`) ships `base`, `array`, `containers`, `bytestr
 `mtl`, `transformers`, `parsec`, `haskeline`, `process`, `directory` and `filepath`. The port uses
 only these, so it builds offline with `ghc --make` or `cabal build --offline` and needs no Hackage
 download.
-
-## Plan
-
-1. [x] Image: `ghc` comes from the unconditional `entrypoint/05-install-ports.sh` (it exists).
-2. [x] `port/haskell/`: built with plain `ghc --make` (`port/haskell/build.sh`), GHC's own libraries
-   only; a `.cabal` file sits beside it for editors (Decisions). [ ] `port/meson.build` registers it
-   (the coordinator; "What registration needs").
-3. [x] Milestones in the umbrella's order, each gated by the harness: arithmetic (with `CFormat` promoted
-   from the ad-hoc proof, plus its C-vs-Haskell check as a test) → assembler (AST-parity bytes) →
-   executor + syscalls → CLI/REPL. [ ] Teaching mode (out of scope for now).
-4. [ ] When the harness is clean (it is): the examples step from `tasks/engine-ports.md`, a `spimulator-haskell`
-   line in every example header, checked by `tools/check_example_commands.py`.
-5. Style: `-Wall -Werror`, every top-level binding with a type signature, `hlint` if it can run
-   offline. No Haskell coding-standard doc exists in github.com/billsix/runClaudeInContainer yet;
-   write the port's conventions in `port/haskell/README.md`, and propose a shared standard doc only if
-   a second Haskell project needs it.
 
 ## Decisions
 
@@ -182,26 +155,6 @@ and zeroed the new memory. As first found (before the fix):
 5. **`expand_k_data` zeroes the wrong range** (from `k_data_seg_b + old_size / BYTES_PER_WORD`), so kernel
    data grown past its initial 64 KB may hold `realloc` garbage. Not observable deterministically; the
    port zeroes the new memory.
-
-## What registration needs (for the coordinator)
-
-- `port/meson.build`: add `['haskell', 'port/haskell/spimulator-haskell']` to `ports`. Nothing else is
-  required: the first test that runs the launcher builds the binary (`port/haskell/build.sh`: plain
-  `ghc --make`, offline, about 15 s; concurrent first runs wait on a `flock`), and later runs reuse it.
-  The 600 s per-test timeout covers the build.
-- Optional, to build before the tests rather than inside the first one: in `port/meson.build`,
-  `run_command(meson.current_source_dir() / 'haskell' / 'build.sh', check: true)` (adds the 15 s to
-  `meson setup`).
-- Optional, the port's own checks as tests of its suite (they need gcc, python3 and ghc, all in the
-  image):
-  `test('haskell-format', find_program('bash'), args: [meson.current_source_dir() / 'haskell' / 'tests' / 'check-format.sh'], suite: 'port-haskell')`,
-  and the same for `check-strtod.sh` (about 5 s and 2 s).
-- `.dockerignore`: add `port/haskell/build/`, so a host build is not copied into the image.
-- The examples step (`tasks/engine-ports.md`): a `spimulator-haskell -f X.asm ...` line in each example
-  header, and `tools/check_example_commands.py` taught to run `spimulator-haskell`.
-  `python3 tools/check_example_commands.py --spimulator $PWD/port/haskell/spimulator-haskell` already
-  passes 74/74 on the `spimulator` lines.
-- The harness needs an absolute engine path (it runs from `tests/`); `port/meson.build` already passes one.
 
 ## Log
 
