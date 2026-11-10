@@ -1,54 +1,24 @@
-# Port the simulator engine to Python, proven against the C engine
+# Ported the simulator engine to Python, equivalent to the C engine
 
-**Status:** milestones 1–6 done on branch `engine-ports` (see Log); the teaching mode waits on the C fixes (`tasks/engine-ports.md`)
-**Priority:** 6
-**Difficulty:** 8
-**Created:** 2026-11-10 (from `tasks/archive/2026/11/10/engine-port-language-investigation.md`)
-**Part of:** `tasks/engine-ports.md` (the C engine is the standard; `tasks/engine-port-haskell.md` is the sibling port)
-**Source:** tasks/review/2026/11/10/repo-review.md §5, §6, §7 F2
+**Created:** 2026-11-10 · **Completed:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
+**Part of:** `tasks/engine-ports.md` · **Source:** tasks/review/2026/11/10/repo-review.md §5, §6, §7 F2
 
-## BLUF
+## Summary
 
-Write a Python implementation of the spimulator engine (assembler, executor, syscalls, REPL, and
-last the teaching mode) that behaves equivalently to the C engine, the standard: the same stdout, stderr and exit status on
-the shared corpus, float-to-text differences being warnings only (`tasks/engine-ports.md`), checked by a differential harness in the
-meson gate. This port also builds that harness, for every engine. Done means: the harness reports
-zero functional differences on the whole corpus, and every example's
-header shows how to run its `.asm` through `spimulator-python`.
+`port/python/spimulator-python` (package `port/python/spimulator_py/`, standard library only, about
+8,400 lines) is a Python implementation of the engine without the teaching mode. It behaves the same
+as the C engine, the standard, everywhere tested:
+- the `port-python` meson suite: 69 tests (every regression test but `explain`, the 34 demos, the
+  documented example commands);
+- `port/harness/compare_engines.py`: 23 cases;
+- `port/harness/compare_all_programs.py`: 1,218 cases, every assembly program in the repo assembled
+  six ways and run.
 
-## Context
-
-- Language choice, the fixed-width-integer answer, subsystem map and the test plan:
-  `tasks/reference/engine-port-language-choice.md` (read first). The language is Python (Decisions).
-- What to match: audit record `tasks/review/2026/11/10/repo-review.md` §5 (behavior inventory) and §7
-  (which oracle to trust).
-- Old grammar, as a second syntax spec: `git show 6cb6a08:CPU/parser.y`, `git show 6bafa31^:src/parser.y`.
-
-## Plan
-
-1. **Prerequisites in C** (`tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md`, before porting): fix the wrong-value bugs the record lists
-   in §3 (F5) and pin the self-checking tests' full output as goldens (§6.4, F7), so the oracle is
-   right and complete.
-2. Harness first, shared by every port (`port/harness/`): a driver that runs each case through the
-   C engine and each registered port (one command line per engine) and diffs stdout, stderr and exit
-   status, wired as a meson suite. Corpus and rules: `tasks/engine-ports.md`.
-3. Port in this order, each milestone gated by the harness: machine-arithmetic module → assembler
-   (gate: AST-parity bytes) → executor + syscalls (gate: regression + examples) → CLI/REPL → explain.
-4. Package layout, typing and test gate per the python-coding-standard.md reference doc from
-   github.com/billsix/runClaudeInContainer (`ty`, ruff, doctests). The command is `spimulator-python`.
-   Its interpreter comes from the unconditional `entrypoint/0N-install-ports.sh`
-   (`tasks/engine-ports.md`); this port starts first, so it adds that script, listing every language.
-5. When the harness is clean: the examples step from `tasks/engine-ports.md`, a `spimulator-python`
-   line in every example header, checked by `tools/check_example_commands.py`.
-
-## Findings
-
-- **Python prints a negative NaN as `nan`; glibc prints `-nan`** (measured 2026-11-10 for
-  `0xfff8000000000000` in `%.18g`, `%.8f` and `%#-13.6g`). On x86, `0.0 / 0.0` produces that NaN, so a
-  MIPS program that divides zero by zero prints `-nan` in C. This difference would only be a
-  warning (float-to-text does not gate a port; `tasks/engine-ports.md`). The fix is cheap and done:
-  `tasks/adhoc/engine-ports-float-format/cformat.py`, the `%` operator plus a `-nan` sign fix, matches
-  glibc exactly in all five of the C engine's float formats on 158,029 values. Promote it into the port.
+None of the comparisons had a float-formatting warning. Every example's BUILD AND RUN header shows
+the `spimulator-python` run. The port was written by an agent from a written brief while the
+maintainer was away, and reviewed and registered by the coordinating session. The port found three
+C engine bugs, fixed in C in `a0eefb8` (below). The teaching mode waits on the C redesign
+(`tasks/engine-ports.md`).
 
 ## Decisions
 
