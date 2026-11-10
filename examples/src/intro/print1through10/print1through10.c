@@ -22,6 +22,18 @@
  *          own line.  (The loop actually emits 0 through 10.)
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o print1through10 print1through10.c ../../print-int.c ../../print-string.c ../../count-chars.c
+ *     $ ./print1through10
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f print1through10.asm
+ */
+/* clang-format on */
+
 #include "io.h"
 
 __attribute__((noreturn)) void _start(void) {

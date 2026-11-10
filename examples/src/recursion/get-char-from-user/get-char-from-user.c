@@ -23,6 +23,23 @@
  *          or pipe close when stdin is piped in).
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o get-char-from-user get-char-from-user.c ../../print-char.c ../../print-int.c ../../print-string.c ../../read-char.c ../../count-chars.c
+ *     $ printf 'abc\n' | ./get-char-from-user
+ *
+ *   each paired MIPS assembly version, in spimulator:
+ *     $ printf 'abc\n' | spimulator -f get-char-from-user-1.asm
+ *     $ printf 'abc\n' | spimulator -f get-char-from-user-2.asm
+ *
+ *   get-char-from-user-1.asm is the deliberately broken version: its
+ *   misaligned stack slot raises address-error exceptions.  -2.asm
+ *   is the fixed one; it prints the value before the character.
+ */
+/* clang-format on */
+
 #include "io.h"
 
 __attribute__((noreturn)) void _start(void) {

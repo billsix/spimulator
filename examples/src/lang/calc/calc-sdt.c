@@ -49,6 +49,18 @@
  * parsing resumes at the next line; division by zero shows inf/nan, not a trap.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o calc-sdt calc-sdt.c ../../print-char.c ../../print-int.c ../../print-string.c ../../read-char.c ../../count-chars.c
+ *     $ ./calc-sdt < calc-sdt.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f calc-sdt.asm < calc-sdt.input
+ */
+/* clang-format on */
+
 #include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 #include "io.h"
 

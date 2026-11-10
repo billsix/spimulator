@@ -18,6 +18,18 @@
  * backward-overlap, and non-overlapping regions.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -I../libstr -o str-demo str-demo.c ../libstr/libstr.c ../../print-string.c ../../count-chars.c
+ *     $ ./str-demo
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f ../libstr/libstr.asm -f str-demo.asm
+ */
+/* clang-format on */
+
 #include "io.h"
 #include "libstr.h"
 

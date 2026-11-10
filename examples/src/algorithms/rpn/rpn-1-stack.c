@@ -33,6 +33,18 @@
  * doubles.  Reading is byte-at-a-time via read_char() (syscall 12, -1 at EOF).
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o rpn-1-stack rpn-1-stack.c ../../print-char.c ../../print-int.c ../../read-char.c
+ *     $ ./rpn-1-stack < rpn-1-stack.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f rpn-1-stack.asm < rpn-1-stack.input
+ */
+/* clang-format on */
+
 #include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 #include "io.h"
 

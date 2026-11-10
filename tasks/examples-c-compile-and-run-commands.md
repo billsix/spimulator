@@ -1,40 +1,59 @@
 # Every example C program documents a one-line native compile and a spimulator run
 
-**Status:** in progress
 **Priority:** 3
 **Difficulty:** 3
 **Created:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-10
 **Branch:** `c23-pass3-and-port-study`
 
-## BLUF
+## Outcome
 
-Each teaching `.c` file under `examples/src/` gets a header block showing (1) how to compile it
-natively on Linux with **one self-contained command** (no Makefile, no environment variable: the
-full `gcc`/`cc` line with `-std=gnu23`, the `-I` include dirs, `-nostdlib`, the lib sources it
-links), and (2) how to run its paired `.asm` in spimulator (the `spimulator -f …` line, with any
-argv/stdin the demo needs). Today only a handful show either (e.g. `bubble-sort-1-fixed.c` shows a
-`spimulator -f` line; none of the ~81 non-lib `.c` files shows a native compile line). Done means:
-every file has both lines, each line was **run from the documented directory and works**, and a
-small checker (`tools/`) keeps it that way.
+All 74 teaching `.c` files under `examples/src/` (everything except the nine IO helpers, the three
+library sources and the template) carry a BUILD AND RUN block just before their first `#include`:
+a one-line native `gcc` command (`-std=gnu23 -nostdlib`, the `-I` directories, and exactly the
+helper/library sources the demo links), the native run line, and one spimulator line per paired
+`.asm`, each with the argv/stdin the demo needs. Only the header comments changed; no code. The
+convention and the checker are documented in `tasks/reference/example-c-teaching-style.md`
+("Every demo documents how to build and run it").
 
-## Context (read first)
+`tools/check_example_commands.py` runs the documented lines verbatim from each demo's directory (in a
+scratch copy) and requires the compile to succeed and every spimulator run to match the native run's
+stdout and exit status; a teaching `.c` with no block is a failure. It takes about a second, so per
+the maintainer's decision it joined the examples meson suite as `documented-commands`.
 
-- Flags and include/link inventory: `examples/src/Makefile` (`EDU_FLAGS`, `INCLUDES`,
-  `LINK_FLAGS = -nostdlib`, the per-demo helper/lib lists) and `examples/src/meson.build`.
-- Inputs/argv per demo: `*.input` files and `examples/tests/run-demo.sh`.
-- Teaching style: `tasks/reference/example-c-teaching-style.md` — the header is student-facing.
-- This was raised by the maintainer as part of the deep-audit request; it touches `examples/`
-  only, so it is a separate task from the core audit.
+Verified in the image: the in-image gate passed with 60/60 tests (the new test included), and the
+checker run with the image's installed `/usr/local/bin/spimulator` and `/usr/bin/gcc` on PATH
+reported 74/74.
 
-## Plan
+## How it was done
 
-1. Discover (`discover.sh` under `tasks/adhoc/examples-c-compile-and-run-commands/`): per `.c`, the
-   helper sources, libs, include dirs, run args/stdin, and whether it already has either line.
-2. Generate the two lines per file; insert into the existing header comment in a consistent block.
-3. Verify every documented command by running it verbatim from its directory, in the image.
-4. Add `tools/check_example_commands.py` (extract + run the documented lines) and wire it into the
-   examples suite if cheap (Decisions).
+- `tasks/adhoc/examples-c-compile-and-run-commands/discover.sh` (since deleted) compiled every demo
+  and helper, read undefined/defined symbols with `nm`, and wrote each demo's transitive helper set
+  to `data/inventory.tsv`.
+- `insert_headers.py` (since deleted) generated the blocks from that inventory plus a hand-written
+  argv/stdin table; it was idempotent (a second run changed nothing).
+- Arguments and stdin: the demo's own `.input` file where one exists (as a FILE argument for demos
+  that take one, so the file-open path runs), the golden test's input otherwise, a short `printf`
+  for stdin filters with no input file, and `| head -3` for `yes`.
+
+## Findings for the maintainer (not fixed: code was out of scope)
+
+- `recursion/get-char-from-user/get-char-from-user-2.asm` (the "fixed" version) prints
+  `ch was 97, value a` where the C prints `ch was a, value 97`: the two fields are swapped. Neither
+  this demo nor the other three below has a golden test, which is why it went unnoticed.
+- `extras/testStringsForEquality/testStringsForEquality-1.asm` prints only `1`/`0`/`1`, without the
+  C version's `str1 compared to str2 is` labels.
+- `extras/subrountines/subrountines-1.asm` prints the right numbers but exits with status 126: its
+  hand-rolled `main` never sets `$v0`, and `__start` passes `$v0` to exit2.
+- `get-char-from-user-1.asm` faults on purpose (the misaligned-slot lesson).
+
+Each of the four carries a student-facing note in its header, and the checker lists the four `.asm`
+files in `DIFFERS_ON_PURPOSE`, with the reason. Remove an entry once that asm is fixed.
 
 ## Decisions
 
-- The checker for the documented commands joins the examples meson suite if it adds under a minute; otherwise it stays a hand-run tool (William Emerison Six <billsix@gmail.com>, 2026-11-10).
+- The checker for the documented commands joins the examples meson suite if it adds under a minute; otherwise it stays a hand-run tool (William Emerison Six <billsix@gmail.com>, 2026-11-10). It takes ~1 s, so it joined.
+- The blocks are wrapped in `/* clang-format off/on */`, because clang-format's comment reflow
+  (run by `format.sh` on every shell exit) would split the one-line command.
+- Commands that write files (`tee`, `cp`, `touch`) write into the demo directory, as a student
+  running them would; the checker runs them in a scratch copy.

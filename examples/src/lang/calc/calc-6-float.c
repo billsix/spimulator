@@ -39,6 +39,18 @@
  * is byte-at-a-time via read_char() (syscall 12), mirrored in calc-6-float.asm.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o calc-6-float calc-6-float.c ../../print-char.c ../../print-int.c ../../print-string.c ../../read-char.c ../../count-chars.c
+ *     $ ./calc-6-float < calc-6-float.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f calc-6-float.asm < calc-6-float.input
+ */
+/* clang-format on */
+
 #include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 #include "io.h"
 

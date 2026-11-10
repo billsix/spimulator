@@ -37,6 +37,18 @@
  * differs.  Mirrored in cksum-core-test.asm.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o cksum-core-test cksum-core-test.c ../../print-char.c ../../print-string.c ../../print-uint.c ../../count-chars.c
+ *     $ ./cksum-core-test
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f cksum-core-test.asm
+ */
+/* clang-format on */
+
 #include "io.h"
 #include "crt0.h"
 

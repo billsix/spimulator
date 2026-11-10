@@ -33,6 +33,18 @@
  * stack.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o rpn-2-ops rpn-2-ops.c ../../print-char.c ../../print-int.c ../../read-char.c
+ *     $ ./rpn-2-ops < rpn-2-ops.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f rpn-2-ops.asm < rpn-2-ops.input
+ */
+/* clang-format on */
+
 #include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 #include "io.h"
 

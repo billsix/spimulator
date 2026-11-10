@@ -24,6 +24,18 @@
  */
 
 // doc-region-begin include
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o helloworld helloworld.c ../../print-string.c ../../count-chars.c
+ *     $ ./helloworld
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f helloworld.asm
+ */
+/* clang-format on */
+
 #include "io.h"
 // doc-region-end include
 

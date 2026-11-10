@@ -19,6 +19,18 @@
  *          Caps: max N = 64 lines; each line up to 1024 chars.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o tail tail.c ../../string-to-int.c ../../print-char.c ../../print-string.c ../../count-chars.c
+ *     $ ./tail -n 3 tail.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f tail.asm -n 3 tail.input
+ */
+/* clang-format on */
+
 #include "io.h"
 #include "crt0.h"
 

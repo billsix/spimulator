@@ -56,6 +56,18 @@
  *          sentinel character is needed.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o rot13 rot13.c ../../print-char.c ../../read-char.c
+ *     $ ./rot13 < rot13.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f rot13.asm < rot13.input
+ */
+/* clang-format on */
+
 #include "io.h"
 
 __attribute__((noreturn)) void _start(void) {

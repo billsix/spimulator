@@ -43,6 +43,18 @@
  * of from syscall 12.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o calc-eval calc-eval.c ../../print-char.c ../../print-int.c ../../print-string.c ../../read-char.c ../../count-chars.c
+ *     $ ./calc-eval < calc-sdt.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f calc-eval.asm < calc-sdt.input
+ */
+/* clang-format on */
+
 #include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 #include "io.h"
 

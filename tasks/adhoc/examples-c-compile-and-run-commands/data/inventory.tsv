@@ -1,0 +1,75 @@
+demo	helpers	native_line	spim_line
+algorithms/binary-search/binary-search.c	string-to-int.c print-char.c print-int.c print-string.c count-chars.c	0	2
+algorithms/bubble-sort/bubble-sort-1-fixed.c	print-char.c print-int.c	0	1
+algorithms/bubble-sort/bubble-sort-core-test.c	print-char.c print-int.c print-string.c count-chars.c	0	1
+algorithms/bubble-sort/bubble-sort.c	print-char.c print-int.c print-string.c read-int.c count-chars.c read-char.c	0	0
+algorithms/fizzbuzz/fizzbuzz.c	string-to-int.c print-char.c print-int.c print-string.c count-chars.c	0	0
+algorithms/pascals-triangle/pascals-triangle.c	string-to-int.c print-char.c print-int.c print-string.c count-chars.c	0	0
+algorithms/rpn/rpn-1-stack.c	print-char.c print-int.c read-char.c	0	1
+algorithms/rpn/rpn-2-ops.c	print-char.c print-int.c read-char.c	0	1
+algorithms/rpn/rpn-3-float.c	print-char.c print-int.c print-string.c read-char.c count-chars.c	0	1
+algorithms/rpn/rpn-eval-test.c	print-char.c print-int.c print-string.c count-chars.c	0	1
+algorithms/rpn/rpn-eval.c	print-char.c print-int.c print-string.c read-char.c count-chars.c	0	1
+algorithms/rpn/rpn.c	print-char.c print-int.c print-string.c read-char.c count-chars.c	0	2
+algorithms/sieve/sieve.c	string-to-int.c print-char.c print-int.c print-string.c count-chars.c	0	0
+arguments/echo/echo.c	print-char.c print-string.c count-chars.c	0	0
+arguments/factor/factor.c	string-to-int.c print-char.c print-int.c print-string.c count-chars.c	0	0
+arguments/factorial/factorial.c	string-to-int.c print-char.c print-string.c print-uint.c count-chars.c	0	1
+arguments/gcd/gcd.c	string-to-int.c print-char.c print-int.c print-string.c count-chars.c	0	1
+arguments/seq/seq.c	string-to-int.c print-char.c print-int.c print-string.c count-chars.c	0	0
+arguments/tee/tee.c	print-char.c print-string.c count-chars.c	0	1
+extras/commaAndPeriodCounter/commaAndPeriodCounter.c	print-int.c print-string.c read-char.c count-chars.c	0	0
+extras/print-out-ascii/print-out-ascii.c	print-int.c print-string.c count-chars.c	0	0
+extras/subrountines/subrountines.c	print-int.c print-string.c count-chars.c	0	0
+extras/testStringsForEquality/testStringsForEquality.c	print-int.c print-string.c count-chars.c	0	0
+fileio/cat/cat.c	print-char.c print-string.c count-chars.c	0	0
+fileio/cksum/cksum-1-stdin.c	print-char.c print-uint.c read-char.c	0	1
+fileio/cksum/cksum-core-test.c	print-char.c print-string.c print-uint.c count-chars.c	0	1
+fileio/cksum/cksum-core.c	print-char.c print-uint.c read-char.c	0	1
+fileio/cksum/cksum.c	print-char.c print-string.c print-uint.c count-chars.c	0	0
+fileio/comm/comm.c	print-char.c print-string.c count-chars.c	0	0
+fileio/cp/cp.c	print-char.c print-string.c count-chars.c	0	0
+fileio/nologin/nologin.c		0	0
+fileio/touch/touch.c	print-char.c print-string.c count-chars.c	0	0
+intro/clear/clear.c	print-string.c count-chars.c	0	0
+intro/exit/exit.c		0	0
+intro/helloworld/helloworld.c	print-string.c count-chars.c	0	0
+intro/increment-ints/increment-ints.c	print-int.c print-string.c count-chars.c	0	0
+intro/print1through10/print1through10.c	print-int.c print-string.c count-chars.c	0	0
+intro/yes/yes.c	print-string.c count-chars.c	0	1
+lang/calc/calc-1-numbers.c	print-char.c print-int.c read-char.c	0	1
+lang/calc/calc-2-addsub.c	print-char.c print-int.c read-char.c	0	1
+lang/calc/calc-3-muldiv.c	print-char.c print-int.c read-char.c	0	1
+lang/calc/calc-4-parens.c	print-char.c print-int.c read-char.c	0	1
+lang/calc/calc-5-neg.c	print-char.c print-int.c read-char.c	0	1
+lang/calc/calc-6-float.c	print-char.c print-int.c print-string.c read-char.c count-chars.c	0	1
+lang/calc/calc-eval-test.c	print-char.c print-int.c print-string.c count-chars.c	0	1
+lang/calc/calc-eval.c	print-char.c print-int.c print-string.c read-char.c count-chars.c	0	1
+lang/calc/calc-sdt.c	print-char.c print-int.c print-string.c read-char.c count-chars.c	0	1
+lang/calc/calc-tree.c	print-char.c print-int.c print-string.c read-char.c count-chars.c	0	1
+lib/libctype-demo/ctype-demo.c	lib/libctype/libctype.c print-char.c print-int.c print-string.c count-chars.c	0	0
+lib/libstdlib-demo/abs-demo.c	lib/libstdlib/libstdlib.c print-char.c print-int.c print-string.c lib/libctype/libctype.c count-chars.c	0	0
+lib/libstdlib-demo/atexit-demo.c	lib/libstdlib/libstdlib.c print-string.c lib/libctype/libctype.c count-chars.c	0	0
+lib/libstdlib-demo/atoi-demo.c	lib/libstdlib/libstdlib.c print-char.c print-int.c print-string.c lib/libctype/libctype.c count-chars.c	0	0
+lib/libstdlib-demo/bsearch-demo.c	lib/libstdlib/libstdlib.c print-char.c print-int.c print-string.c lib/libctype/libctype.c count-chars.c	0	0
+lib/libstdlib-demo/exit-demo.c	lib/libstdlib/libstdlib.c print-string.c lib/libctype/libctype.c count-chars.c	0	0
+lib/libstr-demo/str-demo.c	lib/libstr/libstr.c print-string.c count-chars.c	0	0
+recursion/fibonacci/fibonacci.c	string-to-int.c print-char.c print-int.c print-string.c count-chars.c	0	1
+recursion/get-char-from-user/get-char-from-user.c	print-char.c print-int.c print-string.c read-char.c count-chars.c	0	0
+recursion/hanoi/hanoi.c	string-to-int.c print-char.c print-string.c count-chars.c	0	1
+recursion/queens/queens.c	string-to-int.c print-char.c print-int.c print-string.c count-chars.c	0	0
+transforms/base64/base64.c	print-char.c print-string.c count-chars.c	0	0
+transforms/cut/cut.c	print-char.c print-string.c count-chars.c	0	0
+transforms/expand/expand.c	print-char.c print-string.c count-chars.c	0	0
+transforms/head/head-1-count.c	print-char.c read-char.c	0	1
+transforms/head/head.c	string-to-int.c print-char.c print-string.c count-chars.c	0	0
+transforms/nl/nl.c	print-char.c print-int.c print-string.c count-chars.c	0	0
+transforms/od/od.c	print-char.c print-string.c count-chars.c	0	0
+transforms/rev/rev.c	print-char.c print-string.c count-chars.c	0	0
+transforms/rot13/rot13.c	print-char.c read-char.c	0	0
+transforms/strings/strings.c	print-char.c read-char.c	0	0
+transforms/tac/tac.c	print-char.c print-string.c count-chars.c	0	0
+transforms/tail/tail.c	string-to-int.c print-char.c print-string.c count-chars.c	0	0
+transforms/tr/tr.c	print-char.c read-char.c	0	0
+transforms/uniq/uniq.c	print-char.c print-string.c count-chars.c	0	0
+transforms/wc/wc.c	print-char.c print-int.c print-string.c count-chars.c	0	0

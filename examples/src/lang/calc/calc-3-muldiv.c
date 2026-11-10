@@ -35,6 +35,18 @@
  * rung 6 (calc-6-float).
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o calc-3-muldiv calc-3-muldiv.c ../../print-char.c ../../print-int.c ../../read-char.c
+ *     $ ./calc-3-muldiv < calc-3-muldiv.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f calc-3-muldiv.asm < calc-3-muldiv.input
+ */
+/* clang-format on */
+
 #include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 #include "io.h"
 

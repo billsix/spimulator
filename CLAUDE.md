@@ -75,7 +75,8 @@ Container (Fedora-44 + podman family template) — build args `USE_EMACS`,
 Two meson suites: **regression** (assembler, syscalls, exceptions,
 teaching-mode goldens, AST parity; `tests/run-test.sh`) and **examples** (each demo
 runs both the C binary and the spim asm, diffing stdout + exit status against
-pinned goldens; `examples/tests/run-demo.sh`).
+pinned goldens; `examples/tests/run-demo.sh`; plus `documented-commands`, which runs every demo's
+BUILD AND RUN header commands verbatim, `tools/check_example_commands.py`).
 
 **Sanitizer gate** (`RUN_SANITIZERS=1`, the `make image` default; `make image
 RUN_SANITIZERS=0` to skip): the image build also compiles **spim only** (the

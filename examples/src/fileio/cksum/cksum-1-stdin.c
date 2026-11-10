@@ -34,6 +34,18 @@
  * high-bit CRC as negative).  Mirrored in cksum-1-stdin.asm.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o cksum-1-stdin cksum-1-stdin.c ../../print-char.c ../../print-uint.c ../../read-char.c
+ *     $ ./cksum-1-stdin < cksum-1-stdin.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f cksum-1-stdin.asm < cksum-1-stdin.input
+ */
+/* clang-format on */
+
 #include "io.h"
 #include "crt0.h"
 

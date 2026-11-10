@@ -29,6 +29,18 @@
  *          run the .asm version with Ctrl+C in the simulator.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o yes yes.c ../../print-string.c ../../count-chars.c
+ *     $ ./yes | head -3
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f yes.asm | head -3
+ */
+/* clang-format on */
+
 #include "io.h"
 
 __attribute__((noreturn)) void _start(void) {

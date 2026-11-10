@@ -36,6 +36,18 @@
  * port calc-1-numbers.asm.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o calc-1-numbers calc-1-numbers.c ../../print-char.c ../../print-int.c ../../read-char.c
+ *     $ ./calc-1-numbers < calc-1-numbers.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f calc-1-numbers.asm < calc-1-numbers.input
+ */
+/* clang-format on */
+
 #include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 #include "io.h"
 

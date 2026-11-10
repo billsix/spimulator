@@ -22,6 +22,22 @@
  *          result on its own line.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o subrountines subrountines.c ../../print-int.c ../../print-string.c ../../count-chars.c
+ *     $ ./subrountines
+ *
+ *   each paired MIPS assembly version, in spimulator:
+ *     $ spimulator -f subrountines-1.asm
+ *     $ spimulator -f subrountines-2.asm
+ *
+ *   subrountines-1.asm never sets $v0 before main returns, so its exit
+ *   status is whatever was left there; the printed output matches.
+ */
+/* clang-format on */
+
 #include "io.h"
 
 int mxPlusB(int m, int x, int b) {
