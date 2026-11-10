@@ -28,6 +28,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f tail.asm -n 3 tail.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f tail.asm -n 3 tail.input
  */
 /* clang-format on */
 

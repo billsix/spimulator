@@ -69,6 +69,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f hanoi.asm 3
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f hanoi.asm 3
  */
 /* clang-format on */
 

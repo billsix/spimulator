@@ -28,6 +28,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f base64.asm base64.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f base64.asm base64.input
  */
 /* clang-format on */
 

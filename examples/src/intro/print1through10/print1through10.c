@@ -31,6 +31,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f print1through10.asm
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f print1through10.asm
  */
 /* clang-format on */
 

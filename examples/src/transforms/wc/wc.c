@@ -39,6 +39,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f wc.asm wc.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f wc.asm wc.input
  */
 /* clang-format on */
 

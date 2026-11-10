@@ -26,6 +26,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f uniq.asm uniq.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f uniq.asm uniq.input
  */
 /* clang-format on */
 

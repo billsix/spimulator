@@ -47,6 +47,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f fizzbuzz.asm 15
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f fizzbuzz.asm 15
  */
 /* clang-format on */
 

@@ -51,6 +51,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f sieve.asm 30
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f sieve.asm 30
  */
 /* clang-format on */
 

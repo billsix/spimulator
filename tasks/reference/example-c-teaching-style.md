@@ -63,6 +63,9 @@ template) carries a BUILD AND RUN comment block just before its first `#include`
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f echo.asm hello world
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f echo.asm hello world
  */
 /* clang-format on */
 ```
@@ -75,13 +78,20 @@ template) carries a BUILD AND RUN comment block just before its first `#include`
   spimulator line per version; library demos load the library `.asm` files first, in the order
   `examples/tests/run-demo.sh` uses. A version whose run is not meant to match the C says why in a
   note under its line.
+- After the spimulator line(s), each finished port of the engine (`port/README.md`) repeats them
+  with its own command (`spimulator-python`), under "the same assembly, in the Python port:"
+  ("the same assembly versions" when there are several); a new port adds its block when its task
+  reaches the examples step (`tasks/engine-ports.md`).
 - The `clang-format off/on` guards are required: `format.sh` reformats every `.c` on shell exit, and
   clang-format's comment reflow would split the one-line command.
 - `tools/check_example_commands.py` runs the documented lines verbatim from each demo's directory
   (in a scratch copy) and requires the compile to succeed and every spimulator run to print the same
-  stdout and exit status as the native run; versions that differ on purpose are listed, with the
-  reason, in its `DIFFERS_ON_PURPOSE`. It runs as the `documented-commands` test of the examples
-  meson suite (about a second). A new demo needs the block, or the test fails to find it.
+  stdout and exit status as the native run; a `spimulator-NAME` line runs the port named by
+  `--port NAME=PATH`, and is skipped (with a count in the summary) without it. Versions that
+  differ on purpose are listed, with the reason, in its `DIFFERS_ON_PURPOSE`. It runs as the
+  `documented-commands` test of the examples meson suite (about a second), and with `--port` as
+  each port's `<name>-documented` test (`port/meson.build`). A new demo needs the block, or the
+  test fails to find it.
 
 ## Cross-links
 

@@ -40,6 +40,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f rev.asm rev.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f rev.asm rev.input
  */
 /* clang-format on */
 

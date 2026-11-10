@@ -54,6 +54,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f tee.asm tee-copy.txt < tee.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f tee.asm tee-copy.txt < tee.input
  */
 /* clang-format on */
 

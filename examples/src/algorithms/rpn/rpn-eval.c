@@ -51,6 +51,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f rpn-eval.asm < rpn.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f rpn-eval.asm < rpn.input
  */
 /* clang-format on */
 

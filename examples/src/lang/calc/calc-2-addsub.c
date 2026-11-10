@@ -41,6 +41,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f calc-2-addsub.asm < calc-2-addsub.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f calc-2-addsub.asm < calc-2-addsub.input
  */
 /* clang-format on */
 

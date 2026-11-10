@@ -44,6 +44,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f clear.asm
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f clear.asm
  */
 /* clang-format on */
 

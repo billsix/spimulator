@@ -41,6 +41,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f touch.asm touched.txt
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f touch.asm touched.txt
  */
 /* clang-format on */
 

@@ -180,3 +180,21 @@ The port matches the C engine in each case (the C engine is the standard); none 
 - Found by `python-documented`: `spimulator -f yes.asm | head -3` never ended. Python ignores
   SIGPIPE and the port swallowed `BrokenPipeError`, so it kept printing into a closed pipe
   forever; C dies of SIGPIPE. `spim.main` now restores SIGPIPE's default action.
+
+### 2026-11-10 — milestone 6: the examples show the port
+
+- `tasks/adhoc/engine-port-python/add_port_lines.py` added, to all 74 BUILD AND RUN headers,
+  the `spimulator-python` twin of each `spimulator` line ("the same assembly, in the Python
+  port:", or "... versions ..." for the two demos with numbered versions), right after the
+  spimulator lines and before any note. A second run changed nothing (0 files).
+- `tools/check_example_commands.py` runs a `spimulator-NAME` line through the executable
+  `--port NAME=PATH` names, compared with the native run as for `spimulator`; without the
+  option it skips such lines and says how many (76 now) in a `note:` line, so the C-only
+  `documented-commands` test is unchanged. Its docstring and
+  `tasks/reference/example-c-teaching-style.md` show the new line. The example template
+  (`examples/src/template/src/template.c`) has no BUILD AND RUN block, so it needed nothing.
+- `port/meson.build`'s `<name>-documented` test now passes `--spimulator` (the C binary) and
+  `--port <name>=<exe>`: 74/74 demos agree, the port's lines included. Full `meson test`: 128 OK.
+- Decision: the port lines go after the spimulator lines and before a header's notes
+  (options: after the notes, or at the end of the block). The notes describe the assembly
+  version, which both lines run, so they read as covering both.

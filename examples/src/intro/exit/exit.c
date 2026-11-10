@@ -47,6 +47,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f exit.asm
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f exit.asm
  */
 /* clang-format on */
 

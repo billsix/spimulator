@@ -26,6 +26,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ printf 'one\ntwo\n' | spimulator -f nl.asm
+ *
+ *   the same assembly, in the Python port:
+ *     $ printf 'one\ntwo\n' | spimulator-python -f nl.asm
  */
 /* clang-format on */
 

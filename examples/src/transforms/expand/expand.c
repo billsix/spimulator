@@ -38,6 +38,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ printf 'a\tb\n' | spimulator -f expand.asm
+ *
+ *   the same assembly, in the Python port:
+ *     $ printf 'a\tb\n' | spimulator-python -f expand.asm
  */
 /* clang-format on */
 

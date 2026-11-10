@@ -48,6 +48,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f rpn-eval-test.asm
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f rpn-eval-test.asm
  */
 /* clang-format on */
 

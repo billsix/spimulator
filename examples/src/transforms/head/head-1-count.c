@@ -39,6 +39,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f head-1-count.asm < head-1-count.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f head-1-count.asm < head-1-count.input
  */
 /* clang-format on */
 

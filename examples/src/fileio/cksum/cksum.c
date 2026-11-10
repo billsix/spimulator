@@ -45,6 +45,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f cksum.asm cksum.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f cksum.asm cksum.input
  */
 /* clang-format on */
 
