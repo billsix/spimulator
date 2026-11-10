@@ -1,35 +1,27 @@
-# Port the simulator engine to Rust, equivalent to the C engine
+# Ported the simulator engine to Rust, equivalent to the C engine
 
-**Status:** engine done (milestones 1-4): zero differences on the harness, the regression suite (less `-explain`), the demos and the documented commands; waits on the coordinator to register it in `port/meson.build` and to add the examples step (see "What registration needs")
-**Priority:** 7
-**Difficulty:** 8
-**Created:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
+**Created:** 2026-11-10 · **Completed:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
 **Part of:** `tasks/engine-ports.md`
-**Depends on:** `tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md` (done); the shared harness from `tasks/archive/2026/11/10/engine-port-python.md` (Plan step 2)
 
-## BLUF
+## Summary
 
-Write a Rust implementation of the spimulator engine that behaves equivalently to the C engine, the
-standard: the same stdout, stderr and exit status on the whole shared corpus, checked by the
-differential harness. Float-to-text differences are warnings only (`tasks/engine-ports.md`). The
-language study rated Rust the strong alternative to Python: the compiler checks the integer widths.
-Done means:
-- the harness reports zero functional differences for the Rust engine;
-- every example's header shows how to run its `.asm` through `spimulator-rust`;
-- it builds offline in the image with the standard library only.
+`port/rust/spimulator-rust` (a launcher that builds `port/rust/` with
+`cargo build --release --offline`; standard library only, about 10,800 lines) is a Rust
+implementation of the engine without the teaching mode. It behaves the same as the C engine, the
+standard, everywhere tested:
+- the `port-rust` meson suite: 70 tests;
+- `port/harness/compare_engines.py`: 23 cases;
+- `port/harness/compare_all_programs.py`: 1,214 cases, plus four skipped by name because the C side
+  times out (below).
 
-## Context
-
-- `tasks/engine-ports.md`: the shared rules (C is the standard, functional equivalence, the
-  examples rule, the unconditional image toolchains, the milestone order, the layout `port/rust/`).
-- `tasks/reference/engine-port-language-choice.md`: Rust's row, the spike (0.011 s for the ~9M
-  instruction loop, against C's 0.008 s), and "Float formatting across ports".
-- `tasks/review/2026/11/10/repo-review.md` §5: the behavior inventory to match.
-- `tasks/adhoc/engine-ports-float-format/cformat.rs`: the tested `%g`/`%f` formatter, byte-identical
-  to glibc in all five of the C engine's float formats. Promote it into the port.
-- The shared Rust standard: the `rust-coding-standard.md` reference doc in
-  github.com/billsix/runClaudeInContainer. It covers rustfmt, clippy, annotating every binding and
-  `// SAFETY:`. Read it first.
+There were no float-formatting warnings: `cformat.rs` is in the port. `cargo fmt`, `clippy -D
+warnings` and `cargo test` are clean. Every example's BUILD AND RUN header shows the
+`spimulator-rust` run. The port was written in parallel with the other two, in a separate git
+worktree, by an agent from a written brief. The coordinating session merged it last and registered
+it. The port found all six C bugs fixed in `a0eefb8`, independently, and three more, fixed in
+`6c27911`. It is the fastest engine of the four (`time.s` and `timer.s` against a debug C build).
+The few differences not observable in the tests (no line editing, Ctrl-C ends the run) are listed
+below.
 
 ## Findings (2026-11-10)
 
@@ -56,18 +48,6 @@ Rust's traps against the C engine, with the planned answer:
   Line editing is a later, optional addition if a vendored crate is ever wanted.
 - **No dependencies.** `cargo build --offline` with an empty `[dependencies]` builds in the image
   with no network, as the self-contained-image rule requires.
-
-## Plan
-
-1. `port/rust/`: a cargo workspace with no dependencies. `meson.build` builds it with
-   `cargo build --release --offline` and registers `spimulator-rust` with the shared harness.
-2. Milestones in the umbrella's order, each gated by the harness: machine arithmetic (with `cformat`
-   promoted and its check against C as a test) → assembler (AST-parity bytes) → executor + syscalls →
-   CLI/REPL → teaching mode.
-3. Gates: `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and `cargo test`
-   (doctests included, per the doctests-by-default rule).
-4. When the harness is clean: the examples step from `tasks/engine-ports.md`, a `spimulator-rust`
-   line in every example header, checked by `tools/check_example_commands.py`.
 
 ## Decisions
 
@@ -155,36 +135,6 @@ found were fixed in C by `6c27911`:
 - `read_float`/`read_double` of `nan(n)`: glibc keeps the payload `n`; the port reads plain NaN.
 - Floating-point registers past 31 (`$f40`, which the assembler accepts): C reads and writes past its
   array; the port reads 0 and drops the write.
-
-## What registration needs (for the coordinator)
-
-- **Required before the `rust-all-programs` test can pass:** `port/harness/compare_all_programs.py`
-  must exclude (or bound) `tests/timer.s` and `tests/tt.io.s` in the `run` and `-listing` modes. Both
-  spin forever without `-mapped_io`; each engine stops after 2^31 - 1 instructions, and whether that
-  happens inside the 120 s timeout is a speed race the Rust port wins (43 s) and the debug C build
-  loses, so the case reads FAIL though the behavior is the same (Log). A slower port passes only
-  because both sides time out. Suggested: exclude them by name with that reason, as `corpus.txt`
-  does for its exclusions. (Not changed here: the harness is outside this task's files.)
-- `port/meson.build`: add `['rust', 'port/rust/spimulator-rust']` to `ports`. That is all the tests
-  need: the launcher builds the binary on its first call if it is missing
-  (`cargo build --release --offline` with an empty `[dependencies]`; about 25 s from scratch, quiet
-  unless it fails, works in an empty environment), and cargo's own lock makes concurrent first runs
-  wait.
-- **Recommended**, because the launcher only builds when the binary is missing (a stale binary is not
-  rebuilt): build before the tests, e.g. in `port/meson.build`
-  `run_command('cargo', 'build', '--release', '--offline', '--manifest-path', meson.current_source_dir() / 'rust' / 'Cargo.toml', check: true)`,
-  or in the Dockerfile after the source `COPY`: `cargo build --release --offline --manifest-path port/rust/Cargo.toml`.
-  The image already installs `rust` and `cargo` (`entrypoint/05-install-ports.sh`).
-- Optional, the port's own checks as a test: `test('rust-cargo-test', find_program('cargo'), args: ['test', '--offline', '--manifest-path', meson.current_source_dir() / 'rust' / 'Cargo.toml'], suite: 'port-rust', timeout: 600)`
-  (doctests plus the glibc formatter comparison, which compiles a C oracle with `cc`).
-- `.dockerignore` (and `.gitignore` already, via `port/rust/.gitignore`): `port/rust/target/`, so a
-  host build is not copied into the image.
-- The examples step (`tasks/engine-ports.md`): a `spimulator-rust -f X.asm ...` line in each example
-  header, and `tools/check_example_commands.py` taught to run `spimulator-rust`.
-  `python3 tools/check_example_commands.py --spimulator $PWD/port/rust/spimulator-rust` already passes
-  74/74 on the `spimulator` lines.
-- Regenerating the opcode table after a change to `include/opcodes.h`: `port/rust/tools/gen_opcodes.sh`
-  (needs `cc` and `rustfmt`), then commit `port/rust/src/opcodes_table.rs`.
 
 ## Log
 
