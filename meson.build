@@ -139,8 +139,10 @@ regression_tests = [
   # Unix-process conformance (exit codes)
   'return_value', 'unaligned', 'missing_main', 'parse_error', 'stderr_split',
   'parse_error_data_list',
-  # Engine fixes made before the ports (self-checking)
-  'engine_fixes',
+  # Engine fixes made before the ports (self-checking), and the ones the
+  # ports found
+  'engine_fixes', 'text_before_data', 'load_error', 'repl_no_operand',
+  'repl_dot',
   # Exception-handler paths
   'divide_by_zero', 'core_default_handler',
   # Full-output goldens

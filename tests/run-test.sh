@@ -160,6 +160,38 @@ case "$NAME" in
     n=$(grep -c 'Expected expression' "$out")
     [ "$n" = 1 ] || fail "expected one 'Expected expression' error, got $n"
     ;;
+  text_before_data)
+    # Code before .data with no .text runs from the text segment.
+    out_only=$(timeout 10 "$SPIM" -exception_file "$EF" -f tt.text_before_data.s 2>/dev/null); rc=$?
+    expect_exit 0 "$rc"
+    [ "$out_only" = 7 ] || fail "stdout was '$out_only', expected '7'"
+    ;;
+  load_error)
+    # A run-time error while the -f files load (here: a text segment too
+    # small for the program) prints its message and exits 1.  It used to
+    # longjmp through a jmp_buf no setjmp had filled, and crash.
+    timeout 10 "$SPIM" -stext 64 -f tt.le.s >"$out" 2>&1; rc=$?
+    expect_exit 1 "$rc"
+    grep -q "Can't expand text segment" "$out" || fail "missing the text-segment message"
+    ;;
+  repl_no_operand)
+    # print_all_regs and breakpoint without an operand: the command after
+    # them must still run.  Each used to read on into the next line.
+    printf 'print_all_regs\nprint $sp\nbreakpoint\nprint $ra\n' \
+      | timeout 10 "$SPIM" -noexception >"$out" 2>&1
+    grep -q '^Reg 29 = ' "$out" || fail "'print \$sp' after print_all_regs did not run"
+    grep -q 'Must supply an address for breakpoint' "$out" || fail "no breakpoint usage error"
+    grep -q '^Reg 31 = ' "$out" || fail "'print \$ra' after breakpoint did not run"
+    ;;
+  repl_dot)
+    # The REPL's `.` command assembles one line, after the loaded program:
+    # it used to assemble the loaded file a second time first.
+    printf 'load "tt.repl_dot.s"\n. addiu $t0, $zero, 7\ndisasm\n' \
+      | timeout 10 "$SPIM" -noexception >"$out" 2>&1
+    n=$(grep -c '^\[0x004000' "$out")
+    [ "$n" = 3 ] || fail "expected 3 instructions in the text segment, got $n"
+    grep -q '^\[0x00400008\].*addiu \$t0, \$r0, 7' "$out" || fail "the . line is not at 0x00400008"
+    ;;
   engine_fixes)
     # Self-checking: the engine fixes of tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md.
     timeout 10 "$SPIM" -exception_file "$EF" -f tt.engine_fixes.s >"$out" 2>&1
