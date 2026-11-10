@@ -62,3 +62,28 @@ header shows how to run its `.asm` through `spimulator-python`.
 - The port lives **in this repo**, under `port/`, so the harness builds the C oracle in the same
   image ("for now"; William Emerison Six <billsix@gmail.com>, 2026-11-10).
 - Go-ahead (William Emerison Six <billsix@gmail.com>, 2026-11-10). The teaching mode (`-explain`) is out of scope for now (`tasks/engine-ports.md`).
+
+## Log
+
+### 2026-11-10 — milestone 1: machine arithmetic and float formatting
+
+- `port/python/spimulator_py/machine.py` holds every C width and IEEE behavior the engine
+  relies on (`u32`/`s32`/`s16`/`s8`, `ckd_add`-style overflow tests, truncating `c_div`/`c_rem`,
+  leading zeros/ones, float/double bit casts, `f32` rounding, hardware-style `f_div`/`f_sqrt`,
+  x86's `(int32_t)` conversion, C's `atof`), each with doctests.
+- `cformat.py` is `tasks/adhoc/engine-ports-float-format/cformat.py` promoted (the `%`
+  operator plus glibc's `-nan`).
+- **Decision: registers and memory words are held signed** (`-2**31 .. 2**31-1`), the C
+  engine's `reg_word`. Options weighed: (a) unsigned `u32` everywhere, as the language study
+  sketched; (b) signed, as C. Chose (b): the port is a transliteration of the C, and every
+  `%d` the engine prints is of a signed word, so (b) needs a conversion only where C casts to
+  unsigned, which is where a reader expects one.
+- **Decision: text is a `str` with one character per byte** (decoded as Latin-1) everywhere
+  inside the port, encoded back on output. Options: `bytes` throughout (awkward with `%`
+  formatting and f-strings), UTF-8 `str` (changes byte counts and breaks on invalid bytes), or
+  Latin-1 `str`. Latin-1 round-trips every byte, so a source line or MIPS string with any
+  bytes in it comes out exactly as it went in.
+- **Decision: x86's answers where C is undefined.** Python raises where C quietly computes
+  (`1.0/0.0`, `math.sqrt(-1)`, `int(nan)`, packing an overflowing double into a float); the
+  helpers return what the x86 hardware returns (IEEE infinities, the default NaN
+  `0xfff8...`, `INT_MIN` from `cvttsd2si`), which is what the C engine inherits.
