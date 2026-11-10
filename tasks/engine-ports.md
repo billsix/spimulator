@@ -85,6 +85,10 @@ milestones.
   native run, as it does for `spimulator`, so the documented commands stay tested. Its docstring,
   `tasks/reference/example-c-teaching-style.md` and the example template get the new line too. This
   is the last step of each port's task.
+- **The teaching mode is not ported yet** (William Emerison Six <billsix@gmail.com>, 2026-11-10). Each port stops after the CLI/REPL milestone;
+  `-explain` waits for `tasks/explain-mode-correctness-bugs.md` and `tasks/explain-levels-redesign.md`
+  in C, because porting it now would port output that is about to change. A port given `-explain`
+  says it is not supported, and the harness excludes the explain cases by name, with that reason.
 - **Order of milestones, the same for every port:** machine arithmetic → assembler (gate: AST-parity
   bytes) → executor + syscalls (gate: regression + examples) → CLI/REPL → teaching mode
   (`-explain`, after `tasks/explain-mode-correctness-bugs.md` lands in C).

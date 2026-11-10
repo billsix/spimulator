@@ -1,6 +1,6 @@
 # Before the Python port: fix the C engine's wrong-value bugs, pin the test oracle, drop `,` as an FP decimal separator
 
-**Status:** proposed — needs go-ahead
+**Status:** in progress
 **Priority:** 3
 **Difficulty:** 5
 **Created:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
@@ -28,8 +28,8 @@ every F5 item has a failing-then-passing test, the F7 tests run in the meson reg
 
 ## Plan
 
-1. **Separator (F12, §3.20):** remove `,` from the FP-literal scan in `src/scanner.c`; decide `'`
-   (§3.20 mentions both) in the same change. Test: `.word 1,2` assembles to two words; an FP literal
+1. **Separator (F12, §3.20):** remove `,` and `'` from the FP-literal scan in `src/scanner.c`
+   (`scan_fp_check`), keeping only `.`. Test: `.word 1,2` assembles to two words; an FP literal
    with `.` still parses. Note the change in `Documentation/spim.1` if it documents the separator.
 2. **F5, one commit per bug, test first:** `divu` overflow guard, forward `.word lab+N`, `c.cond`/`movf`
    decode, `movn.s`/`movz.s` encoding, `BRANCH_OFFSET` reach, signed-overflow UB in `signed_multiply`
@@ -43,3 +43,6 @@ every F5 item has a failing-then-passing test, the F7 tests run in the meson reg
 
 - Fix before porting, and drop `,` as a decimal separator (William Emerison Six <billsix@gmail.com>,
   2026-11-10; recorded in `tasks/engine-port-python.md`).
+- Drop `'` as well; `.` is the only FP decimal separator (William Emerison Six <billsix@gmail.com>, 2026-11-10).
+- Go-ahead for this task, then the Python, Haskell and Rust ports in that order, on one branch with
+  the agent committing; gpg signing off for the day (William Emerison Six <billsix@gmail.com>, 2026-11-10).

@@ -1,6 +1,6 @@
 # Port the simulator engine to GHC Haskell, equivalent to the C engine
 
-**Status:** proposed — needs go-ahead
+**Status:** go-ahead given; waits on `tasks/engine-port-prereq-c-fixes.md`
 **Priority:** 7
 **Difficulty:** 8
 **Created:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
@@ -111,3 +111,4 @@ download.
 - Print floats with the exact-`Rational` formatter (Findings), not `Text.Printf` or a C FFI call to
   `snprintf`. FFI would match trivially, but the port would then depend on the C library for the
   output it is being compared on. The agent's call; revisit only if the formatter shows a difference.
+- Go-ahead (William Emerison Six <billsix@gmail.com>, 2026-11-10). The teaching mode (`-explain`) is out of scope for now (`tasks/engine-ports.md`).

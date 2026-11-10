@@ -1,6 +1,6 @@
 # Port the simulator engine to Rust, equivalent to the C engine
 
-**Status:** proposed — needs go-ahead
+**Status:** go-ahead given; waits on `tasks/engine-port-prereq-c-fixes.md`
 **Priority:** 7
 **Difficulty:** 8
 **Created:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
@@ -75,3 +75,4 @@ Rust's traps against the C engine, with the planned answer:
   2026-11-10).
 - Standard library only; no crates (the agent's call, for offline builds). Revisit for line editing
   only.
+- Go-ahead (William Emerison Six <billsix@gmail.com>, 2026-11-10). The teaching mode (`-explain`) is out of scope for now (`tasks/engine-ports.md`).
