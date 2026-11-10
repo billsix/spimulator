@@ -20,7 +20,7 @@ each file it changes.
 Usage:
     tools/add_port_lines.py NAME LABEL     e.g.  tools/add_port_lines.py haskell "GHC Haskell"
 
-First written for the Python port (tasks/engine-port-python.md) and made
+First written for the Python port (tasks/archive/2026/11/10/engine-port-python.md) and made
 general for every port.
 """
 

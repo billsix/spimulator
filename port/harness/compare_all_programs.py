@@ -9,7 +9,7 @@ file the engine wrote (text.asm, data.asm, the listing) are compared, with the
 same rule as compare_engines.py: a difference only inside close floating-point
 numbers is a WARN, anything else a FAIL.
 
-Written by the Python port's work (tasks/engine-port-python.md, where it found
+Written by the Python port's work (tasks/archive/2026/11/10/engine-port-python.md, where it found
 three differences no other test showed) and promoted here for every port.
 
 Usage:

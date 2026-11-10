@@ -27,7 +27,7 @@ through the C engine and every port. Done for the umbrella:
 1. [x] `tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md` (done) — fix the C engine's wrong-value bugs, close the test
    gaps, drop `,` as an FP decimal separator. The standard must be right and fully pinned before
    anything is compared with it.
-2. [ ] `tasks/engine-port-python.md` — the Python port. It also builds the shared harness (its Plan
+2. [x] `tasks/archive/2026/11/10/engine-port-python.md` (done) — the Python port. It also builds the shared harness (its Plan
    step 2), generic over any number of engines.
 3. [ ] `tasks/engine-port-haskell.md` — the GHC Haskell port.
 4. [ ] `tasks/engine-port-rust.md` — the Rust port.

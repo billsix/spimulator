@@ -200,7 +200,7 @@ bit. `tasks/adhoc/engine-ports-float-format/CFormat.hs` implements all five form
 
 ## What the Python port found (2026-11-10)
 
-The port (`port/python/`, `tasks/engine-port-python.md`) reached zero differences on the corpus.
+The port (`port/python/`, `tasks/archive/2026/11/10/engine-port-python.md`) reached zero differences on the corpus.
 Traps beyond the table above, each one a byte-level difference until handled:
 
 - **Speed is fine if each instruction is decoded once.** Compiling an instruction on first
@@ -219,7 +219,7 @@ Traps beyond the table above, each one a byte-level difference until handled:
 - **Bytes, not text**: source lines, MIPS strings and file names may hold any byte; a `str`
   holding one character per byte (Latin-1) round-trips them.
 - **C's undefined behavior has to be reproduced, crash included**, where a test can see it: the
-  port exits 139 where the C engine dies of SIGSEGV (`tasks/engine-port-python.md`, "C engine bugs
+  port exits 139 where the C engine dies of SIGSEGV (`tasks/archive/2026/11/10/engine-port-python.md`, "C engine bugs
   found").
 - **Module-level globals and import cycles**: the C files include each other's headers freely;
   Python modules that import each other must only use each other's attributes at call time, and
@@ -231,4 +231,4 @@ Traps beyond the table above, each one a byte-level difference until handled:
   oracle to trust.
 - `tasks/reference/simulator-integer-types.md` — the C engine's integer types.
 - `tasks/reference/inherited-idiosyncrasies.md` — upstream quirks.
-- `tasks/engine-port-python.md` — the Python port's task and log.
+- `tasks/archive/2026/11/10/engine-port-python.md` — the Python port's task and log.
