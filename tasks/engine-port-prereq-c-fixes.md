@@ -1,57 +1,19 @@
-# Before the Python port: fix the C engine's wrong-value bugs, pin the test oracle, drop `,` as an FP decimal separator
+# Before the ports: fixed the C engine's wrong-value bugs, closed the test gaps, dropped `,` and `'` as decimal separators
 
-**Status:** in progress
-**Priority:** 3
-**Difficulty:** 5
-**Created:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
-**Source:** tasks/review/2026/11/10/repo-review.md §3 (F5), §6 (F7), §3.20 (F12)
-**Part of:** `tasks/engine-ports.md`
-**Next:** `tasks/engine-port-python.md` (its Plan step 1 is this task), then `tasks/engine-port-haskell.md` and `tasks/engine-port-rust.md`
+**Created:** 2026-11-10 · **Completed:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
+**Part of:** `tasks/engine-ports.md` · **Source:** tasks/review/2026/11/10/repo-review.md §3 (F5), §6 (F7), §3.20 (F12)
 
-## BLUF
+## Summary
 
-The maintainer decided the C engine's bugs get fixed before the Python port, so the port is diffed
-against correct output, and that `,` stops being accepted as a floating-point decimal separator.
-This task does three things in C: it fixes the F5 wrong-value bugs, each with a regression test; it
-closes the F7 test-gate gaps, so the oracle is complete; and it drops the `,` separator. Done means:
-every F5 item has a failing-then-passing test, the F7 tests run in the meson regression suite,
-`.word 1,2` assembles two words, and `make image` (sanitizers on) is green.
+The maintainer decided that the C engine's bugs are fixed before any port, so every port is
+compared with correct output, and that `.` is the only decimal point. This task fixed the review's
+seven wrong-value bugs and one endless parse-error loop it found along the way, each with a test
+that fails on the engine from before. It also closed the test gaps that would have let a port
+differ from C unnoticed. Commits on branch `engine-ports`: `2858150` (engine fixes), `82b9b39`
+(test gaps). The gate `make image` (sanitizers on) passed at `0e618c7`: 64 meson tests, and 29
+regression tests each under UBSan and ASan.
 
-## Context (read first)
-
-- `tasks/review/2026/11/10/repo-review.md` — §3 rows 3.4, 3.5, 3.7, 3.8, 3.10, 3.13 (F5), §6.1, §6.2,
-  §6.4–§6.6 (F7), §3.20 (the separator; upstream `9b0892d`, `8141259`). The record is frozen; re-check
-  each row against the tree before acting.
-- `tasks/explain-mode-correctness-bugs.md` owns the explain-mode bugs (F6); not this task.
-- The memory-safety bugs (F3) and the setjmp locals (F4) do not change output on correct programs,
-  so they do not gate the port; they are left for their own task.
-
-## Plan
-
-1. **Separator (F12, §3.20):** remove `,` and `'` from the FP-literal scan in `src/scanner.c`
-   (`scan_fp_check`), keeping only `.`. Test: `.word 1,2` assembles to two words; an FP literal
-   with `.` still parses. Note the change in `Documentation/spim.1` if it documents the separator.
-2. **F5, one commit per bug, test first:** `divu` overflow guard, forward `.word lab+N`, `c.cond`/`movf`
-   decode, `movn.s`/`movz.s` encoding, `BRANCH_OFFSET` reach, signed-overflow UB in `signed_multiply`
-   and in text-segment `sb`/`sh`. Any `opcodes.h` change is gated with `BUILD_TREE_SITTER=1` (`CLAUDE.md`).
-3. **F7:** run `tt.alu.bare.s`/`tt.fpu.bare.s` under `-bare -noexception`; make the `bare` test pass
-   `-bare`; make the AST-parity loop fail on a missing dump; pin `tt.core.s`'s full output as a golden;
-   add one default-handler (no `-ef`) test; fix or delete `explain_parity`.
-4. Gate: `make image` with the default flags (sanitizers on).
-
-## Decisions
-
-- Fix before porting, and drop `,` as a decimal separator (William Emerison Six <billsix@gmail.com>,
-  2026-11-10; recorded in `tasks/engine-port-python.md`).
-- Drop `'` as well; `.` is the only FP decimal separator (William Emerison Six <billsix@gmail.com>, 2026-11-10).
-- Go-ahead for this task, then the Python, Haskell and Rust ports in that order, on one branch with
-  the agent committing; gpg signing off for the day (William Emerison Six <billsix@gmail.com>, 2026-11-10).
-
-## Log (2026-11-10)
-
-Written as the work went, for the maintainer to read afterwards.
-
-**Fixed in C (Plan steps 1 and 2), each covered by `tests/tt.engine_fixes.s` (a self-checking
+**Fixed in C, each covered by `tests/tt.engine_fixes.s` (a self-checking
 program: a wrong result prints `Failed engine-fixes case N`):**
 
 1. **Decimal separators** (§3.20; case 1). `src/scanner.c` accepted `1,5` and `1'5` as the number
@@ -115,7 +77,7 @@ fail on the engine from before the fixes, built from `HEAD` in a scratch directo
 - 87 clang-format differences already exist in `src/` and `include/` under the image's clang-format
   23.1.5. The fixes formatted only their own lines; a tree-wide reformat is a separate decision.
 
-**Test gaps closed (Plan step 3, review F7):**
+**Test gaps closed (review F7):**
 - **`fpu_bare` (new):** upstream's FPU torture test `tt.fpu.bare.s` had never run. It runs under
   `-bare -noexception`, as upstream ran it, and passes.
 - **`tt.alu.bare.s` still does not run:** 19 of its lines do not assemble in the fork (immediates
