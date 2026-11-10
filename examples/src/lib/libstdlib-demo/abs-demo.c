@@ -10,6 +10,18 @@
  * line per case.  Output is the pinned golden (abs-demo.expected).
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -I../libctype -I../libstdlib -o abs-demo abs-demo.c ../libstdlib/libstdlib.c ../../print-char.c ../../print-int.c ../../print-string.c ../libctype/libctype.c ../../count-chars.c
+ *     $ ./abs-demo
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f ../libctype/libctype.asm -f ../libstdlib/libstdlib.asm -f abs-demo.asm
+ */
+/* clang-format on */
+
 #include "io.h"
 #include "libstdlib.h"
 

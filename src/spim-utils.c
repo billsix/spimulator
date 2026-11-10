@@ -42,7 +42,7 @@ static const unsigned char embedded_exceptions_bytes[] = {
 #embed "exceptions.s"
 };
 
-int exception_occurred;
+bool exception_occurred;
 
 /* Records the ExcCode of the first non-syscall, non-breakpoint, non-interrupt
    exception seen during a run of the user program.  Set by raise_exception()
@@ -99,15 +99,12 @@ void initialize_world(char* exception_file_names, bool print_message) {
       if (!load_embedded_exception_handler(print_message))
         fatal_error("Cannot parse embedded exception handler\n");
     } else {
-      char* filename;
-      char* files;
-
       /* strtok modifies the string, so we must back up the string prior to
          use. */
-      if ((files = strdup(exception_file_names)) == nullptr)
-        fatal_error("Insufficient memory to complete.\n");
+      char* files = strdup(exception_file_names);
+      if (files == nullptr) fatal_error("Insufficient memory to complete.\n");
 
-      for (filename = strtok(files, ";"); filename != nullptr;
+      for (char* filename = strtok(files, ";"); filename != nullptr;
            filename = strtok(nullptr, ";")) {
         if (!read_assembly_file(filename))
           fatal_error("Cannot read exception handler: %s\n", filename);
@@ -124,7 +121,7 @@ void initialize_world(char* exception_file_names, bool print_message) {
 
     if (!bare_machine) {
       (void)make_label_global("main"); /* In case .globl main forgotten */
-      (void)record_label("main", 0, 0);
+      (void)record_label("main", 0, false);
     }
   }
   scanner_init(stdin);
@@ -143,7 +140,7 @@ void write_startup_message(void) {
 void initialize_registers(void) {
   memset(fp_double_view, 0, FPR_LENGTH * sizeof(double));
   fp_single_view = (float*)fp_double_view;
-  fp_int_view = (int*)fp_double_view;
+  fp_int_view = (int32_t*)fp_double_view;
 
   memset(gpr, 0, R_LENGTH * sizeof(reg_word));
   gpr[REG_SP] = STACK_TOP - BYTES_PER_WORD - 4096; /* Initialize $sp */
@@ -210,7 +207,7 @@ mem_addr starting_address(void) {
   return (find_symbol_address(DEFAULT_RUN_LOCATION));
 }
 
-#define MAX_ARGS 10000
+constexpr int MAX_ARGS = 10000;
 
 /* Initialize the SPIM stack from a string containing the command line. */
 
@@ -313,14 +310,14 @@ bool run_program(mem_addr pc, int steps, bool display, bool cont_bkpt,
     mem_addr addr = PC == 0 ? pc : PC;
 
     delete_breakpoint(addr);
-    exception_occurred = 0;
+    exception_occurred = false;
     *continuable = run_spim(addr, 1, display);
     add_breakpoint(addr);
     steps -= 1;
     pc = PC;
   }
 
-  exception_occurred = 0;
+  exception_occurred = false;
   *continuable = run_spim(pc, steps, display);
   if (exception_occurred && (uint32_t)CP0_ExCode == ExcCode_Bp) {
     /* Turn off EXL bit, so subsequent interrupts set EPC since the break is
@@ -346,11 +343,10 @@ static bkpt* bkpts = nullptr;
 
 void add_breakpoint(mem_addr addr) {
   bkpt* rec = (bkpt*)xmalloc(sizeof(bkpt));
+  *rec =
+      (bkpt){.addr = addr, .instruction = set_breakpoint(addr), .next = bkpts};
 
-  rec->next = bkpts;
-  rec->addr = addr;
-
-  if ((rec->instruction = set_breakpoint(addr)) != nullptr)
+  if (rec->instruction != nullptr)
     bkpts = rec;
   else {
     if (exception_occurred)
@@ -365,30 +361,28 @@ void add_breakpoint(mem_addr addr) {
 
 void delete_breakpoint(mem_addr addr) {
   bkpt *p, *b;
-  int deleted_one = 0;
+  bool deleted_one = false;
 
   for (p = nullptr, b = bkpts; b != nullptr;)
     if (b->addr == addr) {
-      bkpt* n;
-
       mem_write_inst(addr, b->instruction);
       if (p == nullptr)
         bkpts = b->next;
       else
         p->next = b->next;
-      n = b->next;
+      bkpt* n = b->next;
       free(b);
       b = n;
-      deleted_one = 1;
+      deleted_one = true;
     } else
       p = b, b = b->next;
   if (!deleted_one) error("No breakpoint to delete at 0x%08x\n", addr);
 }
 
 static void delete_all_breakpoints(void) {
-  bkpt *b, *n;
+  bkpt* n = nullptr;
 
-  for (b = bkpts, n = nullptr; b != nullptr; b = n) {
+  for (bkpt* b = bkpts; b != nullptr; b = n) {
     n = b->next;
     free(b);
   }
@@ -398,10 +392,8 @@ static void delete_all_breakpoints(void) {
 /* List all breakpoints. */
 
 void list_breakpoints(void) {
-  bkpt* b;
-
   if (bkpts)
-    for (b = bkpts; b != nullptr; b = b->next)
+    for (bkpt* b = bkpts; b != nullptr; b = b->next)
       write_output(message_out, "Breakpoint at 0x%08x\n", b->addr);
   else
     write_output(message_out, "No breakpoints set\n");
@@ -442,9 +434,10 @@ name_val_val* map_int_to_name_val_val(name_val_val tbl[], int tbl_len,
 }
 
 void* xmalloc(size_t size) {
-  void* x = (void*)malloc(size);
+  void* x = malloc(size);
 
-  if (x == 0) fatal_error("Out of memory at request for %zu bytes.\n", size);
+  if (x == nullptr)
+    fatal_error("Out of memory at request for %zu bytes.\n", size);
   return (x);
 }
 
@@ -453,6 +446,7 @@ void* xmalloc(size_t size) {
 void* zmalloc(size_t size) {
   void* z = calloc(1, size);
 
-  if (z == 0) fatal_error("Out of memory at request for %zu bytes.\n", size);
+  if (z == nullptr)
+    fatal_error("Out of memory at request for %zu bytes.\n", size);
   return (z);
 }

@@ -20,9 +20,9 @@ typedef struct label_use {
 typedef struct label {
   char* name;               /* Name of label */
   long addr;                /* Address of label or 0 if not yet defined */
-  unsigned global_flag : 1; /* Non-zero => declared global */
-  unsigned gp_flag : 1;     /* Non-zero => referenced off gp */
-  unsigned const_flag : 1;  /* Non-zero => constant value (in addr) */
+  bool global_flag : 1;     /* => declared global */
+  bool gp_flag : 1;         /* => referenced off gp */
+  bool const_flag : 1;      /* => constant value (in addr) */
   struct label* next;       /* Hash table link */
   struct label* next_local; /* Link in list of local labels */
   label_use* uses;          /* List of instructions that reference */
@@ -33,14 +33,14 @@ typedef struct label {
 /* Exported functions: */
 
 mem_addr find_symbol_address(char* symbol);
-void flush_local_labels(int issue_undef_warnings);
+void flush_local_labels(bool issue_undef_warnings);
 void initialize_symbol_table(void);
 label* label_is_defined(char* name);
 [[nodiscard]] label* lookup_label(char* name);
 label* make_label_global(char* name);
 void print_symbols(void);
 void print_undefined_symbols(void);
-label* record_label(char* name, mem_addr address, int resolve_uses);
+label* record_label(char* name, mem_addr address, bool resolve_uses);
 void record_data_uses_symbol(mem_addr location, label* sym);
 void record_inst_uses_symbol(mips_instruction* instruction, label* sym);
 [[nodiscard]] char* undefined_symbol_string(void);

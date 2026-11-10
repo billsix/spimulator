@@ -28,6 +28,18 @@
  *          `ch & ~0x20`).  We use subtraction here.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o tr tr.c ../../print-char.c ../../read-char.c
+ *     $ ./tr < tr.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f tr.asm < tr.input
+ */
+/* clang-format on */
+
 #include "io.h"
 
 __attribute__((noreturn)) void _start(void) {

@@ -16,6 +16,18 @@
  *          "N-M" into two ints at the '-' character.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o cut cut.c ../../print-char.c ../../print-string.c ../../count-chars.c
+ *     $ ./cut -c 2-4 cut.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f cut.asm -c 2-4 cut.input
+ */
+/* clang-format on */
+
 #include "io.h"
 #include "crt0.h"
 

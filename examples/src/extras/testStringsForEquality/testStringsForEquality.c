@@ -26,6 +26,21 @@
  *       suggests, matching the book demo this came from.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o testStringsForEquality testStringsForEquality.c ../../print-int.c ../../print-string.c ../../count-chars.c
+ *     $ ./testStringsForEquality
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f testStringsForEquality-1.asm
+ *
+ *   testStringsForEquality-1.asm prints only the comparison results,
+ *   without the C version's labels.
+ */
+/* clang-format on */
+
 #include "io.h"
 
 int str_eq(const char* s1, const char* s2) {

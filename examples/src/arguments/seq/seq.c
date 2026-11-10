@@ -33,6 +33,18 @@
  *          format string; both out of scope.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o seq seq.c ../../string-to-int.c ../../print-char.c ../../print-int.c ../../print-string.c ../../count-chars.c
+ *     $ ./seq 1 5
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f seq.asm 1 5
+ */
+/* clang-format on */
+
 #include "io.h"
 #include "crt0.h"
 

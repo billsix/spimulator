@@ -39,6 +39,18 @@
  *          added to the io library.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o factorial factorial.c ../../string-to-int.c ../../print-char.c ../../print-string.c ../../print-uint.c ../../count-chars.c
+ *     $ ./factorial 10
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f factorial.asm 10
+ */
+/* clang-format on */
+
 #include "io.h"
 
 #include "crt0.h" /* provides _start; calls my_main(argc, argv) */

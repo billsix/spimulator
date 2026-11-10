@@ -36,6 +36,18 @@
  *          cap N at 34.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o pascals-triangle pascals-triangle.c ../../string-to-int.c ../../print-char.c ../../print-int.c ../../print-string.c ../../count-chars.c
+ *     $ ./pascals-triangle 5
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f pascals-triangle.asm 5
+ */
+/* clang-format on */
+
 #include "io.h"
 #include "crt0.h"
 

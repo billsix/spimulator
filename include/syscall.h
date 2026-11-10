@@ -6,33 +6,38 @@
 #ifndef SYSCALL_H
 #define SYSCALL_H
 
+#include <stdint.h>
+
 /* Exported functions. */
 
-int do_syscall(void);
+[[nodiscard]] bool do_syscall(void);
 void handle_exception(void);
 
-#define PRINT_INT_SYSCALL 1
-#define PRINT_FLOAT_SYSCALL 2
-#define PRINT_DOUBLE_SYSCALL 3
-#define PRINT_STRING_SYSCALL 4
+/* Syscall numbers, passed in $v0. */
+enum spim_syscall : int32_t {
+  PRINT_INT_SYSCALL = 1,
+  PRINT_FLOAT_SYSCALL = 2,
+  PRINT_DOUBLE_SYSCALL = 3,
+  PRINT_STRING_SYSCALL = 4,
 
-#define READ_INT_SYSCALL 5
-#define READ_FLOAT_SYSCALL 6
-#define READ_DOUBLE_SYSCALL 7
-#define READ_STRING_SYSCALL 8
+  READ_INT_SYSCALL = 5,
+  READ_FLOAT_SYSCALL = 6,
+  READ_DOUBLE_SYSCALL = 7,
+  READ_STRING_SYSCALL = 8,
 
-#define SBRK_SYSCALL 9
+  SBRK_SYSCALL = 9,
 
-#define EXIT_SYSCALL 10
+  EXIT_SYSCALL = 10,
 
-#define PRINT_CHARACTER_SYSCALL 11
-#define READ_CHARACTER_SYSCALL 12
+  PRINT_CHARACTER_SYSCALL = 11,
+  READ_CHARACTER_SYSCALL = 12,
 
-#define OPEN_SYSCALL 13
-#define READ_SYSCALL 14
-#define WRITE_SYSCALL 15
-#define CLOSE_SYSCALL 16
+  OPEN_SYSCALL = 13,
+  READ_SYSCALL = 14,
+  WRITE_SYSCALL = 15,
+  CLOSE_SYSCALL = 16,
 
-#define EXIT2_SYSCALL 17
+  EXIT2_SYSCALL = 17,
+};
 
 #endif

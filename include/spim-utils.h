@@ -34,7 +34,7 @@ void format_data_segs(str_stream* ss);
 void format_insts(str_stream* ss, mem_addr from, mem_addr to);
 void format_mem(str_stream* ss, mem_addr from, mem_addr to);
 void print_text_listing(void);
-void format_registers(str_stream* ss, int print_gpr_hex, int print_fpr_hex);
+void format_registers(str_stream* ss, bool print_gpr_hex, bool print_fpr_hex);
 void initialize_registers(void);
 void initialize_stack(const char* command_line);
 void initialize_run_stack(int argc, char** argv);

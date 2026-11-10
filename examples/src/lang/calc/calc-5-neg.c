@@ -34,6 +34,18 @@
  * signed print_int shows the sign.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o calc-5-neg calc-5-neg.c ../../print-char.c ../../print-int.c ../../read-char.c
+ *     $ ./calc-5-neg < calc-5-neg.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f calc-5-neg.asm < calc-5-neg.input
+ */
+/* clang-format on */
+
 #include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 #include "io.h"
 

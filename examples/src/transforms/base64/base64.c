@@ -19,6 +19,18 @@
  *          more than one input byte.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o base64 base64.c ../../print-char.c ../../print-string.c ../../count-chars.c
+ *     $ ./base64 base64.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f base64.asm base64.input
+ */
+/* clang-format on */
+
 #include "io.h"
 #include "crt0.h"
 

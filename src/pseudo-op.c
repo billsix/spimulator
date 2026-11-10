@@ -16,9 +16,7 @@
 #include "tokens.h"       /* Y_*_OP, Y_*_POP token values */
 #include "parser.h"       /* emit_r, emit_r_shift, emit_i_free, ... */
 #include "pseudo-op.h"
-
-extern int line_no;                /* from scanner */
-extern char* erroneous_line(void); /* from scanner.c */
+#include "scanner.h" /* line_no, erroneous_line */
 
 /* ------------------------------------------------------------------ *
  * Runtime-visible globals: parse-error counters.
@@ -86,8 +84,6 @@ int imm_op_to_op(int opcode) {
    The instruction-emit calls (r_type_inst, i_type_inst_free, ...) come
    in via parser.h's emit_* dispatch wrappers so they participate in
    AST construction. */
-extern imm_expr* const_imm_expr(int value);
-extern int32_t eval_imm_expr(imm_expr* expr);
 
 void nop_inst(void) {
   emit_r(TOK_SLL_OPCODE, 0, 0, 0); /* sll $0, $0, 0 == 0x00000000 */

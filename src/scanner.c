@@ -62,7 +62,7 @@ static name_val_val keyword_tbl[] = {
 #include "opcodes.h"
 };
 
-static int check_keyword(char* id, int allow_pseudo_ops) {
+static int check_keyword(char* id, bool allow_pseudo_ops) {
   name_val_val* entry = map_string_to_name_val_val(
       keyword_tbl, sizeof(keyword_tbl) / sizeof(name_val_val), id);
   if (entry == nullptr) return 0;
@@ -76,7 +76,7 @@ static int check_keyword(char* id, int allow_pseudo_ops) {
    `line_pos` within the buffer.  When `line_pos` reaches the
    end (or NUL), the next line is read on demand. */
 
-#define LINE_BUF_MAX 4096
+constexpr int LINE_BUF_MAX = 4096;
 
 static FILE* input_file = nullptr;
 static char line_buf[LINE_BUF_MAX];
@@ -117,7 +117,8 @@ void scanner_init(FILE* in) {
   line_no = 1;
   current_line_saved = false;
   force_id_next = false;
-  tok_buf[0].present = tok_buf[1].present = tok_buf[2].present = false;
+  for (size_t i = 0; i < sizeof tok_buf / sizeof tok_buf[0]; i++)
+    tok_buf[i] = (scan_token){};
 }
 
 void scanner_start_line(void) { current_line_saved = false; }
@@ -176,6 +177,11 @@ static void maybe_snapshot_line(void) {
 
 /* --- token scanners --------------------------------------- */
 
+/* The value of hex digit C; the caller has checked isxdigit(C). */
+static inline int hex_digit_value(int c) {
+  return c <= '9' ? c - '0' : (c <= 'F' ? c - 'A' + 10 : c - 'a' + 10);
+}
+
 /* Look-ahead: starting from line_pos, decide if the next token
    is a floating-point literal (matches `[0-9]+[.,'][0-9]+(e[+-]?[0-9]+)?`)
    vs a plain integer.  Returns the position past the FP-literal
@@ -220,9 +226,8 @@ static int scan_fp(int sign, int end_pos, scan_token* out) {
   }
   scratch = sign * atof(buf);
   line_pos = end_pos;
-  out->type = TOK_FP;
-  out->val.p = (void*)&scratch;
-  out->present = true;
+  *out =
+      (scan_token){.type = TOK_FP, .val.p = (void*)&scratch, .present = true};
   return TOK_FP;
 }
 
@@ -239,18 +244,16 @@ static int scan_int(int sign, scan_token* out) {
     next_char(); /* consume "0x" */
     while (isxdigit(peek_char())) {
       int c = next_char();
-      value = (value << 4) | (c <= '9' ? (uint32_t)(c - '0')
-                                       : (c <= 'F' ? (uint32_t)(c - 'A' + 10)
-                                                   : (uint32_t)(c - 'a' + 10)));
+      value = (value << 4) | (uint32_t)hex_digit_value(c);
     }
   } else {
     while (isdigit(peek_char())) {
       value = value * 10 + (uint32_t)(next_char() - '0');
     }
   }
-  out->type = TOK_INT;
-  out->val.i = (int32_t)((uint32_t)sign * value);
-  out->present = true;
+  *out = (scan_token){.type = TOK_INT,
+                      .val.i = (int32_t)((uint32_t)sign * value),
+                      .present = true};
   return TOK_INT;
 }
 
@@ -283,14 +286,12 @@ static int scan_escape_char(const char** pp) {
       int hi = **pp, lo = *(*pp + 1);
       int v = 0;
       if (isxdigit(hi))
-        v = (hi <= '9' ? hi - '0' : (hi <= 'F' ? hi - 'A' + 10 : hi - 'a' + 10))
-            << 4;
+        v = hex_digit_value(hi) << 4;
       else {
         error("Bad character in \\X construct in char literal\n");
       }
       if (isxdigit(lo))
-        v |= (lo <= '9' ? lo - '0'
-                        : (lo <= 'F' ? lo - 'A' + 10 : lo - 'a' + 10));
+        v |= hex_digit_value(lo);
       else {
         error("Bad character in \\X construct in char literal\n");
       }
@@ -368,15 +369,13 @@ static char* decode_string(const char* src, int len) {
         int c2 = *(s + 2), c3 = *(s + 3);
         int b = 0;
         if (isxdigit(c2))
-          b = (c2 <= '9' ? c2 - '0'
-                         : (c2 <= 'F' ? c2 - 'A' + 10 : c2 - 'a' + 10));
+          b = hex_digit_value(c2);
         else {
           error("Bad character in \\X construct in string\n");
         }
         b <<= 4;
         if (isxdigit(c3))
-          b |= (c3 <= '9' ? c3 - '0'
-                          : (c3 <= 'F' ? c3 - 'A' + 10 : c3 - 'a' + 10));
+          b |= hex_digit_value(c3);
         else {
           error("Bad character in \\X construct in string\n");
         }
@@ -414,9 +413,7 @@ static int scan_identifier(scan_token* out, bool force_id) {
   if (!force_id) {
     int token = check_keyword(id_buf, !bare_machine && accept_pseudo_insts);
     if (token != 0) {
-      out->type = token;
-      out->val.i = token;
-      out->present = true;
+      *out = (scan_token){.type = token, .val.i = token, .present = true};
       return token;
     }
   }
@@ -424,24 +421,21 @@ static int scan_identifier(scan_token* out, bool force_id) {
   /* Defined-constant label? */
   label* l = label_is_defined(id_buf);
   if (l != nullptr && l->const_flag) {
-    out->type = TOK_INT;
-    out->val.i = (int)l->addr;
-    out->present = true;
+    *out =
+        (scan_token){.type = TOK_INT, .val.i = (int)l->addr, .present = true};
     return TOK_INT;
   }
 
   /* Otherwise an identifier. */
-  out->type = TOK_ID;
-  out->val.p = (void*)strdup(id_buf);
-  out->present = true;
+  *out = (scan_token){
+      .type = TOK_ID, .val.p = (void*)strdup(id_buf), .present = true};
   return TOK_ID;
 }
 
 /* Scan a $register reference. */
 static int scan_register(scan_token* out) {
-  int start;
   next_char(); /* skip the $ */
-  start = line_pos;
+  int start = line_pos;
   while (peek_char() == '_' || peek_char() == '.' || peek_char() == '$' ||
          isalnum(peek_char())) {
     next_char();
@@ -458,29 +452,23 @@ static int scan_register(scan_token* out) {
 
   /* FP register if leading is 'f' and not "fp" */
   if (reg_no != -1 && reg_buf[0] == 'f' && reg_buf[1] != 'p') {
-    out->type = TOK_FP_REG;
-    out->val.i = reg_no;
-    out->present = true;
+    *out = (scan_token){.type = TOK_FP_REG, .val.i = reg_no, .present = true};
     return TOK_FP_REG;
   }
 
   if (reg_no >= 0 && reg_no < R_LENGTH) {
-    out->type = TOK_REG;
-    out->val.i = reg_no;
-    out->present = true;
+    *out = (scan_token){.type = TOK_REG, .val.i = reg_no, .present = true};
     return TOK_REG;
   }
 
   /* Fall back to identifier-or-constant-label behavior. */
   label* l = label_is_defined(reg_buf);
-  if (l != nullptr && l->const_flag) {
-    out->type = TOK_INT;
-    out->val.i = (int)l->addr;
-  } else {
-    out->type = TOK_ID;
-    out->val.p = (void*)strdup(reg_buf);
-  }
-  out->present = true;
+  if (l != nullptr && l->const_flag)
+    *out =
+        (scan_token){.type = TOK_INT, .val.i = (int)l->addr, .present = true};
+  else
+    *out = (scan_token){
+        .type = TOK_ID, .val.p = (void*)strdup(reg_buf), .present = true};
   return out->type;
 }
 
@@ -501,9 +489,10 @@ static int scan_string(scan_token* out) {
   int end = line_pos;
   if (peek_char() == '"') next_char(); /* skip closing " */
 
-  out->type = TOK_STR;
-  out->val.p = (void*)decode_string(line_buf + start, end - start);
-  out->present = true;
+  *out =
+      (scan_token){.type = TOK_STR,
+                   .val.p = (void*)decode_string(line_buf + start, end - start),
+                   .present = true};
   return TOK_STR;
 }
 
@@ -525,9 +514,7 @@ static int scan_char(scan_token* out) {
     v = next_char();
   }
   if (peek_char() == '\'') next_char(); /* skip closing ' */
-  out->type = TOK_INT;
-  out->val.i = v;
-  out->present = true;
+  *out = (scan_token){.type = TOK_INT, .val.i = v, .present = true};
   return TOK_INT;
 }
 
@@ -568,16 +555,12 @@ static void scan_one_token(scan_token* out) {
 
     /* Need a new line. */
     if (at_eof) {
-      out->type = TOK_EOF;
-      out->val.i = 0;
-      out->present = true;
+      *out = (scan_token){.type = TOK_EOF, .present = true};
       return;
     }
     fill_line_buf();
     if (at_eof && line_len == 0) {
-      out->type = TOK_EOF;
-      out->val.i = 0;
-      out->present = true;
+      *out = (scan_token){.type = TOK_EOF, .present = true};
       return;
     }
     /* current_line snapshot will be re-taken at first token on the new line */
@@ -594,18 +577,14 @@ have_char: {
   if (c == '\n') {
     next_char();
     line_no += 1;
-    out->type = TOK_NL;
-    out->val.i = 0;
-    out->present = true;
+    *out = (scan_token){.type = TOK_NL, .present = true};
     return;
   }
 
   /* Semicolon also delimits a "line" for grammar purposes. */
   if (c == ';') {
     next_char();
-    out->type = TOK_NL;
-    out->val.i = 0;
-    out->present = true;
+    *out = (scan_token){.type = TOK_NL, .present = true};
     return;
   }
 
@@ -664,9 +643,8 @@ have_char: {
   if (c == '?') {
     next_char();
     static char q[2] = "?";
-    out->type = TOK_ID;
-    out->val.p = (void*)strdup(q);
-    out->present = true;
+    *out = (scan_token){
+        .type = TOK_ID, .val.p = (void*)strdup(q), .present = true};
     return;
   }
 
@@ -674,18 +652,16 @@ have_char: {
   if (c == '*' || c == '/' || c == ':' || c == '(' || c == ')' || c == '+' ||
       c == '-' || c == '>' || c == '=') {
     next_char();
-    out->type = c;
-    out->val.i = c;
-    out->present = true;
+    *out = (scan_token){.type = c, .val.i = c, .present = true};
     return;
   }
 
   /* Unknown character. */
   next_char();
   error("Unknown character in source: '%c' (0x%02x)\n", c, c);
-  out->type = TOK_NL; /* recover by treating as line terminator */
-  out->val.i = 0;
-  out->present = true;
+  *out = (scan_token){
+      .type = TOK_NL,
+      .present = true}; /* recover by treating as line terminator */
   return;
 }
 }
@@ -744,7 +720,7 @@ int scanner_next(void) { return scanner_advance(); }
  * and pushes it; parse_spim_command consumes tokens; then pops.
  */
 
-#define SCANNER_STACK_DEPTH 8
+constexpr int SCANNER_STACK_DEPTH = 8;
 typedef struct {
   FILE* input_file;
   char line_buf[LINE_BUF_MAX];

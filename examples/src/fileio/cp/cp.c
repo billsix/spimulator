@@ -17,6 +17,18 @@
  *          out of scope).  Single source + dest only.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o cp cp.c ../../print-char.c ../../print-string.c ../../count-chars.c
+ *     $ ./cp cp.c cp-copy.c
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f cp.asm cp.c cp-copy.c
+ */
+/* clang-format on */
+
 #include "io.h"
 #include "crt0.h"
 

@@ -216,47 +216,12 @@ Unless someone is actually building this on AIX in 2026, delete.
 
 ---
 
-## Tier D — C23 modernization (DONE)
+## Tier D — C23 modernization (moved)
 
-Landed May 2026 across twelve numbered commits on the
-`c23modernization` branch.  Final-state writeup:
-[`archive/2026/05/22/c23-modernization.md`](archive/2026/05/22/c23-modernization.md).
-
-What this delivered (Tier D items in the original plan, plus
-several that emerged during execution):
-
-- D1. `NULL` → `nullptr` — already done in earlier portability work.
-- D2. `<stdbool.h>` removal — already done in earlier portability work.
-- D3. `[[nodiscard]]` — applied to 41 heap-allocators and status-return
-  functions across `ast.h`, `instruction.h`, `symbol-table.h`, `spim-utils.h`,
-  `string-stream.h`, `run.h`.  Wider sweep than the original three
-  the plan named.
-- D4. `[[maybe_unused]]` on macro-only parameters — not needed; no
-  unused-parameter warnings remained after the sweep.
-- D5. `static_assert` — already in place at `include/memory.h:19`.
-- D6. `constexpr` — applied to ~85 constants across spim.h, memory.h,
-  instruction.h, registers.h.  Includes register-array lengths, memory-segment
-  addresses, immediate bounds, register-number selectors, and the
-  CP0/FCSR bitmask families.
-- D7. Warning flags — `-Wpedantic`, `-Wshadow`, `-Wunused-function`
-  already on.  This work added `-Wimplicit-fallthrough=5`.
-- D8. `auto` — skipped (deferred as readability-harm risk).
-
-Additional C23 features adopted that weren't in the original list:
-
-- `[[noreturn]]` for the four `_Noreturn` functions.
-- `enum E : T` underlying types on every named enum (uint8_t for
-  most; int32_t for tokens.h's TOK_* family).
-- Two `#define` clusters promoted to enums (`op_type`,
-  `mips_exc_code`).
-- `static inline` for `streq`, `sign_ex`; `typeof`-based macros for
-  `MIN`/`MAX`/`ROUND_*` (kills double-evaluation).
-- `<stdbit.h>` for CLO/CLZ.
-- `<stdckdint.h>` for `add`/`addi`/`sub` overflow detection (closes
-  a signed-overflow UB hole at `-O2`).
-- `#embed` for the default exception handler (binary is now
-  self-contained — no on-disk lookup needed).
-- `= {}` empty initializers.
+The C-standard work lives in its own tasks: pass 1
+(`tasks/archive/2026/05/22/c23-modernization.md`), pass 2
+(`tasks/archive/2026/10/16/c23-modernization-pass2.md`) and pass 3
+(`tasks/archive/2026/11/10/c23-modernization-pass3.md`).
 
 ---
 
@@ -460,9 +425,9 @@ attribute for when it earns its keep.
 
 ## Suggested ordering
 
-If you want to do everything: A → B → D → C → E → F → (skip G).
+If you want to do everything: A → B → C → E → F → (skip G).
 
-If you want to do the highest-value subset: **A + D + E**.
+If you want to do the highest-value subset: **A + E**.
 That's ~2 weeks of work, retires the visible cruft, and gives
 you a real test infrastructure.  The structural refactors in
 F can wait until they hurt.

@@ -29,6 +29,18 @@
  *              expand FILE       -> reads FILE
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o expand expand.c ../../print-char.c ../../print-string.c ../../count-chars.c
+ *     $ printf 'a\tb\n' | ./expand
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ printf 'a\tb\n' | spimulator -f expand.asm
+ */
+/* clang-format on */
+
 #include "io.h"
 #include "crt0.h"
 

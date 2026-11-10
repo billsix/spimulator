@@ -32,7 +32,7 @@ static imm_expr* upper_bits_of_expr(imm_expr* old_expr);
 static int compare_pair_value(const void* a, const void* b);
 static void format_imm_expr(str_stream* ss, imm_expr* expr, int base_reg);
 static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
-                                  int value_known, int32_t value);
+                                  bool value_known, int32_t value);
 static void inst_cmp(mips_instruction* inst1, mips_instruction* inst2);
 static mips_instruction* make_r_type_inst(int opcode, int rd, int rs, int rt);
 static mips_instruction* mk_i_inst(int32_t value, int opcode, int rs, int rt,
@@ -42,7 +42,7 @@ static mips_instruction* mk_r_inst(int32_t value, int opcode, int rs, int rt,
                                    int rd, int shamt);
 static mips_instruction* mk_co_r_inst(int32_t value, int opcode, int fd, int fs,
                                       int ft);
-static void produce_immediate(imm_expr* expr, int rt, int value_known,
+static void produce_immediate(imm_expr* expr, int rt, bool value_known,
                               int32_t value);
 static void sort_a_opcode_table(void);
 static void sort_i_opcode_table(void);
@@ -52,7 +52,7 @@ static void sort_name_table(void);
 
 /* True means store instructions in kernel, not user, text segment */
 
-static bool in_kernel = 0;
+static bool in_kernel = false;
 
 /* Instruction used as breakpoint by SPIM: */
 
@@ -169,7 +169,7 @@ static void store_instruction(mips_instruction* instruction) {
     free_inst(instruction);
   } else if (text_dir) {
     mem_addr at = INST_PC;
-    exception_occurred = 0;
+    exception_occurred = false;
     mem_write_inst(at, instruction);
     if (exception_occurred)
       error("Invalid address (0x%08x) for instruction\n", at);
@@ -224,7 +224,7 @@ void i_type_inst(int opcode, int rt, int rs, imm_expr* expr) {
               : ((unsigned int)value & 0xffff0000) != 0))) {
       // Non-immediate value
       free_inst(instruction);
-      i_type_inst_full_word(opcode, rt, rs, expr, 1, value);
+      i_type_inst_full_word(opcode, rt, rs, expr, true, value);
       return;
     } else
       resolve_a_label(expr->symbol, instruction);
@@ -238,7 +238,7 @@ void i_type_inst(int opcode, int rt, int rs, imm_expr* expr) {
        sequence for 32 bit value. */
     free_inst(instruction);
 
-    i_type_inst_full_word(opcode, rt, rs, expr, 0, 0);
+    i_type_inst_full_word(opcode, rt, rs, expr, false, 0);
     return;
   }
 
@@ -249,7 +249,7 @@ void i_type_inst(int opcode, int rt, int rs, imm_expr* expr) {
    Build the value from its piece with separate instructions. */
 
 static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
-                                  int value_known, int32_t value) {
+                                  bool value_known, int32_t value) {
   if (opcode_is_load_store(opcode)) {
     int32_t offset;
 
@@ -259,10 +259,8 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
       i_type_inst_free(opcode, rt, REG_GP,
                        make_imm_expr(offset, nullptr, false));
     } else if (value_known) {
-      int low, high;
-
-      high = (value >> 16) & 0xffff;
-      low = value & 0xffff;
+      int high = (value >> 16) & 0xffff;
+      int low = value & 0xffff;
 
       if (!(high == 0 && !(low & 0x8000)) &&
           !(high == 0xffff && (low & 0x8000))) {
@@ -323,7 +321,7 @@ static void i_type_inst_full_word(int opcode, int rt, int rs, imm_expr* expr,
   }
 }
 
-static void produce_immediate(imm_expr* expr, int rt, int value_known,
+static void produce_immediate(imm_expr* expr, int rt, bool value_known,
                               int32_t value) {
   if (value_known && (value & 0xffff) == 0) {
     i_type_inst_free(TOK_LUI_OPCODE, rt, 0, upper_bits_of_expr(expr));
@@ -365,7 +363,6 @@ static mips_instruction* make_r_type_inst(int opcode, int rd, int rs, int rt) {
   SET_RS(instruction, rs);
   SET_RT(instruction, rt);
   SET_RD(instruction, rd);
-  SHAMT(instruction) = 0;
   return (instruction);
 }
 
@@ -598,11 +595,9 @@ const char* op_token_name(int op_token) {
 }
 
 char* inst_to_string(mem_addr addr) {
-  str_stream ss;
-  mips_instruction* instruction;
-
-  exception_occurred = 0;
-  instruction = mem_read_inst(addr);
+  /* Clear the flag first: mem_read_inst sets it on a bad address. */
+  exception_occurred = false;
+  mips_instruction* instruction = mem_read_inst(addr);
 
   if (exception_occurred) {
     error("Can't print instruction not in text segment (0x%08x)\n", addr);
@@ -611,6 +606,7 @@ char* inst_to_string(mem_addr addr) {
     return strdup("");
   }
 
+  str_stream ss;
   ss_init(&ss);
   format_an_inst(&ss, instruction, addr);
   /* Transfer the buffer to the caller (who frees it); ss is a local,
@@ -945,13 +941,11 @@ bool inst_is_breakpoint(mem_addr addr) {
    breakpoint cannot be set, return nullptr. */
 
 mips_instruction* set_breakpoint(mem_addr addr) {
-  mips_instruction* old_inst;
-
   if (break_inst == nullptr)
     break_inst = make_r_type_inst(TOK_BREAK_OPCODE, 1, 0, 0);
 
-  exception_occurred = 0;
-  old_inst = mem_read_inst(addr);
+  exception_occurred = false;
+  mips_instruction* old_inst = mem_read_inst(addr);
   if (old_inst == break_inst) return (nullptr);
 
   mem_write_inst(addr, break_inst);
@@ -969,13 +963,11 @@ mips_instruction* set_breakpoint(mem_addr addr) {
 imm_expr* make_imm_expr(int offs, char* sym, bool is_pc_relative) {
   imm_expr* expr = (imm_expr*)xmalloc(sizeof(imm_expr));
 
-  expr->offset = offs;
-  expr->bits = 0;
-  expr->pc_relative = is_pc_relative;
-  if (sym != nullptr)
-    expr->symbol = lookup_label(sym);
-  else
-    expr->symbol = nullptr;
+  *expr = (imm_expr){
+      .offset = offs,
+      .symbol = sym != nullptr ? lookup_label(sym) : nullptr,
+      .pc_relative = is_pc_relative,
+  };
   return (expr);
 }
 
@@ -1084,17 +1076,21 @@ addr_expr* make_addr_expr(int offs, char* sym, int reg_no) {
 
   if (reg_no == 0 && sym != nullptr &&
       (looked_up = lookup_label(sym))->gp_flag) {
-    expr->reg_no = REG_GP;
-    expr->imm = make_imm_expr((int)(offs + looked_up->addr - gp_midpoint),
-                              nullptr, false);
+    *expr = (addr_expr){
+        .reg_no = REG_GP,
+        .imm = make_imm_expr((int)(offs + looked_up->addr - gp_midpoint),
+                             nullptr, false),
+    };
   } else {
-    expr->reg_no = (unsigned char)reg_no;
     /* make_imm_expr only reads `sym` (via lookup_label) and stores the
        resulting label*, never the string itself — so it neither retains
        nor frees it.  strdup'ing here produced a copy that was orphaned on
        every call; pass the caller's `sym` straight through instead.  The
        caller keeps ownership and frees it. */
-    expr->imm = make_imm_expr(offs, sym, false);
+    *expr = (addr_expr){
+        .reg_no = (uint8_t)reg_no,
+        .imm = make_imm_expr(offs, sym, false),
+    };
   }
   return (expr);
 }
@@ -1132,17 +1128,14 @@ static void sort_i_opcode_table(void) {
 #define REGS(R, O) (((R) & 0x1f) << O)
 
 int32_t inst_encode(mips_instruction* instruction) {
-  int32_t a_opcode = 0;
-  name_val_val* entry;
-
   if (instruction == nullptr) return (0);
 
-  entry = map_int_to_name_val_val(i_opcode_tbl,
-                                  sizeof(i_opcode_tbl) / sizeof(name_val_val),
-                                  OPCODE(instruction));
+  name_val_val* entry = map_int_to_name_val_val(
+      i_opcode_tbl, sizeof(i_opcode_tbl) / sizeof(name_val_val),
+      OPCODE(instruction));
   if (entry == nullptr) return 0;
 
-  a_opcode = entry->value2;
+  int32_t a_opcode = entry->value2;
   entry = map_int_to_name_val_val(
       name_tbl, sizeof(name_tbl) / sizeof(name_val_val), OPCODE(instruction));
 
@@ -1233,7 +1226,6 @@ int32_t inst_encode(mips_instruction* instruction) {
 
     default:
       fatal_error("Unknown instruction type in inst_encoding\n");
-      return (0); /* Not reached */
   }
 }
 
@@ -1262,8 +1254,6 @@ static void sort_a_opcode_table(void) {
 
 mips_instruction* inst_decode(int32_t val) {
   int32_t a_opcode = (int32_t)((unsigned int)val & 0xfc000000);
-  name_val_val* entry;
-  int32_t i_opcode;
 
   /* Field classes: (opcode is continued in other part of instruction): */
   if (a_opcode == 0 || a_opcode == 0x70000000) /* SPECIAL or SPECIAL2 */
@@ -1283,12 +1273,12 @@ mips_instruction* inst_decode(int32_t val) {
              || a_opcode == 0x4c000000)
     a_opcode |= (val & 0x03e00000);
 
-  entry = map_int_to_name_val_val(
+  name_val_val* entry = map_int_to_name_val_val(
       a_opcode_tbl, sizeof(a_opcode_tbl) / sizeof(name_val_val), a_opcode);
   if (entry == nullptr)
     return (mk_r_inst(val, 0, 0, 0, 0, 0)); /* Invalid instruction */
 
-  i_opcode = entry->value2;
+  int32_t i_opcode = entry->value2;
 
   switch (map_int_to_name_val_val(
               name_tbl, sizeof(name_tbl) / sizeof(name_val_val), i_opcode)
@@ -1379,6 +1369,12 @@ mips_instruction* inst_decode(int32_t val) {
   }
 }
 
+/* The decode constructors below keep zmalloc + the SET_* accessors rather
+   than a designated initializer: the accessors are the one place that maps
+   MIPS field names onto mips_instruction's overlapping unions (FS lives in
+   the rd slot, FD in shamt, IOFFSET in imm), and an initializer would
+   restate that mapping at every site.  zmalloc supplies the zero fill. */
+
 static mips_instruction* mk_r_inst(int32_t val, int opcode, int rs, int rt,
                                    int rd, int shamt) {
   mips_instruction* instruction =
@@ -1454,6 +1450,6 @@ static void inst_cmp(mips_instruction* inst1, mips_instruction* inst2) {
     ss_printf(&ss, "===================\n");
     format_an_inst(&ss, inst2, 0);
     ss_printf(&ss, "=================== Not Equal ===================\n");
-    error(ss_to_string(&ss));
+    error("%s", ss_to_string(&ss));
   }
 }

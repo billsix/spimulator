@@ -24,9 +24,11 @@ static mem_addr next_data_pc; /* Location for next datum in user process */
 
 static mem_addr next_k_data_pc; /* Location for next datum in kernel */
 
-static bool in_kernel = 0; /* => data goes to kdata, not data */
+static bool in_kernel = false; /* => data goes to kdata, not data */
 
-#define DATA_PC (in_kernel ? next_k_data_pc : next_data_pc)
+static inline mem_addr data_pc(void) {
+  return in_kernel ? next_k_data_pc : next_data_pc;
+}
 
 static mem_addr next_gp_item_addr; /* Address of next item accessed off $gp */
 
@@ -99,7 +101,7 @@ void set_data_pc(mem_addr addr) {
 
 /* Return the address at which the next datum will be stored.  */
 
-mem_addr current_data_pc(void) { return (DATA_PC); }
+mem_addr current_data_pc(void) { return (data_pc()); }
 
 /* Bump the address at which the next data will be stored by DELTA
    bytes. */
@@ -124,7 +126,7 @@ void extern_directive(char* name, int size) {
   if (!bare_machine && !sym->gp_flag  // Not already a global symbol
       && size > 0 && size <= SMALL_DATA_SEG_MAX_SIZE &&
       next_gp_item_addr + (mem_addr)size < gp_midpoint + 32 * kilo) {
-    sym->gp_flag = 1;
+    sym->gp_flag = true;
     sym->addr = next_gp_item_addr;
     next_gp_item_addr += (mem_addr)size;
   }
@@ -135,13 +137,13 @@ void extern_directive(char* name, int size) {
 void lcomm_directive(char* name, int size) {
   if (!bare_machine && size > 0 && size <= SMALL_DATA_SEG_MAX_SIZE &&
       next_gp_item_addr + (mem_addr)size < gp_midpoint + 32 * kilo) {
-    label* sym = record_label(name, next_gp_item_addr, 1);
-    sym->gp_flag = 1;
+    label* sym = record_label(name, next_gp_item_addr, true);
+    sym->gp_flag = true;
 
     next_gp_item_addr += (mem_addr)size;
     /* Don't need to initialize since memory starts with 0's */
   } else {
-    (void)record_label(name, next_data_pc, 1);
+    (void)record_label(name, next_data_pc, true);
 
     for (; size > 0; size--) {
       store_byte(0);
@@ -157,7 +159,7 @@ static int data_store_depth = 0;
 /* Process a .ascii STRING or .asciiz STRING directive. */
 
 void store_string(char* string, int length, bool null_terminate) {
-  mem_addr at = DATA_PC;
+  mem_addr at = data_pc();
   const char* orig = string;
   int orig_len = length;
   data_store_depth++;
@@ -175,7 +177,7 @@ void store_string(char* string, int length, bool null_terminate) {
 /* Process a .byte EXPR directive. */
 
 void store_byte(int value) {
-  mem_addr at = DATA_PC;
+  mem_addr at = data_pc();
   mem_write_byte(at, value);
   increment_data_pc(1);
   if (data_store_depth == 0) asm_fire_data_byte(at, value);
@@ -184,10 +186,10 @@ void store_byte(int value) {
 /* Process a .half EXPR directive. */
 
 void store_half(int value) {
-  mem_addr at = DATA_PC;
+  mem_addr at = data_pc();
   bool outer = (data_store_depth == 0);
   data_store_depth++;
-  if ((DATA_PC & 0x1) != 0) {
+  if ((data_pc() & 0x1) != 0) {
 #ifdef SPIM_BIGENDIAN
     store_byte((value >> 8) & 0xff);
     store_byte(value & 0xff);
@@ -206,10 +208,10 @@ void store_half(int value) {
 /* Process a .word EXPR directive. */
 
 void store_word(int value) {
-  mem_addr at = DATA_PC;
+  mem_addr at = data_pc();
   bool outer = (data_store_depth == 0);
   data_store_depth++;
-  if ((DATA_PC & 0x3) != 0) {
+  if ((data_pc() & 0x3) != 0) {
 #ifdef SPIM_BIGENDIAN
     store_half((value >> 16) & 0xffff);
     store_half(value & 0xffff);
@@ -228,16 +230,18 @@ void store_word(int value) {
 /* Process a .double EXPR directive. */
 
 void store_double(double* value) {
-  mem_addr at = DATA_PC;
+  mem_addr at = data_pc();
   bool outer = (data_store_depth == 0);
   data_store_depth++;
-  if ((DATA_PC & 0x7) != 0) {
-    store_word(*((mem_word*)value));
-    store_word(*(((mem_word*)value) + 1));
+  mem_word words[2]; /* the double's two words, in host order */
+  memcpy(words, value, sizeof words);
+  if ((data_pc() & 0x7) != 0) {
+    store_word(words[0]);
+    store_word(words[1]);
   } else {
-    mem_write_word(DATA_PC, *((mem_word*)value));
+    mem_write_word(data_pc(), words[0]);
     increment_data_pc(BYTES_PER_WORD);
-    mem_write_word(DATA_PC, *(((mem_word*)value) + 1));
+    mem_write_word(data_pc(), words[1]);
     increment_data_pc(BYTES_PER_WORD);
   }
   data_store_depth--;
@@ -248,13 +252,14 @@ void store_double(double* value) {
 
 void store_float(double* value) {
   float val = (float)*value;
-  float* vp = &val;
+  mem_word bits; /* the float's bit pattern, not its value */
+  memcpy(&bits, &val, sizeof bits);
 
-  if ((DATA_PC & 0x3) != 0) {
-    store_half(*(mem_word*)vp & 0xffff);
-    store_half((*(mem_word*)vp >> 16) & 0xffff);
+  if ((data_pc() & 0x3) != 0) {
+    store_half(bits & 0xffff);
+    store_half((bits >> 16) & 0xffff);
   } else {
-    mem_write_word(DATA_PC, *((mem_word*)vp));
+    mem_write_word(data_pc(), bits);
     increment_data_pc(BYTES_PER_WORD);
   }
 }

@@ -30,6 +30,18 @@
  * stop at the limit.  Mirrored in head-1-count.asm (read_char / print_char).
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o head-1-count head-1-count.c ../../print-char.c ../../read-char.c
+ *     $ ./head-1-count < head-1-count.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f head-1-count.asm < head-1-count.input
+ */
+/* clang-format on */
+
 #include "io.h"
 #include "crt0.h"
 

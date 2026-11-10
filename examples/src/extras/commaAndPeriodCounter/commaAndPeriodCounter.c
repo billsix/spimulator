@@ -22,6 +22,18 @@
  *          the number of commas and periods seen.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o commaAndPeriodCounter commaAndPeriodCounter.c ../../print-int.c ../../print-string.c ../../read-char.c ../../count-chars.c
+ *     $ ./commaAndPeriodCounter < commaAndPeriodCounter.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f commaAndPeriodCounter.asm < commaAndPeriodCounter.input
+ */
+/* clang-format on */
+
 #include "io.h"
 
 __attribute__((noreturn)) void _start(void) {

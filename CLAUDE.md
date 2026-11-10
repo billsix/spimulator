@@ -75,7 +75,8 @@ Container (Fedora-44 + podman family template) — build args `USE_EMACS`,
 Two meson suites: **regression** (assembler, syscalls, exceptions,
 teaching-mode goldens, AST parity; `tests/run-test.sh`) and **examples** (each demo
 runs both the C binary and the spim asm, diffing stdout + exit status against
-pinned goldens; `examples/tests/run-demo.sh`).
+pinned goldens; `examples/tests/run-demo.sh`; plus `documented-commands`, which runs every demo's
+BUILD AND RUN header commands verbatim, `tools/check_example_commands.py`).
 
 **Sanitizer gate** (`RUN_SANITIZERS=1`, the `make image` default; `make image
 RUN_SANITIZERS=0` to skip): the image build also compiles **spim only** (the
@@ -91,7 +92,7 @@ not spim's intentional exit-time leaks) + the integer-UB primer:
 
 - C23; clang-format + clang-tidy; core `-Werror` (gcc + clang clean). `src/`+`include/` follow the
   shared standard `github.com/billsix/runClaudeInContainer:tasks/reference/c-coding-standard.md` (modernized through
-  `tasks/archive/2026/10/16/c23-modernization-pass2.md`); the core is additionally gated under
+  `tasks/archive/2026/11/10/c23-modernization-pass3.md`, which lists the deliberate opt-outs); the core is additionally gated under
   `-Wconversion -Wsign-conversion` (gcc + clang), done in `tasks/archive/2026/10/16/integer-conversion-hardening.md`. `opcodes.h` is the single source of truth for
   both the simulator and the tree-sitter grammar — regenerate the grammar rather
   than hand-editing keyword lists. **Any change to `opcodes.h` (or
@@ -118,6 +119,11 @@ not spim's intentional exit-time leaks) + the integer-UB primer:
   Guide: `tasks/reference/mips-asm-teaching-style.md` (the living reference). The
   corpus-wide rollout is COMPLETE (2026-10-31): every non-exempt demo converted; record +
   per-topic archive under `tasks/archive/2026/10/31/asm-simplification-sweep*.md`.
+
+## Reviews
+
+Latest deep review: `tasks/review/2026/11/10/repo-review.md` (simulator core + full git
+history; C23 worklist and port-behavior inventory). Records are frozen; act on them through tasks.
 
 ## Tasks (in-flight)
 

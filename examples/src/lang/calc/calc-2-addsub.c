@@ -32,6 +32,18 @@
  * where the accumulator lives on the stack across each parse_number() call.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o calc-2-addsub calc-2-addsub.c ../../print-char.c ../../print-int.c ../../read-char.c
+ *     $ ./calc-2-addsub < calc-2-addsub.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f calc-2-addsub.asm < calc-2-addsub.input
+ */
+/* clang-format on */
+
 #include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 #include "io.h"
 

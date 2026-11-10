@@ -58,6 +58,18 @@
  * not a trap.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o calc-tree calc-tree.c ../../print-char.c ../../print-int.c ../../print-string.c ../../read-char.c ../../count-chars.c
+ *     $ ./calc-tree < calc-sdt.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f calc-tree.asm < calc-sdt.input
+ */
+/* clang-format on */
+
 #include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 #include "io.h"
 

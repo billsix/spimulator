@@ -37,6 +37,18 @@
  * bubble-sort-1-fixed.asm, where the array lives in .data as a `.word` list.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o bubble-sort-1-fixed bubble-sort-1-fixed.c ../../print-char.c ../../print-int.c
+ *     $ ./bubble-sort-1-fixed
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f bubble-sort-1-fixed.asm
+ */
+/* clang-format on */
+
 #include "io.h"
 #include "crt0.h"
 

@@ -48,6 +48,41 @@ comment/code drift are still worth fixing — but behavior- and shape-preserving
 already found the demo/book layers clean (`tasks/reference/inherited-idiosyncrasies.md`: argc/argv
 legitimate, byte buffers already unsigned, no K&R residue), so there is little to do here anyway.
 
+## Every demo documents how to build and run it
+
+Each teaching `.c` under `examples/src/` (not the IO helpers, the three library sources or the
+template) carries a BUILD AND RUN comment block just before its first `#include`:
+
+```c
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o echo echo.c ../../print-char.c ../../print-string.c ../../count-chars.c
+ *     $ ./echo hello world
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f echo.asm hello world
+ */
+/* clang-format on */
+```
+
+- The compile line is **one self-contained command**: no Makefile, no environment variable; it
+  names exactly the helper and library sources the demo links (its undefined symbols, followed
+  transitively), the `-I` directories it needs, `-std=gnu23` and `-nostdlib` (each demo has its own
+  `_start`).
+- A demo whose assembly comes in numbered versions (`NAME-1.asm`, `NAME-2.asm`) lists one
+  spimulator line per version; library demos load the library `.asm` files first, in the order
+  `examples/tests/run-demo.sh` uses. A version whose run is not meant to match the C says why in a
+  note under its line.
+- The `clang-format off/on` guards are required: `format.sh` reformats every `.c` on shell exit, and
+  clang-format's comment reflow would split the one-line command.
+- `tools/check_example_commands.py` runs the documented lines verbatim from each demo's directory
+  (in a scratch copy) and requires the compile to succeed and every spimulator run to print the same
+  stdout and exit status as the native run; versions that differ on purpose are listed, with the
+  reason, in its `DIFFERS_ON_PURPOSE`. It runs as the `documented-commands` test of the examples
+  meson suite (about a second). A new demo needs the block, or the test fails to find it.
+
 ## Cross-links
 
 - `github.com/billsix/runClaudeInContainer:tasks/reference/c-coding-standard.md` — the standard this subtree is exempt from (applies to

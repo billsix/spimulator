@@ -3,8 +3,6 @@
    SPDX-License-Identifier: BSD-3-Clause
    See LICENSE in the project root for full text. */
 
-#define NaN(X) ((X) != (X))
-
 #include <math.h>
 #include <stdio.h>
 
@@ -42,11 +40,11 @@ static void unsigned_multiply(reg_word v1, reg_word v2);
    (bgez/bgtz/blez/bltz and their AL/L variants).  For arithmetic
    overflow detection on add/addi/sub, see ckd_add/ckd_sub from
    <stdckdint.h> at the relevant case bodies. */
-#define SIGN_BIT(X) ((X) & 0x80000000)
+static inline u_reg_word sign_bit(u_reg_word x) { return x & 0x80000000; }
 
 /* True when delayed_branches is true and instruction is executing in delay
 slot of another instruction. */
-static int running_in_delay_slot = 0;
+static bool running_in_delay_slot = false;
 
 /* Executed delayed branch and jump instructions by running the
    instruction from the delay slot before transfering control.  Note,
@@ -76,11 +74,11 @@ static int running_in_delay_slot = 0;
 #define JUMP_INST(TARGET)                                     \
   do {                                                        \
     if (delayed_branches) {                                   \
-      running_in_delay_slot = 1;                              \
+      running_in_delay_slot = true;                           \
       /* Continuation flag from the delay-slot instruction is \
          discarded — the outer run_spim owns that. */       \
       (void)run_spim(PC + BYTES_PER_WORD, 1, display);        \
-      running_in_delay_slot = 0;                              \
+      running_in_delay_slot = false;                          \
     }                                                         \
     /* -4 since PC is bumped after this instruction */        \
     PC = (TARGET) - BYTES_PER_WORD;                           \
@@ -130,13 +128,12 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
   mips_instruction* instruction;
   static reg_word *delayed_load_addr1 = nullptr, delayed_load_value1;
   static reg_word *delayed_load_addr2 = nullptr, delayed_load_value2;
-  int step, step_size, next_step;
+  int step_size;
 
   PC = initial_PC;
-  if (!bare_machine && mapped_io)
-    next_step = IO_INTERVAL;
-  else
-    next_step = steps_to_run; /* Run to completion */
+  /* Without mapped IO, run to completion in one chunk. */
+  const int next_step =
+      (!bare_machine && mapped_io) ? IO_INTERVAL : steps_to_run;
 
   /* Start a timer running */
   start_CP0_timer();
@@ -163,7 +160,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
     }
 
     force_break = false;
-    for (step = 0; step < step_size; step += 1) {
+    for (int step = 0; step < step_size; step += 1) {
       if (force_break) {
         return true;
       }
@@ -172,7 +169,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
       {
         /* Poll for timer expiration */
-        struct itimerval time;
+        struct itimerval time = {};
         if (-1 == getitimer(ITIMER_REAL, &time)) {
           perror("getitmer failed");
         }
@@ -185,11 +182,11 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         }
       }
 
-      exception_occurred = 0;
+      exception_occurred = false;
       instruction = mem_read_inst(PC);
       if (exception_occurred) /* In reading instruction */
       {
-        exception_occurred = 0;
+        exception_occurred = false;
         handle_exception();
         continue;
       } else if (instruction == nullptr) {
@@ -267,74 +264,74 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break;
 
         case TOK_BGEZ_OPCODE:
-          BRANCH_INST(SIGN_BIT((u_reg_word)gpr[RS(instruction)]) == 0,
+          BRANCH_INST(sign_bit((u_reg_word)gpr[RS(instruction)]) == 0,
                       PC + (mem_addr)BRANCH_OFFSET(instruction), 0);
           break;
 
         case TOK_BGEZL_OPCODE:
-          BRANCH_INST(SIGN_BIT((u_reg_word)gpr[RS(instruction)]) == 0,
+          BRANCH_INST(sign_bit((u_reg_word)gpr[RS(instruction)]) == 0,
                       PC + (mem_addr)BRANCH_OFFSET(instruction), 1);
           break;
 
         case TOK_BGEZAL_OPCODE:
           gpr[31] = (reg_word)(PC + (delayed_branches ? 2 * BYTES_PER_WORD
                                                       : BYTES_PER_WORD));
-          BRANCH_INST(SIGN_BIT((u_reg_word)gpr[RS(instruction)]) == 0,
+          BRANCH_INST(sign_bit((u_reg_word)gpr[RS(instruction)]) == 0,
                       PC + (mem_addr)BRANCH_OFFSET(instruction), 0);
           break;
 
         case TOK_BGEZALL_OPCODE:
           gpr[31] = (reg_word)(PC + (delayed_branches ? 2 * BYTES_PER_WORD
                                                       : BYTES_PER_WORD));
-          BRANCH_INST(SIGN_BIT((u_reg_word)gpr[RS(instruction)]) == 0,
+          BRANCH_INST(sign_bit((u_reg_word)gpr[RS(instruction)]) == 0,
                       PC + (mem_addr)BRANCH_OFFSET(instruction), 1);
           break;
 
         case TOK_BGTZ_OPCODE:
           BRANCH_INST(gpr[RS(instruction)] != 0 &&
-                          SIGN_BIT((u_reg_word)gpr[RS(instruction)]) == 0,
+                          sign_bit((u_reg_word)gpr[RS(instruction)]) == 0,
                       PC + (mem_addr)BRANCH_OFFSET(instruction), 0);
           break;
 
         case TOK_BGTZL_OPCODE:
           BRANCH_INST(gpr[RS(instruction)] != 0 &&
-                          SIGN_BIT((u_reg_word)gpr[RS(instruction)]) == 0,
+                          sign_bit((u_reg_word)gpr[RS(instruction)]) == 0,
                       PC + (mem_addr)BRANCH_OFFSET(instruction), 1);
           break;
 
         case TOK_BLEZ_OPCODE:
           BRANCH_INST(gpr[RS(instruction)] == 0 ||
-                          SIGN_BIT((u_reg_word)gpr[RS(instruction)]) != 0,
+                          sign_bit((u_reg_word)gpr[RS(instruction)]) != 0,
                       PC + (mem_addr)BRANCH_OFFSET(instruction), 0);
           break;
 
         case TOK_BLEZL_OPCODE:
           BRANCH_INST(gpr[RS(instruction)] == 0 ||
-                          SIGN_BIT((u_reg_word)gpr[RS(instruction)]) != 0,
+                          sign_bit((u_reg_word)gpr[RS(instruction)]) != 0,
                       PC + (mem_addr)BRANCH_OFFSET(instruction), 1);
           break;
 
         case TOK_BLTZ_OPCODE:
-          BRANCH_INST(SIGN_BIT((u_reg_word)gpr[RS(instruction)]) != 0,
+          BRANCH_INST(sign_bit((u_reg_word)gpr[RS(instruction)]) != 0,
                       PC + (mem_addr)BRANCH_OFFSET(instruction), 0);
           break;
 
         case TOK_BLTZL_OPCODE:
-          BRANCH_INST(SIGN_BIT((u_reg_word)gpr[RS(instruction)]) != 0,
+          BRANCH_INST(sign_bit((u_reg_word)gpr[RS(instruction)]) != 0,
                       PC + (mem_addr)BRANCH_OFFSET(instruction), 1);
           break;
 
         case TOK_BLTZAL_OPCODE:
           gpr[31] = (reg_word)(PC + (delayed_branches ? 2 * BYTES_PER_WORD
                                                       : BYTES_PER_WORD));
-          BRANCH_INST(SIGN_BIT((u_reg_word)gpr[RS(instruction)]) != 0,
+          BRANCH_INST(sign_bit((u_reg_word)gpr[RS(instruction)]) != 0,
                       PC + (mem_addr)BRANCH_OFFSET(instruction), 0);
           break;
 
         case TOK_BLTZALL_OPCODE:
           gpr[31] = (reg_word)(PC + (delayed_branches ? 2 * BYTES_PER_WORD
                                                       : BYTES_PER_WORD));
-          BRANCH_INST(SIGN_BIT((u_reg_word)gpr[RS(instruction)]) != 0,
+          BRANCH_INST(sign_bit((u_reg_word)gpr[RS(instruction)]) != 0,
                       PC + (mem_addr)BRANCH_OFFSET(instruction), 1);
           break;
 
@@ -508,11 +505,9 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         case TOK_LWL_OPCODE: {
           mem_addr addr = (u_reg_word)gpr[BASE(instruction)] +
                           (u_reg_word)IOFFSET(instruction);
-          reg_word word; /* Can't be register */
           int byte = addr & 0x3;
           reg_word reg_val = gpr[RT(instruction)];
-
-          word = mem_read_word(addr & 0xfffffffc);
+          reg_word word = mem_read_word(addr & 0xfffffffc);
           if (!exception_occurred)
 #ifdef SPIM_BIGENDIAN
             switch (byte) {
@@ -560,11 +555,9 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         case TOK_LWR_OPCODE: {
           mem_addr addr = (u_reg_word)gpr[BASE(instruction)] +
                           (u_reg_word)IOFFSET(instruction);
-          reg_word word; /* Can't be register */
           int byte = addr & 0x3;
           reg_word reg_val = gpr[RT(instruction)];
-
-          word = mem_read_word(addr & 0xfffffffc);
+          reg_word word = mem_read_word(addr & 0xfffffffc);
           if (!exception_occurred)
 #ifdef SPIM_BIGENDIAN
             switch (byte) {
@@ -616,14 +609,13 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         case TOK_MADDU_OPCODE: {
           u_reg_word product_low = (u_reg_word)LO,
                      product_high = (u_reg_word)HI;
-          u_reg_word tmp;
           if (OPCODE(instruction) == TOK_MADD_OPCODE) {
             signed_multiply(gpr[RS(instruction)], gpr[RT(instruction)]);
           } else /* TOK_MADDU_OPCODE */
           {
             unsigned_multiply(gpr[RS(instruction)], gpr[RT(instruction)]);
           }
-          tmp = product_low + (u_reg_word)LO;
+          u_reg_word tmp = product_low + (u_reg_word)LO;
           if ((unsigned)tmp < (unsigned)LO ||
               (unsigned)tmp < (unsigned)product_low) {
             /* Addition of low-order word overflows */
@@ -664,8 +656,6 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         case TOK_MSUBU_OPCODE: {
           u_reg_word product_low = (u_reg_word)LO,
                      product_high = (u_reg_word)HI;
-          u_reg_word tmp;
-
           if (OPCODE(instruction) == TOK_MSUB_OPCODE) {
             signed_multiply(gpr[RS(instruction)], gpr[RT(instruction)]);
           } else /* TOK_MSUBU_OPCODE */
@@ -673,7 +663,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
             unsigned_multiply(gpr[RS(instruction)], gpr[RT(instruction)]);
           }
 
-          tmp = product_low - (u_reg_word)LO;
+          u_reg_word tmp = product_low - (u_reg_word)LO;
           if ((unsigned)LO > (unsigned)product_low) {
             /* Subtraction of low-order word borrows */
             product_high -= 1;
@@ -917,11 +907,9 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         case TOK_SWL_OPCODE: {
           mem_addr addr = (u_reg_word)gpr[BASE(instruction)] +
                           (u_reg_word)IOFFSET(instruction);
-          mem_word data;
           reg_word reg = gpr[RT(instruction)];
           int byte = addr & 0x3;
-
-          data = mem_read_word(addr & 0xfffffffc);
+          mem_word data = mem_read_word(addr & 0xfffffffc);
 #ifdef SPIM_BIGENDIAN
           switch (byte) {
             case 0:
@@ -969,11 +957,9 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
         case TOK_SWR_OPCODE: {
           mem_addr addr = (u_reg_word)gpr[BASE(instruction)] +
                           (u_reg_word)IOFFSET(instruction);
-          mem_word data;
           reg_word reg = gpr[RT(instruction)];
           int byte = addr & 0x3;
-
-          data = mem_read_word(addr & 0xfffffffc);
+          mem_word data = mem_read_word(addr & 0xfffffffc);
 #ifdef SPIM_BIGENDIAN
           switch (byte) {
             case 0:
@@ -1141,7 +1127,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           int cc = CC(instruction);
           int nd = ND(instruction); /* 1 => nullify */
           int tf = TF(instruction); /* 0 => BC1F, 1 => BC1T */
-          BRANCH_INST(FCC(cc) == tf, PC + (mem_addr)BRANCH_OFFSET(instruction),
+          BRANCH_INST(fcc(cc) == tf, PC + (mem_addr)BRANCH_OFFSET(instruction),
                       nd);
           break;
         }
@@ -1167,7 +1153,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           int cond = COND(instruction);
           int cc = CCFP(instruction);
 
-          if (NaN(dv1) || NaN(dv2)) {
+          if (isnan(dv1) || isnan(dv2)) {
             if ((uint32_t)cond & COND_IN) {
               RAISE_EXCEPTION(ExcCode_FPE, break);
             }
@@ -1197,7 +1183,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           int cond = COND(instruction);
           int cc = CCFP(instruction);
 
-          if (NaN(v1) || NaN(v2)) {
+          if (isnan(v1) || isnan(v2)) {
             if ((uint32_t)cond & COND_IN) {
               RAISE_EXCEPTION(ExcCode_FPE, break);
             }
@@ -1326,9 +1312,10 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
         case TOK_MFC1_OPCODE: {
           float val = FPR_S(FS(instruction));
-          reg_word* vp = (reg_word*)&val;
+          reg_word bits; /* the float's bit pattern, not its value */
+          memcpy(&bits, &val, sizeof bits);
 
-          gpr[RT(instruction)] = *vp; /* Fool coercion */
+          gpr[RT(instruction)] = bits;
           break;
         }
 
@@ -1342,19 +1329,19 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
         case TOK_MOVF_OPCODE: {
           int cc = CC(instruction);
-          if (FCC(cc) == 0) gpr[RD(instruction)] = gpr[RS(instruction)];
+          if (fcc(cc) == 0) gpr[RD(instruction)] = gpr[RS(instruction)];
           break;
         }
 
         case TOK_MOVF_D_OPCODE: {
           int cc = CC(instruction);
-          if (FCC(cc) == 0) SET_FPR_D(FD(instruction), FPR_D(FS(instruction)));
+          if (fcc(cc) == 0) SET_FPR_D(FD(instruction), FPR_D(FS(instruction)));
           break;
         }
 
         case TOK_MOVF_S_OPCODE: {
           int cc = CC(instruction);
-          if (FCC(cc) == 0) SET_FPR_S(FD(instruction), FPR_S(FS(instruction)));
+          if (fcc(cc) == 0) SET_FPR_S(FD(instruction), FPR_S(FS(instruction)));
           break;
         }
 
@@ -1372,19 +1359,19 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
         case TOK_MOVT_OPCODE: {
           int cc = CC(instruction);
-          if (FCC(cc) != 0) gpr[RD(instruction)] = gpr[RS(instruction)];
+          if (fcc(cc) != 0) gpr[RD(instruction)] = gpr[RS(instruction)];
           break;
         }
 
         case TOK_MOVT_D_OPCODE: {
           int cc = CC(instruction);
-          if (FCC(cc) != 0) SET_FPR_D(FD(instruction), FPR_D(FS(instruction)));
+          if (fcc(cc) != 0) SET_FPR_D(FD(instruction), FPR_D(FS(instruction)));
           break;
         }
 
         case TOK_MOVT_S_OPCODE: {
           int cc = CC(instruction);
-          if (FCC(cc) != 0) SET_FPR_S(FD(instruction), FPR_S(FS(instruction)));
+          if (fcc(cc) != 0) SET_FPR_S(FD(instruction), FPR_S(FS(instruction)));
           break;
         }
 
@@ -1402,9 +1389,10 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
         case TOK_MTC1_OPCODE: {
           reg_word word = gpr[RT(instruction)];
-          float* wp = (float*)&word;
+          float val; /* the word's bit pattern, not its value */
+          memcpy(&val, &word, sizeof val);
 
-          SET_FPR_S(FS(instruction), *wp); /* fool coercion */
+          SET_FPR_S(FS(instruction), val);
           break;
         }
 
@@ -1444,14 +1432,15 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
         case TOK_SDC1_OPCODE: {
           double val = FPR_D(RT(instruction));
-          reg_word* vp = (reg_word*)&val;
+          reg_word words[2]; /* the double's two words, in host order */
+          memcpy(words, &val, sizeof words);
           mem_addr addr = (u_reg_word)gpr[BASE(instruction)] +
                           (u_reg_word)IOFFSET(instruction);
           if ((addr & 0x3) != 0)
             RAISE_EXCEPTION(ExcCode_AdEL, CP0_BadVAddr = (reg_word)addr);
 
-          mem_write_word(addr, *vp);
-          mem_write_word(addr + sizeof(mem_word), *(vp + 1));
+          mem_write_word(addr, words[0]);
+          mem_write_word(addr + sizeof(mem_word), words[1]);
           break;
         }
 
@@ -1475,11 +1464,12 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
         case TOK_SWC1_OPCODE: {
           float val = FPR_S(RT(instruction));
-          reg_word* vp = (reg_word*)&val;
+          reg_word bits; /* the float's bit pattern, not its value */
+          memcpy(&bits, &val, sizeof bits);
 
           mem_write_word((u_reg_word)gpr[BASE(instruction)] +
                              (u_reg_word)IOFFSET(instruction),
-                         *vp);
+                         bits);
           break;
         }
 
@@ -1537,17 +1527,14 @@ static void start_CP0_timer(void) {
   if (SIG_ERR == signal(SIGALRM, SIG_IGN)) {
     perror("signal failed");
   } else {
-    struct itimerval time;
+    struct itimerval time = {};
     if (-1 == getitimer(ITIMER_REAL, &time)) {
       perror("getitmer failed");
     }
     if (time.it_value.tv_usec == 0 && time.it_value.tv_sec == 0) {
       /* Timer is expired or has not been started.
          Start a non-periodic timer for TIMER_TICK_MS microseconds. */
-      time.it_interval.tv_sec = 0;
-      time.it_interval.tv_usec = 0;
-      time.it_value.tv_sec = 0;
-      time.it_value.tv_usec = TIMER_TICK_MS * 1000;
+      time = (struct itimerval){.it_value.tv_usec = TIMER_TICK_MS * 1000};
       if (-1 == setitimer(ITIMER_REAL, &time, nullptr)) {
         perror("setitmer failed");
       }
@@ -1570,25 +1557,22 @@ static void start_CP0_timer(void) {
  overflow. */
 
 static void unsigned_multiply(reg_word v1, reg_word v2) {
-  u_reg_word a, b, c, d;
-  u_reg_word bd, ad, cb, ac;
-  u_reg_word mid, mid2, carry_mid = 0;
+  const u_reg_word a = (u_reg_word)((v1 >> 16) & 0xffff);
+  const u_reg_word b = v1 & 0xffff;
+  const u_reg_word c = (u_reg_word)((v2 >> 16) & 0xffff);
+  const u_reg_word d = v2 & 0xffff;
 
-  a = (u_reg_word)((v1 >> 16) & 0xffff);
-  b = v1 & 0xffff;
-  c = (u_reg_word)((v2 >> 16) & 0xffff);
-  d = v2 & 0xffff;
+  const u_reg_word bd = b * d;
+  const u_reg_word ad = a * d;
+  const u_reg_word cb = c * b;
+  const u_reg_word ac = a * c;
 
-  bd = b * d;
-  ad = a * d;
-  cb = c * b;
-  ac = a * c;
-
-  mid = ad + cb;
+  const u_reg_word mid = ad + cb;
+  u_reg_word carry_mid = 0;
   if (mid < ad || mid < cb) /* Arithmetic overflow or carry-out */
     carry_mid = 1;
 
-  mid2 = mid + ((bd >> 16) & 0xffff);
+  const u_reg_word mid2 = mid + ((bd >> 16) & 0xffff);
   if (mid2 < mid || mid2 < ((bd >> 16) & 0xffff))
     /* Arithmetic overflow or carry-out */
     carry_mid += 1;
@@ -1598,14 +1582,14 @@ static void unsigned_multiply(reg_word v1, reg_word v2) {
 }
 
 static void signed_multiply(reg_word v1, reg_word v2) {
-  int neg_sign = 0;
+  bool neg_sign = false;
 
   /* Negate as unsigned: -v is UB when v == INT_MIN.  The two's-complement
      bit pattern (which unsigned_multiply consumes as a magnitude) is identical.
    */
   if (v1 < 0) {
     v1 = (reg_word)(-(u_reg_word)v1);
-    neg_sign = 1;
+    neg_sign = true;
   }
   if (v2 < 0) {
     v2 = (reg_word)(-(u_reg_word)v2);
@@ -1628,7 +1612,7 @@ static void set_fpu_cc(int cond, int cc, int less, int equal, int unordered) {
   if ((uint32_t)cond & COND_EQ) result |= equal;
   if ((uint32_t)cond & COND_UN) result |= unordered;
 
-  SET_FCC(cc, result);
+  set_fcc(cc, result);
 }
 
 void raise_exception(mips_exc_code excode) {
@@ -1637,7 +1621,7 @@ void raise_exception(mips_exc_code excode) {
         CP0_Status_IE) /* Allow interrupt if IE and !EXL */
        && !((uint32_t)CP0_Status & CP0_Status_EXL))) {
     /* Ignore interrupt exception when interrupts disabled.  */
-    exception_occurred = 1;
+    exception_occurred = true;
     /* Record the FIRST "bad" exception — anything other than a normal-flow
        interrupt (0), syscall (8), or breakpoint (9).  Used by main() to
        set a non-zero shell exit status when the user program took a fault.

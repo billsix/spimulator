@@ -186,7 +186,7 @@ void explain_print_step_header(mem_addr pc, mips_instruction* instruction) {
  * explain_clear_suggestions. Storage is a fixed-cap array — 16 is a
  * comfortable ceiling (templates emit at most 3-4 hints).
  */
-#define MAX_SUGGESTIONS 16
+constexpr int MAX_SUGGESTIONS = 16;
 static char* suggestions[MAX_SUGGESTIONS];
 static size_t n_suggestions;
 
@@ -420,7 +420,7 @@ static const struct pseudo_info* find_pseudo_in_source(const char* src) {
    exception_occurred / CP0 state out from under the real dispatch, so wrap
    peeks in save/restore. */
 static reg_word peek_word(mem_addr addr) {
-  int se = exception_occurred;
+  bool se = exception_occurred;
   reg_word sbv = CP0_BadVAddr;
   reg_word v = mem_read_word(addr);
   exception_occurred = se;
@@ -429,7 +429,7 @@ static reg_word peek_word(mem_addr addr) {
 }
 
 static reg_word peek_half(mem_addr addr) {
-  int se = exception_occurred;
+  bool se = exception_occurred;
   reg_word sbv = CP0_BadVAddr;
   reg_word v = mem_read_half(addr);
   exception_occurred = se;
@@ -438,7 +438,7 @@ static reg_word peek_half(mem_addr addr) {
 }
 
 static reg_word peek_byte(mem_addr addr) {
-  int se = exception_occurred;
+  bool se = exception_occurred;
   reg_word sbv = CP0_BadVAddr;
   reg_word v = mem_read_byte(addr);
   exception_occurred = se;
@@ -1319,10 +1319,10 @@ static void explain_bit_layout(mips_instruction* instruction) {
 
 /* Pre-formatted "unknown" placeholders, sized to match each field's
    display width inside the box (one centered "?"). */
-#define UK5 "  ?  "
-#define UK6 "  ?   "
-#define UK16 "       ?        "
-#define UK26 "            ?             "
+static constexpr char UK5[] = "  ?  ";
+static constexpr char UK6[] = "  ?   ";
+static constexpr char UK16[] = "       ?        ";
+static constexpr char UK26[] = "            ?             ";
 
 /* SPECIAL-group: opcode == 0x00, funct selects the actual op. Table
    filled out for the integer ops spimulator's existing templates

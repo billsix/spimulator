@@ -13,6 +13,18 @@
  * also ' ' (which is in range), so it still gets tested.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -I../libctype -o ctype-demo ctype-demo.c ../libctype/libctype.c ../../print-char.c ../../print-int.c ../../print-string.c ../../count-chars.c
+ *     $ ./ctype-demo
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f ../libctype/libctype.asm -f ctype-demo.asm
+ */
+/* clang-format on */
+
 #include "io.h"
 #include "libctype.h"
 

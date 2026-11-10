@@ -23,10 +23,19 @@ static mem_addr format_partial_line(str_stream* ss, mem_addr addr);
 /* Write to the stream the contents of the machine's registers, in a wide
    variety of formats. */
 
-void format_registers(str_stream* ss, int print_gpr_hex, int print_fpr_hex) {
+/* The bit patterns of FP register contents, for hex display. */
+static void double_words(double d, int32_t w[2]) {
+  memcpy(w, &d, 2 * sizeof w[0]);
+}
+
+static int32_t float_bits(float f) {
+  int32_t bits;
+  memcpy(&bits, &f, sizeof bits);
+  return bits;
+}
+
+void format_registers(str_stream* ss, bool print_gpr_hex, bool print_fpr_hex) {
   int i;
-  char *grstr, *fpstr;
-  char *grfill, *fpfill;
 
   ss_printf(ss, " PC      = %08x   ", PC);
   ss_printf(ss, "EPC     = %08x  ", CP0_EPC);
@@ -36,19 +45,18 @@ void format_registers(str_stream* ss, int print_gpr_hex, int print_fpr_hex) {
   ss_printf(ss, "HI      = %08x  ", HI);
   ss_printf(ss, " LO      = %08x\n", LO);
 
-  if (print_gpr_hex)
-    grstr = "R%-2d (%2s) = %08x", grfill = "  ";
-  else
-    grstr = "R%-2d (%2s) = %-10d", grfill = " ";
+  const char* grstr =
+      print_gpr_hex ? "R%-2d (%2s) = %08x" : "R%-2d (%2s) = %-10d";
+  const char* grfill = print_gpr_hex ? "  " : " ";
 
   ss_printf(ss, "\t\t\t\t General Registers\n");
   for (i = 0; i < 8; i++) {
     ss_printf(ss, grstr, i, int_reg_names[i], gpr[i]);
-    ss_printf(ss, grfill);
+    ss_printf(ss, "%s", grfill);
     ss_printf(ss, grstr, i + 8, int_reg_names[i + 8], gpr[i + 8]);
-    ss_printf(ss, grfill);
+    ss_printf(ss, "%s", grfill);
     ss_printf(ss, grstr, i + 16, int_reg_names[i + 16], gpr[i + 16]);
-    ss_printf(ss, grfill);
+    ss_printf(ss, "%s", grfill);
     ss_printf(ss, grstr, i + 24, int_reg_names[i + 24], gpr[i + 24]);
     ss_printf(ss, "\n");
   }
@@ -58,53 +66,42 @@ void format_registers(str_stream* ss, int print_gpr_hex, int print_fpr_hex) {
 
   ss_printf(ss, "\t\t\t      Double Floating Point Registers\n");
 
-  if (print_fpr_hex)
-    fpstr = "FP%-2d=%08x,%08x", fpfill = " ";
-  else
-    fpstr = "FP%-2d = %#-13.6g", fpfill = " ";
+  const char* fpstr = print_fpr_hex ? "FP%-2d=%08x,%08x" : "FP%-2d = %#-13.6g";
+  const char* fpfill = " ";
 
   if (print_fpr_hex)
     for (i = 0; i < 4; i += 1) {
-      int *r1, *r2;
+      int32_t w[2];
 
-      /* Use pointers to cast to ints without invoking float->int conversion
-         so we can just print the bits. */
-      r1 = (int*)&fp_double_view[i];
-      r2 = r1 + 1;
-      ss_printf(ss, fpstr, 2 * i, *r1, *r2);
-      ss_printf(ss, fpfill);
+      double_words(fp_double_view[i], w);
+      ss_printf(ss, fpstr, 2 * i, w[0], w[1]);
+      ss_printf(ss, "%s", fpfill);
 
-      r1 = (int*)&fp_double_view[i + 4];
-      r2 = r1 + 1;
-      ss_printf(ss, fpstr, 2 * i + 8, *r1, *r2);
-      ss_printf(ss, fpfill);
+      double_words(fp_double_view[i + 4], w);
+      ss_printf(ss, fpstr, 2 * i + 8, w[0], w[1]);
+      ss_printf(ss, "%s", fpfill);
 
-      r1 = (int*)&fp_double_view[i + 8];
-      r2 = r1 + 1;
-      ss_printf(ss, fpstr, 2 * i + 16, *r1, *r2);
-      ss_printf(ss, fpfill);
+      double_words(fp_double_view[i + 8], w);
+      ss_printf(ss, fpstr, 2 * i + 16, w[0], w[1]);
+      ss_printf(ss, "%s", fpfill);
 
-      r1 = (int*)&fp_double_view[i + 12];
-      r2 = r1 + 1;
-      ss_printf(ss, fpstr, 2 * i + 24, *r1, *r2);
+      double_words(fp_double_view[i + 12], w);
+      ss_printf(ss, fpstr, 2 * i + 24, w[0], w[1]);
       ss_printf(ss, "\n");
     }
   else
     for (i = 0; i < 4; i += 1) {
       ss_printf(ss, fpstr, 2 * i, fp_double_view[i]);
-      ss_printf(ss, fpfill);
+      ss_printf(ss, "%s", fpfill);
       ss_printf(ss, fpstr, 2 * i + 8, fp_double_view[i + 4]);
-      ss_printf(ss, fpfill);
+      ss_printf(ss, "%s", fpfill);
       ss_printf(ss, fpstr, 2 * i + 16, fp_double_view[i + 8]);
-      ss_printf(ss, fpfill);
+      ss_printf(ss, "%s", fpfill);
       ss_printf(ss, fpstr, 2 * i + 24, fp_double_view[i + 12]);
       ss_printf(ss, "\n");
     }
 
-  if (print_fpr_hex)
-    fpstr = "FP%-2d=%08x", fpfill = " ";
-  else
-    fpstr = "FP%-2d = %#-13.6g", fpfill = " ";
+  fpstr = print_fpr_hex ? "FP%-2d=%08x" : "FP%-2d = %#-13.6g";
 
   ss_printf(ss, "\t\t\t      Single Floating Point Registers\n");
 
@@ -112,26 +109,26 @@ void format_registers(str_stream* ss, int print_gpr_hex, int print_fpr_hex) {
     for (i = 0; i < 8; i += 1) {
       /* Use pointers to cast to ints without invoking float->int conversion
          so we can just print the bits. */
-      ss_printf(ss, fpstr, i, *(int*)&FPR_S(i));
-      ss_printf(ss, fpfill);
+      ss_printf(ss, fpstr, i, float_bits(FPR_S(i)));
+      ss_printf(ss, "%s", fpfill);
 
-      ss_printf(ss, fpstr, i + 8, *(int*)&FPR_S(i + 8));
-      ss_printf(ss, fpfill);
+      ss_printf(ss, fpstr, i + 8, float_bits(FPR_S(i + 8)));
+      ss_printf(ss, "%s", fpfill);
 
-      ss_printf(ss, fpstr, i + 16, *(int*)&FPR_S(i + 16));
-      ss_printf(ss, fpfill);
+      ss_printf(ss, fpstr, i + 16, float_bits(FPR_S(i + 16)));
+      ss_printf(ss, "%s", fpfill);
 
-      ss_printf(ss, fpstr, i + 24, *(int*)&FPR_S(i + 24));
+      ss_printf(ss, fpstr, i + 24, float_bits(FPR_S(i + 24)));
       ss_printf(ss, "\n");
     }
   else
     for (i = 0; i < 8; i += 1) {
       ss_printf(ss, fpstr, i, FPR_S(i));
-      ss_printf(ss, fpfill);
+      ss_printf(ss, "%s", fpfill);
       ss_printf(ss, fpstr, i + 8, FPR_S(i + 8));
-      ss_printf(ss, fpfill);
+      ss_printf(ss, "%s", fpfill);
       ss_printf(ss, fpstr, i + 16, FPR_S(i + 16));
-      ss_printf(ss, fpfill);
+      ss_printf(ss, "%s", fpfill);
       ss_printf(ss, fpstr, i + 24, FPR_S(i + 24));
       ss_printf(ss, "\n");
     }
@@ -141,11 +138,8 @@ void format_registers(str_stream* ss, int print_gpr_hex, int print_fpr_hex) {
    memory addresses: FROM...TO. */
 
 void format_insts(str_stream* ss, mem_addr from, mem_addr to) {
-  mips_instruction* instruction;
-  mem_addr i;
-
-  for (i = from; i < to; i += 4) {
-    instruction = mem_read_inst(i);
+  for (mem_addr i = from; i < to; i += 4) {
+    mips_instruction* instruction = mem_read_inst(i);
     if (instruction != nullptr) {
       format_an_inst(ss, instruction, i);
     }
@@ -188,7 +182,7 @@ void format_data_segs(str_stream* ss) {
   format_mem(ss, K_DATA_BOT, k_data_top);
 }
 
-#define BYTES_PER_LINE (4 * BYTES_PER_WORD)
+constexpr int BYTES_PER_LINE = 4 * BYTES_PER_WORD;
 
 /* Write to the stream a printable representation of the data in memory
    address: FROM...TO. */

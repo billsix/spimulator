@@ -42,6 +42,18 @@
  * from a .data buffer instead of from syscall 12.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o rpn-eval rpn-eval.c ../../print-char.c ../../print-int.c ../../print-string.c ../../read-char.c ../../count-chars.c
+ *     $ ./rpn-eval < rpn.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f rpn-eval.asm < rpn.input
+ */
+/* clang-format on */
+
 #include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 #include "io.h"
 

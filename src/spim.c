@@ -160,8 +160,7 @@ static const char** label_names_cache = nullptr;
 static size_t label_names_cache_n = 0;
 static size_t label_names_cache_cap = 0;
 
-static void label_collect_cb(const label* l, void* ctx) {
-  (void)ctx;
+static void label_collect_cb(const label* l, [[maybe_unused]] void* ctx) {
   if (l == nullptr || l->name == nullptr) return;
   if (label_names_cache_n >= label_names_cache_cap) {
     size_t new_cap =
@@ -191,8 +190,8 @@ static char* label_generator(const char* text, int state) {
   return nullptr;
 }
 
-static char** spim_completion(const char* text, int start, int end) {
-  (void)end;
+static char** spim_completion(const char* text, int start,
+                              [[maybe_unused]] int end) {
   /* Reset append-character to the default (space) per call — we'll
      override below for the quoted-filename case so the closing `"` is
      auto-inserted on a unique match. */
@@ -254,28 +253,20 @@ static char** spim_completion(const char* text, int start, int end) {
 
 static void console_to_program(void);
 static void console_to_spim(void);
-static void control_c_seen(int arg);
+[[noreturn]] static void control_c_seen(int arg);
 static void flush_to_newline(void);
 static int get_opt_int(void);
 static bool parse_spim_command(bool redo);
 static void print_reg(int reg_no);
 
-/* Scanner / parser surface used by the REPL.  Defined in
-   src/scanner.c and src/parser.c. */
-extern int scanner_advance(void);
-extern int parse_file(void);
-extern void scanner_push_source(FILE* in_file);
-extern void scanner_pop_source(void);
-extern void scanner_init(FILE* in_file);
-extern void set_input_file_name(char* file_name);
-static int print_fp_reg(int reg_no);
+static void print_fp_reg(int reg_no);
 static int print_reg_from_string(char* reg);
-static void print_all_regs(int hex_flag);
+static void print_all_regs(bool hex_flag);
 static int read_assembly_command(void);
-static int str_prefix(char* s1, char* s2, int min_match);
-static void top_level(void);
+static bool str_prefix(char* s1, char* s2, int min_match);
+[[noreturn]] static void top_level(void);
 static int read_token(void);
-static bool write_assembled_code(char* program_name);
+[[nodiscard]] static bool write_assembled_code(char* program_name);
 static void dump_data_seg(bool kernel_also);
 static void dump_text_seg(bool kernel_also);
 
@@ -284,26 +275,26 @@ static void dump_text_seg(bool kernel_also);
 /* Not local, but not export so all files don't need setjmp.h */
 static jmp_buf spim_top_level_env; /* For ^C */
 
-bool bare_machine;        /* => simulate bare machine */
-bool delayed_branches;    /* => simulate delayed branches */
-bool delayed_loads;       /* => simulate delayed loads */
-bool accept_pseudo_insts; /* => parse pseudo instructions  */
-bool quiet;               /* => no warning messages */
-static bool assemble;     /* => assemble, disassemble to file and exit */
+bool bare_machine = false;       /* => simulate bare machine */
+bool delayed_branches = false;   /* => simulate delayed branches */
+bool delayed_loads = false;      /* => simulate delayed loads */
+bool accept_pseudo_insts = true; /* => parse pseudo instructions  */
+bool quiet = false;              /* => no warning messages */
+static bool assemble = false;    /* => assemble, disassemble to file and exit */
 /* Sentinel pointer routes initialize_world to the embedded handler;
    the SPIM_EXCEPTION_HANDLER env var or -exception_file CLI flag
    replace it with an on-disk path that gets opened with fopen.
    See include/spim-utils.h. */
 char* exception_file_name = SPIM_DEFAULT_EXCEPTIONS_SENTINEL;
 port message_out, console_out, console_in;
-bool mapped_io;        /* => activate memory-mapped IO */
-int spim_return_value; /* Value returned when spim exits */
+bool mapped_io = false;    /* => activate memory-mapped IO */
+int spim_return_value = 0; /* Value returned when spim exits */
 
 /* Local variables: */
 
 /* => load standard exception handler */
 static bool load_exception_handler = true;
-static int console_state_saved;
+static bool console_state_saved;
 
 static struct termios saved_console_state;
 static int program_argc;
@@ -398,6 +389,8 @@ static void listing_observer(const asm_event* e) {
 }
 
 int main(int argc, char** argv) {
+  /* setjmp function (the -file run below): its locals keep their
+     original declarations; none is moved past or across a setjmp. */
   int i;
   bool assembly_file_loaded = false;
   bool assembly_file_attempted =
@@ -409,18 +402,8 @@ int main(int argc, char** argv) {
   console_out.f = stdout;
   message_out.f = stderr;
 
-  bare_machine = false;
-  delayed_branches = false;
-  delayed_loads = false;
-  accept_pseudo_insts = true;
-  quiet = false;
-  assemble = false;
-  spim_return_value = 0;
-  first_bad_exception = -1;
-
   /* Input comes directly (not through stdio): */
   console_in.i = 0;
-  mapped_io = false;
 
   if (getenv("SPIM_EXCEPTION_HANDLER") != nullptr)
     exception_file_name = getenv("SPIM_EXCEPTION_HANDLER");
@@ -690,7 +673,7 @@ int main(int argc, char** argv) {
         char* undefs = undefined_symbol_string();
         if (undefs != nullptr) {
           write_output(message_out, "The following symbols are undefined:\n");
-          write_output(message_out, undefs);
+          write_output(message_out, "%s", undefs);
           write_output(message_out, "\n");
           free(undefs);
           /* Linker-equivalent failure.  Skip the run; jumping into undefined
@@ -723,7 +706,10 @@ int main(int argc, char** argv) {
 /* Top-level read-eval-print loop for SPIM. */
 
 [[noreturn]] static void top_level(void) {
-  bool redo = false; /* => reexecute last command */
+  /* setjmp function: the locals the landing pad below reads after a
+     longjmp, and that change after setjmp returns, are volatile (C23
+     7.13.2.1); none is moved or made const. */
+  volatile bool redo = false; /* => reexecute last command */
 
   (void)signal(SIGINT, control_c_seen);
   scanner_init(stdin);
@@ -757,13 +743,13 @@ int main(int argc, char** argv) {
 
   /* Per-iteration scratch — declared outside so the setjmp landing pad can
      unwind them if a SIGINT longjmps us out of parse_spim_command mid-line. */
-  char* repl_line = nullptr;
-  char* repl_buf = nullptr;
-  FILE* repl_fp = nullptr;
-  bool scanner_pushed = false;
+  char* volatile repl_line = nullptr;
+  char* volatile repl_buf = nullptr;
+  FILE* volatile repl_fp = nullptr;
+  volatile bool scanner_pushed = false;
 #endif
 
-  while (1) {
+  while (true) {
 #ifdef HAVE_LIBEDIT
     if (setjmp(spim_top_level_env)) {
       /* Returned via control_c_seen longjmp. Unwind any in-flight
@@ -848,8 +834,7 @@ int main(int argc, char** argv) {
   }
 }
 
-[[noreturn]] static void control_c_seen(int arg) {
-  (void)arg;  // this line is to suppress compiler warnings
+[[noreturn]] static void control_c_seen([[maybe_unused]] int arg) {
   console_to_spim();
   write_output(message_out, "\nExecution interrupted\n");
   longjmp(spim_top_level_env, 1);
@@ -889,9 +874,9 @@ enum {
 static bool parse_spim_command(bool redo) {
   static int prev_cmd = NOP_CMD; /* Default redo */
   static int prev_token;
-  int cmd;
+  const int cmd = redo ? prev_cmd : read_assembly_command();
 
-  switch (cmd = (redo ? prev_cmd : read_assembly_command())) {
+  switch (cmd) {
     case EXIT_CMD:
       console_to_spim();
       exit(0);
@@ -922,7 +907,7 @@ static bool parse_spim_command(bool redo) {
         char* undefs = undefined_symbol_string();
         if (undefs != nullptr) {
           write_output(message_out, "The following symbols are undefined:\n");
-          write_output(message_out, undefs);
+          write_output(message_out, "%s", undefs);
           write_output(message_out, "\n");
           free(undefs);
         }
@@ -950,10 +935,9 @@ static bool parse_spim_command(bool redo) {
 
     case STEP_CMD: {
       static int steps;
-      mem_addr addr;
 
       steps = (redo ? steps : get_opt_int());
-      addr = PC == 0 ? starting_address() : PC;
+      mem_addr addr = PC == 0 ? starting_address() : PC;
 
       if (steps == 0) steps = 1;
       if (addr != 0) {
@@ -1026,7 +1010,7 @@ static bool parse_spim_command(bool redo) {
           if (loc != 0)
             print_mem((mem_addr)loc);
           else
-            error("Unknown label: %s\n", scan_value.p);
+            error("Unknown label: %s\n", (char*)scan_value.p);
         }
       } else
         error("Print what?\n");
@@ -1043,9 +1027,9 @@ static bool parse_spim_command(bool redo) {
       return (0);
 
     case PRINT_ALL_REGS_CMD: {
-      int hex_flag = 0;
+      bool hex_flag = false;
       int token = (redo ? prev_token : read_token());
-      if (token == TOK_ID && streq((char*)scan_value.p, "hex")) hex_flag = 1;
+      if (token == TOK_ID && streq((char*)scan_value.p, "hex")) hex_flag = true;
       print_all_regs(hex_flag);
       if (!redo) flush_to_newline();
       prev_cmd = NOP_CMD;
@@ -1224,13 +1208,7 @@ static bool parse_spim_command(bool redo) {
     case DUMP_TEXT_CMD: {
       int token = (redo ? prev_token : read_token());
 
-      FILE* fp = nullptr;
       char* filename = nullptr;
-
-      int words = 0;
-      mem_addr addr;
-      mem_addr dump_start;
-      mem_addr dump_end;
 
       if (token == TOK_STR)
         filename = (char*)scan_value.p;
@@ -1242,17 +1220,20 @@ static bool parse_spim_command(bool redo) {
         return (0);
       }
 
-      fp = fopen(filename, "wbt");
+      FILE* fp = fopen(filename, "wbt");
       if (fp == nullptr) {
         perror(filename);
         return (0);
       }
 
       user_kernel_text_segment(false);
-      dump_start = find_symbol_address(END_OF_TRAP_HANDLER_SYMBOL);
-      dump_end = current_text_pc();
+      const mem_addr dump_start =
+          find_symbol_address(END_OF_TRAP_HANDLER_SYMBOL);
+      const mem_addr dump_end = current_text_pc();
 
-      for (addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
+      int words = 0;
+      for (mem_addr addr = dump_start; addr < dump_end;
+           addr += BYTES_PER_WORD) {
         int32_t code = inst_encode(mem_read_inst(addr));
         if (cmd == DUMP_TEXT_CMD)
           code =
@@ -1276,7 +1257,8 @@ static bool parse_spim_command(bool redo) {
       return (0);
 
     default:
-      while (read_token() != TOK_NL);
+      while (read_token() != TOK_NL) {
+      }
       error("Unknown spim command\n");
       return (0);
   }
@@ -1341,9 +1323,10 @@ static int read_assembly_command(void) {
     return (UNKNOWN_CMD);
 }
 
-/* Return non-nil if STRING1 is a (proper) prefix of STRING2. */
+/* Return true if STRING1 is a prefix of STRING2 at least MIN_MATCH
+   characters long. */
 
-static int str_prefix(char* s1, char* s2, int min_match) {
+static bool str_prefix(char* s1, char* s2, int min_match) {
   for (; *s1 == *s2 && *s1 != '\0'; s1++, s2++) min_match--;
   return (*s1 == '\0' && min_match <= 0);
 }
@@ -1353,9 +1336,9 @@ static int str_prefix(char* s1, char* s2, int min_match) {
    rest of the line, including the newline. */
 
 static int get_opt_int(void) {
-  int token;
+  const int token = read_token();
 
-  if ((token = read_token()) == TOK_INT) {
+  if (token == TOK_INT) {
     flush_to_newline();
     return (scan_value.i);
   } else if (token == TOK_NL)
@@ -1368,7 +1351,10 @@ static int get_opt_int(void) {
 
 /* Flush the rest of the input line up to and including the next newline. */
 
-static void flush_to_newline(void) { while (read_token() != TOK_NL); }
+static void flush_to_newline(void) {
+  while (read_token() != TOK_NL) {
+  }
+}
 
 /* Print register number N. */
 
@@ -1377,12 +1363,11 @@ static void print_reg(int reg_no) {
                gpr[reg_no]);
 }
 
-static int print_fp_reg(int reg_no) {
+static void print_fp_reg(int reg_no) {
   if ((reg_no & 1) == 0)
     write_output(message_out, "FP reg %d = %g (double)\n", reg_no,
                  FPR_D(reg_no));
   write_output(message_out, "FP reg %d = %g (single)\n", reg_no, FPR_S(reg_no));
-  return (1);
 }
 
 static int print_reg_from_string(char* reg_num) {
@@ -1421,7 +1406,7 @@ static int print_reg_from_string(char* reg_num) {
   return (1);
 }
 
-static void print_all_regs(int hex_flag) {
+static void print_all_regs(bool hex_flag) {
   static str_stream ss;
 
   ss_clear(&ss);
@@ -1436,9 +1421,8 @@ static bool write_assembled_code(char* program_name) {
 
   FILE* fp = nullptr;
   {
-    char* filename = nullptr;
     const unsigned long filename_len = strlen(program_name) + 5;
-    filename = (char*)xmalloc(filename_len);
+    char* filename = (char*)xmalloc(filename_len);
     strlcpy(filename, program_name, filename_len);
     strlcat(filename, ".out", filename_len);
 
@@ -1489,7 +1473,7 @@ static bool write_assembled_code(char* program_name) {
 
 /* Print an error message. */
 
-void error(char* fmt, ...) {
+void error(const char* fmt, ...) {
   va_list args;
 
   va_start(args, fmt);
@@ -1499,7 +1483,7 @@ void error(char* fmt, ...) {
 
 /* Print the error message then exit. */
 
-void fatal_error(char* fmt, ...) {
+void fatal_error(const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
   vfprintf(stderr, fmt, args);
@@ -1509,7 +1493,7 @@ void fatal_error(char* fmt, ...) {
 
 /* Print an error message and return to top level. */
 
-[[noreturn]] void run_error(char* fmt, ...) {
+[[noreturn]] void run_error(const char* fmt, ...) {
   va_list args;
 
   va_start(args, fmt);
@@ -1523,26 +1507,20 @@ void fatal_error(char* fmt, ...) {
 
 /* IO facilities: */
 
-void write_output(port fp, char* fmt, ...) {
+void write_output(port fp, const char* fmt, ...) {
   va_list args;
-  FILE* f;
-  int restore_console_to_program = 0;
+  FILE* f = fp.f != nullptr ? fp.f : stdout;
+  bool restore_console_to_program = false;
 
   va_start(args, fmt);
-  f = fp.f;
 
   if (console_state_saved) {
-    restore_console_to_program = 1;
+    restore_console_to_program = true;
     console_to_spim();
   }
 
-  if (f != 0) {
-    vfprintf(f, fmt, args);
-    fflush(f);
-  } else {
-    vfprintf(stdout, fmt, args);
-    fflush(stdout);
-  }
+  vfprintf(f, fmt, args);
+  fflush(f);
   va_end(args);
 
   if (restore_console_to_program) console_to_program();
@@ -1557,16 +1535,15 @@ void write_output(port fp, char* fmt, ...) {
  */
 
 int read_input(char* str, int str_size) {
-  char* ptr;
-  int restore_console_to_program = 0;
+  bool restore_console_to_program = false;
   int count = 0;
 
   if (console_state_saved) {
-    restore_console_to_program = 1;
+    restore_console_to_program = true;
     console_to_spim();
   }
 
-  ptr = str;
+  char* ptr = str;
 
   while (1 < str_size) /* Reserve space for null */
   {
@@ -1606,10 +1583,10 @@ int read_input(char* str, int str_size) {
  */
 
 int read_int_input(long* value) {
-  int restore_console_to_program = 0;
+  bool restore_console_to_program = false;
 
   if (console_state_saved) {
-    restore_console_to_program = 1;
+    restore_console_to_program = true;
     console_to_spim();
   }
 
@@ -1642,10 +1619,8 @@ int read_int_input(long* value) {
 
 static void console_to_program(void) {
   if (mapped_io && !console_state_saved) {
-    struct termios params;
-
     tcgetattr(console_in.i, &saved_console_state);
-    params = saved_console_state;
+    struct termios params = saved_console_state;
     params.c_iflag &= (tcflag_t) ~(ISTRIP | INLCR | ICRNL | IGNCR | IXON |
                                    IXOFF | INPCK | BRKINT | PARMRK);
 
@@ -1659,7 +1634,7 @@ static void console_to_program(void) {
     params.c_cc[VTIME] = 1;
 
     tcsetattr(console_in.i, TCSANOW, &params);
-    console_state_saved = 1;
+    console_state_saved = true;
   }
 }
 
@@ -1668,16 +1643,13 @@ static void console_to_program(void) {
 static void console_to_spim(void) {
   if (mapped_io && console_state_saved)
     tcsetattr(console_in.i, TCSANOW, &saved_console_state);
-  console_state_saved = 0;
+  console_state_saved = false;
 }
 
 int console_input_available(void) {
-  fd_set fdset;
-  struct timeval timeout;
-
   if (mapped_io) {
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 0;
+    fd_set fdset;
+    struct timeval timeout = {}; /* zero timeout: poll, don't block */
     FD_ZERO(&fdset);
     FD_SET((int)console_in.i, &fdset);
     return (select(sizeof(fdset) * 8, &fdset, nullptr, nullptr, &timeout));
@@ -1752,8 +1724,7 @@ static void dump_text_seg(bool kernel_also) {
     format_insts(&ss, TEXT_BOT, text_top);
   }
 
-  FILE* fp;
-  fp = fopen("text.asm", "w");
+  FILE* fp = fopen("text.asm", "w");
   fprintf(fp, "%s", ss_to_string(&ss));
   fclose(fp);
 }

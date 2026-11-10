@@ -21,6 +21,18 @@
  *          octal (e.g. \033 for ESC).
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o od od.c ../../print-char.c ../../print-string.c ../../count-chars.c
+ *     $ printf 'hi\n' | ./od
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ printf 'hi\n' | spimulator -f od.asm
+ */
+/* clang-format on */
+
 #include "io.h"
 #include "crt0.h"
 

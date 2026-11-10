@@ -298,3 +298,20 @@ foreach name : lib_demo_tests
     suite: 'examples',
   )
 endforeach
+
+# Every teaching .c documents a one-line native gcc build and the
+# spimulator run of its paired .asm (the BUILD AND RUN header block).
+# This runs each documented command verbatim from the demo's directory
+# (in a scratch copy) and checks the native and spimulator runs agree.
+# tools/check_example_commands.py; takes about a second.
+python3 = find_program('python3')
+test('documented-commands',
+  python3,
+  args: [
+    meson.project_source_root() / 'tools' / 'check_example_commands.py',
+    '--spimulator', spimulator_exe.full_path(),
+  ],
+  depends: spimulator_exe,
+  suite: 'examples',
+  timeout: 120,
+)

@@ -29,6 +29,18 @@
  *          an `os_open`-acquired fd instead of STDIN.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o nologin nologin.c
+ *     $ ./nologin
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f nologin.asm
+ */
+/* clang-format on */
+
 #include "io.h"
 
 #define BUFSIZE 256

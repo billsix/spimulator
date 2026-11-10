@@ -17,16 +17,9 @@
 #include "tokens.h"
 #include "opcode-types.h"
 #include "spim-utils.h"
-#include "parser.h"
 #include "pseudo-op.h"
 #include "ast.h"
 
-extern int scanner_peek(void);
-extern int scanner_peek2(void);
-extern int scanner_advance(void);
-extern void scanner_init(FILE* in);
-extern void scanner_start_line(void);
-extern void scanner_force_identifier(void);
 
 /* ------- runtime-visible globals --------------------------- */
 
@@ -501,7 +494,6 @@ static int parse_abs_addr(void) {
 /* FACTOR : TOK_INT | '(' EXPR ')' | ID.
    ID resolves to its label's address; forward references
    record a data-uses-symbol entry for later resolution. */
-extern void record_data_uses_symbol(mem_addr location, label* sym);
 
 static int parse_expr(void); /* forward */
 static int parse_factor(void) {
@@ -746,7 +738,6 @@ static bool op_has_imm_form(int op) {
 SUB_OPS (sub, subu) similarly accept an
    immediate, converted to addi/addiu with a negated value
 */
-extern int32_t eval_imm_expr(imm_expr* expr);
 
 static void parse_r3(int op) {
   int rd = parse_register();
@@ -850,20 +841,13 @@ static void parse_r1s(int op) {
    use `ori $k0, 0x1`. */
 static void parse_i2(int op) {
   int rt = parse_register();
-  int rs;
-  if (scanner_peek() == TOK_REG) {
-    rs = parse_register();
-  } else {
-    rs = rt;
-  }
+  int rs = scanner_peek() == TOK_REG ? parse_register() : rt;
   /* andi/ori/xori take unsigned; addi/addiu/slti signed.  The
      range check happens inside parse_imm16/parse_uimm16. */
-  imm_expr* imm;
-  if (op == TOK_ANDI_OPCODE || op == TOK_ORI_OPCODE || op == TOK_XORI_OPCODE) {
-    imm = parse_uimm16();
-  } else {
-    imm = parse_imm16();
-  }
+  imm_expr* imm =
+      (op == TOK_ANDI_OPCODE || op == TOK_ORI_OPCODE || op == TOK_XORI_OPCODE)
+          ? parse_uimm16()
+          : parse_imm16();
   emit_i_free(op, rt, rs, imm);
 }
 
@@ -899,7 +883,6 @@ static void parse_b2(int op) {
     /* Immediate form */
     imm_expr* imm = parse_imm32();
     imm_expr* target = parse_label();
-    extern bool is_zero_imm(imm_expr * expr);
     if (is_zero_imm(imm)) {
       /* Special case: comparing against literal 0 → use $0 directly */
       emit_i(op, src1, 0, target);
@@ -1296,7 +1279,6 @@ static void do_parse_pseudo(int op) {
         rt = parse_register();
       } else {
         imm_expr* imm = parse_imm32();
-        extern bool is_zero_imm(imm_expr*);
         if (!is_zero_imm(imm)) {
           emit_i(TOK_ORI_OPCODE, 1, 0, imm);
           rt = 1;
@@ -1353,7 +1335,6 @@ static void do_parse_pseudo(int op) {
         div_inst(op, rd, rs, rt, 0);
       } else {
         imm_expr* imm = parse_imm32();
-        extern bool is_zero_imm(imm_expr * expr);
         if (is_zero_imm(imm)) {
           parse_error_at("Divide by zero");
         } else {
@@ -1373,7 +1354,6 @@ static void do_parse_pseudo(int op) {
         mult_inst(op, rd, rs, rt);
       } else {
         imm_expr* imm = parse_imm32();
-        extern bool is_zero_imm(imm_expr * expr);
         if (is_zero_imm(imm)) {
           /* Optimize: n * 0 == 0 */
           emit_i_free(TOK_ORI_OPCODE, rd, 0, imm);
@@ -1388,11 +1368,8 @@ static void do_parse_pseudo(int op) {
       /* mfc1.d REG COP_REG  →  two mfc1 instructions
        */
       int reg = parse_register();
-      int copreg;
-      if (scanner_peek() == TOK_FP_REG)
-        copreg = parse_fp_register();
-      else
-        copreg = parse_register();
+      int copreg =
+          scanner_peek() == TOK_FP_REG ? parse_fp_register() : parse_register();
       emit_fp_r(TOK_MFC1_OPCODE, 0, copreg, reg);
       emit_fp_r(TOK_MFC1_OPCODE, 0, copreg + 1, reg + 1);
       break;
@@ -1401,11 +1378,8 @@ static void do_parse_pseudo(int op) {
       /* mtc1.d REG COP_REG  →  two mtc1 instructions
        */
       int reg = parse_register();
-      int copreg;
-      if (scanner_peek() == TOK_FP_REG)
-        copreg = parse_fp_register();
-      else
-        copreg = parse_register();
+      int copreg =
+          scanner_peek() == TOK_FP_REG ? parse_fp_register() : parse_register();
       emit_fp_r(TOK_MTC1_OPCODE, 0, copreg, reg);
       emit_fp_r(TOK_MTC1_OPCODE, 0, copreg + 1, reg + 1);
       break;
@@ -1419,12 +1393,13 @@ static void do_parse_pseudo(int op) {
         break;
       }
       scanner_advance();
-      int* x = (int*)scan_value.p;
+      int32_t words[2]; /* the double's two words, in host order */
+      memcpy(words, scan_value.p, sizeof words);
       /* emit_i_free (not emit_i): the const_imm_expr node is allocated
          inline with no other owner, so transfer it to be freed. */
-      emit_i_free(TOK_ORI_OPCODE, 1, 0, const_imm_expr(*x));
+      emit_i_free(TOK_ORI_OPCODE, 1, 0, const_imm_expr(words[0]));
       emit_fp_r(TOK_MTC1_OPCODE, 0, fd, 1);
-      emit_i_free(TOK_ORI_OPCODE, 1, 0, const_imm_expr(*(x + 1)));
+      emit_i_free(TOK_ORI_OPCODE, 1, 0, const_imm_expr(words[1]));
       emit_fp_r(TOK_MTC1_OPCODE, 0, fd + 1, 1);
       break;
     }
@@ -1438,9 +1413,10 @@ static void do_parse_pseudo(int op) {
       }
       scanner_advance();
       float fval = (float)*((double*)scan_value.p);
-      int* y = (int*)&fval;
+      int32_t bits; /* the float's bit pattern, not its value */
+      memcpy(&bits, &fval, sizeof bits);
       /* emit_i_free: inline const_imm_expr node has no other owner. */
-      emit_i_free(TOK_ORI_OPCODE, 1, 0, const_imm_expr(*y));
+      emit_i_free(TOK_ORI_OPCODE, 1, 0, const_imm_expr(bits));
       emit_fp_r(TOK_MTC1_OPCODE, 0, fd, 1);
       break;
     }
@@ -1749,12 +1725,8 @@ static void parse_asm_code(void) {
       /* mfc0/mtc0/etc.: <op> REG COP_REG.  COP_REG accepts
          TOK_REG or TOK_FP_REG. */
       int reg = parse_register();
-      int copreg;
-      if (scanner_peek() == TOK_FP_REG) {
-        copreg = parse_fp_register();
-      } else {
-        copreg = parse_register();
-      }
+      int copreg =
+          scanner_peek() == TOK_FP_REG ? parse_fp_register() : parse_register();
       emit_fp_r(op, 0, copreg, reg);
       break;
     }
@@ -1798,7 +1770,6 @@ static void parse_asm_code(void) {
           div_inst(op, r1, r2, r3, 0);
         } else {
           imm_expr* imm = parse_imm32();
-          extern bool is_zero_imm(imm_expr * expr);
           if (is_zero_imm(imm)) {
             parse_error_at("Divide by zero");
           } else {
@@ -1863,8 +1834,6 @@ static void parse_asm_code(void) {
          uses BIN_RS($1.i) which is the token-number's bits 21-25,
          always 0 for spim's token-number range).  See
         */
-      extern bool opcode_is_nullified_branch(int);
-      extern bool opcode_is_true_branch(int);
       int nd = opcode_is_nullified_branch(op) ? 1 : 0;
       int tf = opcode_is_true_branch(op) ? 1 : 0;
       int cc = 0;
@@ -1961,12 +1930,8 @@ static void parse_asm_code(void) {
          COP_REG accepts either TOK_REG OR TOK_FP_REG (
          2574) — both name the coprocessor register number. */
       int reg = parse_register();
-      int copreg;
-      if (scanner_peek() == TOK_FP_REG) {
-        copreg = parse_fp_register();
-      } else {
-        copreg = parse_register();
-      }
+      int copreg =
+          scanner_peek() == TOK_FP_REG ? parse_fp_register() : parse_register();
       emit_fp_r(op, 0, copreg, reg);
       break;
     }
@@ -2330,7 +2295,7 @@ static void emit_one(const ast_node* node) {
       const char* sym = node->u.dir_named_size.name;
       make_label_global((char*)sym);
       if (lookup_label((char*)sym)->addr == 0)
-        record_label((char*)sym, current_data_pc(), 1);
+        record_label((char*)sym, current_data_pc(), true);
       increment_data_pc(node->u.dir_named_size.size);
       return;
     }
@@ -2339,7 +2304,7 @@ static void emit_one(const ast_node* node) {
       const char* sym = node->u.dir_named_size.name;
       align_data(2);
       if (lookup_label((char*)sym)->addr == 0)
-        record_label((char*)sym, current_data_pc(), 1);
+        record_label((char*)sym, current_data_pc(), true);
       increment_data_pc(node->u.dir_named_size.size);
       return;
     }
@@ -2380,12 +2345,12 @@ static void emit_one(const ast_node* node) {
     case AST_LABEL_DEF:
       if (node->u.label_def.kind == AST_LABEL_NORMAL) {
         mem_addr addr = text_dir ? current_text_pc() : current_data_pc();
-        label* l = record_label((char*)node->u.label_def.name, addr, 0);
+        label* l = record_label((char*)node->u.label_def.name, addr, false);
         cons_label(l);
       } else {
         label* l = record_label((char*)node->u.label_def.name,
-                                (mem_addr)node->u.label_def.value, 1);
-        l->const_flag = 1;
+                                (mem_addr)node->u.label_def.value, true);
+        l->const_flag = true;
       }
       return;
 

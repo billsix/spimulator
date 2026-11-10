@@ -30,6 +30,18 @@
  *          syscalls per page of input.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o cat cat.c ../../print-char.c ../../print-string.c ../../count-chars.c
+ *     $ ./cat cat.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f cat.asm cat.input
+ */
+/* clang-format on */
+
 #include "io.h"
 #include "crt0.h"
 

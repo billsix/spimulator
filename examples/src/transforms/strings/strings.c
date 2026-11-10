@@ -34,6 +34,18 @@
  *          treats tab as printable; both are omitted here.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o strings strings.c ../../print-char.c ../../read-char.c
+ *     $ ./strings < strings.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f strings.asm < strings.input
+ */
+/* clang-format on */
+
 #include "io.h"
 
 #define MINRUN 4

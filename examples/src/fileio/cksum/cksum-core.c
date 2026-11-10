@@ -41,6 +41,18 @@
  * named pure function. Mirrored in cksum-core.asm.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o cksum-core cksum-core.c ../../print-char.c ../../print-uint.c ../../read-char.c
+ *     $ ./cksum-core < cksum.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f cksum-core.asm < cksum.input
+ */
+/* clang-format on */
+
 #include "io.h"
 #include "crt0.h"
 

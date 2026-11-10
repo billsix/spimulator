@@ -86,6 +86,9 @@ COPY Documentation/   ${SPIM_SRC_DIR}/Documentation
 # (the `meson test` step runs the 'examples' suite alongside
 # spim's 'regression' suite).
 COPY examples/        ${SPIM_SRC_DIR}/examples
+# Repo tools the test suite runs: the examples suite's documented-commands
+# test is tools/check_example_commands.py.
+COPY tools/           ${SPIM_SRC_DIR}/tools
 
 # Build from source.  --prefix sets the install root explicitly; meson's
 # default on Unix is also /usr/local, but spelling it out keeps the

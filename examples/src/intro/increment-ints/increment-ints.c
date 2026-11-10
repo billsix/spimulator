@@ -23,6 +23,18 @@
  *          Demonstrates pre- vs. post-increment.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o increment-ints increment-ints.c ../../print-int.c ../../print-string.c ../../count-chars.c
+ *     $ ./increment-ints
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f increment-ints-1.asm
+ */
+/* clang-format on */
+
 #include "io.h"
 
 __attribute__((noreturn)) void _start(void) {

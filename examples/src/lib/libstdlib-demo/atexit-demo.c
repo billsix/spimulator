@@ -12,6 +12,18 @@
  *      somehow swallow it)
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -I../libctype -I../libstdlib -o atexit-demo atexit-demo.c ../libstdlib/libstdlib.c ../../print-string.c ../libctype/libctype.c ../../count-chars.c
+ *     $ ./atexit-demo
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f ../libctype/libctype.asm -f ../libstdlib/libstdlib.asm -f atexit-demo.asm
+ */
+/* clang-format on */
+
 #include "io.h"
 #include "libstdlib.h"
 

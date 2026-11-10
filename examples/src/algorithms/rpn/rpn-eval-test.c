@@ -39,6 +39,18 @@
  * instead of a stdin slurp — differs.  Mirrored in rpn-eval-test.asm.
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o rpn-eval-test rpn-eval-test.c ../../print-char.c ../../print-int.c ../../print-string.c ../../count-chars.c
+ *     $ ./rpn-eval-test
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f rpn-eval-test.asm
+ */
+/* clang-format on */
+
 #include "crt0.h"
 #include "io.h"
 

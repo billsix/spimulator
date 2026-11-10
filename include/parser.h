@@ -48,6 +48,7 @@ void parser_set_print_ast_json(bool on, FILE* out);
    until EOF.  Sets parse_errors_seen as a side effect.  Also emits the
    resulting AST unless -print-ast-only is set. */
 [[nodiscard]] int parse_file(void);
+void set_input_file_name(char* name);
 
 /* Initialize scanner + parser state for a fresh assembly file.
    Call before parse_file(). */

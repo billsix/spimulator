@@ -36,6 +36,18 @@
  * '0.5').
  */
 
+/* clang-format off */
+/* BUILD AND RUN, from this file's directory:
+ *
+ *   native Linux build, then run:
+ *     $ gcc -std=gnu23 -nostdlib -I../.. -o rpn-3-float rpn-3-float.c ../../print-char.c ../../print-int.c ../../print-string.c ../../read-char.c ../../count-chars.c
+ *     $ ./rpn-3-float < rpn-3-float.input
+ *
+ *   the paired MIPS assembly, in spimulator:
+ *     $ spimulator -f rpn-3-float.asm < rpn-3-float.input
+ */
+/* clang-format on */
+
 #include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 #include "io.h"
 
