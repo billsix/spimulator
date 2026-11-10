@@ -6,7 +6,7 @@
 #
 # Plain `ghc --make`, not cabal: cabal wants a Hackage package index even
 # when every dependency ships with GHC, and the image has none
-# (tasks/engine-port-haskell.md, Log).  The launcher spimulator-haskell runs
+# (tasks/archive/2026/11/10/engine-port-haskell.md, Log).  The launcher spimulator-haskell runs
 # this when the binary is missing or older than a source file.
 set -eu
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)

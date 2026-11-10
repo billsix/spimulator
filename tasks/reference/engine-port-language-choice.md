@@ -196,12 +196,12 @@ GHC's `Text.Printf` and `Numeric.showFFloat` format from the shortest round-trip
 exponent, ties-to-even rounding, the `%g` fixed/exponential rule, `#`, width, `inf`/`nan` by the sign
 bit. `tasks/adhoc/engine-ports-float-format/CFormat.hs` implements all five formats the C engine uses
 (`%.8f`, `%.18g`, `%.17g`, `%g`, `%#-13.6g`). It is byte-identical to glibc on 158,029 values
-(`bash tasks/adhoc/engine-ports-float-format/run.sh`). Detail: `tasks/engine-port-haskell.md`.
+(`bash tasks/adhoc/engine-ports-float-format/run.sh`). Detail: `tasks/archive/2026/11/10/engine-port-haskell.md`.
 The port's copy is `port/haskell/src/CFormat.hs`, checked by `port/haskell/tests/check-format.sh`.
 
 ### What the Haskell port taught (2026-11-10)
 
-Measured while writing `port/haskell/` (`tasks/engine-port-haskell.md`, Log). Every check in the
+Measured while writing `port/haskell/` (`tasks/archive/2026/11/10/engine-port-haskell.md`, Log). Every check in the
 corpus matched the C engine on the port's first full run; the risks the study named were real, but
 each had a direct answer.
 

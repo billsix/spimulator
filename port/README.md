@@ -8,7 +8,7 @@ warning. Rules, ordering and decisions: `tasks/engine-ports.md`.
 | Port | Directory | Command | Task |
 |---|---|---|---|
 | Python | `port/python/` | `spimulator-python` | `tasks/archive/2026/11/10/engine-port-python.md` |
-| GHC Haskell | `port/haskell/` | `spimulator-haskell` | `tasks/engine-port-haskell.md` |
+| GHC Haskell | `port/haskell/` | `spimulator-haskell` | `tasks/archive/2026/11/10/engine-port-haskell.md` |
 | Rust | `port/rust/` | `spimulator-rust` | `tasks/engine-port-rust.md` |
 
 Each port takes the C engine's flags and arguments. The teaching mode (`-explain`) is not ported
