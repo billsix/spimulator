@@ -119,6 +119,11 @@ not spim's intentional exit-time leaks) + the integer-UB primer:
   corpus-wide rollout is COMPLETE (2026-10-31): every non-exempt demo converted; record +
   per-topic archive under `tasks/archive/2026/10/31/asm-simplification-sweep*.md`.
 
+## Reviews
+
+Latest deep review: `tasks/review/2026/11/10/repo-review.md` (simulator core + full git
+history; C23 worklist and port-behavior inventory). Records are frozen; act on them through tasks.
+
 ## Tasks (in-flight)
 
 All task docs (spim-internal *and* curriculum) live in `tasks/`; completed work

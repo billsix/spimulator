@@ -5,6 +5,7 @@
 **Difficulty:** 6
 **Created:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
 **Branch:** `c23-pass3-and-port-study`
+**Source:** tasks/review/2026/11/10/repo-review.md §4.1, §4.2, §4.3, §4.4, §4.5, §4.6, §4.7, §4.8 F1
 
 ## BLUF
 
