@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # 05-install-ports.sh -- the toolchains of every port of the engine
-# (tasks/engine-ports.md): Python for the Python port, GHC for the Haskell port
+# (tasks/reference/engine-ports-design.md): Python for the Python port, GHC for the Haskell port
 # (the ghc package brings the libraries the port uses, parsec and haskeline
 # among them), Rust and Cargo for the Rust port. The ports are part of the test
 # gate, so the Dockerfile runs this unconditionally: no ARG, no `if`, and a

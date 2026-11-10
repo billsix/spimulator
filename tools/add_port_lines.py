@@ -13,7 +13,7 @@ by `spimulator-NAME`:
      *     $ spimulator-python -f echo.asm hello world
 
 so finished ports appear in the order they were added.  The last step of each
-port's task (tasks/engine-ports.md).  Idempotent: a block that already has a
+port's task (tasks/reference/engine-ports-design.md).  Idempotent: a block that already has a
 `spimulator-NAME` line is left alone, so a second run changes nothing.  Prints
 each file it changes.
 

@@ -1,7 +1,7 @@
 # Ported the simulator engine to GHC Haskell, equivalent to the C engine
 
 **Created:** 2026-11-10 · **Completed:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
-**Part of:** `tasks/engine-ports.md`
+**Part of:** `tasks/archive/2026/11/10/engine-ports.md`
 
 ## Summary
 
@@ -16,7 +16,7 @@ There were no float-formatting warnings: the exact-`Rational` formatter from the
 (Findings) went into the port. Every example's BUILD AND RUN header shows the `spimulator-haskell`
 run. The port was written in parallel with the Python one, in a separate git worktree, by an agent
 from a written brief. The coordinating session merged it after the Python port, as
-`tasks/engine-ports.md` planned, and registered it. The port found five C engine bugs; three were
+`tasks/archive/2026/11/10/engine-ports.md` planned, and registered it. The port found five C engine bugs; three were
 fixed in C in `a0eefb8` (below).
 
 ## Findings (2026-11-10)
@@ -86,7 +86,7 @@ download.
 - Print floats with the exact-`Rational` formatter (Findings), not `Text.Printf` or a C FFI call to
   `snprintf`. FFI would match trivially, but the port would then depend on the C library for the
   output it is being compared on. The agent's call; revisit only if the formatter shows a difference.
-- Go-ahead (William Emerison Six <billsix@gmail.com>, 2026-11-10). The teaching mode (`-explain`) is out of scope for now (`tasks/engine-ports.md`).
+- Go-ahead (William Emerison Six <billsix@gmail.com>, 2026-11-10). The teaching mode (`-explain`) is out of scope for now (`tasks/archive/2026/11/10/engine-ports.md`).
 - Build with plain `ghc --make`, not `cabal build --offline` (the agent's call, 2026-11-10). Measured:
   with an empty cabal home, `cabal build --offline` stops with "The package list for
   'hackage.haskell.org' does not exist. Run 'cabal update'", although every dependency ships with

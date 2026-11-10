@@ -3,7 +3,7 @@
 A port of the spimulator engine (the C files in `src/`) to GHC Haskell. It behaves as the C
 engine does: the same stdout, stderr and exit status for the same arguments and input. The
 teaching mode (`-explain`) is not ported; given `-explain` it says so and exits with status 2.
-Rules and status: `tasks/engine-ports.md`, `tasks/archive/2026/11/10/engine-port-haskell.md`.
+Rules and status: `tasks/reference/engine-ports-design.md`, `tasks/archive/2026/11/10/engine-port-haskell.md`.
 
     # [CONTAINER] run it like spimulator; the first run builds it (about 15 seconds)
     port/haskell/spimulator-haskell -f helloworld.s

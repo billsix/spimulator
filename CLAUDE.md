@@ -55,7 +55,7 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
   the standard**: every port must give the same stdout, stderr and exit status (a float printed with
   different digits is only a warning). `port/meson.build` runs the C engine's own suites against each
   port, plus `port/harness/` (case-by-case and whole-tree comparisons with C). The teaching mode is not
-  ported yet. Rules and decisions: `port/README.md`, `tasks/archive/2026/11/10/engine-ports.md`. **A C
+  ported yet. Rules and decisions: `port/README.md`, `tasks/reference/engine-ports-design.md`. **A C
   behavior change must be followed in every port**, or the port suites fail.
 - `Documentation/spim.1`, `meson.build`, `meson_options.txt`, `.clang-format`,
   `.clang-tidy`.

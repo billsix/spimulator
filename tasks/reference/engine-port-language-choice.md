@@ -29,7 +29,7 @@ REPL's redo state) fights the borrow checker more than it helps.
 `0.300000000000000040` where C prints `...044` (measured), so `print_double` needs a hand-written
 formatter. Haskell's purity also makes the stateful machine the least direct transcription. The
 maintainer chose to port to Haskell and Rust **as well**, as further implementations
-(`tasks/engine-ports.md`; `tasks/archive/2026/11/10/engine-port-rust.md`),
+(`tasks/reference/engine-ports-design.md`; `tasks/archive/2026/11/10/engine-port-rust.md`),
 and its formatter problem is solved (below, "Haskell's float formatting"). Go and C# are
 workable (both format correctly, both have fixed-width ints) but offer nothing over Python for
 readability or over Rust for checked widths.
@@ -175,7 +175,7 @@ at run time: untyped constant arithmetic is exact); GHC's `Text.Printf` `%.18g` 
 **Formatting does not gate a port.** The maintainer's rule (William Emerison Six
 <billsix@gmail.com>, 2026-11-10): a port must match the C engine functionally. A float printed with
 different digits, when the values are the same or very close, is reported as a warning, not a
-failure. The tolerance and how the harness detects it: `tasks/engine-ports.md`. Matching glibc
+failure. The tolerance and how the harness detects it: `tasks/reference/engine-ports-design.md`. Matching glibc
 exactly is still the goal where it is cheap, and it is cheap in all three languages measured.
 `bash tasks/adhoc/engine-ports-float-format/run.sh` checks each one against glibc `printf` on 158,029
 doubles, in all five formats the C engine prints (`%.8f`, `%.18g`, `%.17g`, `%g`, `%#-13.6g`):

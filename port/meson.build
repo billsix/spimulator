@@ -1,4 +1,4 @@
-# Ports of the engine (tasks/engine-ports.md).  The C engine is the standard;
+# Ports of the engine (tasks/reference/engine-ports-design.md).  The C engine is the standard;
 # every port in `ports` gets the C engine's own test suites, run against the
 # port's executable, plus a direct comparison with the C engine:
 #
@@ -24,7 +24,7 @@ ports = [
 ]
 
 # Not run against ports, with the reason:
-#   explain   the teaching mode is not ported yet (tasks/engine-ports.md)
+#   explain   the teaching mode is not ported yet (tasks/reference/engine-ports-design.md)
 port_skipped_tests = ['explain']
 
 foreach port : ports

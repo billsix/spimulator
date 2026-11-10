@@ -1,7 +1,7 @@
 # Ported the simulator engine to Rust, equivalent to the C engine
 
 **Created:** 2026-11-10 · **Completed:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
-**Part of:** `tasks/engine-ports.md`
+**Part of:** `tasks/archive/2026/11/10/engine-ports.md`
 
 ## Summary
 
@@ -55,7 +55,7 @@ Rust's traps against the C engine, with the planned answer:
   2026-11-10).
 - Standard library only; no crates (the agent's call, for offline builds). Revisit for line editing
   only.
-- Go-ahead (William Emerison Six <billsix@gmail.com>, 2026-11-10). The teaching mode (`-explain`) is out of scope for now (`tasks/engine-ports.md`).
+- Go-ahead (William Emerison Six <billsix@gmail.com>, 2026-11-10). The teaching mode (`-explain`) is out of scope for now (`tasks/archive/2026/11/10/engine-ports.md`).
 - **Milestones 2-4 landed as one commit** (the agent's call, 2026-11-10). Options weighed: (a) a commit
   per milestone, each with a reduced crate; (b) one commit for the engine, with each milestone's gate
   checked in order. The C assembler and executor share memory, the exception registers and the symbol
