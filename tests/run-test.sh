@@ -44,6 +44,29 @@ case "$NAME" in
     "$SPIM" -exception_file "$EF" -f tt.core.s <tt.in >"$out" 2>&1
     expect_sentinel
     ;;
+  core_full|core_default_handler)
+    # tt.core.s's whole output, not just its last line: ~25 expected
+    # exception messages and the float prints are on stderr/stdout lines
+    # the sentinel check never read.  Goldens tests/golden.core.stdout and
+    # tests/golden.core.stderr, captured from the C engine (the `Loaded:`
+    # line names the exception file, so it is left out).  The program
+    # returns from main with $v0 = 4 (left by its last print_str), and main's
+    # return value is the exit status.  core_default_handler runs the same
+    # program on the built-in (#embed) exception handler, the path users get,
+    # which no other test takes; its output must be the same.
+    if [ "$NAME" = core_full ]; then ef_args=(-exception_file "$EF"); else ef_args=(); fi
+    err=$(mktemp); trap 'rm -f "$out" "$err"' EXIT
+    env -i "$SPIM" "${ef_args[@]}" -f tt.core.s <tt.in >"$out" 2>"$err"; rc=$?
+    expect_exit 4 "$rc"
+    diff -u golden.core.stdout "$out" >/dev/null || fail "stdout differs from golden.core.stdout"
+    grep -v '^Loaded: ' "$err" | diff -u golden.core.stderr - >/dev/null \
+      || fail "stderr differs from golden.core.stderr"
+    ;;
+  fpu_bare)
+    # Upstream's FPU torture test, in bare-machine mode as upstream ran it.
+    "$SPIM" -bare -noexception -f tt.fpu.bare.s >"$out" 2>&1
+    expect_sentinel
+    ;;
   le)
     "$SPIM" -exception_file "$EF" -f tt.le.s >"$out" 2>&1
     expect_sentinel
@@ -148,23 +171,6 @@ case "$NAME" in
     [ "$stdout_only" = "ok" ] || fail "stdout was '$stdout_only', expected 'ok'"
     ;;
 
-  explain_parity)
-    # Sanity check that -explain doesn't perturb execution semantics:
-    # run the same program at -explain=0 (no narration) and -explain=2
-    # (full narration); the assembled text + data dumps must be
-    # byte-identical regardless of explain level.
-    dir0=$(mktemp -d); dir2=$(mktemp -d)
-    trap 'rm -f "$out"; rm -rf "$dir0" "$dir2"' EXIT
-    ( cd "$dir0" && "$SPIM" -exception_file "$EF" -noexplain -dump \
-        -f "$TESTS_DIR/tt.core.s" </dev/null >/dev/null 2>&1 )
-    ( cd "$dir2" && "$SPIM" -exception_file "$EF" -explain=2 -dump \
-        -f "$TESTS_DIR/tt.core.s" </dev/null >/dev/null 2>&1 )
-    diff -q "$dir0/text.asm" "$dir2/text.asm" >/dev/null \
-      || fail "text.asm differs between explain=0 and explain=2"
-    diff -q "$dir0/data.asm" "$dir2/data.asm" >/dev/null \
-      || fail "data.asm differs between explain=0 and explain=2"
-    ;;
-
   ast_parity_all)
     # AST-emit regression golden: for every representative .s file in
     # tests/, assemble it (-dump) and diff the text + data segment dumps
@@ -174,32 +180,12 @@ case "$NAME" in
     # the old syntax-directed path produced.  Regenerate the golden with
     # tests/gen-parity-golden.sh if an intentional codegen change lands.
     #
-    # tt.parse_error.s is excluded because its parse intentionally
-    # fails — the assembled output is empty/partial and there's nothing
-    # meaningful to compare.
-    progs="
-      tt.alu.bare.s tt.argv.s tt.bare.s tt.be.s tt.core.s tt.dir.s
-      tt.divide_by_zero.s tt.explain.s tt.fpu.bare.s tt.io.s tt.le.s
-      tt.listing.s tt.missing_main.s tt.octal_escape.s tt.pseudo.s
-      tt.read_char_eof.s tt.read_int_eof.s tt.return_value.s
-      tt.stderr_split.s tt.unaligned.s
-    "
+    # The program list and each program's flags: tests/parity-programs.txt.
+    # A listed program that writes no dump fails the test.
+    . "$TESTS_DIR/parity-capture.sh"
     d=$(mktemp -d); got="$d/got.txt"
     trap 'rm -f "$out"; rm -rf "$d"' EXIT
-    : > "$got"
-    for prog in $progs; do
-      [ -f "$prog" ] || continue
-      ( cd "$d" && "$SPIM" -exception_file "$EF" -dump \
-          -f "$TESTS_DIR/$prog" </dev/null >/dev/null 2>&1 ) || true
-      # The `; NNN: source` annotations track scanner state at emit time
-      # and don't affect the assembled bytes — strip before comparing.
-      for seg in text data; do
-        [ -f "$d/$seg.asm" ] || continue
-        echo "### $prog :: $seg ###" >> "$got"
-        sed 's/[[:space:]]*;.*$//' "$d/$seg.asm" >> "$got"
-      done
-      rm -f "$d/text.asm" "$d/data.asm"
-    done
+    capture_all > "$got" 2> "$d/err" || { cat "$d/err" > "$out"; fail "a parity program wrote no dump"; }
     diff -u "$TESTS_DIR/golden.ast_parity_all.txt" "$got" > "$out" 2>&1 \
       || fail "AST emit differs from golden.ast_parity_all.txt"
     ;;

@@ -1,0 +1,272 @@
+The next few lines should contain exception error messages
+  Exception 4  [Address error in inst/data fetch]  occurred and ignored
+  Exception 5  [Address error in store]  occurred and ignored
+  Exception 7  [Bad data address]  occurred and ignored
+  Exception 9  [Breakpoint]  occurred and ignored
+  Exception 12  [Arithmetic overflow]  occurred and ignored
+Done with exceptions
+
+Testing timer
+Testing .asciiz
+Testing ADD
+Testing ADDI
+Testing ADDIU
+Testing ADDU
+Testing AND
+Testing ANDI
+Testing BEQ
+Testing BGEZ
+Testing BGEZAL
+Testing BGTZ
+Testing BLEZ
+Testing BLTZ
+Testing BLTZAL
+Testing BNE
+Testing BREAK
+Expect a exception message:
+    Exception 9  [Breakpoint]  occurred and ignored
+Testing move to/from coprocessor control 0/1
+Testing CLO
+Testing CLZ
+Testing DIV
+Expect exception caused by divide by 0:
+    Exception 9  [Breakpoint]  occurred and ignored
+Testing DIVU
+Expect exception caused by divide by 0:
+    Exception 9  [Breakpoint]  occurred and ignored
+Testing J
+Testing JAL
+Testing JALR
+Expect an non-word boundary exception:
+    Exception 6  [Bad instruction address]  occurred and ignored
+Testing JR
+Expect an non-word boundary exception:
+    Exception 6  [Bad instruction address]  occurred and ignored
+Testing LA
+Testing LD
+Expect four address error exceptions:
+  Exception 4  [Address error in inst/data fetch]  occurred and ignored
+  Exception 4  [Address error in inst/data fetch]  occurred and ignored
+  Exception 7  [Bad data address]  occurred and ignored
+  Exception 7  [Bad data address]  occurred and ignored
+Testing LH
+Expect two address error exceptions:
+  Exception 4  [Address error in inst/data fetch]  occurred and ignored
+  Exception 7  [Bad data address]  occurred and ignored
+Testing LHU
+Expect two address error exceptions:
+  Exception 4  [Address error in inst/data fetch]  occurred and ignored
+  Exception 7  [Bad data address]  occurred and ignored
+Testing LL
+Testing LUI
+Testing LW
+Expect two address error exceptions:
+  Exception 4  [Address error in inst/data fetch]  occurred and ignored
+  Exception 7  [Bad data address]  occurred and ignored
+Testing MADD
+Testing MADDU
+Testing move to/from coprocessor z
+Testing move to/from HI/LO
+Testing MOVF
+Testing MOVN
+Testing MOVT
+Testing MOVZ
+Testing MSUB
+Testing MSUBU
+Testing MUL
+Testing MULTU
+Testing MULO
+Expect an exception:
+	   Exception 9  [Breakpoint]  occurred and ignored
+Testing NOR
+Testing OR
+Testing ORI
+Testing SD
+Testing SD
+Expect two address error exceptions:
+  Exception 5  [Address error in store]  occurred and ignored
+  Exception 5  [Address error in store]  occurred and ignored
+  Exception 7  [Bad data address]  occurred and ignored
+  Exception 7  [Bad data address]  occurred and ignored
+Testing SWC1
+Testing S.S
+Testing SDC1
+Testing S.D
+Testing SLL
+Testing SLLV
+Testing SLT
+Testing SLTI
+Testing SLTIU
+Testing SLTU
+Testing SRA
+Testing SRAV
+Testing SRL
+Testing SRLV
+Testing NOP
+Testing SUB
+Expect an overflow exceptions:
+    Exception 12  [Arithmetic overflow]  occurred and ignored
+Testing SUBU
+Testing SW
+Expect two address error exceptions:
+  Exception 5  [Address error in store]  occurred and ignored
+  Exception 7  [Bad data address]  occurred and ignored
+Testing NOP
+Testing SYSCALL
+The next line should contain: -1, -1.000000, -2.000000
+-1, -1.00000000, -2
+Testing TEQ
+Expect one exception message:
+    Exception 13  [Trap]  occurred and ignored
+Testing TEQI
+Expect one exception message:
+    Exception 13  [Trap]  occurred and ignored
+Testing TGE
+Expect two exception messages:
+    Exception 13  [Trap]  occurred and ignored
+  Exception 13  [Trap]  occurred and ignored
+Testing TGEI
+Expect two exception messages:
+    Exception 13  [Trap]  occurred and ignored
+  Exception 13  [Trap]  occurred and ignored
+Testing TGEIU
+Expect two exception messages:
+    Exception 13  [Trap]  occurred and ignored
+  Exception 13  [Trap]  occurred and ignored
+Testing TGEU
+Expect two exception messages:
+    Exception 13  [Trap]  occurred and ignored
+  Exception 13  [Trap]  occurred and ignored
+Testing TLB operations:
+    Exception 10  [Reserved instruction]  occurred and ignored
+  Exception 10  [Reserved instruction]  occurred and ignored
+  Exception 10  [Reserved instruction]  occurred and ignored
+  Exception 10  [Reserved instruction]  occurred and ignored
+Testing TLT
+Expect one exception message:
+    Exception 13  [Trap]  occurred and ignored
+Testing TLTI
+Expect one exception message:
+    Exception 13  [Trap]  occurred and ignored
+Testing TLTIU
+Expect one exception message:
+    Exception 13  [Trap]  occurred and ignored
+Testing TLTU
+Expect one exception message:
+    Exception 13  [Trap]  occurred and ignored
+Testing TNE
+Expect one exception message:
+    Exception 13  [Trap]  occurred and ignored
+Testing TNEI
+Expect one exception message:
+    Exception 13  [Trap]  occurred and ignored
+Testing XOR
+Testing XORI
+Testing ABS.S
+Testing ABS.D
+Testing ADD.S
+Testing ADD.D
+Testing BC1F and BC1T
+Testing C.EQ.D
+Testing C.EQ.S
+Testing C.F.D
+Testing C.F.S
+Testing C.LE.D
+Testing C.LE.S
+Testing C.LE.S CC=1
+Testing C.LT.D
+Testing C.LT.D CC=7
+Testing C.LT.S
+Testing C.NGE.D
+Testing C.NGE.S
+Testing C.NGLE.D
+Testing C.NGLE.S
+Testing C.NGL.D
+Testing C.NGL.S
+Testing C.NGT.D
+Testing C.NGT.S
+Testing C.OLE.D
+Testing C.OLE.S
+Testing C.SEQ.D
+Testing C.SEQ.S
+Testing C.SF.D
+Testing C.SF.S
+Testing C.UEQ.D
+Testing C.UEQ.S
+Testing C.ULE.D
+Testing C.ULE.S
+Testing C.UN.D
+Testing C.UN.S
+Testing CEIL.W.D
+Testing CEIL.W.S
+Testing CVT.D.S
+Testing CVT.D.W
+Testing CVT.S.D
+Testing CVT.S.W
+Testing CVT.W.D
+Testing CVT.W.S
+Testing DIV.S
+Testing DIV.D
+Testing FLOOR.W.D
+Testing FLOOR.W.S
+Testing LDC1
+Testing L.D
+Testing LWC1
+Testing L.S
+Testing MOV.S
+Testing MOV.D
+Testing MOVF.D
+Testing MOVF.S
+Testing MOVN.D
+Testing MOVN.s
+Testing MOVT.D
+Testing MOVT.S
+Testing MOVZ.D
+Testing MOVZ.s
+Testing MUL.S
+Testing MUL.D
+Testing NEG.S
+Testing NEG.D
+Testing ROUND.W.D
+Testing ROUND.W.S
+Testing SQRT.D
+Testing SQRT.S
+Testing SUB.S
+Testing SUB.D
+Testing TRUNC.W.D
+Testing TRUNC.W.S
+Testing ABS
+Testing B
+Testing BAL
+Testing BEQZ
+Testing BGE
+Testing BGEU
+Testing BGT
+Testing BGTU
+Testing BLE
+Testing BLEU
+Testing BLT
+Testing BLTU
+Testing BNEZ
+Testing LI
+Testing LI.d
+Testing LI.s
+Testing MOVE
+Testing NEG
+Testing NEGU
+Testing NOP
+Testing NOT
+Testing REM
+Testing REMU
+Testing ROL
+Testing ROR
+Testing SEQ
+Testing SGE
+Testing SGEU
+Testing SGT
+Testing SGTU
+Testing SLE
+Testing SLEU
+Testing SNE
+
+Passed all tests

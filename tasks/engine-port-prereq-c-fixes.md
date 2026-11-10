@@ -114,3 +114,41 @@ fail on the engine from before the fixes, built from `HEAD` in a scratch directo
   (`-Dline_editing=disabled`), so the suite silently depends on libedit. The image builds with it.
 - 87 clang-format differences already exist in `src/` and `include/` under the image's clang-format
   23.1.5. The fixes formatted only their own lines; a tree-wide reformat is a separate decision.
+
+**Test gaps closed (Plan step 3, review F7):**
+- **`fpu_bare` (new):** upstream's FPU torture test `tt.fpu.bare.s` had never run. It runs under
+  `-bare -noexception`, as upstream ran it, and passes.
+- **`tt.alu.bare.s` still does not run:** 19 of its lines do not assemble in the fork (immediates
+  out of range, and MIPS-I coprocessor-3 instructions MIPS32 removed). Whether to edit the test or
+  loosen the assembler is the maintainer's call: `tasks/alu-bare-test-assembler-strictness.md`
+  (proposed).
+- **The `bare` test is left as it is.** Review §6.2 says it never passes `-bare`. Upstream ran
+  `tt.bare.s` the same way (`-delayed_branches -delayed_loads -noexception`;
+  `git show 6cb6a08:spim/Makefile`, line 135): it tests delayed branches and loads, not bare mode.
+  Bare mode is covered by `fpu_bare` now.
+- **The parity test cannot skip a program any more.** `ast_parity_all` used to skip any program
+  that wrote no dump, which is how the three bare-machine programs fell out silently. The program
+  list now lives in one file, `tests/parity-programs.txt`, with each program's flags. Both the test
+  and `tests/gen-parity-golden.sh` read it through `tests/parity-capture.sh`, so they cannot list
+  different programs, and a listed program that writes no dump fails the test (checked by adding
+  `tt.parse_error.s` to a copy of the list). The golden gained `tt.bare.s` and `tt.fpu.bare.s`;
+  nothing in it changed.
+- **`core_full` (new):** `tt.core.s`'s whole stdout and stderr are pinned
+  (`tests/golden.core.stdout`, `tests/golden.core.stderr`), along with its exit status. Before, only
+  the last line was checked, so about 25 expected exception messages and the float prints were never
+  compared. The output is deterministic: two runs, a different working directory and a different
+  environment gave identical output. Only the `Loaded: <exception file>` line differs, so the test
+  leaves it out. The exit status is 4, and that is correct: the program returns from `main` with
+  `$v0 = 4` (left by its last `print_str` syscall), and main's return value is the exit status.
+- **`core_default_handler` (new):** the same program on the built-in exception handler (compiled
+  into the binary with `#embed`; what users get without `-exception_file`). No test took that path
+  before. Its output is the same as `core_full`'s.
+- **`explain_parity` deleted.** It compared `-dump` output, and `-dump` never runs the program, so
+  the test could not fail. A real one (the program's output must not change with `-explain`) belongs
+  with `tasks/explain-mode-correctness-bugs.md`, which now says so. `-explain=1` on `tt.core.s` is
+  too verbose for that (about 45 million stderr lines in a minute), so it needs a small program.
+
+**Also noticed:** assembling the shipped exception handler prints `Target of jump differs in
+high-order 4 bits from instruction pc 0x80000258` on every run (it is in `golden.core.stderr`). A
+kernel-text `j` to a user-text address is outside the 256 MB region a `j` can reach. This happens
+with both the file and the built-in handler. Not changed; the goldens pin it as today's behavior.

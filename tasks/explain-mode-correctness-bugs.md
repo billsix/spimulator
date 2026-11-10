@@ -93,3 +93,13 @@ currently locks in bug 3).
 ## Open questions
 
 None. These are bugs; the wording and level design are decided in the redesign task.
+
+## Note from the engine-port prerequisites (2026-11-10)
+
+The `explain_parity` regression test was deleted: it compared `-dump` output, and `-dump` never runs
+the program, so explain mode could not change what it compared (review
+`tasks/review/2026/11/10/repo-review.md` §6.6). A real parity test belongs with this task: the
+program's stdout and exit status must be the same with and without `-explain`, which would catch the
+hidden-exception bugs above. Use a small program: `-explain=1` on `tests/tt.core.s` writes about 45
+million stderr lines in a minute and does not finish. Record:
+`tasks/engine-port-prereq-c-fixes.md`, "Log".

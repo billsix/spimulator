@@ -132,7 +132,7 @@ exception_file = meson.current_source_dir() / 'src' / 'exceptions.s'
 
 regression_tests = [
   # Standard "Passed all tests" sentinel
-  'bare', 'core', 'le', 'dir', 'octal_escape', 'argv', 'multifile',
+  'bare', 'core', 'le', 'dir', 'octal_escape', 'argv', 'multifile', 'fpu_bare',
   'read_int_eof', 'read_int_space_sep',
   # Custom criteria
   'read_char_eof', 'args_cmd', 'disasm',
@@ -142,9 +142,11 @@ regression_tests = [
   # Engine fixes made before the ports (self-checking)
   'engine_fixes',
   # Exception-handler paths
-  'divide_by_zero',
+  'divide_by_zero', 'core_default_handler',
+  # Full-output goldens
+  'core_full',
   # Teaching-mode golden output + parity sanity
-  'explain', 'explain_parity',
+  'explain',
   # Assemble-time event trace (Phase 1 of parse-tree migration)
   'listing',
   # AST parser parity + print-ast
