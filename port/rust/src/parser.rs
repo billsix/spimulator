@@ -313,7 +313,9 @@ impl Machine {
         }
     }
 
-    /// `FACTOR (('*' | '/') FACTOR)*`; dividing by 0 gives 0.
+    /// `FACTOR (('*' | '/') FACTOR)*`.  The constant arithmetic wraps at
+    /// 32 bits, as the machine's does (`i32::MIN / -1` is `i32::MIN`), and
+    /// dividing by 0 gives 0.
     fn parse_term(&mut self) -> i32 {
         let mut value: i32 = self.parse_factor();
         while self.peek() == i32::from(b'*') || self.peek() == i32::from(b'/') {
@@ -324,10 +326,7 @@ impl Machine {
             } else if right == 0 {
                 0
             } else {
-                value.checked_div(right).unwrap_or_else(|| {
-                    // i32::MIN / -1: the C engine dies of SIGFPE here.
-                    crate::console::die_of_signal(crate::console::SIGFPE)
-                })
+                value.wrapping_div(right)
             };
         }
         value

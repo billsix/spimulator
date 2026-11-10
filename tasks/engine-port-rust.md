@@ -5,7 +5,7 @@
 **Difficulty:** 8
 **Created:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
 **Part of:** `tasks/engine-ports.md`
-**Depends on:** `tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md` (done); the shared harness from `tasks/engine-port-python.md` (Plan step 2)
+**Depends on:** `tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md` (done); the shared harness from `tasks/archive/2026/11/10/engine-port-python.md` (Plan step 2)
 
 ## BLUF
 
@@ -107,33 +107,37 @@ Rust's traps against the C engine, with the planned answer:
 - **The opcode table is generated, not typed**: `tools/gen_opcodes.sh` compiles `tools/gen_opcodes.c`
   against `include/` and writes `src/opcodes_table.rs` (committed). It also records which row the C
   engine's `qsort` + `bsearch` pick for each shared encoding, by running them.
-- **Where C crashes, the port dies of the same signal** (follows "match C"): `.word -2147483648 / -1`
-  raises SIGFPE and a numeric flag with no value (`-stext` last) SIGSEGV, as in C (`die_of_signal`).
-  The Python port exits 139 instead; a signal death is closer to C (Python's `returncode` is -8/-11
-  for both C and this port).
+- **Where C crashed, the port died of the same signal** (follows "match C"; commit `1091420`),
+  until C was fixed in `6c27911` (C engine bugs found); the port now follows the fix.
 - **`-explain` (any level 1-4, `-explain`, `-x`) prints "spimulator-rust: the teaching mode (-explain)
   is not supported by this port" and exits 2**; `-explain=0`, `-explain 0` and `-noexplain` are
   accepted (teaching mode off), and an invalid level gets C's message and usage.
 
 ## C engine bugs found
 
-Logged, not fixed (the port's rule). The bugs the Python and Haskell ports found (REPL operands, REPL
-`.`, code before the first `.data`, a byte load from an empty text word, a run-time error while
-loading, `expand_k_data`) were fixed in C by `a0eefb8` while this port was being written; this port
-found them too and follows the fixed behavior. Not yet fixed in C:
+Logged, not fixed here (the port's rule); the coordinator fixed each in C, and the port follows.
+The bugs the Python and Haskell ports found (REPL operands, REPL `.`, code before the first `.data`,
+a byte load from an empty text word, a run-time error while loading, `expand_k_data`) were fixed in C
+by `a0eefb8` while this port was being written; this port found them too. The three this port
+found were fixed in C by `6c27911`:
 
-1. **An assembler expression `-2147483648 / -1` kills the assembler with SIGFPE.** `parse_term` guards
-   division by zero but not the one overflowing quotient. Reproducer: a file with
-   `.data` / `x: .word -2147483648 / -1` / `.text` / `main: jr $ra`; `spimulator -f x.s` prints
-   `Loaded: …` and dies of SIGFPE (shell status 136). The port dies the same way.
-2. **A numeric flag as the last argument crashes.** `-stext`, `-sdata`, `-ldata`, `-sstack`, `-lstack`,
-   `-sktext`, `-skdata`, `-lkdata` call `atoi(argv[++i])`, which is `atoi(NULL)` at the end of the
-   command line. Reproducer: `spimulator -sdata </dev/null` dies of SIGSEGV (status 139). The port dies
-   the same way.
-3. **`-exception_file` (or `-trap_file`) as the last argument loads no exception handler and no `main`
-   declaration**, silently: `exception_file_name` becomes `argv[argc]`, NULL. Reproducer:
-   `spimulator -exception_file </dev/null` starts the REPL without the `Loaded:` line. The port does the
-   same.
+1. **An assembler expression `-2147483648 / -1` killed the assembler with SIGFPE.** `parse_term`
+   guarded division by zero but not the one overflowing quotient (and `*`, `+`, `-` overflowed as
+   undefined behavior). Reproducer: `.data` / `x: .word -2147483648 / -1` / `.text` / `main: jr $ra`;
+   `spimulator -f x.s` died of SIGFPE (status 136). Fixed in `6c27911`: the constant arithmetic wraps
+   at 32 bits (`INT_MIN / -1` is `INT_MIN`; `/ 0` still gives 0); test `engine_fixes` case 10. The
+   port, which had died of the same signal (`1091420`), now wraps (`wrapping_div`; `*`, `+`, `-`
+   already wrapped).
+2. **A numeric flag as the last argument crashed.** `-stext`, `-sdata`, `-ldata`, `-sstack`,
+   `-lstack`, `-sktext`, `-skdata`, `-lkdata` called `atoi(argv[++i])`, `atoi(NULL)` at the end of the
+   command line: `spimulator -sdata </dev/null` died of SIGSEGV (status 139).
+3. **`-exception_file` (or `-trap_file`) as the last argument silently loaded no exception handler.**
+   `spimulator -exception_file </dev/null` started the REPL without the `Loaded:` line.
+
+   Bugs 2 and 3 fixed in `6c27911`: each of the ten value-taking flags given last prints
+   `spimulator: FLAG requires a value` (the flag as typed) and the usage text, and parsing goes on,
+   as for a bad `-explain` level; test `missing_flag_value`. The port does the same
+   (`flag_value_missing` in `src/cli.rs`); its `die_of_signal` is gone.
 
 ## Deliberate differences (not observable in the tests)
 
@@ -232,3 +236,15 @@ found them too and follows the fixed behavior. Not yet fixed in C:
   of the same one (status 136 and 139 from both).
 - Speed: `tt.core.s` (with its 10 ms timer spin) runs in 0.11 s, against 0.10 s for the debug C
   build.
+
+### 2026-11-10 — following the C fixes of `6c27911`
+
+- The coordinator merged this branch into `engine-ports` (`0427cf2`), registered the port (`b965190`)
+  and fixed the three C bugs this port found (`6c27911`). The worktree branch was fast-forwarded to
+  `engine-ports` at `b965190` and the port changed to match: constant arithmetic wraps (`/ -1`
+  included); the ten value-taking flags given last report "requires a value" and print the usage.
+  This was done in the worktree, not the main checkout: the agent's sandbox refuses git commands
+  outside its worktree, so the branch is to be merged (fast-forward) into `engine-ports`.
+- Gate: a fresh build of this tree (`meson setup /tmp/claude-0/rsport-main --buildtype=debug`),
+  `meson test --suite port-rust`: 70 OK, 0 failed. `cargo fmt --check`, clippy `-D warnings` and
+  `cargo test` clean.

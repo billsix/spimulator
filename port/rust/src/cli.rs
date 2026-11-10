@@ -809,13 +809,48 @@ e.g., ex(it), re(ad), l(oad), ru(n), s(tep), p(rint)
 
 ";
 
-/// The value of a numeric flag's argument, like `atoi(argv[++i])`.
-fn numeric_argument(args: &[Vec<u8>], index: usize) -> i32 {
-    match args.get(index) {
-        Some(text) => crate::arith::c_atoi(text),
-        // C calls atoi(NULL) and dies of SIGSEGV.
-        None => crate::console::die_of_signal(crate::console::SIGSEGV),
+/// The flags that set a segment size or limit.
+#[derive(Clone, Copy, Debug)]
+enum SizeFlag {
+    TextSize,
+    DataSize,
+    DataLimit,
+    StackSize,
+    StackLimit,
+    KTextSize,
+    KDataSize,
+    KDataLimit,
+}
+
+/// Which size flag `arg` is (`-stext`/`-st`, ...), if any.
+fn size_flag(arg: &[u8]) -> Option<SizeFlag> {
+    let flags: [(&str, &str, SizeFlag); 8] = [
+        ("-stext", "-st", SizeFlag::TextSize),
+        ("-sdata", "-sd", SizeFlag::DataSize),
+        ("-ldata", "-ld", SizeFlag::DataLimit),
+        ("-sstack", "-ss", SizeFlag::StackSize),
+        ("-lstack", "-ls", SizeFlag::StackLimit),
+        ("-sktext", "-skt", SizeFlag::KTextSize),
+        ("-skdata", "-skd", SizeFlag::KDataSize),
+        ("-lkdata", "-lkd", SizeFlag::KDataLimit),
+    ];
+    flags
+        .iter()
+        .find(|(long, short, _)| arg == long.as_bytes() || arg == short.as_bytes())
+        .map(|(_, _, flag)| *flag)
+}
+
+/// True, after saying so, if the flag `args[i]`, which takes a value, is
+/// the last argument (`flag_value_missing`).
+fn flag_value_missing(args: &[Vec<u8>], i: usize) -> bool {
+    if i + 1 < args.len() {
+        return false;
     }
+    let mut message: Vec<u8> = b"spimulator: ".to_vec();
+    message.extend_from_slice(&args[i]);
+    message.extend_from_slice(b" requires a value\n");
+    error_bytes(&message);
+    true
 }
 
 /// Refuse the teaching mode, which this port does not have.
@@ -870,11 +905,13 @@ pub fn main() -> i32 {
         } else if is("-noexception", "-ne") || is("-notrap", "-nt") {
             engine.load_exception_handler = false;
         } else if is("-exception_file", "-ef") || is("-trap_file", "-tf") {
-            i += 1;
-            engine.exception_file = args
-                .get(i)
-                .map(|name: &Vec<u8>| ExceptionHandler::Files(name.clone()));
-            engine.load_exception_handler = true;
+            if flag_value_missing(&args, i) {
+                print_usage = true;
+            } else {
+                i += 1;
+                engine.exception_file = Some(ExceptionHandler::Files(args[i].clone()));
+                engine.load_exception_handler = true;
+            }
         } else if is("-mapped_io", "-mio") {
             options.mapped_io = true;
         } else if is("-nomapped_io", "-nmio") {
@@ -914,30 +951,24 @@ pub fn main() -> i32 {
                 }
                 _ => explain_not_supported(),
             }
-        } else if is("-stext", "-st") {
-            i += 1;
-            options.initial_text_size = numeric_argument(&args, i);
-        } else if is("-sdata", "-sd") {
-            i += 1;
-            options.initial_data_size = numeric_argument(&args, i);
-        } else if is("-ldata", "-ld") {
-            i += 1;
-            options.initial_data_limit = numeric_argument(&args, i);
-        } else if is("-sstack", "-ss") {
-            i += 1;
-            options.initial_stack_size = numeric_argument(&args, i);
-        } else if is("-lstack", "-ls") {
-            i += 1;
-            options.initial_stack_limit = numeric_argument(&args, i);
-        } else if is("-sktext", "-skt") {
-            i += 1;
-            options.initial_k_text_size = numeric_argument(&args, i);
-        } else if is("-skdata", "-skd") {
-            i += 1;
-            options.initial_k_data_size = numeric_argument(&args, i);
-        } else if is("-lkdata", "-lkd") {
-            i += 1;
-            options.initial_k_data_limit = numeric_argument(&args, i);
+        } else if let Some(field) = size_flag(arg) {
+            // -stext N, -sdata N, ...: a size or limit (C's atoi).
+            if flag_value_missing(&args, i) {
+                print_usage = true;
+            } else {
+                i += 1;
+                let value: i32 = crate::arith::c_atoi(&args[i]);
+                match field {
+                    SizeFlag::TextSize => options.initial_text_size = value,
+                    SizeFlag::DataSize => options.initial_data_size = value,
+                    SizeFlag::DataLimit => options.initial_data_limit = value,
+                    SizeFlag::StackSize => options.initial_stack_size = value,
+                    SizeFlag::StackLimit => options.initial_stack_limit = value,
+                    SizeFlag::KTextSize => options.initial_k_text_size = value,
+                    SizeFlag::KDataSize => options.initial_k_data_size = value,
+                    SizeFlag::KDataLimit => options.initial_k_data_limit = value,
+                }
+            }
         } else if (is("-file", "-f") && i + 1 < argc) || arg.first() != Some(&b'-') {
             // `-f FILE` may repeat; a bare FILE is both the program and
             // its argv[0], and everything after it is the program's argv.
