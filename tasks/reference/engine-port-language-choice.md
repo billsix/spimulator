@@ -198,10 +198,37 @@ bit. `tasks/adhoc/engine-ports-float-format/CFormat.hs` implements all five form
 (`%.8f`, `%.18g`, `%.17g`, `%g`, `%#-13.6g`). It is byte-identical to glibc on 158,029 values
 (`bash tasks/adhoc/engine-ports-float-format/run.sh`). Detail: `tasks/engine-port-haskell.md`.
 
+## What the Python port found (2026-11-10)
+
+The port (`port/python/`, `tasks/engine-port-python.md`) reached zero differences on the corpus.
+Traps beyond the table above, each one a byte-level difference until handled:
+
+- **Speed is fine if each instruction is decoded once.** Compiling an instruction on first
+  execution into a closure with its fields bound (`run._compile`) makes `tt.core.s` run in 0.2 s
+  and every test and demo in under 1.5 s under CPython 3.15; a re-decoding `match` per step would
+  be several times slower.
+- **Python edits its own environment at start-up** (PEP 538 adds `LC_CTYPE=C.UTF-8` under the C
+  locale). The engine copies the environment onto the MIPS stack, so `$sp` and any program that
+  reads uninitialised stack moved; read `/proc/self/environ` instead of `os.environ`.
+- **Python ignores SIGPIPE.** `spimulator ... | head` must end when `head` does; restore
+  `SIG_DFL` and do not catch `BrokenPipeError`.
+- **Python raises where x86 computes**: `x / 0.0`, `math.sqrt(-1)`, `int(nan)`, `math.ceil(inf)`,
+  `struct.pack('<f', 1e300)` (OverflowError, where C's `(float)` gives infinity).
+- **glibc's `qsort` + `bsearch` decide duplicate keys**: six encodings belong to two mnemonics
+  each, and the disassembler's pick depends on the stable sort and the exact halving loop.
+- **Bytes, not text**: source lines, MIPS strings and file names may hold any byte; a `str`
+  holding one character per byte (Latin-1) round-trips them.
+- **C's undefined behavior has to be reproduced, crash included**, where a test can see it: the
+  port exits 139 where the C engine dies of SIGSEGV (`tasks/engine-port-python.md`, "C engine bugs
+  found").
+- **Module-level globals and import cycles**: the C files include each other's headers freely;
+  Python modules that import each other must only use each other's attributes at call time, and
+  the package `__init__` imports the entry module first so any module can be imported alone.
+
 ## Cross-links
 
 - `tasks/review/2026/11/10/repo-review.md` — §5 behavior inventory, §6 test oracle quality, §7 which
   oracle to trust.
 - `tasks/reference/simulator-integer-types.md` — the C engine's integer types.
 - `tasks/reference/inherited-idiosyncrasies.md` — upstream quirks.
-- `tasks/engine-port-python.md` — the follow-on port task (proposed).
+- `tasks/engine-port-python.md` — the Python port's task and log.

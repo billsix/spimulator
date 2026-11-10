@@ -1,6 +1,6 @@
 # Port the simulator engine to Python, proven against the C engine
 
-**Status:** go-ahead given; waits on `tasks/engine-port-prereq-c-fixes.md`
+**Status:** milestones 1–6 done on branch `engine-ports` (see Log); the teaching mode waits on the C fixes (`tasks/engine-ports.md`)
 **Priority:** 6
 **Difficulty:** 8
 **Created:** 2026-11-10 (from `tasks/archive/2026/11/10/engine-port-language-investigation.md`)
@@ -198,3 +198,16 @@ The port matches the C engine in each case (the C engine is the standard); none 
 - Decision: the port lines go after the spimulator lines and before a header's notes
   (options: after the notes, or at the end of the block). The notes describe the assembly
   version, which both lines run, so they read as covering both.
+
+### 2026-11-10 — left for the coordinator
+
+- `entrypoint/0N-install-ports.sh` (Plan step 4, `tasks/engine-ports.md`) is not written: it is
+  outside the files this task's brief allowed. The port needs only Fedora's `python3`, which the
+  image already has (the harness and `tools/` use it).
+- `port/harness/corpus.txt` still lacks the corpus items `tasks/engine-ports.md` lists beyond
+  `tests/` (allinsts.s from `f570a87^`, `tt.alu.bare.s`, the examples, the PGU programs); the
+  harness was outside the brief too. `tasks/adhoc/engine-port-python/diff_engines.py --run` covers
+  every `.s` under `tests/`, `examples/` and `pgu/` locally (172 programs identical), and the
+  meson suite covers the 34 demos and the documented example commands.
+- Lessons for the other ports are in `tasks/reference/engine-port-language-choice.md`, "What the
+  Python port found".
