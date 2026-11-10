@@ -155,7 +155,9 @@ def compare_text(label: str, want: str, got: str) -> tuple[str, list[str]]:
     want_lines: list[str] = want.split("\n")
     got_lines: list[str] = got.split("\n")
     if len(want_lines) != len(got_lines):
-        return "FAIL", [f"{label}: {len(want_lines)} lines from C, {len(got_lines)} from the port"]
+        return "FAIL", [
+            f"{label}: {len(want_lines)} lines from C, {len(got_lines)} from the port"
+        ]
     notes: list[str] = []
     verdict: str = "PASS"
     for number, (w, g) in enumerate(zip(want_lines, got_lines), start=1):
@@ -176,11 +178,15 @@ def compare(want: Run, got: Run) -> tuple[str, list[str]]:
         compare_text("stderr", want.stderr, got.stderr),
     ]
     for name in sorted(set(want.dumps) | set(got.dumps)):
-        results.append(compare_text(name, want.dumps.get(name, ""), got.dumps.get(name, "")))
+        results.append(
+            compare_text(name, want.dumps.get(name, ""), got.dumps.get(name, ""))
+        )
     if want.status != got.status:
         results.append(("FAIL", [f"exit status: C {want.status}, port {got.status}"]))
     verdicts: list[str] = [verdict for verdict, _ in results]
-    worst: str = "FAIL" if "FAIL" in verdicts else "WARN" if "WARN" in verdicts else "PASS"
+    worst: str = (
+        "FAIL" if "FAIL" in verdicts else "WARN" if "WARN" in verdicts else "PASS"
+    )
     return worst, [note for _, notes in results for note in notes]
 
 
@@ -193,9 +199,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--reference", required=True, help="the C spimulator")
     parser.add_argument("--engine", required=True, help="the port's executable")
-    parser.add_argument(
-        "--exception-file", default=str(REPO / "src" / "exceptions.s")
-    )
+    parser.add_argument("--exception-file", default=str(REPO / "src" / "exceptions.s"))
     parser.add_argument("--timeout", type=float, default=600.0)
     parser.add_argument("cases", nargs="*", help="case names (default: all)")
     options = parser.parse_args()
