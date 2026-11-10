@@ -19,7 +19,7 @@ a per-language effort estimate, the compatibility test plan, and a scaffolded fo
 ## Context (read first)
 
 - Behavior inventory to match: the port section of the audit record (from
-  `tasks/source-and-history-deep-audit.md`) and `tasks/reference/inherited-idiosyncrasies.md`.
+  `tasks/archive/2026/11/10/source-and-history-deep-audit.md`) and `tasks/reference/inherited-idiosyncrasies.md`.
 - Parser: the old flex/bison grammars (recoverable from git, commit named in the audit record) and
   the hand-written replacement (`tasks/reference/parser-ast-emit.md`). A port may use a parser
   generator (ANTLR) or a parsing library; the maintainer is not opposed.

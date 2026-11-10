@@ -12,7 +12,7 @@ lenses:
 - **Port lens** — every user-observable behavior a reimplementation of the engine in another language
   must match, and which oracle to trust. Feeds `tasks/engine-port-language-investigation.md` (§5, §6, §7).
 
-**Requested by** William Emerison Six <billsix@gmail.com>, 2026-11-10 (`tasks/source-and-history-deep-audit.md`).
+**Requested by** William Emerison Six <billsix@gmail.com>, 2026-11-10 (`tasks/archive/2026/11/10/source-and-history-deep-audit.md`).
 
 **Snapshot warning.** This record is frozen as of commit `0391ff3`. Line numbers rot; re-check a
 finding against the tree before acting on it. Pass 3 (`tasks/c23-modernization-pass3.md`) starts
