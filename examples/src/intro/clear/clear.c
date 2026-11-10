@@ -50,6 +50,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f clear.asm
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f clear.asm
  */
 /* clang-format on */
 

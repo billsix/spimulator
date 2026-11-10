@@ -36,6 +36,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ printf 'hi\n' | spimulator-haskell -f od.asm
+ *
+ *   the same assembly, in the Rust port:
+ *     $ printf 'hi\n' | spimulator-rust -f od.asm
  */
 /* clang-format on */
 

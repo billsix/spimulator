@@ -46,6 +46,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f rev.asm rev.input
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f rev.asm rev.input
  */
 /* clang-format on */
 

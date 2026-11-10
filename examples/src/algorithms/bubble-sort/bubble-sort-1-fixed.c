@@ -52,6 +52,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f bubble-sort-1-fixed.asm
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f bubble-sort-1-fixed.asm
  */
 /* clang-format on */
 

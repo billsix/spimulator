@@ -54,6 +54,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f factorial.asm 10
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f factorial.asm 10
  */
 /* clang-format on */
 

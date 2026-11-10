@@ -37,6 +37,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f print1through10.asm
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f print1through10.asm
  */
 /* clang-format on */
 

@@ -20,6 +20,7 @@
 ports = [
   ['python', 'port/python/spimulator-python'],
   ['haskell', 'port/haskell/spimulator-haskell'],
+  ['rust', 'port/rust/spimulator-rust'],
 ]
 
 # Not run against ports, with the reason:

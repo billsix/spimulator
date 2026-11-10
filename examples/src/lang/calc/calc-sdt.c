@@ -64,6 +64,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f calc-sdt.asm < calc-sdt.input
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f calc-sdt.asm < calc-sdt.input
  */
 /* clang-format on */
 

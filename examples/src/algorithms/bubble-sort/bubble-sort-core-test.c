@@ -53,6 +53,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f bubble-sort-core-test.asm
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f bubble-sort-core-test.asm
  */
 /* clang-format on */
 

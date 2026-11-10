@@ -32,6 +32,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ printf 'one\ntwo\n' | spimulator-haskell -f nl.asm
+ *
+ *   the same assembly, in the Rust port:
+ *     $ printf 'one\ntwo\n' | spimulator-rust -f nl.asm
  */
 /* clang-format on */
 

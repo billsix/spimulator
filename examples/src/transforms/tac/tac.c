@@ -37,6 +37,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f tac.asm tac.input
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f tac.asm tac.input
  */
 /* clang-format on */
 

@@ -48,6 +48,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f seq.asm 1 5
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f seq.asm 1 5
  */
 /* clang-format on */
 

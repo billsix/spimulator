@@ -32,6 +32,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f cp.asm cp.c cp-copy.c
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f cp.asm cp.c cp-copy.c
  */
 /* clang-format on */
 
