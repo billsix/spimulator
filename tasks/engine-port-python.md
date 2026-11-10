@@ -24,7 +24,7 @@ engine stays the oracle until the maintainer decides otherwise.
 
 ## Plan
 
-1. **Prerequisites in C** (separate tasks, before porting): fix the wrong-value bugs the record lists
+1. **Prerequisites in C** (`tasks/engine-port-prereq-c-fixes.md`, before porting): fix the wrong-value bugs the record lists
    in §3 (F5) and pin the self-checking tests' full output as goldens (§6.4, F7), so the oracle is
    right and complete.
 2. Harness first: a driver that runs a case through two engines and diffs stdout/status, wired as a
@@ -42,6 +42,7 @@ engine stays the oracle until the maintainer decides otherwise.
   the port**, so the port is compared against correct output (William Emerison Six <billsix@gmail.com>, 2026-11-10). Plan step 1.
 - `,` as a floating-point decimal separator is **dropped** from the C scanner before the port (it
   makes `.word 1,2` a syntax error); the maintainer left the call to the agent, who recommended
-  dropping it (William Emerison Six <billsix@gmail.com>, 2026-11-10). No task doc exists for it yet; scaffold one with the step 1 prerequisites.
+  dropping it (William Emerison Six <billsix@gmail.com>, 2026-11-10). Tracked with the other
+  step 1 prerequisites in `tasks/engine-port-prereq-c-fixes.md`.
 - The port lives **in this repo**, under `port/`, so the harness builds the C oracle in the same
   image ("for now"; William Emerison Six <billsix@gmail.com>, 2026-11-10).
