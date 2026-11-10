@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+"""Run the Python port of the spimulator MIPS simulator.
+
+Takes the same arguments as the C ``spimulator``; see spimulator_py/spim.py.
+"""
+
+import os
+import pathlib
+import sys
+
+# Find the package next to this script, wherever it is run from.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from spimulator_py import spim  # noqa: E402
+
+if __name__ == "__main__":
+    # Arguments as one character per byte, exactly the bytes the shell passed.
+    arguments: list[str] = [os.fsencode(arg).decode("latin-1") for arg in sys.argv[1:]]
+    sys.exit(spim.main(arguments))

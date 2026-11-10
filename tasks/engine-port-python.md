@@ -87,3 +87,87 @@ header shows how to run its `.asm` through `spimulator-python`.
   (`1.0/0.0`, `math.sqrt(-1)`, `int(nan)`, packing an overflowing double into a float); the
   helpers return what the x86 hardware returns (IEEE infinities, the default NaN
   `0xfff8...`, `INT_MIN` from `cvttsd2si`), which is what the C engine inherits.
+
+### 2026-11-10 — milestones 2, 3 and 4: assembler, executor + syscalls, CLI/REPL
+
+Landed in one commit: the modules import one another as the C files include one another's
+headers (the assembler stores into memory, memory raises exceptions, the REPL drives both), so
+no earlier subset runs on its own. Each milestone's gate was run separately:
+
+- **Assembler (milestone 2):** `tests/golden.ast_parity.txt` and `golden.ast_parity_all.txt`
+  match (`ast_parity`, `ast_parity_all`), the harness's `core_dump` case passes, and
+  `tasks/adhoc/engine-port-python/diff_engines.py` finds the C engine and the port identical on
+  all 172 `.s`/`.asm` files under `tests/`, `examples/` and `pgu/` in `-dump`, `-full_dump`,
+  `-print-ast`, `-print-ast-json`, `-show-expansion` and `-listing` (1032 cases: stdout,
+  stderr, exit status and every file written).
+- **Executor and syscalls (milestone 3):** all 28 non-explain regression tests pass through
+  `tests/run-test.sh`, all 34 examples demos through `examples/tests/run-demo.sh`, the harness
+  reports 23 passed, 0 warned, 0 failed, and `diff_engines.py --run` finds every one of the
+  172 programs identical when run (stdin empty).
+- **CLI and REPL (milestone 4):** `args_cmd`, `disasm`, `listing`, `print_ast`,
+  `show_expansion` pass; `tasks/adhoc/engine-port-python/diff_repl.sh` runs 15 REPL sessions
+  (every command, breakpoints, step/continue, redo with a blank line, `.` assembly, dump files)
+  and 18 command lines (bad flags, missing files, size flags, `-assemble`, `-full_dump`) under
+  `env -i`: 33 identical.
+
+Design and decisions:
+
+- **Module per C file**: `scanner.py`, `parser.py` (parser + emitter), `ast_nodes.py`,
+  `pseudo_op.py`, `symbol_table.py`, `data.py`, `instruction.py` (builders, codec,
+  disassembler) with `inst.py` (the instruction record), `memory.py`, `run.py`, `syscall.py`,
+  `traps.py` (`raise_exception`), `registers.py`, `spim_utils.py`, `display.py`,
+  `assembler_event.py`, `spim.py` (CLI and REPL), `console.py` (I/O, `run_error`),
+  `options.py`/`memory_layout.py` (spim.h's globals and constants), `opcodes.py`.
+- **The opcode table is read from `include/opcodes.h` at import** (a regex over the `OP(...)`
+  rows, plus `opcode-types.h` for the shape tags); token numbers follow `tokens.h`, so
+  `-print-ast`'s `op=` numbers match. Six encodings are shared by two mnemonics
+  (`prefx`/`floor.w.s`, ...); the C disassembler's choice comes from glibc's stable `qsort`
+  and its `bsearch` path, so `opcodes._bsearch` is written as glibc's loop (checked against a C
+  program that sorts the real table).
+- **Global state stays module-level, as in C** (`parser.data_dir`, `scanner.line_no`, ...),
+  read as `module.name` so writes are seen everywhere. Options weighed: (a) one `Simulator`
+  object threaded through every call; (b) module globals mirroring the C statics. Chose (b):
+  a student can put a C function and its Python version side by side.
+- **The instruction record keeps C's union overlap**: four bytes (rs, rt, rd, shamt) with
+  `imm` and `target` recomputed as views whenever a byte is set; the engine depends on it
+  (FP compares keep their condition in the rs byte).
+- **Speed: decode once.** The executor compiles an instruction, the first time it runs, into a
+  closure with its fields bound (`run._compile`, one `@_executes` factory per C `case`),
+  cached on the instruction and dropped when a field changes. `tt.core.s` runs in 0.2 s;
+  every regression test and demo in under 1.5 s. The CP0 timer is polled every 64 steps
+  instead of every step (the C calls `getitimer` per instruction: `tests/time.s` takes 11 s in
+  C and 8 s in the port).
+- **The environment on the MIPS stack** comes from `/proc/self/environ`, not `os.environ`:
+  Python adds `LC_CTYPE=C.UTF-8` to its own environment at start-up (PEP 538), which moved
+  `$sp` by 20 bytes and changed two programs' leftover registers (found by `diff_engines.py`).
+- **The REPL reads stdin one byte at a time** when it is not a terminal, as libedit does, so
+  a program run from the REPL reads the rest of stdin (`args_cmd`); on a terminal it uses
+  `input()` with the `(spim) ` prompt.
+- **`-explain`/`-x` (any form)** prints `spimulator-python: the teaching mode (-explain) is not
+  supported by this port` and exits 2.
+- **The default exception handler** is read from `src/exceptions.s` next to the package; its
+  `Loaded: <embedded exceptions.s>` line matches the C binary's.
+
+## C engine bugs found
+
+The port matches the C engine in each case (the C engine is the standard); none is fixed here.
+
+1. **A file whose code comes before its first `.data`, with no `.text`, is assembled into the
+   data segment.** `emit_ast` starts with `data_dir`/`text_dir` as the parse left them (the
+   file's last segment), not as `parser_init` set them, so the leading instructions are stored
+   with `store_word` into user data. Reproducer:
+
+       printf 'main: li $v0 1\n li $a0 7\n syscall\n li $v0 10\n syscall\n .data\nx: .word 1\n' > t.s
+       spimulator -dump -f t.s    # data.asm holds 0x34020001 0x34040007 0x0000000c ...
+
+   Running it prints `Target of jump differs in high-order 4 bits` and loops on bad-PC
+   exceptions. Fix (in C): reset `data_dir = false; text_dir = true` at the start of
+   `emit_ast`.
+2. **A run-time error while the `-f` files load crashes with SIGSEGV** (exit 139): `run_error`
+   longjmps to `spim_top_level_env` before any `setjmp` filled it. Reproducer:
+   `spimulator -stext 64 -f tests/tt.le.s` prints `Can't expand text segment`, then dumps core.
+   The port prints the same and exits 139.
+3. **A byte or halfword load from an empty user-text word crashes with SIGSEGV**:
+   `bad_mem_read` reads `ENCODING(text_seg[...])` without checking for a null slot (the word
+   case checks). Reproducer: a program doing `lui $t1 0x40; ori $t1 $t1 0x4000; lb $t0 0($t1)`
+   (past the end of the code) exits 139. The port exits 139 too (`console.CrashError`).

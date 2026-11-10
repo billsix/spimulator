@@ -1,0 +1,14 @@
+# Lint and type-check settings for the Python port (not a package to install:
+# spimulator-python runs it from this directory with the standard library only).
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM"]
+# ruff format sets the width; what it cannot wrap is the C engine's message
+# text, which must stay byte for byte, and a few aligned tables.
+ignore = ["E501"]
+
+[tool.ty.src]
+include = ["spimulator_py"]
