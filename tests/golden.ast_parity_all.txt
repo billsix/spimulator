@@ -1159,8 +1159,8 @@
 [0x00400094]	0x0000000c  syscall
 [0x00400098]	0x40804800  mtc0 $r0, $t1
 [0x0040009c]	0x40094800  mfc0 $t1, $t1
-[0x004000a0]	0x3401000a  ori $at, $r0, 10
-[0x004000a4]	0x1429fffe  bne $at, $t1, -8 [timer1_-0x004000a4]
+[0x004000a0]	0x2d21000a  sltiu $at, $t1, 10
+[0x004000a4]	0x1420fffe  bne $at, $r0, -8 [timer1_-0x004000a4]
 [0x004000a8]	0x34020004  ori $v0, $r0, 4
 [0x004000ac]	0x3c011001  lui $at, 4097 [asciiz_]
 [0x004000b0]	0x34240066  ori $a0, $at, 102 [asciiz_]
