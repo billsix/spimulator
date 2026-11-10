@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Run the Rust port of the spimulator engine: port/rust/target/release/
+# spimulator-rust, built first (offline, standard library only) if it is
+# missing.  Tests and example headers call this one fixed path.
+#
+# The engine copies its environment onto the simulated stack, so the
+# program's stack addresses depend on it.  Bash adds PWD and SHLVL to the
+# environment of what it runs; to hand the engine exactly the environment
+# this script was given, re-read it from /proc (the kernel keeps the
+# environment a process started with) and pass that on with `env -i`.
+# Resolve symbolic links: tests may call this script through one.
+here=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+binary="$here/target/release/spimulator-rust"
+if [ ! -x "$binary" ]; then
+    cargo build --release --offline --quiet --manifest-path "$here/Cargo.toml" >&2 || exit 255
+fi
+if [ -r "/proc/$$/environ" ]; then
+    mapfile -d '' original_environment < "/proc/$$/environ"
+    exec /usr/bin/env -i "${original_environment[@]}" "$binary" "$@"
+fi
+exec "$binary" "$@"

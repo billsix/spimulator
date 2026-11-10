@@ -1,6 +1,6 @@
-//! The `spimulator-rust` command (the engine is not ported yet).
+//! The `spimulator-rust` command: see [`spimulator::cli`].
 
 fn main() {
-    eprintln!("spimulator-rust: the engine is not ported yet");
-    std::process::exit(2);
+    let status: i32 = spimulator::cli::main();
+    std::process::exit(status);
 }
