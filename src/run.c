@@ -172,7 +172,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
       {
         /* Poll for timer expiration */
-        struct itimerval time;
+        struct itimerval time = {};
         if (-1 == getitimer(ITIMER_REAL, &time)) {
           perror("getitmer failed");
         }
@@ -1537,17 +1537,14 @@ static void start_CP0_timer(void) {
   if (SIG_ERR == signal(SIGALRM, SIG_IGN)) {
     perror("signal failed");
   } else {
-    struct itimerval time;
+    struct itimerval time = {};
     if (-1 == getitimer(ITIMER_REAL, &time)) {
       perror("getitmer failed");
     }
     if (time.it_value.tv_usec == 0 && time.it_value.tv_sec == 0) {
       /* Timer is expired or has not been started.
          Start a non-periodic timer for TIMER_TICK_MS microseconds. */
-      time.it_interval.tv_sec = 0;
-      time.it_interval.tv_usec = 0;
-      time.it_value.tv_sec = 0;
-      time.it_value.tv_usec = TIMER_TICK_MS * 1000;
+      time = (struct itimerval){.it_value.tv_usec = TIMER_TICK_MS * 1000};
       if (-1 == setitimer(ITIMER_REAL, &time, nullptr)) {
         perror("setitmer failed");
       }

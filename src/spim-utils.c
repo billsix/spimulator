@@ -346,11 +346,10 @@ static bkpt* bkpts = nullptr;
 
 void add_breakpoint(mem_addr addr) {
   bkpt* rec = (bkpt*)xmalloc(sizeof(bkpt));
+  *rec =
+      (bkpt){.addr = addr, .instruction = set_breakpoint(addr), .next = bkpts};
 
-  rec->next = bkpts;
-  rec->addr = addr;
-
-  if ((rec->instruction = set_breakpoint(addr)) != nullptr)
+  if (rec->instruction != nullptr)
     bkpts = rec;
   else {
     if (exception_occurred)

@@ -284,20 +284,20 @@ static void dump_text_seg(bool kernel_also);
 /* Not local, but not export so all files don't need setjmp.h */
 static jmp_buf spim_top_level_env; /* For ^C */
 
-bool bare_machine;        /* => simulate bare machine */
-bool delayed_branches;    /* => simulate delayed branches */
-bool delayed_loads;       /* => simulate delayed loads */
-bool accept_pseudo_insts; /* => parse pseudo instructions  */
-bool quiet;               /* => no warning messages */
-static bool assemble;     /* => assemble, disassemble to file and exit */
+bool bare_machine = false;       /* => simulate bare machine */
+bool delayed_branches = false;   /* => simulate delayed branches */
+bool delayed_loads = false;      /* => simulate delayed loads */
+bool accept_pseudo_insts = true; /* => parse pseudo instructions  */
+bool quiet = false;              /* => no warning messages */
+static bool assemble = false;    /* => assemble, disassemble to file and exit */
 /* Sentinel pointer routes initialize_world to the embedded handler;
    the SPIM_EXCEPTION_HANDLER env var or -exception_file CLI flag
    replace it with an on-disk path that gets opened with fopen.
    See include/spim-utils.h. */
 char* exception_file_name = SPIM_DEFAULT_EXCEPTIONS_SENTINEL;
 port message_out, console_out, console_in;
-bool mapped_io;        /* => activate memory-mapped IO */
-int spim_return_value; /* Value returned when spim exits */
+bool mapped_io = false;    /* => activate memory-mapped IO */
+int spim_return_value = 0; /* Value returned when spim exits */
 
 /* Local variables: */
 
@@ -409,18 +409,8 @@ int main(int argc, char** argv) {
   console_out.f = stdout;
   message_out.f = stderr;
 
-  bare_machine = false;
-  delayed_branches = false;
-  delayed_loads = false;
-  accept_pseudo_insts = true;
-  quiet = false;
-  assemble = false;
-  spim_return_value = 0;
-  first_bad_exception = -1;
-
   /* Input comes directly (not through stdio): */
   console_in.i = 0;
-  mapped_io = false;
 
   if (getenv("SPIM_EXCEPTION_HANDLER") != nullptr)
     exception_file_name = getenv("SPIM_EXCEPTION_HANDLER");
@@ -1642,10 +1632,8 @@ int read_int_input(long* value) {
 
 static void console_to_program(void) {
   if (mapped_io && !console_state_saved) {
-    struct termios params;
-
     tcgetattr(console_in.i, &saved_console_state);
-    params = saved_console_state;
+    struct termios params = saved_console_state;
     params.c_iflag &= (tcflag_t) ~(ISTRIP | INLCR | ICRNL | IGNCR | IXON |
                                    IXOFF | INPCK | BRKINT | PARMRK);
 
@@ -1672,12 +1660,9 @@ static void console_to_spim(void) {
 }
 
 int console_input_available(void) {
-  fd_set fdset;
-  struct timeval timeout;
-
   if (mapped_io) {
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 0;
+    fd_set fdset;
+    struct timeval timeout = {}; /* zero timeout: poll, don't block */
     FD_ZERO(&fdset);
     FD_SET((int)console_in.i, &fdset);
     return (select(sizeof(fdset) * 8, &fdset, nullptr, nullptr, &timeout));

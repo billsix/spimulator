@@ -18,8 +18,7 @@
 
 static void ss_lazy_init(str_stream* ss) {
   if (ss->stream == nullptr) {
-    ss->buf = nullptr;
-    ss->size = 0;
+    *ss = (str_stream){};
     ss->stream = open_memstream(&ss->buf, &ss->size);
     if (ss->stream == nullptr) fatal_error("open_memstream failed\n");
   }
@@ -29,7 +28,7 @@ void ss_init(str_stream* ss) {
   /* Historical contract: unconditionally start a fresh stream.  Local
      (stack) str_streams are ss_init'ed without being zeroed first, so
      no prior field value may be read here. */
-  ss->stream = nullptr;
+  *ss = (str_stream){};
   ss_lazy_init(ss);
 }
 

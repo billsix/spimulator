@@ -106,22 +106,16 @@ label* label_is_defined(char* name) {
 
 label* lookup_label(char* name) {
   int hi;
-  label *entry, *new_entry;
+  label* entry;
 
   get_hash(name, &hi, &entry);
 
   if (entry != nullptr) return (entry);
 
-  /* Not found, create one, add to chain */
-  new_entry = (label*)xmalloc(sizeof(label));
-  new_entry->name = strdup(name);
-  new_entry->addr = 0;
-  new_entry->global_flag = 0;
-  new_entry->const_flag = 0;
-  new_entry->gp_flag = 0;
-  new_entry->uses = nullptr;
-
-  new_entry->next = label_hash_table[hi];
+  /* Not found: create an undefined (addr 0), flagless label at the head
+     of its hash chain. */
+  label* new_entry = (label*)xmalloc(sizeof(label));
+  *new_entry = (label){.name = strdup(name), .next = label_hash_table[hi]};
   label_hash_table[hi] = new_entry;
   return new_entry; /* <-- return if created */
 }
@@ -168,14 +162,13 @@ void record_inst_uses_symbol(mips_instruction* instruction, label* sym) {
   label_use* u = (label_use*)xmalloc(sizeof(label_use));
 
   if (data_dir) /* Want to free up original instruction */
-  {
-    u->instruction = copy_inst(instruction);
-    u->addr = current_data_pc();
-  } else {
-    u->instruction = instruction;
-    u->addr = current_text_pc();
-  }
-  u->next = sym->uses;
+    *u = (label_use){.instruction = copy_inst(instruction),
+                     .addr = current_data_pc(),
+                     .next = sym->uses};
+  else
+    *u = (label_use){.instruction = instruction,
+                     .addr = current_text_pc(),
+                     .next = sym->uses};
   sym->uses = u;
   asm_fire_forward_ref(u->addr, sym->name);
 }
@@ -185,9 +178,7 @@ void record_inst_uses_symbol(mips_instruction* instruction, label* sym) {
 void record_data_uses_symbol(mem_addr location, label* sym) {
   label_use* u = (label_use*)xmalloc(sizeof(label_use));
 
-  u->instruction = nullptr;
-  u->addr = location;
-  u->next = sym->uses;
+  *u = (label_use){.addr = location, .next = sym->uses};
   sym->uses = u;
   asm_fire_forward_ref(location, sym->name);
 }

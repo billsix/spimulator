@@ -365,7 +365,6 @@ static mips_instruction* make_r_type_inst(int opcode, int rd, int rs, int rt) {
   SET_RS(instruction, rs);
   SET_RT(instruction, rt);
   SET_RD(instruction, rd);
-  SHAMT(instruction) = 0;
   return (instruction);
 }
 
@@ -969,13 +968,11 @@ mips_instruction* set_breakpoint(mem_addr addr) {
 imm_expr* make_imm_expr(int offs, char* sym, bool is_pc_relative) {
   imm_expr* expr = (imm_expr*)xmalloc(sizeof(imm_expr));
 
-  expr->offset = offs;
-  expr->bits = 0;
-  expr->pc_relative = is_pc_relative;
-  if (sym != nullptr)
-    expr->symbol = lookup_label(sym);
-  else
-    expr->symbol = nullptr;
+  *expr = (imm_expr){
+      .offset = offs,
+      .symbol = sym != nullptr ? lookup_label(sym) : nullptr,
+      .pc_relative = is_pc_relative,
+  };
   return (expr);
 }
 
@@ -1084,17 +1081,21 @@ addr_expr* make_addr_expr(int offs, char* sym, int reg_no) {
 
   if (reg_no == 0 && sym != nullptr &&
       (looked_up = lookup_label(sym))->gp_flag) {
-    expr->reg_no = REG_GP;
-    expr->imm = make_imm_expr((int)(offs + looked_up->addr - gp_midpoint),
-                              nullptr, false);
+    *expr = (addr_expr){
+        .reg_no = REG_GP,
+        .imm = make_imm_expr((int)(offs + looked_up->addr - gp_midpoint),
+                             nullptr, false),
+    };
   } else {
-    expr->reg_no = (unsigned char)reg_no;
     /* make_imm_expr only reads `sym` (via lookup_label) and stores the
        resulting label*, never the string itself — so it neither retains
        nor frees it.  strdup'ing here produced a copy that was orphaned on
        every call; pass the caller's `sym` straight through instead.  The
        caller keeps ownership and frees it. */
-    expr->imm = make_imm_expr(offs, sym, false);
+    *expr = (addr_expr){
+        .reg_no = (uint8_t)reg_no,
+        .imm = make_imm_expr(offs, sym, false),
+    };
   }
   return (expr);
 }
@@ -1378,6 +1379,12 @@ mips_instruction* inst_decode(int32_t val) {
       return (mk_r_inst(val, 0, 0, 0, 0, 0)); /* Invalid instruction */
   }
 }
+
+/* The decode constructors below keep zmalloc + the SET_* accessors rather
+   than a designated initializer: the accessors are the one place that maps
+   MIPS field names onto mips_instruction's overlapping unions (FS lives in
+   the rd slot, FD in shamt, IOFFSET in imm), and an initializer would
+   restate that mapping at every site.  zmalloc supplies the zero fill. */
 
 static mips_instruction* mk_r_inst(int32_t val, int opcode, int rs, int rt,
                                    int rd, int shamt) {

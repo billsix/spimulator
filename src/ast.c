@@ -29,17 +29,15 @@
 /* Internal node allocator                                             */
 /* ------------------------------------------------------------------ */
 
-static ast_node* new_node(ast_kind kind) {
+static ast_node* new_node(ast_node init) {
   ast_node* n = (ast_node*)xmalloc(sizeof(ast_node));
-  /* xmalloc returns uninitialized memory; zero the whole payload so
-     callers don't have to remember to clear unused union fields. */
-  memset(n, 0, sizeof(*n));
-  n->kind = kind;
-  n->source_line = line_no;
-  /* Snapshot the source line now, while the scanner is still on it;
-     emit_ast replays it at emit time (see ast_node.src_text). */
-  n->src_text = source_line();
-  n->next = nullptr;
+  /* The caller's compound literal zero-initializes every member it does
+     not name (including the sibling link).  Stamp the source position
+     now, while the scanner is still on this node's line; emit_ast
+     replays src_text at emit time (see ast_node.src_text). */
+  init.source_line = line_no;
+  init.src_text = source_line();
+  *n = init;
   return n;
 }
 
@@ -48,62 +46,52 @@ static ast_node* new_node(ast_kind kind) {
 /* ------------------------------------------------------------------ */
 
 ast_node* ast_make_inst_r(int op, int rd, int rs, int rt) {
-  ast_node* n = new_node(AST_INST_R);
-  n->u.inst_r.op = op;
-  n->u.inst_r.rd = rd;
-  n->u.inst_r.rs = rs;
-  n->u.inst_r.rt = rt;
-  return n;
+  return new_node((ast_node){
+      .kind = AST_INST_R,
+      .u.inst_r = {.op = op, .rd = rd, .rs = rs, .rt = rt},
+  });
 }
 
 ast_node* ast_make_inst_r_shift(int op, int rd, int rt, int shamt) {
-  ast_node* n = new_node(AST_INST_R_SHIFT);
-  n->u.inst_r_shift.op = op;
-  n->u.inst_r_shift.rd = rd;
-  n->u.inst_r_shift.rt = rt;
-  n->u.inst_r_shift.shamt = shamt;
-  return n;
+  return new_node((ast_node){
+      .kind = AST_INST_R_SHIFT,
+      .u.inst_r_shift = {.op = op, .rd = rd, .rt = rt, .shamt = shamt},
+  });
 }
 
 ast_node* ast_make_inst_i(int op, int rt, int rs, imm_expr* imm) {
-  ast_node* n = new_node(AST_INST_I);
-  n->u.inst_i.op = op;
-  n->u.inst_i.rt = rt;
-  n->u.inst_i.rs = rs;
-  n->u.inst_i.imm = imm;
-  return n;
+  return new_node((ast_node){
+      .kind = AST_INST_I,
+      .u.inst_i = {.op = op, .rt = rt, .rs = rs, .imm = imm},
+  });
 }
 
 ast_node* ast_make_inst_j(int op, imm_expr* target) {
-  ast_node* n = new_node(AST_INST_J);
-  n->u.inst_j.op = op;
-  n->u.inst_j.target = target;
-  return n;
+  return new_node((ast_node){
+      .kind = AST_INST_J,
+      .u.inst_j = {.op = op, .target = target},
+  });
 }
 
 ast_node* ast_make_inst_fp_r(int op, int fd, int fs, int ft) {
-  ast_node* n = new_node(AST_INST_FP_R);
-  n->u.inst_fp_r.op = op;
-  n->u.inst_fp_r.fd = fd;
-  n->u.inst_fp_r.fs = fs;
-  n->u.inst_fp_r.ft = ft;
-  return n;
+  return new_node((ast_node){
+      .kind = AST_INST_FP_R,
+      .u.inst_fp_r = {.op = op, .fd = fd, .fs = fs, .ft = ft},
+  });
 }
 
 ast_node* ast_make_inst_fp_compare(int op, int fs, int ft, int cc) {
-  ast_node* n = new_node(AST_INST_FP_COMPARE);
-  n->u.inst_fp_compare.op = op;
-  n->u.inst_fp_compare.fs = fs;
-  n->u.inst_fp_compare.ft = ft;
-  n->u.inst_fp_compare.cc = cc;
-  return n;
+  return new_node((ast_node){
+      .kind = AST_INST_FP_COMPARE,
+      .u.inst_fp_compare = {.op = op, .fs = fs, .ft = ft, .cc = cc},
+  });
 }
 
 ast_node* ast_make_pseudo(const char* mnemonic) {
-  ast_node* n = new_node(AST_PSEUDO);
-  n->u.pseudo.mnemonic = strdup(mnemonic);
-  n->u.pseudo.child = nullptr;
-  return n;
+  return new_node((ast_node){
+      .kind = AST_PSEUDO,
+      .u.pseudo = {.mnemonic = strdup(mnemonic)},
+  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -111,10 +99,10 @@ ast_node* ast_make_pseudo(const char* mnemonic) {
 /* ------------------------------------------------------------------ */
 
 static ast_node* make_data_int(ast_kind kind, int count, imm_expr** exprs) {
-  ast_node* n = new_node(kind);
-  n->u.data_int.count = count;
-  n->u.data_int.exprs = exprs;
-  return n;
+  return new_node((ast_node){
+      .kind = kind,
+      .u.data_int = {.count = count, .exprs = exprs},
+  });
 }
 
 ast_node* ast_make_data_byte(int count, imm_expr** exprs) {
@@ -130,10 +118,10 @@ ast_node* ast_make_data_word(int count, imm_expr** exprs) {
 }
 
 static ast_node* make_data_fp(ast_kind kind, int count, double* values) {
-  ast_node* n = new_node(kind);
-  n->u.data_fp.count = count;
-  n->u.data_fp.values = values;
-  return n;
+  return new_node((ast_node){
+      .kind = kind,
+      .u.data_fp = {.count = count, .values = values},
+  });
 }
 
 ast_node* ast_make_data_float(int count, double* values) {
@@ -145,16 +133,17 @@ ast_node* ast_make_data_double(int count, double* values) {
 }
 
 ast_node* ast_make_data_string(const char* bytes, int length, bool null_term) {
-  ast_node* n = new_node(AST_DATA_STRING);
   /* Copy the bytes verbatim (may contain NULs); +1 so callers can also
      read it as a C-string when no embedded NULs are present. */
   char* buf = (char*)xmalloc((size_t)length + 1);
   memcpy(buf, bytes, (size_t)length);
   buf[length] = '\0';
-  n->u.data_string.bytes = buf;
-  n->u.data_string.length = length;
-  n->u.data_string.null_terminate = null_term;
-  return n;
+  return new_node((ast_node){
+      .kind = AST_DATA_STRING,
+      .u.data_string = {.bytes = buf,
+                        .length = length,
+                        .null_terminate = null_term},
+  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -162,10 +151,10 @@ ast_node* ast_make_data_string(const char* bytes, int length, bool null_term) {
 /* ------------------------------------------------------------------ */
 
 static ast_node* make_dir_seg(ast_kind kind, bool has, mem_addr addr) {
-  ast_node* n = new_node(kind);
-  n->u.dir_seg.has_start_addr = has;
-  n->u.dir_seg.start_addr = addr;
-  return n;
+  return new_node((ast_node){
+      .kind = kind,
+      .u.dir_seg = {.has_start_addr = has, .start_addr = addr},
+  });
 }
 
 ast_node* ast_make_dir_text(bool has_start_addr, mem_addr start_addr) {
@@ -185,28 +174,31 @@ ast_node* ast_make_dir_kdata(bool has_start_addr, mem_addr start_addr) {
 }
 
 ast_node* ast_make_dir_align(int n_) {
-  ast_node* n = new_node(AST_DIR_ALIGN);
-  n->u.dir_align.n = n_;
-  return n;
+  return new_node((ast_node){
+      .kind = AST_DIR_ALIGN,
+      .u.dir_align = {.n = n_},
+  });
 }
 
 ast_node* ast_make_dir_space(int size) {
-  ast_node* n = new_node(AST_DIR_SPACE);
-  n->u.dir_space.size = size;
-  return n;
+  return new_node((ast_node){
+      .kind = AST_DIR_SPACE,
+      .u.dir_space = {.size = size},
+  });
 }
 
 ast_node* ast_make_dir_globl(const char* name) {
-  ast_node* n = new_node(AST_DIR_GLOBL);
-  n->u.dir_globl.name = strdup(name);
-  return n;
+  return new_node((ast_node){
+      .kind = AST_DIR_GLOBL,
+      .u.dir_globl = {.name = strdup(name)},
+  });
 }
 
 static ast_node* make_named_size(ast_kind kind, const char* name, int size) {
-  ast_node* n = new_node(kind);
-  n->u.dir_named_size.name = strdup(name);
-  n->u.dir_named_size.size = size;
-  return n;
+  return new_node((ast_node){
+      .kind = kind,
+      .u.dir_named_size = {.name = strdup(name), .size = size},
+  });
 }
 
 ast_node* ast_make_dir_extern(const char* name, int size) {
@@ -222,19 +214,19 @@ ast_node* ast_make_dir_comm(const char* name, int size) {
 /* ------------------------------------------------------------------ */
 
 ast_node* ast_make_label_normal(const char* name) {
-  ast_node* n = new_node(AST_LABEL_DEF);
-  n->u.label_def.kind = AST_LABEL_NORMAL;
-  n->u.label_def.name = strdup(name);
-  n->u.label_def.value = 0;
-  return n;
+  return new_node((ast_node){
+      .kind = AST_LABEL_DEF,
+      .u.label_def = {.kind = AST_LABEL_NORMAL, .name = strdup(name)},
+  });
 }
 
 ast_node* ast_make_label_const(const char* name, int32_t value) {
-  ast_node* n = new_node(AST_LABEL_DEF);
-  n->u.label_def.kind = AST_LABEL_CONST;
-  n->u.label_def.name = strdup(name);
-  n->u.label_def.value = value;
-  return n;
+  return new_node((ast_node){
+      .kind = AST_LABEL_DEF,
+      .u.label_def = {.kind = AST_LABEL_CONST,
+                      .name = strdup(name),
+                      .value = value},
+  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -242,16 +234,17 @@ ast_node* ast_make_label_const(const char* name, int32_t value) {
 /* ------------------------------------------------------------------ */
 
 ast_node* ast_make_file(const char* source_file) {
-  ast_node* n = new_node(AST_FILE);
-  n->u.file.child = nullptr;
-  n->u.file.source_file = source_file ? strdup(source_file) : nullptr;
-  return n;
+  return new_node((ast_node){
+      .kind = AST_FILE,
+      .u.file = {.source_file = source_file ? strdup(source_file) : nullptr},
+  });
 }
 
 ast_node* ast_make_error(const char* message) {
-  ast_node* n = new_node(AST_ERROR);
-  n->u.error.message = message ? strdup(message) : nullptr;
-  return n;
+  return new_node((ast_node){
+      .kind = AST_ERROR,
+      .u.error = {.message = message ? strdup(message) : nullptr},
+  });
 }
 
 /* ------------------------------------------------------------------ */
