@@ -4,15 +4,16 @@
 **Priority:** 6
 **Difficulty:** 8
 **Created:** 2026-11-10 (from `tasks/archive/2026/11/10/engine-port-language-investigation.md`)
+**Part of:** `tasks/engine-ports.md` (the C engine is the standard; `tasks/engine-port-haskell.md` is the sibling port)
 **Source:** tasks/review/2026/11/10/repo-review.md §5, §6, §7 F2
 
 ## BLUF
 
 Write a Python implementation of the spimulator engine (assembler, executor, syscalls, REPL, and
-last the teaching mode) that matches today's C engine byte-for-byte on every regression test, the
-AST-parity goldens, the example programs and the PGU programs, checked by a differential harness in
-the meson gate. Done means: the harness reports zero differences on the whole corpus, and the C
-engine stays the oracle until the maintainer decides otherwise.
+last the teaching mode) that behaves equivalently to the C engine, the standard: byte-identical stdout, stderr and exit
+status on the shared corpus (`tasks/engine-ports.md`), checked by a differential harness in the
+meson gate. This port also builds that harness, for every engine. Done means: the harness reports
+zero differences on the whole corpus.
 
 ## Context
 
@@ -27,13 +28,22 @@ engine stays the oracle until the maintainer decides otherwise.
 1. **Prerequisites in C** (`tasks/engine-port-prereq-c-fixes.md`, before porting): fix the wrong-value bugs the record lists
    in §3 (F5) and pin the self-checking tests' full output as goldens (§6.4, F7), so the oracle is
    right and complete.
-2. Harness first: a driver that runs a case through two engines and diffs stdout/status, wired as a
-   meson suite; corpus = `tests/`, the AST goldens, `tt.alu.bare.s`/`tt.fpu.bare.s` under `-bare`,
-   `allinsts.s` from `f570a87^`, the examples, the PGU programs.
+2. Harness first, shared by every port (`port/harness/`): a driver that runs each case through the
+   C engine and each registered port (one command line per engine) and diffs stdout, stderr and exit
+   status, wired as a meson suite. Corpus and rules: `tasks/engine-ports.md`.
 3. Port in this order, each milestone gated by the harness: machine-arithmetic module → assembler
    (gate: AST-parity bytes) → executor + syscalls (gate: regression + examples) → CLI/REPL → explain.
 4. Package layout, typing and test gate per the python-coding-standard.md reference doc from
    github.com/billsix/runClaudeInContainer (`ty`, ruff, doctests).
+
+## Findings
+
+- **Python prints a negative NaN as `nan`; glibc prints `-nan`** (measured 2026-11-10 for
+  `0xfff8000000000000` in `%.18g`, `%.8f` and `%#-13.6g`). On x86, `0.0 / 0.0` produces that NaN, so a
+  MIPS program that divides zero by zero prints `-nan` in C. The float printing therefore needs a
+  wrapper that reads the sign bit of a NaN and prepends `-`. The C engine's five float formats are
+  listed in `tasks/engine-port-haskell.md` (Findings); each needs a check against C over many values
+  (the ad-hoc generator `tasks/adhoc/engine-port-haskell/gen.py` gives the inputs).
 
 ## Decisions
 

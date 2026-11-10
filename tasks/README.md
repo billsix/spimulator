@@ -69,12 +69,13 @@ several docs' internal claims were refreshed the same day.)
 - `timing-model` and `software-alu` are independent of everything and each
   other; if both land they must share cycle vocabulary.  `timing-model` is
   much cheaper — do it first if the H&P performance lesson is the goal.
-- `engine-port-prereq-c-fixes` → `engine-port-python` (Python, in this repo
-  under `port/`): the prerequisite fixes the F5 bugs, closes the F7 test gaps
-  and drops `,` as an FP decimal separator
-  (`tasks/review/2026/11/10/repo-review.md`), so the C oracle the port is
-  diffed against is correct and fully pinned; `explain-mode-correctness-bugs`
-  should land before the port's explain-mode milestone.
+- `engine-ports` (umbrella; the C engine is the standard, every port must
+  behave equivalently): `engine-port-prereq-c-fixes` → `engine-port-python`
+  (builds the shared harness) → `engine-port-haskell` (once the harness
+  exists). The prerequisite fixes the F5 bugs, closes the F7 test gaps and
+  drops `,` as an FP decimal separator (`tasks/review/2026/11/10/repo-review.md`),
+  so the standard is correct and fully pinned; `explain-mode-correctness-bugs`
+  should land before any port's explain-mode milestone.
 
 **Independent quick wins, any time:** all of the original list landed and
 archived 2026-07-07 (container-build-cleanup, container-aslr-lldb,
