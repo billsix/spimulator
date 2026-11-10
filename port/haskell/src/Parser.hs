@@ -1141,6 +1141,13 @@ clearLabels s = do
 -- the number of parse errors (C: @parse_file@).
 parseFile :: Spim -> IO Int
 parseFile s = do
+  -- Emit only what this call parses, starting in the segment that was
+  -- current when it began: the REPL's `.` command parses one line onto the
+  -- tree of the file loaded last, whose statements were emitted already,
+  -- and the parse itself moves dataDir/textDir as it meets .data and .text.
+  emitted <- length <$> get (astScope s)
+  startData <- get (dataDir s)
+  startText <- get (textDir s)
   let loop = do
         t <- peek s
         unless (t == TokEOF) $ do
@@ -1162,7 +1169,10 @@ parseFile s = do
   pJson <- get (printAstJsonFlag s)
   when pJson $ writeOut (printAstJson root)
   only <- get (printAstOnly s)
-  unless only $ emitAst s kids
+  unless only $ do
+    set (dataDir s) startData
+    set (textDir s) startText
+    emitAst s (drop emitted kids)
   get (parseErrorsSeen s)
 
 -- | Commit the statements to memory, in order (C: @emit_ast@).

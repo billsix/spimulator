@@ -1,8 +1,8 @@
 # Port the simulator engine to GHC Haskell, equivalent to the C engine
 
-**Status:** in progress: the engine is written and passes every check (Log, 2026-11-10); owed: the
-coordinator registers it in `port/meson.build` and adds the example-header lines ("What registration
-needs" below)
+**Status:** in progress: the engine is written, merged into `engine-ports` (`eff193a`), matched to
+the C fixes of `a0eefb8`, and passes every check (Log, 2026-11-10); registration in
+`port/meson.build` is the coordinator's
 **Priority:** 7
 **Difficulty:** 8
 **Created:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
@@ -152,7 +152,14 @@ download.
 
 ## C engine bugs found
 
-Logged, not fixed (the port's rule). The port follows C unless noted.
+**All fixed in C in `a0eefb8`** (with the Python port's finding, code before the first `.data` with
+no `.text` assembled into the data segment; tests `text_before_data`, `repl_dot`, `repl_no_operand`,
+`load_error`, `engine_fixes` case 9). The port now matches the fixed engine (Log, second entry):
+`parseFile` emits only the statements the call parsed, starting in the segment current when the
+parse began (bugs 2 and the data-segment one); `print_all_regs`, `breakpoint` and `delete` do not
+flush past a missing operand, and a missing breakpoint address prints "Must supply an address for
+breakpoint" and sets nothing (bug 1). Bugs 3-5 needed no change: the port already read 0, exited 1
+and zeroed the new memory. As first found (before the fix):
 
 1. **REPL `print_all_regs`, `breakpoint` and `delete` with no operand end the session.** Each reads one
    token for its operand (here the newline), then `flush_to_newline` reads on past the end of the line's
@@ -237,3 +244,23 @@ Logged, not fixed (the port's rule). The port follows C unless noted.
   compiler's progress went to the program's stderr. Fixed in the launcher (export `PATH` for the build,
   build into `build/build.log`, show it only on failure); then, from a clean build directory, the harness
   passed 23/23, and six concurrent first runs under `env -i` all built once and ran correctly.
+
+### 2026-11-10 — matched to the C fixes of `a0eefb8`
+
+- The coordinator merged this branch into `engine-ports` (`eff193a`) and fixed in C the bugs both
+  ports found (`a0eefb8`). Merged `engine-ports` back here and rebuilt the C reference.
+- `port/haskell/src/Parser.hs` `parseFile`: remembers how many statements the tree already holds and
+  the segment flags (`dataDir`/`textDir`) when the call starts, then emits only the new statements,
+  starting from those flags. This fixes code before the first `.data` with no `.text` (it went to
+  the data segment) and the REPL `.` command (it emitted the loaded file again).
+- `port/haskell/src/Main.hs`: `print_all_regs`, `breakpoint` and `delete` skip the flush when the
+  operand token was the newline; a missing breakpoint address prints "Must supply an address for
+  breakpoint" and returns without setting anything (nor recording the command for a blank-line redo,
+  as in C).
+- The pointer to the prerequisite task already read
+  `tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md` after the merge; nothing left to repoint.
+- Gate, all passing: `tests/run-test.sh` 32 regression tests (every one but `explain`, including the
+  new `text_before_data`, `load_error`, `repl_no_operand`, `repl_dot`, and `engine_fixes` case 9);
+  34 demos; `tools/check_example_commands.py --spimulator <C> --port haskell=<port>` 74/74;
+  `port/harness/compare_engines.py` 23/23; `port/harness/compare_all_programs.py` 1218 passed, 0
+  warned, 0 failed; `tasks/adhoc/engine-port-haskell/repl.py` 24/24.

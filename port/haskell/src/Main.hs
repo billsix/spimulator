@@ -625,7 +625,8 @@ parseSpimCommand s o repl redo = do
       w <- valStr s
       text <- formatRegisters s (t == TokId && w == "hex")
       writeErr (text ++ "\n")
-      unless redo $ flushToNewline s
+      -- With no operand the token read was the newline itself.
+      unless (redo || t == TokNL) $ flushToNewline s
       done NopCmd
     ReinitializeCmd -> do
       flushToNewline s
@@ -659,15 +660,18 @@ parseSpimCommand s o repl redo = do
     _
       | cmd == SetBkptCmd || cmd == DeleteBkptCmd -> do
           t <- tokenOrPrev
-          unless redo $ flushToNewline s
+          unless (redo || t == TokNL) $ flushToNewline s
           old <- get (bkptAddr repl)
           addr <- case t of
-            TokInt -> if redo then pure (old + 4) else fromIntegral <$> valInt s
-            TokId -> if redo then pure (old + 4) else valStr s >>= findSymbolAddress s
-            _ -> cError "Must supply an address for breakpoint\n" >> pure old
-          set (bkptAddr repl) addr
-          if cmd == SetBkptCmd then addBreakpoint s addr else deleteBreakpoint s addr
-          done cmd
+            TokInt -> Just <$> if redo then pure (old + 4) else fromIntegral <$> valInt s
+            TokId -> Just <$> if redo then pure (old + 4) else valStr s >>= findSymbolAddress s
+            _ -> cError "Must supply an address for breakpoint\n" >> pure Nothing
+          case addr of
+            Nothing -> pure False
+            Just a -> do
+              set (bkptAddr repl) a
+              if cmd == SetBkptCmd then addBreakpoint s a else deleteBreakpoint s a
+              done cmd
       | cmd == ListBkptCmd -> do
           unless redo $ flushToNewline s
           listBreakpoints s
