@@ -75,7 +75,7 @@ char* ss_take_string(str_stream* ss) {
   return buf;
 }
 
-void ss_printf(str_stream* ss, char* fmt, ...) {
+void ss_printf(str_stream* ss, const char* fmt, ...) {
   va_list args;
 
   va_start(args, fmt);

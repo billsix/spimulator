@@ -25,8 +25,6 @@ static mem_addr format_partial_line(str_stream* ss, mem_addr addr);
 
 void format_registers(str_stream* ss, bool print_gpr_hex, bool print_fpr_hex) {
   int i;
-  char *grstr, *fpstr;
-  char *grfill, *fpfill;
 
   ss_printf(ss, " PC      = %08x   ", PC);
   ss_printf(ss, "EPC     = %08x  ", CP0_EPC);
@@ -36,19 +34,18 @@ void format_registers(str_stream* ss, bool print_gpr_hex, bool print_fpr_hex) {
   ss_printf(ss, "HI      = %08x  ", HI);
   ss_printf(ss, " LO      = %08x\n", LO);
 
-  if (print_gpr_hex)
-    grstr = "R%-2d (%2s) = %08x", grfill = "  ";
-  else
-    grstr = "R%-2d (%2s) = %-10d", grfill = " ";
+  const char* grstr =
+      print_gpr_hex ? "R%-2d (%2s) = %08x" : "R%-2d (%2s) = %-10d";
+  const char* grfill = print_gpr_hex ? "  " : " ";
 
   ss_printf(ss, "\t\t\t\t General Registers\n");
   for (i = 0; i < 8; i++) {
     ss_printf(ss, grstr, i, int_reg_names[i], gpr[i]);
-    ss_printf(ss, grfill);
+    ss_printf(ss, "%s", grfill);
     ss_printf(ss, grstr, i + 8, int_reg_names[i + 8], gpr[i + 8]);
-    ss_printf(ss, grfill);
+    ss_printf(ss, "%s", grfill);
     ss_printf(ss, grstr, i + 16, int_reg_names[i + 16], gpr[i + 16]);
-    ss_printf(ss, grfill);
+    ss_printf(ss, "%s", grfill);
     ss_printf(ss, grstr, i + 24, int_reg_names[i + 24], gpr[i + 24]);
     ss_printf(ss, "\n");
   }
@@ -58,10 +55,8 @@ void format_registers(str_stream* ss, bool print_gpr_hex, bool print_fpr_hex) {
 
   ss_printf(ss, "\t\t\t      Double Floating Point Registers\n");
 
-  if (print_fpr_hex)
-    fpstr = "FP%-2d=%08x,%08x", fpfill = " ";
-  else
-    fpstr = "FP%-2d = %#-13.6g", fpfill = " ";
+  const char* fpstr = print_fpr_hex ? "FP%-2d=%08x,%08x" : "FP%-2d = %#-13.6g";
+  const char* fpfill = " ";
 
   if (print_fpr_hex)
     for (i = 0; i < 4; i += 1) {
@@ -72,17 +67,17 @@ void format_registers(str_stream* ss, bool print_gpr_hex, bool print_fpr_hex) {
       r1 = (int*)&fp_double_view[i];
       r2 = r1 + 1;
       ss_printf(ss, fpstr, 2 * i, *r1, *r2);
-      ss_printf(ss, fpfill);
+      ss_printf(ss, "%s", fpfill);
 
       r1 = (int*)&fp_double_view[i + 4];
       r2 = r1 + 1;
       ss_printf(ss, fpstr, 2 * i + 8, *r1, *r2);
-      ss_printf(ss, fpfill);
+      ss_printf(ss, "%s", fpfill);
 
       r1 = (int*)&fp_double_view[i + 8];
       r2 = r1 + 1;
       ss_printf(ss, fpstr, 2 * i + 16, *r1, *r2);
-      ss_printf(ss, fpfill);
+      ss_printf(ss, "%s", fpfill);
 
       r1 = (int*)&fp_double_view[i + 12];
       r2 = r1 + 1;
@@ -92,19 +87,16 @@ void format_registers(str_stream* ss, bool print_gpr_hex, bool print_fpr_hex) {
   else
     for (i = 0; i < 4; i += 1) {
       ss_printf(ss, fpstr, 2 * i, fp_double_view[i]);
-      ss_printf(ss, fpfill);
+      ss_printf(ss, "%s", fpfill);
       ss_printf(ss, fpstr, 2 * i + 8, fp_double_view[i + 4]);
-      ss_printf(ss, fpfill);
+      ss_printf(ss, "%s", fpfill);
       ss_printf(ss, fpstr, 2 * i + 16, fp_double_view[i + 8]);
-      ss_printf(ss, fpfill);
+      ss_printf(ss, "%s", fpfill);
       ss_printf(ss, fpstr, 2 * i + 24, fp_double_view[i + 12]);
       ss_printf(ss, "\n");
     }
 
-  if (print_fpr_hex)
-    fpstr = "FP%-2d=%08x", fpfill = " ";
-  else
-    fpstr = "FP%-2d = %#-13.6g", fpfill = " ";
+  fpstr = print_fpr_hex ? "FP%-2d=%08x" : "FP%-2d = %#-13.6g";
 
   ss_printf(ss, "\t\t\t      Single Floating Point Registers\n");
 
@@ -113,13 +105,13 @@ void format_registers(str_stream* ss, bool print_gpr_hex, bool print_fpr_hex) {
       /* Use pointers to cast to ints without invoking float->int conversion
          so we can just print the bits. */
       ss_printf(ss, fpstr, i, *(int*)&FPR_S(i));
-      ss_printf(ss, fpfill);
+      ss_printf(ss, "%s", fpfill);
 
       ss_printf(ss, fpstr, i + 8, *(int*)&FPR_S(i + 8));
-      ss_printf(ss, fpfill);
+      ss_printf(ss, "%s", fpfill);
 
       ss_printf(ss, fpstr, i + 16, *(int*)&FPR_S(i + 16));
-      ss_printf(ss, fpfill);
+      ss_printf(ss, "%s", fpfill);
 
       ss_printf(ss, fpstr, i + 24, *(int*)&FPR_S(i + 24));
       ss_printf(ss, "\n");
@@ -127,11 +119,11 @@ void format_registers(str_stream* ss, bool print_gpr_hex, bool print_fpr_hex) {
   else
     for (i = 0; i < 8; i += 1) {
       ss_printf(ss, fpstr, i, FPR_S(i));
-      ss_printf(ss, fpfill);
+      ss_printf(ss, "%s", fpfill);
       ss_printf(ss, fpstr, i + 8, FPR_S(i + 8));
-      ss_printf(ss, fpfill);
+      ss_printf(ss, "%s", fpfill);
       ss_printf(ss, fpstr, i + 16, FPR_S(i + 16));
-      ss_printf(ss, fpfill);
+      ss_printf(ss, "%s", fpfill);
       ss_printf(ss, fpstr, i + 24, FPR_S(i + 24));
       ss_printf(ss, "\n");
     }

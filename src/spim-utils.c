@@ -434,9 +434,10 @@ name_val_val* map_int_to_name_val_val(name_val_val tbl[], int tbl_len,
 }
 
 void* xmalloc(size_t size) {
-  void* x = (void*)malloc(size);
+  void* x = malloc(size);
 
-  if (x == 0) fatal_error("Out of memory at request for %zu bytes.\n", size);
+  if (x == nullptr)
+    fatal_error("Out of memory at request for %zu bytes.\n", size);
   return (x);
 }
 
@@ -445,6 +446,7 @@ void* xmalloc(size_t size) {
 void* zmalloc(size_t size) {
   void* z = calloc(1, size);
 
-  if (z == 0) fatal_error("Out of memory at request for %zu bytes.\n", size);
+  if (z == nullptr)
+    fatal_error("Out of memory at request for %zu bytes.\n", size);
   return (z);
 }

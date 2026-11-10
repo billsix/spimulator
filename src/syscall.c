@@ -43,7 +43,8 @@ bool do_syscall(void) {
       break;
 
     case PRINT_STRING_SYSCALL:
-      write_output(console_out, "%s", mem_reference((mem_addr)gpr[REG_A0]));
+      write_output(console_out, "%s",
+                   (char*)mem_reference((mem_addr)gpr[REG_A0]));
       break;
 
     case READ_INT_SYSCALL: {

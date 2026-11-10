@@ -335,7 +335,7 @@ void print_symbols(void) {
   for (int i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
     for (label* l = label_hash_table[i]; l != nullptr; l = l->next)
       write_output(message_out, "%s%s at 0x%08x\n",
-                   l->global_flag ? "g\t" : "\t", l->name, l->addr);
+                   l->global_flag ? "g\t" : "\t", l->name, (unsigned)l->addr);
 }
 
 /* Iterate over every currently-defined symbol in the table. */

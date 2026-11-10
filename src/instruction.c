@@ -1226,7 +1226,6 @@ int32_t inst_encode(mips_instruction* instruction) {
 
     default:
       fatal_error("Unknown instruction type in inst_encoding\n");
-      return (0); /* Not reached */
   }
 }
 
@@ -1451,6 +1450,6 @@ static void inst_cmp(mips_instruction* inst1, mips_instruction* inst2) {
     ss_printf(&ss, "===================\n");
     format_an_inst(&ss, inst2, 0);
     ss_printf(&ss, "=================== Not Equal ===================\n");
-    error(ss_to_string(&ss));
+    error("%s", ss_to_string(&ss));
   }
 }

@@ -160,8 +160,7 @@ static const char** label_names_cache = nullptr;
 static size_t label_names_cache_n = 0;
 static size_t label_names_cache_cap = 0;
 
-static void label_collect_cb(const label* l, void* ctx) {
-  (void)ctx;
+static void label_collect_cb(const label* l, [[maybe_unused]] void* ctx) {
   if (l == nullptr || l->name == nullptr) return;
   if (label_names_cache_n >= label_names_cache_cap) {
     size_t new_cap =
@@ -191,8 +190,8 @@ static char* label_generator(const char* text, int state) {
   return nullptr;
 }
 
-static char** spim_completion(const char* text, int start, int end) {
-  (void)end;
+static char** spim_completion(const char* text, int start,
+                              [[maybe_unused]] int end) {
   /* Reset append-character to the default (space) per call — we'll
      override below for the quoted-filename case so the closing `"` is
      auto-inserted on a unique match. */
@@ -254,28 +253,20 @@ static char** spim_completion(const char* text, int start, int end) {
 
 static void console_to_program(void);
 static void console_to_spim(void);
-static void control_c_seen(int arg);
+[[noreturn]] static void control_c_seen(int arg);
 static void flush_to_newline(void);
 static int get_opt_int(void);
 static bool parse_spim_command(bool redo);
 static void print_reg(int reg_no);
 
-/* Scanner / parser surface used by the REPL.  Defined in
-   src/scanner.c and src/parser.c. */
-extern int scanner_advance(void);
-extern int parse_file(void);
-extern void scanner_push_source(FILE* in_file);
-extern void scanner_pop_source(void);
-extern void scanner_init(FILE* in_file);
-extern void set_input_file_name(char* file_name);
 static void print_fp_reg(int reg_no);
 static int print_reg_from_string(char* reg);
 static void print_all_regs(bool hex_flag);
 static int read_assembly_command(void);
 static bool str_prefix(char* s1, char* s2, int min_match);
-static void top_level(void);
+[[noreturn]] static void top_level(void);
 static int read_token(void);
-static bool write_assembled_code(char* program_name);
+[[nodiscard]] static bool write_assembled_code(char* program_name);
 static void dump_data_seg(bool kernel_also);
 static void dump_text_seg(bool kernel_also);
 
@@ -680,7 +671,7 @@ int main(int argc, char** argv) {
         char* undefs = undefined_symbol_string();
         if (undefs != nullptr) {
           write_output(message_out, "The following symbols are undefined:\n");
-          write_output(message_out, undefs);
+          write_output(message_out, "%s", undefs);
           write_output(message_out, "\n");
           free(undefs);
           /* Linker-equivalent failure.  Skip the run; jumping into undefined
@@ -753,7 +744,7 @@ int main(int argc, char** argv) {
   bool scanner_pushed = false;
 #endif
 
-  while (1) {
+  while (true) {
 #ifdef HAVE_LIBEDIT
     if (setjmp(spim_top_level_env)) {
       /* Returned via control_c_seen longjmp. Unwind any in-flight
@@ -838,8 +829,7 @@ int main(int argc, char** argv) {
   }
 }
 
-[[noreturn]] static void control_c_seen(int arg) {
-  (void)arg;  // this line is to suppress compiler warnings
+[[noreturn]] static void control_c_seen([[maybe_unused]] int arg) {
   console_to_spim();
   write_output(message_out, "\nExecution interrupted\n");
   longjmp(spim_top_level_env, 1);
@@ -912,7 +902,7 @@ static bool parse_spim_command(bool redo) {
         char* undefs = undefined_symbol_string();
         if (undefs != nullptr) {
           write_output(message_out, "The following symbols are undefined:\n");
-          write_output(message_out, undefs);
+          write_output(message_out, "%s", undefs);
           write_output(message_out, "\n");
           free(undefs);
         }
@@ -1015,7 +1005,7 @@ static bool parse_spim_command(bool redo) {
           if (loc != 0)
             print_mem((mem_addr)loc);
           else
-            error("Unknown label: %s\n", scan_value.p);
+            error("Unknown label: %s\n", (char*)scan_value.p);
         }
       } else
         error("Print what?\n");
@@ -1262,7 +1252,8 @@ static bool parse_spim_command(bool redo) {
       return (0);
 
     default:
-      while (read_token() != TOK_NL);
+      while (read_token() != TOK_NL) {
+      }
       error("Unknown spim command\n");
       return (0);
   }
@@ -1355,7 +1346,10 @@ static int get_opt_int(void) {
 
 /* Flush the rest of the input line up to and including the next newline. */
 
-static void flush_to_newline(void) { while (read_token() != TOK_NL); }
+static void flush_to_newline(void) {
+  while (read_token() != TOK_NL) {
+  }
+}
 
 /* Print register number N. */
 
@@ -1474,7 +1468,7 @@ static bool write_assembled_code(char* program_name) {
 
 /* Print an error message. */
 
-void error(char* fmt, ...) {
+void error(const char* fmt, ...) {
   va_list args;
 
   va_start(args, fmt);
@@ -1484,7 +1478,7 @@ void error(char* fmt, ...) {
 
 /* Print the error message then exit. */
 
-void fatal_error(char* fmt, ...) {
+void fatal_error(const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
   vfprintf(stderr, fmt, args);
@@ -1494,7 +1488,7 @@ void fatal_error(char* fmt, ...) {
 
 /* Print an error message and return to top level. */
 
-[[noreturn]] void run_error(char* fmt, ...) {
+[[noreturn]] void run_error(const char* fmt, ...) {
   va_list args;
 
   va_start(args, fmt);
@@ -1508,7 +1502,7 @@ void fatal_error(char* fmt, ...) {
 
 /* IO facilities: */
 
-void write_output(port fp, char* fmt, ...) {
+void write_output(port fp, const char* fmt, ...) {
   va_list args;
   FILE* f = fp.f != nullptr ? fp.f : stdout;
   bool restore_console_to_program = false;

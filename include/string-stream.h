@@ -24,6 +24,7 @@ void ss_erase(str_stream* ss, int n);
 int ss_length(str_stream* ss);
 [[nodiscard]] char* ss_to_string(str_stream* ss);
 [[nodiscard]] char* ss_take_string(str_stream* ss);
-void ss_printf(str_stream* ss, char* fmt, ...);
+[[gnu::format(printf, 2, 3)]] void ss_printf(str_stream* ss, const char* fmt,
+                                             ...);
 
 #endif

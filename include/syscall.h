@@ -10,7 +10,7 @@
 
 /* Exported functions. */
 
-bool do_syscall(void);
+[[nodiscard]] bool do_syscall(void);
 void handle_exception(void);
 
 /* Syscall numbers, passed in $v0. */

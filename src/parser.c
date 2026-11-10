@@ -17,16 +17,9 @@
 #include "tokens.h"
 #include "opcode-types.h"
 #include "spim-utils.h"
-#include "parser.h"
 #include "pseudo-op.h"
 #include "ast.h"
 
-extern int scanner_peek(void);
-extern int scanner_peek2(void);
-extern int scanner_advance(void);
-extern void scanner_init(FILE* in);
-extern void scanner_start_line(void);
-extern void scanner_force_identifier(void);
 
 /* ------- runtime-visible globals --------------------------- */
 
@@ -501,7 +494,6 @@ static int parse_abs_addr(void) {
 /* FACTOR : TOK_INT | '(' EXPR ')' | ID.
    ID resolves to its label's address; forward references
    record a data-uses-symbol entry for later resolution. */
-extern void record_data_uses_symbol(mem_addr location, label* sym);
 
 static int parse_expr(void); /* forward */
 static int parse_factor(void) {
@@ -746,7 +738,6 @@ static bool op_has_imm_form(int op) {
 SUB_OPS (sub, subu) similarly accept an
    immediate, converted to addi/addiu with a negated value
 */
-extern int32_t eval_imm_expr(imm_expr* expr);
 
 static void parse_r3(int op) {
   int rd = parse_register();
@@ -892,7 +883,6 @@ static void parse_b2(int op) {
     /* Immediate form */
     imm_expr* imm = parse_imm32();
     imm_expr* target = parse_label();
-    extern bool is_zero_imm(imm_expr * expr);
     if (is_zero_imm(imm)) {
       /* Special case: comparing against literal 0 → use $0 directly */
       emit_i(op, src1, 0, target);
@@ -1289,7 +1279,6 @@ static void do_parse_pseudo(int op) {
         rt = parse_register();
       } else {
         imm_expr* imm = parse_imm32();
-        extern bool is_zero_imm(imm_expr*);
         if (!is_zero_imm(imm)) {
           emit_i(TOK_ORI_OPCODE, 1, 0, imm);
           rt = 1;
@@ -1346,7 +1335,6 @@ static void do_parse_pseudo(int op) {
         div_inst(op, rd, rs, rt, 0);
       } else {
         imm_expr* imm = parse_imm32();
-        extern bool is_zero_imm(imm_expr * expr);
         if (is_zero_imm(imm)) {
           parse_error_at("Divide by zero");
         } else {
@@ -1366,7 +1354,6 @@ static void do_parse_pseudo(int op) {
         mult_inst(op, rd, rs, rt);
       } else {
         imm_expr* imm = parse_imm32();
-        extern bool is_zero_imm(imm_expr * expr);
         if (is_zero_imm(imm)) {
           /* Optimize: n * 0 == 0 */
           emit_i_free(TOK_ORI_OPCODE, rd, 0, imm);
@@ -1781,7 +1768,6 @@ static void parse_asm_code(void) {
           div_inst(op, r1, r2, r3, 0);
         } else {
           imm_expr* imm = parse_imm32();
-          extern bool is_zero_imm(imm_expr * expr);
           if (is_zero_imm(imm)) {
             parse_error_at("Divide by zero");
           } else {
@@ -1846,8 +1832,6 @@ static void parse_asm_code(void) {
          uses BIN_RS($1.i) which is the token-number's bits 21-25,
          always 0 for spim's token-number range).  See
         */
-      extern bool opcode_is_nullified_branch(int);
-      extern bool opcode_is_true_branch(int);
       int nd = opcode_is_nullified_branch(op) ? 1 : 0;
       int tf = opcode_is_true_branch(op) ? 1 : 0;
       int cc = 0;
