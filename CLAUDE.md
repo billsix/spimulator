@@ -91,7 +91,7 @@ not spim's intentional exit-time leaks) + the integer-UB primer:
 
 - C23; clang-format + clang-tidy; core `-Werror` (gcc + clang clean). `src/`+`include/` follow the
   shared standard `github.com/billsix/runClaudeInContainer:tasks/reference/c-coding-standard.md` (modernized through
-  `tasks/archive/2026/10/16/c23-modernization-pass2.md`); the core is additionally gated under
+  `tasks/archive/2026/11/10/c23-modernization-pass3.md`, which lists the deliberate opt-outs); the core is additionally gated under
   `-Wconversion -Wsign-conversion` (gcc + clang), done in `tasks/archive/2026/10/16/integer-conversion-hardening.md`. `opcodes.h` is the single source of truth for
   both the simulator and the tree-sitter grammar — regenerate the grammar rather
   than hand-editing keyword lists. **Any change to `opcodes.h` (or

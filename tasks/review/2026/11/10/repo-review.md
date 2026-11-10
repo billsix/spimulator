@@ -8,14 +8,14 @@ from github.com/billsix/runClaudeInContainer, scoped by the maintainer to the **
 lenses:
 
 - **C23 lens** — what the core could still do more cleanly in C23 (struct initialization first).
-  Feeds `tasks/c23-modernization-pass3.md` (§4).
+  Feeds `tasks/archive/2026/11/10/c23-modernization-pass3.md` (§4).
 - **Port lens** — every user-observable behavior a reimplementation of the engine in another language
   must match, and which oracle to trust. Feeds `tasks/engine-port-language-investigation.md` (§5, §6, §7).
 
 **Requested by** William Emerison Six <billsix@gmail.com>, 2026-11-10 (`tasks/archive/2026/11/10/source-and-history-deep-audit.md`).
 
 **Snapshot warning.** This record is frozen as of commit `0391ff3`. Line numbers rot; re-check a
-finding against the tree before acting on it. Pass 3 (`tasks/c23-modernization-pass3.md`) starts
+finding against the tree before acting on it. Pass 3 (`tasks/archive/2026/11/10/c23-modernization-pass3.md`) starts
 changing `src/` the same day.
 
 **Baseline:** none — first review of this repo.
@@ -460,7 +460,7 @@ port without a wall-clock timer hangs there; `time.s` is a benchmark.
 
 ## Suggested follow-ups
 
-- [F1] **Required** — apply the §4 worklist in `tasks/c23-modernization-pass3.md` (struct init first;
+- [F1] **Required** — apply the §4 worklist in `tasks/archive/2026/11/10/c23-modernization-pass3.md` (struct init first;
   setjmp functions opted out) (§4.1–§4.8).
 - [F2] **Required** — feed §5–§7 into `tasks/engine-port-language-investigation.md` (§5, §6, §7).
 - [F3] **Recommended** — fix the memory-safety bugs: `print_reg_from_string` overflow, `expand_k_data`,

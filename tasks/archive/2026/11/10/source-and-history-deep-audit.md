@@ -12,7 +12,7 @@ A deep review (the repo-review-conventions.md reference doc from github.com/bill
 of the simulator core (`src/`, `include/`, `tests/`, `meson.build`, `Documentation/spim.1`) and the
 whole git history was written to the frozen record `tasks/review/2026/11/10/repo-review.md`, and the
 project `CLAUDE.md` gained a `## Reviews` pointer to it. The record reads the core through two lenses:
-the **C23 worklist** (§4), cited by `tasks/c23-modernization-pass3.md`, and the **port-behavior
+the **C23 worklist** (§4), cited by `tasks/archive/2026/11/10/c23-modernization-pass3.md`, and the **port-behavior
 inventory** (§1, §5–§7), cited by `tasks/engine-port-language-investigation.md`. It also lists 27
 correctness bugs (§3) and 8 test-gate findings (§6), with follow-ups F1–F12 and two open questions.
 
