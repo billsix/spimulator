@@ -3,7 +3,7 @@
 # produce ONE parse error and end the run with exit status 2.  The list
 # parser used to report the error without consuming the token and then
 # ask for the next expression again, printing the same error forever
-# (found 2026-11-10 while testing tasks/engine-port-prereq-c-fixes.md).
+# (found 2026-11-10 while testing tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md).
 #
 # Driver:  spimulator -exception_file src/exceptions.s -f tests/tt.parse_error_data_list.s
 

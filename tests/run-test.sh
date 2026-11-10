@@ -161,7 +161,7 @@ case "$NAME" in
     [ "$n" = 1 ] || fail "expected one 'Expected expression' error, got $n"
     ;;
   engine_fixes)
-    # Self-checking: the engine fixes of tasks/engine-port-prereq-c-fixes.md.
+    # Self-checking: the engine fixes of tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md.
     timeout 10 "$SPIM" -exception_file "$EF" -f tt.engine_fixes.s >"$out" 2>&1
     expect_sentinel
     ;;

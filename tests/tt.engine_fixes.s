@@ -1,6 +1,6 @@
 # SPIM S20 MIPS simulator.
 # Regression tests for the engine fixes made before the ports
-# (tasks/engine-port-prereq-c-fixes.md; review record
+# (tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md; review record
 # tasks/review/2026/11/10/repo-review.md, the section number by each case).
 # Each case branches to `fail` with a case number in $a0 on a wrong
 # result; reaching the end prints "Passed all tests".

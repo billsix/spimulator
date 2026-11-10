@@ -102,4 +102,4 @@ the program, so explain mode could not change what it compared (review
 program's stdout and exit status must be the same with and without `-explain`, which would catch the
 hidden-exception bugs above. Use a small program: `-explain=1` on `tests/tt.core.s` writes about 45
 million stderr lines in a minute and does not finish. Record:
-`tasks/engine-port-prereq-c-fixes.md`, "Log".
+`tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md`, "Log".
