@@ -389,6 +389,8 @@ static void listing_observer(const asm_event* e) {
 }
 
 int main(int argc, char** argv) {
+  /* setjmp function (the -file run below): its locals keep their
+     original declarations; none is moved past or across a setjmp. */
   int i;
   bool assembly_file_loaded = false;
   bool assembly_file_attempted =
@@ -704,7 +706,10 @@ int main(int argc, char** argv) {
 /* Top-level read-eval-print loop for SPIM. */
 
 [[noreturn]] static void top_level(void) {
-  bool redo = false; /* => reexecute last command */
+  /* setjmp function: the locals the landing pad below reads after a
+     longjmp, and that change after setjmp returns, are volatile (C23
+     7.13.2.1); none is moved or made const. */
+  volatile bool redo = false; /* => reexecute last command */
 
   (void)signal(SIGINT, control_c_seen);
   scanner_init(stdin);
@@ -738,10 +743,10 @@ int main(int argc, char** argv) {
 
   /* Per-iteration scratch — declared outside so the setjmp landing pad can
      unwind them if a SIGINT longjmps us out of parse_spim_command mid-line. */
-  char* repl_line = nullptr;
-  char* repl_buf = nullptr;
-  FILE* repl_fp = nullptr;
-  bool scanner_pushed = false;
+  char* volatile repl_line = nullptr;
+  char* volatile repl_buf = nullptr;
+  FILE* volatile repl_fp = nullptr;
+  volatile bool scanner_pushed = false;
 #endif
 
   while (true) {
