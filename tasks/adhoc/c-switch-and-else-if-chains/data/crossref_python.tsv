@@ -1,0 +1,101 @@
+c_where	c_function	c_kind	shape	python_where	match	elif
+src/ast.c:485	print_node	if_chains	mixed	no counterpart		
+src/data.c:74	align_data	if_chains	mixed	port/python/spimulator_py/data.py:61	0	0
+src/explain.c:499	say_wrote_mem	if_chains	switch	no counterpart		
+src/explain.c:725	tpl_load	if_chains	switch	no counterpart		
+src/explain.c:1309	explain_bit_layout	if_chains	switch	no counterpart		
+src/explain.c:1401	render_r_decode_step	if_chains	switch	no counterpart		
+src/explain.c:1424	render_r_decode_step	if_chains	switch	no counterpart		
+src/explain.c:1586	render_regimm_decode_step	if_chains	switch	no counterpart		
+src/explain.c:1597	render_regimm_decode_step	if_chains	switch	no counterpart		
+src/explain.c:1623	explain_decoding_steps	if_chains	switch	no counterpart		
+src/explain.c:2443	explain_after	if_chains	mixed	no counterpart		
+src/explain.c:2455	explain_after	if_chains	mixed	no counterpart		
+src/instruction.c:94	align_text	if_chains	mixed	port/python/spimulator_py/instruction.py:166	0	0
+src/instruction.c:165	store_instruction	if_chains	mixed	port/python/spimulator_py/instruction.py:233	0	1
+src/instruction.c:207	i_type_inst	if_chains	mixed	port/python/spimulator_py/instruction.py:335	0	1
+src/instruction.c:252	i_type_inst_full_word	if_chains	mixed	port/python/spimulator_py/instruction.py:371	0	4
+src/instruction.c:255	i_type_inst_full_word	if_chains	mixed	port/python/spimulator_py/instruction.py:371	0	4
+src/instruction.c:325	produce_immediate	if_chains	mixed	port/python/spimulator_py/instruction.py:414	0	1
+src/instruction.c:992	eval_imm_expr	if_chains	mixed	port/python/spimulator_py/instruction.py:295	0	2
+src/instruction.c:1000	eval_imm_expr	if_chains	mixed	port/python/spimulator_py/instruction.py:295	0	2
+src/instruction.c:1015	format_imm_expr	if_chains	mixed	port/python/spimulator_py/instruction.py:663	0	2
+src/instruction.c:1181	inst_decode	if_chains	switch	port/python/spimulator_py/instruction.py:588	2	0
+src/memory.c:247	mem_reference	if_chains	mixed	no counterpart		
+src/memory.c:264	mem_read_inst	if_chains	mixed	no counterpart		
+src/memory.c:273	mem_read_byte	if_chains	mixed	no counterpart		
+src/memory.c:284	mem_read_half	if_chains	mixed	no counterpart		
+src/memory.c:295	mem_read_word	if_chains	mixed	no counterpart		
+src/memory.c:307	mem_write_inst	if_chains	mixed	no counterpart		
+src/memory.c:317	mem_write_byte	if_chains	mixed	no counterpart		
+src/memory.c:329	mem_write_half	if_chains	mixed	no counterpart		
+src/memory.c:341	mem_write_word	if_chains	mixed	no counterpart		
+src/memory.c:373	bad_mem_read	if_chains	mixed	no counterpart		
+src/memory.c:424	bad_mem_write	if_chains	mixed	no counterpart		
+src/memory.c:479	bad_mem_write	if_chains	switch	no counterpart		
+src/memory.c:510	check_memory_mapped_IO	if_chains	mixed	no counterpart		
+src/memory.c:525	check_memory_mapped_IO	if_chains	mixed	no counterpart		
+src/memory.c:630	print_mem	if_chains	mixed	port/python/spimulator_py/memory.py:478	0	2
+src/parser.c:87	ast_append	if_chains	mixed	no counterpart		
+src/parser.c:126	print_pseudo_walk	if_chains	switch	no counterpart		
+src/parser.c:544	parse_term	if_chains	mixed	port/python/spimulator_py/parser.py:308	0	0
+src/parser.c:703	parse_address	if_chains	switch	port/python/spimulator_py/parser.py:392	1	2
+src/parser.c:928	parse_j	if_chains	switch	port/python/spimulator_py/parser.py:525	0	3
+src/parser.c:935	parse_j	if_chains	switch	port/python/spimulator_py/parser.py:525	0	3
+src/parser.c:943	parse_j	if_chains	switch	port/python/spimulator_py/parser.py:525	0	3
+src/parser.c:1754	parse_asm_code	if_chains	switch	port/python/spimulator_py/parser.py:594	1	1
+src/parser.c:1764	parse_asm_code	if_chains	switch	port/python/spimulator_py/parser.py:594	1	1
+src/parser.c:1905	parse_asm_code	if_chains	switch	port/python/spimulator_py/parser.py:594	1	1
+src/parser.c:2094	parse_line	if_chains	mixed	port/python/spimulator_py/parser.py:1163	0	4
+src/pseudo-op.c:153	mult_inst	if_chains	mixed	port/python/spimulator_py/pseudo_op.py:126	0	1
+src/run.c:187	run_spim	if_chains	mixed	port/python/spimulator_py/run.py:80	0	0
+src/run.c:257	run_spim	if_chains	mixed	port/python/spimulator_py/run.py:80	0	0
+src/run.c:262	run_spim	if_chains	mixed	port/python/spimulator_py/run.py:80	0	0
+src/run.c:267	run_spim	if_chains	mixed	port/python/spimulator_py/run.py:80	0	0
+src/run.c:272	run_spim	if_chains	mixed	port/python/spimulator_py/run.py:80	0	0
+src/run.c:279	run_spim	if_chains	mixed	port/python/spimulator_py/run.py:80	0	0
+src/run.c:286	run_spim	if_chains	mixed	port/python/spimulator_py/run.py:80	0	0
+src/run.c:291	run_spim	if_chains	mixed	port/python/spimulator_py/run.py:80	0	0
+src/run.c:297	run_spim	if_chains	mixed	port/python/spimulator_py/run.py:80	0	0
+src/run.c:303	run_spim	if_chains	mixed	port/python/spimulator_py/run.py:80	0	0
+src/run.c:309	run_spim	if_chains	mixed	port/python/spimulator_py/run.py:80	0	0
+src/run.c:315	run_spim	if_chains	mixed	port/python/spimulator_py/run.py:80	0	0
+src/run.c:320	run_spim	if_chains	mixed	port/python/spimulator_py/run.py:80	0	0
+src/run.c:327	run_spim	if_chains	mixed	port/python/spimulator_py/run.py:80	0	0
+src/run.c:334	run_spim	if_chains	mixed	port/python/spimulator_py/run.py:80	0	0
+src/run.c:339	run_spim	if_chains	mixed	port/python/spimulator_py/run.py:80	0	0
+src/run.c:344	run_spim	if_chains	mixed	port/python/spimulator_py/run.py:80	0	0
+src/run.c:1128	run_spim	if_chains	mixed	port/python/spimulator_py/run.py:80	0	0
+src/run.c:1201	run_spim	if_chains	mixed	port/python/spimulator_py/run.py:80	0	0
+src/scanner.c:42	register_name_to_number	if_chains	mixed	port/python/spimulator_py/scanner.py:80	0	1
+src/spim.c:426	main	if_chains	mixed	port/python/spimulator_py/spim.py:155	0	0
+src/spim.c:706	main	if_chains	mixed	port/python/spimulator_py/spim.py:155	0	0
+src/spim.c:1013	parse_spim_command	if_chains	switch	port/python/spimulator_py/spim.py:697	2	2
+src/spim.c:1143	parse_spim_command	if_chains	switch	port/python/spimulator_py/spim.py:697	2	2
+src/spim.c:1238	parse_spim_command	if_chains	switch	port/python/spimulator_py/spim.py:697	2	2
+src/spim.c:1267	parse_spim_command	if_chains	switch	port/python/spimulator_py/spim.py:697	2	2
+src/spim.c:1327	read_assembly_command	if_chains	mixed	port/python/spimulator_py/spim.py:637	0	2
+src/spim.c:1395	get_opt_int	if_chains	switch	port/python/spimulator_py/spim.py:586	0	0
+src/spim.c:1440	print_reg_from_string	if_chains	string-table	port/python/spimulator_py/spim.py:960	0	0
+src/symbol-table.c:244	resolve_a_label_sub	if_chains	mixed	port/python/spimulator_py/symbol_table.py:188	0	2
+src/symbol-table.c:287	resolve_a_label_sub	if_chains	mixed	port/python/spimulator_py/symbol_table.py:188	0	2
+src/ast.c:255	ast_file_append	guard_runs	mixed	no counterpart		
+src/ast.c:267	ast_pseudo_append	guard_runs	mixed	no counterpart		
+src/parser.c:476	parse_abs_addr	guard_runs	switch	port/python/spimulator_py/parser.py:259	0	1
+src/parser.c:502	parse_factor	guard_runs	switch	port/python/spimulator_py/parser.py:282	1	0
+src/parser.c:584	parse_imm32	guard_runs	switch	port/python/spimulator_py/parser.py:339	0	2
+src/parser.c:587	parse_imm32	guard_runs	switch	port/python/spimulator_py/parser.py:339	0	2
+src/parser.c:667	parse_address	guard_runs	switch	port/python/spimulator_py/parser.py:392	1	2
+src/parser.c:677	parse_address	guard_runs	mixed	port/python/spimulator_py/parser.py:392	1	2
+src/parser.c:753	parse_r3	guard_runs	mixed	port/python/spimulator_py/parser.py:444	1	0
+src/parser.c:2060	parse_line	guard_runs	switch	port/python/spimulator_py/parser.py:1163	0	4
+src/parser.c:2076	parse_line	guard_runs	switch	port/python/spimulator_py/parser.py:1163	0	4
+src/scanner.c:61	check_keyword	guard_runs	mixed	no counterpart		
+src/scanner.c:127	fill_line_buf	guard_runs	mixed	port/python/spimulator_py/scanner.py:190	0	0
+src/scanner.c:298	decode_string	guard_runs	mixed	port/python/spimulator_py/scanner.py:304	1	0
+src/scanner.c:438	scan_register	guard_runs	mixed	port/python/spimulator_py/scanner.py:393	0	1
+src/scanner.c:524	scan_one_token	guard_runs	switch	port/python/spimulator_py/scanner.py:437	1	2
+src/scanner.c:561	scan_one_token	guard_runs	switch	port/python/spimulator_py/scanner.py:437	1	2
+src/scanner.c:580	scan_one_token	guard_runs	mixed	port/python/spimulator_py/scanner.py:437	1	2
+src/spim.c:201	spim_completion	guard_runs	mixed	no counterpart		
+src/spim.c:696	main	guard_runs	mixed	port/python/spimulator_py/spim.py:155	0	0

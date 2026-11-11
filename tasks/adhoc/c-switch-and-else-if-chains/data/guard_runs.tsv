@@ -1,0 +1,21 @@
+where	function	shape	tests	has_else	subject	detail
+src/ast.c:255	ast_file_append	mixed	2	no	<other>	then DeclStmt
+src/ast.c:267	ast_pseudo_append	mixed	2	no	<other>	then DeclStmt
+src/parser.c:476	parse_abs_addr	switch	2	no	scanner_peek()	'+',TOK_INT then ReturnStmt
+src/parser.c:502	parse_factor	switch	3	no	scanner_peek()	TOK_INT,'(',TOK_ID then CallExpr
+src/parser.c:584	parse_imm32	switch	2	no	scanner_peek()	TOK_ID,'(' then DeclStmt
+src/parser.c:587	parse_imm32	switch	2	no	scanner_peek()	'+','-' then DeclStmt
+src/parser.c:667	parse_address	switch	3	no	scanner_peek()	'(',TOK_INT,TOK_ID then CallExpr
+src/parser.c:677	parse_address	mixed	2	no	<other> | scanner_peek()	'(' then ReturnStmt
+src/parser.c:753	parse_r3	mixed	4	no	op | <other>	TOK_CLO_OPCODE,TOK_CLZ_OPCODE,TOK_MUL_OPCODE,TOK_SUB_OPCODE,TOK_SUBU_OPCODE then DeclStmt
+src/parser.c:2060	parse_line	switch	2	no	scanner_peek()	TOK_NL,TOK_EOF then IfStmt
+src/parser.c:2076	parse_line	switch	2	no	t	TOK_NL,TOK_EOF then IfStmt
+src/scanner.c:61	check_keyword	mixed	2	no	<other>	then ReturnStmt
+src/scanner.c:127	fill_line_buf	mixed	2	no	<other>	then BinaryOperator
+src/scanner.c:298	decode_string	mixed	2	no	<other>	then DeclStmt
+src/scanner.c:438	scan_register	mixed	2	no	<other>	then DeclStmt
+src/scanner.c:524	scan_one_token	switch	3	no	c	' ','\t','\r','#',',' then GotoStmt
+src/scanner.c:561	scan_one_token	switch	2	no	c	'\n',';' then CallExpr
+src/scanner.c:580	scan_one_token	mixed	8	no	<other> | c	'$','"',"'",'?','*','/',':','(',')','+','-','>','=' then CallExpr
+src/spim.c:201	spim_completion	mixed	3	no	start | <other>	0 then BinaryOperator
+src/spim.c:696	main	mixed	2	no	<other>	then IfStmt

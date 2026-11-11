@@ -1,0 +1,54 @@
+where	function	shape	tests	has_else	subject	detail
+src/ast.c:293	ast_free	enum	25	no	node->kind	subject type: ast_kind
+src/ast.c:404	print_node	enum	25	no	node->kind	subject type: const ast_kind
+src/ast.c:575	json_escape_string	const unsigned char	7	yes	c	subject type: const unsigned char
+src/ast.c:627	json_kind_header	enum	25	no	node->kind	subject type: const ast_kind
+src/ast.c:739	json_node	enum	25	no	node->kind	subject type: const ast_kind
+src/explain.c:605	subst_field_regs	const char	3	no	src[2]	subject type: const char
+src/explain.c:1066	explain_syscall	const reg_word	6	yes	v0	subject type: const reg_word
+src/explain.c:1378	render_r_decode_step	int	3	no	step	subject type: int
+src/explain.c:1462	render_i_decode_step	int	2	no	step	subject type: int
+src/explain.c:1508	render_j_decode_step	int	2	no	step	subject type: int
+src/explain.c:1564	render_regimm_decode_step	int	3	no	step	subject type: int
+src/explain.c:1681	explain_before	enum	3	no	instruction->opcode	subject type: const int16_t
+src/explain.c:1817	lookup_classification	enum	60	no	op	subject type: int
+src/explain.c:1996	render_dispatch	enum	57	yes	instruction->opcode	subject type: const int16_t
+src/explain.c:2520	explain_after	enum	5	no	instruction->opcode	subject type: const int16_t
+src/instruction.c:399	r_cond_type_inst	enum	32	no	opcode	subject type: int
+src/instruction.c:598	format_an_inst	enum	24	yes	entry->value2	subject type: const int
+src/instruction.c:714	format_an_inst	enum	4	yes	instruction->opcode	subject type: int16_t
+src/instruction.c:769	opcode_is_branch	enum	34	yes	opcode	subject type: int
+src/instruction.c:815	opcode_is_nullified_branch	enum	12	yes	opcode	subject type: int
+src/instruction.c:839	opcode_is_true_branch	enum	4	yes	opcode	subject type: int
+src/instruction.c:855	opcode_is_jump	enum	2	yes	opcode	subject type: int
+src/instruction.c:868	opcode_is_load_store	enum	22	yes	opcode	subject type: int
+src/instruction.c:1085	inst_encode	enum	24	yes	entry->value2	subject type: const int
+src/instruction.c:1205	inst_decode	enum	24	yes	map_int_to_name_val_val(opcode_tbl, OPCODE_COUNT, i_opcode)->value2	subject type: const int
+src/memory.c:376	bad_mem_read	int	3	yes	mask	subject type: int
+src/memory.c:432	bad_mem_write	int	3	yes	mask	subject type: int
+src/memory.c:542	write_memory_mapped_IO	mem_addr	4	yes	addr	subject type: mem_addr
+src/memory.c:600	read_memory_mapped_IO	mem_addr	4	yes	addr	subject type: mem_addr
+src/parser.c:241	data_int_finalize	enum	3	yes	data_int_kind	subject type: ast_kind
+src/parser.c:344	emit_dir_seg	enum	4	yes	kind	subject type: ast_kind
+src/parser.c:731	op_has_imm_form	enum	7	yes	op	subject type: int
+src/parser.c:1193	do_parse_pseudo	enum	49	yes	op	subject type: int
+src/parser.c:1290	do_parse_pseudo	enum	8	no	op	subject type: int
+src/parser.c:1690	parse_asm_code	enum	25	yes	type	subject type: const int
+src/parser.c:1946	parse_directive	enum	33	yes	dir_tok	subject type: int
+src/parser.c:2261	emit_one	enum	25	no	node->kind	subject type: const ast_kind
+src/pseudo-op.c:52	imm_op_to_op	enum	12	yes	opcode	subject type: int
+src/pseudo-op.c:99	op_to_imm_op	enum	10	yes	opcode	subject type: int
+src/run.c:211	run_spim	enum	199	yes	instruction->opcode	subject type: int16_t
+src/run.c:529	run_spim	const int	4	no	byte	subject type: const int
+src/run.c:582	run_spim	const int	4	no	byte	subject type: const int
+src/run.c:676	run_spim	uint8_t	4	yes	instruction->r_t.r_i.r_i.r.rd	subject type: uint8_t
+src/run.c:930	run_spim	const int	4	no	byte	subject type: const int
+src/run.c:980	run_spim	const int	4	no	byte	subject type: const int
+src/scanner.c:248	scan_escape_char	const char	11	yes	first	subject type: const char
+src/scanner.c:308	decode_string	const char	8	yes	n	subject type: const char
+src/scanner.c:680	scanner_advance	enum	6	yes	t	subject type: const int
+src/spim.c:333	seg_name	enum	4	no	s	subject type: asm_segment
+src/spim.c:348	listing_observer	enum	11	no	e->kind	subject type: const asm_event_kind
+src/spim.c:929	parse_spim_command	enum	20	yes	cmd	subject type: const int
+src/syscall.c:29	do_syscall	enum	17	yes	gpr[REG_V0]	subject type: reg_word
+src/syscall.c:165	handle_exception	enum	12	yes	(((uint32_t)coprocessor_registers[0][CP0_Cause_Reg] & CP0_Cause_ExcCode) >> 2)	subject type: uint32_t

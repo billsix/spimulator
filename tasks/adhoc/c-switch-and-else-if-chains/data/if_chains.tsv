@@ -1,0 +1,81 @@
+where	function	shape	tests	has_else	subject	detail
+src/ast.c:485	print_node	mixed	4	yes	c | <other>	'\n','\t','\\','"'
+src/data.c:74	align_data	mixed	2	yes	alignment | <other>	0
+src/explain.c:499	say_wrote_mem	switch	2	yes	width	1,2
+src/explain.c:725	tpl_load	switch	2	yes	width	1,2
+src/explain.c:1309	explain_bit_layout	switch	2	yes	op	0,28,31,2,3
+src/explain.c:1401	render_r_decode_step	switch	2	yes	step	1,2
+src/explain.c:1424	render_r_decode_step	switch	2	no	step	1,2
+src/explain.c:1586	render_regimm_decode_step	switch	2	yes	step	1,2
+src/explain.c:1597	render_regimm_decode_step	switch	2	no	step	1,2
+src/explain.c:1623	explain_decoding_steps	switch	3	yes	op	0,28,31,1,2,3
+src/explain.c:2443	explain_after	mixed	2	no	level | <other>	3
+src/explain.c:2455	explain_after	mixed	2	no	<other>	
+src/instruction.c:94	align_text	mixed	2	yes	alignment | <other>	0
+src/instruction.c:165	store_instruction	mixed	2	no	<other>	
+src/instruction.c:207	i_type_inst	mixed	2	yes	<other>	
+src/instruction.c:252	i_type_inst_full_word	mixed	2	yes	<other>	
+src/instruction.c:255	i_type_inst_full_word	mixed	2	yes	<other>	
+src/instruction.c:325	produce_immediate	mixed	2	yes	<other>	
+src/instruction.c:992	eval_imm_expr	mixed	2	yes	<other>	
+src/instruction.c:1000	eval_imm_expr	mixed	2	yes	<other>	
+src/instruction.c:1015	format_imm_expr	mixed	3	no	<other>	
+src/instruction.c:1181	inst_decode	switch	5	no	a_opcode	0,1879048192,67108864,1073741824,1140850688,1207959552,1275068416
+src/memory.c:247	mem_reference	mixed	5	yes	<other>	
+src/memory.c:264	mem_read_inst	mixed	2	yes	<other>	
+src/memory.c:273	mem_read_byte	mixed	3	yes	<other>	
+src/memory.c:284	mem_read_half	mixed	3	yes	<other>	
+src/memory.c:295	mem_read_word	mixed	3	yes	<other>	
+src/memory.c:307	mem_write_inst	mixed	2	yes	<other>	
+src/memory.c:317	mem_write_byte	mixed	3	yes	<other>	
+src/memory.c:329	mem_write_half	mixed	3	yes	<other>	
+src/memory.c:341	mem_write_word	mixed	3	yes	<other>	
+src/memory.c:373	bad_mem_read	mixed	4	yes	<other>	
+src/memory.c:424	bad_mem_write	mixed	4	yes	<other>	
+src/memory.c:479	bad_mem_write	switch	2	yes	mask	0,1
+src/memory.c:510	check_memory_mapped_IO	mixed	2	no	<other>	
+src/memory.c:525	check_memory_mapped_IO	mixed	2	no	<other>	
+src/memory.c:630	print_mem	mixed	5	yes	<other>	
+src/parser.c:87	ast_append	mixed	2	no	<other>	
+src/parser.c:126	print_pseudo_walk	switch	2	no	node->kind	AST_PSEUDO,AST_FILE
+src/parser.c:544	parse_term	mixed	3	yes	op | r	'*',0,-1
+src/parser.c:703	parse_address	switch	2	no	scanner_peek()	'+','-'
+src/parser.c:928	parse_j	switch	2	no	op	TOK_J_OPCODE,TOK_JR_OPCODE,TOK_JAL_OPCODE,TOK_JALR_OPCODE
+src/parser.c:935	parse_j	switch	2	no	op	TOK_J_OPCODE,TOK_JR_OPCODE,TOK_JAL_OPCODE,TOK_JALR_OPCODE
+src/parser.c:943	parse_j	switch	2	no	op	TOK_J_OPCODE,TOK_JR_OPCODE,TOK_JAL_OPCODE,TOK_JALR_OPCODE
+src/parser.c:1754	parse_asm_code	switch	2	yes	op	TOK_TEQ_OPCODE,TOK_TGE_OPCODE,TOK_TGEU_OPCODE,TOK_TLT_OPCODE,TOK_TLTU_OPCODE,TOK_TNE_OPCODE,TOK_DIV_OPCODE,TOK_DIVU_OPCODE
+src/parser.c:1764	parse_asm_code	switch	2	yes	scanner_peek()	TOK_NL,TOK_EOF,TOK_REG
+src/parser.c:1905	parse_asm_code	switch	2	yes	scanner_peek()	TOK_REG,TOK_INT
+src/parser.c:2094	parse_line	mixed	3	no	<other> | scanner_peek()	TOK_NL
+src/pseudo-op.c:153	mult_inst	mixed	2	no	<other>	
+src/run.c:187	run_spim	mixed	3	no	<other>	
+src/run.c:257	run_spim	mixed	2	no	<other>	
+src/run.c:262	run_spim	mixed	2	no	<other>	
+src/run.c:267	run_spim	mixed	2	no	sign_bit((u_reg_word)gpr[instruction->r_t.r_i.rs]) | <other>	0
+src/run.c:272	run_spim	mixed	2	no	sign_bit((u_reg_word)gpr[instruction->r_t.r_i.rs]) | <other>	0
+src/run.c:279	run_spim	mixed	2	no	sign_bit((u_reg_word)gpr[instruction->r_t.r_i.rs]) | <other>	0
+src/run.c:286	run_spim	mixed	2	no	sign_bit((u_reg_word)gpr[instruction->r_t.r_i.rs]) | <other>	0
+src/run.c:291	run_spim	mixed	2	no	<other>	
+src/run.c:297	run_spim	mixed	2	no	<other>	
+src/run.c:303	run_spim	mixed	2	no	<other>	
+src/run.c:309	run_spim	mixed	2	no	<other>	
+src/run.c:315	run_spim	mixed	2	no	<other>	
+src/run.c:320	run_spim	mixed	2	no	<other>	
+src/run.c:327	run_spim	mixed	2	no	<other>	
+src/run.c:334	run_spim	mixed	2	no	<other>	
+src/run.c:339	run_spim	mixed	2	no	<other>	
+src/run.c:344	run_spim	mixed	2	no	<other>	
+src/run.c:1128	run_spim	mixed	2	no	<other>	
+src/run.c:1201	run_spim	mixed	2	no	<other>	
+src/scanner.c:42	register_name_to_number	mixed	2	yes	<other>	
+src/spim.c:426	main	mixed	35	yes	argv[i] | <other>	"-asm","-a","-bare","-b","-delayed_branches","-db","-delayed_loads","-dl","-exception","-e","-noexception","-ne","-exception_file","-ef","-mapped_io","-mio","-nomapped_io","-nmio","-pseudo","-p","-nopseudo","-np","-quiet","-q","-noquiet","-nq","-noexplain","-nx","-explain","-x","-trap","-t","-notrap","-nt","-trap_file","-tf","-stext","-st","-sdata","-sd","-ldata","-ld","-sstack","-ss","-lstack","-ls","-sktext","-skt","-skdata","-skd","-lkdata","-lkd","-assemble","-print-ast","-show-expansion","-print-ast-json","-listing","-dump","-full_dump"
+src/spim.c:706	main	mixed	3	yes	<other>	
+src/spim.c:1013	parse_spim_command	switch	4	yes	token	TOK_REG,TOK_FP_REG,TOK_INT,TOK_ID
+src/spim.c:1143	parse_spim_command	switch	2	yes	t	TOK_STR,TOK_ID,TOK_INT
+src/spim.c:1238	parse_spim_command	switch	2	yes	token	TOK_INT,TOK_ID
+src/spim.c:1267	parse_spim_command	switch	2	yes	token	TOK_STR,TOK_NL
+src/spim.c:1327	read_assembly_command	mixed	23	yes	token | <other> | *(char *)scan_value.p	TOK_NL,'?','.'
+src/spim.c:1395	get_opt_int	switch	2	yes	token	TOK_INT,TOK_NL
+src/spim.c:1440	print_reg_from_string	string-table	8	yes	s1	"pc","hi","lo","fpcond","cause","epc","status","badvaddr"
+src/symbol-table.c:244	resolve_a_label_sub	mixed	3	yes	<other>	
+src/symbol-table.c:287	resolve_a_label_sub	mixed	2	no	<other>	
