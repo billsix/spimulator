@@ -253,27 +253,31 @@ ast_node* ast_make_error(const char* message) {
 /* ------------------------------------------------------------------ */
 
 ast_node* ast_file_append(ast_node* file, ast_node* stmt) {
-  if (file == nullptr || stmt == nullptr) return file;
-  if (file->u.file.child == nullptr) {
+  if (file == nullptr || stmt == nullptr) {
+    return file;
+  } else if (file->u.file.child == nullptr) {
     file->u.file.child = stmt;
     return file;
+  } else {
+    ast_node* t = file->u.file.child;
+    while (t->next != nullptr) t = t->next;
+    t->next = stmt;
+    return file;
   }
-  ast_node* t = file->u.file.child;
-  while (t->next != nullptr) t = t->next;
-  t->next = stmt;
-  return file;
 }
 
 ast_node* ast_pseudo_append(ast_node* pseudo, ast_node* child) {
-  if (pseudo == nullptr || child == nullptr) return pseudo;
-  if (pseudo->u.pseudo.child == nullptr) {
+  if (pseudo == nullptr || child == nullptr) {
+    return pseudo;
+  } else if (pseudo->u.pseudo.child == nullptr) {
     pseudo->u.pseudo.child = child;
     return pseudo;
+  } else {
+    ast_node* t = pseudo->u.pseudo.child;
+    while (t->next != nullptr) t = t->next;
+    t->next = child;
+    return pseudo;
   }
-  ast_node* t = pseudo->u.pseudo.child;
-  while (t->next != nullptr) t = t->next;
-  t->next = child;
-  return pseudo;
 }
 
 /* ------------------------------------------------------------------ */

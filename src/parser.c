@@ -493,16 +493,16 @@ static int parse_abs_addr(void) {
     }
     scanner_advance();
     return v + scan_value.i;
-  }
-  /* TOK_INT TOK_INT (with the second negative) is the historical
-     subtraction handling — see scanner-parser-inventory Part 8F. */
-  if (scanner_peek() == TOK_INT) {
-    /* peek the next value */
+  } else if (scanner_peek() == TOK_INT) {
+    /* TOK_INT TOK_INT (with the second negative) is the historical
+       subtraction handling — see scanner-parser-inventory Part 8F.
+       Peek the next value. */
     scanner_advance();
     if (scan_value.i >= 0) parse_error_at("Syntax error");
     return v - (-scan_value.i);
+  } else {
+    return v;
   }
-  return v;
 }
 
 /* FACTOR : TOK_INT | '(' EXPR ')' | ID.
@@ -511,37 +511,39 @@ static int parse_abs_addr(void) {
 
 static int parse_expr(void); /* forward */
 static int parse_factor(void) {
-  if (scanner_peek() == TOK_INT) {
-    scanner_advance();
-    return scan_value.i;
-  }
-  if (scanner_peek() == '(') {
-    scanner_advance();
-    const int v = parse_expr();
-    expect(')', "Expected ')'");
-    return v;
-  }
-  if (scanner_peek() == TOK_ID) {
-    scanner_advance();
-    char* const sym_name = (char*)scan_value.p;
-    label* const l = lookup_label(sym_name);
-    if (l->addr == 0) {
-      /* Forward reference.  current_data_pc isn't the right address at
-         parse time (emission is deferred to emit_ast), so stash the
-         label and let emit_ast record the use against the actual data
-         PC. */
-      if (expr_unresolved_label == nullptr) {
-        expr_unresolved_label = l;
-      }
-      free(sym_name);
-      return 0;
+  switch (scanner_peek()) {
+    case TOK_INT:
+      scanner_advance();
+      return scan_value.i;
+    case '(': {
+      scanner_advance();
+      const int v = parse_expr();
+      expect(')', "Expected ')'");
+      return v;
     }
-    const int addr = (int)l->addr;
-    free(sym_name);
-    return addr;
+    case TOK_ID: {
+      scanner_advance();
+      char* const sym_name = (char*)scan_value.p;
+      label* const l = lookup_label(sym_name);
+      if (l->addr == 0) {
+        /* Forward reference.  current_data_pc isn't the right address at
+           parse time (emission is deferred to emit_ast), so stash the
+           label and let emit_ast record the use against the actual data
+           PC. */
+        if (expr_unresolved_label == nullptr) {
+          expr_unresolved_label = l;
+        }
+        free(sym_name);
+        return 0;
+      }
+      const int addr = (int)l->addr;
+      free(sym_name);
+      return addr;
+    }
+    default:
+      parse_error_at("Expected expression");
+      return 0;
   }
-  parse_error_at("Expected expression");
-  return 0;
 }
 
 /* TRM : FACTOR ( ('*'|'/') FACTOR )* */
@@ -603,20 +605,19 @@ static imm_expr* parse_imm32(void) {
       /* make_imm_expr copies sym internally, so free our local. */
       free(sym);
       return r;
-    }
-    if (scanner_peek() == '-') {
+    } else if (scanner_peek() == '-') {
       scanner_advance();
       const int off = parse_abs_addr();
       imm_expr* const r = make_imm_expr(-off, sym, false);
       free(sym);
       return r;
+    } else {
+      imm_expr* const r = make_imm_expr(0, sym, false);
+      /* make_imm_expr does not retain `sym`; this frame owns and frees it. */
+      free(sym);
+      return r;
     }
-    imm_expr* const r = make_imm_expr(0, sym, false);
-    /* make_imm_expr does not retain `sym`; this frame owns and frees it. */
-    free(sym);
-    return r;
-  }
-  if (scanner_peek() == '(') {
+  } else if (scanner_peek() == '(') {
     /* '(' ABS_ADDR ')' '>' '>' TOK_INT */
     scanner_advance();
     const int v = parse_abs_addr();
@@ -630,10 +631,11 @@ static imm_expr* parse_imm32(void) {
     scanner_advance();
     const int sh = scan_value.i;
     return make_imm_expr(v >> sh, nullptr, false);
+  } else {
+    /* ABS_ADDR */
+    const int v = parse_abs_addr();
+    return make_imm_expr(v, nullptr, false);
   }
-  /* ABS_ADDR */
-  const int v = parse_abs_addr();
-  return make_imm_expr(v, nullptr, false);
 }
 
 /* IMM16, UIMM16 — IMM32 plus range check */
@@ -675,63 +677,66 @@ static imm_expr* parse_label(void) {
 static addr_expr* parse_address(void) {
   scanner_force_identifier();
 
-  /* '(' REGISTER ')' */
-  if (scanner_peek() == '(') {
-    scanner_advance();
-    const int reg = parse_register();
-    expect(')', "Expected ')' after register");
-    return make_addr_expr(0, nullptr, reg);
-  }
+  switch (scanner_peek()) {
+    case '(': {
+      /* '(' REGISTER ')' */
+      scanner_advance();
+      const int reg = parse_register();
+      expect(')', "Expected ')' after register");
+      return make_addr_expr(0, nullptr, reg);
+    }
 
-  /* ABS_ADDR [ '(' REGISTER ')' ] */
-  if (scanner_peek() == TOK_INT) {
-    const int imm = parse_abs_addr();
-    if (scanner_peek() == '+' && scanner_peek2() == TOK_ID) {
-      /* ABS_ADDR '+' ID */
-      scanner_advance(); /* + */
-      scanner_force_identifier();
+    case TOK_INT: {
+      /* ABS_ADDR [ '(' REGISTER ')' ] */
+      const int imm = parse_abs_addr();
+      if (scanner_peek() == '+' && scanner_peek2() == TOK_ID) {
+        /* ABS_ADDR '+' ID */
+        scanner_advance(); /* + */
+        scanner_force_identifier();
+        scanner_advance();
+        char* const sym = (char*)scan_value.p;
+        addr_expr* const r = make_addr_expr(imm, sym, 0);
+        /* make_addr_expr does not retain `sym` (see instruction.c); free it,
+           matching the TOK_ID path below. */
+        free(sym);
+        return r;
+      } else if (scanner_peek() == '(') {
+        scanner_advance();
+        const int reg = parse_register();
+        expect(')', "Expected ')'");
+        return make_addr_expr(imm, nullptr, reg);
+      } else {
+        return make_addr_expr(imm, nullptr, 0);
+      }
+    }
+
+    case TOK_ID: {
+      /* TOK_ID [ '+' ABS_ADDR | '-' ABS_ADDR ] [ '(' REGISTER ')' ] */
       scanner_advance();
       char* const sym = (char*)scan_value.p;
-      addr_expr* const r = make_addr_expr(imm, sym, 0);
-      /* make_addr_expr does not retain `sym` (see instruction.c); free it,
-         matching the TOK_ID path below. */
+      int off = 0;
+      if (scanner_peek() == '+') {
+        scanner_advance();
+        off = parse_abs_addr();
+      } else if (scanner_peek() == '-') {
+        scanner_advance();
+        off = -parse_abs_addr();
+      }
+      int reg = 0;
+      if (scanner_peek() == '(') {
+        scanner_advance();
+        reg = parse_register();
+        expect(')', "Expected ')'");
+      }
+      addr_expr* const r = make_addr_expr(off, sym, reg);
       free(sym);
       return r;
     }
-    if (scanner_peek() == '(') {
-      scanner_advance();
-      const int reg = parse_register();
-      expect(')', "Expected ')'");
-      return make_addr_expr(imm, nullptr, reg);
-    }
-    return make_addr_expr(imm, nullptr, 0);
-  }
 
-  /* TOK_ID [ '+' ABS_ADDR | '-' ABS_ADDR ] [ '(' REGISTER ')' ] */
-  if (scanner_peek() == TOK_ID) {
-    scanner_advance();
-    char* const sym = (char*)scan_value.p;
-    int off = 0;
-    if (scanner_peek() == '+') {
-      scanner_advance();
-      off = parse_abs_addr();
-    } else if (scanner_peek() == '-') {
-      scanner_advance();
-      off = -parse_abs_addr();
-    }
-    int reg = 0;
-    if (scanner_peek() == '(') {
-      scanner_advance();
-      reg = parse_register();
-      expect(')', "Expected ')'");
-    }
-    addr_expr* const r = make_addr_expr(off, sym, reg);
-    free(sym);
-    return r;
+    default:
+      parse_error_at("Expected address");
+      return make_addr_expr(0, nullptr, 0);
   }
-
-  parse_error_at("Expected address");
-  return make_addr_expr(0, nullptr, 0);
 }
 
 /* ---------------- instruction parsers ---------------- */
@@ -768,8 +773,7 @@ static void parse_r3(int op) {
     const int rs = parse_register();
     emit_r(op, rd, rs, rd);
     return;
-  }
-  if (op == TOK_MUL_OPCODE) {
+  } else if (op == TOK_MUL_OPCODE) {
     /* MULT_OPS3 DEST SRC1 (SRC2|IMM).  3-reg or 3-with-imm. Imm form uses $at +
      * ori. */
     const int rs = parse_register();
@@ -782,8 +786,7 @@ static void parse_r3(int op) {
       emit_r(op, rd, rs, 1);
     }
     return;
-  }
-  if (op == TOK_SUB_OPCODE || op == TOK_SUBU_OPCODE) {
+  } else if (op == TOK_SUB_OPCODE || op == TOK_SUBU_OPCODE) {
     /* SUB_OPS: 3-reg, 3-with-imm, or 2-with-imm.  Convert imm
        form to addi/addiu with negated value. */
     if (scanner_peek() != TOK_REG) {
@@ -806,8 +809,7 @@ static void parse_r3(int op) {
       free(imm);
     }
     return;
-  }
-  if (op_has_imm_form(op)) {
+  } else if (op_has_imm_form(op)) {
     /* Two-operand form: <op> DEST, IMM */
     if (scanner_peek() != TOK_REG) {
       imm_expr* const imm = parse_imm32();
@@ -825,11 +827,12 @@ static void parse_r3(int op) {
       emit_i_free(op_to_imm_op(op), rd, rs, imm);
     }
     return;
+  } else {
+    /* Plain R3 (no immediate form): three registers */
+    const int rs = parse_register();
+    const int rt = parse_register();
+    emit_r(op, rd, rs, rt);
   }
-  /* Plain R3 (no immediate form): three registers */
-  const int rs = parse_register();
-  const int rt = parse_register();
-  emit_r(op, rd, rs, rt);
 }
 
 /* RD_RT_SHAMT_INST: <op> DEST, SRC1, SHAMT (immediate 0..31).
@@ -2125,44 +2128,42 @@ static void parse_line(void) {
   if (scanner_peek() == TOK_NL) {
     scanner_advance();
     return;
-  }
-  if (scanner_peek() == TOK_EOF) {
+  } else if (scanner_peek() == TOK_EOF) {
     return;
-  }
-
-  /* Look ahead for optional label */
-  if (scanner_peek() == TOK_ID &&
-      (scanner_peek2() == ':' || scanner_peek2() == '=')) {
-    parse_opt_label();
-  }
-
-  /* Then maybe directive or instruction */
-  const int t = scanner_peek();
-  if (t == TOK_NL) {
-    scanner_advance();
-    return;
-  }
-  if (t == TOK_EOF) {
-    return;
-  }
-
-  if (is_directive(t)) {
-    const int dt = scanner_advance();
-    parse_directive(dt);
-    clear_labels(); /* clear labels after the directive */
   } else {
-    parse_asm_code();
-    clear_labels(); /* clear labels after the instruction */
-  }
+    /* Look ahead for optional label */
+    if (scanner_peek() == TOK_ID &&
+        (scanner_peek2() == ':' || scanner_peek2() == '=')) {
+      parse_opt_label();
+    }
 
-  /* Expect newline or EOF */
-  if (parse_error_occurred) {
-    sync_to_nl();
-  } else if (scanner_peek() == TOK_NL) {
-    scanner_advance();
-  } else if (scanner_peek() != TOK_EOF) {
-    parse_error_at("Extra tokens after instruction");
-    sync_to_nl();
+    /* Then maybe directive or instruction */
+    const int t = scanner_peek();
+    if (t == TOK_NL) {
+      scanner_advance();
+      return;
+    } else if (t == TOK_EOF) {
+      return;
+    } else {
+      if (is_directive(t)) {
+        const int dt = scanner_advance();
+        parse_directive(dt);
+        clear_labels(); /* clear labels after the directive */
+      } else {
+        parse_asm_code();
+        clear_labels(); /* clear labels after the instruction */
+      }
+
+      /* Expect newline or EOF */
+      if (parse_error_occurred) {
+        sync_to_nl();
+      } else if (scanner_peek() == TOK_NL) {
+        scanner_advance();
+      } else if (scanner_peek() != TOK_EOF) {
+        parse_error_at("Extra tokens after instruction");
+        sync_to_nl();
+      }
+    }
   }
 }
 

@@ -202,8 +202,7 @@ static char** spim_completion(const char* text, int start,
     /* First word of the line: REPL command names. */
     rl_attempted_completion_over = 1;
     return rl_completion_matches(text, command_generator);
-  }
-  if (line_is_file_command()) {
+  } else if (line_is_file_command()) {
     /* `load `, `read `, `dump `, `dumpnative ` — filename completion.
        libedit doesn't auto-fall-back to filename completion when we
        return nullptr the way GNU readline does, so we drive
@@ -236,17 +235,17 @@ static char** spim_completion(const char* text, int start,
        still helps the student see what's available — they can wrap
        it in quotes themselves. */
     return rl_completion_matches(text, rl_filename_completion_function);
-  }
-  if (line_is_label_command()) {
+  } else if (line_is_label_command()) {
     /* `breakpoint ` / `delete ` — argument is a label or hex address.
        Offer label completion from the loaded program's symbol table. */
     rl_attempted_completion_over = 1;
     return rl_completion_matches(text, label_generator);
+  } else {
+    /* Past the first word, not a file/label command: offer the cached
+       "Try it yourself" suggestions from the most recent instruction. */
+    rl_attempted_completion_over = 1;
+    return rl_completion_matches(text, suggestion_generator);
   }
-  /* Past the first word, not a file/label command: offer the cached
-     "Try it yourself" suggestions from the most recent instruction. */
-  rl_attempted_completion_over = 1;
-  return rl_completion_matches(text, suggestion_generator);
 }
 #endif
 
@@ -704,15 +703,11 @@ int main(int argc, char** argv) {
        tell that the build failed. */
     if (parse_errors_seen > 0) {
       return spim_return_value != 0 ? spim_return_value : 2;
-    }
-
-    /* -print-ast: AST already dumped in parse_file; nothing was
-       emitted to memory.  Exit cleanly. */
-    if (parser_get_print_ast_only()) {
+    } else if (parser_get_print_ast_only()) {
+      /* -print-ast: AST already dumped in parse_file; nothing was
+         emitted to memory.  Exit cleanly. */
       return 0;
-    }
-
-    if (assemble) {
+    } else if (assemble) {
       return write_assembled_code(program_argv[0]);
     } else if (dump_user_segments) {
       dump_data_seg(false);

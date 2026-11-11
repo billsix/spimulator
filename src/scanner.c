@@ -58,9 +58,12 @@ int register_name_to_number(const char* name) {
 static int check_keyword(const char* id, bool allow_pseudo_ops) {
   const name_val_val* const entry =
       map_string_to_name_val_val(opcode_tbl, OPCODE_COUNT, id);
-  if (entry == nullptr) return 0;
-  if (!allow_pseudo_ops && entry->value2 == PSEUDO_OP) return 0;
-  return entry->value1;
+  if (entry == nullptr)
+    return 0;
+  else if (!allow_pseudo_ops && entry->value2 == PSEUDO_OP)
+    return 0;
+  else
+    return entry->value1;
 }
 
 /* --- input buffering -------------------------------------- */
@@ -124,15 +127,17 @@ void scanner_force_identifier(void) { force_id_next = true; }
    if the read returns 0 bytes.  Includes the trailing newline
    (if present) so newline-tokenization sees it. */
 static void fill_line_buf(void) {
-  if (at_eof) return;
-  if (fgets(line_buf, LINE_BUF_MAX, input_file) == nullptr) {
+  if (at_eof) {
+    return;
+  } else if (fgets(line_buf, LINE_BUF_MAX, input_file) == nullptr) {
     at_eof = true;
     line_len = 0;
     line_pos = 0;
     return;
+  } else {
+    line_len = (int)strlen(line_buf);
+    line_pos = 0;
   }
-  line_len = (int)strlen(line_buf);
-  line_pos = 0;
 }
 
 /* Look at the current character without consuming.  Returns 0
@@ -298,79 +303,80 @@ static char* decode_string(const char* src, int len) {
     if (*s != '\\') {
       *d++ = *s++;
       continue;
-    }
-    /* Backslash sequence */
-    if (s + 1 >= end) {
+    } else if (s + 1 >= end) {
+      /* A backslash with nothing after it is copied as is. */
       *d++ = *s++;
       continue;
-    }
-    const char n = *(s + 1);
-    switch (n) {
-      case 'n':
-        *d++ = '\n';
-        s += 2;
-        break;
-      case 't':
-        *d++ = '\t';
-        s += 2;
-        break;
-      case '"':
-        *d++ = '"';
-        s += 2;
-        break;
-      case '0':
-      case '1':
-      case '2':
-      case '3': {
-        /* Three-digit octal escape \NNN.  First digit shifts 6 bits,
-           not 3 — a long-standing spim bug fixed 2026-05-19. */
-        if (s + 3 >= end) {
-          *d++ = *s++;
+    } else {
+      /* Backslash sequence */
+      const char n = *(s + 1);
+      switch (n) {
+        case 'n':
+          *d++ = '\n';
+          s += 2;
+          break;
+        case 't':
+          *d++ = '\t';
+          s += 2;
+          break;
+        case '"':
+          *d++ = '"';
+          s += 2;
+          break;
+        case '0':
+        case '1':
+        case '2':
+        case '3': {
+          /* Three-digit octal escape \NNN.  First digit shifts 6 bits,
+             not 3 — a long-standing spim bug fixed 2026-05-19. */
+          if (s + 3 >= end) {
+            *d++ = *s++;
+            break;
+          }
+          const int c2 = *(s + 2), c3 = *(s + 3);
+          int b = (n - '0') << 6;
+          if (c2 >= '0' && c2 <= '7')
+            b += (c2 - '0') << 3;
+          else {
+            error("Bad character in \\ooo construct in string\n");
+          }
+          if (c3 >= '0' && c3 <= '7')
+            b += c3 - '0';
+          else {
+            error("Bad character in \\ooo construct in string\n");
+          }
+          *d++ = (char)b;
+          s += 4;
           break;
         }
-        const int c2 = *(s + 2), c3 = *(s + 3);
-        int b = (n - '0') << 6;
-        if (c2 >= '0' && c2 <= '7')
-          b += (c2 - '0') << 3;
-        else {
-          error("Bad character in \\ooo construct in string\n");
-        }
-        if (c3 >= '0' && c3 <= '7')
-          b += c3 - '0';
-        else {
-          error("Bad character in \\ooo construct in string\n");
-        }
-        *d++ = (char)b;
-        s += 4;
-        break;
-      }
-      case 'X': {
-        if (s + 3 >= end) {
-          *d++ = *s++;
+        case 'X': {
+          if (s + 3 >= end) {
+            *d++ = *s++;
+            break;
+          }
+          const int c2 = *(s + 2), c3 = *(s + 3);
+          int b = 0;
+          if (isxdigit(c2))
+            b = hex_digit_value(c2);
+          else {
+            error("Bad character in \\X construct in string\n");
+          }
+          b <<= 4;
+          if (isxdigit(c3))
+            b |= hex_digit_value(c3);
+          else {
+            error("Bad character in \\X construct in string\n");
+          }
+          *d++ = (char)b;
+          s += 4;
           break;
         }
-        const int c2 = *(s + 2), c3 = *(s + 3);
-        int b = 0;
-        if (isxdigit(c2))
-          b = hex_digit_value(c2);
-        else {
-          error("Bad character in \\X construct in string\n");
-        }
-        b <<= 4;
-        if (isxdigit(c3))
-          b |= hex_digit_value(c3);
-        else {
-          error("Bad character in \\X construct in string\n");
-        }
-        *d++ = (char)b;
-        s += 4;
-        break;
+        default:
+          /* Unknown escape: copy the backslash, let next iteration
+             handle the trailing char. */
+          *d++ = *s++;
+          break;
       }
-      default:
-        /* Unknown escape: copy the backslash, let next iteration
-           handle the trailing char. */
-        *d++ = *s++;
-        break;
     }
   }
   *d = '\0';
@@ -438,22 +444,20 @@ static int scan_register(scan_token* out) {
   if (reg_no != -1 && reg_buf[0] == 'f' && reg_buf[1] != 'p') {
     *out = (scan_token){.type = TOK_FP_REG, .val.i = reg_no, .present = true};
     return TOK_FP_REG;
-  }
-
-  if (reg_no >= 0 && reg_no < R_LENGTH) {
+  } else if (reg_no >= 0 && reg_no < R_LENGTH) {
     *out = (scan_token){.type = TOK_REG, .val.i = reg_no, .present = true};
     return TOK_REG;
+  } else {
+    /* Fall back to identifier-or-constant-label behavior. */
+    label* const l = label_is_defined(reg_buf);
+    if (l != nullptr && l->const_flag)
+      *out =
+          (scan_token){.type = TOK_INT, .val.i = (int)l->addr, .present = true};
+    else
+      *out = (scan_token){
+          .type = TOK_ID, .val.p = (void*)strdup(reg_buf), .present = true};
+    return out->type;
   }
-
-  /* Fall back to identifier-or-constant-label behavior. */
-  label* const l = label_is_defined(reg_buf);
-  if (l != nullptr && l->const_flag)
-    *out =
-        (scan_token){.type = TOK_INT, .val.i = (int)l->addr, .present = true};
-  else
-    *out = (scan_token){
-        .type = TOK_ID, .val.p = (void*)strdup(reg_buf), .present = true};
-  return out->type;
 }
 
 /* Scan a string literal "...".  Returns TOK_STR; scan_value.p is a
@@ -521,20 +525,22 @@ static void scan_one_token(scan_token* out) {
 
     while (line_pos < line_len) {
       const int c = peek_char();
-      if (c == ' ' || c == '\t' || c == '\r') {
-        next_char();
-        continue;
+      switch (c) {
+        case ' ':
+        case '\t':
+        case '\r':
+          next_char();
+          continue;
+        case '#':
+          /* Comment to end of line. */
+          while (peek_char() != 0 && peek_char() != '\n') next_char();
+          continue;
+        case ',':
+          next_char();
+          continue;
+        default:
+          goto have_char;
       }
-      if (c == '#') {
-        /* Comment to end of line. */
-        while (peek_char() != 0 && peek_char() != '\n') next_char();
-        continue;
-      }
-      if (c == ',') {
-        next_char();
-        continue;
-      }
-      goto have_char;
     }
 
     /* Need a new line. */
@@ -551,7 +557,8 @@ static void scan_one_token(scan_token* out) {
     current_line_saved = false;
   }
 
-have_char: {
+have_char:
+  {
     const int c = peek_char();
 
     /* Newline: returns TOK_NL.  After we consume it, the line is
@@ -563,91 +570,75 @@ have_char: {
       line_no += 1;
       *out = (scan_token){.type = TOK_NL, .present = true};
       return;
-    }
-
-  /* Semicolon also delimits a "line" for grammar purposes. */
-  if (c == ';') {
-    next_char();
-    *out = (scan_token){.type = TOK_NL, .present = true};
-    return;
-  }
-
-  /* From here, we have a real token char.  Snapshot the
-     source line for erroneous_line() if we haven't yet. */
-  maybe_snapshot_line();
-
-  /* Negative integer or FP? */
-  if (c == '-' && isdigit(peek_char2())) {
-    next_char(); /* consume the '-' */
-    const int fp_end = scan_fp_check();
-    if (fp_end > line_pos) {
-      scan_fp(-1, fp_end, out);
+    } else if (c == ';') {
+      /* Semicolon also delimits a "line" for grammar purposes. */
+      next_char();
+      *out = (scan_token){.type = TOK_NL, .present = true};
       return;
+    } else {
+      /* From here, we have a real token char.  Snapshot the
+         source line for erroneous_line() if we haven't yet. */
+      maybe_snapshot_line();
+
+      /* Negative integer or FP? */
+      if (c == '-' && isdigit(peek_char2())) {
+        next_char(); /* consume the '-' */
+        const int fp_end = scan_fp_check();
+        if (fp_end > line_pos) {
+          scan_fp(-1, fp_end, out);
+          return;
+        }
+        scan_int(-1, out);
+        return;
+      } else if (isdigit(c)) {
+        /* Positive number — could be int or FP. */
+        const int fp_end = scan_fp_check();
+        if (fp_end > line_pos) {
+          scan_fp(1, fp_end, out);
+          return;
+        }
+        scan_int(1, out);
+        return;
+      } else if (c == '_' || c == '.' || isalpha(c)) {
+        /* Identifier or keyword? */
+        scan_identifier(out, force_id);
+        return;
+      } else if (c == '$') {
+        /* Register? */
+        scan_register(out);
+        return;
+      } else if (c == '"') {
+        /* String literal? */
+        scan_string(out);
+        return;
+      } else if (c == '\'') {
+        /* Char literal? */
+        scan_char(out);
+        return;
+      } else if (c == '?') {
+        /* `?` returns TOK_ID for the REPL. */
+        next_char();
+        static char q[2] = "?";
+        *out = (scan_token){
+            .type = TOK_ID, .val.p = (void*)strdup(q), .present = true};
+        return;
+      } else if (c == '*' || c == '/' || c == ':' || c == '(' || c == ')' ||
+                 c == '+' || c == '-' || c == '>' || c == '=') {
+        /* Plain punctuation tokens. */
+        next_char();
+        *out = (scan_token){.type = c, .val.i = c, .present = true};
+        return;
+      } else {
+        /* Unknown character. */
+        next_char();
+        error("Unknown character in source: '%c' (0x%02x)\n", c, c);
+        *out = (scan_token){
+            .type = TOK_NL,
+            .present = true}; /* recover by treating as line terminator */
+        return;
+      }
     }
-    scan_int(-1, out);
-    return;
   }
-
-  /* Positive number — could be int or FP. */
-  if (isdigit(c)) {
-    const int fp_end = scan_fp_check();
-    if (fp_end > line_pos) {
-      scan_fp(1, fp_end, out);
-      return;
-    }
-    scan_int(1, out);
-    return;
-  }
-
-  /* Identifier or keyword? */
-  if (c == '_' || c == '.' || isalpha(c)) {
-    scan_identifier(out, force_id);
-    return;
-  }
-
-  /* Register? */
-  if (c == '$') {
-    scan_register(out);
-    return;
-  }
-
-  /* String literal? */
-  if (c == '"') {
-    scan_string(out);
-    return;
-  }
-
-  /* Char literal? */
-  if (c == '\'') {
-    scan_char(out);
-    return;
-  }
-
-  /* `?` returns TOK_ID for the REPL. */
-  if (c == '?') {
-    next_char();
-    static char q[2] = "?";
-    *out = (scan_token){
-        .type = TOK_ID, .val.p = (void*)strdup(q), .present = true};
-    return;
-  }
-
-  /* Plain punctuation tokens. */
-  if (c == '*' || c == '/' || c == ':' || c == '(' || c == ')' || c == '+' ||
-      c == '-' || c == '>' || c == '=') {
-    next_char();
-    *out = (scan_token){.type = c, .val.i = c, .present = true};
-    return;
-  }
-
-  /* Unknown character. */
-  next_char();
-  error("Unknown character in source: '%c' (0x%02x)\n", c, c);
-  *out = (scan_token){
-      .type = TOK_NL,
-      .present = true}; /* recover by treating as line terminator */
-  return;
-}
 }
 
 /* --- token-buffer machinery ------------------------------- */
