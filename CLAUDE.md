@@ -162,8 +162,9 @@ not spim's intentional exit-time leaks) + the integer-UB primer:
 
 ## Reviews
 
-Latest deep review: `tasks/review/2026/11/10/repo-review.md` (simulator core + full git
-history; C23 worklist and port-behavior inventory). Records are frozen; act on them through tasks.
+Latest deep review: `tasks/review/2026/11/11/repo-review.md` (the engine ports, the opcode
+generator and the C dispatch work; carries over `tasks/review/2026/11/10/repo-review.md`, the
+simulator core and full git history). Records are frozen; act on them through tasks.
 
 ## Tasks (in-flight)
 
