@@ -5,7 +5,18 @@
 **Difficulty:** 7
 **Created:** 2026-07-07
 
-## Request (Bill, 2026-07-07)
+## BLUF
+
+An optional timing model that makes a program's cost perceptible (base cost per instruction, more
+for register and memory traffic), reported with the CPU-time equation of Patterson & Hennessy ch. 1.
+Done means a flag enables it, `run` is slowed or reported accordingly, and every port matches.
+
+## Context
+
+- Investigate, then plan, then execute, in that order (phases below).
+- Shares cycle vocabulary with `tasks/software-alu.md` if both land.
+
+## Request (William Emerison Six <billsix@gmail.com>, 2026-07-07)
 
 For teaching performance: add an **optional** timing delay so that executing a
 program takes perceptibly different amounts of time depending on what it does.

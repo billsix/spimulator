@@ -5,7 +5,18 @@
 **Difficulty:** 9
 **Created:** 2026-07-07
 
-## Request (Bill, 2026-07-07)
+## BLUF
+
+A small C compiler for the example programs, as the students' capstone: first written in SPIM
+assembly, then in C, compiled by the asm version (self-hosting on spim). Done means the C compiler,
+running on spim, compiles the example programs and their outputs match the demo goldens.
+
+## Context
+
+- The request, design principles and questions for the maintainer are below.
+- It builds on the shared asm library work in `tasks/multi-file-load.md`.
+
+## Request (William Emerison Six <billsix@gmail.com>, 2026-07-07)
 
 A small, simple C compiler for our example source code, as the **culmination
 of the student's work**. Two stages:
@@ -16,14 +27,14 @@ of the student's work**. Two stages:
    asm source), such that the asm compiler can compile the C compiler — ending
    with a C compiler, written in C, running on spim.
 
-Explicit non-goals, per Bill:
+Explicit non-goals, per the maintainer:
 - **Not full C** — it only has to handle our C example programs.
 - **No library requirement** — the stdlib doesn't have to work through it.
 - **No real malloc/free** — the compiler may allocate via the break/sbrk
   syscall (spim syscall 9) and simply **leak**; reclamation is optional
   forever.
 
-## Design principles (Bill, 2026-07-07 — these override everything below)
+## Design principles (William Emerison Six <billsix@gmail.com>, 2026-07-07 — these override everything below)
 
 **The #1 priority is understandability for an undergraduate.** Simplicity
 beats generality, performance, and even C fidelity. Concretely authorized:
@@ -119,7 +130,7 @@ The io surface the compiler treats as externs is exactly 9 functions
   SDT recursive descent emitting assembly directly, one tiny chapter per
   construct, no AST, no theory prerequisite. Our structure should mirror
   it (targeting MIPS instead of 68000). This is the strongest match to
-  Bill's design principles.
+  the maintainer's design principles.
 - **c4 (rswier)** — self-hosting C subset in ~500 lines; proof of how
   small self-hosting can be, but it compiles to a VM and its style is
   deliberately cryptic — the *opposite* of our readability goal. Steal
@@ -150,7 +161,7 @@ readable style) is realistically **1,500–2,500 lines of SpimC**. That's
   Same deliverables as Route A (asm compiler exists, original kept), a
   fraction of the risk.
 
-### Questions for Bill (answers shape the SpimC spec)
+### Questions for the maintainer (answers shape the SpimC spec)
 
 1. `++`/`--` in statement position only — OK? (Full expression semantics
    costs real SDT complexity for 83 mostly-statement uses.)
@@ -183,11 +194,11 @@ routes in the plan phase:
   then produce the asm version — either by hand-translating it (the
   curriculum's own C→asm methodology, applied to the biggest program in the
   tree) or, cutely, by compiling it with itself once a native build exists.
-  The "original asm source" Bill wants still exists and is kept; it's just
+  The "original asm source" the maintainer wants still exists and is kept; it's just
   written second, from a known-good reference.
 
 Route B is dramatically lower-risk for the same deliverables; the plan phase
-should put effort estimates on both and let Bill pick.
+should put effort estimates on both and let the maintainer pick.
 
 ## Compiler design constraints (v1)
 
@@ -233,7 +244,7 @@ resulting compiler compiles the demo set with identical output to stage 1.
 
 ## Relation to other tasks
 
-- [`multi-file-load.md`](multi-file-load.md) / [`libstr.md`](libstr.md) —
+- `tasks/multi-file-load.md` / `tasks/archive/2026/09/02/libstr.md` —
   provides the runtime-library linking model the compiler's output relies on.
 - [`timing-model.md`](timing-model.md) — a compiled-vs-hand-written demo
   comparison becomes a nice performance lesson once both exist.

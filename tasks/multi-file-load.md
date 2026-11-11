@@ -6,9 +6,20 @@ be shipped; what remains is the library work built on top of it.
 **Difficulty:** 5
 **Created:** 2026-07-07
 
+## BLUF
+
+Multi-file loading already works; what remains is a shared library of `.asm` routines the demos
+load with `-f lib.s -f main.s`, and de-duplicating the demos onto it. Done means the remaining
+libraries below exist and the demos use them.
+
+## Context
+
+- Done so far: `tasks/archive/2026/09/02/libstr.md`. The regression test of the loading mechanism
+  is `tests/tt.multifile.s`.
+
 ## Original question — resolved: multi-file loading already works
 
-Bill asked whether spimulator can load two assembly files into one program
+The maintainer asked whether spimulator can load two assembly files into one program
 (one library, one main), and if not, whether to add it via preprocessor,
 runtime support, or a fake-"linker" tool.
 
@@ -30,13 +41,13 @@ scope.)
 
 ## Remaining scope: a real library file the demos share
 
-With loading in place (Bill, 2026-07-07): port the standard musl libc
+With loading in place (William Emerison Six <billsix@gmail.com>, 2026-07-07): port the standard musl libc
 functions **not already implemented** as one large library `.asm` (+ paired
 C), and **extract the patterns already duplicated in existing demos** so demos
 `jal` into the shared library instead of carrying private copies.
 
 - Already done: `examples/src/lib/libctype`, `libstdlib` (musl-adapted, C side).
-- First tranche, already specced: `libstr.md` — 10 string/memory functions.
+- First tranche, already specced: `tasks/archive/2026/09/02/libstr.md` (since done) — 10 string/memory functions.
   **DONE 2026-09-02** — `libstr` + `str-demo` landed and are golden-tested
   (full suite 34/34); the two-file invocation
   (`spimulator -f libstr.asm -f str-demo.asm`) works.  See the archived
@@ -59,7 +70,7 @@ C), and **extract the patterns already duplicated in existing demos** so demos
 
 ## Ordering
 
-1. `libstr.md` (library #2 of the libctype → libstr → libstdlib sequence) —
+1. `tasks/archive/2026/09/02/libstr.md` (done; library #2 of the libctype → libstr → libstdlib sequence) —
    the port itself.
 2. The duplication survey + de-dup sweep across existing demos.
 3. Any further musl tranches (strstr/strspn family, etc.) as wanted.

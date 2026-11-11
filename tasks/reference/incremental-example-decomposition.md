@@ -112,7 +112,7 @@ The ladder is ordered so each version needs **strictly less prior knowledge** th
    (parentheses, CCSS 5.OA.A.1, grade 5) are taught **before** negative numbers (6.NS, grade 6) and
    integer arithmetic (7.NS, grade 7); and within operations, **addition/subtraction before
    multiplication/division**, with **negation (the additive inverse) introduced late**, not first
-   (gacalc `algebra-teaching-order.md`).
+   (`tasks/reference/algebra-teaching-order.md` in github.com/billsix/geometricalgebra).
 
 Where the two agree, follow them. Where they conflict — the sharp case is **unary minus /
 negative numbers**, which is parser-trivial (one rule, `factor := '-' factor`) but math-pedagogically

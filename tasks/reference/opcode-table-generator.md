@@ -49,12 +49,8 @@ Only one encoding is shared today: `-1`, by every directive and pseudo-instructi
 rows (major opcode 0x13, `0x4c…`) are keyed by their funct field, and so is the decode
 (`inst_decode`'s `case 0x4c000000` in `src/instruction.c`, and each port's counterpart).
 
-History: upstream's table gave the xc1/prefx rows COP1 encodings and madd/msub the wrong funct, so six
-encodings had two rows each, and the old C engine let glibc's `qsort` + `bsearch` pick between them.
-The `*` marks first preserved those picks (a one-shot `check_decode.c`, in git under
-`tasks/adhoc/opcodes-x-macro-redesign/` before the archive of
-`tasks/archive/2026/11/11/opcodes-x-macro-redesign.md`, proved it). The rows were then corrected
-(`tasks/archive/2026/11/11/duplicate-cop1x-encodings.md`), which removed the pairs.
+Why: upstream's table gave six encodings two rows each, which the engine settled by a sort and a
+binary search. The rows were corrected in `tasks/archive/2026/11/11/duplicate-cop1x-encodings.md`.
 
 If two rows ever share an encoding again, the generator requires exactly one `*` among them: the row
 a binary word decodes to.
@@ -126,19 +122,11 @@ When the C engine gains an instruction, add its row to `opcodes.tsv` and run `ma
 updates every port's table at once. Each port's suite then fails until the port implements the new
 instruction's execution, which is the signal for what to carry into each port.
 
-## History
+## Why one data file
 
-- **Until 2026-11-11, `include/opcodes.h` was a hand-written X-macro.** Each consumer defined
-  `OP(name, sym, type, enc)` and included the file, so one list fed:
-  - the `TOK_*` enum, which `tokens.h` built by including the file inside an enum body. That forced
-    the file to hold nothing but comma-terminated rows;
-  - the scanner's keyword table, the parser's operand-shape table, and `instruction.c`'s three
-    tables, which were sorted with `qsort` at startup;
-  - an unbuilt `src/dump-opcodes.c`.
-- **The tree-sitter scripts and the three ports each parsed or reproduced it their own way,** with
-  no staleness check: `extract-keywords.py`, `GenOpcodes.hs`, `gen_opcodes.c`, and a regular
-  expression in the Python port.
-- **The redesign** moved the rows to the data files, generated everything from them, and retired
-  the X-macro, the enum-body `#include`, the startup sort and those per-consumer parsers.
-- **An earlier evaluation (2026-10-16)** ruled out C's `_Generic` as a replacement. It dispatches on
-  one expression's type and cannot iterate a table. That question no longer applies.
+Before 2026-11-11 a hand-written X-macro (`include/opcodes.h`) fed the C tables, and the
+tree-sitter scripts and the three ports each parsed or copied it their own way, with no staleness
+check. One data file plus one generator gives every engine the same table, and the image build and
+the `generated_opcode_tables` meson test catch a stale copy. The move is recorded in
+`tasks/archive/2026/11/11/opcodes-x-macro-redesign.md`. C's `_Generic` was ruled out as a
+replacement earlier: it dispatches on one expression's type and cannot iterate a table.

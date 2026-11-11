@@ -2,12 +2,12 @@
 
 **What this is:** how `src/parser.c` / `src/scanner.c` / `src/instruction.c`
 turn assembly text into memory, who owns the heap allocations along the way,
-and why the parser has exactly one mode. Distilled from the
-`parser-leak-cleanup` work (leak fix + PARSE_DIRECT deletion, 2026-08-03).
+and why the parser has exactly one mode. Distilled from
+`tasks/archive/2026/08/03/parser-leak-cleanup.md`.
 Read this before touching the parser, the emit helpers, or the AST node
 lifetime.
 
-## The pipeline (one mode, since 2026-08-03)
+## The pipeline
 
 The parser is **parse-to-tree, then emit**:
 
@@ -27,63 +27,18 @@ dispatch helpers (`emit_r`, `emit_i`, `emit_i_free`, `emit_j`, `emit_fp_r`,
 now do exactly one thing: append the corresponding AST node. Actual
 emission happens only in `emit_one`.
 
-### History: hand-written parser (flex+bison removed)
+### Why one mode
 
-The scanner/parser (`scanner.c` / `parser.c`) is hand-written recursive-descent;
-flex+bison were removed (Phase 5, 2026-05).
+The scanner and parser are hand-written recursive descent (`scanner.c` / `parser.c`). Every
+statement is parsed into the tree before anything is emitted, so each heap allocation has one owner
+at a time: the AST node, until `emit_one` consumes it. A second, emit-while-parsing mode would need
+a second ownership model, which is how the parser once leaked; the git history of
+`tasks/archive/2026/08/03/parser-leak-cleanup.md` has that mode and its removal.
 
-### History: PARSE_DIRECT is gone
-
-spim used to carry a second mode, **PARSE_DIRECT** (syntax-directed
-translation): the parser called the action helpers *inline* during the
-parse, committing to memory as each statement was read, building no tree.
-It was the historical default; PARSE_AST was opt-in via `-parser=ast` (and
-implied by `-print-ast`/`-show-expansion`/`-print-ast-json`). The dispatch
-helpers branched on `should_emit()` (fire inline action) vs
-`should_build_ast()` (append node).
-
-PARSE_DIRECT was deleted 2026-08-03 (task: `parser-leak-cleanup`, Option C)
-to end the two-ownership-model hazard. Consequences worth knowing:
-
-- The `-parser=sdt`/`-parser=ast` flags are gone (an unknown `-parser=` is
-  now ignored with a usage note). `parse_mode_t`, `parser_set_mode`,
-  `should_emit`, `should_build_ast`, and the `store_op`/`store_fp_op`
-  function-pointer indirection were removed.
-- The `this_line_labels` / `align_labels_to` / `clear_labels` machinery is
-  now driven entirely from `emit_ast`/`emit_one` (labels are `cons_label`'d
-  at emit time). The same calls still appear in the parse phase but are
-  guarded no-ops there (`this_line_labels` is empty during parse), left in
-  place because they are shared with the live emit path.
-
-## Ownership model (the leak-prone part)
-
-**`make_imm_expr(offs, sym, ...)` and `make_addr_expr(offs, sym, reg)` only
-*read* `sym`** — they look it up with `lookup_label` and store the resulting
-`label*` (the `imm_expr`/`addr_expr` struct holds a `label*`, never a
-`char*`). They neither retain nor free the string. **The caller always owns
-`sym` and must free it.** This is the single fact that all the parser's
-`free(sym)` calls depend on; violating it (or, as the old `make_addr_expr`
-did, `strdup`'ing `sym` before the lookup) leaks.
-
-Scanner-side: a TOK_ID / TOK_STR token owns a heap string; `scanner_advance`
-moves it into the global `scan_value`. The parse function that consumes it
-owns it from there — free it (`parse_string_list`, `parse_factor`, etc.) or
-transfer it. A token discarded without consuming (error recovery, ignored
-directives via `sync_to_nl`) must have its `scan_value.p` freed at the
-discard site. TOK_FP's `scan_value.p` points at a `static double` — **not**
-heap, never freed.
-
-`imm_expr` **nodes**: `emit_i` copies (`dup_imm`) for the AST and leaves the
-caller owning the original; `emit_i_free` transfers (frees the original).
-Wrapping a fresh `const_imm_expr(...)` in `lower_bits_of_expr(...)` (which
-copies) orphans the inner node unless you capture and free it. Pass inline
-`const_imm_expr(...)` allocations to `emit_i_free`, never `emit_i`.
-
-Verification: `valgrind --leak-check=full` on `tests/tt.argv.s` /
-`tt.explain.s` must report `definitely lost: 0`. The ASan address gate
-(`-Db_sanitize=address`) is the corruption gate; spim.c pins
-`detect_leaks=0` (spim's intentional exit-time statics), so valgrind is the
-authoritative leak check.
+The label machinery (`this_line_labels`, `align_labels_to`, `clear_labels`) is driven from
+`emit_ast`/`emit_one`, where labels are `cons_label`'d. The same calls also appear in the parse
+phase, where they are no-ops (`this_line_labels` is empty during parse); they stay because they are
+shared with the emit path.
 
 ## Source-line annotations under deferred emit
 

@@ -1,7 +1,19 @@
 # Task: implement the ALU in C, bit-level, per H&P
 
+**Status:** proposed — investigate first, then plan, then build
 **Priority:** 6
 **Difficulty:** 8
+
+## BLUF
+
+Replace host arithmetic for MIPS ALU instructions with a bit-level software ALU (ripple-carry adder
+from full-adder slices, per Patterson & Hennessy ch. 4), optionally narrated by the teaching mode.
+Done means the chosen tier gives the same results as today on every suite, in C and every port.
+
+## Context
+
+- The scope tiers, hook points, risks and effort are below.
+- Shares cycle vocabulary with `tasks/timing-model.md` if both land.
 
 ## Goal
 

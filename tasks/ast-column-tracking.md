@@ -1,28 +1,22 @@
 # AST column tracking
 
+**Status:** proposed — needs go-ahead (open question in §7)
 **Priority:** 6
 **Difficulty:** 6
 
-**Ordering (2026-07-07):** do [`parser-leak-cleanup.md`](parser-leak-cleanup.md)
-first — its recommended fix deletes the PARSE_DIRECT codepath, and this task
-plumbs new state through the same scanner/constructor surface; sequencing
-avoids doing the column work against two parse modes.
+## BLUF
 
-**UNBLOCKED (2026-08-03):** `parser-leak-cleanup` is done and archived — the
-PARSE_DIRECT codepath was deleted, so the AST is now the only parse mode and
-this column work runs against a single surface.  Two things to know before
-starting: (1) `ast_node` now also carries a `char* src_text` field (the
-"NNN: text" source-line snapshot, captured in `new_node` and replayed by
-`emit_ast` for instruction annotations) — the column fields would join it
-there and be captured at the same point in `new_node`; (2) `emit_one` in
-`src/parser.c` sets `line_no = node->source_line` and
-`emit_source_set(node->src_text)` per node, which is the per-node
-position-replay pattern column info would extend.  Background:
-`tasks/reference/parser-ast-emit.md`.
+Record each AST node's source columns (`col_begin`/`col_end`) next to its line, so `-print-ast` /
+`-print-ast-json` and later the teaching mode can point at the exact operand. Done means every node
+carries its columns, the two AST printers show them, and every port prints the same fields.
 
-Track source column begin/end on every AST node, in addition to
-the existing per-node source line.  Print the column information
-as part of `-print-ast` and emit it in the JSON output.
+## Context
+
+- The parser is single-mode (parse to AST, then emit): `tasks/reference/parser-ast-emit.md`. The
+  column fields join `ast_node`'s `src_text` and are captured at the same point in `new_node`;
+  `emit_one` (`src/parser.c`) already replays `line_no` and `src_text` per node, and columns would
+  extend that pattern.
+- §1-§6 below hold the verified current state, the design options, risk, effort and verification.
 
 ## 1. Current state (already verified)
 
