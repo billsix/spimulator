@@ -1,23 +1,21 @@
 # Use the shared dispatch checker instead of spimulator's own
 
-**Status:** in progress (branch `dispatch-follow-ups`)
-**Priority:** 4
-**Difficulty:** 1
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
+**Branch:** `dispatch-follow-ups`
 
-## BLUF
+## Outcome
 
-`tools/dispatch_candidates.py` was generalized into a SHARED, VENDORED tool,
-`c_dispatch_check.py`. Its canonical copy is in github.com/billsix/runClaudeInContainer
-`tasks/reference/`; that repo's record is `tasks/archive/2026/11/11/shared-dispatch-checker.md`.
-Vendor it into `tools/` and delete the local one. Mark `run_spim`'s fetch chain with the accept
-comment (`dispatch-check: ok`, with the reason), so the tree checks clean (exit 0). Update the
-docs that name the old tool. Done means `python3 tools/c_dispatch_check.py BUILDDIR src` exits 0.
+`tools/c_dispatch_check.py` is the vendored, byte-identical copy of
+github.com/billsix/runClaudeInContainer `tasks/reference/c_dispatch_check.py`, and it replaced
+`tools/dispatch_candidates.py`. That repo's record is
+`tasks/archive/2026/11/11/shared-dispatch-checker.md`. Edit the canonical, then re-copy it here.
 
-## Context
+`run_spim`'s instruction-fetch chain (`src/run.c`), the deliberate leave-alone from
+`tasks/archive/2026/11/11/c-switch-and-else-if-chains.md`, carries the accept comment. Its reason
+is on the line above, so the marker line sits directly above the `if`, where the tool looks for
+it. `python3 tools/c_dispatch_check.py BUILDDIR src` exits 0: 17 units, 0 flagged, 1 accepted.
+`CLAUDE.md` names the command.
 
-- The vendored copy must stay byte-identical to the canonical. Edit it there, never here.
-- The fetch chain, in `src/run.c`, is the one deliberate leave-alone recorded in
-  `tasks/archive/2026/11/11/c-switch-and-else-if-chains.md`.
-- Not wired into a gate. Doing that would mean a clang build inside the image; propose it, don't
-  do it.
+The vendored copy is clean under this repo's ruff config, so `make format` leaves it byte-identical.
+It isn't wired into a gate, because that would need a clang build inside the image.
