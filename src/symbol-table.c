@@ -352,7 +352,7 @@ void flush_local_labels(bool issue_undef_warnings) {
 /* Return the address of SYMBOL or 0 if it is undefined. */
 
 mem_addr find_symbol_address(const char* symbol) {
-  label* l = lookup_label(symbol);
+  label* const l = lookup_label(symbol);
 
   if (l == nullptr || l->addr == 0)
     return 0;

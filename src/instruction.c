@@ -279,7 +279,7 @@ static void i_type_inst_full_word(int opcode, int rt, int rs,
         }
         /* lower_bits_of_expr copies its argument, so the const_imm_expr
            node it wraps is not adopted by anyone — free the intermediate. */
-        imm_expr* low_expr = const_imm_expr(low);
+        imm_expr* const low_expr = const_imm_expr(low);
         i_type_inst_free(opcode, rt, 1, lower_bits_of_expr(low_expr));
         free(low_expr);
       } else {
@@ -559,8 +559,8 @@ static void sort_name_table(void) {
    required by qsort. */
 
 static int compare_pair_value(const void* a, const void* b) {
-  const name_val_val* p1 = a;
-  const name_val_val* p2 = b;
+  const name_val_val* const p1 = a;
+  const name_val_val* const p2 = b;
   if (p1->value1 < p2->value1)
     return (-1);
   else if (p1->value1 > p2->value1)
@@ -572,7 +572,7 @@ static int compare_pair_value(const void* a, const void* b) {
 /* Print the instruction stored at the memory ADDRESS. */
 
 void print_inst(mem_addr addr) {
-  char* inst_str = inst_to_string(addr);
+  char* const inst_str = inst_to_string(addr);
   write_output(message_out, "%s", inst_str);
   free(inst_str);
 }
@@ -582,7 +582,7 @@ void print_inst(mem_addr addr) {
    owned by the static name_tbl and must not be freed. */
 const char* inst_op_name(const mips_instruction* instruction) {
   if (instruction == nullptr) return "<null>";
-  const name_val_val* entry = map_int_to_name_val_val(
+  const name_val_val* const entry = map_int_to_name_val_val(
       name_tbl, sizeof(name_tbl) / sizeof(name_val_val), OPCODE(instruction));
   return entry ? entry->name : "<unknown>";
 }
@@ -591,7 +591,7 @@ const char* inst_op_name(const mips_instruction* instruction) {
    return its mnemonic — used by the AST builder to label AST_PSEUDO
    nodes. */
 const char* op_token_name(int op_token) {
-  const name_val_val* entry = map_int_to_name_val_val(
+  const name_val_val* const entry = map_int_to_name_val_val(
       name_tbl, sizeof(name_tbl) / sizeof(name_val_val), op_token);
   return entry ? entry->name : "<unknown>";
 }
@@ -599,7 +599,7 @@ const char* op_token_name(int op_token) {
 char* inst_to_string(mem_addr addr) {
   /* Clear the flag first: mem_read_inst sets it on a bad address. */
   exception_occurred = false;
-  mips_instruction* instruction = mem_read_inst(addr);
+  mips_instruction* const instruction = mem_read_inst(addr);
 
   if (exception_occurred) {
     error("Can't print instruction not in text segment (0x%08x)\n", addr);
@@ -960,7 +960,7 @@ mips_instruction* set_breakpoint(mem_addr addr) {
     break_inst = make_r_type_inst(TOK_BREAK_OPCODE, 1, 0, 0);
 
   exception_occurred = false;
-  mips_instruction* old_inst = mem_read_inst(addr);
+  mips_instruction* const old_inst = mem_read_inst(addr);
   if (old_inst == break_inst) return (nullptr);
 
   mem_write_inst(addr, break_inst);
@@ -1290,7 +1290,7 @@ mips_instruction* inst_decode(int32_t val) {
              || a_opcode == 0x4c000000)
     a_opcode |= (val & 0x03e00000);
 
-  const name_val_val* entry = map_int_to_name_val_val(
+  const name_val_val* const entry = map_int_to_name_val_val(
       a_opcode_tbl, sizeof(a_opcode_tbl) / sizeof(name_val_val), a_opcode);
   if (entry == nullptr)
     return (mk_r_inst(val, 0, 0, 0, 0, 0)); /* Invalid instruction */
@@ -1453,7 +1453,7 @@ static mips_instruction* mk_j_inst(int32_t val, int opcode, int target) {
 /* Code to test encode/decode of instructions. */
 
 void test_assembly(mips_instruction* instruction) {
-  mips_instruction* new_inst = inst_decode(inst_encode(instruction));
+  mips_instruction* const new_inst = inst_decode(inst_encode(instruction));
 
   inst_cmp(instruction, new_inst);
   free_inst(new_inst);

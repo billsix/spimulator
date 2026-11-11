@@ -288,7 +288,7 @@ static void free_imm_array(imm_expr** arr, int n) {
 
 void ast_free(ast_node* node) {
   while (node != nullptr) {
-    ast_node* next_sibling = node->next;
+    ast_node* const next_sibling = node->next;
 
     switch (node->kind) {
       case AST_INST_R:
@@ -451,9 +451,9 @@ static void print_node(const ast_node* node, FILE* out, int depth) {
     case AST_DATA_BYTE:
     case AST_DATA_HALF:
     case AST_DATA_WORD: {
-      const char* tag = node->kind == AST_DATA_BYTE   ? "DATA_BYTE"
-                        : node->kind == AST_DATA_HALF ? "DATA_HALF"
-                                                      : "DATA_WORD";
+      const char* const tag = node->kind == AST_DATA_BYTE   ? "DATA_BYTE"
+                              : node->kind == AST_DATA_HALF ? "DATA_HALF"
+                                                            : "DATA_WORD";
       fprintf(out, "%s count=%d values=[", tag, node->u.data_int.count);
       for (int i = 0; i < node->u.data_int.count; i++) {
         if (i > 0) fputs(", ", out);
@@ -465,7 +465,7 @@ static void print_node(const ast_node* node, FILE* out, int depth) {
 
     case AST_DATA_FLOAT:
     case AST_DATA_DOUBLE: {
-      const char* tag =
+      const char* const tag =
           node->kind == AST_DATA_FLOAT ? "DATA_FLOAT" : "DATA_DOUBLE";
       fprintf(out, "%s count=%d values=[", tag, node->u.data_fp.count);
       for (int i = 0; i < node->u.data_fp.count; i++) {
@@ -500,10 +500,10 @@ static void print_node(const ast_node* node, FILE* out, int depth) {
     case AST_DIR_DATA:
     case AST_DIR_KTEXT:
     case AST_DIR_KDATA: {
-      const char* tag = node->kind == AST_DIR_TEXT    ? "DIR_TEXT"
-                        : node->kind == AST_DIR_DATA  ? "DIR_DATA"
-                        : node->kind == AST_DIR_KTEXT ? "DIR_KTEXT"
-                                                      : "DIR_KDATA";
+      const char* const tag = node->kind == AST_DIR_TEXT    ? "DIR_TEXT"
+                              : node->kind == AST_DIR_DATA  ? "DIR_DATA"
+                              : node->kind == AST_DIR_KTEXT ? "DIR_KTEXT"
+                                                            : "DIR_KDATA";
       if (node->u.dir_seg.has_start_addr)
         fprintf(out, "%s start=0x%08x\n", tag, node->u.dir_seg.start_addr);
       else
@@ -525,7 +525,7 @@ static void print_node(const ast_node* node, FILE* out, int depth) {
 
     case AST_DIR_EXTERN:
     case AST_DIR_COMM: {
-      const char* tag =
+      const char* const tag =
           node->kind == AST_DIR_EXTERN ? "DIR_EXTERN" : "DIR_COMM";
       fprintf(out, "%s name=%s size=%d\n", tag, node->u.dir_named_size.name,
               node->u.dir_named_size.size);

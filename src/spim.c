@@ -87,7 +87,7 @@ static char* command_generator(const char* text, int state) {
     text_len = strlen(text);
   }
   while (spim_commands[idx] != nullptr) {
-    const char* s = spim_commands[idx++];
+    const char* const s = spim_commands[idx++];
     if (strncmp(s, text, text_len) == 0) return strdup(s);
   }
   return nullptr;
@@ -102,7 +102,7 @@ static char* suggestion_generator(const char* text, int state) {
   }
   size_t n = explain_suggestion_count();
   while (idx < n) {
-    const char* s = explain_suggestion(idx++);
+    const char* const s = explain_suggestion(idx++);
     if (s == nullptr) continue;
     /* Suggestions are stored as full commands ("print $a0"). When the
        student has already typed `print ` and hits Tab, libedit passes
@@ -111,7 +111,7 @@ static char* suggestion_generator(const char* text, int state) {
        so the operand portion still matches. Degrades gracefully if
        there's no space: tail == s, prefix check runs on the whole. */
     const char* tail = s;
-    const char* space = strchr(s, ' ');
+    const char* const space = strchr(s, ' ');
     if (space != nullptr) tail = space + 1;
     if (strncmp(tail, text, text_len) == 0) return strdup(tail);
   }
@@ -166,7 +166,7 @@ static void label_collect_cb(const label* l, [[maybe_unused]] void* ctx) {
   if (label_names_cache_n >= label_names_cache_cap) {
     size_t new_cap =
         label_names_cache_cap == 0 ? 32 : label_names_cache_cap * 2;
-    const char** new_arr =
+    const char** const new_arr =
         realloc(label_names_cache, new_cap * sizeof(*label_names_cache));
     if (new_arr == nullptr) return;
     label_names_cache = new_arr;
@@ -185,7 +185,7 @@ static char* label_generator(const char* text, int state) {
     text_len = strlen(text);
   }
   while (idx < label_names_cache_n) {
-    const char* s = label_names_cache[idx++];
+    const char* const s = label_names_cache[idx++];
     if (strncmp(s, text, text_len) == 0) return strdup(s);
   }
   return nullptr;
@@ -352,7 +352,7 @@ static void listing_observer(const asm_event* e) {
               e->u.label_def.global ? "  (global)" : "");
       break;
     case AE_TEXT_INST: {
-      char* disasm = inst_to_string(e->addr);
+      char* const disasm = inst_to_string(e->addr);
       fprintf(listing_file, "line %4d  text   0x%08x  %-32s  0x%08x\n",
               e->source_line, e->addr, disasm ? disasm : "",
               e->u.text_inst.encoding);
@@ -954,7 +954,7 @@ static bool parse_spim_command(bool redo) {
       initialize_run_stack(program_argc, program_argv);
       console_to_program();
       if (addr != 0) {
-        char* undefs = undefined_symbol_string();
+        char* const undefs = undefined_symbol_string();
         if (undefs != nullptr) {
           write_output(message_out, "The following symbols are undefined:\n");
           write_output(message_out, "%s", undefs);
@@ -1123,9 +1123,9 @@ static bool parse_spim_command(bool redo) {
 
       /* Stash argv[0] before freeing the prior vector — program_argv
          may point into the prior owned_argv. */
-      char* argv0 = (program_argv != nullptr && program_argc >= 1)
-                        ? program_argv[0]
-                        : (char*)"<repl>";
+      char* const argv0 = (program_argv != nullptr && program_argc >= 1)
+                              ? program_argv[0]
+                              : (char*)"<repl>";
 
       if (owned_strs != nullptr) {
         for (int i = 0; i < owned_strs_len; i++) free(owned_strs[i]);
@@ -1274,7 +1274,7 @@ static bool parse_spim_command(bool redo) {
         return (0);
       }
 
-      FILE* fp = fopen(filename, "wbt");
+      FILE* const fp = fopen(filename, "wbt");
       if (fp == nullptr) {
         perror(filename);
         return (0);
@@ -1476,7 +1476,7 @@ static bool write_assembled_code(const char* program_name) {
   FILE* fp = nullptr;
   {
     const unsigned long filename_len = strlen(program_name) + 5;
-    char* filename = (char*)xmalloc(filename_len);
+    char* const filename = (char*)xmalloc(filename_len);
     strlcpy(filename, program_name, filename_len);
     strlcat(filename, ".out", filename_len);
 
@@ -1564,7 +1564,7 @@ void fatal_error(const char* fmt, ...) {
 
 void write_output(port fp, const char* fmt, ...) {
   va_list args;
-  FILE* f = fp.f != nullptr ? fp.f : stdout;
+  FILE* const f = fp.f != nullptr ? fp.f : stdout;
   bool restore_console_to_program = false;
 
   va_start(args, fmt);
@@ -1755,7 +1755,7 @@ static void dump_data_seg(bool kernel_also) {
   }
 
   {
-    FILE* fp = fopen("data.asm", "w");
+    FILE* const fp = fopen("data.asm", "w");
     fprintf(fp, "%s", ss_to_string(&ss));
     fclose(fp);
   }
@@ -1779,7 +1779,7 @@ static void dump_text_seg(bool kernel_also) {
     format_insts(&ss, TEXT_BOT, text_top);
   }
 
-  FILE* fp = fopen("text.asm", "w");
+  FILE* const fp = fopen("text.asm", "w");
   fprintf(fp, "%s", ss_to_string(&ss));
   fclose(fp);
 }

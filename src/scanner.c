@@ -44,7 +44,7 @@ int register_name_to_number(const char* name) {
   } else if (c1 == 'f' && c2 >= '0' && c2 <= '9') {
     return atoi(name + 1);
   } else {
-    const name_val_val* entry = map_string_to_name_val_val(
+    const name_val_val* const entry = map_string_to_name_val_val(
         register_tbl, sizeof(register_tbl) / sizeof(name_val_val), name);
     return entry ? entry->value1 : -1;
   }
@@ -63,7 +63,7 @@ static const name_val_val keyword_tbl[] = {
 };
 
 static int check_keyword(const char* id, bool allow_pseudo_ops) {
-  const name_val_val* entry = map_string_to_name_val_val(
+  const name_val_val* const entry = map_string_to_name_val_val(
       keyword_tbl, sizeof(keyword_tbl) / sizeof(name_val_val), id);
   if (entry == nullptr) return 0;
   if (!allow_pseudo_ops && entry->value2 == PSEUDO_OP) return 0;
@@ -297,10 +297,10 @@ static int scan_escape_char(const char** pp) {
 /* Decode a string literal — produces a fresh heap-allocated
    NUL-terminated decoded buffer. */
 static char* decode_string(const char* src, int len) {
-  char* dst = (char*)xmalloc((size_t)(len + 1));
+  char* const dst = (char*)xmalloc((size_t)(len + 1));
   char* d = dst;
   const char* s = src;
-  const char* end = src + len;
+  const char* const end = src + len;
   while (s < end) {
     if (*s != '\\') {
       *d++ = *s++;
@@ -409,7 +409,7 @@ static int scan_identifier(scan_token* out, bool force_id) {
   }
 
   /* Defined-constant label? */
-  label* l = label_is_defined(id_buf);
+  label* const l = label_is_defined(id_buf);
   if (l != nullptr && l->const_flag) {
     *out =
         (scan_token){.type = TOK_INT, .val.i = (int)l->addr, .present = true};
@@ -452,7 +452,7 @@ static int scan_register(scan_token* out) {
   }
 
   /* Fall back to identifier-or-constant-label behavior. */
-  label* l = label_is_defined(reg_buf);
+  label* const l = label_is_defined(reg_buf);
   if (l != nullptr && l->const_flag)
     *out =
         (scan_token){.type = TOK_INT, .val.i = (int)l->addr, .present = true};
@@ -496,7 +496,7 @@ static int scan_char(scan_token* out) {
     /* scan_escape_char wants a pointer that advances; we'll
        use a small staging area. */
     const char* p = &line_buf[line_pos];
-    const char* p0 = p;
+    const char* const p0 = p;
     v = scan_escape_char(&p);
     /* Advance line_pos by however many chars scan_escape_char ate. */
     line_pos += (int)(p - p0);
@@ -756,7 +756,7 @@ void scanner_pop_source(void) {
        before scanner_push_source ran. */
     return;
   }
-  scanner_snapshot* s = &scanner_stack[--scanner_stack_depth];
+  scanner_snapshot* const s = &scanner_stack[--scanner_stack_depth];
   input_file = s->input_file;
   memcpy(line_buf, s->line_buf, sizeof(line_buf));
   line_pos = s->line_pos;
@@ -776,7 +776,7 @@ void scanner_pop_source(void) {
    indented and newline-terminated, for the parse-error printer. */
 char* erroneous_line(void) {
   size_t len = strlen(current_line_buf);
-  char* r = (char*)xmalloc((size_t)(int)(len + 16));
+  char* const r = (char*)xmalloc((size_t)(int)(len + 16));
   snprintf(r, len + 16, "\t  %s\n", current_line_buf);
   return r;
 }
@@ -788,7 +788,7 @@ char* source_line(void) {
   if (!current_line_saved) return nullptr;
   size_t len = strlen(current_line_buf);
   /* "NNN: " prefix — up to 10 digits + ": " + line + NUL */
-  char* r = (char*)xmalloc((size_t)(int)(len + 16));
+  char* const r = (char*)xmalloc((size_t)(int)(len + 16));
   snprintf(r, len + 16, "%d: %s", current_line_no_saved, current_line_buf);
   return r;
 }

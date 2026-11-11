@@ -360,7 +360,7 @@ static void bad_text_write(mem_addr addr, const mips_instruction* instruction) {
 /* The encoding of the user-text word holding ADDR, or 0 for a word no
    instruction was stored in (as a word load of it reads). */
 static mem_word text_word_at(mem_addr addr) {
-  mips_instruction* instruction = text_seg[(addr - TEXT_BOT) >> 2];
+  mips_instruction* const instruction = text_seg[(addr - TEXT_BOT) >> 2];
   return instruction == nullptr ? 0 : ENCODING(instruction);
 }
 
@@ -390,7 +390,7 @@ static mem_word bad_mem_read(mem_addr addr, int mask) {
         return (0xffff & tmp);
 
       case 0x3: {
-        mips_instruction* instruction = text_seg[(addr - TEXT_BOT) >> 2];
+        mips_instruction* const instruction = text_seg[(addr - TEXT_BOT) >> 2];
         if (instruction == nullptr)
           return 0;
         else

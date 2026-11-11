@@ -169,15 +169,33 @@ def base_id(node: Node) -> str | None:
 
 
 def is_const(qual_type: str) -> bool:
-    """Whether a clang qualType string is already const at the top or pointee level.
+    """Whether a binding of a clang qualType is already const itself (top-level).
+
+    For a pointer that is a trailing ``const`` (``char *const``); a leading
+    one (``const char *``) is only the pointee's. For any other type a leading
+    or trailing ``const`` is top-level.
 
     Args:
         qual_type: the type as clang prints it, e.g. ``const char *``.
 
     Returns:
-        bool: True when the type starts or ends with ``const``.
+        bool: True when the binding itself cannot be assigned.
     """
-    return qual_type.startswith("const ") or qual_type.rstrip().endswith("const")
+    return qual_type.rstrip().endswith("const") or (
+        "*" not in qual_type and qual_type.startswith("const ")
+    )
+
+
+def is_pointee_const(qual_type: str) -> bool:
+    """Whether a pointer parameter's type already points to const.
+
+    Args:
+        qual_type: the parameter type as clang prints it.
+
+    Returns:
+        bool: True when the type starts with ``const``.
+    """
+    return qual_type.startswith("const ")
 
 
 def scan_function(function: Node) -> list[tuple[str, Node]]:
@@ -239,7 +257,7 @@ def scan_function(function: Node) -> list[tuple[str, Node]]:
         for pid, p in parameters.items()
         if "*" in p["type"]["qualType"]
         and "(*)" not in p["type"]["qualType"]
-        and not is_const(p["type"]["qualType"])
+        and not is_pointee_const(p["type"]["qualType"])
         and pid not in written_through
     ]
     return local_candidates + parameter_candidates

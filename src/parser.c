@@ -213,7 +213,7 @@ static void data_int_begin(ast_kind kind) {
 static void data_int_push(int value) {
   if (data_int_count == data_int_cap) {
     data_int_cap *= 2;
-    imm_expr** grow =
+    imm_expr** const grow =
         (imm_expr**)xmalloc((size_t)data_int_cap * sizeof(imm_expr*));
     memcpy(grow, data_int_buf, (size_t)data_int_count * sizeof(imm_expr*));
     free(data_int_buf);
@@ -222,7 +222,7 @@ static void data_int_push(int value) {
   /* If parse_factor stashed an unresolved label for this expression
      (deferred mode), wire it into the imm_expr so emit_ast can
      register the use against the correct PC. */
-  const char* sym_name =
+  const char* const sym_name =
       expr_unresolved_label != nullptr ? expr_unresolved_label->name : nullptr;
   data_int_buf[data_int_count++] = make_imm_expr(value, (char*)sym_name, false);
   expr_unresolved_label = nullptr;
@@ -233,7 +233,7 @@ static void data_int_finalize(void) {
     return;
   }
   /* Hand off the array as-is; ast_node owns it now. */
-  imm_expr** exprs =
+  imm_expr** const exprs =
       (imm_expr**)xmalloc((size_t)data_int_count * sizeof(imm_expr*));
   memcpy(exprs, data_int_buf, (size_t)data_int_count * sizeof(imm_expr*));
   ast_node* node;
@@ -269,7 +269,7 @@ static void data_fp_begin(ast_kind kind) {
 static void data_fp_push(double value) {
   if (data_fp_count == data_fp_cap) {
     data_fp_cap *= 2;
-    double* grow = (double*)xmalloc((size_t)data_fp_cap * sizeof(double));
+    double* const grow = (double*)xmalloc((size_t)data_fp_cap * sizeof(double));
     memcpy(grow, data_fp_buf, (size_t)data_fp_count * sizeof(double));
     free(data_fp_buf);
     data_fp_buf = grow;
@@ -281,7 +281,8 @@ static void data_fp_finalize(void) {
   if (data_fp_count == 0) {
     return;
   }
-  double* values = (double*)xmalloc((size_t)data_fp_count * sizeof(double));
+  double* const values =
+      (double*)xmalloc((size_t)data_fp_count * sizeof(double));
   memcpy(values, data_fp_buf, (size_t)data_fp_count * sizeof(double));
   ast_node* node = (data_int_kind == AST_DATA_FLOAT)
                        ? ast_make_data_float(data_fp_count, values)
@@ -386,7 +387,7 @@ static void cons_label(label* l) {
 /* Resolve and free. */
 static void clear_labels(void) {
   while (this_line_labels != nullptr) {
-    label_cell* next = this_line_labels->next;
+    label_cell* const next = this_line_labels->next;
     resolve_label_uses(this_line_labels->label);
     free(this_line_labels);
     this_line_labels = next;
@@ -509,8 +510,8 @@ static int parse_factor(void) {
   }
   if (scanner_peek() == TOK_ID) {
     scanner_advance();
-    char* sym_name = (char*)scan_value.p;
-    label* l = lookup_label(sym_name);
+    char* const sym_name = (char*)scan_value.p;
+    label* const l = lookup_label(sym_name);
     if (l->addr == 0) {
       /* Forward reference.  current_data_pc isn't the right address at
          parse time (emission is deferred to emit_ast), so stash the
@@ -581,11 +582,11 @@ static imm_expr* parse_imm32(void) {
   /* TOK_ID lookahead: maybe followed by + or - */
   if (scanner_peek() == TOK_ID) {
     scanner_advance();
-    char* sym = (char*)scan_value.p;
+    char* const sym = (char*)scan_value.p;
     if (scanner_peek() == '+') {
       scanner_advance();
       int off = parse_abs_addr();
-      imm_expr* r = make_imm_expr(off, sym, false);
+      imm_expr* const r = make_imm_expr(off, sym, false);
       /* make_imm_expr copies sym internally, so free our local. */
       free(sym);
       return r;
@@ -593,11 +594,11 @@ static imm_expr* parse_imm32(void) {
     if (scanner_peek() == '-') {
       scanner_advance();
       int off = parse_abs_addr();
-      imm_expr* r = make_imm_expr(-off, sym, false);
+      imm_expr* const r = make_imm_expr(-off, sym, false);
       free(sym);
       return r;
     }
-    imm_expr* r = make_imm_expr(0, sym, false);
+    imm_expr* const r = make_imm_expr(0, sym, false);
     /* make_imm_expr does not retain `sym`; this frame owns and frees it. */
     free(sym);
     return r;
@@ -624,13 +625,13 @@ static imm_expr* parse_imm32(void) {
 
 /* IMM16, UIMM16 — IMM32 plus range check */
 static imm_expr* parse_imm16(void) {
-  imm_expr* e = parse_imm32();
+  imm_expr* const e = parse_imm32();
   check_imm_range(e, IMM_MIN, IMM_MAX);
   return e;
 }
 
 static imm_expr* parse_uimm16(void) {
-  imm_expr* e = parse_imm32();
+  imm_expr* const e = parse_imm32();
   check_uimm_range(e, UIMM_MIN, UIMM_MAX);
   return e;
 }
@@ -647,8 +648,8 @@ static imm_expr* parse_label(void) {
     return make_imm_expr(0, nullptr, true);
   }
   scanner_advance();
-  char* sym = (char*)scan_value.p;
-  imm_expr* r = make_imm_expr(-(int)current_text_pc(), sym, true);
+  char* const sym = (char*)scan_value.p;
+  imm_expr* const r = make_imm_expr(-(int)current_text_pc(), sym, true);
   /* make_imm_expr looks `sym` up into a label* and does not retain the
      string, so this frame owns it and must free it. */
   free(sym);
@@ -677,8 +678,8 @@ static addr_expr* parse_address(void) {
       scanner_advance(); /* + */
       scanner_force_identifier();
       scanner_advance();
-      char* sym = (char*)scan_value.p;
-      addr_expr* r = make_addr_expr(imm, sym, 0);
+      char* const sym = (char*)scan_value.p;
+      addr_expr* const r = make_addr_expr(imm, sym, 0);
       /* make_addr_expr does not retain `sym` (see instruction.c); free it,
          matching the TOK_ID path below. */
       free(sym);
@@ -696,7 +697,7 @@ static addr_expr* parse_address(void) {
   /* TOK_ID [ '+' ABS_ADDR | '-' ABS_ADDR ] [ '(' REGISTER ')' ] */
   if (scanner_peek() == TOK_ID) {
     scanner_advance();
-    char* sym = (char*)scan_value.p;
+    char* const sym = (char*)scan_value.p;
     int off = 0;
     if (scanner_peek() == '+') {
       scanner_advance();
@@ -711,7 +712,7 @@ static addr_expr* parse_address(void) {
       reg = parse_register();
       expect(')', "Expected ')'");
     }
-    addr_expr* r = make_addr_expr(off, sym, reg);
+    addr_expr* const r = make_addr_expr(off, sym, reg);
     free(sym);
     return r;
   }
@@ -763,7 +764,7 @@ static void parse_r3(int op) {
       int rt = parse_register();
       emit_r(op, rd, rs, rt);
     } else {
-      imm_expr* imm = parse_imm32();
+      imm_expr* const imm = parse_imm32();
       emit_i_free(TOK_ORI_OPCODE, 1, 0, imm);
       emit_r(op, rd, rs, 1);
     }
@@ -773,7 +774,7 @@ static void parse_r3(int op) {
     /* SUB_OPS: 3-reg, 3-with-imm, or 2-with-imm.  Convert imm
        form to addi/addiu with negated value. */
     if (scanner_peek() != TOK_REG) {
-      imm_expr* imm = parse_imm32();
+      imm_expr* const imm = parse_imm32();
       int val = eval_imm_expr(imm);
       emit_i(op == TOK_SUB_OPCODE ? TOK_ADDI_OPCODE : TOK_ADDIU_OPCODE, rd, rd,
              make_imm_expr(-val, nullptr, false));
@@ -785,7 +786,7 @@ static void parse_r3(int op) {
       int rt = parse_register();
       emit_r(op, rd, rs, rt);
     } else {
-      imm_expr* imm = parse_imm32();
+      imm_expr* const imm = parse_imm32();
       int val = eval_imm_expr(imm);
       emit_i(op == TOK_SUB_OPCODE ? TOK_ADDI_OPCODE : TOK_ADDIU_OPCODE, rd, rs,
              make_imm_expr(-val, nullptr, false));
@@ -796,7 +797,7 @@ static void parse_r3(int op) {
   if (op_has_imm_form(op)) {
     /* Two-operand form: <op> DEST, IMM */
     if (scanner_peek() != TOK_REG) {
-      imm_expr* imm = parse_imm32();
+      imm_expr* const imm = parse_imm32();
       emit_i_free(op_to_imm_op(op), rd, rd, imm);
       return;
     }
@@ -807,7 +808,7 @@ static void parse_r3(int op) {
       int rt = parse_register();
       emit_r(op, rd, rs, rt);
     } else {
-      imm_expr* imm = parse_imm32();
+      imm_expr* const imm = parse_imm32();
       emit_i_free(op_to_imm_op(op), rd, rs, imm);
     }
     return;
@@ -851,7 +852,7 @@ static void parse_i2(int op) {
   int rs = scanner_peek() == TOK_REG ? parse_register() : rt;
   /* andi/ori/xori take unsigned; addi/addiu/slti signed.  The
      range check happens inside parse_imm16/parse_uimm16. */
-  imm_expr* imm =
+  imm_expr* const imm =
       (op == TOK_ANDI_OPCODE || op == TOK_ORI_OPCODE || op == TOK_XORI_OPCODE)
           ? parse_uimm16()
           : parse_imm16();
@@ -861,14 +862,14 @@ static void parse_i2(int op) {
 /* RT_IMM_INST: <op> DEST, UIMM16 (lui) */
 static void parse_i1t(int op) {
   int rt = parse_register();
-  imm_expr* imm = parse_uimm16();
+  imm_expr* const imm = parse_uimm16();
   emit_i_free(op, rt, 0, imm);
 }
 
 /* RT_ADDR_INST: <op> DEST, ADDRESS — loads and stores */
 static void parse_i2a(int op) {
   int rt = parse_register();
-  addr_expr* addr = parse_address();
+  addr_expr* const addr = parse_address();
   emit_i(op, rt, addr_expr_reg(addr), addr_expr_imm(addr));
   /* Bison frees the addr_expr's inner imm + the addr_expr; do the
      same.  spim runtime exposes free_imm_expr but not
@@ -884,12 +885,12 @@ static void parse_b2(int op) {
   int src1 = parse_register();
   if (scanner_peek() == TOK_REG) {
     int src2 = parse_register();
-    imm_expr* target = parse_label();
+    imm_expr* const target = parse_label();
     emit_i_free(op, src2, src1, target);
   } else {
     /* Immediate form */
-    imm_expr* imm = parse_imm32();
-    imm_expr* target = parse_label();
+    imm_expr* const imm = parse_imm32();
+    imm_expr* const target = parse_label();
     if (is_zero_imm(imm)) {
       /* Special case: comparing against literal 0 → use $0 directly */
       emit_i(op, src1, 0, target);
@@ -906,7 +907,7 @@ static void parse_b2(int op) {
 /* BRANCH_RS_LABEL_INST: <op> SRC1, LABEL (bgez, bltz, etc.) */
 static void parse_b1(int op) {
   int rs = parse_register();
-  imm_expr* target = parse_label();
+  imm_expr* const target = parse_label();
   emit_i_free(op, 0, rs, target);
 }
 
@@ -937,7 +938,7 @@ static void parse_j(int op) {
     return;
   }
   /* J_OPS LABEL — absolute-target jump */
-  imm_expr* target = parse_label();
+  imm_expr* const target = parse_label();
   if (op == TOK_J_OPCODE || op == TOK_JR_OPCODE)
     emit_j(TOK_J_OPCODE, target);
   else if (op == TOK_JAL_OPCODE || op == TOK_JALR_OPCODE)
@@ -993,7 +994,7 @@ static void parse_dir_globl(void) {
     return;
   }
   scanner_advance();
-  char* sym = (char*)scan_value.p;
+  char* const sym = (char*)scan_value.p;
   emit_dir_globl(sym);
   free(sym);
 }
@@ -1011,7 +1012,7 @@ static void parse_dir_extern(void) {
     return;
   }
   scanner_advance();
-  char* sym = (char*)scan_value.p;
+  char* const sym = (char*)scan_value.p;
   int sz = parse_expression();
   emit_dir_extern(sym, sz);
   free(sym);
@@ -1024,7 +1025,7 @@ static void parse_dir_comm(void) {
     return;
   }
   scanner_advance();
-  char* sym = (char*)scan_value.p;
+  char* const sym = (char*)scan_value.p;
   int sz = parse_expression();
   emit_dir_comm(sym, sz);
   free(sym);
@@ -1080,7 +1081,7 @@ static void parse_fp_expr_list(void) {
       return;
     }
     scanner_advance();
-    double* val = (double*)scan_value.p;
+    double* const val = (double*)scan_value.p;
     data_fp_push(*val);
     if (scanner_peek() == TOK_NL || scanner_peek() == TOK_EOF) break;
   }
@@ -1126,7 +1127,7 @@ static void parse_string_list(void) {
       return;
     }
     scanner_advance();
-    char* s = (char*)scan_value.p;
+    char* const s = (char*)scan_value.p;
     int len = (int)strlen(s);
     if (text_dir) {
       parse_error_at("Can't put data in text segment");
@@ -1194,7 +1195,7 @@ static void parse_pseudo(int op) {
   int saved_line = line_no;
   ast_node* pseudo_node = ast_make_pseudo(op_token_name(op));
   pseudo_node->source_line = saved_line;
-  ast_node* saved_pseudo = current_pseudo;
+  ast_node* const saved_pseudo = current_pseudo;
   current_pseudo = pseudo_node;
 
   do_parse_pseudo(op);
@@ -1208,7 +1209,7 @@ static void do_parse_pseudo(int op) {
     case TOK_LI_PSEUDO_OP: {
       /* li DEST, IMM32  →  ori DEST, $0, imm */
       int rt = parse_register();
-      imm_expr* imm = parse_imm32();
+      imm_expr* const imm = parse_imm32();
       emit_i_free(TOK_ORI_OPCODE, rt, 0, imm);
       break;
     }
@@ -1261,7 +1262,7 @@ static void do_parse_pseudo(int op) {
         }
         emit_r(TOK_OR_OPCODE, rd, rd, 1);
       } else {
-        imm_expr* imm = parse_imm32();
+        imm_expr* const imm = parse_imm32();
         int dist = eval_imm_expr(imm);
         check_imm_range(imm, 0, 31);
         if (op == TOK_ROR_PSEUDO_OP) {
@@ -1292,7 +1293,7 @@ static void do_parse_pseudo(int op) {
       if (scanner_peek() == TOK_REG) {
         rt = parse_register();
       } else {
-        imm_expr* imm = parse_imm32();
+        imm_expr* const imm = parse_imm32();
         if (!is_zero_imm(imm)) {
           emit_i(TOK_ORI_OPCODE, 1, 0, imm);
           rt = 1;
@@ -1348,7 +1349,7 @@ static void do_parse_pseudo(int op) {
         int rt = parse_register();
         div_inst(op, rd, rs, rt, 0);
       } else {
-        imm_expr* imm = parse_imm32();
+        imm_expr* const imm = parse_imm32();
         if (is_zero_imm(imm)) {
           parse_error_at("Divide by zero");
         } else {
@@ -1367,7 +1368,7 @@ static void do_parse_pseudo(int op) {
         int rt = parse_register();
         mult_inst(op, rd, rs, rt);
       } else {
-        imm_expr* imm = parse_imm32();
+        imm_expr* const imm = parse_imm32();
         if (is_zero_imm(imm)) {
           /* Optimize: n * 0 == 0 */
           emit_i_free(TOK_ORI_OPCODE, rd, 0, imm);
@@ -1437,7 +1438,7 @@ static void do_parse_pseudo(int op) {
     case TOK_L_D_PSEUDO_OP: {
       /* l.d F_DEST ADDRESS  →  ldc1. */
       int fr = parse_fp_register();
-      addr_expr* addr = parse_address();
+      addr_expr* const addr = parse_address();
       emit_i(TOK_LDC1_OPCODE, fr, addr_expr_reg(addr), addr_expr_imm(addr));
       free(addr_expr_imm(addr));
       free(addr);
@@ -1446,7 +1447,7 @@ static void do_parse_pseudo(int op) {
     case TOK_L_S_PSEUDO_OP: {
       /* l.s F_DEST ADDRESS  →  lwc1. */
       int fr = parse_fp_register();
-      addr_expr* addr = parse_address();
+      addr_expr* const addr = parse_address();
       emit_i(TOK_LWC1_OPCODE, fr, addr_expr_reg(addr), addr_expr_imm(addr));
       free(addr_expr_imm(addr));
       free(addr);
@@ -1455,7 +1456,7 @@ static void do_parse_pseudo(int op) {
     case TOK_S_D_PSEUDO_OP: {
       /* s.d F_SRC1 ADDRESS  →  sdc1. */
       int fr = parse_fp_register();
-      addr_expr* addr = parse_address();
+      addr_expr* const addr = parse_address();
       emit_i(TOK_SDC1_OPCODE, fr, addr_expr_reg(addr), addr_expr_imm(addr));
       free(addr_expr_imm(addr));
       free(addr);
@@ -1464,7 +1465,7 @@ static void do_parse_pseudo(int op) {
     case TOK_S_S_PSEUDO_OP: {
       /* s.s F_SRC1 ADDRESS  →  swc1. */
       int fr = parse_fp_register();
-      addr_expr* addr = parse_address();
+      addr_expr* const addr = parse_address();
       emit_i(TOK_SWC1_OPCODE, fr, addr_expr_reg(addr), addr_expr_imm(addr));
       free(addr_expr_imm(addr));
       free(addr);
@@ -1474,7 +1475,7 @@ static void do_parse_pseudo(int op) {
       /* ld DEST ADDRESS  — load doubleword pseudo, expands to
          two lw instructions */
       int rt = parse_register();
-      addr_expr* addr = parse_address();
+      addr_expr* const addr = parse_address();
       emit_i(TOK_LW_OPCODE, rt, addr_expr_reg(addr), addr_expr_imm(addr));
       emit_i_free(TOK_LW_OPCODE, rt + 1, addr_expr_reg(addr),
                   incr_expr_offset(addr_expr_imm(addr), 4));
@@ -1485,7 +1486,7 @@ static void do_parse_pseudo(int op) {
     case TOK_SD_PSEUDO_OP: {
       /* sd SRC1 ADDRESS — store doubleword pseudo. */
       int rt = parse_register();
-      addr_expr* addr = parse_address();
+      addr_expr* const addr = parse_address();
       emit_i(TOK_SW_OPCODE, rt, addr_expr_reg(addr), addr_expr_imm(addr));
       emit_i_free(TOK_SW_OPCODE, rt + 1, addr_expr_reg(addr),
                   incr_expr_offset(addr_expr_imm(addr), 4));
@@ -1498,7 +1499,7 @@ static void do_parse_pseudo(int op) {
          path (the macOS/Linux x86 default).  Emits LWL+LWR with
          offset bumped by 3 on the LWL. */
       int rt = parse_register();
-      addr_expr* addr = parse_address();
+      addr_expr* const addr = parse_address();
       emit_i_free(TOK_LWL_OPCODE, rt, addr_expr_reg(addr),
                   incr_expr_offset(addr_expr_imm(addr), 3));
       emit_i(TOK_LWR_OPCODE, rt, addr_expr_reg(addr), addr_expr_imm(addr));
@@ -1510,7 +1511,7 @@ static void do_parse_pseudo(int op) {
     case TOK_ULHU_PSEUDO_OP: {
       /* Unaligned load half (signed/unsigned). LE path. */
       int rt = parse_register();
-      addr_expr* addr = parse_address();
+      addr_expr* const addr = parse_address();
       emit_i_free(op == TOK_ULH_PSEUDO_OP ? TOK_LB_OPCODE : TOK_LBU_OPCODE, rt,
                   addr_expr_reg(addr),
                   incr_expr_offset(addr_expr_imm(addr), 1));
@@ -1524,7 +1525,7 @@ static void do_parse_pseudo(int op) {
     case TOK_USW_PSEUDO_OP: {
       /* Unaligned store word.  LE path. */
       int rt = parse_register();
-      addr_expr* addr = parse_address();
+      addr_expr* const addr = parse_address();
       emit_i_free(TOK_SWL_OPCODE, rt, addr_expr_reg(addr),
                   incr_expr_offset(addr_expr_imm(addr), 3));
       emit_i(TOK_SWR_OPCODE, rt, addr_expr_reg(addr), addr_expr_imm(addr));
@@ -1536,7 +1537,7 @@ static void do_parse_pseudo(int op) {
       /* Unaligned store half.. ROL, store
          high byte, ROR. */
       int rt = parse_register();
-      addr_expr* addr = parse_address();
+      addr_expr* const addr = parse_address();
       emit_i(TOK_SB_OPCODE, rt, addr_expr_reg(addr), addr_expr_imm(addr));
       /* ROL SRC, SRC, 8 (via SLL+SRL+OR) */
       emit_r_shift(TOK_SLL_OPCODE, 1, rt, 24);
@@ -1557,7 +1558,7 @@ static void do_parse_pseudo(int op) {
          base register, emit `addi DEST, base, offset`; else emit
          `ori DEST, $0, offset`. */
       int rt = parse_register();
-      addr_expr* addr = parse_address();
+      addr_expr* const addr = parse_address();
       if (addr_expr_reg(addr)) {
         emit_i(TOK_ADDI_OPCODE, rt, addr_expr_reg(addr), addr_expr_imm(addr));
       } else {
@@ -1572,7 +1573,7 @@ static void do_parse_pseudo(int op) {
     case TOK_BEQZ_PSEUDO_OP:
     case TOK_BNEZ_PSEUDO_OP: {
       int rs = parse_register();
-      imm_expr* target = parse_label();
+      imm_expr* const target = parse_label();
       int real_op =
           (op == TOK_BEQZ_PSEUDO_OP) ? TOK_BEQ_OPCODE : TOK_BNE_OPCODE;
       emit_i_free(real_op, 0, rs, target);
@@ -1582,7 +1583,7 @@ static void do_parse_pseudo(int op) {
     /* B_OPS: b, bal LABEL */
     case TOK_B_PSEUDO_OP:
     case TOK_BAL_PSEUDO_OP: {
-      imm_expr* target = parse_label();
+      imm_expr* const target = parse_label();
       int real_op =
           (op == TOK_BAL_PSEUDO_OP) ? TOK_BGEZAL_OPCODE : TOK_BGEZ_OPCODE;
       emit_i_free(real_op, 0, 0, target);
@@ -1595,16 +1596,16 @@ static void do_parse_pseudo(int op) {
       int rs = parse_register();
       if (scanner_peek() == TOK_REG) {
         int rt = parse_register();
-        imm_expr* target = parse_label();
+        imm_expr* const target = parse_label();
         emit_r(op == TOK_BGT_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, 1,
                rt, rs);
         emit_i_free(TOK_BNE_OPCODE, 0, 1, target);
       } else {
         /* Immediate form — see */
-        imm_expr* imm = parse_imm32();
-        imm_expr* target = parse_label();
+        imm_expr* const imm = parse_imm32();
+        imm_expr* const target = parse_label();
         if (op == TOK_BGT_PSEUDO_OP) {
-          imm_expr* imm_inc = incr_expr_offset(imm, 1);
+          imm_expr* const imm_inc = incr_expr_offset(imm, 1);
           emit_i_free(TOK_SLTI_OPCODE, 1, rs, imm_inc);
           emit_i(TOK_BEQ_OPCODE, 0, 1, target);
         } else {
@@ -1625,13 +1626,13 @@ static void do_parse_pseudo(int op) {
       int rs = parse_register();
       if (scanner_peek() == TOK_REG) {
         int rt = parse_register();
-        imm_expr* target = parse_label();
+        imm_expr* const target = parse_label();
         emit_r(op == TOK_BGE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, 1,
                rs, rt);
         emit_i_free(TOK_BEQ_OPCODE, 0, 1, target);
       } else {
-        imm_expr* imm = parse_imm32();
-        imm_expr* target = parse_label();
+        imm_expr* const imm = parse_imm32();
+        imm_expr* const target = parse_label();
         emit_i(op == TOK_BGE_PSEUDO_OP ? TOK_SLTI_OPCODE : TOK_SLTIU_OPCODE, 1,
                rs, imm);
         emit_i_free(TOK_BEQ_OPCODE, 0, 1, target);
@@ -1646,13 +1647,13 @@ static void do_parse_pseudo(int op) {
       int rs = parse_register();
       if (scanner_peek() == TOK_REG) {
         int rt = parse_register();
-        imm_expr* target = parse_label();
+        imm_expr* const target = parse_label();
         emit_r(op == TOK_BLT_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, 1,
                rs, rt);
         emit_i_free(TOK_BNE_OPCODE, 0, 1, target);
       } else {
-        imm_expr* imm = parse_imm32();
-        imm_expr* target = parse_label();
+        imm_expr* const imm = parse_imm32();
+        imm_expr* const target = parse_label();
         emit_i(op == TOK_BLT_PSEUDO_OP ? TOK_SLTI_OPCODE : TOK_SLTIU_OPCODE, 1,
                rs, imm);
         emit_i_free(TOK_BNE_OPCODE, 0, 1, target);
@@ -1667,15 +1668,15 @@ static void do_parse_pseudo(int op) {
       int rs = parse_register();
       if (scanner_peek() == TOK_REG) {
         int rt = parse_register();
-        imm_expr* target = parse_label();
+        imm_expr* const target = parse_label();
         emit_r(op == TOK_BLE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, 1,
                rt, rs);
         emit_i_free(TOK_BEQ_OPCODE, 0, 1, target);
       } else {
-        imm_expr* imm = parse_imm32();
-        imm_expr* target = parse_label();
+        imm_expr* const imm = parse_imm32();
+        imm_expr* const target = parse_label();
         if (op == TOK_BLE_PSEUDO_OP) {
-          imm_expr* imm_inc = incr_expr_offset(imm, 1);
+          imm_expr* const imm_inc = incr_expr_offset(imm, 1);
           emit_i_free(TOK_SLTI_OPCODE, 1, rs, imm_inc);
           emit_i(TOK_BNE_OPCODE, 0, 1, target);
         } else {
@@ -1783,7 +1784,7 @@ static void parse_asm_code(void) {
           int r3 = parse_register();
           div_inst(op, r1, r2, r3, 0);
         } else {
-          imm_expr* imm = parse_imm32();
+          imm_expr* const imm = parse_imm32();
           if (is_zero_imm(imm)) {
             parse_error_at("Divide by zero");
           } else {
@@ -1836,7 +1837,7 @@ static void parse_asm_code(void) {
          <op> SRC1 IMM16 → emit_i_free(op, 0, rs, imm).
  */
       int rs = parse_register();
-      imm_expr* imm = parse_imm16();
+      imm_expr* const imm = parse_imm16();
       emit_i_free(op, 0, rs, imm);
       break;
     }
@@ -1855,7 +1856,7 @@ static void parse_asm_code(void) {
         scanner_advance();
         cc = scan_value.i;
       }
-      imm_expr* target = parse_label();
+      imm_expr* const target = parse_label();
       int rt = (cc << 2) | (nd << 1) | tf;
       emit_i_free(op, rt, 0, target);
       break;
@@ -1933,7 +1934,7 @@ static void parse_asm_code(void) {
       /* lwc1 / ldc1 / lwc2 etc.: <op> F_REG ADDRESS.
        */
       int fr = parse_fp_register();
-      addr_expr* addr = parse_address();
+      addr_expr* const addr = parse_address();
       emit_i(op, fr, addr_expr_reg(addr), addr_expr_imm(addr));
       free(addr_expr_imm(addr));
       free(addr);
@@ -2050,7 +2051,7 @@ static void parse_opt_label(void) {
      incorrectly affect a LATER token (e.g., misclassifying
      `buf: .word 42`'s `.word` as TOK_ID). */
   scanner_advance(); /* consume TOK_ID */
-  char* sym = (char*)scan_value.p;
+  char* const sym = (char*)scan_value.p;
   int sep = scanner_advance(); /* ':' or '=' */
 
   if (sep == ':') {
@@ -2147,7 +2148,7 @@ int parse_file(void) {
      the tree of the file loaded last, whose nodes were emitted already;
      and the parse itself moves data_dir/text_dir as it meets .data and
      .text, which emit_ast must replay from the start. */
-  const ast_node* emitted = last_child(current_file);
+  const ast_node* const emitted = last_child(current_file);
   bool start_data_dir = data_dir;
   bool start_text_dir = text_dir;
   while (scanner_peek() != TOK_EOF) {
@@ -2210,7 +2211,8 @@ static void emit_one(const ast_node* node);
    nullptr). */
 void emit_ast(const ast_node* file, const ast_node* after) {
   if (file == nullptr || file->kind != AST_FILE) return;
-  const ast_node* first = after == nullptr ? file->u.file.child : after->next;
+  const ast_node* const first =
+      after == nullptr ? file->u.file.child : after->next;
   for (const ast_node* n = first; n != nullptr; n = n->next) {
     emit_one(n);
     /* Match parse_line's "clear labels after a non-label
@@ -2237,7 +2239,7 @@ void emit_ast(const ast_node* file, const ast_node* after) {
 static void emit_data_int_node(const ast_node* node, void (*store)(int),
                                int width) {
   for (int i = 0; i < node->u.data_int.count; i++) {
-    imm_expr* e = node->u.data_int.exprs[i];
+    imm_expr* const e = node->u.data_int.exprs[i];
     if (e == nullptr) {
       store(0);
       continue;
@@ -2329,7 +2331,7 @@ static void emit_one(const ast_node* node) {
       return;
 
     case AST_DIR_EXTERN: {
-      const char* sym = node->u.dir_named_size.name;
+      const char* const sym = node->u.dir_named_size.name;
       make_label_global((char*)sym);
       if (lookup_label((char*)sym)->addr == 0)
         record_label((char*)sym, current_data_pc(), true);
@@ -2338,7 +2340,7 @@ static void emit_one(const ast_node* node) {
     }
 
     case AST_DIR_COMM: {
-      const char* sym = node->u.dir_named_size.name;
+      const char* const sym = node->u.dir_named_size.name;
       align_data(2);
       if (lookup_label((char*)sym)->addr == 0)
         record_label((char*)sym, current_data_pc(), true);
@@ -2382,7 +2384,8 @@ static void emit_one(const ast_node* node) {
     case AST_LABEL_DEF:
       if (node->u.label_def.kind == AST_LABEL_NORMAL) {
         mem_addr addr = text_dir ? current_text_pc() : current_data_pc();
-        label* l = record_label((char*)node->u.label_def.name, addr, false);
+        label* const l =
+            record_label((char*)node->u.label_def.name, addr, false);
         cons_label(l);
       } else {
         label* l = record_label((char*)node->u.label_def.name,
@@ -2404,13 +2407,13 @@ static void emit_one(const ast_node* node) {
                      node->u.inst_r_shift.rt, node->u.inst_r_shift.shamt);
       return;
     case AST_INST_I: {
-      imm_expr* copy = dup_imm(node->u.inst_i.imm);
+      imm_expr* const copy = dup_imm(node->u.inst_i.imm);
       i_type_inst_free(node->u.inst_i.op, node->u.inst_i.rt, node->u.inst_i.rs,
                        copy);
       return;
     }
     case AST_INST_J: {
-      imm_expr* copy = dup_imm(node->u.inst_j.target);
+      imm_expr* const copy = dup_imm(node->u.inst_j.target);
       j_type_inst(node->u.inst_j.op, copy);
       free(copy);
       return;

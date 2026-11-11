@@ -149,7 +149,7 @@ void explain_print_step_header(mem_addr pc,
     p++;
   else
     p = dis;
-  char* semi = strchr(p, ';');
+  char* const semi = strchr(p, ';');
   char* source_part = nullptr;
   if (semi) {
     char* end = semi;
@@ -201,7 +201,7 @@ void explain_clear_suggestions(void) {
 
 static void add_suggestion(const char* cmd) {
   if (n_suggestions >= MAX_SUGGESTIONS) return;
-  char* copy = strdup(cmd);
+  char* const copy = strdup(cmd);
   if (copy != nullptr) suggestions[n_suggestions++] = copy;
 }
 
@@ -404,7 +404,7 @@ static const char* skip_source_prefix(const char* s) {
  * nullptr. */
 static const struct pseudo_info* find_pseudo_in_source(const char* src) {
   if (!src) return nullptr;
-  const char* s = skip_source_prefix(src);
+  const char* const s = skip_source_prefix(src);
   for (int i = 0; pseudo_ops[i].name != nullptr; i++) {
     size_t n = strlen(pseudo_ops[i].name);
     if (strncmp(s, pseudo_ops[i].name, n) != 0) continue;
@@ -690,7 +690,7 @@ static void tpl_shift(int level, const mips_instruction* instruction,
    load/store template.  Picks "+" or "-" based on the sign of off so
    "$fp - 4" reads naturally instead of "$fp + -4". */
 static void say_effective_address(int base, short off, mem_addr ea) {
-  const char* sign = (off < 0) ? "-" : "+";
+  const char* const sign = (off < 0) ? "-" : "+";
   int absoff = (off < 0) ? -off : off;
   write_output(
       message_out,
@@ -1223,10 +1223,10 @@ static void render_r_layout(uint32_t enc, const char* mnemonic) {
   int rd = (enc >> 11) & 0x1f;
   int shamt = (enc >> 6) & 0x1f;
   int funct = enc & 0x3f;
-  const char* group = (op == 0x00)   ? "SPECIAL"
-                      : (op == 0x1c) ? "SPECIAL2"
-                      : (op == 0x1f) ? "SPECIAL3"
-                                     : "?";
+  const char* const group = (op == 0x00)   ? "SPECIAL"
+                            : (op == 0x1c) ? "SPECIAL2"
+                            : (op == 0x1f) ? "SPECIAL3"
+                                           : "?";
 
   write_output(message_out, "  Bit layout (R-type, encoding 0x%08x):\n", enc);
   render_hex_bin_table(enc);
@@ -1300,7 +1300,7 @@ static void explain_bit_layout(const mips_instruction* instruction) {
      mnemonic-level explanation below covers it. */
   if (enc == 0) return;
 
-  const char* mnemonic = inst_op_name(instruction);
+  const char* const mnemonic = inst_op_name(instruction);
   int op = (int)((enc >> 26) & 0x3f);
   if (op == 0x00 || op == 0x1c || op == 0x1f)
     render_r_layout(enc, mnemonic);
@@ -1365,11 +1365,11 @@ static void render_r_decode_step(uint32_t enc, int step, const char* mnemonic,
   write_bits(b_sh, enc, 10, 6);
   write_bits(b_fn, enc, 5, 0);
 
-  const char* fld_rs = (step >= 3) ? b_rs : UK5;
-  const char* fld_rt = (step >= 3) ? b_rt : UK5;
-  const char* fld_rd = (step >= 3) ? b_rd : UK5;
-  const char* fld_sh = (step >= 3) ? b_sh : UK5;
-  const char* fld_fn = (step >= 2) ? b_fn : UK6;
+  const char* const fld_rs = (step >= 3) ? b_rs : UK5;
+  const char* const fld_rt = (step >= 3) ? b_rt : UK5;
+  const char* const fld_rd = (step >= 3) ? b_rd : UK5;
+  const char* const fld_sh = (step >= 3) ? b_sh : UK5;
+  const char* const fld_fn = (step >= 2) ? b_fn : UK6;
 
   switch (step) {
     case 1:
@@ -1425,7 +1425,7 @@ static void render_r_decode_step(uint32_t enc, int step, const char* mnemonic,
                  "next.\n",
                  op, group_name);
   } else if (step == 2) {
-    const char* fname =
+    const char* const fname =
         (op == 0x00 && funct < 64 && special_funct_to_name[funct])
             ? special_funct_to_name[funct]
             : (mnemonic ? mnemonic : "?");
@@ -1451,9 +1451,9 @@ static void render_i_decode_step(uint32_t enc, int step, const char* mnemonic) {
   write_bits(b_rt, enc, 20, 16);
   write_bits(b_im, enc, 15, 0);
 
-  const char* fld_rs = (step >= 2) ? b_rs : UK5;
-  const char* fld_rt = (step >= 2) ? b_rt : UK5;
-  const char* fld_im = (step >= 2) ? b_im : UK16;
+  const char* const fld_rs = (step >= 2) ? b_rs : UK5;
+  const char* const fld_rt = (step >= 2) ? b_rt : UK5;
+  const char* const fld_im = (step >= 2) ? b_im : UK16;
 
   switch (step) {
     case 1:
@@ -1499,7 +1499,7 @@ static void render_j_decode_step(uint32_t enc, int step, const char* mnemonic) {
   write_bits(b_op, enc, 31, 26);
   write_bits(b_tg, enc, 25, 0);
 
-  const char* fld_tg = (step >= 2) ? b_tg : UK26;
+  const char* const fld_tg = (step >= 2) ? b_tg : UK26;
 
   switch (step) {
     case 1:
@@ -1549,13 +1549,13 @@ static void render_regimm_decode_step(uint32_t enc, int step,
   write_bits(b_rt, enc, 20, 16);
   write_bits(b_im, enc, 15, 0);
 
-  const char* fld_rs = (step >= 3) ? b_rs : UK5;
-  const char* fld_rt = (step >= 2) ? b_rt : UK5;
-  const char* fld_im = (step >= 3) ? b_im : UK16;
+  const char* const fld_rs = (step >= 3) ? b_rs : UK5;
+  const char* const fld_rt = (step >= 2) ? b_rt : UK5;
+  const char* const fld_im = (step >= 3) ? b_im : UK16;
 
-  const char* rtname = (rt < 32 && regimm_rt_to_name[rt])
-                           ? regimm_rt_to_name[rt]
-                           : (mnemonic ? mnemonic : "?");
+  const char* const rtname = (rt < 32 && regimm_rt_to_name[rt])
+                                 ? regimm_rt_to_name[rt]
+                                 : (mnemonic ? mnemonic : "?");
 
   switch (step) {
     case 1:
@@ -1609,7 +1609,7 @@ static void explain_decoding_steps(const mips_instruction* instruction) {
   uint32_t enc = (uint32_t)inst_encode(instruction);
   if (enc == 0) return; /* true nop — skip */
 
-  const char* mnemonic = inst_op_name(instruction);
+  const char* const mnemonic = inst_op_name(instruction);
   int op = (int)((enc >> 26) & 0x3f);
 
   write_output(message_out, "  Decoding 0x%08x step by step:\n", enc);
@@ -1617,9 +1617,9 @@ static void explain_decoding_steps(const mips_instruction* instruction) {
   write_output(message_out, "\n");
 
   if (op == 0x00 || op == 0x1c || op == 0x1f) {
-    const char* group = (op == 0x00)   ? "SPECIAL"
-                        : (op == 0x1c) ? "SPECIAL2"
-                                       : "SPECIAL3";
+    const char* const group = (op == 0x00)   ? "SPECIAL"
+                              : (op == 0x1c) ? "SPECIAL2"
+                                             : "SPECIAL3";
     for (int s = 1; s <= 3; s++) {
       if (s > 1) write_output(message_out, "\n");
       render_r_decode_step(enc, s, mnemonic, group);
@@ -1974,7 +1974,7 @@ static void emit_category_preamble(const mips_instruction* instruction) {
   write_output(message_out, "    %s\n", category_descriptions[cat]);
 
   if (n_mods > 0) {
-    const char* mnemonic = inst_op_name(instruction);
+    const char* const mnemonic = inst_op_name(instruction);
     write_output(message_out, "  Modifiers in `%s`:\n", mnemonic);
     for (int i = 0; i < n_mods; i++) {
       inst_modifier m = mods[i];
@@ -2449,7 +2449,8 @@ void explain_after(const mips_instruction* instruction) {
    *   (b) No SOURCE line, but the previous step matched a may-be-multi
    *       pseudo-op — emit a continuation hint. */
   if (accept_pseudo_insts && SOURCE(instruction) != nullptr) {
-    const struct pseudo_info* p = find_pseudo_in_source(SOURCE(instruction));
+    const struct pseudo_info* const p =
+        find_pseudo_in_source(SOURCE(instruction));
     if (p != nullptr) {
       if (level >= 2) {
         /* Full 4-line block: header + description + footer. */

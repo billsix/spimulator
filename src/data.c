@@ -160,7 +160,7 @@ static int data_store_depth = 0;
 
 void store_string(char* string, int length, bool null_terminate) {
   mem_addr at = data_pc();
-  const char* orig = string;
+  const char* const orig = string;
   int orig_len = length;
   data_store_depth++;
   for (; length > 0; string++, length--) {
