@@ -105,8 +105,8 @@ The design, the decode column, and how a new language plugs in are in
 - A hand-edited generated file makes `--check` fail; restored, it passes.
 - After the cut-over, the full `meson test` gave 284 OK.
 - The grammar's `make` (tree-sitter generate and test) passes 5 of 5.
-- `make image` with the defaults (`BUILD_TREE_SITTER=1`, sanitizers on): see the archive commit,
-  which follows the gate.
+- `make image` with the defaults (`BUILD_TREE_SITTER=1`, sanitizers on) passed on the final commit:
+  the generator check, the build, every meson suite, and the UBSan and ASan regression runs.
 
 ## Follow-ups
 
