@@ -1,24 +1,33 @@
-"""List the C engine's conditional chains that a `switch` or an `else if` chain could replace.
+#!/usr/bin/env python3
+"""List the C engine's dispatch sites that the C coding standard's dispatch rules flag.
 
-Run from anywhere; paths resolve from the repository root:
+The rules (the c-coding-standard.md reference doc from github.com/billsix/runClaudeInContainer,
+"Dispatch"): a decision on one value with 3+ outcomes, or tests listing several constants, is a
+`switch`; every `switch` has a `default`; a run of early-exit `if`s is one `if` / `else if` / `else`
+chain; every chain ends in an `else`. The script reads clang's JSON AST of every `src/*.c`, so a
+test written through a macro is seen as the code it expands to. It reports four kinds of site:
 
-    python3 tasks/adhoc/c-switch-and-else-if-chains/scan_conditionals.py BUILD_DIR
+- ``switch-chain``: an `if` / `else if` chain comparing one value with constants, with 3+ tests
+  or a test listing several constants with `||`.
+- ``no-else``: an `if` / `else if` chain with no final `else`.
+- ``guard-run``: two or more consecutive `if`s with no `else` whose bodies always leave (return,
+  break, continue, goto, or a call to a function that never returns).
+- ``no-default``: a `switch` with no `default`.
 
-BUILD_DIR is a configured meson build directory (clang), whose `compile_commands.json`
-supplies each file's flags. The scan reads the clang JSON AST of every `src/*.c` file, so a
-test written through a macro is seen as the code it expands to. It writes four TSV worklogs
-to `data/` beside this script:
+Written for tasks/archive/2026/11/11/c-switch-and-else-if-chains.md, which converted every site
+and records the one deliberate leave-alone: run_spim's instruction-fetch chain (src/run.c), whose
+code after the chain is the rest of the dispatch loop. Code under an `#ifdef` that the build
+leaves out is not seen.
 
-- `if_chains.tsv`: every `if` / `else if` chain of two or more tests, classified by what its
-  tests compare (one integer subject, one string subject, or mixed) and whether it ends in a
-  plain `else`.
-- `guard_runs.tsv`: runs of two or more consecutive `if`s with no `else`, each of whose
-  bodies always leaves (return, break, continue, goto or a call to a no-return function).
-  These are one decision written as separate statements, the C form of the Python port's
-  guard runs.
-- `switches.tsv`: every existing `switch`, with whether it has a `default` and whether its
-  subject is an enum.
-- `summary.txt`: counts per class.
+Usage::
+
+    tools/dispatch_candidates.py BUILDDIR [OUTDIR]
+
+BUILDDIR is a configured clang meson build (``CC=clang meson setup BUILDDIR``); its
+``compile_commands.json`` supplies each file's flags. The flagged sites go to stdout, one per line
+(``path:line  kind  function  detail``), and the totals to stderr. With OUTDIR, the full
+worklogs are also written there: ``if_chains.tsv`` (every chain of 2+ tests, classified),
+``guard_runs.tsv``, ``switches.tsv`` (with each subject's type) and ``summary.txt``.
 """
 
 import json
@@ -30,8 +39,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any
 
-REPO_ROOT: pathlib.Path = pathlib.Path(__file__).resolve().parents[3]
-DATA_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent / "data"
+REPO_ROOT: pathlib.Path = pathlib.Path(__file__).resolve().parents[1]
 
 # Functions that never return, beyond the ones the TU itself marks [[noreturn]].
 KNOWN_NORETURN: frozenset[str] = frozenset(
@@ -635,11 +643,51 @@ def ast_of(entry: Node) -> Node:
     return json.loads(result.stdout)
 
 
-def main(build_dir: pathlib.Path) -> None:
-    """Scan every `src/*.c` file and write the worklogs.
+def flagged(
+    chains: list[Finding], runs: list[Finding], switches: list[Finding]
+) -> list[str]:
+    """List the sites the dispatch rules flag.
+
+    Args:
+        chains: Every `if` / `else if` chain of two or more tests.
+        runs: Every run of early-exit `if`s.
+        switches: Every `switch`.
+
+    Returns:
+        One line per flagged site: `path:line`, kind, function and detail, tab-separated.
+    """
+    lines: list[str] = []
+    for chain in chains:
+        # The constants are comma-joined in `detail`; more constants than tests means an `||` list.
+        constant_count: int = len(chain.detail.split(",")) if chain.detail else 0
+        if chain.shape == "switch" and (
+            chain.tests >= 3 or constant_count > chain.tests
+        ):
+            lines.append(
+                f"{chain.where}\tswitch-chain\t{chain.function}\t{chain.subject}"
+            )
+        if not chain.has_else:
+            lines.append(
+                f"{chain.where}\tno-else\t{chain.function}\t{chain.tests} tests"
+            )
+    lines.extend(
+        f"{run.where}\tguard-run\t{run.function}\t{run.tests} ifs on {run.subject}"
+        for run in runs
+    )
+    lines.extend(
+        f"{switch.where}\tno-default\t{switch.function}\t{switch.detail}"
+        for switch in switches
+        if not switch.has_else
+    )
+    return lines
+
+
+def main(build_dir: pathlib.Path, out_dir: pathlib.Path | None) -> None:
+    """Scan every `src/*.c` file, print the flagged sites, and write the worklogs if asked.
 
     Args:
         build_dir: A configured meson build directory with compile_commands.json.
+        out_dir: Where to write the full worklogs, or None.
     """
     entries: list[Node] = json.loads((build_dir / "compile_commands.json").read_text())
     by_file: dict[pathlib.Path, Node] = {}
@@ -661,15 +709,6 @@ def main(build_dir: pathlib.Path) -> None:
         chains += scanner.chains
         runs += scanner.runs
         switches += scanner.switches
-    header: str = "where\tfunction\tshape\ttests\thas_else\tsubject\tdetail"
-    DATA_DIR.mkdir(exist_ok=True)
-    for name, rows in (
-        ("if_chains", chains),
-        ("guard_runs", runs),
-        ("switches", switches),
-    ):
-        lines: list[str] = [header, *(finding.row() for finding in rows)]
-        (DATA_DIR / f"{name}.tsv").write_text("\n".join(lines) + "\n")
     summary: list[str] = [
         f"if/else-if chains (2+ tests): {len(chains)}",
         *(
@@ -677,22 +716,28 @@ def main(build_dir: pathlib.Path) -> None:
             f" (no final else: {sum(1 for f in chains if f.shape == chain_shape and not f.has_else)})"
             for chain_shape in ("switch", "string-table", "mixed")
         ),
-        f"  switch-shaped with 3+ tests: {sum(1 for f in chains if f.shape == 'switch' and f.tests >= 3)}",
         f"guard runs (2+ exiting ifs): {len(runs)}",
-        *(
-            f"  {run_shape}: {sum(1 for f in runs if f.shape == run_shape)}"
-            for run_shape in ("switch", "string-table", "mixed")
-        ),
         f"switch statements: {len(switches)}",
         f"  without default: {sum(1 for f in switches if not f.has_else)}",
-        (
-            "  enum subject without default: "
-            f"{sum(1 for f in switches if not f.has_else and f.shape == 'enum')}"
-        ),
     ]
-    (DATA_DIR / "summary.txt").write_text("\n".join(summary) + "\n")
-    print("\n".join(summary))
+    if out_dir is not None:
+        header: str = "where\tfunction\tshape\ttests\thas_else\tsubject\tdetail"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        for name, rows in (
+            ("if_chains", chains),
+            ("guard_runs", runs),
+            ("switches", switches),
+        ):
+            rows_text: list[str] = [header, *(finding.row() for finding in rows)]
+            (out_dir / f"{name}.tsv").write_text("\n".join(rows_text) + "\n")
+        (out_dir / "summary.txt").write_text("\n".join(summary) + "\n")
+    for line in flagged(chains, runs, switches):
+        print(line)
+    print("\n".join(summary), file=sys.stderr)
 
 
 if __name__ == "__main__":
-    main(pathlib.Path(sys.argv[1]).resolve())
+    main(
+        pathlib.Path(sys.argv[1]).resolve(),
+        pathlib.Path(sys.argv[2]).resolve() if len(sys.argv) > 2 else None,
+    )

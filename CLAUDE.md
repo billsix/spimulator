@@ -128,7 +128,10 @@ not spim's intentional exit-time leaks) + the integer-UB primer:
   `tasks/archive/2026/11/10/c23-modernization-pass3.md` and the `const` pass
   `tasks/archive/2026/11/11/c23-const-correctness-pass.md`, which list the deliberate opt-outs; new C
   is checked for missing `const` with `tools/const_candidates.py BUILDDIR`); the core is additionally gated under
-  `-Wconversion -Wsign-conversion` (gcc + clang), done in `tasks/archive/2026/10/16/integer-conversion-hardening.md`. `include/opcodes.tsv` is the single source of truth for
+  `-Wconversion -Wsign-conversion` (gcc + clang), done in `tasks/archive/2026/10/16/integer-conversion-hardening.md`,
+  and under `-Wswitch-enum`: every `switch` has a `default` and every `if`/`else if` chain an `else`
+  (`tasks/archive/2026/11/11/c-switch-and-else-if-chains.md`; new C is checked with
+  `tools/dispatch_candidates.py BUILDDIR`, which should list only `run_spim`'s fetch chain). `include/opcodes.tsv` is the single source of truth for
   the simulator, the ports and the tree-sitter grammar; edit it and run `make generate`, never the
   generated tables. **Any change to `opcodes.tsv` (or `opcode-types.tsv`) must be gated with
   `BUILD_TREE_SITTER=1`**: `grammar.js` builds its keyword rules from the generated
