@@ -712,12 +712,8 @@ impl Engine {
                 .machine
                 .mem_read_inst(addr)
                 .map_or(0, |inst| inst.borrow().encode());
-            let separator: &str = if addr != end.wrapping_sub(4) {
-                ", "
-            } else {
-                ""
-            };
-            out.push_str(&format!("0x{:x}{separator}", code as u32));
+            let separator: &str = if addr != start { ", " } else { "" };
+            out.push_str(&format!("{separator}0x{:x}", code as u32));
             addr = addr.wrapping_add(4);
         }
         out.push('\n');
@@ -733,12 +729,8 @@ impl Engine {
             let mut addr: u32 = start;
             while addr < end {
                 let code: i32 = self.machine.mem_read_word(addr);
-                let separator: &str = if addr != end.wrapping_sub(4) {
-                    ", "
-                } else {
-                    ""
-                };
-                out.push_str(&format!("0x{:x}{separator}", code as u32));
+                let separator: &str = if addr != start { ", " } else { "" };
+                out.push_str(&format!("{separator}0x{:x}", code as u32));
                 addr = addr.wrapping_add(4);
             }
             out.push('\n');

@@ -14,7 +14,7 @@ import Data.Bits (shiftR, (.&.))
 import Data.Char (chr, ord, toLower)
 import Data.Int (Int32)
 import Data.IORef (IORef, newIORef)
-import Data.List (isPrefixOf)
+import Data.List (intercalate, isPrefixOf)
 import Data.Word (Word32, Word8)
 import qualified Data.ByteString.Char8 as B
 import AsmCommon (currentTextPc)
@@ -397,11 +397,11 @@ writeAssembledCode s name = do
       let addrsTo :: Word32 -> Word32 -> [Word32]
           addrsTo a b = takeWhile (< b) [a, a + 4 ..]
       codes :: [Int32] <- mapM (\a -> memReadInst s a >>= maybe (pure 0) (\r -> get r >>= instEncodeIO)) (addrsTo start end)
-      -- C prints ", " after every word but the one at end - 4.
-      let list :: Word32 -> Word32 -> [Int32] -> String
-          list from to xs = concat (zipWith (\a c -> printf "0x%x" (fromIntegral c :: Word32) ++ (if a /= to - 4 then ", " else "")) (addrsTo from to) xs)
+      -- The words, separated by ", ".
+      let list :: [Int32] -> String
+          list xs = intercalate ", " (map (\c -> printf "0x%x" (fromIntegral c :: Word32)) xs)
           textPart :: String
-          textPart = printf ".text # 0x%x .. 0x%x\n.word " start end ++ list start end codes ++ "\n"
+          textPart = printf ".text # 0x%x .. 0x%x\n.word " start end ++ list codes ++ "\n"
       userKernelDataSegment s False
       bare :: Bool <- get (optBare s)
       let dstart :: Word32
@@ -411,7 +411,7 @@ writeAssembledCode s name = do
         if dend > dstart
           then do
             ws :: [Int32] <- mapM (memReadWord s) (addrsTo dstart dend)
-            pure (printf ".data # 0x%x .. 0x%x\n.word " dstart dend ++ list dstart dend ws ++ "\n")
+            pure (printf ".data # 0x%x .. 0x%x\n.word " dstart dend ++ list ws ++ "\n")
           else pure ""
       B.writeFile (name ++ ".out") (B.pack (textPart ++ dataPart))
       pure False

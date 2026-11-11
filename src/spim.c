@@ -1515,8 +1515,9 @@ static bool write_assembled_code(const char* program_name) {
   (void)fprintf(fp, ".text # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
   for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
     const int32_t code = inst_encode(mem_read_inst(addr));
-    (void)fprintf(fp, "0x%x%s", code,
-                  addr != (dump_end - BYTES_PER_WORD) ? ", " : "");
+    /* ", " goes before each word but the first: the segment's end need not
+       fall on a word, so "not the last word" can't be tested by address. */
+    (void)fprintf(fp, "%s0x%x", addr != dump_start ? ", " : "", code);
   }
   (void)fprintf(fp, "\n");
 
@@ -1533,8 +1534,7 @@ static bool write_assembled_code(const char* program_name) {
     (void)fprintf(fp, ".data # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
     for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
       const int32_t code = mem_read_word(addr);
-      (void)fprintf(fp, "0x%x%s", code,
-                    addr != (dump_end - BYTES_PER_WORD) ? ", " : "");
+      (void)fprintf(fp, "%s0x%x", addr != dump_start ? ", " : "", code);
     }
     (void)fprintf(fp, "\n");
   }

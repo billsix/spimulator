@@ -242,6 +242,19 @@ case "$NAME" in
     rm -f "$out.dec" "$out.hex"
     [ "$same" -eq 0 ] || fail "print_all_regs then print_all_regs hex is not the two listings"
     ;;
+  assemble_odd_end)
+    # -assemble writes <file>.out next to the source, so it runs on a copy.
+    dir=$(mktemp -d)
+    cp tt.assemble_odd_end.s "$dir/"
+    "$SPIM" -assemble -exception_file "$EF" -f "$dir/tt.assemble_odd_end.s" >"$out" 2>&1; rc=$?
+    last=$(tail -n 1 "$dir/tt.assemble_odd_end.s.out")
+    rm -rf "$dir"
+    expect_exit 0 "$rc"
+    case "$last" in
+      *", 0x11223344, 0x5") ;;
+      *) fail "the data .word list does not end in its last word: ...${last: -30}" ;;
+    esac
+    ;;
   imm_range)
     # An out-of-range immediate is reported on the instruction's own line (7),
     # not the next one, and the program still assembles and runs.
