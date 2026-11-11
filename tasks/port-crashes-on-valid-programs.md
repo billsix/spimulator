@@ -1,47 +1,57 @@
 # Fix the port crashes on valid programs (sbrk, closed stdout, delay-slot recursion, Rust overflows)
 
-**Status:** proposed — needs go-ahead
-**Priority:** 2
-**Difficulty:** 5
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
+**Branch:** `review-2026-11-11-batch`
 **Source:** tasks/review/2026/11/11/repo-review.md §4.2, §4.5.1, §4.5.2, §6.3 F3
 
-## BLUF
+## Outcome
 
-On these valid programs the C engine exits cleanly, or with its own fatal message, while a port
-crashes. Done means each port gives C's stdout, stderr and exit status for each one, with a
-`port/harness/corpus.txt` case per program so the comparison keeps them that way.
+On each of these programs the C engine exits cleanly, or with its own fatal message, and each port
+now gives the same stdout, stderr and exit status. The harness pins all four
+(`port/harness/corpus.txt`; the programs are in `tests/`).
 
-## Context
+| Case | C | Before the fix |
+|---|---|---|
+| `big_sbrk`: an sbrk of about 2 GB | 255, "realloc failed in expand_data" | Python `ValueError`, Haskell index error, Rust panic (101) |
+| `big_stack`: `-sstack 1073741824 -lstack 2000000000`, touch below the stack | 255, "Out of memory at request for 18446744071562067968 bytes." | crashes |
+| `close_stdout`: close fd 1, then print | 0 | Python `OSError`, Haskell exit 1 |
+| `delay_chain`: 400 chained `j` under `-delayed_branches` | 0 | Python `RecursionError` |
 
-All re-run on 2026-11-11 against the C engine (`builddir/spimulator`) and the three ports.
-
-| Input | C | Python | Haskell | Rust |
-|---|---|---|---|---|
-| `li $a0,0x7ffff000; li $v0,9; syscall; lw $a0,0x10000000` | 255, "realloc failed in expand_data" | 1, `ValueError: negative count` (`memory.py:106-107`) | 1, `Ix{Int}.index` (`Memory.hs:113-129`); other sizes pass silently | 101, panic (`memory.rs:241-291`), in release too |
-| close fd 1 (`li $a0,1; li $v0,16; syscall`), then print_string | 0 | 1, `OSError: [Errno 9]` (`console.py:43-55`) | 1 | 0 |
-| 400 chained `j` under `-delayed_branches` | 0 | 1, `RecursionError` (`run.py:220-226`) | 0 | 0 |
-| `li.d $f2147483647, 1.0`, `mtc1.d $t0, $f2147483647` | 0 | — | — | debug build panics: `+ 1` (`parser.rs:804,823`) |
-| REPL `step -2147483648` after a breakpoint | 0 | — | — | debug build panics: `steps -= 1` (`spim_utils.rs:227`) |
-
-- The sbrk fix in each port is to treat a negative new size as C does: `fatal_error` with C's
-  messages, "realloc failed in expand_data\n", "realloc failed in expand_k_data\n", and
-  "Out of memory at request for N bytes.\n" for the stack. C's `src/memory.c` `expand_data`,
-  `expand_k_data` and `expand_stack` are the reference; in Haskell, also compute `delta` in `Int32`,
-  as C does.
-- A write to a closed fd fails silently in C's stdio. The ports should ignore `EBADF` on output.
-- The Python delay slot is a recursive `run_spim` call per nested slot. Run it iteratively.
-- Rust's release profile has `overflow-checks` off, so the last two panics show only in debug
-  builds. Use `wrapping_add` and `wrapping_sub`.
-
-## Plan
-
-1. Add each program to `port/harness/corpus.txt` (with its flags), and confirm each fails today.
-2. Fix them one engine at a time, starting with sbrk in all three ports.
-3. Add a debug-build Rust run of the harness, or set `overflow-checks = true` in `[profile.release]`
-   (and spell every intended wrap `wrapping_*`). See question 1.
-4. Gate: `make image` (all port suites and `<port>-compare`).
+- **Segment growth** (all three ports): the sizes are C ints. A growth that wraps negative passes the
+  limit check, and C's allocation then fails. The ports wrap the same way and call `fatal_error`
+  with C's messages, for the data, kernel-data and stack segments.
+- **Closed descriptors** (Python, Haskell): a write to a descriptor the program closed is dropped,
+  as C's stdio drops it. Haskell now writes stdout and stderr with `write(2)` (each write was flushed
+  anyway).
+- **Python's recursion limit** covers C's delay-slot nesting. C handles 10,000 chained jumps and
+  segfaults by 15,000; Python's default limit stopped at about 330.
+- **Rust:** `overflow-checks = true` in the release profile (the decision below). The FP-pair
+  `+ 1` sites and the REPL step count use `wrapping_*`, as C's ints wrap.
 
 ## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
-1. The Rust overflow gate is `overflow-checks = true` in `[profile.release]` (option (a)); every intended wrap is spelled `wrapping_*`.
+1. The Rust overflow gate is `overflow-checks = true` in `[profile.release]`, not a separate
+   debug-build run.
+
+## Found and fixed on the way
+
+- **Haskell ignored `SIGPIPE`.** The GHC runtime ignores it, so `spimulator-haskell … | head`
+  exited 0 where C dies with 141. `setupHandles` now restores the default action, as the Python port
+  already did.
+- **Rust lost the end of a `-listing` file on a fatal exit.** `fatal_error`'s `process::exit` runs no
+  destructors, so the `BufWriter` lost its tail (260 lines from C, 142 from Rust), where C's `exit()`
+  flushes stdio. The listing is now a `LineWriter`. The new `big_sbrk` case found this, through the
+  all-programs comparison's listing mode.
+
+## Moved to another task
+
+An `fp_reg_overflow` case (`li.d $f2147483647`) was tried. Python and Haskell crash on it, but C
+passes it only by writing out of bounds (undefined behavior), so it belongs with the scanner range
+check in `tasks/c-undefined-behavior-fixes-then-ports.md` (item 6). The Rust `wrapping_add` changes
+stay.
+
+## Verification
+
+The regression suite plus port-python, port-haskell and port-rust: 259/259, including each port's
+`compare` and `all-programs` cases. ruff, `ty` and clippy are clean.
