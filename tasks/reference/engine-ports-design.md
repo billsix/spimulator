@@ -79,9 +79,9 @@ history (who did what, in what order, and the C bugs the ports found) is in
 - every regression test except the teaching mode;
 - every examples demo;
 - the documented example commands (`tools/check_example_commands.py --port`);
-- `port/harness/compare_engines.py`: 23 cases from `port/harness/corpus.txt`;
+- `port/harness/compare_engines.py`: 28 cases from `port/harness/corpus.txt`;
 - `port/harness/compare_all_programs.py`: every `.s`/`.asm` in the repo, assembled six ways and run,
-  about 1,200 cases, four skipped by name.
+  about 1,300 cases, six skipped by name (two step-limit programs and yes(1), in run and listing modes).
 
 The image build runs them all. A behavior change in C fails every port's suite until the port
 follows it. A new port is an entry in `ports`, plus `tools/add_port_lines.py NAME LABEL` for the

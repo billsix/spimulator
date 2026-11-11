@@ -38,9 +38,17 @@ EXCEPTIONS: pathlib.Path = REPO / "src" / "exceptions.s"
 # C side always times out and the comparison would test nothing.  Their
 # assembly is still compared in the other modes.
 SKIPPED: dict[str, str] = {
-    f"tests/{program} {mode}": "runs to the 2**31 - 1 step limit without -mapped_io"
-    for program in ("timer.s", "tt.io.s")
-    for mode in ("run", "listing")
+    **{
+        f"tests/{program} {mode}": "runs to the 2**31 - 1 step limit without -mapped_io"
+        for program in ("timer.s", "tt.io.s")
+        for mode in ("run", "listing")
+    },
+    # yes(1): prints "y" until killed, so both engines would only time out
+    # (a C-side timeout fails the case).
+    **{
+        f"examples/src/intro/yes/yes.asm {mode}": "prints y forever, like yes(1)"
+        for mode in ("run", "listing")
+    },
 }
 
 
