@@ -54,6 +54,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f gcd.asm 48 18
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f gcd.asm 48 18
  */
 /* clang-format on */
 

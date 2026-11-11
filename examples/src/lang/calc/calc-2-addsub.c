@@ -47,6 +47,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f calc-2-addsub.asm < calc-2-addsub.input
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f calc-2-addsub.asm < calc-2-addsub.input
  */
 /* clang-format on */
 

@@ -34,6 +34,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f base64.asm base64.input
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f base64.asm base64.input
  */
 /* clang-format on */
 

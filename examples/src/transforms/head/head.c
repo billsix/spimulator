@@ -48,6 +48,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f head.asm -n 3 head.input
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f head.asm -n 3 head.input
  */
 /* clang-format on */
 

@@ -53,6 +53,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f exit.asm
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f exit.asm
  */
 /* clang-format on */
 

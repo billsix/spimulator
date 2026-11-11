@@ -44,6 +44,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f nologin.asm
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f nologin.asm
  */
 /* clang-format on */
 

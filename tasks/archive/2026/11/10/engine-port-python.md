@@ -194,3 +194,17 @@ Checked against a C reference rebuilt from the current tree: `meson test --suite
 69 OK, 0 failed (including the new `text_before_data`, `load_error`, `repl_no_operand`,
 `repl_dot` and `engine_fixes` case 9); `compare_engines.py` 23 passed, 0 warned, 0 failed;
 `compare_all_programs.py` (`python-all-programs`) 1218 passed, 0 warned, 0 failed.
+
+### 2026-11-10 — after the C fixes the Rust port prompted (`6c27911`)
+
+- The assembler's constant arithmetic wrapping at 32 bits (`INT_MIN / -1` is `INT_MIN`, `/ 0`
+  is 0) needed no change: `parser._parse_term`/`_parse_expr` already wrapped with `machine.s32`
+  and divided with `c_div`. Checked: `.word -2147483648 / -1, 0x7fffffff + 1, 0x10000 * 0x10000,
+  5 / 0, -7 / 2` gives the same `-dump` as the C engine.
+- The ten value-taking flags (`-stext -sdata -ldata -sstack -lstack -sktext -skdata -lkdata
+  -exception_file -trap_file`, and their short forms) given last now print
+  `spimulator: FLAG requires a value` and then the usage, as the C engine does
+  (`spim._VALUE_FLAGS`).
+- Gate, against a C reference rebuilt from the current tree: `meson test --suite port-python`
+  70 OK, 0 failed (including `missing_flag_value` and `engine_fixes` case 10);
+  `compare_engines.py` 23 passed; `compare_all_programs.py` 1214 passed, 0 warned, 0 failed.

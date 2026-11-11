@@ -20,3 +20,5 @@ builddir/
 # A host-side build of the Haskell port (port/haskell/build.sh writes it);
 # the image builds its own.
 port/haskell/build/
+# A host-side build of the Rust port (cargo); the image builds its own.
+port/rust/target/

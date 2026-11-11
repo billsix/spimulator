@@ -24,6 +24,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f ../libctype/libctype.asm -f ../libstdlib/libstdlib.asm -f bsearch-demo.asm
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f ../libctype/libctype.asm -f ../libstdlib/libstdlib.asm -f bsearch-demo.asm
  */
 /* clang-format on */
 

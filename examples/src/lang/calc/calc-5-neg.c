@@ -49,6 +49,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f calc-5-neg.asm < calc-5-neg.input
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f calc-5-neg.asm < calc-5-neg.input
  */
 /* clang-format on */
 

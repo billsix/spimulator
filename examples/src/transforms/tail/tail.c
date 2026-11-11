@@ -34,6 +34,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f tail.asm -n 3 tail.input
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f tail.asm -n 3 tail.input
  */
 /* clang-format on */
 

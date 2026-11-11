@@ -31,6 +31,12 @@ guard_half: .half 0x1234        # must survive the .half resolution
             .align 2
 later:      .word 0
 
+# Constant arithmetic in the assembler wraps at 32 bits, as the machine's
+# does (found by the Rust port: -2147483648 / -1 killed the assembler).
+wrap_div:   .word -2147483648 / -1
+wrap_mul:   .word 0x7fffffff * 2
+wrap_add:   .word 0x7fffffff + 1
+
 one:        .float 1.0
 two:        .float 2.0
 three:      .float 3.0
@@ -141,6 +147,17 @@ far_target:
         bne $t2, $zero, fail
         lh $t2, 2($t1)
         bne $t2, $zero, fail
+
+        # --- constant arithmetic wraps: INT_MIN / -1, overflowing * and + ---
+        li $a0, 10
+        li $t3, 0x80000000
+        lw $t2, wrap_div
+        bne $t2, $t3, fail
+        lw $t2, wrap_add
+        bne $t2, $t3, fail
+        lw $t2, wrap_mul
+        li $t3, -2
+        bne $t2, $t3, fail
 
         # --- done -----------------------------------------------------------
         la $a0, pass_msg

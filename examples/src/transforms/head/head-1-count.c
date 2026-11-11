@@ -45,6 +45,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f head-1-count.asm < head-1-count.input
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f head-1-count.asm < head-1-count.input
  */
 /* clang-format on */
 

@@ -31,6 +31,17 @@ from compare_engines import REPO, compare_text, resolve_engine
 
 EXCEPTIONS: pathlib.Path = REPO / "src" / "exceptions.s"
 
+# Cases left out, with the reason.  Without -mapped_io these two programs
+# spin until the engine's 2**31 - 1 step limit; the debug C build takes about
+# 14 minutes to get there (found by the Rust port, which takes 43 s), so the
+# C side always times out and the comparison would test nothing.  Their
+# assembly is still compared in the other modes.
+SKIPPED: dict[str, str] = {
+    f"tests/{program} {mode}": "runs to the 2**31 - 1 step limit without -mapped_io"
+    for program in ("timer.s", "tt.io.s")
+    for mode in ("run", "listing")
+}
+
 
 def sources() -> list[pathlib.Path]:
     """Every assembly file the engines are compared on."""
@@ -140,7 +151,7 @@ def main() -> int:
     reference: str = resolve_engine(options.reference)
     engine: str = resolve_engine(options.engine)
     selected: list[tuple[str, list[str]]] = [
-        c for c in cases() if options.filter in c[0]
+        c for c in cases() if options.filter in c[0] and c[0] not in SKIPPED
     ]
     counts: dict[str, int] = {"PASS": 0, "WARN": 0, "FAIL": 0}
     with concurrent.futures.ThreadPoolExecutor(max_workers=options.jobs) as pool:
@@ -156,7 +167,10 @@ def main() -> int:
                 print(f"{verdict} {label}")
                 for note in notes[:5]:
                     print(f"    {note}")
-    print(f"{counts['PASS']} passed, {counts['WARN']} warned, {counts['FAIL']} failed")
+    print(
+        f"{counts['PASS']} passed, {counts['WARN']} warned, {counts['FAIL']} failed"
+        f" ({len(SKIPPED)} skipped by name, see SKIPPED)"
+    )
     return 1 if counts["FAIL"] else 0
 
 

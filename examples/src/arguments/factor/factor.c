@@ -32,6 +32,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f factor.asm 360
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f factor.asm 360
  */
 /* clang-format on */
 

@@ -48,6 +48,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f rpn-1-stack.asm < rpn-1-stack.input
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f rpn-1-stack.asm < rpn-1-stack.input
  */
 /* clang-format on */
 

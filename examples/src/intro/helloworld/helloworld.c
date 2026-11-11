@@ -39,6 +39,9 @@
  *
  *   the same assembly, in the GHC Haskell port:
  *     $ spimulator-haskell -f helloworld.asm
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f helloworld.asm
  */
 /* clang-format on */
 
