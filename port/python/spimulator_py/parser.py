@@ -805,8 +805,12 @@ def _expand_pseudo(op: int) -> None:  # noqa: C901 - one case per pseudo-op, as 
                     pseudo_op.mult_inst(op, rd, rs, 1)
         case Tok.MFC1_D_PSEUDO_OP | Tok.MTC1_D_PSEUDO_OP:
             real = Tok.MFC1_OPCODE if op == Tok.MFC1_D_PSEUDO_OP else Tok.MTC1_OPCODE
+            line: int = scanner.line_no  # the last operand can consume the newline
             reg: int = _parse_register()
             copreg: int = _parse_copreg_operand()
+            if 31 in (reg, copreg):  # the pair's second register would be 32
+                _parse_error_at("Register pair starts at the last register (31)", line)
+                return
             emit_fp_r(real, 0, copreg, reg)
             emit_fp_r(real, 0, copreg + 1, reg + 1)
         case Tok.LI_D_PSEUDO_OP | Tok.LI_S_PSEUDO_OP:
@@ -823,8 +827,12 @@ def _expand_pseudo(op: int) -> None:  # noqa: C901 - one case per pseudo-op, as 
             emit_i(real, fr, address.reg_no, address.imm)
         case Tok.LD_PSEUDO_OP | Tok.SD_PSEUDO_OP:
             real = Tok.LW_OPCODE if op == Tok.LD_PSEUDO_OP else Tok.SW_OPCODE
+            line = scanner.line_no  # the address can consume the newline
             rt = _parse_register()
             address = _parse_address()
+            if rt == 31:  # the pair's second register would be 32
+                _parse_error_at("Register pair starts at the last register (31)", line)
+                return
             emit_i(real, rt, address.reg_no, address.imm)
             emit_i(
                 real,

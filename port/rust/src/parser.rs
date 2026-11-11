@@ -799,8 +799,17 @@ impl Machine {
                 }
             }
             TOK_MFC1_D_PSEUDO_OP | TOK_MTC1_D_PSEUDO_OP => {
+                let line: i32 = self.scanner.line_no(); // the last operand can consume the newline
                 let reg: i32 = self.parse_register();
                 let copreg: i32 = self.parse_copreg();
+                if reg == 31 || copreg == 31 {
+                    // The pair's second register would be 32.
+                    self.parse_error_on_line(
+                        "Register pair starts at the last register (31)",
+                        line,
+                    );
+                    return;
+                }
                 let real: i32 = if op == TOK_MFC1_D_PSEUDO_OP {
                     TOK_MFC1_OPCODE
                 } else {
@@ -861,8 +870,17 @@ impl Machine {
                 } else {
                     TOK_SW_OPCODE
                 };
+                let line: i32 = self.scanner.line_no(); // the address can consume the newline
                 let rt: i32 = self.parse_register();
                 let addr: AddrExpr = self.parse_address();
+                if rt == 31 {
+                    // The pair's second register would be 32.
+                    self.parse_error_on_line(
+                        "Register pair starts at the last register (31)",
+                        line,
+                    );
+                    return;
+                }
                 self.emit_i(real, rt, addr.reg, &addr.imm);
                 self.emit_i(real, rt.wrapping_add(1), addr.reg, &addr.imm.plus(4));
             }

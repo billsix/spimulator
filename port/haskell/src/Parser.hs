@@ -701,10 +701,14 @@ doParsePseudo s op = case op of
   _ | op == TOK_MFC1_D_PSEUDO_OP || op == TOK_MTC1_D_PSEUDO_OP -> do
     let real :: Opcode
         real = if op == TOK_MFC1_D_PSEUDO_OP then TOK_MFC1_OPCODE else TOK_MTC1_OPCODE
+    line :: Int <- lineNo s -- the last operand can consume the newline
     r :: Int <- parseRegister s
     copreg :: Int <- coprocessorRegister s
-    emitFpR s real 0 copreg r
-    emitFpR s real 0 (copreg + 1) (r + 1)
+    if r == 31 || copreg == 31 -- the pair's second register would be 32
+      then parseErrorOnLine s line "Register pair starts at the last register (31)"
+      else do
+        emitFpR s real 0 copreg r
+        emitFpR s real 0 (copreg + 1) (r + 1)
   TOK_LI_D_PSEUDO_OP -> do
     fd :: Int <- parseFpRegister s
     t :: Token <- peek s
@@ -734,10 +738,14 @@ doParsePseudo s op = case op of
   _ | op == TOK_LD_PSEUDO_OP || op == TOK_SD_PSEUDO_OP -> do
     let real :: Opcode
         real = if op == TOK_LD_PSEUDO_OP then TOK_LW_OPCODE else TOK_SW_OPCODE
+    line :: Int <- lineNo s -- the address can consume the newline
     rt :: Int <- parseRegister s
     (r, imm) :: (Int, ImmExpr) <- parseAddress s
-    emitI s real rt r imm
-    emitI s real (rt + 1) r (incrExprOffset imm 4)
+    if rt == 31 -- the pair's second register would be 32
+      then parseErrorOnLine s line "Register pair starts at the last register (31)"
+      else do
+        emitI s real rt r imm
+        emitI s real (rt + 1) r (incrExprOffset imm 4)
   TOK_ULW_PSEUDO_OP -> do
     rt :: Int <- parseRegister s
     (r, imm) :: (Int, ImmExpr) <- parseAddress s

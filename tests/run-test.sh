@@ -219,6 +219,17 @@ case "$NAME" in
     grep -q '^Unknown label: f33$' "$out" || fail "print \$f33 is not an unknown label"
     grep -q '^Unknown label: f4294967294$' "$out" || fail "print \$f4294967294 is not an unknown label"
     ;;
+  register_pair)
+    # ld/sd/mfc1.d/mtc1.d starting at register 31 are errors on their own
+    # lines, not writes to a 33rd register.
+    "$SPIM" -exception_file "$EF" -f tt.register_pair.s >"$out" 2>&1; rc=$?
+    expect_exit 2 "$rc"
+    for line in 10 11 12 13; do
+      grep -q "Register pair starts at the last register (31) on line $line of file" "$out" \
+        || fail "no register-pair error on line $line"
+    done
+    [ "$(grep -c 'Register pair' "$out")" -eq 4 ] || fail "a pair from register 30 was rejected"
+    ;;
   imm_range)
     # An out-of-range immediate is reported on the instruction's own line (7),
     # not the next one, and the program still assembles and runs.

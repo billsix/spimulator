@@ -149,7 +149,7 @@ regression_tests = [
   # Engine fixes made before the ports (self-checking), and the ones the
   # ports found
   'engine_fixes', 'text_before_data', 'load_error', 'repl_no_operand',
-  'repl_dot', 'missing_flag_value', 'hazard_barrier', 'cop2_rejected', 'cop1x_decode', 'range_checks', 'imm_range',
+  'repl_dot', 'missing_flag_value', 'hazard_barrier', 'cop2_rejected', 'cop1x_decode', 'range_checks', 'register_pair', 'imm_range',
   # Exception-handler paths
   'divide_by_zero', 'core_default_handler',
   # Full-output goldens

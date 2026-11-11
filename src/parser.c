@@ -1446,9 +1446,15 @@ static void do_parse_pseudo(int op) {
     case TOK_MFC1_D_PSEUDO_OP: {
       /* mfc1.d REG COP_REG  →  two mfc1 instructions
        */
+      const int line = line_no; /* the last operand can consume the newline */
       const int reg = parse_register();
       const int copreg =
           scanner_peek() == TOK_FP_REG ? parse_fp_register() : parse_register();
+      if (reg == 31 || copreg == 31) {
+        /* the pair's second register would be 32, past the register file */
+        parse_error_on_line("Register pair starts at the last register (31)", line);
+        break;
+      }
       emit_fp_r(TOK_MFC1_OPCODE, 0, copreg, reg);
       emit_fp_r(TOK_MFC1_OPCODE, 0, copreg + 1, reg + 1);
       break;
@@ -1456,9 +1462,15 @@ static void do_parse_pseudo(int op) {
     case TOK_MTC1_D_PSEUDO_OP: {
       /* mtc1.d REG COP_REG  →  two mtc1 instructions
        */
+      const int line = line_no; /* the last operand can consume the newline */
       const int reg = parse_register();
       const int copreg =
           scanner_peek() == TOK_FP_REG ? parse_fp_register() : parse_register();
+      if (reg == 31 || copreg == 31) {
+        /* the pair's second register would be 32, past the register file */
+        parse_error_on_line("Register pair starts at the last register (31)", line);
+        break;
+      }
       emit_fp_r(TOK_MTC1_OPCODE, 0, copreg, reg);
       emit_fp_r(TOK_MTC1_OPCODE, 0, copreg + 1, reg + 1);
       break;
@@ -1538,8 +1550,16 @@ static void do_parse_pseudo(int op) {
     case TOK_LD_PSEUDO_OP: {
       /* ld DEST ADDRESS  — load doubleword pseudo, expands to
          two lw instructions */
+      const int line = line_no; /* the address can consume the newline */
       const int rt = parse_register();
       addr_expr* const addr = parse_address();
+      if (rt == 31) {
+        /* the pair's second register would be 32, past the register file */
+        parse_error_on_line("Register pair starts at the last register (31)", line);
+        free(addr_expr_imm(addr));
+        free(addr);
+        break;
+      }
       emit_i(TOK_LW_OPCODE, rt, addr_expr_reg(addr), addr_expr_imm(addr));
       emit_i_free(TOK_LW_OPCODE, rt + 1, addr_expr_reg(addr),
                   incr_expr_offset(addr_expr_imm(addr), 4));
@@ -1549,8 +1569,16 @@ static void do_parse_pseudo(int op) {
     }
     case TOK_SD_PSEUDO_OP: {
       /* sd SRC1 ADDRESS — store doubleword pseudo. */
+      const int line = line_no; /* the address can consume the newline */
       const int rt = parse_register();
       addr_expr* const addr = parse_address();
+      if (rt == 31) {
+        /* the pair's second register would be 32, past the register file */
+        parse_error_on_line("Register pair starts at the last register (31)", line);
+        free(addr_expr_imm(addr));
+        free(addr);
+        break;
+      }
       emit_i(TOK_SW_OPCODE, rt, addr_expr_reg(addr), addr_expr_imm(addr));
       emit_i_free(TOK_SW_OPCODE, rt + 1, addr_expr_reg(addr),
                   incr_expr_offset(addr_expr_imm(addr), 4));
