@@ -39,6 +39,10 @@ history (who did what, in what order, and the C bugs the ports found) is in
   It runs as a meson suite, so `make image` gates every port.
 - **Layout:** `port/python/`, `port/haskell/`, `port/rust/`, the harness under `port/harness/`
   (William Emerison Six <billsix@gmail.com>, 2026-11-10: "port works for now").
+- **A port's opcode table is generated, not written or parsed** (2026-11-11). `tools/gen_opcodes.py`
+  writes every engine's table from `include/opcodes.tsv`, including the decode table that settles
+  shared encodings. A new language adds an emitter there: `tasks/reference/opcode-table-generator.md`,
+  "Adding an engine port in a new language".
 - **Each port is a command with the C engine's CLI**: `spimulator-python`, `spimulator-haskell`,
   `spimulator-rust`. It takes the same flags and arguments as `spimulator`, so the harness and the
   example headers call each one the same way.

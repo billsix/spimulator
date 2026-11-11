@@ -30,8 +30,10 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
 - `src/` — simulator: `spim.c` (REPL), `run.c` (execute), `memory.c`,
   `instruction.c` (codec / disassemble / explain), `syscall.c`, `scanner.c`,
   `parser.c`, `ast.c`, `pseudo-op.c`, `symbol-table.c`, `explain.c`;
-  `exceptions.s` (the trap handler). `include/` — `opcodes.h` (X-macro opcode
-  table), `registers.h`, `spim.h`, parser/AST headers.
+  `exceptions.s` (the trap handler), `opcode-tables.c` (generated). `include/` —
+  `opcodes.tsv` + `opcode-types.tsv` (the opcode table's source, see Conventions),
+  the generated `tokens.h` / `opcode-types.h` / `opcode-tables.h`, `registers.h`,
+  `spim.h`, parser/AST headers.
 - `examples/` — paired **C + MIPS-asm** teaching demos (`intro/`, `algorithms/`,
   `transforms/`, `fileio/`, `arguments/`, `recursion/`, `extras/`, plus
   `lib/libctype` + `libstdlib` + `libstr` adapted from musl). `examples/src/meson.build`
@@ -47,8 +49,8 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
 - `pgu/` — the *Programming from the Ground Up* book ported to MIPS/spim (its own
   `Dockerfile`/`Makefile`/`docs/`). Port **complete**
   (`tasks/archive/2026/06/14/port-pgu.md`, 2026-05-25).
-- `tree-sitter/` — editor grammar; `grammar.js` keyword lists are derived from
-  `opcodes.h` via `scripts/extract-keywords.py`, so they stay in sync.
+- `tree-sitter/` — editor grammar; its keyword lists (`scripts/keyword-lists.js`) are generated
+  from `include/opcodes.tsv`, so they stay in sync.
 - `tests/` — regression suite (`run-test.sh`, `tt.*.s` / `tt.*.in`).
 - `port/` — the engine ported to Python (`port/python/`), GHC Haskell (`port/haskell/`) and Rust
   (`port/rust/`), each a `spimulator-<language>` command with the C engine's flags. **The C engine is
@@ -111,24 +113,24 @@ not spim's intentional exit-time leaks) + the integer-UB primer:
   output until `ebe63b4` (2025-11-07) moved that step into the build. Committing it means the build
   and the image need no generator toolchain, and a change to the source shows its effect in the
   diff. After changing the source, run the generator and commit both together.
-  - The generated files, all from `include/opcodes.h`:
-    - `port/haskell/src/Opcodes.hs`, from `port/haskell/tools/GenOpcodes.hs`;
-    - `port/rust/src/opcodes_table.rs`, from `port/rust/tools/gen_opcodes.sh`;
-    - `tree-sitter/scripts/keywords.json` and `keyword-lists.js`, from `extract-keywords.py` and
-      `build-keyword-lists.py`.
-  - Nothing yet checks that they are current: `tasks/opcodes-x-macro-redesign.md`.
+  - **The opcode table** is the one generated family today. `include/opcodes.tsv` and
+    `include/opcode-types.tsv` are the source. `tools/gen_opcodes.py` writes the C engine's tables,
+    every port's, and the tree-sitter keyword lists; its `OUTPUTS` lists them. `make generate`
+    regenerates them. The image build's preprocessing stage and the `generated_opcode_tables`
+    meson test fail, with a diff, if a committed one is out of date.
+  - **Adding a language port?** Its opcode table comes from the generator too: write an emitter
+    and register it. The steps are in `tasks/reference/opcode-table-generator.md` ("Adding an
+    engine port in a new language"), which also explains the data files and the decode column.
 - C23; clang-format + clang-tidy; core `-Werror` (gcc + clang clean). `src/`+`include/` follow the
   shared standard `github.com/billsix/runClaudeInContainer:tasks/reference/c-coding-standard.md` (modernized through
   `tasks/archive/2026/11/10/c23-modernization-pass3.md` and the `const` pass
   `tasks/archive/2026/11/11/c23-const-correctness-pass.md`, which list the deliberate opt-outs; new C
   is checked for missing `const` with `tools/const_candidates.py BUILDDIR`); the core is additionally gated under
-  `-Wconversion -Wsign-conversion` (gcc + clang), done in `tasks/archive/2026/10/16/integer-conversion-hardening.md`. `opcodes.h` is the single source of truth for
-  both the simulator and the tree-sitter grammar — regenerate the grammar rather
-  than hand-editing keyword lists. **Any change to `opcodes.h` (or
-  `opcode-types.h`) must be gated with `BUILD_TREE_SITTER=1`** — the keyword
-  pipeline (`extract-keywords.py` → `build-keyword-lists.py` → `grammar.js`)
-  consumes both the mnemonic and the type-tag columns, and a
-  `BUILD_TREE_SITTER=0` image build never exercises it.
+  `-Wconversion -Wsign-conversion` (gcc + clang), done in `tasks/archive/2026/10/16/integer-conversion-hardening.md`. `include/opcodes.tsv` is the single source of truth for
+  the simulator, the ports and the tree-sitter grammar; edit it and run `make generate`, never the
+  generated tables. **Any change to `opcodes.tsv` (or `opcode-types.tsv`) must be gated with
+  `BUILD_TREE_SITTER=1`**: `grammar.js` builds its keyword rules from the generated
+  `keyword-lists.js`, and a `BUILD_TREE_SITTER=0` image build never builds or tests the grammar.
 - This is a learning tool: the explain/teaching output is a first-class feature,
   not debug spew. Keep it correct and legible.
 - **Modernization scope — `src/` + `include/` only.** The shared C coding standard

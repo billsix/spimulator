@@ -396,6 +396,11 @@ identified is real if you port to Go, but in C the X-macro IS
 the code-gen step.  It's elegant and working.  Don't replace
 with a Python script that emits the tables.
 
+**Superseded 2026-11-11** (William Emerison Six <billsix@gmail.com>): once three engine ports
+needed the table, the maintainer chose one data file and a Python generator for every language,
+C included (`tasks/archive/2026/11/11/opcodes-x-macro-redesign.md`,
+`tasks/reference/opcode-table-generator.md`).
+
 ### G3. Replacing manual `xmalloc`/`free` with arena allocators or GC
 
 For a 14k-LOC simulator that runs for seconds at a time, manual

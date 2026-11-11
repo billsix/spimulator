@@ -11,8 +11,8 @@ Fifteen if/elif chains in the Python port pick a branch by comparing one value a
 constants, the shape a C `switch` has. Rewrite each as a `match` with a `case _` default, as the
 Python coding standard asks. Most of these chains compare against string-keyed dict lookups
 (`TOK["LI_PSEUDO_OP"]`) or bare names, which a `case` cannot spell, so the opcode constants must
-first become dotted names: members of `IntEnum` classes in a module generated from
-`include/opcodes.h` (Decisions). Also, 42 runs of separate early-exit `if`s are one decision each:
+first become dotted names: members of the generated `Tok` and `OpType` `IntEnum`s, which exist
+since 2026-11-11 (Decisions). Also, 42 runs of separate early-exit `if`s are one decision each:
 7 dispatch on one value and become `match`es too, and the other 35 become `if`/`elif`/`else`
 chains, as the standard's "Mutually exclusive branches" rule asks. Done means each chain and run
 is converted or listed with the reason it stays as it is, and the port suites still pass.
@@ -69,14 +69,16 @@ is converted or listed with the reason it stays as it is, and the port suites st
 - **No other dispatch chains.** The executor already dispatches through dict tables
   (`run.py` `_FACTORIES`, `_SIGN_TESTS`, `_TRAP_TESTS`, `_TO_WORD`), and the harness and `tools/`
   have no if/elif dispatch chains (only the guard runs above).
-- **Why the constants are lookups now.** `port/python/spimulator_py/opcodes.py` reads
-  `include/opcodes.h` at import, so the port can never disagree with C. It exposes `TOKEN` and
-  `KIND` as `dict[str, int]`, and the code reads them about 290 times as `TOK["…"]` /
+- **Why the constants are lookups now.** `port/python/spimulator_py/opcodes.py` exposes `TOKEN`
+  and `KIND` as `dict[str, int]`, and the code reads them about 290 times as `TOK["…"]` /
   `KIND["…"]`. The type checker cannot see those keys, so a misspelled name fails only at run time.
-- **The other two ports commit a generated module.** Haskell has `port/haskell/src/Opcodes.hs`,
-  from `port/haskell/tools/GenOpcodes.hs`. Rust has `port/rust/src/opcodes_table.rs`, from
-  `port/rust/tools/gen_opcodes.sh`. Neither port's suite checks that its generated file still
-  matches `opcodes.h`.
+- **The dotted constants exist** (since 2026-11-11, `tasks/archive/2026/11/11/opcodes-x-macro-redesign.md`).
+  `tools/gen_opcodes.py` generates `port/python/spimulator_py/opcode_table.py` from
+  `include/opcodes.tsv`, as it does every port's table. That module holds `class Tok(enum.IntEnum)`,
+  every keyword token named like the C token without `TOK_` (`Tok.LI_PSEUDO_OP`), and
+  `class OpType(enum.IntEnum)`, the operand-shape tags. `opcodes.py` builds `TOKEN` and `KIND` from
+  them. The image build and a meson test check that the committed module is current
+  (`tasks/reference/opcode-table-generator.md`).
 - **Some constants are local.** The REPL command numbers in `spim.py` are
   `_EXIT, _READ, … = range(1, 8)`. Under the standard they are an `enum.IntEnum` whatever is
   decided below.
@@ -84,8 +86,8 @@ is converted or listed with the reason it stays as it is, and the port suites st
 ## Decisions
 
 - **Opcode constants: a generated, committed module of `IntEnum` classes** (William Emerison Six
-  <billsix@gmail.com>, 2026-11-11, option (b) of two). Generate it from `include/opcodes.h` as the
-  Haskell and Rust ports do, add a check that regenerating changes nothing, and convert all ~290
+  <billsix@gmail.com>, 2026-11-11, option (b) of two). It is generated as the Haskell and Rust
+  ports' tables are, with a check that regenerating changes nothing; convert all ~290
   `TOK["…"]` / `KIND["…"]` lookups so the type checker checks every name. The other option was to keep
   reading `opcodes.h` at import and expose the tables as attribute namespaces (`case Tok.X:`), which
   would have changed only the chains' comparisons. It was not chosen because it leaves the names
@@ -96,11 +98,9 @@ is converted or listed with the reason it stays as it is, and the port suites st
 
 1. Convert the four `value` chains and `ast_nodes.py:136`, each with a `case _`. Make the REPL
    commands an `IntEnum`. Run the port-python suite.
-2. Write the generator (in `port/python/tools/`) and commit the generated module. If
-   `tasks/opcodes-x-macro-redesign.md` (one generator for every language's opcode tables) goes ahead
-   first, this module is its Python output instead, and this step only converts the lookups. It must give the same
-   token numbers as `include/tokens.h`, which `-print-ast` prints. Add a staleness check (regenerate,
-   expect no diff) to `port/meson.build`. Then convert the ~290 lookups, one module per commit.
+2. Convert the ~290 `TOK["…"]` / `KIND["…"]` lookups to `Tok.…` / `OpType.…`, one module per commit.
+   The generated module and its check already exist (Context). `TOKEN` and `KIND` in `opcodes.py`
+   can go once nothing reads them.
 3. Convert the `lookup` chains, one file per commit. Check that `ruff`, `ty` and
    `check_local_annotations.py` are clean on each, then run `meson test --suite port-python` and
    the whole-tree comparison (`port/harness/compare_all_programs.py`). Behavior must not change;

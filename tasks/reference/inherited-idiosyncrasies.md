@@ -27,7 +27,9 @@ latent bug** plus a scatter of dead/misnamed/mistyped items.
 ## The "random void argc" shape the maintainer remembered — real (dump-opcodes FIXED 2026-10-16)
 
 - **`src/dump-opcodes.c:61` — `main(int argc, char** argv)` with NO return type** (implicit-int, illegal
-  in the C23 the tree targets) and `argc`/`argv` unused. **FIXED 2026-10-16**: `int main(void)`.
+  in the C23 the tree targets) and `argc`/`argv` unused. **FIXED 2026-10-16**: `int main(void)`. The file,
+  never built, was removed 2026-11-11 when the opcode table became generated
+  (`tasks/reference/opcode-table-generator.md`).
 - `pgu/src/c/toupper-nomm-simplified.c:89` — a defensible `(void)argc;`.
 
 ## Mistyped sizes — FIXED 2026-10-16

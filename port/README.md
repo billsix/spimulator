@@ -14,6 +14,10 @@ warning. Rules, ordering and decisions: `tasks/reference/engine-ports-design.md`
 Each port takes the C engine's flags and arguments. The teaching mode (`-explain`) is not ported
 yet.
 
+Each port's opcode table is generated from `include/opcodes.tsv` by `tools/gen_opcodes.py`
+(`make generate`), like the C engine's. A port in a new language adds an emitter there:
+`tasks/reference/opcode-table-generator.md`, "Adding an engine port in a new language".
+
 ## Testing a port
 
     # [CONTAINER] the C engine's own suites, run against a port, plus the comparison:
