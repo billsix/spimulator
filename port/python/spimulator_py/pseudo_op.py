@@ -182,25 +182,29 @@ def set_eq_inst(op: int, rd: int, rs: int, rt: int) -> None:
     parser.emit_i(Tok.ORI_OPCODE, rd, 0, instruction.const_imm_expr(equal))
 
 
-def check_imm_range(expr: ImmExpr, low: int, high: int) -> None:
-    """Warn (not an error: the code is widened) if expr is outside low..high."""
+def check_imm_range(expr: ImmExpr, low: int, high: int, line: int) -> None:
+    """Warn (not an error: the code is widened) if expr is outside low..high.
+
+    ``line`` is the instruction's line: the scanner's line can already be the
+    next one, as reading past the immediate scans the newline.
+    """
     if expr.symbol is None or expr.symbol.addr != 0:
         value: int = instruction.eval_imm_expr(expr)
         if value < low or high < value:
-            _range_warning(value, low, high)
+            _range_warning(value, low, high, line)
 
 
-def check_uimm_range(expr: ImmExpr, low: int, high: int) -> None:
-    """Warn if expr's known value, read unsigned, is outside low..high."""
+def check_uimm_range(expr: ImmExpr, low: int, high: int, line: int) -> None:
+    """Warn if expr's known value, read unsigned, is outside low..high (on line)."""
     if expr.symbol is None or expr.symbol.addr != 0:
         value: int = machine.u32(instruction.eval_imm_expr(expr))
         if value < low or high < value:
-            _range_warning(machine.s32(value), low, high)
+            _range_warning(machine.s32(value), low, high, line)
 
 
-def _range_warning(value: int, low: int, high: int) -> None:
+def _range_warning(value: int, low: int, high: int, line: int) -> None:
     """The out-of-range immediate warning."""
     console.error(
         f"spim: (parser) immediate value ({value}) out of range"
-        f" ({low} .. {high}) on line {scanner.line_no}\n"
+        f" ({low} .. {high}) on line {line}\n"
     )

@@ -370,15 +370,18 @@ def _parse_imm32() -> ImmExpr:
 
 def _parse_imm16() -> ImmExpr:
     """A signed 16-bit immediate (a warning if it does not fit)."""
+    # The instruction's line, before parsing the immediate scans the newline.
+    line: int = scanner.line_no
     expr: ImmExpr = _parse_imm32()
-    pseudo_op.check_imm_range(expr, instruction.IMM_MIN, instruction.IMM_MAX)
+    pseudo_op.check_imm_range(expr, instruction.IMM_MIN, instruction.IMM_MAX, line)
     return expr
 
 
 def _parse_uimm16() -> ImmExpr:
     """An unsigned 16-bit immediate."""
+    line: int = scanner.line_no  # as in _parse_imm16
     expr: ImmExpr = _parse_imm32()
-    pseudo_op.check_uimm_range(expr, instruction.UIMM_MIN, instruction.UIMM_MAX)
+    pseudo_op.check_uimm_range(expr, instruction.UIMM_MIN, instruction.UIMM_MAX, line)
     return expr
 
 
@@ -907,9 +910,10 @@ def _expand_rotate(op: int) -> None:
             emit_r(Tok.SLLV_OPCODE, rd, rt, rs)
         emit_r(Tok.OR_OPCODE, rd, rd, 1)
         return
+    line: int = scanner.line_no  # as in _parse_imm16
     imm: ImmExpr = _parse_imm32()
     distance: int = instruction.eval_imm_expr(imm)
-    pseudo_op.check_imm_range(imm, 0, 31)
+    pseudo_op.check_imm_range(imm, 0, 31, line)
     first: int = Tok.SLL_OPCODE if is_right else Tok.SRL_OPCODE
     second: int = Tok.SRL_OPCODE if is_right else Tok.SLL_OPCODE
     emit_r_shift(first, 1, rs, -distance)

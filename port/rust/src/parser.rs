@@ -394,15 +394,18 @@ impl Machine {
 
     /// A signed 16-bit immediate (warns if it does not fit).
     fn parse_imm16(&mut self) -> ImmExpr {
+        // The instruction's line, before parsing the immediate scans the newline.
+        let line: i32 = self.scanner.line_no();
         let expr: ImmExpr = self.parse_imm32();
-        self.check_imm_range(&expr, -0x8000, 0x7fff);
+        self.check_imm_range(&expr, -0x8000, 0x7fff, line);
         expr
     }
 
     /// An unsigned 16-bit immediate (warns if it does not fit).
     fn parse_uimm16(&mut self) -> ImmExpr {
+        let line: i32 = self.scanner.line_no(); // as in parse_imm16
         let expr: ImmExpr = self.parse_imm32();
-        self.check_uimm_range(&expr, 0, 0xffff);
+        self.check_uimm_range(&expr, 0, 0xffff, line);
         expr
     }
 
@@ -955,9 +958,10 @@ impl Machine {
             }
             self.emit_r(TOK_OR_OPCODE, rd, rd, 1);
         } else {
+            let line: i32 = self.scanner.line_no(); // as in parse_imm16
             let imm: ImmExpr = self.parse_imm32();
             let distance: i32 = self.eval_imm_expr(&imm);
-            self.check_imm_range(&imm, 0, 31);
+            self.check_imm_range(&imm, 0, 31, line);
             if right {
                 self.emit_r_shift(TOK_SLL_OPCODE, 1, rs, distance.wrapping_neg());
                 self.emit_r_shift(TOK_SRL_OPCODE, rd, rs, distance);

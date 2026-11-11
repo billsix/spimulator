@@ -211,7 +211,7 @@ void set_eq_inst(int op, int rd, int rs, int rt) {
   emit_i_free(TOK_ORI_OPCODE, rd, 0, if_eq);
 }
 
-void check_imm_range(const imm_expr* expr, int32_t min, int32_t max) {
+void check_imm_range(const imm_expr* expr, int32_t min, int32_t max, int line) {
   if (expr->symbol == nullptr || SYMBOL_IS_DEFINED(expr->symbol)) {
     /* If expression can be evaluated, compare against limits. */
     const int32_t value = eval_imm_expr(expr);
@@ -220,12 +220,13 @@ void check_imm_range(const imm_expr* expr, int32_t min, int32_t max) {
       char str[200];
       snprintf(str, sizeof str, "immediate value (%d) out of range (%d .. %d)",
                value, min, max);
-      error("spim: (parser) %s on line %d\n", str, line_no);
+      error("spim: (parser) %s on line %d\n", str, line);
     }
   }
 }
 
-void check_uimm_range(const imm_expr* expr, uint32_t min, uint32_t max) {
+void check_uimm_range(const imm_expr* expr, uint32_t min, uint32_t max,
+                      int line) {
   if (expr->symbol == nullptr || SYMBOL_IS_DEFINED(expr->symbol)) {
     const uint32_t value = (uint32_t)eval_imm_expr(expr);
 
@@ -233,7 +234,7 @@ void check_uimm_range(const imm_expr* expr, uint32_t min, uint32_t max) {
       char str[200];
       snprintf(str, sizeof str, "immediate value (%d) out of range (%d .. %d)",
                (int32_t)value, (int32_t)min, (int32_t)max);
-      error("spim: (parser) %s on line %d\n", str, line_no);
+      error("spim: (parser) %s on line %d\n", str, line);
     }
   }
 }

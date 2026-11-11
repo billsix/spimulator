@@ -29,8 +29,13 @@ imm_expr* branch_offset(int n_inst);
 
 /* Range checkers for immediate values. */
 
-void check_imm_range(const imm_expr* expr, int32_t min, int32_t max);
-void check_uimm_range(const imm_expr* expr, uint32_t min, uint32_t max);
+/* Report an immediate outside [min, max] as a parse error on LINE, the line of
+   the instruction it belongs to.  (The scanner's line_no can already be on the
+   next line: reading past the immediate scans the newline, which advances it.)
+ */
+void check_imm_range(const imm_expr* expr, int32_t min, int32_t max, int line);
+void check_uimm_range(const imm_expr* expr, uint32_t min, uint32_t max,
+                      int line);
 
 /* Opcode lookups. */
 

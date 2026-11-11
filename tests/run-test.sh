@@ -191,6 +191,14 @@ case "$NAME" in
     expect_exit 2 "$rc"
     grep -q 'cop2 is not supported: spim has no coprocessor 2' "$out" || fail "missing the cop2 error"
     ;;
+  imm_range)
+    # An out-of-range immediate is reported on the instruction's own line (7),
+    # not the next one, and the program still assembles and runs.
+    "$SPIM" -exception_file "$EF" -f tt.imm_range.s >"$out" 2>&1; rc=$?
+    expect_exit 0 "$rc"
+    grep -q 'immediate value (65432) out of range (-32768 .. 32767) on line 7$' "$out" \
+      || fail "the range error does not name line 7"
+    ;;
   parse_error_data_list)
     # A float in a .word list: one parse error, exit 2 -- not an endless
     # repeat of the error (the timeout catches a regression to the loop).

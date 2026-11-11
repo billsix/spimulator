@@ -644,14 +644,18 @@ static imm_expr* parse_imm32(void) {
 
 /* IMM16, UIMM16 — IMM32 plus range check */
 static imm_expr* parse_imm16(void) {
+  /* The instruction's line: parsing the immediate can scan the newline after
+     it, which advances line_no. */
+  const int line = line_no;
   imm_expr* const e = parse_imm32();
-  check_imm_range(e, IMM_MIN, IMM_MAX);
+  check_imm_range(e, IMM_MIN, IMM_MAX, line);
   return e;
 }
 
 static imm_expr* parse_uimm16(void) {
+  const int line = line_no; /* as in parse_imm16 */
   imm_expr* const e = parse_imm32();
-  check_uimm_range(e, UIMM_MIN, UIMM_MAX);
+  check_uimm_range(e, UIMM_MIN, UIMM_MAX, line);
   return e;
 }
 
@@ -1306,9 +1310,10 @@ static void do_parse_pseudo(int op) {
         }
         emit_r(TOK_OR_OPCODE, rd, rd, 1);
       } else {
+        const int line = line_no; /* as in parse_imm16 */
         imm_expr* const imm = parse_imm32();
         const int dist = eval_imm_expr(imm);
-        check_imm_range(imm, 0, 31);
+        check_imm_range(imm, 0, 31, line);
         if (op == TOK_ROR_PSEUDO_OP) {
           emit_r_shift(TOK_SLL_OPCODE, 1, rs, -dist);
           emit_r_shift(TOK_SRL_OPCODE, rd, rs, dist);

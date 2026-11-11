@@ -266,34 +266,37 @@ parseImm32 s = do
           pure (constImmExpr (v `shiftR` (int sh .&. 31)))
     _ -> constImmExpr <$> parseAbsAddr s
 
--- | Warn when a known immediate is outside a range (C: @check_imm_range@).
-checkImmRange :: Spim -> ImmExpr -> Int32 -> Int32 -> IO ()
-checkImmRange s e lo hi = do
+-- | Warn when a known immediate is outside a range (C: @check_imm_range@), on
+-- the instruction's line: the scanner's line can already be the next one, as
+-- reading past the immediate scans the newline.
+checkImmRange :: Spim -> ImmExpr -> Int32 -> Int32 -> Int -> IO ()
+checkImmRange s e lo hi line = do
   known :: Bool <- maybe (pure True) symbolIsDefined (ieSymbol e)
   when known $ do
     v :: Int32 <- evalImmExpr s e
-    when (v < lo || hi < v) $ rangeError s v lo hi
+    when (v < lo || hi < v) $ rangeError v lo hi line
 
-checkUimmRange :: Spim -> ImmExpr -> Word32 -> Word32 -> IO ()
-checkUimmRange s e lo hi = do
+checkUimmRange :: Spim -> ImmExpr -> Word32 -> Word32 -> Int -> IO ()
+checkUimmRange s e lo hi line = do
   known :: Bool <- maybe (pure True) symbolIsDefined (ieSymbol e)
   when known $ do
     v :: Word32 <- fromIntegral <$> evalImmExpr s e
-    when (v < lo || hi < v) $ rangeError s (fromIntegral v) (fromIntegral lo) (fromIntegral hi)
+    when (v < lo || hi < v) $ rangeError (fromIntegral v) (fromIntegral lo) (fromIntegral hi) line
 
-rangeError :: Spim -> Int32 -> Int32 -> Int32 -> IO ()
-rangeError s v lo hi = do
-  n :: Int <- lineNo s
-  cError (printf "spim: (parser) immediate value (%d) out of range (%d .. %d) on line %d\n" v lo hi n)
+rangeError :: Int32 -> Int32 -> Int32 -> Int -> IO ()
+rangeError v lo hi line =
+  cError (printf "spim: (parser) immediate value (%d) out of range (%d .. %d) on line %d\n" v lo hi line)
 
 parseImm16, parseUimm16 :: Spim -> IO ImmExpr
 parseImm16 s = do
+  line :: Int <- lineNo s
   e :: ImmExpr <- parseImm32 s
-  checkImmRange s e (-0x8000) 0x7fff
+  checkImmRange s e (-0x8000) 0x7fff line
   pure e
 parseUimm16 s = do
+  line :: Int <- lineNo s
   e :: ImmExpr <- parseImm32 s
-  checkUimmRange s e 0 0xffff
+  checkUimmRange s e 0 0xffff line
   pure e
 
 -- | A branch target (C: @parse_label@): pc-relative, so its offset is
@@ -632,9 +635,10 @@ doParsePseudo s op = case op of
           else emitR s TOK_SRLV_OPCODE 1 1 rs >> emitR s TOK_SLLV_OPCODE rd rt rs
         emitR s TOK_OR_OPCODE rd rd 1
       else do
+        line :: Int <- lineNo s
         imm :: ImmExpr <- parseImm32 s
         dist :: Int <- int <$> evalImmExpr s imm
-        checkImmRange s imm 0 31
+        checkImmRange s imm 0 31 line
         if op == TOK_ROR_PSEUDO_OP
           then emitRShift s TOK_SLL_OPCODE 1 rs (negate dist) >> emitRShift s TOK_SRL_OPCODE rd rs dist
           else emitRShift s TOK_SRL_OPCODE 1 rs (negate dist) >> emitRShift s TOK_SLL_OPCODE rd rs dist
