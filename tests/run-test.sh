@@ -230,6 +230,18 @@ case "$NAME" in
     done
     [ "$(grep -c 'Register pair' "$out")" -eq 4 ] || fail "a pair from register 30 was rejected"
     ;;
+  print_all_regs_twice)
+    # A second print_all_regs prints only its own text: the decimal listing
+    # is longer than the hex one, and the hex one must not end in its tail.
+    printf 'print_all_regs\nexit\n' | "$SPIM" -exception_file "$EF" 2>&1 | grep -v '^Loaded: ' >"$out.dec"
+    printf 'print_all_regs hex\nexit\n' | "$SPIM" -exception_file "$EF" 2>&1 | grep -v '^Loaded: ' >"$out.hex"
+    printf 'print_all_regs\nprint_all_regs hex\nexit\n' | "$SPIM" -exception_file "$EF" >"$out" 2>&1; rc=$?
+    expect_exit 0 "$rc"
+    same=0
+    cat "$out.dec" "$out.hex" | diff - <(grep -v '^Loaded: ' "$out") >/dev/null || same=1
+    rm -f "$out.dec" "$out.hex"
+    [ "$same" -eq 0 ] || fail "print_all_regs then print_all_regs hex is not the two listings"
+    ;;
   imm_range)
     # An out-of-range immediate is reported on the instruction's own line (7),
     # not the next one, and the program still assembles and runs.
