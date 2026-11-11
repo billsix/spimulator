@@ -59,7 +59,7 @@ github.com/billsix/runClaudeInContainer, "Dispatch").
 - **`tasks/paired-single-compare-encoding.md`.** The 16 `c.cond.ps` rows of `include/opcodes.tsv`
   encode format field 0x13, where GNU `as` puts 0x16. The engine also can't execute them. Found
   because `r_cond_type_inst`'s "exhaustive" switch wasn't: those rows reach it with no case.
-- **`tasks/parse-j-drops-cop2-and-jalr-hb.md`.** `cop2` and `jalr.hb` reach `parse_j` and assemble
+- **`tasks/archive/2026/11/11/parse-j-drops-cop2-and-jalr-hb.md`.** `cop2` and `jalr.hb` reach `parse_j` and assemble
   to nothing, with no error. Found while writing `parse_j`'s `default`.
 - The oracle for both is GNU binutils for MIPS (`binutils-mips64-linux-gnu`), installed and added
   to both sandboxes' base lists. LLVM's `llvm-mc` doesn't support the paired-single compares.
@@ -117,6 +117,6 @@ was archived and are in its history.
 ## Follow-ups
 
 - `tasks/c-dispatch-port-review.md` (proposed): whether the ports should follow any of this.
-- `tasks/paired-single-compare-encoding.md`, `tasks/parse-j-drops-cop2-and-jalr-hb.md` (proposed).
+- `tasks/paired-single-compare-encoding.md`, `tasks/archive/2026/11/11/parse-j-drops-cop2-and-jalr-hb.md` (proposed).
 - `tasks/archive/2026/11/11/name-the-token-enum.md` (declined): a named token type, so switches on
   tokens could be checked.

@@ -59,9 +59,9 @@ commit, with the port suites green) and changes not needed (each with a reason).
 5. **`-Wswitch-enum`'s equivalent.** Python: a type checker's exhaustiveness check on `match` over
    an enum (`assert_never`), if `ty` supports it. Rust and Haskell have it already. Record what each
    port's gate checks.
-6. **Not this task** (each port follows the fix when it lands):
-   - `tasks/parse-j-drops-cop2-and-jalr-hb.md`: `cop2` and `jalr.hb` assemble to nothing.
-   - `tasks/paired-single-compare-encoding.md`: the `c.cond.ps` encodings.
+6. **Not this task:** the two bugs found during the C work were fixed in all four engines in
+   their own tasks: `tasks/archive/2026/11/11/parse-j-drops-cop2-and-jalr-hb.md` (`cop2`,
+   `jalr.hb`, `jr.hb`) and `tasks/paired-single-compare-encoding.md` (the `c.cond.ps` rows).
 
 ## How
 
