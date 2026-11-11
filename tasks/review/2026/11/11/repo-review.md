@@ -469,7 +469,7 @@ There is no `type-check` target for the Python port (§5.3).
 
 Trim it to what's open, or archive it. VERIFIED (a grep per item).
 
-9.2 **MEDIUM — `tasks/minimal-nested-image.md`'s premise is overturned.** It builds on the
+9.2 **MEDIUM — `tasks/archive/2026/11/11/minimal-nested-image.md`'s premise is overturned.** It builds on the
 `NESTED_PODMAN`-keyed idiom, which the fleet replaced with the opt-in `MINIMAL_IMAGE` on
 2026-09-27, and it cites `opcodes.h`. VERIFIED.
 

@@ -10,7 +10,7 @@
 
 Several open tasks predate the ports and the generator and no longer read true. Done means:
 - `tasks/codebase-cleanup-plan.md` holds only its open items, or is archived;
-- `tasks/minimal-nested-image.md` is rewritten against `MINIMAL_IMAGE`, or retired;
+- `tasks/archive/2026/11/11/minimal-nested-image.md` is rewritten against `MINIMAL_IMAGE`, or retired;
 - each behavior-changing task has a "follow in every port" step, and a rating to match;
 - `tasks/engine-ports-teaching-mode.md` uses `Depends on` instead of `blocked`;
 - `tasks/README.md`'s ordering section is rebuilt from the current backlog.
@@ -22,7 +22,7 @@ Several open tasks predate the ports and the generator and no longer read true. 
     `README.rtf`, `bldInstall`, `wsock32`, `_AIX`, `str_copy`, the include guards);
   - F4 is about the retired `opcodes.h`, and G2 is marked superseded;
   - its verification gate leaves out the ports and `make image`, and it has no Status or BLUF.
-- `tasks/minimal-nested-image.md:3-24,145` builds on the `NESTED_PODMAN`-keyed idiom. The fleet
+- `tasks/archive/2026/11/11/minimal-nested-image.md:3-24,145` builds on the `NESTED_PODMAN`-keyed idiom. The fleet
   replaced that with the opt-in `MINIMAL_IMAGE` on 2026-09-27 (the minimal-nested-images.md
   reference doc from github.com/billsix/runClaudeInContainer). It also cites `opcodes.h`.
 - These change C behavior with no ports step (`CLAUDE.md`: "A C behavior change must be followed in
@@ -42,7 +42,7 @@ Several open tasks predate the ports and the generator and no longer read true. 
 
 ## Plan
 
-1. Trim or archive `tasks/codebase-cleanup-plan.md`; rewrite or retire `tasks/minimal-nested-image.md` (question 1).
+1. Trim or archive `tasks/codebase-cleanup-plan.md`; rewrite or retire `tasks/archive/2026/11/11/minimal-nested-image.md` (question 1).
 2. Add a ports step to each of the five tasks, and re-rate their Difficulty.
 3. Fix the status lines (`engine-ports-teaching-mode`, `examples-c-debug-build-via-meson`).
 4. Rebuild `tasks/README.md`'s ordering section from the record's backlog table, and drop the ChangeLog
