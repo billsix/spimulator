@@ -1019,60 +1019,68 @@ static bool parse_spim_command(bool redo) {
        * command's tokens. */
       bool consumed_nl = false;
 
-      if (token == TOK_REG) {
-        if (redo)
-          loc += 1;
-        else
-          loc = scan_value.i;
-        print_reg(loc);
-      } else if (token == TOK_FP_REG) {
-        if (redo)
-          loc += 2;
-        else
-          loc = scan_value.i;
-        print_fp_reg(loc);
-      } else if (token == TOK_INT) {
-        if (redo) {
-          loc += 4;
-          print_mem((mem_addr)loc);
-        } else {
-          const int int_val = scan_value.i;
-          /* Peek for the N($reg) base+offset form so students can inspect
-           * memory using the same syntax they wrote in load/store ops. */
-          const int next = read_token();
-          if (next == '(') {
-            const int reg_tok = read_token();
-            const int reg = (reg_tok == TOK_REG) ? scan_value.i : -1;
-            const int close = (reg_tok == TOK_REG) ? read_token() : 0;
-            if (reg_tok == TOK_NL || close == TOK_NL) consumed_nl = true;
-            if (reg < 0 || close != ')') {
-              error("expected $reg) after '(' in print N($reg) form\n");
-            } else {
-              loc = gpr[reg] + int_val;
-              print_mem((mem_addr)loc);
-            }
-          } else {
-            /* Not the base+offset form — treat int_val as an absolute
-             * address (the standard form). */
-            loc = int_val;
-            print_mem((mem_addr)loc);
-            if (next == TOK_NL) consumed_nl = true;
-          }
-        }
-      } else if (token == TOK_ID) {
-        if (!print_reg_from_string((char*)scan_value.p)) {
+      switch (token) {
+        case TOK_REG:
           if (redo)
+            loc += 1;
+          else
+            loc = scan_value.i;
+          print_reg(loc);
+          break;
+        case TOK_FP_REG:
+          if (redo)
+            loc += 2;
+          else
+            loc = scan_value.i;
+          print_fp_reg(loc);
+          break;
+        case TOK_INT: {
+          if (redo) {
             loc += 4;
-          else
-            loc = (int)find_symbol_address((char*)scan_value.p);
-
-          if (loc != 0)
             print_mem((mem_addr)loc);
-          else
-            error("Unknown label: %s\n", (char*)scan_value.p);
+          } else {
+            const int int_val = scan_value.i;
+            /* Peek for the N($reg) base+offset form so students can inspect
+             * memory using the same syntax they wrote in load/store ops. */
+            const int next = read_token();
+            if (next == '(') {
+              const int reg_tok = read_token();
+              const int reg = (reg_tok == TOK_REG) ? scan_value.i : -1;
+              const int close = (reg_tok == TOK_REG) ? read_token() : 0;
+              if (reg_tok == TOK_NL || close == TOK_NL) consumed_nl = true;
+              if (reg < 0 || close != ')') {
+                error("expected $reg) after '(' in print N($reg) form\n");
+              } else {
+                loc = gpr[reg] + int_val;
+                print_mem((mem_addr)loc);
+              }
+            } else {
+              /* Not the base+offset form — treat int_val as an absolute
+               * address (the standard form). */
+              loc = int_val;
+              print_mem((mem_addr)loc);
+              if (next == TOK_NL) consumed_nl = true;
+            }
+          }
+          break;
         }
-      } else
-        error("Print what?\n");
+        case TOK_ID:
+          if (!print_reg_from_string((char*)scan_value.p)) {
+            if (redo)
+              loc += 4;
+            else
+              loc = (int)find_symbol_address((char*)scan_value.p);
+
+            if (loc != 0)
+              print_mem((mem_addr)loc);
+            else
+              error("Unknown label: %s\n", (char*)scan_value.p);
+          }
+          break;
+        default:
+          error("Print what?\n");
+          break;
+      }
       if (!redo && !consumed_nl) flush_to_newline();
       prev_cmd = PRINT_CMD;
       prev_token = token;
@@ -1149,14 +1157,20 @@ static bool parse_spim_command(bool redo) {
       int cap = 0;
       while ((t = read_token()) != TOK_NL && t != 0) {
         char* s = nullptr;
-        if (t == TOK_STR || t == TOK_ID) {
-          s = strdup((char*)scan_value.p);
-        } else if (t == TOK_INT) {
-          char buf[32];
-          snprintf(buf, sizeof(buf), "%d", scan_value.i);
-          s = strdup(buf);
-        } else {
-          continue;
+        switch (t) {
+          case TOK_STR:
+          case TOK_ID:
+            s = strdup((char*)scan_value.p);
+            break;
+          case TOK_INT: {
+            char buf[32];
+            snprintf(buf, sizeof(buf), "%d", scan_value.i);
+            s = strdup(buf);
+            break;
+          }
+          default:
+            /* Any other token is not an argument: skip it. */
+            continue;
         }
         if (owned_strs_len + 1 > cap) {
           cap = cap == 0 ? 4 : cap * 2;

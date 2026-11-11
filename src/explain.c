@@ -1312,12 +1312,21 @@ static void explain_bit_layout(const mips_instruction* instruction) {
 
   const char* const mnemonic = inst_op_name(instruction);
   const int op = (int)((enc >> 26) & 0x3f);
-  if (op == 0x00 || op == 0x1c || op == 0x1f)
-    render_r_layout(enc, mnemonic);
-  else if (op == 0x02 || op == 0x03)
-    render_j_layout(enc, mnemonic);
-  else
-    render_i_layout(enc, mnemonic);
+  switch (op) {
+    case 0x00: /* SPECIAL */
+    case 0x1c: /* SPECIAL2 */
+    case 0x1f: /* SPECIAL3 */
+      render_r_layout(enc, mnemonic);
+      break;
+    case 0x02: /* j */
+    case 0x03: /* jal */
+      render_j_layout(enc, mnemonic);
+      break;
+    default:
+      /* Every other primary opcode is I-type. */
+      render_i_layout(enc, mnemonic);
+      break;
+  }
 }
 
 /* ------------ L4: progressive decoding walkthrough ------------
@@ -1647,29 +1656,39 @@ static void explain_decoding_steps(const mips_instruction* instruction) {
   render_hex_bin_table(enc);
   write_output(message_out, "\n");
 
-  if (op == 0x00 || op == 0x1c || op == 0x1f) {
-    const char* const group = (op == 0x00)   ? "SPECIAL"
-                              : (op == 0x1c) ? "SPECIAL2"
-                                             : "SPECIAL3";
-    for (int s = 1; s <= 3; s++) {
-      if (s > 1) write_output(message_out, "\n");
-      render_r_decode_step(enc, s, mnemonic, group);
+  switch (op) {
+    case 0x00: /* SPECIAL */
+    case 0x1c: /* SPECIAL2 */
+    case 0x1f: /* SPECIAL3 */ {
+      const char* const group = (op == 0x00)   ? "SPECIAL"
+                                : (op == 0x1c) ? "SPECIAL2"
+                                               : "SPECIAL3";
+      for (int s = 1; s <= 3; s++) {
+        if (s > 1) write_output(message_out, "\n");
+        render_r_decode_step(enc, s, mnemonic, group);
+      }
+      break;
     }
-  } else if (op == 0x01) {
-    for (int s = 1; s <= 3; s++) {
-      if (s > 1) write_output(message_out, "\n");
-      render_regimm_decode_step(enc, s, mnemonic);
-    }
-  } else if (op == 0x02 || op == 0x03) {
-    for (int s = 1; s <= 2; s++) {
-      if (s > 1) write_output(message_out, "\n");
-      render_j_decode_step(enc, s, mnemonic);
-    }
-  } else {
-    for (int s = 1; s <= 2; s++) {
-      if (s > 1) write_output(message_out, "\n");
-      render_i_decode_step(enc, s, mnemonic);
-    }
+    case 0x01: /* REGIMM */
+      for (int s = 1; s <= 3; s++) {
+        if (s > 1) write_output(message_out, "\n");
+        render_regimm_decode_step(enc, s, mnemonic);
+      }
+      break;
+    case 0x02: /* j */
+    case 0x03: /* jal */
+      for (int s = 1; s <= 2; s++) {
+        if (s > 1) write_output(message_out, "\n");
+        render_j_decode_step(enc, s, mnemonic);
+      }
+      break;
+    default:
+      /* Every other primary opcode is I-type. */
+      for (int s = 1; s <= 2; s++) {
+        if (s > 1) write_output(message_out, "\n");
+        render_i_decode_step(enc, s, mnemonic);
+      }
+      break;
   }
 }
 

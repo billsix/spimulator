@@ -937,25 +937,53 @@ static void parse_j(int op) {
     if (scanner_peek() == TOK_REG) {
       /* DEST SRC1 form */
       const int r2 = parse_register();
-      if (op == TOK_J_OPCODE || op == TOK_JR_OPCODE)
-        emit_r(TOK_JR_OPCODE, 0, r2, 0);
-      else if (op == TOK_JAL_OPCODE || op == TOK_JALR_OPCODE)
-        emit_r(TOK_JALR_OPCODE, r1, r2, 0);
+      switch (op) {
+        case TOK_J_OPCODE:
+        case TOK_JR_OPCODE:
+          emit_r(TOK_JR_OPCODE, 0, r2, 0);
+          break;
+        case TOK_JAL_OPCODE:
+        case TOK_JALR_OPCODE:
+          emit_r(TOK_JALR_OPCODE, r1, r2, 0);
+          break;
+        default:
+          /* cop2 and jalr.hb also reach parse_j; they emit nothing here
+             (tasks/parse-j-drops-cop2-and-jalr-hb.md). */
+          break;
+      }
       return;
     }
     /* SRC1-only form */
-    if (op == TOK_J_OPCODE || op == TOK_JR_OPCODE)
-      emit_r(TOK_JR_OPCODE, 0, r1, 0);
-    else if (op == TOK_JAL_OPCODE || op == TOK_JALR_OPCODE)
-      emit_r(TOK_JALR_OPCODE, 31, r1, 0);
+    switch (op) {
+      case TOK_J_OPCODE:
+      case TOK_JR_OPCODE:
+        emit_r(TOK_JR_OPCODE, 0, r1, 0);
+        break;
+      case TOK_JAL_OPCODE:
+      case TOK_JALR_OPCODE:
+        emit_r(TOK_JALR_OPCODE, 31, r1, 0);
+        break;
+      default:
+        /* cop2 and jalr.hb: nothing emitted, as in the DEST SRC1 form above. */
+        break;
+    }
     return;
   }
   /* J_OPS LABEL — absolute-target jump */
   imm_expr* const target = parse_label();
-  if (op == TOK_J_OPCODE || op == TOK_JR_OPCODE)
-    emit_j(TOK_J_OPCODE, target);
-  else if (op == TOK_JAL_OPCODE || op == TOK_JALR_OPCODE)
-    emit_j(TOK_JAL_OPCODE, target);
+  switch (op) {
+    case TOK_J_OPCODE:
+    case TOK_JR_OPCODE:
+      emit_j(TOK_J_OPCODE, target);
+      break;
+    case TOK_JAL_OPCODE:
+    case TOK_JALR_OPCODE:
+      emit_j(TOK_JAL_OPCODE, target);
+      break;
+    default:
+      /* cop2 and jalr.hb: nothing emitted, as in the register forms above. */
+      break;
+  }
   free(target);
 }
 
@@ -1770,39 +1798,57 @@ static void parse_asm_code(void) {
         parse_error_at("Expected operand for div/mult");
         break;
       }
-      if (op == TOK_TEQ_OPCODE || op == TOK_TGE_OPCODE ||
-          op == TOK_TGEU_OPCODE || op == TOK_TLT_OPCODE ||
-          op == TOK_TLTU_OPCODE || op == TOK_TNE_OPCODE) {
-        /* BINARY_TRAP_OPS: <op> SRC1 SRC2 → emit_r(op, 0, r1, r2)
-         */
-        const int r2 = parse_register();
-        emit_r(op, 0, r1, r2);
-      } else if (op == TOK_DIV_OPCODE || op == TOK_DIVU_OPCODE) {
-        /* DIV_POPS: can be 2-op (real hardware) or 3-op (pseudo) */
-        const int r2 = parse_register();
-        if (scanner_peek() == TOK_NL || scanner_peek() == TOK_EOF) {
-          /* 2-operand form: emit_r(op, 0, r1, r2)
-             — note r1 is rs , r2 is rt (SRC1). */
+      switch (op) {
+        case TOK_TEQ_OPCODE:
+        case TOK_TGE_OPCODE:
+        case TOK_TGEU_OPCODE:
+        case TOK_TLT_OPCODE:
+        case TOK_TLTU_OPCODE:
+        case TOK_TNE_OPCODE: {
+          /* BINARY_TRAP_OPS: <op> SRC1 SRC2 → emit_r(op, 0, r1, r2) */
+          const int r2 = parse_register();
           emit_r(op, 0, r1, r2);
-        } else if (scanner_peek() == TOK_REG) {
-          const int r3 = parse_register();
-          div_inst(op, r1, r2, r3, 0);
-        } else {
-          imm_expr* const imm = parse_imm32();
-          if (is_zero_imm(imm)) {
-            parse_error_at("Divide by zero");
-          } else {
-            emit_i_free(TOK_ORI_OPCODE, 1, 0, imm);
-            div_inst(op, r1, r2, 1, 1);
-            /* don't free imm again — i_type_inst_free already freed */
-            break;
-          }
-          free(imm);
+          break;
         }
-      } else {
-        /* mult/multu: always 2-operand */
-        const int r2 = parse_register();
-        emit_r(op, 0, r1, r2);
+        case TOK_DIV_OPCODE:
+        case TOK_DIVU_OPCODE: {
+          /* DIV_POPS: can be 2-op (real hardware) or 3-op (pseudo) */
+          const int r2 = parse_register();
+          switch (scanner_peek()) {
+            case TOK_NL:
+            case TOK_EOF:
+              /* 2-operand form: emit_r(op, 0, r1, r2)
+                 — note r1 is rs , r2 is rt (SRC1). */
+              emit_r(op, 0, r1, r2);
+              break;
+            case TOK_REG: {
+              const int r3 = parse_register();
+              div_inst(op, r1, r2, r3, 0);
+              break;
+            }
+            default: {
+              /* 3-operand form with an immediate divisor. */
+              imm_expr* const imm = parse_imm32();
+              if (is_zero_imm(imm)) {
+                parse_error_at("Divide by zero");
+              } else {
+                emit_i_free(TOK_ORI_OPCODE, 1, 0, imm);
+                div_inst(op, r1, r2, 1, 1);
+                /* don't free imm again — i_type_inst_free already freed */
+                break;
+              }
+              free(imm);
+              break;
+            }
+          }
+          break;
+        }
+        default: {
+          /* mult/multu and the other two-source ops: always 2-operand */
+          const int r2 = parse_register();
+          emit_r(op, 0, r1, r2);
+          break;
+        }
       }
       break;
     }
