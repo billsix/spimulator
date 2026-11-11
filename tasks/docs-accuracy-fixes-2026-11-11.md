@@ -1,52 +1,34 @@
-# Fix the doc claims the 2026-11-11 review found false
+# Fixed the doc claims the 2026-11-11 review found false
 
-**Status:** proposed — needs go-ahead
-**Priority:** 6
-**Difficulty:** 2
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
 **Source:** tasks/review/2026/11/11/repo-review.md §1.2, §1.3, §1.4, §2.3, §2.4, §2.5, §2.6 F18
 
-## BLUF
+## Summary
 
-A batch of doc claims that don't match the tree. Done means each one below says what is true.
+Each claim below was corrected to match the tree; no code changed.
 
-## Context
-
-- **Gate wording** (§2.3): `CLAUDE.md` (the `-Werror` and conversion bullets),
-  `tasks/reference/simulator-integer-types.md:225` and `meson.build:102` say the core is "gated" under
-  gcc and clang. Every image build is `CC=clang`, so gcc is manual. `CLAUDE.md` says new C "is checked
-  with" `tools/c_dispatch_check.py` and `tools/const_candidates.py`. No gate runs them, until
-  `tasks/archive/2026/11/11/dispatch-check-gate.md` wires the first.
-- **`tasks/reference/engine-port-language-choice.md`** (§1.2), still in the present tense:
-  - :136 plans `tools/diff_engines.py`, but `port/harness/compare_engines.py` exists;
-  - :218-221 and :256-257 require the glibc `qsort`/`bsearch` order, which the decode column now
-    settles;
-  - :96 lists `,` as an FP separator;
-  - :99 cites `opcodes.h`;
-  - :120 says "25 tests";
-  - its double counts disagree (158,029 vs 58,028).
-
-  The float-gate claims are fixed by `tasks/archive/2026/11/11/port-float-comparison-and-formatter-gates.md`.
-- **`tasks/reference/engine-ports-design.md`** (§1.3): :51 should say `entrypoint/05-install-ports.sh`;
-  :82 says 23 harness cases, and `port/harness/corpus.txt` has 24.
-- **`tasks/reference/opcode-table-generator.md`** (§1.3): :53 and :145 cite the deleted
-  `tasks/adhoc/opcodes-x-macro-redesign/check_decode.c`; point at the archived task's history instead.
-- **Stale reference pointers** (§1.4): `calc-incremental-versions.md:4`,
-  `incremental-example-decomposition.md:120`, `inherited-idiosyncrasies.md:7`,
-  `mips-asm-teaching-style.md:27`, `port/harness/corpus.txt:14`.
-- **`README.md`** (§2.4): :4 claims Windows support; :80 dates the copyright from commit
-  `e10b97408f6d…`, which doesn't resolve here (see question 1); :37 uses a placeholder path where
-  `helloworld.s` would work.
-- **`port/README.md:29-31`** (§2.5) leaves out the `<port>-all-programs` comparison and
-  `haskell-annotations`.
-- **`tasks/reference/mips-fpu-and-float-demos.md:112-121`** (§2.6) says exit2's status isn't
-  propagated; `src/syscall.c` now sets it. Verify, then fix.
-
-## Plan
-
-1. Fix each item; re-check every changed path with `ls`.
-2. No code changes.
-
-## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
-
-1. `README.md:80` cites the maintainer's first commit `e2d4f30` (option (b)).
+- **Gate wording** (`CLAUDE.md`, `tasks/reference/simulator-integer-types.md`, the `meson.build`
+  comment): the image build gates `-Werror` and the conversion flags under clang only; gcc is checked
+  by hand. `tools/const_candidates.py` is a manual check; `tools/c_dispatch_check.py` runs as the
+  meson test `dispatch_check`.
+- **`tasks/reference/engine-port-language-choice.md`**: names `port/harness/compare_engines.py` and
+  `compare_all_programs.py` instead of a planned `tools/diff_engines.py`; the duplicate-encoding
+  notes describe the decode column, not glibc's `qsort`/`bsearch`; `,` is no longer listed as an FP
+  separator; `opcodes.h` became "the generated opcode tables"; the stale "25 tests" count was dropped.
+  The 158,029 and 58,028 double counts were both correct (two different value sets); the Rust line now
+  says so.
+- **`tasks/reference/engine-ports-design.md`**: cites `entrypoint/05-install-ports.sh` and its full
+  package list. (The case count had already been updated by an earlier task in this batch.)
+- **`tasks/reference/opcode-table-generator.md`**: the deleted `check_decode.c` is described as living
+  in git history before the archive of `tasks/archive/2026/11/11/opcodes-x-macro-redesign.md`.
+- **Stale pointers**: `calc-incremental-versions.md`, `incremental-example-decomposition.md`,
+  `inherited-idiosyncrasies.md` and `mips-asm-teaching-style.md` point at their archived tasks;
+  `port/harness/corpus.txt` points at `tasks/engine-ports-teaching-mode.md`.
+- **`README.md`**: the Windows claim was dropped; the copyright cites the first commit `e2d4f30`
+  (the maintainer's decision, option (b)); the run examples use the root `helloworld.s`, which was
+  run and prints "Hello World".
+- **`port/README.md`** already listed every comparison (fixed earlier in this batch).
+- **`tasks/reference/mips-fpu-and-float-demos.md`**: the "exit2 status is not propagated"
+  observation was false. A three-line exit2 program with `$a0 = 3` exits with status 3, so the
+  section now says asm and C give the same status.
