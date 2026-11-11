@@ -219,14 +219,14 @@ formatImmExpr e base =
 -- | The disassembly of the instruction at an address (C: @inst_to_string@).
 instToString :: Spim -> Word32 -> IO String
 instToString s addr = do
-  set (exceptionOccurred s) False
-  inst :: Maybe InstRef <- memReadInst s addr
-  exc :: Bool <- get (exceptionOccurred s)
-  if exc
-    then do
+  -- A side-effect-free read: showing an instruction must not raise, or
+  -- clear, the exception the program's own step raised.
+  peeked :: Maybe (Maybe InstRef) <- memPeekInst s addr
+  case peeked of
+    Nothing -> do
       cError (printf "Can't print instruction not in text segment (0x%08x)\n" addr)
       pure ""
-    else formatAnInst s inst addr
+    Just inst -> formatAnInst s inst addr
 
 -- | Print the instruction at an address on stderr (C: @print_inst@).
 printInst :: Spim -> Word32 -> IO ()

@@ -615,7 +615,11 @@ parsePseudo s op = do
   doParsePseudo s op
   kids :: [Node] <- get (astScope s)
   set (astScope s) outer
-  appendBuilt s start {nodeKind = Pseudo (opTokenName (tok op)) (reverse kids)}
+  -- The expansion is the pseudo-op's line, even when its last operand
+  -- read on to the newline before a child was built.
+  let atLine :: Node -> Node
+      atLine kid = kid {nodeLine = nodeLine start}
+  appendBuilt s start {nodeKind = Pseudo (opTokenName (tok op)) (reverse (map atLine kids))}
 
 -- | The expansion of each pseudo-instruction (C: @do_parse_pseudo@).
 doParsePseudo :: Spim -> Opcode -> IO ()

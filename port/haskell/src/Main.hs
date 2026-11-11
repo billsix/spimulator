@@ -111,28 +111,39 @@ handlerFor o
 -- | The usage message for a bad flag.
 usage :: String
 usage =
-  "Usage: spim\n\
-  \\t-bare\t\t\tBare machine (no pseudo-ops, delayed branches and loads)\n\
-  \\t-asm\t\t\tExtended machine (pseudo-ops, no delayed branches and loads) (default)\n\
-  \\t-delayed_branches\tExecute delayed branches\n\
-  \\t-delayed_loads\t\tExecute delayed loads\n\
-  \\t-exception\t\tLoad exception handler (default)\n\
-  \\t-noexception\t\tDo not load exception handler\n\
-  \\t-exception_file <file>\tSpecify exception handler in place of default\n\
-  \\t-quiet\t\t\tDo not print warnings\n\
-  \\t-noquiet\t\tPrint warnings (default)\n\
-  \\t-explain [N]\t\tNarrate every instruction (teaching mode).\n\
-  \\t\t\t\tLevel N selects detail: 1 = semantic, 2 = + interactive,\n\
-  \\t\t\t\t3 = + bit-layout (default when N omitted; historical behavior),\n\
-  \\t\t\t\t4 = + progressive decoder walkthrough.\n\
-  \\t\t\t\tAlso accepts -explain=N. Short form: -x.\n\
-  \\t-noexplain\t\tDisable teaching mode (default)\n\
-  \\t-mapped_io\t\tEnable memory-mapped IO\n\
-  \\t-nomapped_io\t\tDo not enable memory-mapped IO (default)\n\
-  \\t-file <file> [-file <file> ...] <args>\n\
-  \\t\t\t\tAssembly code file(s) and arguments to program.\n\
-  \\t\t\t\tMultiple -file (or -f) options accumulate into one\n\
-  \\t\t\t\tsymbol table; forward references resolve across files.\n\
+  "Usage: spimulator [option ...] [-file] file [-file file ...] [program arguments]\n\
+  \\t-asm, -a\t\tExtended machine (pseudo-ops, no delayed branches and loads) (default)\n\
+  \\t-bare, -b\t\tBare machine (no pseudo-ops, delayed branches and loads)\n\
+  \\t-delayed_branches, -db\tExecute delayed branches\n\
+  \\t-delayed_loads, -dl\tExecute delayed loads\n\
+  \\t-pseudo, -p\t\tAccept pseudo-instructions (default)\n\
+  \\t-nopseudo, -np\t\tDo not accept pseudo-instructions\n\
+  \\t-exception, -e\t\tLoad the exception handler (default); also -trap, -t\n\
+  \\t-noexception, -ne\tDo not load the exception handler; also -notrap, -nt\n\
+  \\t-exception_file <file>, -ef <file>\n\
+  \\t\t\t\tLoad <file> as the exception handler; also -trap_file, -tf\n\
+  \\t-quiet, -q\t\tDo not print warnings\n\
+  \\t-noquiet, -nq\t\tPrint warnings (default)\n\
+  \\t-explain [N], -x [N]\tNarrate every instruction (teaching mode).\n\
+  \\t\t\t\tLevel N selects detail: 1 = step header, 2 = + narration,\n\
+  \\t\t\t\t3 = + bit-layout (default when N omitted),\n\
+  \\t\t\t\t4 = decoder walkthrough in place of the bit-layout.\n\
+  \\t\t\t\tAlso accepts -explain=N.\n\
+  \\t-noexplain, -nx\t\tDisable teaching mode (default)\n\
+  \\t-mapped_io, -mio\tEnable memory-mapped IO\n\
+  \\t-nomapped_io, -nmio\tDo not enable memory-mapped IO (default)\n\
+  \\t-stext, -st <size>\tInitial text segment size, in bytes\n\
+  \\t-sdata, -sd <size>\tInitial data segment size, in bytes\n\
+  \\t-sstack, -ss <size>\tInitial stack segment size, in bytes\n\
+  \\t-sktext, -skt <size>\tInitial kernel text segment size, in bytes\n\
+  \\t-skdata, -skd <size>\tInitial kernel data segment size, in bytes\n\
+  \\t-ldata, -ld <size>\tData segment size limit, in bytes\n\
+  \\t-lstack, -ls <size>\tStack segment size limit, in bytes\n\
+  \\t-lkdata, -lkd <size>\tKernel data segment size limit, in bytes\n\
+  \\t-file <file>, -f <file>\tAssembly code file; repeat to load several into one\n\
+  \\t\t\t\tsymbol table (forward references resolve across files).\n\
+  \\t\t\t\tA bare argument is loaded as a file too; the arguments\n\
+  \\t\t\t\tafter the last file are the program's arguments.\n\
   \\t-assemble\t\tWrite assembled code to <file>.out\n\
   \\t-listing <file>\t\tWrite assemble-time event trace to <file> (use - for stderr)\n\
   \\t-print-ast\t\tParse to AST, print it to stderr, and exit without emitting any code\n\

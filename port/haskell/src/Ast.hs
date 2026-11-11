@@ -75,12 +75,12 @@ printNode depth node =
     body :: String
     body = case nodeKind node of
       File src kids -> "FILE source=" ++ maybe "(stdin)" id src ++ "\n" ++ children kids
-      InstR op rd rs rt -> printf "INST_R op=%d rd=%d rs=%d rt=%d\n" op rd rs rt
-      InstRShift op rd rt sh -> printf "INST_R_SHIFT op=%d rd=%d rt=%d shamt=%d\n" op rd rt sh
-      InstI op rt rs imm -> printf "INST_I op=%d rt=%d rs=%d imm=" op rt rs ++ showImm imm ++ "\n"
-      InstJ op target -> printf "INST_J op=%d target=" op ++ showImm target ++ "\n"
-      InstFpR op fd fs ft -> printf "INST_FP_R op=%d fd=%d fs=%d ft=%d\n" op fd fs ft
-      InstFpCompare op fs ft cc -> printf "INST_FP_COMPARE op=%d fs=%d ft=%d cc=%d\n" op fs ft cc
+      InstR op rd rs rt -> printf "INST_R op=%s rd=%d rs=%d rt=%d\n" (opTokenName op) rd rs rt
+      InstRShift op rd rt sh -> printf "INST_R_SHIFT op=%s rd=%d rt=%d shamt=%d\n" (opTokenName op) rd rt sh
+      InstI op rt rs imm -> printf "INST_I op=%s rt=%d rs=%d imm=" (opTokenName op) rt rs ++ showImm imm ++ "\n"
+      InstJ op target -> printf "INST_J op=%s target=" (opTokenName op) ++ showImm target ++ "\n"
+      InstFpR op fd fs ft -> printf "INST_FP_R op=%s fd=%d fs=%d ft=%d\n" (opTokenName op) fd fs ft
+      InstFpCompare op fs ft cc -> printf "INST_FP_COMPARE op=%s fs=%d ft=%d cc=%d\n" (opTokenName op) fs ft cc
       Pseudo name kids -> "PSEUDO mnemonic=" ++ name ++ "\n" ++ children kids
       DataByte es -> intList "DATA_BYTE" es
       DataHalf es -> intList "DATA_HALF" es

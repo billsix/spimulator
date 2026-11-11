@@ -18,6 +18,7 @@
 module Memory
   ( makeMemory
   , memReadInst
+  , memPeekInst
   , memWriteInst
   , memReadByte
   , memReadHalf
@@ -292,6 +293,23 @@ memReadInst s addr = do
           raiseException s excIBE
           setCp0 s cp0BadVAddr (fromIntegral addr)
           Just <$> newIORef (instDecode 0)
+
+-- | The instruction at an address, read without side effects: no
+-- exception is raised and nothing changes.  'Nothing' when the address is
+-- not an aligned location in a text segment (C: @mem_peek_inst@).
+memPeekInst :: Spim -> Word32 -> IO (Maybe (Maybe InstRef))
+memPeekInst s addr = do
+  ttop :: Word32 <- get (textTop s)
+  kttop :: Word32 <- get (kTextTop s)
+  if addr .&. 3 /= 0
+    then pure Nothing
+    else
+      if addr >= textBot && addr < ttop
+        then Just <$> (get (textSeg s) >>= \a -> readArray a (fromIntegral ((addr - textBot) `shiftR` 2)))
+        else
+          if addr >= kTextBot && addr < kttop
+            then Just <$> (get (kTextSeg s) >>= \a -> readArray a (fromIntegral ((addr - kTextBot) `shiftR` 2)))
+            else pure Nothing
 
 -- | Store an instruction (C: @mem_write_inst@).
 memWriteInst :: Spim -> Word32 -> Maybe InstRef -> IO ()
