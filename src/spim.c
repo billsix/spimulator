@@ -72,7 +72,7 @@ static void save_history_at_exit(void) {
  * spim_commands must stay in sync with read_assembly_command()'s
  * str_prefix table further below. Alphabetical order so the listing
  * libedit prints on Tab-Tab reads cleanly. */
-static const char* spim_commands[] = {
+static const char* const spim_commands[] = {
     "args",           "breakpoint",    "continue",   "delete",
     "disasm",         "dump",          "dumpnative", "exit",
     "help",           "list",          "load",       "print",
@@ -87,7 +87,7 @@ static char* command_generator(const char* text, int state) {
     text_len = strlen(text);
   }
   while (spim_commands[idx] != nullptr) {
-    const char* s = spim_commands[idx++];
+    const char* const s = spim_commands[idx++];
     if (strncmp(s, text, text_len) == 0) return strdup(s);
   }
   return nullptr;
@@ -100,9 +100,9 @@ static char* suggestion_generator(const char* text, int state) {
     idx = 0;
     text_len = strlen(text);
   }
-  size_t n = explain_suggestion_count();
+  const size_t n = explain_suggestion_count();
   while (idx < n) {
-    const char* s = explain_suggestion(idx++);
+    const char* const s = explain_suggestion(idx++);
     if (s == nullptr) continue;
     /* Suggestions are stored as full commands ("print $a0"). When the
        student has already typed `print ` and hits Tab, libedit passes
@@ -111,7 +111,7 @@ static char* suggestion_generator(const char* text, int state) {
        so the operand portion still matches. Degrades gracefully if
        there's no space: tail == s, prefix check runs on the whole. */
     const char* tail = s;
-    const char* space = strchr(s, ' ');
+    const char* const space = strchr(s, ' ');
     if (space != nullptr) tail = space + 1;
     if (strncmp(tail, text, text_len) == 0) return strdup(tail);
   }
@@ -126,7 +126,7 @@ static bool line_starts_with_cmd(const char* const* cmds) {
   if (line == nullptr) return false;
   while (*line == ' ' || *line == '\t') line++;
   for (size_t i = 0; cmds[i] != nullptr; i++) {
-    size_t len = strlen(cmds[i]);
+    const size_t len = strlen(cmds[i]);
     if (strncmp(line, cmds[i], len) == 0 &&
         (line[len] == ' ' || line[len] == '\t')) {
       return true;
@@ -139,7 +139,8 @@ static bool line_starts_with_cmd(const char* const* cmds) {
    followed by whitespace — those are the prompts where the student
    expects libedit's default filename completion to kick in. */
 static bool line_is_file_command(void) {
-  static const char* cmds[] = {"load", "read", "dump", "dumpnative", nullptr};
+  static const char* const cmds[] = {"load", "read", "dump", "dumpnative",
+                                     nullptr};
   return line_starts_with_cmd(cmds);
 }
 
@@ -148,7 +149,7 @@ static bool line_is_file_command(void) {
    address (TOK_INT) or a symbol name (TOK_ID); tab-completion offers the
    symbol names defined in the loaded program. */
 static bool line_is_label_command(void) {
-  static const char* cmds[] = {"breakpoint", "delete", nullptr};
+  static const char* const cmds[] = {"breakpoint", "delete", nullptr};
   return line_starts_with_cmd(cmds);
 }
 
@@ -163,9 +164,9 @@ static size_t label_names_cache_cap = 0;
 static void label_collect_cb(const label* l, [[maybe_unused]] void* ctx) {
   if (l == nullptr || l->name == nullptr) return;
   if (label_names_cache_n >= label_names_cache_cap) {
-    size_t new_cap =
+    const size_t new_cap =
         label_names_cache_cap == 0 ? 32 : label_names_cache_cap * 2;
-    const char** new_arr =
+    const char** const new_arr =
         realloc(label_names_cache, new_cap * sizeof(*label_names_cache));
     if (new_arr == nullptr) return;
     label_names_cache = new_arr;
@@ -184,7 +185,7 @@ static char* label_generator(const char* text, int state) {
     text_len = strlen(text);
   }
   while (idx < label_names_cache_n) {
-    const char* s = label_names_cache[idx++];
+    const char* const s = label_names_cache[idx++];
     if (strncmp(s, text, text_len) == 0) return strdup(s);
   }
   return nullptr;
@@ -218,7 +219,7 @@ static char** spim_completion(const char* text, int start,
           rl_completion_matches(text + 1, rl_filename_completion_function);
       if (m != nullptr) {
         for (int i = 0; m[i] != nullptr; i++) {
-          size_t l = strlen(m[i]);
+          const size_t l = strlen(m[i]);
           char* re = malloc(l + 2);
           if (re == nullptr) continue;
           re[0] = '"';
@@ -274,7 +275,7 @@ static int read_assembly_command(void);
 static bool str_prefix(char* s1, char* s2, int min_match);
 [[noreturn]] static void top_level(void);
 static int read_token(void);
-[[nodiscard]] static bool write_assembled_code(char* program_name);
+[[nodiscard]] static bool write_assembled_code(const char* program_name);
 static void dump_data_seg(bool kernel_also);
 static void dump_text_seg(bool kernel_also);
 
@@ -351,7 +352,7 @@ static void listing_observer(const asm_event* e) {
               e->u.label_def.global ? "  (global)" : "");
       break;
     case AE_TEXT_INST: {
-      char* disasm = inst_to_string(e->addr);
+      char* const disasm = inst_to_string(e->addr);
       fprintf(listing_file, "line %4d  text   0x%08x  %-32s  0x%08x\n",
               e->source_line, e->addr, disasm ? disasm : "",
               e->u.text_inst.encoding);
@@ -931,7 +932,7 @@ static bool parse_spim_command(bool redo) {
       exit(0);
 
     case READ_CMD: {
-      int token = (redo ? prev_token : read_token());
+      const int token = (redo ? prev_token : read_token());
 
       if (!redo) flush_to_newline();
       if (token == TOK_STR) {
@@ -953,7 +954,7 @@ static bool parse_spim_command(bool redo) {
       initialize_run_stack(program_argc, program_argv);
       console_to_program();
       if (addr != 0) {
-        char* undefs = undefined_symbol_string();
+        char* const undefs = undefined_symbol_string();
         if (undefs != nullptr) {
           write_output(message_out, "The following symbols are undefined:\n");
           write_output(message_out, "%s", undefs);
@@ -986,7 +987,7 @@ static bool parse_spim_command(bool redo) {
       static int steps;
 
       steps = (redo ? steps : get_opt_int());
-      mem_addr addr = PC == 0 ? starting_address() : PC;
+      const mem_addr addr = PC == 0 ? starting_address() : PC;
 
       if (steps == 0) steps = 1;
       if (addr != 0) {
@@ -1002,7 +1003,7 @@ static bool parse_spim_command(bool redo) {
     }
 
     case PRINT_CMD: {
-      int token = (redo ? prev_token : read_token());
+      const int token = (redo ? prev_token : read_token());
       static int loc;
       /* Set true if we've already consumed TOK_NL while parsing a base+offset
        * suffix, so the trailing flush_to_newline doesn't gobble the next
@@ -1026,14 +1027,14 @@ static bool parse_spim_command(bool redo) {
           loc += 4;
           print_mem((mem_addr)loc);
         } else {
-          int int_val = scan_value.i;
+          const int int_val = scan_value.i;
           /* Peek for the N($reg) base+offset form so students can inspect
            * memory using the same syntax they wrote in load/store ops. */
-          int next = read_token();
+          const int next = read_token();
           if (next == '(') {
-            int reg_tok = read_token();
-            int reg = (reg_tok == TOK_REG) ? scan_value.i : -1;
-            int close = (reg_tok == TOK_REG) ? read_token() : 0;
+            const int reg_tok = read_token();
+            const int reg = (reg_tok == TOK_REG) ? scan_value.i : -1;
+            const int close = (reg_tok == TOK_REG) ? read_token() : 0;
             if (reg_tok == TOK_NL || close == TOK_NL) consumed_nl = true;
             if (reg < 0 || close != ')') {
               error("expected $reg) after '(' in print N($reg) form\n");
@@ -1077,7 +1078,7 @@ static bool parse_spim_command(bool redo) {
 
     case PRINT_ALL_REGS_CMD: {
       bool hex_flag = false;
-      int token = (redo ? prev_token : read_token());
+      const int token = (redo ? prev_token : read_token());
       if (token == TOK_ID && streq((char*)scan_value.p, "hex")) hex_flag = true;
       print_all_regs(hex_flag);
       /* With no operand the token read was the newline itself; flushing
@@ -1122,9 +1123,9 @@ static bool parse_spim_command(bool redo) {
 
       /* Stash argv[0] before freeing the prior vector — program_argv
          may point into the prior owned_argv. */
-      char* argv0 = (program_argv != nullptr && program_argc >= 1)
-                        ? program_argv[0]
-                        : (char*)"<repl>";
+      char* const argv0 = (program_argv != nullptr && program_argc >= 1)
+                              ? program_argv[0]
+                              : (char*)"<repl>";
 
       if (owned_strs != nullptr) {
         for (int i = 0; i < owned_strs_len; i++) free(owned_strs[i]);
@@ -1230,7 +1231,7 @@ static bool parse_spim_command(bool redo) {
 
     case SET_BKPT_CMD:
     case DELETE_BKPT_CMD: {
-      int token = (redo ? prev_token : read_token());
+      const int token = (redo ? prev_token : read_token());
       static mem_addr addr;
 
       if (!redo && token != TOK_NL) flush_to_newline();
@@ -1259,7 +1260,7 @@ static bool parse_spim_command(bool redo) {
 
     case DUMPNATIVE_TEXT_CMD:
     case DUMP_TEXT_CMD: {
-      int token = (redo ? prev_token : read_token());
+      const int token = (redo ? prev_token : read_token());
 
       char* filename = nullptr;
 
@@ -1273,7 +1274,7 @@ static bool parse_spim_command(bool redo) {
         return (0);
       }
 
-      FILE* fp = fopen(filename, "wbt");
+      FILE* const fp = fopen(filename, "wbt");
       if (fp == nullptr) {
         perror(filename);
         return (0);
@@ -1321,7 +1322,7 @@ static bool parse_spim_command(bool redo) {
    value. */
 
 static int read_assembly_command(void) {
-  int token = read_token();
+  const int token = read_token();
 
   if (token == TOK_NL) /* Blank line means redo */
     return (REDO_CMD);
@@ -1467,7 +1468,7 @@ static void print_all_regs(bool hex_flag) {
   write_output(message_out, "%s\n", ss_to_string(&ss));
 }
 
-static bool write_assembled_code(char* program_name) {
+static bool write_assembled_code(const char* program_name) {
   if (parse_error_occurred) {
     return (parse_error_occurred);
   }
@@ -1475,7 +1476,7 @@ static bool write_assembled_code(char* program_name) {
   FILE* fp = nullptr;
   {
     const unsigned long filename_len = strlen(program_name) + 5;
-    char* filename = (char*)xmalloc(filename_len);
+    char* const filename = (char*)xmalloc(filename_len);
     strlcpy(filename, program_name, filename_len);
     strlcat(filename, ".out", filename_len);
 
@@ -1495,7 +1496,7 @@ static bool write_assembled_code(char* program_name) {
 
   (void)fprintf(fp, ".text # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
   for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
-    int32_t code = inst_encode(mem_read_inst(addr));
+    const int32_t code = inst_encode(mem_read_inst(addr));
     (void)fprintf(fp, "0x%x%s", code,
                   addr != (dump_end - BYTES_PER_WORD) ? ", " : "");
   }
@@ -1513,7 +1514,7 @@ static bool write_assembled_code(char* program_name) {
   if (dump_end > dump_start) {
     (void)fprintf(fp, ".data # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
     for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
-      int32_t code = mem_read_word(addr);
+      const int32_t code = mem_read_word(addr);
       (void)fprintf(fp, "0x%x%s", code,
                     addr != (dump_end - BYTES_PER_WORD) ? ", " : "");
     }
@@ -1563,7 +1564,7 @@ void fatal_error(const char* fmt, ...) {
 
 void write_output(port fp, const char* fmt, ...) {
   va_list args;
-  FILE* f = fp.f != nullptr ? fp.f : stdout;
+  FILE* const f = fp.f != nullptr ? fp.f : stdout;
   bool restore_console_to_program = false;
 
   va_start(args, fmt);
@@ -1727,7 +1728,7 @@ void put_console_char(char c) {
 }
 
 static int read_token(void) {
-  int token = scanner_advance();
+  const int token = scanner_advance();
 
   if (token == TOK_EOF) {
     console_to_spim();
@@ -1754,7 +1755,7 @@ static void dump_data_seg(bool kernel_also) {
   }
 
   {
-    FILE* fp = fopen("data.asm", "w");
+    FILE* const fp = fopen("data.asm", "w");
     fprintf(fp, "%s", ss_to_string(&ss));
     fclose(fp);
   }
@@ -1778,7 +1779,7 @@ static void dump_text_seg(bool kernel_also) {
     format_insts(&ss, TEXT_BOT, text_top);
   }
 
-  FILE* fp = fopen("text.asm", "w");
+  FILE* const fp = fopen("text.asm", "w");
   fprintf(fp, "%s", ss_to_string(&ss));
   fclose(fp);
 }

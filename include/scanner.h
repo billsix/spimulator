@@ -19,7 +19,7 @@ int scanner_advance(void);
 void scanner_force_identifier(void);
 void scanner_push_source(FILE* in_file);
 void scanner_pop_source(void);
-int register_name_to_number(char* name);
+int register_name_to_number(const char* name);
 char* source_line(void);
 
 /* Exported Variables: */

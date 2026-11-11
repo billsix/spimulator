@@ -46,7 +46,7 @@ mem_addr k_data_top;
 static mem_word bad_mem_read(mem_addr addr, int mask);
 static void bad_mem_write(mem_addr addr, mem_word value, int mask);
 static mips_instruction* bad_text_read(mem_addr addr);
-static void bad_text_write(mem_addr addr, mips_instruction* instruction);
+static void bad_text_write(mem_addr addr, const mips_instruction* instruction);
 static void free_instructions(mips_instruction** instruction, int n);
 static mem_word read_memory_mapped_IO(mem_addr addr);
 static void write_memory_mapped_IO(mem_addr addr, mem_word value);
@@ -160,9 +160,10 @@ static void free_instructions(mips_instruction** instruction, int n) {
 /* Expand the data segment by adding N bytes. */
 
 void expand_data(int addl_bytes) {
-  int delta = ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
-  int old_size = (int)(data_top - DATA_BOT);
-  int new_size = old_size + delta;
+  const int delta =
+      ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
+  const int old_size = (int)(data_top - DATA_BOT);
+  const int new_size = old_size + delta;
 
   if ((addl_bytes < 0) || (new_size > data_size_limit)) {
     error("Can't expand data segment by %d bytes to %d bytes\n", addl_bytes,
@@ -185,9 +186,10 @@ void expand_data(int addl_bytes) {
    top of its block. */
 
 void expand_stack(int addl_bytes) {
-  int delta = ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
-  int old_size = (int)(STACK_TOP - stack_bot);
-  int new_size = old_size + MAX(delta, old_size);
+  const int delta =
+      ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
+  const int old_size = (int)(STACK_TOP - stack_bot);
+  const int new_size = old_size + MAX(delta, old_size);
   mem_word* new_seg;
   mem_word *po, *pn;
 
@@ -215,9 +217,10 @@ void expand_stack(int addl_bytes) {
 /* Expand the kernel data segment by adding N bytes. */
 
 void expand_k_data(int addl_bytes) {
-  int delta = ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
-  int old_size = (int)(k_data_top - K_DATA_BOT);
-  int new_size = old_size + delta;
+  const int delta =
+      ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
+  const int old_size = (int)(k_data_top - K_DATA_BOT);
+  const int new_size = old_size + delta;
   int8_t* p;
 
   if ((addl_bytes < 0) || (new_size > k_data_size_limit)) {
@@ -352,7 +355,7 @@ static mips_instruction* bad_text_read(mem_addr addr) {
   return (inst_decode(0));
 }
 
-static void bad_text_write(mem_addr addr, mips_instruction* instruction) {
+static void bad_text_write(mem_addr addr, const mips_instruction* instruction) {
   RAISE_EXCEPTION(ExcCode_IBE, CP0_BadVAddr = (reg_word)addr);
   mem_write_word(addr, ENCODING(instruction));
 }
@@ -360,7 +363,7 @@ static void bad_text_write(mem_addr addr, mips_instruction* instruction) {
 /* The encoding of the user-text word holding ADDR, or 0 for a word no
    instruction was stored in (as a word load of it reads). */
 static mem_word text_word_at(mem_addr addr) {
-  mips_instruction* instruction = text_seg[(addr - TEXT_BOT) >> 2];
+  mips_instruction* const instruction = text_seg[(addr - TEXT_BOT) >> 2];
   return instruction == nullptr ? 0 : ENCODING(instruction);
 }
 
@@ -390,7 +393,7 @@ static mem_word bad_mem_read(mem_addr addr, int mask) {
         return (0xffff & tmp);
 
       case 0x3: {
-        mips_instruction* instruction = text_seg[(addr - TEXT_BOT) >> 2];
+        mips_instruction* const instruction = text_seg[(addr - TEXT_BOT) >> 2];
         if (instruction == nullptr)
           return 0;
         else

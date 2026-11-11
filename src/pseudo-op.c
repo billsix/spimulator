@@ -32,13 +32,13 @@ int parse_errors_seen = 0;         /* cumulative errors across the file */
  * warning channel that parse_error sits on top of.
  * ------------------------------------------------------------------ */
 
-void parse_warn(char* s) {
+void parse_warn(const char* s) {
   error("spim: (parser) %s on line %d of file %s\n%s", s, line_no,
         input_file_name_get() ? input_file_name_get() : "(input)",
         erroneous_line());
 }
 
-void parse_error(char* s) {
+void parse_error(const char* s) {
   parse_error_occurred = true;
   parse_errors_seen += 1;
   parse_warn(s);
@@ -209,10 +209,10 @@ void set_eq_inst(int op, int rd, int rs, int rt) {
   emit_i_free(TOK_ORI_OPCODE, rd, 0, if_eq);
 }
 
-void check_imm_range(imm_expr* expr, int32_t min, int32_t max) {
+void check_imm_range(const imm_expr* expr, int32_t min, int32_t max) {
   if (expr->symbol == nullptr || SYMBOL_IS_DEFINED(expr->symbol)) {
     /* If expression can be evaluated, compare against limits. */
-    int32_t value = eval_imm_expr(expr);
+    const int32_t value = eval_imm_expr(expr);
 
     if (value < min || max < value) {
       char str[200];
@@ -223,9 +223,9 @@ void check_imm_range(imm_expr* expr, int32_t min, int32_t max) {
   }
 }
 
-void check_uimm_range(imm_expr* expr, uint32_t min, uint32_t max) {
+void check_uimm_range(const imm_expr* expr, uint32_t min, uint32_t max) {
   if (expr->symbol == nullptr || SYMBOL_IS_DEFINED(expr->symbol)) {
-    uint32_t value = (uint32_t)eval_imm_expr(expr);
+    const uint32_t value = (uint32_t)eval_imm_expr(expr);
 
     if (value < min || max < value) {
       char str[200];

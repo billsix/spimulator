@@ -25,7 +25,7 @@ scan_value_t scan_value = {};
 /* Register-name → register-number lookup.  Public because instruction.c and
    explain.c also call register_name_to_number, independent of the
    scanner's internal keyword table. */
-static name_val_val register_tbl[] = {
+static const name_val_val register_tbl[] = {
     {"a0", 4, 0},  {"a1", 5, 0},   {"a2", 6, 0},   {"a3", 7, 0},
     {"at", 1, 0},  {"fp", 30, 0},  {"gp", 28, 0},  {"k0", 26, 0},
     {"k1", 27, 0}, {"kt0", 26, 0}, {"kt1", 27, 0}, {"ra", 31, 0},
@@ -36,15 +36,15 @@ static name_val_val register_tbl[] = {
     {"t6", 14, 0}, {"t7", 15, 0},  {"t8", 24, 0},  {"t9", 25, 0},
     {"v0", 2, 0},  {"v1", 3, 0},   {"zero", 0, 0}};
 
-int register_name_to_number(char* name) {
-  int c1 = *name, c2 = *(name + 1);
+int register_name_to_number(const char* name) {
+  const int c1 = *name, c2 = *(name + 1);
   if ('0' <= c1 && c1 <= '9' &&
       (c2 == '\0' || (('0' <= c2 && c2 <= '9') && *(name + 2) == '\0'))) {
     return atoi(name);
   } else if (c1 == 'f' && c2 >= '0' && c2 <= '9') {
     return atoi(name + 1);
   } else {
-    name_val_val* entry = map_string_to_name_val_val(
+    const name_val_val* const entry = map_string_to_name_val_val(
         register_tbl, sizeof(register_tbl) / sizeof(name_val_val), name);
     return entry ? entry->value1 : -1;
   }
@@ -56,14 +56,14 @@ int register_name_to_number(char* name) {
    expands here to {name, sym, type}, dropping the binary-encoding
    column.  See opcodes.h's top-of-file comment for the X-macro pattern. */
 
-static name_val_val keyword_tbl[] = {
+static const name_val_val keyword_tbl[] = {
 #undef OP
 #define OP(NAME, OPCODE, TYPE, R_OPCODE) {NAME, OPCODE, TYPE},
 #include "opcodes.h"
 };
 
-static int check_keyword(char* id, bool allow_pseudo_ops) {
-  name_val_val* entry = map_string_to_name_val_val(
+static int check_keyword(const char* id, bool allow_pseudo_ops) {
+  const name_val_val* const entry = map_string_to_name_val_val(
       keyword_tbl, sizeof(keyword_tbl) / sizeof(name_val_val), id);
   if (entry == nullptr) return 0;
   if (!allow_pseudo_ops && entry->value2 == PSEUDO_OP) return 0;
@@ -233,7 +233,7 @@ static int scan_int(int sign, scan_token* out) {
     next_char();
     next_char(); /* consume "0x" */
     while (isxdigit(peek_char())) {
-      int c = next_char();
+      const int c = next_char();
       value = (value << 4) | (uint32_t)hex_digit_value(c);
     }
   } else {
@@ -250,7 +250,7 @@ static int scan_int(int sign, scan_token* out) {
 /* Decode a backslash escape in a char literal.  `pp` points to the
    char AFTER the backslash; it's advanced past the consumed escape. */
 static int scan_escape_char(const char** pp) {
-  char first = **pp;
+  const char first = **pp;
   (*pp)++;
   switch (first) {
     case 'a':
@@ -273,7 +273,7 @@ static int scan_escape_char(const char** pp) {
       return '\'';
     case 'X':
     case 'x': {
-      int hi = **pp, lo = *(*pp + 1);
+      const int hi = **pp, lo = *(*pp + 1);
       int v = 0;
       if (isxdigit(hi))
         v = hex_digit_value(hi) << 4;
@@ -297,10 +297,10 @@ static int scan_escape_char(const char** pp) {
 /* Decode a string literal — produces a fresh heap-allocated
    NUL-terminated decoded buffer. */
 static char* decode_string(const char* src, int len) {
-  char* dst = (char*)xmalloc((size_t)(len + 1));
+  char* const dst = (char*)xmalloc((size_t)(len + 1));
   char* d = dst;
   const char* s = src;
-  const char* end = src + len;
+  const char* const end = src + len;
   while (s < end) {
     if (*s != '\\') {
       *d++ = *s++;
@@ -311,7 +311,7 @@ static char* decode_string(const char* src, int len) {
       *d++ = *s++;
       continue;
     }
-    char n = *(s + 1);
+    const char n = *(s + 1);
     switch (n) {
       case 'n':
         *d++ = '\n';
@@ -335,7 +335,7 @@ static char* decode_string(const char* src, int len) {
           *d++ = *s++;
           break;
         }
-        int c2 = *(s + 2), c3 = *(s + 3);
+        const int c2 = *(s + 2), c3 = *(s + 3);
         int b = (n - '0') << 6;
         if (c2 >= '0' && c2 <= '7')
           b += (c2 - '0') << 3;
@@ -356,7 +356,7 @@ static char* decode_string(const char* src, int len) {
           *d++ = *s++;
           break;
         }
-        int c2 = *(s + 2), c3 = *(s + 3);
+        const int c2 = *(s + 2), c3 = *(s + 3);
         int b = 0;
         if (isxdigit(c2))
           b = hex_digit_value(c2);
@@ -387,11 +387,11 @@ static char* decode_string(const char* src, int len) {
 /* Scan an identifier or keyword.  Returns the appropriate token. */
 static int scan_identifier(scan_token* out, bool force_id) {
   /* Capture the identifier text. */
-  int start = line_pos;
+  const int start = line_pos;
   while (peek_char() == '_' || peek_char() == '.' || isalnum(peek_char())) {
     next_char();
   }
-  int end = line_pos;
+  const int end = line_pos;
 
   static char id_buf[256];
   int idlen = end - start;
@@ -401,7 +401,8 @@ static int scan_identifier(scan_token* out, bool force_id) {
 
   /* Keyword lookup (unless force_id). */
   if (!force_id) {
-    int token = check_keyword(id_buf, !bare_machine && accept_pseudo_insts);
+    const int token =
+        check_keyword(id_buf, !bare_machine && accept_pseudo_insts);
     if (token != 0) {
       *out = (scan_token){.type = token, .val.i = token, .present = true};
       return token;
@@ -409,7 +410,7 @@ static int scan_identifier(scan_token* out, bool force_id) {
   }
 
   /* Defined-constant label? */
-  label* l = label_is_defined(id_buf);
+  label* const l = label_is_defined(id_buf);
   if (l != nullptr && l->const_flag) {
     *out =
         (scan_token){.type = TOK_INT, .val.i = (int)l->addr, .present = true};
@@ -425,12 +426,12 @@ static int scan_identifier(scan_token* out, bool force_id) {
 /* Scan a $register reference. */
 static int scan_register(scan_token* out) {
   next_char(); /* skip the $ */
-  int start = line_pos;
+  const int start = line_pos;
   while (peek_char() == '_' || peek_char() == '.' || peek_char() == '$' ||
          isalnum(peek_char())) {
     next_char();
   }
-  int end = line_pos;
+  const int end = line_pos;
 
   static char reg_buf[64];
   int reglen = end - start;
@@ -438,7 +439,7 @@ static int scan_register(scan_token* out) {
   memcpy(reg_buf, line_buf + start, (size_t)reglen);
   reg_buf[reglen] = '\0';
 
-  int reg_no = register_name_to_number(reg_buf);
+  const int reg_no = register_name_to_number(reg_buf);
 
   /* FP register if leading is 'f' and not "fp" */
   if (reg_no != -1 && reg_buf[0] == 'f' && reg_buf[1] != 'p') {
@@ -452,7 +453,7 @@ static int scan_register(scan_token* out) {
   }
 
   /* Fall back to identifier-or-constant-label behavior. */
-  label* l = label_is_defined(reg_buf);
+  label* const l = label_is_defined(reg_buf);
   if (l != nullptr && l->const_flag)
     *out =
         (scan_token){.type = TOK_INT, .val.i = (int)l->addr, .present = true};
@@ -466,7 +467,7 @@ static int scan_register(scan_token* out) {
    heap-allocated decoded copy. */
 static int scan_string(scan_token* out) {
   next_char(); /* skip opening " */
-  int start = line_pos;
+  const int start = line_pos;
   /* Find closing quote, respecting \" escapes. */
   while (peek_char() != 0 && peek_char() != '"') {
     if (peek_char() == '\\' && peek_char2() != 0) {
@@ -476,7 +477,7 @@ static int scan_string(scan_token* out) {
       next_char();
     }
   }
-  int end = line_pos;
+  const int end = line_pos;
   if (peek_char() == '"') next_char(); /* skip closing " */
 
   *out =
@@ -496,7 +497,7 @@ static int scan_char(scan_token* out) {
     /* scan_escape_char wants a pointer that advances; we'll
        use a small staging area. */
     const char* p = &line_buf[line_pos];
-    const char* p0 = p;
+    const char* const p0 = p;
     v = scan_escape_char(&p);
     /* Advance line_pos by however many chars scan_escape_char ate. */
     line_pos += (int)(p - p0);
@@ -512,7 +513,7 @@ static int scan_char(scan_token* out) {
    whitespace and comments first. */
 static void scan_one_token(scan_token* out) {
   /* Force-identifier flag is consumed by this call (one-shot). */
-  bool force_id = force_id_next;
+  const bool force_id = force_id_next;
   force_id_next = false;
 
   /* Skip whitespace, comments, and CR.  Stop at NL, ';', or a
@@ -526,7 +527,7 @@ static void scan_one_token(scan_token* out) {
        the next call. */
 
     while (line_pos < line_len) {
-      int c = peek_char();
+      const int c = peek_char();
       if (c == ' ' || c == '\t' || c == '\r') {
         next_char();
         continue;
@@ -558,18 +559,18 @@ static void scan_one_token(scan_token* out) {
   }
 
 have_char: {
-  int c = peek_char();
+    const int c = peek_char();
 
-  /* Newline: returns TOK_NL.  After we consume it, the line is
-     complete; line_no has already advanced (by fgets reading
-     the next chunk later).  Increment line_no here so it
-     reflects the line of the NEXT token. */
-  if (c == '\n') {
-    next_char();
-    line_no += 1;
-    *out = (scan_token){.type = TOK_NL, .present = true};
-    return;
-  }
+    /* Newline: returns TOK_NL.  After we consume it, the line is
+       complete; line_no has already advanced (by fgets reading
+       the next chunk later).  Increment line_no here so it
+       reflects the line of the NEXT token. */
+    if (c == '\n') {
+      next_char();
+      line_no += 1;
+      *out = (scan_token){.type = TOK_NL, .present = true};
+      return;
+    }
 
   /* Semicolon also delimits a "line" for grammar purposes. */
   if (c == ';') {
@@ -585,7 +586,7 @@ have_char: {
   /* Negative integer or FP? */
   if (c == '-' && isdigit(peek_char2())) {
     next_char(); /* consume the '-' */
-    int fp_end = scan_fp_check();
+    const int fp_end = scan_fp_check();
     if (fp_end > line_pos) {
       scan_fp(-1, fp_end, out);
       return;
@@ -596,7 +597,7 @@ have_char: {
 
   /* Positive number — could be int or FP. */
   if (isdigit(c)) {
-    int fp_end = scan_fp_check();
+    const int fp_end = scan_fp_check();
     if (fp_end > line_pos) {
       scan_fp(1, fp_end, out);
       return;
@@ -679,7 +680,7 @@ int scanner_peek2(void) {
 
 int scanner_advance(void) {
   ensure_filled(1);
-  int t = tok_buf[0].type;
+  const int t = tok_buf[0].type;
   /* Only overwrite scan_value for tokens that actually carry a value.
      Callers like spim.c's flush_to_newline rely on scan_value.p
      surviving a TOK_NL read after a TOK_STR. */
@@ -756,7 +757,7 @@ void scanner_pop_source(void) {
        before scanner_push_source ran. */
     return;
   }
-  scanner_snapshot* s = &scanner_stack[--scanner_stack_depth];
+  scanner_snapshot* const s = &scanner_stack[--scanner_stack_depth];
   input_file = s->input_file;
   memcpy(line_buf, s->line_buf, sizeof(line_buf));
   line_pos = s->line_pos;
@@ -775,8 +776,8 @@ void scanner_pop_source(void) {
 /* Return a heap-allocated copy of the current source line, tab-
    indented and newline-terminated, for the parse-error printer. */
 char* erroneous_line(void) {
-  size_t len = strlen(current_line_buf);
-  char* r = (char*)xmalloc((size_t)(int)(len + 16));
+  const size_t len = strlen(current_line_buf);
+  char* const r = (char*)xmalloc((size_t)(int)(len + 16));
   snprintf(r, len + 16, "\t  %s\n", current_line_buf);
   return r;
 }
@@ -786,9 +787,9 @@ char* erroneous_line(void) {
    annotate assembled instructions with their originating source. */
 char* source_line(void) {
   if (!current_line_saved) return nullptr;
-  size_t len = strlen(current_line_buf);
+  const size_t len = strlen(current_line_buf);
   /* "NNN: " prefix — up to 10 digits + ": " + line + NUL */
-  char* r = (char*)xmalloc((size_t)(int)(len + 16));
+  char* const r = (char*)xmalloc((size_t)(int)(len + 16));
   snprintf(r, len + 16, "%d: %s", current_line_no_saved, current_line_buf);
   return r;
 }

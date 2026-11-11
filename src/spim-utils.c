@@ -25,7 +25,7 @@
 /* Internal functions: */
 
 static mem_addr copy_int_to_stack(int n);
-static mem_addr copy_str_to_stack(char* s);
+static mem_addr copy_str_to_stack(const char* s);
 static void delete_all_breakpoints(void);
 static bool load_embedded_exception_handler(bool print_message);
 
@@ -70,7 +70,7 @@ mem_addr initial_k_data_limit = K_DATA_LIMIT;
 
 /* Initialize or reinitialize the state of the machine. */
 
-void initialize_world(char* exception_file_names, bool print_message) {
+void initialize_world(const char* exception_file_names, bool print_message) {
   /* Allocate the floating point registers */
   if (fp_single_view == nullptr)
     fp_double_view = (double*)xmalloc(FPR_LENGTH * sizeof(double));
@@ -87,8 +87,8 @@ void initialize_world(char* exception_file_names, bool print_message) {
   text_begins_at_point(TEXT_BOT);
 
   if (exception_file_names != nullptr) {
-    bool old_bare = bare_machine;
-    bool old_accept = accept_pseudo_insts;
+    const bool old_bare = bare_machine;
+    const bool old_accept = accept_pseudo_insts;
 
     /* Save machine state */
     bare_machine = false; /* Exception handler uses extended machine */
@@ -101,7 +101,7 @@ void initialize_world(char* exception_file_names, bool print_message) {
     } else {
       /* strtok modifies the string, so we must back up the string prior to
          use. */
-      char* files = strdup(exception_file_names);
+      char* const files = strdup(exception_file_names);
       if (files == nullptr) fatal_error("Insufficient memory to complete.\n");
 
       for (char* filename = strtok(files, ";"); filename != nullptr;
@@ -168,7 +168,7 @@ void initialize_registers(void) {
    via parse_errors_seen), false if the file could not be opened. */
 
 bool read_assembly_file(char* name) {
-  FILE* file = fopen(name, "rt");
+  FILE* const file = fopen(name, "rt");
 
   if (file == nullptr) {
     error("Cannot open file: `%s'\n", name);
@@ -188,8 +188,8 @@ bool read_assembly_file(char* name) {
    real file — just no fopen.  Returns false only if fmemopen itself
    fails (effectively never on Linux). */
 static bool load_embedded_exception_handler(bool print_message) {
-  FILE* file = fmemopen((void*)embedded_exceptions_bytes,
-                        sizeof(embedded_exceptions_bytes), "rt");
+  FILE* const file = fmemopen((void*)embedded_exceptions_bytes,
+                              sizeof(embedded_exceptions_bytes), "rt");
   if (file == nullptr) return false;
 
   parser_init(file, "<embedded exceptions.s>");
@@ -216,7 +216,7 @@ void initialize_stack(const char* command_line) {
   char* argv[MAX_ARGS];
   char* a;
   char* args = strdup((char*)command_line); /* Destructively modify string */
-  char* orig_args = args;
+  char* const orig_args = args;
 
   while (*args != '\0') {
     /* Skip leading blanks */
@@ -283,7 +283,7 @@ void initialize_run_stack(int argc, char** argv) {
   mem_write_word((mem_addr)gpr[REG_SP], argc); /* Leave argc on stack */
 }
 
-static mem_addr copy_str_to_stack(char* s) {
+static mem_addr copy_str_to_stack(const char* s) {
   int i = (int)strlen(s);
   while (i >= 0) {
     mem_write_byte((mem_addr)gpr[REG_SP], s[i]);
@@ -307,7 +307,7 @@ static mem_addr copy_int_to_stack(int n) {
 bool run_program(mem_addr pc, int steps, bool display, bool cont_bkpt,
                  bool* continuable) {
   if (cont_bkpt && inst_is_breakpoint(pc)) {
-    mem_addr addr = PC == 0 ? pc : PC;
+    const mem_addr addr = PC == 0 ? pc : PC;
 
     delete_breakpoint(addr);
     exception_occurred = false;
@@ -370,7 +370,7 @@ void delete_breakpoint(mem_addr addr) {
         bkpts = b->next;
       else
         p->next = b->next;
-      bkpt* n = b->next;
+      bkpt* const n = b->next;
       free(b);
       b = n;
       deleted_one = true;
@@ -410,8 +410,8 @@ static int cmp_key_to_name(const void* key, const void* elem) {
   return strcmp((const char*)key, ((const name_val_val*)elem)->name);
 }
 
-name_val_val* map_string_to_name_val_val(name_val_val tbl[], int tbl_len,
-                                         char* id) {
+const name_val_val* map_string_to_name_val_val(const name_val_val tbl[],
+                                               int tbl_len, const char* id) {
   return bsearch(id, tbl, (size_t)tbl_len, sizeof(name_val_val),
                  cmp_key_to_name);
 }
@@ -422,19 +422,19 @@ name_val_val* map_string_to_name_val_val(name_val_val tbl[], int tbl_len,
    Return nullptr if no such entry exists. */
 
 static int cmp_key_to_value1(const void* key, const void* elem) {
-  int k = *(const int*)key;
-  int v = ((const name_val_val*)elem)->value1;
+  const int k = *(const int*)key;
+  const int v = ((const name_val_val*)elem)->value1;
   return (k > v) - (k < v);
 }
 
-name_val_val* map_int_to_name_val_val(name_val_val tbl[], int tbl_len,
-                                      int num) {
+const name_val_val* map_int_to_name_val_val(const name_val_val tbl[],
+                                            int tbl_len, int num) {
   return bsearch(&num, tbl, (size_t)tbl_len, sizeof(name_val_val),
                  cmp_key_to_value1);
 }
 
 void* xmalloc(size_t size) {
-  void* x = malloc(size);
+  void* const x = malloc(size);
 
   if (x == nullptr)
     fatal_error("Out of memory at request for %zu bytes.\n", size);
@@ -444,7 +444,7 @@ void* xmalloc(size_t size) {
 /* Allocate a zero'ed block of storage. */
 
 void* zmalloc(size_t size) {
-  void* z = calloc(1, size);
+  void* const z = calloc(1, size);
 
   if (z == nullptr)
     fatal_error("Out of memory at request for %zu bytes.\n", size);

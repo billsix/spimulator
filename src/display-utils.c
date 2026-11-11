@@ -45,9 +45,9 @@ void format_registers(str_stream* ss, bool print_gpr_hex, bool print_fpr_hex) {
   ss_printf(ss, "HI      = %08x  ", HI);
   ss_printf(ss, " LO      = %08x\n", LO);
 
-  const char* grstr =
+  const char* const grstr =
       print_gpr_hex ? "R%-2d (%2s) = %08x" : "R%-2d (%2s) = %-10d";
-  const char* grfill = print_gpr_hex ? "  " : " ";
+  const char* const grfill = print_gpr_hex ? "  " : " ";
 
   ss_printf(ss, "\t\t\t\t General Registers\n");
   for (i = 0; i < 8; i++) {
@@ -67,7 +67,7 @@ void format_registers(str_stream* ss, bool print_gpr_hex, bool print_fpr_hex) {
   ss_printf(ss, "\t\t\t      Double Floating Point Registers\n");
 
   const char* fpstr = print_fpr_hex ? "FP%-2d=%08x,%08x" : "FP%-2d = %#-13.6g";
-  const char* fpfill = " ";
+  const char* const fpfill = " ";
 
   if (print_fpr_hex)
     for (i = 0; i < 4; i += 1) {
@@ -139,7 +139,7 @@ void format_registers(str_stream* ss, bool print_gpr_hex, bool print_fpr_hex) {
 
 void format_insts(str_stream* ss, mem_addr from, mem_addr to) {
   for (mem_addr i = from; i < to; i += 4) {
-    mips_instruction* instruction = mem_read_inst(i);
+    mips_instruction* const instruction = mem_read_inst(i);
     if (instruction != nullptr) {
       format_an_inst(ss, instruction, i);
     }
@@ -159,7 +159,7 @@ void print_text_listing(void) {
   ss_clear(&ss);
   format_insts(&ss, TEXT_BOT, text_top);
 
-  char* text = ss_to_string(&ss);
+  char* const text = ss_to_string(&ss);
   if (*text == '\0') {
     write_output(message_out, "No program loaded.\n");
     return;
@@ -232,7 +232,7 @@ static mem_addr format_partial_line(str_stream* ss, mem_addr addr) {
     ss_printf(ss, "[0x%08x]		      ", addr);
 
     for (; (addr % BYTES_PER_LINE) != 0; addr += BYTES_PER_WORD) {
-      mem_word val = mem_read_word(addr);
+      const mem_word val = mem_read_word(addr);
       ss_printf(ss, "  0x%08x", (unsigned int)val);
     }
 

@@ -15,12 +15,18 @@ clang-tidy's ``misc-const-correctness`` checks C++ only and reports nothing on a
 - ``param-cascade``: as ``param-pointee``, but passed to a call; it can be const
   only once the callee's parameter is, so each needs a look by hand.
 
+Written for the const pass
+(tasks/archive/2026/11/11/c23-const-correctness-pass.md), which records what
+the compiler rejected and the deliberate opt-outs. Known false positives: a
+local inside a macro expansion whose ``typeof`` holds ``*`` (``max()``'s
+``_spim_a_``) is read as a pointer.
+
 Function-scope statics, arrays, and the setjmp functions (``main``,
 ``top_level``) are skipped. The counts are an upper bound: the compiler decides.
 
 Usage::
 
-    const_candidates.py BUILDDIR [FILE ...]
+    tools/const_candidates.py BUILDDIR [FILE ...]
 
 BUILDDIR holds ``compile_commands.json``. The candidates go to stdout, one per
 line, and the totals per category to stderr.
@@ -35,7 +41,7 @@ import sys
 from collections.abc import Iterator, Mapping
 from typing import Any
 
-REPO: pathlib.Path = pathlib.Path(__file__).resolve().parents[3]
+REPO: pathlib.Path = pathlib.Path(__file__).resolve().parents[1]
 SETJMP_FUNCTIONS: frozenset[str] = frozenset({"main", "top_level"})
 CATEGORIES: tuple[str, ...] = (
     "local-scalar",
@@ -169,15 +175,33 @@ def base_id(node: Node) -> str | None:
 
 
 def is_const(qual_type: str) -> bool:
-    """Whether a clang qualType string is already const at the top or pointee level.
+    """Whether a binding of a clang qualType is already const itself (top-level).
+
+    For a pointer that is a trailing ``const`` (``char *const``); a leading
+    one (``const char *``) is only the pointee's. For any other type a leading
+    or trailing ``const`` is top-level.
 
     Args:
         qual_type: the type as clang prints it, e.g. ``const char *``.
 
     Returns:
-        bool: True when the type starts or ends with ``const``.
+        bool: True when the binding itself cannot be assigned.
     """
-    return qual_type.startswith("const ") or qual_type.rstrip().endswith("const")
+    return qual_type.rstrip().endswith("const") or (
+        "*" not in qual_type and qual_type.startswith("const ")
+    )
+
+
+def is_pointee_const(qual_type: str) -> bool:
+    """Whether a pointer parameter's type already points to const.
+
+    Args:
+        qual_type: the parameter type as clang prints it.
+
+    Returns:
+        bool: True when the type starts with ``const``.
+    """
+    return qual_type.startswith("const ")
 
 
 def scan_function(function: Node) -> list[tuple[str, Node]]:
@@ -239,7 +263,7 @@ def scan_function(function: Node) -> list[tuple[str, Node]]:
         for pid, p in parameters.items()
         if "*" in p["type"]["qualType"]
         and "(*)" not in p["type"]["qualType"]
-        and not is_const(p["type"]["qualType"])
+        and not is_pointee_const(p["type"]["qualType"])
         and pid not in written_through
     ]
     return local_candidates + parameter_candidates

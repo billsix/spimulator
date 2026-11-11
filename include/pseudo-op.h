@@ -29,8 +29,8 @@ imm_expr* branch_offset(int n_inst);
 
 /* Range checkers for immediate values. */
 
-void check_imm_range(imm_expr* expr, int32_t min, int32_t max);
-void check_uimm_range(imm_expr* expr, uint32_t min, uint32_t max);
+void check_imm_range(const imm_expr* expr, int32_t min, int32_t max);
+void check_uimm_range(const imm_expr* expr, uint32_t min, uint32_t max);
 
 /* Opcode lookups. */
 

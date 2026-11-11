@@ -69,7 +69,7 @@ char* ss_take_string(str_stream* ss) {
   ss_lazy_init(ss);
   fclose(ss->stream);
   ss->stream = nullptr;
-  char* buf = ss->buf;
+  char* const buf = ss->buf;
   ss->buf = nullptr;
   ss->size = 0;
   return buf;
