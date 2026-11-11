@@ -87,11 +87,15 @@ def make_memory(
 def expand_data(addl_bytes: int) -> None:
     """Grow the data segment by addl_bytes (``sbrk``).
 
+    The sizes are C ints: a growth that wraps negative passes the limit check, and
+    C's ``realloc`` of that size then fails.
+
     Raises:
         RunError: the growth is negative or passes the data limit.
+        SystemExit: the new size wrapped negative (C: realloc fails).
     """
     global data_top
-    delta: int = _round_up(addl_bytes, 4)
+    delta: int = machine.s32(_round_up(addl_bytes, 4))
     old_size: int = data_top - layout.DATA_BOT
     new_size: int = machine.s32(old_size + delta)
     if addl_bytes < 0 or new_size > _data_size_limit:
@@ -99,45 +103,64 @@ def expand_data(addl_bytes: int) -> None:
             f"Can't expand data segment by {addl_bytes} bytes to {new_size} bytes\n"
         )
         raise console.run_error(f"Use -ldata # with # > {new_size}\n")
-    data_seg.extend(bytes(new_size - old_size))
+    elif new_size < 0:
+        raise console.fatal_error("realloc failed in expand_data\n")
+    else:
+        data_seg.extend(bytes(new_size - old_size))
     data_top += delta
 
 
 def expand_stack(addl_bytes: int) -> None:
     """Grow the stack downward: at least double it, or by addl_bytes.
 
+    The sizes are C ints: a growth that wraps negative passes the limit check, and
+    C's ``xmalloc`` of that size (as a ``size_t``) then fails.
+
     Raises:
         RunError: the growth passes the stack limit.
+        SystemExit: the new size wrapped negative (C: xmalloc fails).
     """
     global stack_seg, stack_bot
-    delta: int = _round_up(addl_bytes, 4)
+    delta: int = machine.s32(_round_up(addl_bytes, 4))
     old_size: int = layout.STACK_TOP - stack_bot
-    new_size: int = old_size + max(delta, old_size)
+    new_size: int = machine.s32(old_size + max(delta, old_size))
     if addl_bytes < 0 or new_size > _stack_size_limit:
         raise console.run_error(
             f"Can't expand stack segment by {addl_bytes} bytes to {new_size}"
             f" bytes.\nUse -lstack # with # > {new_size}\n"
         )
-    stack_seg = bytearray(new_size - old_size) + stack_seg
+    elif new_size < 0:
+        # C passes the negative int to xmalloc as a size_t.
+        raise console.fatal_error(
+            f"Out of memory at request for {new_size % (1 << 64)} bytes.\n"
+        )
+    else:
+        stack_seg = bytearray(new_size - old_size) + stack_seg
     stack_bot -= new_size - old_size
 
 
 def expand_k_data(addl_bytes: int) -> None:
     """Grow the kernel data segment by addl_bytes.
 
+    The sizes are C ints, as in `expand_data`.
+
     Raises:
         RunError: the growth passes the kernel data limit.
+        SystemExit: the new size wrapped negative (C: realloc fails).
     """
     global k_data_top
-    delta: int = _round_up(addl_bytes, 4)
+    delta: int = machine.s32(_round_up(addl_bytes, 4))
     old_size: int = k_data_top - layout.K_DATA_BOT
-    new_size: int = old_size + delta
+    new_size: int = machine.s32(old_size + delta)
     if addl_bytes < 0 or new_size > _k_data_size_limit:
         raise console.run_error(
             f"Can't expand kernel data segment by {addl_bytes} bytes to {new_size}"
             f" bytes.\nUse -lkdata # with # > {new_size}\n"
         )
-    k_data_seg.extend(bytes(new_size - old_size))
+    elif new_size < 0:
+        raise console.fatal_error("realloc failed in expand_k_data\n")
+    else:
+        k_data_seg.extend(bytes(new_size - old_size))
     k_data_top += delta
 
 

@@ -14,6 +14,7 @@ top level; here it raises :class:`RunError`.  ``fatal_error`` prints and
 exits with status 255 (C's ``exit(-1)``).
 """
 
+import errno
 import os
 import select
 from typing import Any
@@ -43,12 +44,20 @@ def write_fd(fd: int, data: bytes) -> None:
     """Write all of data to the file descriptor fd.
 
     A write to a closed pipe kills the process with SIGPIPE, as in C (spim.main
-    restores the signal's default action).
+    restores the signal's default action). A write to a descriptor the program
+    closed (syscall 16 on fd 1 or 2) is dropped, as C's stdio fails silently there.
     """
     view: memoryview = memoryview(data)
     while view:
-        written: int = os.write(fd, view)
-        view = view[written:]
+        try:
+            written: int = os.write(fd, view)
+        except OSError as error:
+            if error.errno == errno.EBADF:
+                return
+            else:
+                raise
+        else:
+            view = view[written:]
 
 
 def output(text: str) -> None:

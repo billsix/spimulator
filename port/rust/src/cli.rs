@@ -1021,7 +1021,10 @@ pub fn main() -> i32 {
             } else {
                 match std::fs::File::create(os_path(path)) {
                     Ok(file) => {
-                        engine.machine.listing = Some(Box::new(std::io::BufWriter::new(file)));
+                        // Line-buffered: every listing event is one line, and
+                        // fatal_error's process::exit runs no destructors, so a
+                        // BufWriter would lose its tail where C's exit() flushes.
+                        engine.machine.listing = Some(Box::new(std::io::LineWriter::new(file)));
                     }
                     Err(_) => {
                         let mut message: Vec<u8> = b"\nCannot open listing file '".to_vec();

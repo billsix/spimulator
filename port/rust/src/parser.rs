@@ -801,7 +801,7 @@ impl Machine {
                     TOK_MTC1_OPCODE
                 };
                 self.emit_fp_r(real, 0, copreg, reg);
-                self.emit_fp_r(real, 0, copreg + 1, reg + 1);
+                self.emit_fp_r(real, 0, copreg.wrapping_add(1), reg.wrapping_add(1));
             }
             TOK_LI_D_PSEUDO_OP => {
                 let fd: i32 = self.parse_fp_register();
@@ -820,7 +820,7 @@ impl Machine {
                     0,
                     &ImmExpr::constant((bits >> 32) as i32),
                 );
-                self.emit_fp_r(TOK_MTC1_OPCODE, 0, fd + 1, 1);
+                self.emit_fp_r(TOK_MTC1_OPCODE, 0, fd.wrapping_add(1), 1);
             }
             TOK_LI_S_PSEUDO_OP => {
                 let fd: i32 = self.parse_fp_register();
@@ -858,7 +858,7 @@ impl Machine {
                 let rt: i32 = self.parse_register();
                 let addr: AddrExpr = self.parse_address();
                 self.emit_i(real, rt, addr.reg, &addr.imm);
-                self.emit_i(real, rt + 1, addr.reg, &addr.imm.plus(4));
+                self.emit_i(real, rt.wrapping_add(1), addr.reg, &addr.imm.plus(4));
             }
             TOK_ULW_PSEUDO_OP => {
                 let rt: i32 = self.parse_register();

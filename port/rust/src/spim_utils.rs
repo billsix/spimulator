@@ -224,7 +224,7 @@ impl Machine {
             self.exception_occurred = false;
             let _ = self.run_spim(addr, 1, display);
             self.add_breakpoint(addr);
-            steps -= 1;
+            steps = steps.wrapping_sub(1);
             pc = self.regs.pc;
         }
         self.exception_occurred = false;

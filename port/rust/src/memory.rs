@@ -16,7 +16,7 @@
 //! hosts the C engine runs on.
 
 use crate::instruction::{InstRef, Instruction};
-use crate::machine::{error, run_error, Machine};
+use crate::machine::{error, fatal_error, run_error, Machine};
 use crate::run::ExcCode;
 
 /// Bottom of the user text segment.
@@ -256,6 +256,11 @@ impl Machine {
             ));
             run_error(&format!("Use -ldata # with # > {new_size}\n"));
         }
+        // The sizes are C ints: a growth that wraps negative passes the limit
+        // check, and C's realloc of that size then fails.
+        if new_size < 0 {
+            fatal_error("realloc failed in expand_data\n");
+        }
         self.mem.data.resize(size_of(new_size), 0);
         self.mem.data_top = self.mem.data_top.wrapping_add(delta as u32);
     }
@@ -271,6 +276,11 @@ impl Machine {
             run_error(&format!(
                 "Can't expand stack segment by {addl_bytes} bytes to {new_size} bytes.\nUse -lstack # with # > {new_size}\n"
             ));
+        }
+        // As in expand_data; C hands the negative int to xmalloc as a size_t.
+        if new_size < 0 {
+            let request: u64 = i64::from(new_size) as u64;
+            fatal_error(&format!("Out of memory at request for {request} bytes.\n"));
         }
         let mut new_stack: Vec<u8> = vec![0; size_of(new_size)];
         let start: usize = size_of(new_size - old_size);
@@ -291,6 +301,10 @@ impl Machine {
             run_error(&format!(
                 "Can't expand kernel data segment by {addl_bytes} bytes to {new_size} bytes.\nUse -lkdata # with # > {new_size}\n"
             ));
+        }
+        // As in expand_data.
+        if new_size < 0 {
+            fatal_error("realloc failed in expand_k_data\n");
         }
         self.mem.k_data.resize(size_of(new_size), 0);
         self.mem.k_data_top = self.mem.k_data_top.wrapping_add(delta as u32);

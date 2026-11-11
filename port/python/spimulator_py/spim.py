@@ -164,6 +164,11 @@ def main(arguments: list[str]) -> int:
     # Python ignores SIGPIPE; C does not, so `spimulator ... | head` ends the
     # simulator when head exits.  Restore the default.
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    # A delay slot runs through a recursive run_spim call, as in C, so a jump in
+    # the delay slot of a jump nests one level deeper.  C nests about 10,000 levels
+    # before its stack runs out; Python's default limit of 1,000 frames stopped
+    # at about 330.  Allow several frames per level beyond C's depth.
+    sys.setrecursionlimit(max(sys.getrecursionlimit(), 100_000))
     try:
         return _main(arguments)
     except console.RunError:

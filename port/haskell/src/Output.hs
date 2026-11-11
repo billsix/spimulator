@@ -33,10 +33,11 @@ import Data.Word (Word8)
 import Foreign.C.String (CString)
 import Foreign.C.Types (CInt (..), CSize (..))
 import Foreign.Marshal.Alloc (alloca)
-import Foreign.Ptr (Ptr)
+import Foreign.Ptr (Ptr, castPtr)
 import Foreign.Storable (peek)
 import System.Exit (ExitCode (..), exitWith)
 import System.IO (BufferMode (..), Handle, hFlush, hSetBinaryMode, hSetBuffering, stderr, stdout, stdin)
+import System.Posix.Signals (Handler (Default), installHandler, sigPIPE)
 
 foreign import ccall safe "read" c_read :: CInt -> Ptr Word8 -> CSize -> IO CInt
 foreign import ccall safe "write" c_write :: CInt -> Ptr Word8 -> CSize -> IO CInt
@@ -65,15 +66,37 @@ data SpimJump = RunErrorJump
 
 instance Exception SpimJump
 
--- | Make the standard handles carry bytes, not Unicode.
+-- | Make the standard handles carry bytes, not Unicode, and give SIGPIPE its
+-- default action: the GHC runtime ignores it, but C does not, so
+-- @spimulator ... | head@ ends the simulator when head exits (exit 141).
 setupHandles :: IO ()
 setupHandles = do
   mapM_ (`hSetBinaryMode` True) [stdin, stdout, stderr]
   hSetBuffering stdout (BlockBuffering Nothing)
   hSetBuffering stderr NoBuffering
+  _ <- installHandler sigPIPE Default Nothing
+  pure ()
 
+-- | Write text to a handle.  Standard output and standard error are written
+-- straight to file descriptors 1 and 2 with @write(2)@, unbuffered, as each
+-- call was flushed anyway: a write to a descriptor the program closed
+-- (syscall 16) then fails and is dropped, as C's stdio drops it, instead of
+-- raising.  Other handles (the listing file) go through the handle.
 put :: Handle -> String -> IO ()
-put h text = B.hPut h (B.pack text) >> hFlush h
+put h text
+  | h == stdout = writeFd 1 (B.pack text)
+  | h == stderr = writeFd 2 (B.pack text)
+  | otherwise = B.hPut h (B.pack text) >> hFlush h
+
+-- | Write all of the bytes to a file descriptor; stop at the first failed write.
+writeFd :: CInt -> B.ByteString -> IO ()
+writeFd fd bytes
+  | B.null bytes = pure ()
+  | otherwise = do
+      n :: CInt <- B.useAsCStringLen bytes $ \(p, len) -> c_write fd (castPtr p) (fromIntegral len)
+      if n <= 0
+        then pure ()
+        else writeFd fd (B.drop (fromIntegral n) bytes)
 
 -- | Write to the program's console (C: @write_output(console_out, ...)@).
 writeOut :: String -> IO ()

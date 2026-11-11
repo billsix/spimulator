@@ -101,6 +101,10 @@ makeMemory s = do
   set (kDataTop s) (kDataBot + fromIntegral kDataSize)
   set (kDataSizeLimit s) kDataLimit
 
+-- | Wrap a size to a C int, as C's int arithmetic does on this host.
+wrap32 :: Int -> Int
+wrap32 n = fromIntegral (fromIntegral n :: Int32)
+
 -- | Grow a byte segment to a new size, keeping its contents at the start.
 growBytes :: IOUArray Int Word8 -> Int -> IO (IOUArray Int Word8)
 growBytes old newSize = do
@@ -115,15 +119,18 @@ expandData :: Spim -> Int -> IO ()
 expandData s addl = do
   top :: Word32 <- get (dataTop s)
   limit :: Int <- get (dataSizeLimit s)
+  -- The sizes are C ints: a growth that wraps negative passes the limit check,
+  -- and C's realloc of that size then fails.
   let delta :: Int
-      delta = roundUp addl 4
+      delta = wrap32 (roundUp addl 4)
       oldSize :: Int
       oldSize = fromIntegral (top - dataBot) :: Int
       newSize :: Int
-      newSize = fromIntegral (fromIntegral (oldSize + delta) :: Int32) :: Int
+      newSize = wrap32 (oldSize + delta)
   when (addl < 0 || newSize > limit) $ do
     cError ("Can't expand data segment by " ++ show addl ++ " bytes to " ++ show newSize ++ " bytes\n")
     runError ("Use -ldata # with # > " ++ show newSize ++ "\n")
+  when (newSize < 0) $ fatalError "realloc failed in expand_data\n"
   seg :: IOUArray Int Word8 <- get (dataSeg s)
   (_, hi) :: (Int, Int) <- getBounds seg
   -- The array keeps spare capacity, so a run of small sbrk calls copies the
@@ -139,17 +146,21 @@ expandStack :: Spim -> Int -> IO ()
 expandStack s addl = do
   bot :: Word32 <- get (stackBot s)
   limit :: Int <- get (stackSizeLimit s)
+  -- The sizes are C ints, as in 'expandData'; C hands a negative size to
+  -- xmalloc as a size_t.
   let delta :: Int
-      delta = roundUp addl 4
+      delta = wrap32 (roundUp addl 4)
       oldSize :: Int
       oldSize = fromIntegral (stackTop - bot) :: Int
       newSize :: Int
-      newSize = oldSize + max delta oldSize
+      newSize = wrap32 (oldSize + max delta oldSize)
   when (addl < 0 || newSize > limit) $
     runError
       ( "Can't expand stack segment by " ++ show addl ++ " bytes to " ++ show newSize
           ++ " bytes.\nUse -lstack # with # > " ++ show newSize ++ "\n"
       )
+  when (newSize < 0) $
+    fatalError ("Out of memory at request for " ++ show (toInteger newSize `mod` (2 ^ (64 :: Int))) ++ " bytes.\n")
   old :: IOUArray Int Word8 <- get (stackSeg s)
   new :: IOUArray Int Word8 <- newArray (0, newSize - 1) 0
   let shift :: Int
@@ -163,17 +174,19 @@ expandKData :: Spim -> Int -> IO ()
 expandKData s addl = do
   top :: Word32 <- get (kDataTop s)
   limit :: Int <- get (kDataSizeLimit s)
+  -- The sizes are C ints, as in 'expandData'.
   let delta :: Int
-      delta = roundUp addl 4
+      delta = wrap32 (roundUp addl 4)
       oldSize :: Int
       oldSize = fromIntegral (top - kDataBot) :: Int
       newSize :: Int
-      newSize = oldSize + delta
+      newSize = wrap32 (oldSize + delta)
   when (addl < 0 || newSize > limit) $
     runError
       ( "Can't expand kernel data segment by " ++ show addl ++ " bytes to " ++ show newSize
           ++ " bytes.\nUse -lkdata # with # > " ++ show newSize ++ "\n"
       )
+  when (newSize < 0) $ fatalError "realloc failed in expand_k_data\n"
   seg :: IOUArray Int Word8 <- get (kDataSeg s)
   new :: IOUArray Int Word8 <- growBytes seg newSize
   set (kDataSeg s) new
