@@ -17,7 +17,7 @@ as the C engine, the standard, everywhere tested:
 None of the comparisons had a float-formatting warning. Every example's BUILD AND RUN header shows
 the `spimulator-python` run. The port was written by an agent from a written brief while the
 maintainer was away, and reviewed and registered by the coordinating session. The port found three
-C engine bugs, fixed in C in `a0eefb8` (below). The teaching mode waits on the C redesign
+C engine bugs, fixed in C in `9d67b77` (below). The teaching mode waits on the C redesign
 (`tasks/archive/2026/11/10/engine-ports.md`).
 
 ## Decisions
@@ -120,7 +120,7 @@ Design and decisions:
 
 ## C engine bugs found
 
-All three were **fixed in C in `a0eefb8`** (with three more the Haskell port found), each with a
+All three were **fixed in C in `9d67b77`** (with three more the Haskell port found), each with a
 regression test; the port then followed the fixed C engine (Log, "after the C fixes").
 
 1. **Code before the first `.data`, with no `.text`, was assembled into the data segment**: the
@@ -173,7 +173,7 @@ regression test; the port then followed the fixed C engine (Log, "after the C fi
 - Lessons for the other ports are in `tasks/reference/engine-port-language-choice.md`, "What the
   Python port found".
 
-### 2026-11-10 — after the C fixes (`a0eefb8`)
+### 2026-11-10 — after the C fixes (`9d67b77`)
 
 The C engine fixed six bugs (the three above and three from the Haskell port); the port now
 matches the fixed engine:
@@ -195,7 +195,7 @@ Checked against a C reference rebuilt from the current tree: `meson test --suite
 `repl_dot` and `engine_fixes` case 9); `compare_engines.py` 23 passed, 0 warned, 0 failed;
 `compare_all_programs.py` (`python-all-programs`) 1218 passed, 0 warned, 0 failed.
 
-### 2026-11-10 — after the C fixes the Rust port prompted (`6c27911`)
+### 2026-11-10 — after the C fixes the Rust port prompted (`e3742a3`)
 
 - The assembler's constant arithmetic wrapping at 32 bits (`INT_MIN / -1` is `INT_MIN`, `/ 0`
   is 0) needed no change: `parser._parse_term`/`_parse_expr` already wrapped with `machine.s32`

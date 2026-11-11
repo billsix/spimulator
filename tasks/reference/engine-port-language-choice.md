@@ -117,8 +117,9 @@ on the environment).
    only check the last line; capture the C engine's full stdout+stderr+status for each as a pinned
    golden (audit §6.4), so formatting and exception messages are compared too.
 3. **Corpus**, in the order a port reaches it:
-   - `tests/` regression suite (25 tests, `tests/run-test.sh`) plus the two never-executed upstream
-     tests `tt.alu.bare.s` and `tt.fpu.bare.s` run with `-bare -noexception` (audit §6.1).
+   - `tests/` regression suite (25 tests, `tests/run-test.sh`) plus upstream's two bare-machine
+     torture tests `tt.alu.bare.s` and `tt.fpu.bare.s`, run with `-bare -noexception` (audit §6.1;
+     never run in the fork until the `fpu_bare` and `alu_bare` cases, 2026-11-10 and 2026-11-11).
    - The AST-parity goldens (`tests/golden.ast_parity*.txt`) — assembler output bytes, independent of
      execution; the first milestone for the parser.
    - **Historical tests from git** (audit §1.5): upstream `Tests/` is byte-identical to today's

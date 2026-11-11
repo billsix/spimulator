@@ -18,8 +18,8 @@ There were no float-formatting warnings: `cformat.rs` is in the port. `cargo fmt
 warnings` and `cargo test` are clean. Every example's BUILD AND RUN header shows the
 `spimulator-rust` run. The port was written in parallel with the other two, in a separate git
 worktree, by an agent from a written brief. The coordinating session merged it last and registered
-it. The port found all six C bugs fixed in `a0eefb8`, independently, and three more, fixed in
-`6c27911`. It is the fastest engine of the four (`time.s` and `timer.s` against a debug C build).
+it. The port found all six C bugs fixed in `9d67b77`, independently, and three more, fixed in
+`e3742a3`. It is the fastest engine of the four (`time.s` and `timer.s` against a debug C build).
 The few differences not observable in the tests (no line editing, Ctrl-C ends the run) are listed
 below.
 
@@ -87,8 +87,8 @@ Rust's traps against the C engine, with the planned answer:
 - **The opcode table is generated, not typed**: `tools/gen_opcodes.sh` compiles `tools/gen_opcodes.c`
   against `include/` and writes `src/opcodes_table.rs` (committed). It also records which row the C
   engine's `qsort` + `bsearch` pick for each shared encoding, by running them.
-- **Where C crashed, the port died of the same signal** (follows "match C"; commit `1091420`),
-  until C was fixed in `6c27911` (C engine bugs found); the port now follows the fix.
+- **Where C crashed, the port died of the same signal** (follows "match C"; commit `33fd89c`),
+  until C was fixed in `e3742a3` (C engine bugs found); the port now follows the fix.
 - **`-explain` (any level 1-4, `-explain`, `-x`) prints "spimulator-rust: the teaching mode (-explain)
   is not supported by this port" and exits 2**; `-explain=0`, `-explain 0` and `-noexplain` are
   accepted (teaching mode off), and an invalid level gets C's message and usage.
@@ -98,15 +98,15 @@ Rust's traps against the C engine, with the planned answer:
 Logged, not fixed here (the port's rule); the coordinator fixed each in C, and the port follows.
 The bugs the Python and Haskell ports found (REPL operands, REPL `.`, code before the first `.data`,
 a byte load from an empty text word, a run-time error while loading, `expand_k_data`) were fixed in C
-by `a0eefb8` while this port was being written; this port found them too. The three this port
-found were fixed in C by `6c27911`:
+by `9d67b77` while this port was being written; this port found them too. The three this port
+found were fixed in C by `e3742a3`:
 
 1. **An assembler expression `-2147483648 / -1` killed the assembler with SIGFPE.** `parse_term`
    guarded division by zero but not the one overflowing quotient (and `*`, `+`, `-` overflowed as
    undefined behavior). Reproducer: `.data` / `x: .word -2147483648 / -1` / `.text` / `main: jr $ra`;
-   `spimulator -f x.s` died of SIGFPE (status 136). Fixed in `6c27911`: the constant arithmetic wraps
+   `spimulator -f x.s` died of SIGFPE (status 136). Fixed in `e3742a3`: the constant arithmetic wraps
    at 32 bits (`INT_MIN / -1` is `INT_MIN`; `/ 0` still gives 0); test `engine_fixes` case 10. The
-   port, which had died of the same signal (`1091420`), now wraps (`wrapping_div`; `*`, `+`, `-`
+   port, which had died of the same signal (`33fd89c`), now wraps (`wrapping_div`; `*`, `+`, `-`
    already wrapped).
 2. **A numeric flag as the last argument crashed.** `-stext`, `-sdata`, `-ldata`, `-sstack`,
    `-lstack`, `-sktext`, `-skdata`, `-lkdata` called `atoi(argv[++i])`, `atoi(NULL)` at the end of the
@@ -114,7 +114,7 @@ found were fixed in C by `6c27911`:
 3. **`-exception_file` (or `-trap_file`) as the last argument silently loaded no exception handler.**
    `spimulator -exception_file </dev/null` started the REPL without the `Loaded:` line.
 
-   Bugs 2 and 3 fixed in `6c27911`: each of the ten value-taking flags given last prints
+   Bugs 2 and 3 fixed in `e3742a3`: each of the ten value-taking flags given last prints
    `spimulator: FLAG requires a value` (the flag as typed) and the usage text, and parsing goes on,
    as for a bad `-explain` level; test `missing_flag_value`. The port does the same
    (`flag_value_missing` in `src/cli.rs`); its `die_of_signal` is gone.
@@ -141,20 +141,20 @@ found were fixed in C by `6c27911`:
 ### 2026-11-10 — engine written and checked (agent session in a worktree)
 
 - Worktree branch `worktree-agent-a422e3aa545bb8872`, started on `master`, fast-forwarded to
-  `engine-ports` at `bd20729` (the harness and the C prerequisite fixes).
+  `engine-ports` at `f4b9f4a` (the harness and the C prerequisite fixes).
 - Read every C file of the engine except `explain.c`, then wrote the port module by module in C
   order (the module map is in `port/rust/src/lib.rs`). It built after one warning and passed the
   whole harness (23/23) on its first run.
-- Milestone 1, commit `6454bcb`: `cformat.rs` (promoted), `arith.rs`, the generated opcode table.
+- Milestone 1, commit `11ca80f`: `cformat.rs` (promoted), `arith.rs`, the generated opcode table.
   `tests/cformat_vs_c.rs`: identical to glibc on 58,028 doubles in all five formats.
-- Milestones 2-4, commit `91449f1` (one commit; Decisions). Bugs found while testing, before that
+- Milestones 2-4, commit `3216630` (one commit; Decisions). Bugs found while testing, before that
   commit: the harness runs engines from `tests/`, so the launcher needs an absolute path; bash adds
   `PWD` and `SHLVL` to its children's environment, which the engine copies onto the stack, so the
   launcher re-execs with `/proc/$$/environ` (`env -i`); `check_example_commands.py` calls the engine
   through a symlink (`readlink -f`); `spimulator -f yes.asm | head -3` never ended because Rust starts
   with SIGPIPE ignored (restored to the default); the C oracle test deadlocked writing to a pipe the
   oracle was blocked writing (values now go through a file).
-- Merged `engine-ports` at `a0eefb8` (the coordinator's six C fixes) before that commit and followed
+- Merged `engine-ports` at `9d67b77` (the coordinator's six C fixes) before that commit and followed
   them: emit starts in the segment current when the parse began and emits only the nodes the call
   parsed; `print_all_regs`/`breakpoint`/`delete` with no operand do not read on, and a missing
   breakpoint address sets nothing; a run-time error while setting up or loading exits 1; byte loads
@@ -175,23 +175,23 @@ found were fixed in C by `6c27911`:
     dump, `.`, args, errors) and 14 flag combinations (`-mapped_io`, sizes, delayed branches/loads,
     `-nopseudo`, `-quiet`, a `;`-list of exception files, ...), comparing stdout, stderr, status and
     every file written: 1138 of 1138 identical.
-  - After merging `engine-ports` at `a7753a3`: `port/harness/compare_all_programs.py --jobs 8`:
+  - After merging `engine-ports` with the Haskell port's update to the C fixes: `port/harness/compare_all_programs.py --jobs 8`:
     1214 passed, 0 warned, 4 failed. The four are `tests/timer.s` and `tests/tt.io.s`, run and
     `-listing`: programs that spin forever without `-mapped_io` (no interrupt is taken, the device is
     never ready). Both engines stop after `DEFAULT_RUN_STEPS` (2^31 - 1) instructions with status 0;
     the port gets there in 43 s, inside the harness's 120 s timeout, and the debug C build does not,
     so the C side reads "timed out". Not a functional difference: run to the end, the C engine gives
     the same output and status 0 on `timer.s` after 13 min 55 s.
-- Crash parity, commit `1091420`: where C dies of a signal (C engine bugs 1 and 2), the port now dies
+- Crash parity, commit `33fd89c`: where C dies of a signal (C engine bugs 1 and 2), the port now dies
   of the same one (status 136 and 139 from both).
 - Speed: `tt.core.s` (with its 10 ms timer spin) runs in 0.11 s, against 0.10 s for the debug C
   build.
 
-### 2026-11-10 — following the C fixes of `6c27911`
+### 2026-11-10 — following the C fixes of `e3742a3`
 
-- The coordinator merged this branch into `engine-ports` (`0427cf2`), registered the port (`b965190`)
-  and fixed the three C bugs this port found (`6c27911`). The worktree branch was fast-forwarded to
-  `engine-ports` at `b965190` and the port changed to match: constant arithmetic wraps (`/ -1`
+- The coordinator merged this branch into `engine-ports` (`73dac51`, the `engine-port-rust` merge), registered the port (`d7ba274`)
+  and fixed the three C bugs this port found (`e3742a3`). The worktree branch was fast-forwarded to
+  `engine-ports` at `d7ba274` and the port changed to match: constant arithmetic wraps (`/ -1`
   included); the ten value-taking flags given last report "requires a value" and print the usage.
   This was done in the worktree, not the main checkout: the agent's sandbox refuses git commands
   outside its worktree, so the branch is to be merged (fast-forward) into `engine-ports`.

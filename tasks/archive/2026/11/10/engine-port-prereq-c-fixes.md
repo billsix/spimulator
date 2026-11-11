@@ -9,8 +9,8 @@ The maintainer decided that the C engine's bugs are fixed before any port, so ev
 compared with correct output, and that `.` is the only decimal point. This task fixed the review's
 seven wrong-value bugs and one endless parse-error loop it found along the way, each with a test
 that fails on the engine from before. It also closed the test gaps that would have let a port
-differ from C unnoticed. Commits on branch `engine-ports`: `2858150` (engine fixes), `82b9b39`
-(test gaps). The gate `make image` (sanitizers on) passed at `0e618c7`: 64 meson tests, and 29
+differ from C unnoticed. Commits on branch `engine-ports`: `43c433a` (engine fixes), `5b3a7d6`
+(test gaps). The gate `make image` (sanitizers on) passed at `0ada1bc`: 64 meson tests, and 29
 regression tests each under UBSan and ASan.
 
 **Fixed in C, each covered by `tests/tt.engine_fixes.s` (a self-checking

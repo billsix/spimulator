@@ -17,7 +17,7 @@ There were no float-formatting warnings: the exact-`Rational` formatter from the
 run. The port was written in parallel with the Python one, in a separate git worktree, by an agent
 from a written brief. The coordinating session merged it after the Python port, as
 `tasks/archive/2026/11/10/engine-ports.md` planned, and registered it. The port found five C engine bugs; three were
-fixed in C in `a0eefb8` (below).
+fixed in C in `9d67b77` (below).
 
 ## Findings (2026-11-10)
 
@@ -125,7 +125,7 @@ download.
 
 ## C engine bugs found
 
-**All fixed in C in `a0eefb8`** (with the Python port's finding, code before the first `.data` with
+**All fixed in C in `9d67b77`** (with the Python port's finding, code before the first `.data` with
 no `.text` assembled into the data segment; tests `text_before_data`, `repl_dot`, `repl_no_operand`,
 `load_error`, `engine_fixes` case 9). The port now matches the fixed engine (Log, second entry):
 `parseFile` emits only the statements the call parsed, starting in the segment current when the
@@ -160,18 +160,18 @@ and zeroed the new memory. As first found (before the fix):
 
 ### 2026-11-10 — engine written and checked (agent session in a worktree)
 
-- Worktree branch `worktree-agent-a57d66e8781a2f9c4`, based on `engine-ports` at `b0e455a` (the harness
+- Worktree branch `worktree-agent-a57d66e8781a2f9c4`, based on `engine-ports` at `b7c9d87` (the harness
   and the C prerequisite fixes); the worktree started on `master` and was fast-forwarded to it.
 - Read every C file of the engine except `explain.c`, then wrote the port module by module in C order
   (`port/haskell/README.md` has the map). It compiled under `-Wall -Werror` after a handful of fixes
   and passed the whole harness on its first full run.
-- Milestone 1, commit `373baa9`: `port/haskell/tools/GenOpcodes.hs` generates `src/Opcodes.hs` from
+- Milestone 1, commit `b6ac771`: `port/haskell/tools/GenOpcodes.hs` generates `src/Opcodes.hs` from
   `include/opcodes.h`; `OpcodeTables` reproduces glibc's `qsort` + `bsearch` (six encodings sit on two
   rows; both engines decode 0x46000008/09/0d/0f as swxc1, sdxc1, trunc.w.s, prefx); `CFormat` promoted,
   plus `cStrtod` (C's `atof`). `tests/check-format.sh`: identical to glibc on 158,029 doubles in all five
   formats. `tests/check-strtod.sh`: identical on 60,035 strings; it first caught `nan` read as negative
   and without its payload (GHC's `0/0` is the negative NaN), fixed to glibc's quiet NaN.
-- Milestones 2-4, commit `8699546` (one commit; Decisions). Against the C engine built from this tree
+- Milestones 2-4, commit `ac5e6a5` (one commit; Decisions). Against the C engine built from this tree
   (`meson setup … --buildtype=debug`):
   - `port/harness/compare_engines.py`: 23 passed, 0 warned, 0 failed.
   - `tests/run-test.sh`: all 28 regression tests except `explain` pass.
@@ -198,10 +198,10 @@ and zeroed the new memory. As first found (before the fix):
   build into `build/build.log`, show it only on failure); then, from a clean build directory, the harness
   passed 23/23, and six concurrent first runs under `env -i` all built once and ran correctly.
 
-### 2026-11-10 — matched to the C fixes of `a0eefb8`
+### 2026-11-10 — matched to the C fixes of `9d67b77`
 
-- The coordinator merged this branch into `engine-ports` (`eff193a`) and fixed in C the bugs both
-  ports found (`a0eefb8`). Merged `engine-ports` back here and rebuilt the C reference.
+- The coordinator merged this branch into `engine-ports` (`7654498`, the `engine-port-haskell` merge) and fixed in C the bugs both
+  ports found (`9d67b77`). Merged `engine-ports` back here and rebuilt the C reference.
 - `port/haskell/src/Parser.hs` `parseFile`: remembers how many statements the tree already holds and
   the segment flags (`dataDir`/`textDir`) when the call starts, then emits only the new statements,
   starting from those flags. This fixes code before the first `.data` with no `.text` (it went to
@@ -218,7 +218,7 @@ and zeroed the new memory. As first found (before the fix):
   `port/harness/compare_engines.py` 23/23; `port/harness/compare_all_programs.py` 1218 passed, 0
   warned, 0 failed; `tasks/adhoc/engine-port-haskell/repl.py` 24/24.
 
-### 2026-11-10 — matched to the C fixes of `6c27911` (bugs the Rust port found)
+### 2026-11-10 — matched to the C fixes of `e3742a3` (bugs the Rust port found)
 
 - Constant arithmetic in the assembler: the port already wrapped at 32 bits (`Int32`), with
   `INT_MIN / -1` giving `INT_MIN` and division by zero 0 (`parseTerm` in `port/haskell/src/Parser.hs`);
@@ -229,6 +229,6 @@ and zeroed the new memory. As first found (before the fix):
   `-exception_file` loaded no handler.
 - Worked in the worktree, not the main checkout as asked: the session's sandbox refuses git in the
   shared checkout, so the commit is on `worktree-agent-a57d66e8781a2f9c4`, fast-forwarded first to
-  `engine-ports` at `b965190`, for the coordinator to merge.
+  `engine-ports` at `d7ba274`, for the coordinator to merge.
 - Gate: `meson test --suite port-haskell` in a fresh build directory of the current tree (results in
   the commit message).
