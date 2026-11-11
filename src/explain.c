@@ -166,7 +166,7 @@ void explain_print_step_header(mem_addr pc,
     while (*dasm == ' ' || *dasm == '\t') dasm++;
   }
 
-  uint32_t enc = (uint32_t)inst_encode(instruction);
+  const uint32_t enc = (uint32_t)inst_encode(instruction);
   write_output(message_out, "    memory[0x%08x] = 0x%08x   →   %s\n", pc, enc,
                dasm);
   if (source_part && *source_part) {
@@ -406,9 +406,9 @@ static const struct pseudo_info* find_pseudo_in_source(const char* src) {
   if (!src) return nullptr;
   const char* const s = skip_source_prefix(src);
   for (int i = 0; pseudo_ops[i].name != nullptr; i++) {
-    size_t n = strlen(pseudo_ops[i].name);
+    const size_t n = strlen(pseudo_ops[i].name);
     if (strncmp(s, pseudo_ops[i].name, n) != 0) continue;
-    char after = s[n];
+    const char after = s[n];
     if (after == ' ' || after == '\t' || after == '\0' || after == '\n' ||
         after == '#')
       return &pseudo_ops[i];
@@ -421,27 +421,27 @@ static const struct pseudo_info* find_pseudo_in_source(const char* src) {
    exception_occurred / CP0 state out from under the real dispatch, so wrap
    peeks in save/restore. */
 static reg_word peek_word(mem_addr addr) {
-  bool se = exception_occurred;
-  reg_word sbv = CP0_BadVAddr;
-  reg_word v = mem_read_word(addr);
+  const bool se = exception_occurred;
+  const reg_word sbv = CP0_BadVAddr;
+  const reg_word v = mem_read_word(addr);
   exception_occurred = se;
   CP0_BadVAddr = sbv;
   return v;
 }
 
 static reg_word peek_half(mem_addr addr) {
-  bool se = exception_occurred;
-  reg_word sbv = CP0_BadVAddr;
-  reg_word v = mem_read_half(addr);
+  const bool se = exception_occurred;
+  const reg_word sbv = CP0_BadVAddr;
+  const reg_word v = mem_read_half(addr);
   exception_occurred = se;
   CP0_BadVAddr = sbv;
   return v;
 }
 
 static reg_word peek_byte(mem_addr addr) {
-  bool se = exception_occurred;
-  reg_word sbv = CP0_BadVAddr;
-  reg_word v = mem_read_byte(addr);
+  const bool se = exception_occurred;
+  const reg_word sbv = CP0_BadVAddr;
+  const reg_word v = mem_read_byte(addr);
   exception_occurred = se;
   CP0_BadVAddr = sbv;
   return v;
@@ -492,7 +492,9 @@ static void say_wrote_lo(void) {
    sensibly. Only valid when snap_has_mem is true. */
 static void say_wrote_mem(int width) {
   if (!snap_has_mem) return;
-  uint32_t mask = (width == 1) ? 0xff : (width == 2) ? 0xffff : 0xffffffffu;
+  const uint32_t mask = (width == 1)   ? 0xff
+                        : (width == 2) ? 0xffff
+                                       : 0xffffffffu;
   reg_word now;
   if (width == 1)
     now = peek_byte(snap_mem_addr) & 0xff;
@@ -525,7 +527,7 @@ static void say_try_regs(int a, int b, int c, int d) {
   try_lines_emitted = 0;
   char cmd[64];
   for (int i = 0; i < 4; i++) {
-    int r = regs[i];
+    const int r = regs[i];
     if (r == 0) continue;
     bool dup = false;
     for (int j = 0; j < i; j++)
@@ -612,7 +614,7 @@ static void subst_field_regs(char* dst, size_t cap, const char* src, int rs,
           break;
       }
       if (r >= 0 && r < 32) {
-        int n = snprintf(dst + i, cap - i, "$%s", int_reg_names[r]);
+        const int n = snprintf(dst + i, cap - i, "$%s", int_reg_names[r]);
         if (n > 0) i += (size_t)n;
         if (i >= cap) i = cap - 1;
         src += 3;
@@ -626,7 +628,7 @@ static void subst_field_regs(char* dst, size_t cap, const char* src, int rs,
 
 static void tpl_r3_arith(int level, const mips_instruction* instruction,
                          const char* op_label, const char* op_text) {
-  int rs = RS(instruction), rt = RT(instruction), rd = RD(instruction);
+  const int rs = RS(instruction), rt = RT(instruction), rd = RD(instruction);
   char buf[512];
   subst_field_regs(buf, sizeof(buf), op_text, rs, rt, rd);
   write_output(message_out, "  What it did:\n");
@@ -646,8 +648,8 @@ static void tpl_r3_arith(int level, const mips_instruction* instruction,
 
 static void tpl_i2_arith(int level, const mips_instruction* instruction,
                          const char* op_label, const char* op_text) {
-  int rs = RS(instruction), rt = RT(instruction);
-  short imm = (short)IMM(instruction);
+  const int rs = RS(instruction), rt = RT(instruction);
+  const short imm = (short)IMM(instruction);
   char buf[512];
   /* For I-type, "$rt" in the op_text refers to the source field; the
      destination is also rt architecturally but we always describe it
@@ -669,7 +671,7 @@ static void tpl_i2_arith(int level, const mips_instruction* instruction,
 
 static void tpl_shift(int level, const mips_instruction* instruction,
                       const char* op_label, const char* op_text) {
-  int rt = RT(instruction), rd = RD(instruction), sh = SHAMT(instruction);
+  const int rt = RT(instruction), rd = RD(instruction), sh = SHAMT(instruction);
   char buf[512];
   subst_field_regs(buf, sizeof(buf), op_text, -1, rt, rd);
   write_output(message_out, "  What it did:\n");
@@ -691,7 +693,7 @@ static void tpl_shift(int level, const mips_instruction* instruction,
    "$fp - 4" reads naturally instead of "$fp + -4". */
 static void say_effective_address(int base, short off, mem_addr ea) {
   const char* const sign = (off < 0) ? "-" : "+";
-  int absoff = (off < 0) ? -off : off;
+  const int absoff = (off < 0) ? -off : off;
   write_output(
       message_out,
       "    Effective address = $%s %s %d  =  0x%08x %s %d  =  0x%08x.\n",
@@ -700,13 +702,13 @@ static void say_effective_address(int base, short off, mem_addr ea) {
 
 static void tpl_load(int level, const mips_instruction* instruction,
                      const char* op_label, const char* op_text, int width) {
-  int rt = RT(instruction), base = BASE(instruction);
-  short off = (short)IOFFSET(instruction);
+  const int rt = RT(instruction), base = BASE(instruction);
+  const short off = (short)IOFFSET(instruction);
   /* Effective address uses snapshot base — the value the instruction
      actually used. If this load's rt happens to equal base (rare but
      legal), the post-execute gpr[base] is the loaded value, not the
      pre-execute base. */
-  mem_addr ea = (mem_addr)(snap_R[base] + off);
+  const mem_addr ea = (mem_addr)(snap_R[base] + off);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — read %s from memory at the effective address; "
@@ -741,9 +743,9 @@ static void tpl_load(int level, const mips_instruction* instruction,
 
 static void tpl_store(int level, const mips_instruction* instruction,
                       const char* op_label, const char* op_text, int width) {
-  int rt = RT(instruction), base = BASE(instruction);
-  short off = (short)IOFFSET(instruction);
-  mem_addr ea = (mem_addr)(snap_R[base] + off);
+  const int rt = RT(instruction), base = BASE(instruction);
+  const short off = (short)IOFFSET(instruction);
+  const mem_addr ea = (mem_addr)(snap_R[base] + off);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — wrote %s from $%s into memory at the effective "
@@ -759,7 +761,9 @@ static void tpl_store(int level, const mips_instruction* instruction,
        what's being overwritten, masked to the store width so a byte
        store shows the byte that's being clobbered, not the full word. */
     if (snap_has_mem) {
-      uint32_t mask = (width == 1) ? 0xff : (width == 2) ? 0xffff : 0xffffffffu;
+      const uint32_t mask = (width == 1)   ? 0xff
+                            : (width == 2) ? 0xffff
+                                           : 0xffffffffu;
       write_output(message_out, "    memory at 0x%08x = 0x%08x\n", ea,
                    ((uint32_t)snap_mem_val) & mask);
     }
@@ -781,9 +785,9 @@ static void tpl_store(int level, const mips_instruction* instruction,
    instructions instead of trapping. */
 static void tpl_load_unaligned(int level, const mips_instruction* instruction,
                                const char* op_label, const char* op_text) {
-  int rt = RT(instruction), base = BASE(instruction);
-  short off = (short)IOFFSET(instruction);
-  mem_addr ea = (mem_addr)(snap_R[base] + off);
+  const int rt = RT(instruction), base = BASE(instruction);
+  const short off = (short)IOFFSET(instruction);
+  const mem_addr ea = (mem_addr)(snap_R[base] + off);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — merged %s into $%s; preserved the other bytes "
@@ -798,7 +802,7 @@ static void tpl_load_unaligned(int level, const mips_instruction* instruction,
     say_input_reg(base);
     say_input_reg(rt);
     write_output(message_out, "    offset = %d  (0x%04x)\n", off, off & 0xffff);
-    mem_addr word_addr = ea & ~3u;
+    const mem_addr word_addr = ea & ~3u;
     write_output(message_out,
                  "    memory at 0x%08x (containing word) = 0x%08x\n", word_addr,
                  (uint32_t)peek_word(word_addr));
@@ -815,9 +819,9 @@ static void tpl_load_unaligned(int level, const mips_instruction* instruction,
    address. */
 static void tpl_store_unaligned(int level, const mips_instruction* instruction,
                                 const char* op_label, const char* op_text) {
-  int rt = RT(instruction), base = BASE(instruction);
-  short off = (short)IOFFSET(instruction);
-  mem_addr ea = (mem_addr)(snap_R[base] + off);
+  const int rt = RT(instruction), base = BASE(instruction);
+  const short off = (short)IOFFSET(instruction);
+  const mem_addr ea = (mem_addr)(snap_R[base] + off);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — wrote %s from $%s into the word containing the "
@@ -846,9 +850,9 @@ static void tpl_store_unaligned(int level, const mips_instruction* instruction,
    the same address can detect intervening writes.  spim is
    single-threaded; ll behaves as a plain word load. */
 static void tpl_load_linked(int level, const mips_instruction* instruction) {
-  int rt = RT(instruction), base = BASE(instruction);
-  short off = (short)IOFFSET(instruction);
-  mem_addr ea = (mem_addr)(snap_R[base] + off);
+  const int rt = RT(instruction), base = BASE(instruction);
+  const short off = (short)IOFFSET(instruction);
+  const mem_addr ea = (mem_addr)(snap_R[base] + off);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    Load Linked — read a 32-bit word from memory at the "
@@ -878,9 +882,9 @@ static void tpl_load_linked(int level, const mips_instruction* instruction) {
    after sc will see the value it had going in. */
 static void tpl_store_conditional(int level,
                                   const mips_instruction* instruction) {
-  int rt = RT(instruction), base = BASE(instruction);
-  short off = (short)IOFFSET(instruction);
-  mem_addr ea = (mem_addr)(snap_R[base] + off);
+  const int rt = RT(instruction), base = BASE(instruction);
+  const short off = (short)IOFFSET(instruction);
+  const mem_addr ea = (mem_addr)(snap_R[base] + off);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    Store Conditional — wrote the 32-bit value from $%s into "
@@ -913,9 +917,9 @@ static void tpl_store_conditional(int level,
    alignment — real MIPS requires 8-byte alignment for ldc1. */
 static void tpl_load_fp(int level, const mips_instruction* instruction,
                         const char* op_label, int width) {
-  int ft = FT(instruction), base = BASE(instruction);
-  short off = (short)IOFFSET(instruction);
-  mem_addr ea = (mem_addr)(snap_R[base] + off);
+  const int ft = FT(instruction), base = BASE(instruction);
+  const short off = (short)IOFFSET(instruction);
+  const mem_addr ea = (mem_addr)(snap_R[base] + off);
   write_output(message_out, "  What it did:\n");
   if (width == 4) {
     write_output(message_out,
@@ -965,9 +969,9 @@ static void tpl_load_fp(int level, const mips_instruction* instruction,
    $f(N+1)) and (in spim) needs at least 4-byte alignment. */
 static void tpl_store_fp(int level, const mips_instruction* instruction,
                          const char* op_label, int width) {
-  int ft = FT(instruction), base = BASE(instruction);
-  short off = (short)IOFFSET(instruction);
-  mem_addr ea = (mem_addr)(snap_R[base] + off);
+  const int ft = FT(instruction), base = BASE(instruction);
+  const short off = (short)IOFFSET(instruction);
+  const mem_addr ea = (mem_addr)(snap_R[base] + off);
   write_output(message_out, "  What it did:\n");
   if (width == 4) {
     write_output(message_out,
@@ -1006,10 +1010,10 @@ static void tpl_store_fp(int level, const mips_instruction* instruction,
 static void tpl_branch_2reg(int level, const mips_instruction* instruction,
                             const char* op_label, const char* op_symbol,
                             bool taken) {
-  int rs = RS(instruction), rt = RT(instruction);
+  const int rs = RS(instruction), rt = RT(instruction);
   /* Target is computed from the instruction's own PC (snap_PC) plus 4 +
      displacement. Live PC has already advanced past this instruction. */
-  mem_addr target = snap_PC + 4 + (mem_addr)BRANCH_OFFSET(instruction);
+  const mem_addr target = snap_PC + 4 + (mem_addr)BRANCH_OFFSET(instruction);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — would transfer to 0x%08x if ($%s %s $%s).\n", op_label,
@@ -1030,8 +1034,8 @@ static void tpl_branch_2reg(int level, const mips_instruction* instruction,
 static void tpl_branch_1reg(int level, const mips_instruction* instruction,
                             const char* op_label, const char* op_symbol,
                             bool taken) {
-  int rs = RS(instruction);
-  mem_addr target = snap_PC + 4 + (mem_addr)BRANCH_OFFSET(instruction);
+  const int rs = RS(instruction);
+  const mem_addr target = snap_PC + 4 + (mem_addr)BRANCH_OFFSET(instruction);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — would transfer to 0x%08x if ($%s %s 0).\n", op_label,
@@ -1053,7 +1057,7 @@ static void tpl_branch_1reg(int level, const mips_instruction* instruction,
 static void explain_syscall(int level) {
   /* Call number is the pre-execute $v0. syscall 5 (read_int) overwrites
      $v0 with the read integer, so post-execute gpr[REG_V0] would be wrong. */
-  reg_word v0 = snap_R[REG_V0];
+  const reg_word v0 = snap_R[REG_V0];
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    System Call — invoked the kernel.  The call number was "
@@ -1073,7 +1077,7 @@ static void explain_syscall(int level) {
       }
       break;
     case 4: {
-      mem_addr a0 = (mem_addr)snap_R[REG_A0];
+      const mem_addr a0 = (mem_addr)snap_R[REG_A0];
       write_output(message_out,
                    "    $v0 = 4  →  print_string: printed the null-terminated\n"
                    "    string whose address was in $a0.\n");
@@ -1105,7 +1109,7 @@ static void explain_syscall(int level) {
       }
       break;
     case 8: {
-      mem_addr a0 = (mem_addr)snap_R[REG_A0];
+      const mem_addr a0 = (mem_addr)snap_R[REG_A0];
       write_output(
           message_out,
           "    $v0 = 8  →  read_string: read a string into the buffer\n"
@@ -1175,9 +1179,9 @@ static void explain_syscall(int level) {
  */
 
 static void write_bits(char* out, uint32_t val, int hi, int lo) {
-  int width = hi - lo + 1;
+  const int width = hi - lo + 1;
   for (int i = 0; i < width; i++) {
-    int bit_pos = hi - i;
+    const int bit_pos = hi - i;
     out[i] = (val & (1u << bit_pos)) ? '1' : '0';
   }
   out[width] = '\0';
@@ -1194,7 +1198,7 @@ static void write_bits(char* out, uint32_t val, int hi, int lo) {
 static void render_hex_bin_table(uint32_t enc) {
   char n[8][5];
   for (int i = 0; i < 8; i++) {
-    int hi = 31 - 4 * i;
+    const int hi = 31 - 4 * i;
     write_bits(n[i], enc, hi, hi - 3);
   }
   write_output(
@@ -1217,12 +1221,12 @@ static void render_r_layout(uint32_t enc, const char* mnemonic) {
   write_bits(b_rd, enc, 15, 11);
   write_bits(b_sh, enc, 10, 6);
   write_bits(b_fn, enc, 5, 0);
-  int op = (int)((enc >> 26) & 0x3f);
-  int rs = (enc >> 21) & 0x1f;
-  int rt = (enc >> 16) & 0x1f;
-  int rd = (enc >> 11) & 0x1f;
-  int shamt = (enc >> 6) & 0x1f;
-  int funct = enc & 0x3f;
+  const int op = (int)((enc >> 26) & 0x3f);
+  const int rs = (enc >> 21) & 0x1f;
+  const int rt = (enc >> 16) & 0x1f;
+  const int rd = (enc >> 11) & 0x1f;
+  const int shamt = (enc >> 6) & 0x1f;
+  const int funct = enc & 0x3f;
   const char* const group = (op == 0x00)   ? "SPECIAL"
                             : (op == 0x1c) ? "SPECIAL2"
                             : (op == 0x1f) ? "SPECIAL3"
@@ -1250,11 +1254,11 @@ static void render_i_layout(uint32_t enc, const char* mnemonic) {
   write_bits(b_rs, enc, 25, 21);
   write_bits(b_rt, enc, 20, 16);
   write_bits(b_im, enc, 15, 0);
-  int op = (int)((enc >> 26) & 0x3f);
-  int rs = (enc >> 21) & 0x1f;
-  int rt = (enc >> 16) & 0x1f;
-  int16_t imm_s = (int16_t)(enc & 0xffff);
-  uint16_t imm_u = (uint16_t)(enc & 0xffff);
+  const int op = (int)((enc >> 26) & 0x3f);
+  const int rs = (enc >> 21) & 0x1f;
+  const int rt = (enc >> 16) & 0x1f;
+  const int16_t imm_s = (int16_t)(enc & 0xffff);
+  const uint16_t imm_u = (uint16_t)(enc & 0xffff);
 
   write_output(message_out, "  Bit layout (I-type, encoding 0x%08x):\n", enc);
   render_hex_bin_table(enc);
@@ -1274,8 +1278,8 @@ static void render_j_layout(uint32_t enc, const char* mnemonic) {
   char b_op[7], b_tg[27];
   write_bits(b_op, enc, 31, 26);
   write_bits(b_tg, enc, 25, 0);
-  int op = (int)((enc >> 26) & 0x3f);
-  uint32_t target = enc & 0x03ffffff;
+  const int op = (int)((enc >> 26) & 0x3f);
+  const uint32_t target = enc & 0x03ffffff;
 
   write_output(message_out, "  Bit layout (J-type, encoding 0x%08x):\n", enc);
   render_hex_bin_table(enc);
@@ -1294,14 +1298,14 @@ static void render_j_layout(uint32_t enc, const char* mnemonic) {
 
 static void explain_bit_layout(const mips_instruction* instruction) {
   if (instruction == nullptr) return;
-  uint32_t enc = (uint32_t)inst_encode(instruction);
+  const uint32_t enc = (uint32_t)inst_encode(instruction);
   /* nop (sll $0,$0,0) really does encode to 0x00000000. Skip the diagram
      since "all zeros" carries no pedagogical signal of its own; the
      mnemonic-level explanation below covers it. */
   if (enc == 0) return;
 
   const char* const mnemonic = inst_op_name(instruction);
-  int op = (int)((enc >> 26) & 0x3f);
+  const int op = (int)((enc >> 26) & 0x3f);
   if (op == 0x00 || op == 0x1c || op == 0x1f)
     render_r_layout(enc, mnemonic);
   else if (op == 0x02 || op == 0x03)
@@ -1350,12 +1354,12 @@ static const char* regimm_rt_to_name[32] = {
 
 static void render_r_decode_step(uint32_t enc, int step, const char* mnemonic,
                                  const char* group_name) {
-  uint32_t op = (enc >> 26) & 0x3f;
-  uint32_t rs = (enc >> 21) & 0x1f;
-  uint32_t rt = (enc >> 16) & 0x1f;
-  uint32_t rd = (enc >> 11) & 0x1f;
-  uint32_t shamt = (enc >> 6) & 0x1f;
-  uint32_t funct = enc & 0x3f;
+  const uint32_t op = (enc >> 26) & 0x3f;
+  const uint32_t rs = (enc >> 21) & 0x1f;
+  const uint32_t rt = (enc >> 16) & 0x1f;
+  const uint32_t rd = (enc >> 11) & 0x1f;
+  const uint32_t shamt = (enc >> 6) & 0x1f;
+  const uint32_t funct = enc & 0x3f;
 
   char b_op[7], b_rs[6], b_rt[6], b_rd[6], b_sh[6], b_fn[7];
   write_bits(b_op, enc, 31, 26);
@@ -1402,9 +1406,9 @@ static void render_r_decode_step(uint32_t enc, int step, const char* mnemonic,
                  "= 0x%02x\n",
                  op, funct);
   } else {
-    bool shamt_used = mnemonic && (strcmp(mnemonic, "sll") == 0 ||
-                                   strcmp(mnemonic, "srl") == 0 ||
-                                   strcmp(mnemonic, "sra") == 0);
+    const bool shamt_used = mnemonic && (strcmp(mnemonic, "sll") == 0 ||
+                                         strcmp(mnemonic, "srl") == 0 ||
+                                         strcmp(mnemonic, "sra") == 0);
     write_output(message_out,
                  "   = 0x%02x    = $%-5s = $%-5s = $%-5s = %-5d = 0x%02x\n", op,
                  int_reg_names[rs], int_reg_names[rt], int_reg_names[rd], shamt,
@@ -1439,11 +1443,11 @@ static void render_r_decode_step(uint32_t enc, int step, const char* mnemonic,
 }
 
 static void render_i_decode_step(uint32_t enc, int step, const char* mnemonic) {
-  uint32_t op = (enc >> 26) & 0x3f;
-  uint32_t rs = (enc >> 21) & 0x1f;
-  uint32_t rt = (enc >> 16) & 0x1f;
-  int16_t imm_s = (int16_t)(enc & 0xffff);
-  uint16_t imm_u = (uint16_t)(enc & 0xffff);
+  const uint32_t op = (enc >> 26) & 0x3f;
+  const uint32_t rs = (enc >> 21) & 0x1f;
+  const uint32_t rt = (enc >> 16) & 0x1f;
+  const int16_t imm_s = (int16_t)(enc & 0xffff);
+  const uint16_t imm_u = (uint16_t)(enc & 0xffff);
 
   char b_op[7], b_rs[6], b_rt[6], b_im[17];
   write_bits(b_op, enc, 31, 26);
@@ -1492,8 +1496,8 @@ static void render_i_decode_step(uint32_t enc, int step, const char* mnemonic) {
 }
 
 static void render_j_decode_step(uint32_t enc, int step, const char* mnemonic) {
-  uint32_t op = (enc >> 26) & 0x3f;
-  uint32_t target = enc & 0x03ffffff;
+  const uint32_t op = (enc >> 26) & 0x3f;
+  const uint32_t target = enc & 0x03ffffff;
 
   char b_op[7], b_tg[27];
   write_bits(b_op, enc, 31, 26);
@@ -1538,10 +1542,10 @@ static void render_j_decode_step(uint32_t enc, int step, const char* mnemonic) {
 
 static void render_regimm_decode_step(uint32_t enc, int step,
                                       const char* mnemonic) {
-  uint32_t op = (enc >> 26) & 0x3f;
-  uint32_t rs = (enc >> 21) & 0x1f;
-  uint32_t rt = (enc >> 16) & 0x1f;
-  int16_t imm_s = (int16_t)(enc & 0xffff);
+  const uint32_t op = (enc >> 26) & 0x3f;
+  const uint32_t rs = (enc >> 21) & 0x1f;
+  const uint32_t rt = (enc >> 16) & 0x1f;
+  const int16_t imm_s = (int16_t)(enc & 0xffff);
 
   char b_op[7], b_rs[6], b_rt[6], b_im[17];
   write_bits(b_op, enc, 31, 26);
@@ -1606,11 +1610,11 @@ static void render_regimm_decode_step(uint32_t enc, int step,
 
 static void explain_decoding_steps(const mips_instruction* instruction) {
   if (instruction == nullptr) return;
-  uint32_t enc = (uint32_t)inst_encode(instruction);
+  const uint32_t enc = (uint32_t)inst_encode(instruction);
   if (enc == 0) return; /* true nop — skip */
 
   const char* const mnemonic = inst_op_name(instruction);
-  int op = (int)((enc >> 26) & 0x3f);
+  const int op = (int)((enc >> 26) & 0x3f);
 
   write_output(message_out, "  Decoding 0x%08x step by step:\n", enc);
   render_hex_bin_table(enc);
@@ -1678,8 +1682,8 @@ void explain_before(const mips_instruction* instruction, mem_addr addr) {
     case TOK_SW_OPCODE:
     case TOK_SH_OPCODE:
     case TOK_SB_OPCODE: {
-      int base = BASE(instruction);
-      short off = (short)IOFFSET(instruction);
+      const int base = BASE(instruction);
+      const short off = (short)IOFFSET(instruction);
       snap_mem_addr = (mem_addr)(gpr[base] + off);
       snap_mem_val = peek_word(snap_mem_addr);
       snap_has_mem = true;
@@ -1977,7 +1981,7 @@ static void emit_category_preamble(const mips_instruction* instruction) {
     const char* const mnemonic = inst_op_name(instruction);
     write_output(message_out, "  Modifiers in `%s`:\n", mnemonic);
     for (int i = 0; i < n_mods; i++) {
-      inst_modifier m = mods[i];
+      const inst_modifier m = mods[i];
       write_output(message_out, "    %s — %s\n", modifier_letters[m],
                    modifier_descriptions[m]);
     }
@@ -2069,8 +2073,8 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
 
     /* LUI is special: I1t-type, only writes high bits. */
     case TOK_LUI_OPCODE: {
-      int rt = RT(instruction);
-      short imm = (short)IMM(instruction);
+      const int rt = RT(instruction);
+      const short imm = (short)IMM(instruction);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
                    "    Load Upper Immediate — placed the 16-bit immediate "
@@ -2225,7 +2229,7 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
     /* Jumps. PC change is captured by the side-effect fallback at the
        end of explain_after, so per-jump templates don't repeat it. */
     case TOK_J_OPCODE: {
-      mem_addr target = TARGET(instruction) << 2;
+      const mem_addr target = TARGET(instruction) << 2;
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
                    "    Jump — jumped unconditionally to 0x%08x.\n", target);
@@ -2236,7 +2240,7 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
       break;
     }
     case TOK_JAL_OPCODE: {
-      mem_addr target = TARGET(instruction) << 2;
+      const mem_addr target = TARGET(instruction) << 2;
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
                    "    Jump and Link — saved the return address into "
@@ -2254,7 +2258,7 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
       break;
     }
     case TOK_JR_OPCODE: {
-      int rs = RS(instruction);
+      const int rs = RS(instruction);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
                    "    Jump Register — jumped to the address held in $%s.\n"
@@ -2269,7 +2273,7 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
       break;
     }
     case TOK_JALR_OPCODE: {
-      int rd = RD(instruction), rs = RS(instruction);
+      const int rd = RD(instruction), rs = RS(instruction);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
                    "    Jump and Link Register — saved the return address "
@@ -2288,7 +2292,7 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
 
     /* HI / LO */
     case TOK_MFHI_OPCODE: {
-      int rd = RD(instruction);
+      const int rd = RD(instruction);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
                    "    Move From HI — copied the special HI register into "
@@ -2306,7 +2310,7 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
       break;
     }
     case TOK_MFLO_OPCODE: {
-      int rd = RD(instruction);
+      const int rd = RD(instruction);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
                    "    Move From LO — copied the special LO register into "
@@ -2324,7 +2328,7 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
       break;
     }
     case TOK_MULT_OPCODE: {
-      int rs = RS(instruction), rt = RT(instruction);
+      const int rs = RS(instruction), rt = RT(instruction);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
                    "    Multiply (signed) — computed $%s * $%s as a 64-bit "
@@ -2345,7 +2349,7 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
       break;
     }
     case TOK_DIV_OPCODE: {
-      int rs = RS(instruction), rt = RT(instruction);
+      const int rs = RS(instruction), rt = RT(instruction);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
                    "    Divide (signed) — computed $%s / $%s.\n"
@@ -2363,7 +2367,7 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
       break;
     }
     case TOK_MULTU_OPCODE: {
-      int rs = RS(instruction), rt = RT(instruction);
+      const int rs = RS(instruction), rt = RT(instruction);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
                    "    Multiply Unsigned — computed $%s * $%s as a 64-bit "
@@ -2384,7 +2388,7 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
       break;
     }
     case TOK_DIVU_OPCODE: {
-      int rs = RS(instruction), rt = RT(instruction);
+      const int rs = RS(instruction), rt = RT(instruction);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
                    "    Divide Unsigned — computed $%s / $%s, treating both "
@@ -2422,7 +2426,7 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
    happened, so we can use past tense throughout. */
 void explain_after(const mips_instruction* instruction) {
   if (explain_level == 0) return;
-  int level = explain_level;
+  const int level = explain_level;
 
   /* Reset the "touched by template" tracking so the side-effect
      fallback below knows what's already been named. */
@@ -2519,7 +2523,7 @@ void explain_after(const mips_instruction* instruction) {
       case TOK_LBU_OPCODE:
       case TOK_LH_OPCODE:
       case TOK_LHU_OPCODE: {
-        int rt = RT(instruction);
+        const int rt = RT(instruction);
         if (rt != 0 && snap_R[rt] == gpr[rt]) {
           write_output(message_out,
                        "    (the load did happen — the memory value matched "

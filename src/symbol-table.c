@@ -62,7 +62,7 @@ void initialize_symbol_table(void) {
    set ENTRY to be nullptr. */
 
 static void get_hash(const char* name, int* slot_no, label** entry) {
-  int len = (int)strlen(name);
+  const int len = (int)strlen(name);
 
   /* Compute hash code.  (unsigned)(name[i]) sign-extends a negative
      plain char first; the symbol dump order depends on it. */
@@ -188,7 +188,7 @@ static void write_data_value(mem_addr at, int32_t value, int width) {
 #ifdef SPIM_BIGENDIAN
     int shift = 8 * (width - 1 - i);
 #else
-    int shift = 8 * i;
+    const int shift = 8 * i;
 #endif
     mem_write_byte(at + (mem_addr)i,
                    (reg_word)(((uint32_t)value >> shift) & 0xffu));
@@ -246,7 +246,7 @@ static void resolve_a_label_sub(const label* sym, mips_instruction* instruction,
            bits, which would truncate a branch more than 32 KB away. */
         imm_expr whole = *EXPR(instruction);
         whole.bits = 0;
-        int32_t byte_offset = eval_imm_expr(&whole);
+        const int32_t byte_offset = eval_imm_expr(&whole);
         /* Drop low two bits since instructions are on word boundaries. */
         int32_t word_offset = byte_offset / BYTES_PER_WORD;
 
@@ -397,8 +397,8 @@ char* undefined_symbol_string(void) {
   for (int i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
     for (label* l = label_hash_table[i]; l != nullptr; l = l->next)
       if (l->addr == 0) {
-        int name_length = (int)strlen(l->name);
-        int after_length = string_length + name_length + 2;
+        const int name_length = (int)strlen(l->name);
+        const int after_length = string_length + name_length + 2;
         if (buffer_length < after_length) {
           buffer_length = MAX(2 * buffer_length, 2 * after_length);
           buffer = (char*)realloc(buffer, (size_t)buffer_length);

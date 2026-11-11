@@ -232,7 +232,7 @@ static mem_addr format_partial_line(str_stream* ss, mem_addr addr) {
     ss_printf(ss, "[0x%08x]		      ", addr);
 
     for (; (addr % BYTES_PER_LINE) != 0; addr += BYTES_PER_WORD) {
-      mem_word val = mem_read_word(addr);
+      const mem_word val = mem_read_word(addr);
       ss_printf(ss, "  0x%08x", (unsigned int)val);
     }
 

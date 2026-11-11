@@ -32,7 +32,7 @@ bool do_syscall(void) {
       break;
 
     case PRINT_FLOAT_SYSCALL: {
-      float val = FPR_S(REG_FA0);
+      const float val = FPR_S(REG_FA0);
 
       write_output(console_out, "%.8f", val);
       break;
@@ -53,7 +53,7 @@ bool do_syscall(void) {
          `echo 43 3 12 | spimulator ...` yields all three ints, one per
          syscall, not just the first. */
       long value;
-      int ok = read_int_input(&value);
+      const int ok = read_int_input(&value);
       gpr[REG_RES] = (reg_word)value;
       gpr[REG_A3] = ok ? 0 : 1; /* 0 = success, 1 = EOF/no number */
       break;
@@ -76,7 +76,7 @@ bool do_syscall(void) {
     }
 
     case READ_STRING_SYSCALL: {
-      int n =
+      const int n =
           read_input((char*)mem_reference((mem_addr)gpr[REG_A0]), gpr[REG_A1]);
       gpr[REG_A3] = (n == 0) ? 1 : 0; /* EOF flag */
       data_modified = true;
@@ -84,7 +84,7 @@ bool do_syscall(void) {
     }
 
     case SBRK_SYSCALL: {
-      mem_addr x = data_top;
+      const mem_addr x = data_top;
       expand_data(gpr[REG_A0]);
       gpr[REG_RES] = (reg_word)x;
       data_modified = true;
@@ -98,7 +98,7 @@ bool do_syscall(void) {
     case READ_CHARACTER_SYSCALL: {
       static char str[2];
 
-      int n = read_input(str, 2);
+      const int n = read_input(str, 2);
       if (n == 0) {
         gpr[REG_RES] = -1; /* EOF -- matches getchar()'s convention */
       } else {

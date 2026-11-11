@@ -55,31 +55,31 @@ static inline int32_t sign_ex(int x) { return (int32_t)(int16_t)x; }
 #endif
 #define MIN(A, B)                              \
   __extension__({                              \
-    typeof(A) _spim_a_ = (A);                  \
-    typeof(B) _spim_b_ = (B);                  \
+    const typeof(A) _spim_a_ = (A);            \
+    const typeof(B) _spim_b_ = (B);            \
     _spim_a_ < _spim_b_ ? _spim_a_ : _spim_b_; \
   })
 
 #define MAX(A, B)                              \
   __extension__({                              \
-    typeof(A) _spim_a_ = (A);                  \
-    typeof(B) _spim_b_ = (B);                  \
+    const typeof(A) _spim_a_ = (A);            \
+    const typeof(B) _spim_b_ = (B);            \
     _spim_a_ > _spim_b_ ? _spim_a_ : _spim_b_; \
   })
 
 /* Round V to next greatest B boundary (B must be a power of two). */
 #define ROUND_UP(V, B)                                        \
   __extension__({                                             \
-    typeof(V) _spim_v_ = (V);                                 \
-    typeof(V) _spim_b_ = (typeof(V))(B);                      \
+    const typeof(V) _spim_v_ = (V);                           \
+    const typeof(V) _spim_b_ = (typeof(V))(B);                \
     (typeof(V))((_spim_v_ + _spim_b_ - 1) & ~(_spim_b_ - 1)); \
   })
 
-#define ROUND_DOWN(V, B)                     \
-  __extension__({                            \
-    typeof(V) _spim_v_ = (V);                \
-    typeof(V) _spim_b_ = (typeof(V))(B);     \
-    (typeof(V))(_spim_v_ & ~(_spim_b_ - 1)); \
+#define ROUND_DOWN(V, B)                       \
+  __extension__({                              \
+    const typeof(V) _spim_v_ = (V);            \
+    const typeof(V) _spim_b_ = (typeof(V))(B); \
+    (typeof(V))(_spim_v_ & ~(_spim_b_ - 1));   \
   })
 
 constexpr int kilo = 1024;

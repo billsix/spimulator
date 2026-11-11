@@ -87,8 +87,8 @@ void initialize_world(const char* exception_file_names, bool print_message) {
   text_begins_at_point(TEXT_BOT);
 
   if (exception_file_names != nullptr) {
-    bool old_bare = bare_machine;
-    bool old_accept = accept_pseudo_insts;
+    const bool old_bare = bare_machine;
+    const bool old_accept = accept_pseudo_insts;
 
     /* Save machine state */
     bare_machine = false; /* Exception handler uses extended machine */
@@ -307,7 +307,7 @@ static mem_addr copy_int_to_stack(int n) {
 bool run_program(mem_addr pc, int steps, bool display, bool cont_bkpt,
                  bool* continuable) {
   if (cont_bkpt && inst_is_breakpoint(pc)) {
-    mem_addr addr = PC == 0 ? pc : PC;
+    const mem_addr addr = PC == 0 ? pc : PC;
 
     delete_breakpoint(addr);
     exception_occurred = false;
@@ -422,8 +422,8 @@ const name_val_val* map_string_to_name_val_val(const name_val_val tbl[],
    Return nullptr if no such entry exists. */
 
 static int cmp_key_to_value1(const void* key, const void* elem) {
-  int k = *(const int*)key;
-  int v = ((const name_val_val*)elem)->value1;
+  const int k = *(const int*)key;
+  const int v = ((const name_val_val*)elem)->value1;
   return (k > v) - (k < v);
 }
 

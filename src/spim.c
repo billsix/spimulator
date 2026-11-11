@@ -100,7 +100,7 @@ static char* suggestion_generator(const char* text, int state) {
     idx = 0;
     text_len = strlen(text);
   }
-  size_t n = explain_suggestion_count();
+  const size_t n = explain_suggestion_count();
   while (idx < n) {
     const char* const s = explain_suggestion(idx++);
     if (s == nullptr) continue;
@@ -126,7 +126,7 @@ static bool line_starts_with_cmd(const char* const* cmds) {
   if (line == nullptr) return false;
   while (*line == ' ' || *line == '\t') line++;
   for (size_t i = 0; cmds[i] != nullptr; i++) {
-    size_t len = strlen(cmds[i]);
+    const size_t len = strlen(cmds[i]);
     if (strncmp(line, cmds[i], len) == 0 &&
         (line[len] == ' ' || line[len] == '\t')) {
       return true;
@@ -164,7 +164,7 @@ static size_t label_names_cache_cap = 0;
 static void label_collect_cb(const label* l, [[maybe_unused]] void* ctx) {
   if (l == nullptr || l->name == nullptr) return;
   if (label_names_cache_n >= label_names_cache_cap) {
-    size_t new_cap =
+    const size_t new_cap =
         label_names_cache_cap == 0 ? 32 : label_names_cache_cap * 2;
     const char** const new_arr =
         realloc(label_names_cache, new_cap * sizeof(*label_names_cache));
@@ -219,7 +219,7 @@ static char** spim_completion(const char* text, int start,
           rl_completion_matches(text + 1, rl_filename_completion_function);
       if (m != nullptr) {
         for (int i = 0; m[i] != nullptr; i++) {
-          size_t l = strlen(m[i]);
+          const size_t l = strlen(m[i]);
           char* re = malloc(l + 2);
           if (re == nullptr) continue;
           re[0] = '"';
@@ -932,7 +932,7 @@ static bool parse_spim_command(bool redo) {
       exit(0);
 
     case READ_CMD: {
-      int token = (redo ? prev_token : read_token());
+      const int token = (redo ? prev_token : read_token());
 
       if (!redo) flush_to_newline();
       if (token == TOK_STR) {
@@ -987,7 +987,7 @@ static bool parse_spim_command(bool redo) {
       static int steps;
 
       steps = (redo ? steps : get_opt_int());
-      mem_addr addr = PC == 0 ? starting_address() : PC;
+      const mem_addr addr = PC == 0 ? starting_address() : PC;
 
       if (steps == 0) steps = 1;
       if (addr != 0) {
@@ -1003,7 +1003,7 @@ static bool parse_spim_command(bool redo) {
     }
 
     case PRINT_CMD: {
-      int token = (redo ? prev_token : read_token());
+      const int token = (redo ? prev_token : read_token());
       static int loc;
       /* Set true if we've already consumed TOK_NL while parsing a base+offset
        * suffix, so the trailing flush_to_newline doesn't gobble the next
@@ -1027,14 +1027,14 @@ static bool parse_spim_command(bool redo) {
           loc += 4;
           print_mem((mem_addr)loc);
         } else {
-          int int_val = scan_value.i;
+          const int int_val = scan_value.i;
           /* Peek for the N($reg) base+offset form so students can inspect
            * memory using the same syntax they wrote in load/store ops. */
-          int next = read_token();
+          const int next = read_token();
           if (next == '(') {
-            int reg_tok = read_token();
-            int reg = (reg_tok == TOK_REG) ? scan_value.i : -1;
-            int close = (reg_tok == TOK_REG) ? read_token() : 0;
+            const int reg_tok = read_token();
+            const int reg = (reg_tok == TOK_REG) ? scan_value.i : -1;
+            const int close = (reg_tok == TOK_REG) ? read_token() : 0;
             if (reg_tok == TOK_NL || close == TOK_NL) consumed_nl = true;
             if (reg < 0 || close != ')') {
               error("expected $reg) after '(' in print N($reg) form\n");
@@ -1078,7 +1078,7 @@ static bool parse_spim_command(bool redo) {
 
     case PRINT_ALL_REGS_CMD: {
       bool hex_flag = false;
-      int token = (redo ? prev_token : read_token());
+      const int token = (redo ? prev_token : read_token());
       if (token == TOK_ID && streq((char*)scan_value.p, "hex")) hex_flag = true;
       print_all_regs(hex_flag);
       /* With no operand the token read was the newline itself; flushing
@@ -1231,7 +1231,7 @@ static bool parse_spim_command(bool redo) {
 
     case SET_BKPT_CMD:
     case DELETE_BKPT_CMD: {
-      int token = (redo ? prev_token : read_token());
+      const int token = (redo ? prev_token : read_token());
       static mem_addr addr;
 
       if (!redo && token != TOK_NL) flush_to_newline();
@@ -1260,7 +1260,7 @@ static bool parse_spim_command(bool redo) {
 
     case DUMPNATIVE_TEXT_CMD:
     case DUMP_TEXT_CMD: {
-      int token = (redo ? prev_token : read_token());
+      const int token = (redo ? prev_token : read_token());
 
       char* filename = nullptr;
 
@@ -1322,7 +1322,7 @@ static bool parse_spim_command(bool redo) {
    value. */
 
 static int read_assembly_command(void) {
-  int token = read_token();
+  const int token = read_token();
 
   if (token == TOK_NL) /* Blank line means redo */
     return (REDO_CMD);
@@ -1496,7 +1496,7 @@ static bool write_assembled_code(const char* program_name) {
 
   (void)fprintf(fp, ".text # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
   for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
-    int32_t code = inst_encode(mem_read_inst(addr));
+    const int32_t code = inst_encode(mem_read_inst(addr));
     (void)fprintf(fp, "0x%x%s", code,
                   addr != (dump_end - BYTES_PER_WORD) ? ", " : "");
   }
@@ -1514,7 +1514,7 @@ static bool write_assembled_code(const char* program_name) {
   if (dump_end > dump_start) {
     (void)fprintf(fp, ".data # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
     for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
-      int32_t code = mem_read_word(addr);
+      const int32_t code = mem_read_word(addr);
       (void)fprintf(fp, "0x%x%s", code,
                     addr != (dump_end - BYTES_PER_WORD) ? ", " : "");
     }
@@ -1728,7 +1728,7 @@ void put_console_char(char c) {
 }
 
 static int read_token(void) {
-  int token = scanner_advance();
+  const int token = scanner_advance();
 
   if (token == TOK_EOF) {
     console_to_spim();

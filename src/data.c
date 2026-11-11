@@ -159,9 +159,9 @@ static int data_store_depth = 0;
 /* Process a .ascii STRING or .asciiz STRING directive. */
 
 void store_string(char* string, int length, bool null_terminate) {
-  mem_addr at = data_pc();
+  const mem_addr at = data_pc();
   const char* const orig = string;
-  int orig_len = length;
+  const int orig_len = length;
   data_store_depth++;
   for (; length > 0; string++, length--) {
     store_byte(*string);
@@ -177,7 +177,7 @@ void store_string(char* string, int length, bool null_terminate) {
 /* Process a .byte EXPR directive. */
 
 void store_byte(int value) {
-  mem_addr at = data_pc();
+  const mem_addr at = data_pc();
   mem_write_byte(at, value);
   increment_data_pc(1);
   if (data_store_depth == 0) asm_fire_data_byte(at, value);
@@ -186,8 +186,8 @@ void store_byte(int value) {
 /* Process a .half EXPR directive. */
 
 void store_half(int value) {
-  mem_addr at = data_pc();
-  bool outer = (data_store_depth == 0);
+  const mem_addr at = data_pc();
+  const bool outer = (data_store_depth == 0);
   data_store_depth++;
   if ((data_pc() & 0x1) != 0) {
 #ifdef SPIM_BIGENDIAN
@@ -208,8 +208,8 @@ void store_half(int value) {
 /* Process a .word EXPR directive. */
 
 void store_word(int value) {
-  mem_addr at = data_pc();
-  bool outer = (data_store_depth == 0);
+  const mem_addr at = data_pc();
+  const bool outer = (data_store_depth == 0);
   data_store_depth++;
   if ((data_pc() & 0x3) != 0) {
 #ifdef SPIM_BIGENDIAN
@@ -230,8 +230,8 @@ void store_word(int value) {
 /* Process a .double EXPR directive. */
 
 void store_double(double* value) {
-  mem_addr at = data_pc();
-  bool outer = (data_store_depth == 0);
+  const mem_addr at = data_pc();
+  const bool outer = (data_store_depth == 0);
   data_store_depth++;
   mem_word words[2]; /* the double's two words, in host order */
   memcpy(words, value, sizeof words);

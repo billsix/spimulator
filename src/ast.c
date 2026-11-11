@@ -481,7 +481,7 @@ static void print_node(const ast_node* node, FILE* out, int depth) {
               node->u.data_string.length,
               node->u.data_string.null_terminate ? "yes" : "no");
       for (int i = 0; i < node->u.data_string.length; i++) {
-        unsigned char c = (unsigned char)node->u.data_string.bytes[i];
+        const unsigned char c = (unsigned char)node->u.data_string.bytes[i];
         if (c == '\n')
           fputs("\\n", out);
         else if (c == '\t')
@@ -569,9 +569,9 @@ static void json_escape_string(const char* s, int len, FILE* out) {
     return;
   }
   /* If len < 0, treat as NUL-terminated. */
-  int n = (len < 0) ? (int)strlen(s) : len;
+  const int n = (len < 0) ? (int)strlen(s) : len;
   for (int i = 0; i < n; i++) {
-    unsigned char c = (unsigned char)s[i];
+    const unsigned char c = (unsigned char)s[i];
     switch (c) {
       case '"':
         fputs("\\\"", out);

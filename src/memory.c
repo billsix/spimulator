@@ -160,9 +160,10 @@ static void free_instructions(mips_instruction** instruction, int n) {
 /* Expand the data segment by adding N bytes. */
 
 void expand_data(int addl_bytes) {
-  int delta = ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
-  int old_size = (int)(data_top - DATA_BOT);
-  int new_size = old_size + delta;
+  const int delta =
+      ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
+  const int old_size = (int)(data_top - DATA_BOT);
+  const int new_size = old_size + delta;
 
   if ((addl_bytes < 0) || (new_size > data_size_limit)) {
     error("Can't expand data segment by %d bytes to %d bytes\n", addl_bytes,
@@ -185,9 +186,10 @@ void expand_data(int addl_bytes) {
    top of its block. */
 
 void expand_stack(int addl_bytes) {
-  int delta = ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
-  int old_size = (int)(STACK_TOP - stack_bot);
-  int new_size = old_size + MAX(delta, old_size);
+  const int delta =
+      ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
+  const int old_size = (int)(STACK_TOP - stack_bot);
+  const int new_size = old_size + MAX(delta, old_size);
   mem_word* new_seg;
   mem_word *po, *pn;
 
@@ -215,9 +217,10 @@ void expand_stack(int addl_bytes) {
 /* Expand the kernel data segment by adding N bytes. */
 
 void expand_k_data(int addl_bytes) {
-  int delta = ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
-  int old_size = (int)(k_data_top - K_DATA_BOT);
-  int new_size = old_size + delta;
+  const int delta =
+      ROUND_UP(addl_bytes, BYTES_PER_WORD); /* Keep word aligned */
+  const int old_size = (int)(k_data_top - K_DATA_BOT);
+  const int new_size = old_size + delta;
   int8_t* p;
 
   if ((addl_bytes < 0) || (new_size > k_data_size_limit)) {

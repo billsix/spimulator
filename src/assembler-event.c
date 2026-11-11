@@ -16,7 +16,7 @@
 static asm_event_observer current_observer = nullptr;
 
 asm_event_observer asm_set_observer(asm_event_observer obs) {
-  asm_event_observer prev = current_observer;
+  const asm_event_observer prev = current_observer;
   current_observer = obs;
   return prev;
 }

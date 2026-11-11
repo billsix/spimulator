@@ -169,7 +169,7 @@ static void store_instruction(mips_instruction* instruction) {
     store_word(inst_encode(instruction));
     free_inst(instruction);
   } else if (text_dir) {
-    mem_addr at = INST_PC;
+    const mem_addr at = INST_PC;
     exception_occurred = false;
     mem_write_inst(at, instruction);
     if (exception_occurred)
@@ -209,7 +209,7 @@ void i_type_inst(int opcode, int rt, int rs, const imm_expr* expr) {
   SET_EXPR(instruction, copy_imm_expr(expr));
   if (expr->symbol == nullptr || SYMBOL_IS_DEFINED(expr->symbol)) {
     /* Evaluate the instruction's expression. */
-    int32_t value = eval_imm_expr(expr);
+    const int32_t value = eval_imm_expr(expr);
 
     if (!bare_machine &&
         (((opcode == TOK_ADDI_OPCODE || opcode == TOK_ADDIU_OPCODE ||
@@ -262,7 +262,7 @@ static void i_type_inst_full_word(int opcode, int rt, int rs,
                        make_imm_expr(offset, nullptr, false));
     } else if (value_known) {
       int high = (value >> 16) & 0xffff;
-      int low = value & 0xffff;
+      const int low = value & 0xffff;
 
       if (!(high == 0 && !(low & 0x8000)) &&
           !(high == 0xffff && (low & 0x8000))) {
@@ -619,7 +619,7 @@ char* inst_to_string(mem_addr addr) {
 void format_an_inst(str_stream* ss, mips_instruction* instruction,
                     mem_addr addr) {
   const name_val_val* entry;
-  int line_start = ss_length(ss);
+  const int line_start = ss_length(ss);
 
   if (addr != 0 && inst_is_breakpoint(addr)) {
     delete_breakpoint(addr);
@@ -1150,7 +1150,7 @@ int32_t inst_encode(const mips_instruction* instruction) {
       OPCODE(instruction));
   if (entry == nullptr) return 0;
 
-  int32_t a_opcode = entry->value2;
+  const int32_t a_opcode = entry->value2;
   entry = map_int_to_name_val_val(
       name_tbl, sizeof(name_tbl) / sizeof(name_val_val), OPCODE(instruction));
 
@@ -1295,7 +1295,7 @@ mips_instruction* inst_decode(int32_t val) {
   if (entry == nullptr)
     return (mk_r_inst(val, 0, 0, 0, 0, 0)); /* Invalid instruction */
 
-  int32_t i_opcode = entry->value2;
+  const int32_t i_opcode = entry->value2;
 
   switch (map_int_to_name_val_val(
               name_tbl, sizeof(name_tbl) / sizeof(name_val_val), i_opcode)

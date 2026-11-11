@@ -212,7 +212,7 @@ void set_eq_inst(int op, int rd, int rs, int rt) {
 void check_imm_range(const imm_expr* expr, int32_t min, int32_t max) {
   if (expr->symbol == nullptr || SYMBOL_IS_DEFINED(expr->symbol)) {
     /* If expression can be evaluated, compare against limits. */
-    int32_t value = eval_imm_expr(expr);
+    const int32_t value = eval_imm_expr(expr);
 
     if (value < min || max < value) {
       char str[200];
@@ -225,7 +225,7 @@ void check_imm_range(const imm_expr* expr, int32_t min, int32_t max) {
 
 void check_uimm_range(const imm_expr* expr, uint32_t min, uint32_t max) {
   if (expr->symbol == nullptr || SYMBOL_IS_DEFINED(expr->symbol)) {
-    uint32_t value = (uint32_t)eval_imm_expr(expr);
+    const uint32_t value = (uint32_t)eval_imm_expr(expr);
 
     if (value < min || max < value) {
       char str[200];
