@@ -41,7 +41,8 @@ TESTS: pathlib.Path = REPO / "tests"
 NUMBER: re.Pattern[str] = re.compile(
     r"[-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?|[-+]?(?:inf|nan)"
 )
-RELATIVE_TOLERANCE: float = 1e-15
+# How many units in the last place two printed floats may differ by.
+ULP_TOLERANCE: int = 4
 
 
 @dataclass(frozen=True)
@@ -115,15 +116,22 @@ def run(engine: str, case: Case, exception_file: str, timeout: float) -> Run:
     return Run(done.stdout.decode(errors="replace"), stderr, done.returncode, dumps)
 
 
-def last_digit_unit(text: str) -> float:
-    """The value of one unit in the last printed digit of a number."""
-    mantissa, _, exponent = text.lower().partition("e")
-    decimals: int = len(mantissa.partition(".")[2])
-    return 10.0 ** (int(exponent or 0) - decimals)
-
-
 def close(a_text: str, b_text: str) -> bool:
-    """Two printed numbers: equal, very close, or both NaN."""
+    """Two printed numbers: the same value to within a few ULP, or both NaN.
+
+    The tolerance covers only genuine formatting differences in the last bits of
+    a value printed with all its digits (``%.17g``). A value printed with fewer
+    digits that differs is a different value, and fails.
+
+    >>> close("0.5", "0.5"), close("1e+10", "10000000000")
+    (True, True)
+    >>> close("0.5", "0.6"), close("1e+10", "2e+10"), close("3.14159", "3.1416")
+    (False, False, False)
+    >>> close("0.30000000000000004", "0.30000000000000009")
+    True
+    >>> close("nan", "-nan"), close("inf", "inf"), close("inf", "-inf")
+    (True, True, False)
+    """
     if a_text == b_text:
         return True
     a: float = float(a_text)
@@ -133,11 +141,7 @@ def close(a_text: str, b_text: str) -> bool:
     elif math.isinf(a) or math.isinf(b):
         return a == b
     else:
-        allowed: float = max(
-            RELATIVE_TOLERANCE * max(abs(a), abs(b)),
-            max(last_digit_unit(a_text), last_digit_unit(b_text)),
-        )
-        return abs(a - b) <= allowed
+        return abs(a - b) <= ULP_TOLERANCE * max(math.ulp(a), math.ulp(b))
 
 
 def float_only_difference(a: str, b: str) -> bool:

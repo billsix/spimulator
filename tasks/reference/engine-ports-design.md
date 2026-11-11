@@ -19,18 +19,18 @@ history (who did what, in what order, and the C bugs the ports found) is in
   2026-11-10): for the same arguments and stdin, the same stdout, stderr and exit status, on every case
   in the corpus.
 - **Float-to-text differences do not gate a port.** Where two outputs differ only inside a printed
-  floating-point number, and the two numbers parse to the same value or to very close values, the
-  harness reports a formatting difference as a warning and passes the case. Two NaNs count as the same
-  whatever their sign. A different value beyond that tolerance is a functional failure, because it
-  means the arithmetic differs. The tolerance, defined in one place in the harness: the two values
-  differ by at most one unit in the last digit printed (covers `%.8f` rounding a tie the other way),
-  or by a relative 1e-15, about ten units in the last place of a double (covers digit-printing and
-  last-bit rounding differences, not a wrong computation).
-  A port still fixes its formatting where that is cheap: tested formatters that match glibc exactly
-  exist for Python, Haskell and Rust (`tasks/adhoc/engine-ports-float-format/`), so a warning should
-  be rare. (William Emerison Six <billsix@gmail.com>, 2026-11-10: "floating point to string issues
-  are not something that should stop a port … but if you can fix it like you do for ghc haskell,
-  please do.")
+  floating-point number, and the two numbers parse to the same value, or to values within 4 units in
+  the last place of a double (`ULP_TOLERANCE` in `port/harness/compare_engines.py`), the harness
+  reports a formatting difference as a warning and passes the case. Two NaNs count as the same
+  whatever their sign. Anything beyond that is a functional failure: `0.5` against `0.6`, or `3.14159`
+  against `3.1416`, is a different value, not a formatting difference. (William Emerison Six
+  <billsix@gmail.com>, 2026-11-11, from `tasks/review/2026/11/11/repo-review.md` §5.1; the earlier rule
+  also forgave one unit in the last printed digit, which passed real errors.)
+  A port still matches glibc exactly where that is cheap: each port's formatter is checked against
+  glibc by a meson test in its suite (`python-float-format`, `haskell-float-format`,
+  `rust-cargo-test`), so a warning should be rare. (William Emerison Six <billsix@gmail.com>,
+  2026-11-10: "floating point to string issues are not something that should stop a port … but if
+  you can fix it like you do for ghc haskell, please do.")
 - **The corpus:** `tests/`, the AST-parity goldens, `tt.alu.bare.s`/`tt.fpu.bare.s`
   under `-bare`, `allinsts.s` from `f570a87^`, the examples, the PGU programs. A case that cannot be
   run deterministically (timing, environment addresses) is fixed or excluded by name in the harness,

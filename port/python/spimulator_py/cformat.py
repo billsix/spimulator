@@ -8,7 +8,7 @@ value with correct rounding), with one exception: Python prints every NaN as
 zero by zero prints ``-nan`` under the C engine.
 
 Checked against glibc's printf on 158,029 doubles in all five formats
-(tasks/adhoc/engine-ports-float-format/run.sh).
+(`tools/check_float_format.py`, the meson test `python-float-format`).
 """
 
 import math

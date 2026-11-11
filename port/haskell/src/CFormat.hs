@@ -12,7 +12,7 @@
 -- module works from the exact value: 'toRational' turns a Double into the
 -- fraction it really is, and from there every format is integer arithmetic.
 -- Tested byte-identical to glibc on 158,029 values
--- (tasks/adhoc/engine-ports-float-format/run.sh).
+-- (port/haskell/tests/check-format.sh, the meson test haskell-float-format).
 module CFormat
   ( formatF
   , formatG

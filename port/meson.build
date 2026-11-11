@@ -14,8 +14,17 @@
 #     <name>-all-programs   port/harness/compare_all_programs.py: every .s/.asm
 #                           in the repo, assembled six ways and run, against C
 #
+# plus, per port, a check of its float formatter against glibc's printf (each
+# port must print the C engine's five float formats byte for byte; the
+# harness only tolerates a few ULP):
+#   python-float-format   tools/check_float_format.py
+#   haskell-float-format  port/haskell/tests/check-format.sh, and
+#   haskell-strtod        port/haskell/tests/check-strtod.sh (its atof)
+#   rust-cargo-test       cargo test: the cformat doctests and
+#                         port/rust/tests/cformat_vs_c.rs
 # and, for the Haskell port only, haskell-annotations: every do-bind and
 # let/where binding has a written type (port/haskell/tests/check-annotations.sh).
+# harness-doctests checks the harness's own float comparison.
 #
 # A port is listed here when its task's harness milestone is done, so the image
 # build (which runs `meson test`) gates it from then on.  Each entry is
@@ -74,3 +83,23 @@ test('haskell-annotations',
      find_program('bash'),
      args: [meson.current_source_dir() / 'haskell' / 'tests' / 'check-annotations.sh'],
      suite: 'port-haskell', timeout: 1800)
+
+test('python-float-format', python3,
+     args: [meson.project_source_root() / 'tools' / 'check_float_format.py'],
+     suite: 'port-python', timeout: 600)
+test('haskell-float-format', find_program('bash'),
+     args: [meson.current_source_dir() / 'haskell' / 'tests' / 'check-format.sh'],
+     suite: 'port-haskell', timeout: 1800)
+test('haskell-strtod', find_program('bash'),
+     args: [meson.current_source_dir() / 'haskell' / 'tests' / 'check-strtod.sh'],
+     suite: 'port-haskell', timeout: 1800)
+cargo = find_program('cargo', required: false)
+if cargo.found()
+  test('rust-cargo-test', cargo,
+       args: ['test', '--offline', '--quiet', '--manifest-path',
+              meson.current_source_dir() / 'rust' / 'Cargo.toml'],
+       suite: 'port-rust', timeout: 1800)
+endif
+test('harness-doctests', python3,
+     args: ['-m', 'doctest', meson.current_source_dir() / 'harness' / 'compare_engines.py'],
+     suite: 'regression')

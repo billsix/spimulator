@@ -177,15 +177,15 @@ at run time: untyped constant arithmetic is exact); GHC's `Text.Printf` `%.18g` 
 <billsix@gmail.com>, 2026-11-10): a port must match the C engine functionally. A float printed with
 different digits, when the values are the same or very close, is reported as a warning, not a
 failure. The tolerance and how the harness detects it: `tasks/reference/engine-ports-design.md`. Matching glibc
-exactly is still the goal where it is cheap, and it is cheap in all three languages measured.
-`bash tasks/adhoc/engine-ports-float-format/run.sh` checks each one against glibc `printf` on 158,029
-doubles, in all five formats the C engine prints (`%.8f`, `%.18g`, `%.17g`, `%g`, `%#-13.6g`):
+exactly is still the goal where it is cheap, and it is cheap in all three languages measured. Each
+port's formatter is checked against glibc `printf`, in all five formats the C engine prints (`%.8f`,
+`%.18g`, `%.17g`, `%g`, `%#-13.6g`), by a meson test in its suite:
 
-| Language | Formatter | Result |
-|---|---|---|
-| Python | `cformat.py`: the `%` operator; adds the `-nan` sign Python drops | identical |
-| Rust | `cformat.rs`, about 60 lines, std only: `{:.N}` and `{:.Ne}` are already correctly rounded, so it applies C's `%g` rules (fixed vs exponential, stripping zeros, `#`, the two-digit exponent) and `nan`/`inf` | identical |
-| GHC Haskell | `CFormat.hs`, about 90 lines: rounds the exact `Rational` value (below) | identical |
+| Language | Formatter | Checked by | Result |
+|---|---|---|---|
+| Python | `port/python/spimulator_py/cformat.py`: the `%` operator; adds the `-nan` sign Python drops | `python-float-format` (`tools/check_float_format.py`, 158,029 doubles) | identical |
+| Rust | `port/rust/src/cformat.rs`, about 60 lines, std only: `{:.N}` and `{:.Ne}` are already correctly rounded, so it applies C's `%g` rules (fixed vs exponential, stripping zeros, `#`, the two-digit exponent) and `nan`/`inf` | `rust-cargo-test` (`port/rust/tests/cformat_vs_c.rs`, 58,028 doubles, and the doctests) | identical |
+| GHC Haskell | `port/haskell/src/CFormat.hs`, about 90 lines: rounds the exact `Rational` value (below) | `haskell-float-format` (`port/haskell/tests/check-format.sh`, 158,029 doubles) | identical |
 
 Java was not re-tested; `BigDecimal` rounding fixed its one measured case.
 
@@ -195,10 +195,10 @@ GHC's `Text.Printf` and `Numeric.showFFloat` format from the shortest round-trip
 (`floatToDigits`) and pad with zeros. glibc formats the exact binary value. A Double's exact value is
 `toRational x`, so a pure-Haskell formatter rounds it with integer arithmetic: exact decimal
 exponent, ties-to-even rounding, the `%g` fixed/exponential rule, `#`, width, `inf`/`nan` by the sign
-bit. `tasks/adhoc/engine-ports-float-format/CFormat.hs` implements all five formats the C engine uses
-(`%.8f`, `%.18g`, `%.17g`, `%g`, `%#-13.6g`). It is byte-identical to glibc on 158,029 values
-(`bash tasks/adhoc/engine-ports-float-format/run.sh`). Detail: `tasks/archive/2026/11/10/engine-port-haskell.md`.
-The port's copy is `port/haskell/src/CFormat.hs`, checked by `port/haskell/tests/check-format.sh`.
+bit. `port/haskell/src/CFormat.hs` implements all five formats the C engine uses (`%.8f`, `%.18g`,
+`%.17g`, `%g`, `%#-13.6g`). It is byte-identical to glibc on 158,029 values
+(`port/haskell/tests/check-format.sh`, the meson test `haskell-float-format`). Detail:
+`tasks/archive/2026/11/10/engine-port-haskell.md`.
 
 ### What the Haskell port taught (2026-11-10)
 
@@ -288,8 +288,8 @@ C. Beyond the table above:
   the stack, so it re-execs with `/proc/$$/environ`.
 - **Speed is no problem**: `tt.core.s` runs in 0.11 s (0.10 s for the debug C build); the timer polls
   `Instant::now()` per instruction where C calls `getitimer`.
-- **Float text came out identical** with the promoted `cformat.rs` (58,028 doubles against glibc in
-  `cargo test`); no case of the corpus warned.
+- **Float text came out identical** with `port/rust/src/cformat.rs` (58,028 doubles against glibc
+  in `cargo test`, the meson test `rust-cargo-test`); no case of the corpus warned.
 
 ## Cross-links
 

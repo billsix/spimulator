@@ -52,7 +52,8 @@ Staying clean when you touch the core:
   under both before declaring done.
 - To find conversions: build with the flags and read the diagnostics (each names the from→to types);
   `clang -Xclang -ast-dump` / `clang-query` show every subexpression's type and the implicit casts.
-  Tooling snapshot: `tasks/adhoc/integer-conversion-hardening/` (`discover.sh`, `analyze.py`).
+  The one-shot scan used for the hardening (`discover.sh`, `analyze.py`) is in git history:
+  `git log --all -- tasks/adhoc/integer-conversion-hardening/`. The `-Wconversion` gate replaced it.
 
 ## Not yet covered
 
