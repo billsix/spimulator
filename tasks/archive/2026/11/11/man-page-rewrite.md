@@ -32,7 +32,8 @@ The teaching-mode level descriptions are kept, as they match the code.
 
 The engine's usage text (`src/spim.c`, printed for a bad argument) has the same gaps: it says
 `Usage: spim`, and leaves out the size, trap and pseudo flags. The three ports print the same text,
-and the harness compares it, so fixing it is a four-engine change. No task was filed.
+and the harness compares it, so fixing it is a four-engine change: `tasks/usage-text-matches-flags.md`
+(proposed).
 
 ## Verification
 
