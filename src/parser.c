@@ -942,11 +942,8 @@ static void parse_b1(int op) {
 static void parse_j(int op) {
   if (op == TOK_COP2_OPCODE) {
     parse_error_at("cop2 is not supported: spim has no coprocessor 2");
-    return;
-  }
-  if (scanner_peek() == TOK_REG) {
-    /* J_OPS SRC1  or  J_OPS DEST SRC1 — register-indirect jump.
-     */
+  } else if (scanner_peek() == TOK_REG) {
+    /* J_OPS SRC1  or  J_OPS DEST SRC1 — register-indirect jump. */
     const int r1 = parse_register();
     if (scanner_peek() == TOK_REG) {
       /* DEST SRC1 form */
@@ -965,50 +962,48 @@ static void parse_j(int op) {
           break;
         default:
           /* Never reached: parse_asm_code sends only J_TYPE_INST and
-             RD_RS_INST opcodes here, and cop2 returned above. */
+             RD_RS_INST opcodes here, and cop2 is handled above. */
           fatal_error("internal error: parse_j: unexpected opcode %d\n", op);
       }
-      return;
+    } else {
+      /* SRC1-only form */
+      switch (op) {
+        case TOK_J_OPCODE:
+        case TOK_JR_OPCODE:
+          emit_r(TOK_JR_OPCODE, 0, r1, 0);
+          break;
+        case TOK_JAL_OPCODE:
+        case TOK_JALR_OPCODE:
+          emit_r(TOK_JALR_OPCODE, 31, r1, 0);
+          break;
+        case TOK_JALR_HB_OPCODE:
+          emit_r(TOK_JALR_HB_OPCODE, 31, r1, 0);
+          break;
+        default:
+          /* Never reached: as in the DEST SRC1 form above. */
+          fatal_error("internal error: parse_j: unexpected opcode %d\n", op);
+      }
     }
-    /* SRC1-only form */
+  } else if (op == TOK_JALR_HB_OPCODE) {
+    parse_error_at("jalr.hb needs a register operand");
+  } else {
+    /* J_OPS LABEL — absolute-target jump */
+    imm_expr* const target = parse_label();
     switch (op) {
       case TOK_J_OPCODE:
       case TOK_JR_OPCODE:
-        emit_r(TOK_JR_OPCODE, 0, r1, 0);
+        emit_j(TOK_J_OPCODE, target);
         break;
       case TOK_JAL_OPCODE:
       case TOK_JALR_OPCODE:
-        emit_r(TOK_JALR_OPCODE, 31, r1, 0);
-        break;
-      case TOK_JALR_HB_OPCODE:
-        emit_r(TOK_JALR_HB_OPCODE, 31, r1, 0);
+        emit_j(TOK_JAL_OPCODE, target);
         break;
       default:
-        /* Never reached: as in the DEST SRC1 form above. */
+        /* Never reached: jalr.hb and cop2 are handled above. */
         fatal_error("internal error: parse_j: unexpected opcode %d\n", op);
     }
-    return;
+    free(target);
   }
-  if (op == TOK_JALR_HB_OPCODE) {
-    parse_error_at("jalr.hb needs a register operand");
-    return;
-  }
-  /* J_OPS LABEL — absolute-target jump */
-  imm_expr* const target = parse_label();
-  switch (op) {
-    case TOK_J_OPCODE:
-    case TOK_JR_OPCODE:
-      emit_j(TOK_J_OPCODE, target);
-      break;
-    case TOK_JAL_OPCODE:
-    case TOK_JALR_OPCODE:
-      emit_j(TOK_JAL_OPCODE, target);
-      break;
-    default:
-      /* Never reached: jalr.hb and cop2 returned above. */
-      fatal_error("internal error: parse_j: unexpected opcode %d\n", op);
-  }
-  free(target);
 }
 
 /* NOARG_TYPE_INST: <op>  (syscall) or <op> IMM (break N, sync N).

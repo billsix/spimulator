@@ -176,6 +176,20 @@ test('generated_opcode_tables', find_program('python3'),
      args: [meson.current_source_dir() / 'tools' / 'gen_opcodes.py', '--check'],
      suite: 'regression')
 
+# The C coding standard's dispatch rules (every switch has a default, every
+# if/else-if chain an else, one chain per decision): tools/c_dispatch_check.py
+# reads clang's AST of src/*.c through this build's compile_commands.json and
+# fails on any site not accepted with a `dispatch-check: ok` comment.  It runs
+# clang itself, so it needs clang installed, whichever compiler builds spim.
+clang_for_ast = find_program('clang', required: false)
+if clang_for_ast.found()
+  test('dispatch_check', find_program('python3'),
+       args: [meson.current_source_dir() / 'tools' / 'c_dispatch_check.py',
+              meson.current_build_dir(), 'src'],
+       workdir: meson.current_source_dir(),
+       suite: 'regression')
+endif
+
 # --- Examples curriculum (paired C + MIPS-asm teaching demos) -----------
 # Builds the demos and registers `examples`-suite tests that validate
 # both the C and asm sides against pinned `.expected` goldens.
