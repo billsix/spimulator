@@ -1,113 +1,87 @@
 # Use `match` for the Python port's dispatch chains, and `elif` for its guard runs
 
-**Status:** ready — decision made, implementation not started
-**Priority:** 6
-**Difficulty:** 4
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
+**Branch:** spimulator `python-port-match-statements`, off `opcodes-generator` (it needs the generated
+`Tok` and `OpType` enums)
 
-## BLUF
+## Outcome
 
-Fifteen if/elif chains in the Python port pick a branch by comparing one value against a list of
-constants, the shape a C `switch` has. Rewrite each as a `match` with a `case _` default, as the
-Python coding standard asks. Most of these chains compare against string-keyed dict lookups
-(`TOK["LI_PSEUDO_OP"]`) or bare names, which a `case` cannot spell, so the opcode constants must
-first become dotted names: members of the generated `Tok` and `OpType` `IntEnum`s, which exist
-since 2026-11-11 (Decisions). Also, 42 runs of separate early-exit `if`s are one decision each:
-7 dispatch on one value and become `match`es too, and the other 35 become `if`/`elif`/`else`
-chains, as the standard's "Mutually exclusive branches" rule asks. Done means each chain and run
-is converted or listed with the reason it stays as it is, and the port suites still pass.
+The Python port follows the Python coding standard's two rules on conditionals ("Prefer `match` +
+`case _`" and "Mutually exclusive branches are one if/elif/else chain"):
+- **21 dispatch sites are `match` statements, each with a `case _`:**
+  - 14 if/elif chains that compared one value;
+  - 7 runs of separate early-exit `if`s on one value, including `instruction.py`'s two
+    operand-shape runs of 14 and 24 `if`s.
+- **38 runs of separate early-exit `if`s are now single `if`/`elif`/`else` chains,** with the code
+  that followed in the `else`. That is 37 runs by the converter, plus `_parse_imm32` by hand.
+- **The ~290 string-keyed lookups (`TOK["X"]`, `KIND["X"]`) are `Tok.X` and `OpType.X`.** Those are
+  the `IntEnum`s `tools/gen_opcodes.py` generates into `opcode_table.py`, so the type checker sees
+  every token name.
+- **The REPL command numbers are `class Command(enum.IntEnum)`.**
 
-## Context
+Behavior is unchanged: port-python 71 OK, with the whole-tree comparison with the C engine, plus
+the regression and examples suites.
 
-- **The rules:** the `python-coding-standard.md` reference doc of
-  github.com/billsix/runClaudeInContainer.
-  - "Prefer `match` + `case _` over an open-ended `if`/`elif` chain": always write `case _`. A
-    `match` whose every case is a guard is an `if` chain in disguise.
-  - Rule (C) of "Refactoring a conditional": use `match` when the pattern does the dispatch.
-  - "Options are enums, not strings."
-  - Annotate every binding.
-- **The worklist** is `tasks/adhoc/python-match-statements/data/chains.txt`, from
-  `tasks/adhoc/python-match-statements/match_candidates.py`. The script scans `port/python`,
-  `port/harness`, `tools` and `tree-sitter/scripts`, and lists chains where 3 or more tests compare
-  one subject. The format is `file:line: matching/all links on SUBJECT (classes) [else]`.
-  - `value`: the compared values are literals or dotted names, usable in a `case` today.
-  - `lookup`: they are dict lookups or bare names, which need the constants changed first.
-- **What it found:** 14 chains, all in `port/python/spimulator_py/`, plus one the script misses:
-  `ast_nodes.py:136` tests `byte in b'\\"'`, which is a `case 0x5C | 0x22:`.
-  - **Usable today (`value`):**
-    - `spim.py:203`: the command-line flags, 29 of 32 links;
-    - `instruction.py:621`: no `else`;
-    - `memory.py:422`;
-    - `run.py:941`: no `else`.
-  - **Need dotted constants (`lookup`):**
-    - `parser.py:598` on the operand kind, 22 links;
-    - `parser.py:714` (`_expand_pseudo`, 20 links), `parser.py:895`, `parser.py:956`;
-    - `parser.py:1093` on the directive, 16 of 17 links;
-    - `instruction.py:554` on the operand kind, 15 links;
-    - `run.py:1072`;
-    - `spim.py:677` on the REPL command, 17 links;
-    - `spim.py:725`;
-    - `scanner.py:317`.
-- **Guard runs** (added 2026-11-11 at the maintainer's request). The standard's "Mutually exclusive
-  branches are one `if`/`elif`/`else` chain" asks for a run of early-exit guards in front of a
-  result to be one chain, with the result in the `else`. It leaves two things as they are: a single
-  guard before the main body, and independent checks that can each fire.
-  - `tasks/adhoc/python-match-statements/elif_chain_candidates.py` lists every run of 2 or more
-    consecutive `if`s with no `else` whose bodies end in `return`, `raise`, `continue` or `break`.
-    Because each one exits, they cannot both fire, so a run is always one decision.
-  - The worklog is `tasks/adhoc/python-match-statements/data/guard-runs.txt`: 42 runs. By file:
-    `memory.py` 10, `parser.py` 9, `scanner.py` 5, `spim.py` 4, `machine.py` 4,
-    `instruction.py` 3, `port/harness/compare_engines.py` 2, and one each in `syscall.py`,
-    `ast_nodes.py`, `tools/check_example_commands.py`, `tools/check_asm_canonical.py` and
-    `tree-sitter/scripts/build-keyword-lists.py`.
-  - **Seven of them compare one subject in 3 or more ifs and become `match`, not `elif`.** They are
-    dispatch written as separate `if`s, which the chain scan cannot see:
-    - `instruction.py:641` (14 ifs on `kind`) and `instruction.py:704` (24 ifs on `kind`);
-    - `scanner.py:466` (8 on `char`), `memory.py:456` (4 on `addr`), `parser.py:444` (4 on `op`);
-    - `parser.py:286` and `parser.py:392` (3 on `scanner.peek()`).
-  - The other 35 become `if`/`elif`/`else`.
-- **No other dispatch chains.** The executor already dispatches through dict tables
-  (`run.py` `_FACTORIES`, `_SIGN_TESTS`, `_TRAP_TESTS`, `_TO_WORD`), and the harness and `tools/`
-  have no if/elif dispatch chains (only the guard runs above).
-- **Why the constants are lookups now.** `port/python/spimulator_py/opcodes.py` exposes `TOKEN`
-  and `KIND` as `dict[str, int]`, and the code reads them about 290 times as `TOK["…"]` /
-  `KIND["…"]`. The type checker cannot see those keys, so a misspelled name fails only at run time.
-- **The dotted constants exist** (since 2026-11-11, `tasks/archive/2026/11/11/opcodes-x-macro-redesign.md`).
-  `tools/gen_opcodes.py` generates `port/python/spimulator_py/opcode_table.py` from
-  `include/opcodes.tsv`, as it does every port's table. That module holds `class Tok(enum.IntEnum)`,
-  every keyword token named like the C token without `TOK_` (`Tok.LI_PSEUDO_OP`), and
-  `class OpType(enum.IntEnum)`, the operand-shape tags. `opcodes.py` builds `TOKEN` and `KIND` from
-  them. The image build and a meson test check that the committed module is current
-  (`tasks/reference/opcode-table-generator.md`).
-- **Some constants are local.** The REPL command numbers in `spim.py` are
-  `_EXIT, _READ, … = range(1, 8)`. Under the standard they are an `enum.IntEnum` whatever is
-  decided below.
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
-## Decisions
+- **Opcode constants: a generated, committed module of `IntEnum` classes** (option (b) of two). It
+  was delivered by `tasks/archive/2026/11/11/opcodes-x-macro-redesign.md`, which generates
+  `opcode_table.py` for this port as for the others. The rejected option exposed attribute
+  namespaces over the import-time parse, which would have left the names unchecked.
+- **Guard runs are in scope too.** The maintainer added them to the task: runs of separate `if`s
+  that are one decision become one chain, per the standard.
 
-- **Opcode constants: a generated, committed module of `IntEnum` classes** (William Emerison Six
-  <billsix@gmail.com>, 2026-11-11, option (b) of two). It is generated as the Haskell and Rust
-  ports' tables are, with a check that regenerating changes nothing; convert all ~290
-  `TOK["…"]` / `KIND["…"]` lookups so the type checker checks every name. The other option was to keep
-  reading `opcodes.h` at import and expose the tables as attribute namespaces (`case Tok.X:`), which
-  would have changed only the chains' comparisons. It was not chosen because it leaves the names
-  unchecked, where the generated module matches the other two ports and the standard's preference
-  for enums over strings.
+## How, in commit order
 
-## Plan
+All the scripts named here are under `tasks/adhoc/python-port-match-statements/`.
+1. **Enum members.** `to_enums.py` converted the literal lookups and the aliases.
+   - A lookup by a computed name, `TOK[f"{name}_OPCODE"]`, became `Tok[...]`: an Enum looks
+     members up by name, with the same `KeyError`.
+   - `instruction.py`'s 26 module-level tag aliases went.
+   - `name_collections.py` turned the collections of token-name strings into members:
+     `_tokens(...)` calls, `TOK[name] for name in (...)` tuples, and `pseudo_op.py`'s two
+     name-to-name tables.
+2. **`match`.**
+   - `pre_edits.py` prepared the three chains a `case` could not spell. It added the `Command`
+     enum, numbered as the C engine's `spim.c` enum (checked); wrote the structural tokens as
+     `opcodes.TOK_REG`; and rewrote the escape chain on `chr(escape)` instead of `ord(...)` calls.
+   - `to_match.py` then rewrote the source text, using the AST only to find each chain, so comments
+     and layout survive.
+   - A link that tests something other than the subject kept its test as a guard
+     (`case _ if arg in _VALUE_FLAGS and i + 1 >= argc:`).
+   - A chain with no `else` got `case _: pass  # any other value: nothing to do, as before`.
+3. **Guard runs.** `to_match.py elif` converted the runs, rescanning after each round, because
+   converting an inner run can make an outer one no longer a run.
+   - Done by hand: `_parse_imm32`, where an outer run's first branch ends in an inner chain.
+   - `syscall.py`'s two adjacent `return`-only branches were merged into one test. ruff's SIM114
+     flagged them, and it is the standard's rule B (dedupe identical branches).
 
-1. Convert the four `value` chains and `ast_nodes.py:136`, each with a `case _`. Make the REPL
-   commands an `IntEnum`. Run the port-python suite.
-2. Convert the ~290 `TOK["…"]` / `KIND["…"]` lookups to `Tok.…` / `OpType.…`, one module per commit.
-   The generated module and its check already exist (Context). `TOKEN` and `KIND` in `opcodes.py`
-   can go once nothing reads them.
-3. Convert the `lookup` chains, one file per commit. Check that `ruff`, `ty` and
-   `check_local_annotations.py` are clean on each, then run `meson test --suite port-python` and
-   the whole-tree comparison (`port/harness/compare_all_programs.py`). Behavior must not change;
-   the C engine is the standard.
-4. Convert the guard runs (`data/guard-runs.txt`): the seven dispatch runs to `match` with the
-   chains of step 3, and the other 35 to `if`/`elif`/`else` chains whose `else` holds the code
-   that followed the run. Keep a single guard, and checks that can each fire, as separate `if`s.
-   Do not enable ruff's `RET505`/`RET506`, which contradict the rule.
-5. Record in the done-record each chain left as an `if`, with its reason. At archive, `git rm`
-   `tasks/adhoc/python-match-statements/` (one-shot).
+## Mistakes made and fixed within the task
+
+The first `match` runs had converter bugs, caught by checking that every comment survives and by
+ruff:
+- comments between a header and its body were dropped;
+- a parenthesized multi-line test's `):` line went into the body;
+- an `else:` line was left behind;
+- the code after a dispatch run was placed one level too shallow;
+- a trailing comment on an `else:` line was lost.
+
+Each time the files were restored from the previous commit and the run repeated with the fixed
+tool. The final check found every comment of the converted modules still present.
+
+An early `ruff format` over all of `tools/` reformatted `tools/check_asm_canonical.py`, which was not
+ruff-formatted before. That was undone, and only files that were already format-clean, or are this
+branch's own, were formatted.
+
+## Verification
+
+- At each step: ruff, ty and `check_local_annotations.py` clean; the generated opcode tables are
+  unchanged (`tools/gen_opcodes.py --check`).
+- port-python 71 OK after each of the three steps. The final step also ran the regression and
+  examples suites (the `tools/` scripts it touched are used there).
+
+## Follow-ups
+
+- The scans that found the chains (`match_candidates.py`, `elif_chain_candidates.py`, under
+  `tasks/adhoc/python-match-statements/`) are one-shot and leave with this task's archive.
