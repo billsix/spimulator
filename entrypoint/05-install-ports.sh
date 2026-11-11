@@ -11,4 +11,6 @@
 # Single dnf call, so its own exit status is this script's exit status.
 set -uo pipefail
 
-dnf install -y python3 ghc rust cargo
+# Each port's lint tools, for the port suites' lint tests (port/<port>/lint.sh):
+# ruff and ty (Python), hlint (Haskell), clippy and rustfmt (Rust).
+dnf install -y python3 ruff ty ghc hlint rust cargo clippy rustfmt

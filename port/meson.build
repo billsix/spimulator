@@ -103,3 +103,17 @@ endif
 test('harness-doctests', python3,
      args: ['-m', 'doctest', meson.current_source_dir() / 'harness' / 'compare_engines.py'],
      suite: 'regression')
+
+# Each port's tier-(a) lint gate (its coding standard's tools), one script per port:
+#   port-python-lint   ruff, ty, the annotate-every-binding check, the doctests
+#   port-rust-lint     rustfmt and clippy (warnings are errors)
+#   port-haskell-hlint hlint, advisory: always passes; its hints are in the test log
+test('port-python-lint', find_program('bash'),
+     args: [meson.current_source_dir() / 'python' / 'lint.sh'],
+     suite: 'port-python', timeout: 600)
+test('port-rust-lint', find_program('bash'),
+     args: [meson.current_source_dir() / 'rust' / 'lint.sh'],
+     suite: 'port-rust', timeout: 1800)
+test('port-haskell-hlint', find_program('bash'),
+     args: [meson.current_source_dir() / 'haskell' / 'lint.sh'],
+     suite: 'port-haskell', timeout: 600)

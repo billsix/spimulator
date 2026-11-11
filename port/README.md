@@ -26,6 +26,13 @@ Each port's opcode table is generated from `include/opcodes.tsv` by `tools/gen_o
     # [CONTAINER] just the case-by-case comparison with the C engine:
     port/harness/compare_engines.py --reference builddir/spimulator --engine port/python/spimulator-python
 
-`port/meson.build` registers, for each port in its `ports` list, every regression test except the
-teaching mode, every examples demo, the documented example commands, and
-`port/harness/compare_engines.py`. Its cases are in `port/harness/corpus.txt`.
+`port/meson.build` registers, for each port in its `ports` list:
+- every regression test except the teaching mode, every examples demo, and the documented example
+  commands;
+- `port/harness/compare_engines.py` (its cases are in `port/harness/corpus.txt`) and
+  `port/harness/compare_all_programs.py` (every `.s`/`.asm` in the repo);
+- a check of the port's float formatter against glibc (`python-float-format`,
+  `haskell-float-format` and `haskell-strtod`, `rust-cargo-test`);
+- the port's lint gate, `port/<port>/lint.sh` (`port-python-lint`, `port-rust-lint`, and
+  `port-haskell-hlint`, which is advisory);
+- for Haskell, `haskell-annotations`.
