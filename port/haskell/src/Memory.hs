@@ -28,6 +28,7 @@ module Memory
   , expandData
   , expandKData
   , memReference
+  , SegmentRef
   , readCString
   , checkMemoryMappedIO
   , consoleInputAvailable
@@ -124,8 +125,13 @@ expandData s addl = do
     cError ("Can't expand data segment by " ++ show addl ++ " bytes to " ++ show newSize ++ " bytes\n")
     runError ("Use -ldata # with # > " ++ show newSize ++ "\n")
   seg :: IOUArray Int Word8 <- get (dataSeg s)
-  new :: IOUArray Int Word8 <- growBytes seg newSize
-  set (dataSeg s) new
+  (_, hi) :: (Int, Int) <- getBounds seg
+  -- The array keeps spare capacity, so a run of small sbrk calls copies the
+  -- segment only when the capacity runs out, not on every call.  Bytes past
+  -- dataTop are unreachable (byteSegment stops at it), so they stay zero.
+  when (newSize > hi + 1) $ do
+    new :: IOUArray Int Word8 <- growBytes seg (max newSize (min limit (2 * (hi + 1))))
+    set (dataSeg s) new
   set (dataTop s) (top + fromIntegral delta)
 
 -- | Grow the stack down (C: @expand_stack@): at least double it.
@@ -173,31 +179,37 @@ expandKData s addl = do
   set (kDataSeg s) new
   set (kDataTop s) (top + fromIntegral delta)
 
--- | Which byte segment holds an address: the bytes and the offset in them.
-byteSegment :: Spim -> Word32 -> IO (Maybe (IOUArray Int Word8, Int))
+-- | A place in a byte segment: the segment's bytes, the offset of the address
+-- in them, and the segment's last valid offset.  The array can be longer than
+-- the segment (the data segment grows with spare capacity), so the last
+-- offset, not the array's bounds, is where the segment ends.
+type SegmentRef = (IOUArray Int Word8, Int, Int)
+
+-- | Which byte segment holds an address.
+byteSegment :: Spim -> Word32 -> IO (Maybe SegmentRef)
 byteSegment s addr = do
   dtop :: Word32 <- get (dataTop s)
   sbot :: Word32 <- get (stackBot s)
   kdtop :: Word32 <- get (kDataTop s)
   if addr >= dataBot && addr < dtop
-    then (\a -> Just (a, fromIntegral (addr - dataBot))) <$> get (dataSeg s)
+    then (\a -> Just (a, fromIntegral (addr - dataBot), fromIntegral (dtop - dataBot) - 1)) <$> get (dataSeg s)
     else
       if addr >= sbot && addr < stackTop
-        then (\a -> Just (a, fromIntegral (addr - sbot))) <$> get (stackSeg s)
+        then (\a -> Just (a, fromIntegral (addr - sbot), fromIntegral (stackTop - sbot) - 1)) <$> get (stackSeg s)
         else
           if addr >= kDataBot && addr < kdtop
-            then (\a -> Just (a, fromIntegral (addr - kDataBot))) <$> get (kDataSeg s)
+            then (\a -> Just (a, fromIntegral (addr - kDataBot), fromIntegral (kdtop - kDataBot) - 1)) <$> get (kDataSeg s)
             else pure Nothing
 
 -- | The bytes behind an address, for the system calls that hand memory to
 -- the host (C: @mem_reference@).  Text addresses give Nothing (the C engine
 -- points into its table of instruction pointers there).  An address in no
 -- segment is a run-time error.
-memReference :: Spim -> Word32 -> IO (Maybe (IOUArray Int Word8, Int))
+memReference :: Spim -> Word32 -> IO (Maybe SegmentRef)
 memReference s addr = do
   ttop :: Word32 <- get (textTop s)
   kttop :: Word32 <- get (kTextTop s)
-  seg :: Maybe (IOUArray Int Word8, Int) <- byteSegment s addr
+  seg :: Maybe SegmentRef <- byteSegment s addr
   case seg of
     Just r -> pure (Just r)
     Nothing
@@ -208,11 +220,10 @@ memReference s addr = do
 -- printed with @%s@).  It stops at the end of the segment.
 readCString :: Spim -> Word32 -> IO String
 readCString s addr = do
-  ref :: Maybe (IOUArray Int Word8, Int) <- memReference s addr
+  ref :: Maybe SegmentRef <- memReference s addr
   case ref of
     Nothing -> pure ""
-    Just (arr, off) -> do
-      (_, hi) :: (Int, Int) <- getBounds arr
+    Just (arr, off, hi) -> do
       let go :: Int -> String -> IO String
           go i acc
             | i > hi = pure (reverse acc)
@@ -267,25 +278,25 @@ writeBytes arr off n v = forM_ [0 .. n - 1] $ \i -> writeArray arr (off + i) (fr
 -- | Load a byte, sign-extended (C: @mem_read_byte@).
 memReadByte :: Spim -> Word32 -> IO Int32
 memReadByte s addr = do
-  seg :: Maybe (IOUArray Int Word8, Int) <- byteSegment s addr
+  seg :: Maybe SegmentRef <- byteSegment s addr
   case seg of
-    Just (arr, off) -> fromIntegral . (fromIntegral :: Word8 -> Int8') <$> readArray arr off
+    Just (arr, off, _) -> fromIntegral . (fromIntegral :: Word8 -> Int8') <$> readArray arr off
     Nothing -> badMemRead s addr 0
 
 -- | Load a half word, sign-extended (C: @mem_read_half@).
 memReadHalf :: Spim -> Word32 -> IO Int32
 memReadHalf s addr = do
-  seg :: Maybe (IOUArray Int Word8, Int) <- byteSegment s addr
+  seg :: Maybe SegmentRef <- byteSegment s addr
   case seg of
-    Just (arr, off) | addr .&. 1 == 0 -> fromIntegral . (fromIntegral :: Word32 -> Int16') <$> readBytes arr off 2
+    Just (arr, off, _) | addr .&. 1 == 0 -> fromIntegral . (fromIntegral :: Word32 -> Int16') <$> readBytes arr off 2
     _ -> badMemRead s addr 1
 
 -- | Load a word (C: @mem_read_word@).
 memReadWord :: Spim -> Word32 -> IO Int32
 memReadWord s addr = do
-  seg :: Maybe (IOUArray Int Word8, Int) <- byteSegment s addr
+  seg :: Maybe SegmentRef <- byteSegment s addr
   case seg of
-    Just (arr, off) | addr .&. 3 == 0 -> fromIntegral <$> readBytes arr off 4
+    Just (arr, off, _) | addr .&. 3 == 0 -> fromIntegral <$> readBytes arr off 4
     _ -> badMemRead s addr 3
 
 type Int8' = Int8
@@ -294,23 +305,23 @@ type Int16' = Int16
 
 memWriteByte :: Spim -> Word32 -> Int32 -> IO ()
 memWriteByte s addr v = do
-  seg :: Maybe (IOUArray Int Word8, Int) <- byteSegment s addr
+  seg :: Maybe SegmentRef <- byteSegment s addr
   case seg of
-    Just (arr, off) -> writeArray arr off (fromIntegral v)
+    Just (arr, off, _) -> writeArray arr off (fromIntegral v)
     Nothing -> badMemWrite s addr v 0
 
 memWriteHalf :: Spim -> Word32 -> Int32 -> IO ()
 memWriteHalf s addr v = do
-  seg :: Maybe (IOUArray Int Word8, Int) <- byteSegment s addr
+  seg :: Maybe SegmentRef <- byteSegment s addr
   case seg of
-    Just (arr, off) | addr .&. 1 == 0 -> writeBytes arr off 2 (fromIntegral v)
+    Just (arr, off, _) | addr .&. 1 == 0 -> writeBytes arr off 2 (fromIntegral v)
     _ -> badMemWrite s addr v 1
 
 memWriteWord :: Spim -> Word32 -> Int32 -> IO ()
 memWriteWord s addr v = do
-  seg :: Maybe (IOUArray Int Word8, Int) <- byteSegment s addr
+  seg :: Maybe SegmentRef <- byteSegment s addr
   case seg of
-    Just (arr, off) | addr .&. 3 == 0 -> writeBytes arr off 4 (fromIntegral v)
+    Just (arr, off, _) | addr .&. 3 == 0 -> writeBytes arr off 4 (fromIntegral v)
     _ -> badMemWrite s addr v 3
 
 -- | Is an address just below the stack, so that touching it should grow

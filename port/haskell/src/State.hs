@@ -41,9 +41,11 @@ mega = kilo * kilo
 get :: IORef a -> IO a
 get = readIORef
 
--- | Write a cell.
+-- | Write a cell, evaluating the value first. Long-lived state (registers,
+-- HI/LO, segment tops) is written through here, and a lazy write would keep
+-- a chain of unevaluated updates alive until something reads the cell.
 set :: IORef a -> a -> IO ()
-set = writeIORef
+set r v = writeIORef r $! v
 
 -- | Change a cell with a function.
 modify :: IORef a -> (a -> a) -> IO ()
