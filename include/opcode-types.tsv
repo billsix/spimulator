@@ -1,0 +1,41 @@
+# The operand-shape tags each row of opcodes.tsv carries in its type column.
+#
+# This file is a source for tools/gen_opcodes.py (see opcodes.tsv).
+#
+# Columns, separated by one tab:
+#   name     the tag; it spells the operand list as the student writes it
+#   value    its number (uint8_t, 0..42)
+#   comment  an example, kept as a C comment
+#
+# An empty line starts a new group, kept as a blank line in the C output.
+ASM_DIR	0	
+PSEUDO_OP	1	
+
+BRANCH_COPROC_COND_INST	10	bc1t/bc1f label
+BRANCH_RS_LABEL_INST	11	bgez rs, label
+RS_IMM_INST	12	tgei rs, imm16 (trap ops)
+RT_IMM_INST	13	lui  rt, imm16
+RT_RS_IMM_INST	14	addi rt, rs, imm16
+BRANCH_RS_RT_LABEL_INST	15	beq  rs, rt, label
+RT_ADDR_INST	16	lw   rt, address
+
+RS_INST	20	jr   rs
+RD_INST	21	mfhi rd
+RS_RT_INST	22	mult rs, rt
+RD_RS_INST	23	clz  rd, rs (also jalr)
+RT_COPREG_INST	24	mfc0 rt, coproc-reg
+RD_RT_SHAMT_INST	25	sll  rd, rt, shamt
+RD_RS_RT_INST	26	add  rd, rs, rt
+RD_RT_RS_INST	27	sllv rd, rt, rs
+
+FP_FT_ADDR_INST	30	lwc1  ft, address
+FP_FD_FS_INST	31	mov.s fd, fs
+FP_RT_COPREG_INST	32	mfc1  rt, coproc-reg
+FP_CMP_FS_FT_INST	33	c.eq.s fs, ft
+FP_FD_FS_FT_INST	34	add.s fd, fs, ft
+FP_FD_FR_FS_FT_INST	35	madd.s fd, fr, fs, ft
+FP_MOVC_TYPE_INST	36	movt.s fd, fs, cc
+MOVC_TYPE_INST	37	movt rd, rs, cc
+
+J_TYPE_INST	40	j label / jalr rs
+NOARG_TYPE_INST	42	syscall, nop, break N
