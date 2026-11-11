@@ -117,7 +117,7 @@ was archived and are in its history.
 
 ## Follow-ups
 
-- `tasks/c-dispatch-port-review.md` (proposed): whether the ports should follow any of this.
+- `tasks/archive/2026/11/11/c-dispatch-port-review.md`: what the ports followed, and why not elsewhere.
 - `tasks/archive/2026/11/11/paired-single-compare-encoding.md` and
   `tasks/archive/2026/11/11/parse-j-drops-cop2-and-jalr-hb.md`: both bugs, fixed later the same day.
 - `tasks/archive/2026/11/11/name-the-token-enum.md` (declined): a named token type, so switches on
