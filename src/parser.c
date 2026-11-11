@@ -16,6 +16,7 @@
 #include "parser.h"
 #include "tokens.h"
 #include "opcode-types.h"
+#include "opcode-tables.h"
 #include "spim-utils.h"
 #include "pseudo-op.h"
 #include "ast.h"
@@ -1150,34 +1151,18 @@ static void parse_dir_asciiz(void) {
 
 /* ---------------- top-level dispatch ---------------- */
 
-/* Look up an opcode token's operand-shape type tag.
+/* Look up an opcode token's operand-shape type tag, in opcode_tbl
+   (opcode-tables.h), which holds {name, token, op_type} sorted by token.
 
-   Built from the X-macro list in opcodes.h: each OP(name, sym, type, enc)
-   row expands here to {sym, type}, dropping the name and encoding
-   columns.  See opcodes.h's top-of-file comment for the X-macro pattern. */
-
-typedef struct {
-  int op;
-  op_type type;
-} op_type_entry;
-
-static const op_type_entry op_type_table[] = {
-#define OP(NAME, OPCODE, TYPE, R_OPCODE) {OPCODE, TYPE},
-#include "opcodes.h"
-};
-
-/* Returns -1 when `op` isn't in the table.  Caller switches treat the
+   Returns -1 when `op` isn't in the table.  Caller switches treat the
    missing case via `default:` (parse_error_at).  Return type is `int`
    so the -1 sentinel is representable; case labels in the caller's
    switch compare against the typed `op_type` enumerators via the
    usual int/enum conversions. */
 static int find_op_type(int op) {
-  /* Linear scan is fine — table is small relative to anything
-     else this parser does per source line. */
-  for (size_t i = 0; i < sizeof(op_type_table) / sizeof(op_type_entry); i++) {
-    if (op_type_table[i].op == op) return op_type_table[i].type;
-  }
-  return -1;
+  const name_val_val* const entry =
+      map_int_to_name_val_val(opcode_tbl, OPCODE_COUNT, op);
+  return entry ? entry->value2 : -1;
 }
 
 /* Pseudo-op dispatcher.  Handled separately from the TYPE

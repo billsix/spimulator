@@ -1,13 +1,12 @@
--- | The lookup tables the C engine builds from opcodes.h, and the C
--- library searches it uses on them.
+-- | The lookup tables the C engine builds from the opcode table, and the C
+-- library search it uses on them.
 --
--- The C engine sorts copies of the table with @qsort@ and searches them
--- with @bsearch@ (instruction.c, scanner.c, spim-utils.c).  A few binary
--- encodings appear on two rows (for example @trunc.w.s@ and @suxc1@ are
--- both @0x4600000d@); which of the two @bsearch@ finds depends on where the
--- rows sit in the sorted array.  glibc's @qsort@ is a stable merge sort,
--- so this module sorts stably and searches with glibc's exact @bsearch@
--- loop, and decodes those encodings to the same mnemonic the C engine does.
+-- The C engine searches sorted tables with @bsearch@ (instruction.c,
+-- scanner.c, spim-utils.c).  The name and token tables have one row per key.
+-- The decode table (binary encoding -> token) does too: several rows share
+-- an encoding (for example @trunc.w.s@ and @suxc1@ are both @0x4600000d@), and
+-- the generated 'opcodeDecodeRows' holds the one row each encoding decodes
+-- to, already sorted (include/opcodes.tsv's decode column).
 module OpcodeTables
   ( NameValVal (..)
   , bsearchBy
@@ -56,8 +55,7 @@ bsearchBy cmp arr = go lo (hi + 1)
 toArray :: [e] -> Array Int e
 toArray xs = listArray (0, length xs - 1) xs
 
--- | Sort on the first value, stably (glibc's merge sort keeps equal keys
--- in their original order).
+-- | Sort on the first value (the keys of these tables are unique).
 sortedOnValue1 :: [NameValVal a] -> Array Int (NameValVal a)
 sortedOnValue1 = toArray . sortBy (comparing nvvValue1)
 
@@ -74,8 +72,8 @@ iOpcodeTable =
 -- | binary opcode -> token  (C: @a_opcode_tbl@).
 aOpcodeTable :: Array Int (NameValVal Int)
 aOpcodeTable =
-  sortedOnValue1
-    [NameValVal (rowName r) (fromIntegral (rowEncoding r)) (opcodeToken (rowOpcode r)) | r <- opcodeRows]
+  toArray
+    [NameValVal (rowName r) (fromIntegral (rowEncoding r)) (opcodeToken (rowOpcode r)) | r <- opcodeDecodeRows]
 
 -- | mnemonic -> (token, operand type), in file order, which the C
 -- scanner searches by name (C: @keyword_tbl@).

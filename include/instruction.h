@@ -226,13 +226,12 @@ void emit_source_clear(void);
 void i_type_inst(int opcode, int rt, int rs, const imm_expr* expr);
 void i_type_inst_free(int opcode, int rt, int rs, imm_expr* expr);
 [[nodiscard]] imm_expr* incr_expr_offset(const imm_expr* expr, int32_t value);
-void initialize_inst_tables(void);
 [[nodiscard]] mips_instruction* inst_decode(int32_t value);
 int32_t inst_encode(const mips_instruction* instruction);
 bool inst_is_breakpoint(mem_addr addr);
 [[nodiscard]] const char* inst_op_name(const mips_instruction* instruction);
 /* Lookup mnemonic for a raw opcode token (TOK_*_OP, TOK_*_POP).
-   Returned pointer is owned by instruction.c's static name_tbl. */
+   Returned pointer is owned by the static opcode_tbl (opcode-tables.h). */
 [[nodiscard]] const char* op_token_name(int op_token);
 void j_type_inst(int opcode, imm_expr* target);
 void k_text_begins_at_point(mem_addr addr);

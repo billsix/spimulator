@@ -1,5 +1,5 @@
-/* Generated from spim include/opcodes.h via
- * scripts/build-keyword-lists.py — do not edit by hand. */
+/* Generated from include/opcodes.tsv by tools/gen_opcodes.py
+ * (make generate) — do not edit by hand. */
 
 module.exports = {
   ASM_DIR: [".alias", ".align", ".ascii", ".asciiz", ".asm0", ".bgnb", ".byte", ".comm", ".data", ".double", ".end", ".endb", ".endr", ".ent", ".err", ".extern", ".file", ".float", ".fmask", ".frame", ".globl", ".half", ".kdata", ".ktext", ".lab", ".lcomm", ".livereg", ".loc", ".mask", ".noalias", ".option", ".rdata", ".repeat", ".sdata", ".set", ".space", ".struct", ".text", ".verstamp", ".vreg", ".word"],

@@ -79,7 +79,6 @@ void initialize_world(const char* exception_file_names, bool print_message) {
               initial_stack_size, (int)initial_stack_limit, initial_k_text_size,
               initial_k_data_size, (int)initial_k_data_limit);
   initialize_registers();
-  initialize_inst_tables();
   initialize_symbol_table();
   k_text_begins_at_point(K_TEXT_BOT);
   k_data_begins_at_point(K_DATA_BOT);
@@ -417,8 +416,8 @@ const name_val_val* map_string_to_name_val_val(const name_val_val tbl[],
 }
 
 /* Return the entry in the linear TABLE of length LENGTH with VALUE1 field NUM.
-   TABLE must be sorted on the VALUE1 field (as initialize_inst_tables'
-   qsort arranges).
+   TABLE must be sorted on the VALUE1 field (the generated opcode tables
+   are; see opcode-tables.h).
    Return nullptr if no such entry exists. */
 
 static int cmp_key_to_value1(const void* key, const void* elem) {

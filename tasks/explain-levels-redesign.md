@@ -115,7 +115,7 @@ hanoi used. Done means:
 
    Then drop the reference doc's "draft" status.
 9. **Gates:** `meson test` (line editing enabled and disabled), a nested `make image` (including the
-   sanitizer gate), and `BUILD_TREE_SITTER=1` if any `opcodes.h` column is touched.
+   sanitizer gate), and `BUILD_TREE_SITTER=1` if any `opcodes.tsv` column is touched.
 
 ## Open questions
 

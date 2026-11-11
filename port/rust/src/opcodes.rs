@@ -1,17 +1,17 @@
-//! The opcode table and the lookups built on it (`include/opcodes.h`,
-//! `include/tokens.h`, and the tables of `scanner.c` and `instruction.c`).
+//! The opcode table and the lookups built on it (`include/tokens.h`, and
+//! the tables of `scanner.c` and `instruction.c`).
 //!
-//! `include/opcodes.h` is the single list of every mnemonic.  The C engine
-//! includes it several times to build several tables; the port generates
-//! one Rust array from it (`opcodes_table.rs`, written by
-//! `tools/gen_opcodes.sh`) and answers every question from that array.
+//! `include/opcodes.tsv` is the single list of every mnemonic.
+//! `tools/gen_opcodes.py` generates the C engine's tables from it, and this
+//! port's (`opcodes_table.rs` and `opcode_types.rs`); the port answers every
+//! question from those arrays.
 
 use std::cmp::Ordering;
 
 use crate::opcode_types::OpType;
 pub use crate::opcodes_table::*;
 
-/// One row of `include/opcodes.h`.
+/// One row of `include/opcodes.tsv`.
 #[derive(Clone, Copy, Debug)]
 pub struct OpcodeRow {
     /// The mnemonic as the student types it (`"addu"`, `".word"`).
@@ -76,7 +76,7 @@ pub fn c_bsearch<T>(table: &[T], compare_key_to: impl Fn(&T) -> Ordering) -> Opt
 
 /// The row for a mnemonic or directive name, as the scanner's
 /// `check_keyword` finds it (a `strcmp` binary search of the table in
-/// `opcodes.h` order).
+/// `opcodes.tsv` order).
 ///
 /// ```
 /// use spimulator::opcodes::{keyword_row, TOK_ADDU_OPCODE};

@@ -7,7 +7,7 @@ Six's [spimulator](https://github.com/billsix/spimulator) fork.
 
 This grammar lives as a subdirectory of the spimulator repo
 (`tree-sitter/`) so the keyword surface stays in lockstep with
-`include/opcodes.h`.  It's for **editor integration only** — syntax
+the opcode table, `include/opcodes.tsv`.  It's for **editor integration only** — syntax
 highlighting, structural navigation, code folds in editors that
 support tree-sitter (Helix, Neovim 0.5+, Zed, Emacs 29+ via
 `treesit.el`, VS Code via wasm).  It does NOT replace the
@@ -49,17 +49,19 @@ the `queries/highlights.scm` query.
 
 The grammar's keyword list (381 entries: 41 directives, 49
 pseudo-ops, 291 real opcodes across 25 instruction-type
-categories) is generated from spim's `include/opcodes.h` X-macro
-table via `scripts/extract-keywords.py` → `scripts/keywords.json`
-→ `scripts/build-keyword-lists.py` → `scripts/keyword-lists.js`.
+categories) comes from spim's opcode table, `include/opcodes.tsv`:
+`tools/gen_opcodes.py` writes it to `scripts/keyword-lists.js`, which
+is committed, along with every other table generated from that file.
 
-To regenerate after `../include/opcodes.h` changes:
+After `../include/opcodes.tsv` changes, regenerate from the repo root
+(`make generate`, see the top-level README), then rebuild the parser:
 
 ```sh
-make    # extract-keywords → keyword-lists → tree-sitter generate → tree-sitter test
+make    # tree-sitter generate → tree-sitter test
 ```
 
-The Makefile hardcodes `../include/opcodes.h` as the source of truth.
+The keyword lists come from `../include/opcodes.tsv` (via
+`../tools/gen_opcodes.py`); the Makefile only builds and tests the parser.
 
 ## Grammar shape
 

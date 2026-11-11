@@ -18,6 +18,7 @@
 #include "scanner.h"
 #include "tokens.h"
 #include "opcode-types.h"
+#include "opcode-tables.h"
 #include "data.h"
 #include "assembler-event.h"
 
@@ -29,7 +30,6 @@ static imm_expr* lower_bits_of_expr(const imm_expr* old_expr);
 static void store_instruction(mips_instruction* instruction);
 static imm_expr* upper_bits_of_expr(const imm_expr* old_expr);
 
-static int compare_pair_value(const void* a, const void* b);
 static void format_imm_expr(str_stream* ss, imm_expr* expr, int base_reg);
 static void i_type_inst_full_word(int opcode, int rt, int rs,
                                   const imm_expr* expr, bool value_known,
@@ -45,9 +45,6 @@ static mips_instruction* mk_co_r_inst(int32_t value, int opcode, int fd, int fs,
                                       int ft);
 static void produce_immediate(const imm_expr* expr, int rt, bool value_known,
                               int32_t value);
-static void sort_a_opcode_table(void);
-static void sort_i_opcode_table(void);
-static void sort_name_table(void);
 
 /* Local variables: */
 
@@ -520,54 +517,9 @@ void free_inst(mips_instruction* instruction) {
   }
 }
 
-/* Maintain a table mapping from opcode to instruction name and
-   instruction type.
-
-   Table must be sorted before first use since its entries are
-   alphabetical on name, not ordered by opcode. */
-
-/* Sort all instruction table before first use. */
-
-void initialize_inst_tables(void) {
-  sort_name_table();
-  sort_i_opcode_table();
-  sort_a_opcode_table();
-}
-
-/* Map from token -> (name, type).  Used by inst_op_name() and similar
-   to render an opcode back to its mnemonic string at disassembly time.
-
-   First of three opcodes.h inclusions in this file.  Each one defines OP()
-   differently to extract the columns that table needs from the same
-   380-row instruction list.  See opcodes.h's top-of-file comment for the
-   X-macro pattern. */
-
-static name_val_val name_tbl[] = {
-#undef OP
-#define OP(NAME, OPCODE, TYPE, R_OPCODE) {NAME, OPCODE, TYPE},
-#include "opcodes.h"
-};
-
-/* Sort the opcode table on their key (the opcode value). */
-
-static void sort_name_table(void) {
-  qsort(name_tbl, sizeof(name_tbl) / sizeof(name_val_val), sizeof(name_val_val),
-        compare_pair_value);
-}
-
-/* Compare the VALUE1 field of two NAME_VAL_VAL entries in the format
-   required by qsort. */
-
-static int compare_pair_value(const void* a, const void* b) {
-  const name_val_val* const p1 = a;
-  const name_val_val* const p2 = b;
-  if (p1->value1 < p2->value1)
-    return (-1);
-  else if (p1->value1 > p2->value1)
-    return (1);
-  else
-    return (0);
-}
+/* The opcode tables (opcode_tbl, opcode_encoding_tbl, opcode_decode_tbl) are
+   generated from include/opcodes.tsv into src/opcode-tables.c, already in
+   the order map_int_to_name_val_val's bsearch needs; see opcode-tables.h. */
 
 /* Print the instruction stored at the memory ADDRESS. */
 
@@ -578,12 +530,12 @@ void print_inst(mem_addr addr) {
 }
 
 /* Return the canonical mnemonic for instruction (e.g. "addu", "ori", "j"), or
-   "<unknown>" if OPCODE(instruction) isn't in name_tbl. The returned pointer is
-   owned by the static name_tbl and must not be freed. */
+   "<unknown>" if OPCODE(instruction) isn't in opcode_tbl. The returned pointer
+   is owned by the static opcode_tbl and must not be freed. */
 const char* inst_op_name(const mips_instruction* instruction) {
   if (instruction == nullptr) return "<null>";
-  const name_val_val* const entry = map_int_to_name_val_val(
-      name_tbl, sizeof(name_tbl) / sizeof(name_val_val), OPCODE(instruction));
+  const name_val_val* const entry =
+      map_int_to_name_val_val(opcode_tbl, OPCODE_COUNT, OPCODE(instruction));
   return entry ? entry->name : "<unknown>";
 }
 
@@ -591,8 +543,8 @@ const char* inst_op_name(const mips_instruction* instruction) {
    return its mnemonic — used by the AST builder to label AST_PSEUDO
    nodes. */
 const char* op_token_name(int op_token) {
-  const name_val_val* const entry = map_int_to_name_val_val(
-      name_tbl, sizeof(name_tbl) / sizeof(name_val_val), op_token);
+  const name_val_val* const entry =
+      map_int_to_name_val_val(opcode_tbl, OPCODE_COUNT, op_token);
   return entry ? entry->name : "<unknown>";
 }
 
@@ -635,8 +587,8 @@ void format_an_inst(str_stream* ss, mips_instruction* instruction,
     return;
   }
 
-  entry = map_int_to_name_val_val(
-      name_tbl, sizeof(name_tbl) / sizeof(name_val_val), OPCODE(instruction));
+  entry =
+      map_int_to_name_val_val(opcode_tbl, OPCODE_COUNT, OPCODE(instruction));
   if (entry == nullptr) {
     ss_printf(ss, "<unknown instruction %d>\n", OPCODE(instruction));
     return;
@@ -1117,42 +1069,18 @@ int addr_expr_reg(const addr_expr* expr) { return (expr->reg_no); }
 /* Map between a SPIM instruction and the binary representation of the
    instruction. */
 
-/* Maintain a table mapping from internal opcode (i_opcode) to actual
-   opcode (a_opcode).  Table must be sorted before first use since its
-   entries are alphabetical on name, not ordered by opcode. */
-
-/* Map from internal opcode -> real opcode.
-
-   Second of three opcodes.h inclusions in this file.  This one keeps the
-   binary encoding in the third slot — used to look up "what bits do I
-   emit for this token?"  See opcodes.h for the X-macro pattern. */
-
-static name_val_val i_opcode_tbl[] = {
-#undef OP
-#define OP(NAME, I_OPCODE, TYPE, A_OPCODE) {NAME, I_OPCODE, (int)A_OPCODE},
-#include "opcodes.h"
-};
-
-/* Sort the opcode table on their key (the interal opcode value). */
-
-static void sort_i_opcode_table(void) {
-  qsort(i_opcode_tbl, sizeof(i_opcode_tbl) / sizeof(name_val_val),
-        sizeof(name_val_val), compare_pair_value);
-}
-
 #define REGS(R, O) (((R) & 0x1f) << O)
 
 int32_t inst_encode(const mips_instruction* instruction) {
   if (instruction == nullptr) return (0);
 
   const name_val_val* entry = map_int_to_name_val_val(
-      i_opcode_tbl, sizeof(i_opcode_tbl) / sizeof(name_val_val),
-      OPCODE(instruction));
+      opcode_encoding_tbl, OPCODE_COUNT, OPCODE(instruction));
   if (entry == nullptr) return 0;
 
   const int32_t a_opcode = entry->value2;
-  entry = map_int_to_name_val_val(
-      name_tbl, sizeof(name_tbl) / sizeof(name_val_val), OPCODE(instruction));
+  entry =
+      map_int_to_name_val_val(opcode_tbl, OPCODE_COUNT, OPCODE(instruction));
 
   switch (entry->value2) {
     case BRANCH_COPROC_COND_INST:
@@ -1246,29 +1174,6 @@ int32_t inst_encode(const mips_instruction* instruction) {
   }
 }
 
-/* Maintain a table mapping from actual opcode to interal opcode.
-   Table must be sorted before first use since its entries are
-   alphabetical on name, not ordered by opcode. */
-
-/* Map from real opcode -> internal opcode (reverse of i_opcode_tbl).
-
-   Third of three opcodes.h inclusions in this file.  Same row data, fields
-   swapped — used to look up "what token decodes this binary
-   encoding?" during disassembly.  See opcodes.h for the X-macro pattern. */
-
-static name_val_val a_opcode_tbl[] = {
-#undef OP
-#define OP(NAME, I_OPCODE, TYPE, A_OPCODE) {NAME, (int)A_OPCODE, (int)I_OPCODE},
-#include "opcodes.h"
-};
-
-/* Sort the opcode table on their key (the interal opcode value). */
-
-static void sort_a_opcode_table(void) {
-  qsort(a_opcode_tbl, sizeof(a_opcode_tbl) / sizeof(name_val_val),
-        sizeof(name_val_val), compare_pair_value);
-}
-
 mips_instruction* inst_decode(int32_t val) {
   int32_t a_opcode = (int32_t)((unsigned int)val & 0xfc000000);
 
@@ -1290,16 +1195,14 @@ mips_instruction* inst_decode(int32_t val) {
              || a_opcode == 0x4c000000)
     a_opcode |= (val & 0x03e00000);
 
-  const name_val_val* const entry = map_int_to_name_val_val(
-      a_opcode_tbl, sizeof(a_opcode_tbl) / sizeof(name_val_val), a_opcode);
+  const name_val_val* const entry =
+      map_int_to_name_val_val(opcode_decode_tbl, OPCODE_DECODE_COUNT, a_opcode);
   if (entry == nullptr)
     return (mk_r_inst(val, 0, 0, 0, 0, 0)); /* Invalid instruction */
 
   const int32_t i_opcode = entry->value2;
 
-  switch (map_int_to_name_val_val(
-              name_tbl, sizeof(name_tbl) / sizeof(name_val_val), i_opcode)
-              ->value2) {
+  switch (map_int_to_name_val_val(opcode_tbl, OPCODE_COUNT, i_opcode)->value2) {
     case BRANCH_COPROC_COND_INST:
       return (mk_i_inst(val, i_opcode, BIN_RS(val), BIN_RT(val), val & 0xffff));
 

@@ -51,11 +51,29 @@ spimulator is built with [Meson](https://mesonbuild.com/) and
 #### Container (any host)
 
 * `podman build -t spimulator .` (or `docker build`).
-* The included `Dockerfile` builds spim on Fedora 44, runs the regression,
+* The included `Dockerfile` builds spim on Fedora 45, runs the regression,
   examples and port test suites, and fails the build on any test failure.
 * The `Makefile` wraps this: `make shell` for a dev container, and
   `make docs` / `html` / `pdf` / `epub` to build the **pgu** book (needs the image
   built with `BUILD_DOCS=1`).
+
+#### Changing the opcode table
+
+The table of every instruction, pseudo-instruction, directive and REPL command
+is `include/opcodes.tsv`, and the operand shapes are in
+`include/opcode-types.tsv`. `tools/gen_opcodes.py` generates from them every
+table built on them: the C engine's, each port's, and the tree-sitter
+grammar's keyword lists. The generated files are committed; never edit one by
+hand.
+
+* [HOST] Edit `include/opcodes.tsv`. Keep the rows in alphabetical order.
+* [HOST] `make generate`: regenerate every table, in the container.
+* [HOST] Commit the data file together with the files `make generate` rewrote.
+* [HOST] `make image`: build and test. The build fails, with a diff, if a
+  committed generated file is out of date.
+
+> A new instruction also needs its execution in the C engine and in each
+> port; the port test suites fail until each port has it.
 
 ### Copyright
 

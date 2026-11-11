@@ -100,6 +100,18 @@ COPY tools/           ${SPIM_SRC_DIR}/tools
 # their tests in the same meson test run).
 COPY port/            ${SPIM_SRC_DIR}/port
 
+# Preprocessing stage: every opcode table is generated from include/opcodes.tsv
+# and include/opcode-types.tsv by tools/gen_opcodes.py, and the generated files
+# are committed.  Regenerate them here and compare with what was copied in: a
+# committed file that is out of date fails the build, with a diff.  Developers
+# regenerate with `make generate` and commit the result.  The C output is
+# formatted with the repo's .clang-format, so it is copied first.
+COPY .clang-format ${SPIM_SRC_DIR}/
+# The grammar's keyword lists are generated too; the rest of tree-sitter/ is
+# copied later, so a grammar edit does not rebuild the engine layers.
+COPY tree-sitter/scripts/keyword-lists.js ${SPIM_SRC_DIR}/tree-sitter/scripts/keyword-lists.js
+RUN cd ${SPIM_SRC_DIR} && python3 tools/gen_opcodes.py --check
+
 # Build from source.  --prefix sets the install root explicitly; meson's
 # default on Unix is also /usr/local, but spelling it out keeps the
 # Dockerfile self-documenting.
@@ -193,7 +205,6 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
     fi
 
 
-COPY .clang-format ${SPIM_SRC_DIR}/
 COPY .clang-tidy   ${SPIM_SRC_DIR}/
 
 RUN echo 'exit() {' >> ~/.bashrc && \
