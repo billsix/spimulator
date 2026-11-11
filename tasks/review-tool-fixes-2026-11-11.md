@@ -36,7 +36,7 @@ input.
 - **`port/rust/tests/cformat_vs_c.rs:96-99`** "skips" on any compile failure. Covered by
   `tasks/archive/2026/11/11/port-float-comparison-and-formatter-gates.md`.
 - **`tests/run-test.sh:352`** pipes spim into `grep -v`, losing its status. Covered by
-  `tasks/tests-check-exit-status.md`.
+  `tasks/archive/2026/11/11/tests-check-exit-status.md`.
 
 ## Plan
 
