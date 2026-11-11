@@ -1,35 +1,39 @@
 # Check the exit status in every sentinel and demo test
 
-**Status:** proposed — needs go-ahead
-**Priority:** 4
-**Difficulty:** 3
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
+**Branch:** `review-2026-11-11-batch`
 **Source:** tasks/review/2026/11/11/repo-review.md §6.2 F8
 
-## BLUF
+## Outcome
 
-About 45 tests check only output. A port, or the C engine, that prints the right lines and then
-crashes passes them, although `port/README.md` says ports must match the exit status. Done means
-every test in `tests/run-test.sh` and `examples/tests/run-demo.sh` checks the status it expects.
+- **`tests/run-test.sh`:** 22 spim runs checked only their output. Each now ends `; rc=$?` and
+  `expect_exit N "$rc"`, with N the status the C engine gives. Most programs return main's `$v0`,
+  which is 4 after a last `print_str`; the REPL sessions exit 0.
+- **The `explain` test** pipes spim into `grep -v`; it now reads spim's status through
+  `${PIPESTATUS[0]}`.
+- **`examples/tests/run-demo.sh`** compares the asm run's status with the C binary's for every demo,
+  not only the two with a pinned `.expected-status` file.
 
-## Context
+These tests also run against each port, so a port that prints the right output and then crashes now
+fails.
 
-- `tests/run-test.sh:39-113`: the sentinel tests call `expect_sentinel` and never look at `$?`.
-  `stderr_split` (around :234) doesn't either.
-- `examples/tests/run-demo.sh:270-276` checks the status only for `exit-demo` and `atexit-demo`
-  (`<demo>.expected-status`).
-- `tests/run-test.sh:352` pipes spim into `grep -v`, which loses spim's exit status (§5.10).
-- These tests also run against every port (`port/meson.build`), so the fix covers all four engines
-  at once.
+## Found on the way
 
-## Plan
+- **`tests/tt.explain.s` exits 132 under `-explain=1` and `-explain=2`, and 0 without `-explain`.**
+  The teaching mode's memory peeks raise an exception the program never does: explain-mode bug 1,
+  the 2026-11-10 review's §3.6. The explain golden had been pinning that run. The test pins 132,
+  with a comment, until `tasks/explain-mode-correctness-bugs.md` fixes it; then it becomes 0.
+- **`examples/src/intro/yes/yes.asm`** prints `y` forever, so `harness-holes`' new rule (a C-side
+  timeout fails) failed its run and listing modes. They are now skipped by name, with the reason,
+  in `port/harness/compare_all_programs.py`.
 
-1. In `tests/run-test.sh`, capture `rc` for each sentinel test and `expect_exit` the status the program
-   returns (most return main's `$v0`; look each up by running C). Use `${PIPESTATUS[0]}` at :352.
-2. In `examples/tests/run-demo.sh`, compare the C binary's status with the asm run's status for every demo, not only
-   the two with `.expected-status` files.
-3. Gate: `meson test` (regression, examples, and the port suites) and `make image`.
+## How
 
-## Open questions
+The expected statuses were read from the C engine, not written by hand. A placeholder
+`expect_exit __RC__` went after each run; a scratch copy of the runner, whose `expect_exit` printed
+the status and line at each placeholder, ran each test against C; and the 22 values were filled in.
 
-None.
+## Verification
+
+Regression 40/40, examples 35/35, and port-python, port-haskell and port-rust all pass.
