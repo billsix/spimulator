@@ -746,6 +746,10 @@ def _parse_pseudo(op: int) -> None:
     saved: Node | None = _current_pseudo
     _current_pseudo = node
     _expand_pseudo(op)
+    # The expansion is the pseudo-op's line, even when its last operand read
+    # on to the newline before a child was built.
+    for child in node.children:
+        child.source_line = node.source_line
     _current_pseudo = saved
     _append(node)
 

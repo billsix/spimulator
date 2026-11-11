@@ -7,8 +7,9 @@ directive and label, with a pseudo-instruction (``li``, ``bge``, ...) as a
 
 Three teaching views print the tree: ``-print-ast`` (indented text),
 ``-print-ast-json`` (one JSON line) and ``-show-expansion`` (just the
-pseudo-instructions).  Their output matches the C engine byte for byte,
-including the opcode token numbers (``op=309``).
+pseudo-instructions).  Their output matches the C engine byte for byte: the
+text dumps name each instruction's mnemonic (``op=addu``), the JSON dump its
+opcode token number.
 
 Like the C ``ast_node`` (a tagged union), one class holds every kind's
 fields; each kind uses only some of them.
@@ -162,25 +163,23 @@ def _describe(node: Node) -> str:
         case Kind.FILE:
             return f"FILE source={node.name if node.name is not None else '(stdin)'}"
         case Kind.INST_R:
-            return f"INST_R op={node.op} rd={node.rd} rs={node.rs} rt={node.rt}"
+            return f"INST_R op={opcodes.name_of(node.op)} rd={node.rd} rs={node.rs} rt={node.rt}"
         case Kind.INST_R_SHIFT:
             return (
-                f"INST_R_SHIFT op={node.op} rd={node.rd} rt={node.rt}"
+                f"INST_R_SHIFT op={opcodes.name_of(node.op)} rd={node.rd} rt={node.rt}"
                 f" shamt={node.shamt}"
             )
         case Kind.INST_I:
             return (
-                f"INST_I op={node.op} rt={node.rt} rs={node.rs}"
+                f"INST_I op={opcodes.name_of(node.op)} rt={node.rt} rs={node.rs}"
                 f" imm={_imm_text(node.imm)}"
             )
         case Kind.INST_J:
-            return f"INST_J op={node.op} target={_imm_text(node.imm)}"
+            return f"INST_J op={opcodes.name_of(node.op)} target={_imm_text(node.imm)}"
         case Kind.INST_FP_R:
-            return f"INST_FP_R op={node.op} fd={node.fd} fs={node.fs} ft={node.ft}"
+            return f"INST_FP_R op={opcodes.name_of(node.op)} fd={node.fd} fs={node.fs} ft={node.ft}"
         case Kind.INST_FP_COMPARE:
-            return (
-                f"INST_FP_COMPARE op={node.op} fs={node.fs} ft={node.ft} cc={node.cc}"
-            )
+            return f"INST_FP_COMPARE op={opcodes.name_of(node.op)} fs={node.fs} ft={node.ft} cc={node.cc}"
         case Kind.PSEUDO:
             return f"PSEUDO mnemonic={node.mnemonic}"
         case Kind.DATA_BYTE | Kind.DATA_HALF | Kind.DATA_WORD:

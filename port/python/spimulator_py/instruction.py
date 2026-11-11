@@ -790,10 +790,15 @@ def format_an_inst(inst: Instruction | None, addr: int) -> str:
 
 
 def inst_to_string(addr: int) -> str:
-    """The disassembly line of the instruction at addr."""
-    traps.exception_occurred = False
-    inst: Instruction | None = memory.read_inst(addr)
-    if traps.exception_occurred:
+    """The disassembly line of the instruction at addr.
+
+    The read is side-effect free: showing an instruction neither raises nor
+    clears the exception the program's own step raised.
+    """
+    in_text: bool
+    inst: Instruction | None
+    in_text, inst = memory.peek_inst(addr)
+    if not in_text:
         console.error(f"Can't print instruction not in text segment (0x{addr:08x})\n")
         return ""
     return format_an_inst(inst, addr)

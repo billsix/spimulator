@@ -215,6 +215,26 @@ def read_inst(addr: int) -> Instruction | None:
     return instruction.inst_decode(0)
 
 
+def peek_inst(addr: int) -> tuple[bool, Instruction | None]:
+    """The instruction at addr, read without side effects (C ``mem_peek_inst``).
+
+    For code that only shows memory, such as the disassembler: it raises no
+    exception and touches no register.
+
+    Returns:
+        ``(True, the instruction)`` (which may be ``None`` for an empty slot)
+        when addr is an aligned text-segment location, else ``(False, None)``.
+    """
+    if addr & 3:
+        return (False, None)
+    elif layout.TEXT_BOT <= addr < text_top:
+        return (True, text_seg[(addr - layout.TEXT_BOT) >> 2])
+    elif layout.K_TEXT_BOT <= addr < k_text_top:
+        return (True, k_text_seg[(addr - layout.K_TEXT_BOT) >> 2])
+    else:
+        return (False, None)
+
+
 def read_byte(addr: int) -> int:
     """The signed byte at addr (C ``mem_read_byte``)."""
     if layout.DATA_BOT <= addr < data_top:
