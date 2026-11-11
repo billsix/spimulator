@@ -268,6 +268,21 @@ case "$NAME" in
     grep -q '^-stext 0: the text segment needs at least one word (4 bytes)$' "$out" \
       || fail "missing the -stext error"
     ;;
+  stack_overflow)
+    # Recursion past -lstack stops the run with the stack-growth message, and
+    # a run-time error that stops a run exits 1 (it used to exit 0).
+    timeout 10 "$SPIM" -lstack 65536 -exception_file "$EF" -f tt.stack_overflow.s >"$out" 2>&1; rc=$?
+    expect_exit 1 "$rc"
+    grep -q "^Can't expand stack segment by " "$out" || fail "missing the stack-growth message"
+    ;;
+  kernel_round_trip)
+    # teq traps into the kernel handler, which returns with eret: the program
+    # carries on in user mode (EXL clear before and after) and exits 128+13.
+    "$SPIM" -exception_file "$EF" -f tt.kernel_round_trip.s >"$out" 2>&1; rc=$?
+    expect_exit 141 "$rc"
+    grep -q 'Exception 13  \[Trap\]  occurred and ignored' "$out" || fail "the trap was not handled"
+    [ "$(grep -cx '0' "$out")" -eq 2 ] || fail "EXL is not clear before and after the trap"
+    ;;
   imm_range)
     # An out-of-range immediate is reported on the instruction's own line (7),
     # not the next one, and the program still assembles and runs.

@@ -1098,12 +1098,17 @@ pub fn main() -> i32 {
             let status: i32 = engine.machine.return_value;
             engine.exit(if status != 0 { status } else { 1 });
         }
-        let _ = catch_run_error(|| {
+        let finished: Option<(bool, bool)> = catch_run_error(|| {
             let start: u32 = engine.machine.find_symbol_address("__start");
             engine
                 .machine
                 .run_program(start, DEFAULT_RUN_STEPS, false, false)
         });
+        // run_error printed why the run stopped; exit 1 unless the program
+        // already set its own status.
+        if finished.is_none() && engine.machine.return_value == 0 {
+            engine.machine.return_value = 1;
+        }
         // A fault the program did not report itself through exit2 becomes
         // the exit status 128 + its exception code.
         if engine.machine.first_bad_exception != -1 && engine.machine.return_value == 0 {

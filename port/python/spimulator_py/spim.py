@@ -399,7 +399,10 @@ def _after_arguments(
                     False,
                 )
             except console.RunError:
-                pass  # run_error printed its message; C longjmps to here
+                # run_error printed why the run stopped; exit 1 unless the
+                # program already set its own status (C lands its longjmp here).
+                if options.spim_return_value == 0:
+                    options.spim_return_value = 1
             console.console_to_spim()
             if traps.first_bad_exception != -1 and options.spim_return_value == 0:
                 # A fault the program did not survive cleanly: 128 + ExcCode, like

@@ -46,3 +46,5 @@ range_checks   | -                 | -exception_file EF -f tt.range_checks.s
 register_pair  | -                 | -exception_file EF -f tt.register_pair.s
 small_ktext    | -                 | -sktext 0 -exception_file EF -f tt.le.s
 small_text     | -                 | -stext 0 -exception_file EF -f tt.le.s
+stack_overflow | -                 | -lstack 65536 -exception_file EF -f tt.stack_overflow.s
+kernel_trip    | -                 | -exception_file EF -f tt.kernel_round_trip.s

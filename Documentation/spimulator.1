@@ -139,8 +139,9 @@ The program's status: the value it passes to the exit2 syscall (17), or
 128 plus the exception code, if an exception occurred and the program did not
 set a non-zero status itself (an unaligned load exits 132).
 .IP \(bu 3
-2 after an assembly error, 1 when the files cannot be loaded or a symbol is
-undefined, and 255 after an internal error.
+2 after an assembly error; 1 when the files cannot be loaded, a symbol is
+undefined, or a run-time error (such as a stack that cannot grow past
+\fB\-lstack\fP) stops the run; and 255 after an internal error.
 .SH FILES
 .IP src/exceptions.s 8
 The source of the default exception handler, built into the program.

@@ -747,6 +747,13 @@ int main(int argc, char** argv) {
            to drop into); status flows out via spim_return_value. */
         (void)run_program(find_symbol_address(DEFAULT_RUN_LOCATION),
                           DEFAULT_RUN_STEPS, false, false, &continuable);
+      } else if (spim_return_value == 0) {
+        /* run_error stopped the run (it printed why, e.g. a stack that cannot
+           grow): exit 1, as a run-time error while loading does, unless the
+           program already set its own status. */
+        spim_return_value = 1;
+      } else {
+        /* run_error stopped the run after the program set its status. */
       }
       console_to_spim();
 
