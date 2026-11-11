@@ -13,6 +13,8 @@
 #                           and exit status against the C engine, case by case
 #     <name>-all-programs   port/harness/compare_all_programs.py: every .s/.asm
 #                           in the repo, assembled six ways and run, against C
+#     <name>-repl           port/harness/compare_repl.py: each REPL session in
+#                           port/harness/repl_corpus/, whole transcript, against C
 #
 # plus, per port, a check of its float formatter against glibc's printf (each
 # port must print the C engine's five float formats byte for byte; the
@@ -77,6 +79,12 @@ foreach port : ports
               '--engine', port_exe],
        depends: spimulator_exe,
        suite: port_suite, timeout: 3600)
+  test(port_name + '-repl', python3,
+       args: [meson.current_source_dir() / 'harness' / 'compare_repl.py',
+              '--reference', spimulator_exe.full_path(),
+              '--engine', port_exe],
+       depends: spimulator_exe,
+       suite: port_suite, timeout: 1800)
 endforeach
 
 test('haskell-annotations',

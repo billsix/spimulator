@@ -83,6 +83,9 @@ history (who did what, in what order, and the C bugs the ports found) is in
 - `port/harness/compare_engines.py`: 33 cases from `port/harness/corpus.txt`;
 - `port/harness/compare_all_programs.py`: every `.s`/`.asm` in the repo, assembled six ways and run,
   about 1,300 cases, six skipped by name (two step-limit programs and yes(1), in run and listing modes).
+- `port/harness/compare_repl.py`: 26 REPL sessions from `port/harness/repl_corpus/`, covering every
+  command in `src/spim.c`'s command table, compared as whole transcripts (stdout, stderr, exit
+  status and any `dump` files).
 
 The image build runs them all. A behavior change in C fails every port's suite until the port
 follows it. A new port is an entry in `ports`, plus `tools/add_port_lines.py NAME LABEL` for the

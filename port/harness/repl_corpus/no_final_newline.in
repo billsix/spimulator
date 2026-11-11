@@ -1,0 +1,2 @@
+load "tt.le.s"
+print $sp

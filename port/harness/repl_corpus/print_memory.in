@@ -1,0 +1,11 @@
+load "tt.le.s"
+print 0x10010000
+
+
+print 0x400000
+print 4($sp)
+print 4(
+print main
+print nosuchlabel
+print
+exit

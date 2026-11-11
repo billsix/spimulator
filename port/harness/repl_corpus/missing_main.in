@@ -1,0 +1,3 @@
+load "tt.missing_main.s"
+run
+exit

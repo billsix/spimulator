@@ -1,0 +1,4 @@
+load "tt.stderr_split.s"
+run
+run
+exit

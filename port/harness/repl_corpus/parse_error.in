@@ -1,0 +1,3 @@
+load "tt.parse_error.s"
+run
+exit

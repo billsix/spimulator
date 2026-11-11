@@ -1,0 +1,4 @@
+read "nosuch.s"
+read
+load 5
+exit

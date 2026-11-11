@@ -1,0 +1,5 @@
+load "tt.le.s"
+reinitialize
+load "tt.dir.s"
+run
+exit

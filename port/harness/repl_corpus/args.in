@@ -1,0 +1,6 @@
+read "tt.args-cmd.s"
+args zebra
+run
+args amber 12 "q s"
+run
+quit

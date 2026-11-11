@@ -1,0 +1,4 @@
+print_all_regs
+print_all_regs hex
+print_all_regs
+exit

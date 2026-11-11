@@ -1,0 +1,15 @@
+load "tt.core.s"
+print $sp
+print $f2
+print $f3
+print $pc
+print $hi
+print $status
+print $badvaddr
+print $epc
+print $cause
+print $fpcond
+print $lo
+print $f33
+print $99
+exit

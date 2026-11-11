@@ -1,0 +1,7 @@
+load "tt.le.s"
+dump "a.dump"
+dumpnative "b.dump"
+dump
+dump "/nonexistent/x"
+dump 5
+exit
