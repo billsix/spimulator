@@ -110,11 +110,11 @@ constexpr int STACK_LIMIT = 256 * kilo; /* Max stack segment.  1/4 MB */
 
 /* Name of the function to invoke at start up */
 
-#define DEFAULT_RUN_LOCATION "__start"
+constexpr char DEFAULT_RUN_LOCATION[] = "__start";
 
 /* Name of the symbol marking the end of the exception handler */
 
-#define END_OF_TRAP_HANDLER_SYMBOL "__eoth"
+constexpr char END_OF_TRAP_HANDLER_SYMBOL[] = "__eoth";
 
 /* Default number of instructions to execute. */
 constexpr int DEFAULT_RUN_STEPS = INT_MAX;
