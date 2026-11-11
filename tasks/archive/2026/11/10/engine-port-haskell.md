@@ -51,7 +51,8 @@ values it is **byte-identical to glibc `printf`** in every one of them. The valu
 64-bit patterns, values near every decimal exponent from 1e-30 to 1e30, subnormals, the extremes,
 ±0, ±inf, ±nan, eighths and single-precision values.
 
-**Other risks, with the planned answer:**
+**Other risks, with the planned answer** (*note, 2026-11-11:* written before the work; where the
+Decisions below differ, as for the build, they are what was done):
 - **Fixed-width integers:** `Data.Int`/`Data.Word` (`Int32`, `Word32`, …) wrap like C's unsigned
   types. Use `quot`/`rem`, which truncate like C, never `div`/`mod`, which floor.
   `Data.Bits.shiftR` on `Int32` is arithmetic and on `Word32` logical, which matches MIPS `sra`/`srl`

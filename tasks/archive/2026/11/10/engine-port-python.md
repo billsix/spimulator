@@ -170,6 +170,9 @@ regression test; the port then followed the fixed C engine (Log, "after the C fi
   harness was outside the brief too. `tasks/adhoc/engine-port-python/diff_engines.py --run` covers
   every `.s` under `tests/`, `examples/` and `pgu/` locally (172 programs identical), and the
   meson suite covers the 34 demos and the documented example commands.
+- *Note, 2026-11-11:* both were done afterwards. `entrypoint/05-install-ports.sh` installs the
+  ports' toolchains, and `port/harness/compare_all_programs.py` (meson `<port>-all-programs`)
+  compares every program in the tree.
 - Lessons for the other ports are in `tasks/reference/engine-port-language-choice.md`, "What the
   Python port found".
 

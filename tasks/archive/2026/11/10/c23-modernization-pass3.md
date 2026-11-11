@@ -44,10 +44,12 @@ arguments, an explicit `(unsigned)` for `long l->addr` printed with `%08x`).
 - **Scanner push/pop snapshot:** still field-by-field; the state is separate file-scope globals
   including arrays, so a compound literal does not apply without regrouping the state.
 - **`memset` of heap segments and the global register arrays**: arrays cannot be reassigned with `= {}`.
-- **`expand_k_data`**: untouched, because it carries audit bug §3.3 for its own fix.
+- **`expand_k_data`**: untouched, because it carries audit bug §3.3 for its own fix (since fixed:
+  it zeroes the new byte range, as `expand_data` does).
 - **`main`'s locals**: untouched (setjmp function).
 - **String macros** `DEFAULT_RUN_LOCATION`, `END_OF_TRAP_HANDLER_SYMBOL`: a `constexpr char[]` would
-  be `const` and the consumers take `char*`; needs const-correct `find_symbol_address` first.
+  be `const` and the consumers take `char*`; needs const-correct `find_symbol_address` first (since done, in
+  `tasks/archive/2026/11/11/c23-const-correctness-pass.md`, `aebc787`).
 - **`unreachable()`, `auto`, `_BitInt`, digit separators, `gnu23` → `c23`**: declined as in pass 1/2
   (audit §4.10).
 - **`read_input` `[[nodiscard]]`**: two syscall paths ignore its result on purpose.

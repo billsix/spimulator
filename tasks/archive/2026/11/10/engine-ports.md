@@ -40,7 +40,7 @@ fixed in C with a test (`9d67b77`, `e3742a3`). The rules every port follows are 
 - **The Python port finished first** (commits `d784b79`..`d2e168f`; registered in `port/meson.build`).
   The gate `make image` with it registered passed: 128 meson tests (64 of them the `port-python`
   suite), and the regression suite under UBSan and ASan.
-- **The Haskell port finished second** and was merged (`7654498`, the `engine-port-haskell` merge), but not registered yet (below).
+- **The Haskell port finished second** and was merged (`7654498`, the `engine-port-haskell` merge), and registered later the same day (below).
 - **The ports found nine more C engine bugs between them** (logged in each port's task, "C engine
   bugs found"). Six were fixed in C (`9d67b77`, each with a test that fails before the fix), because
   the C engine is the standard and two ports had already chosen different behavior where C crashed.
@@ -64,5 +64,5 @@ fixed in C with a test (`9d67b77`, `e3742a3`). The rules every port follows are 
   can step from 9 to 11 when the engine is descheduled. Fixed in the test (`cc630f3`, wait while
   Count < 10); no hang in 384 loaded runs.
 - **Left for later:** the teaching mode (`tasks/engine-ports-teaching-mode.md`, blocked on the C
-  redesign), and upstream's `tt.alu.bare.s` (`tasks/alu-bare-test-assembler-strictness.md`, needs a
-  decision).
+  redesign), and upstream's `tt.alu.bare.s` (`tasks/archive/2026/11/11/alu-bare-test-assembler-strictness.md`,
+  since done).

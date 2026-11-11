@@ -5,7 +5,7 @@ Filed May 2026 during the post-C23 ASan/valgrind audit; pre-existing.
 
 Durable design knowledge (ownership model, AST-only emit architecture, the
 deferred-emit source-annotation fix) lives in
-[`tasks/reference/parser-ast-emit.md`](../../../reference/parser-ast-emit.md).
+`tasks/reference/parser-ast-emit.md`.
 This is just the work record.
 
 ## What was done

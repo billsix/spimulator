@@ -11,8 +11,9 @@ The new `.dockerignore` excludes:
   image's own `make` in `tree-sitter/`, so `COPY tree-sitter/` no longer brings the host's copies.
 - `.git`, `.crush/`, `builddir/`, `*.tar`.
 
-Not changed here: the `Dockerfile` still runs the MELPA install at build when `USE_EMACS=1`, which the
+Not changed here: the `Dockerfile` still ran the MELPA install at build when `USE_EMACS=1`, which the
 Emacs contract forbids (github.com/billsix/runClaudeInContainer `tasks/emacs-contract-conformance.md`).
+That step was removed the same day (`b6e476e`).
 `pgu/` has its own context and copies only `.clang-format`, so it got no ignore file.
 
 ## Verification (2026-11-08, nested podman, default `make image` flags)
