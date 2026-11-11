@@ -55,6 +55,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f bubble-sort.asm < bubble-sort.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f bubble-sort.asm < bubble-sort.input
  */
 /* clang-format on */
 

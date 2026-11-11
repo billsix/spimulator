@@ -68,6 +68,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f rot13.asm < rot13.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f rot13.asm < rot13.input
  */
 /* clang-format on */
 

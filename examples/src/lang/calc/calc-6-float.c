@@ -51,6 +51,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f calc-6-float.asm < calc-6-float.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f calc-6-float.asm < calc-6-float.input
  */
 /* clang-format on */
 

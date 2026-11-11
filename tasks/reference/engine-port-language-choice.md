@@ -196,7 +196,45 @@ GHC's `Text.Printf` and `Numeric.showFFloat` format from the shortest round-trip
 exponent, ties-to-even rounding, the `%g` fixed/exponential rule, `#`, width, `inf`/`nan` by the sign
 bit. `tasks/adhoc/engine-ports-float-format/CFormat.hs` implements all five formats the C engine uses
 (`%.8f`, `%.18g`, `%.17g`, `%g`, `%#-13.6g`). It is byte-identical to glibc on 158,029 values
-(`bash tasks/adhoc/engine-ports-float-format/run.sh`). Detail: `tasks/engine-port-haskell.md`.
+(`bash tasks/adhoc/engine-ports-float-format/run.sh`). Detail: `tasks/archive/2026/11/10/engine-port-haskell.md`.
+The port's copy is `port/haskell/src/CFormat.hs`, checked by `port/haskell/tests/check-format.sh`.
+
+### What the Haskell port taught (2026-11-10)
+
+Measured while writing `port/haskell/` (`tasks/archive/2026/11/10/engine-port-haskell.md`, Log). Every check in the
+corpus matched the C engine on the port's first full run; the risks the study named were real, but
+each had a direct answer.
+
+- **State threading was not the obstacle the study expected.** One record of `IORef`s and
+  `IOUArray`s (`port/haskell/src/State.hs`), passed as the first argument, transcribes the C globals
+  one to one. The pure parts stay pure: encoding, decoding, the opcode tables, the AST printers, the
+  float formatter. The scanner and parser cannot be pure without changing behavior: the C scanner
+  classifies a word (keyword, constant, identifier) when it is scanned, through a 3-token
+  look-ahead, against a symbol table the parse changes.
+- **The C struct's unions matter.** `mips_instruction` overlays the register bytes, the 16-bit
+  immediate and the 26-bit target, and the engine relies on it (FD lives in the shamt byte). The
+  port keeps one `Word32` with byte accessors.
+- **The C library's searches are part of the output.** Six encodings sit on two opcode rows each;
+  `bsearch` over a `qsort`ed table picks one. Reproducing glibc's stable merge sort and its exact
+  `bsearch` loop reproduces the choice (disassembling 0x4600000f gives `prefx`, not `floor.w.s`).
+  The other ports need the same.
+- **Reading numbers matters as much as printing them.** `atof` is in the assembler (FP literals) and
+  in read_float/read_double; an exact `Rational` conversion rounded once matches glibc on 60,035
+  strings, once NaN is glibc's positive quiet NaN (GHC's `0/0` is negative) and keeps a `nan(n)`
+  payload (`port/haskell/tests/check-strtod.sh`).
+- **The environment is on the simulated stack.** The engine copies `environ` onto the stack, so any
+  wrapper (a launcher script, an interpreter that sets variables) moves `$sp`. The Haskell launcher
+  re-execs with the exact environment it received (`/proc/$$/environ`, `env -i`). Python run in
+  an empty environment adds `LC_CTYPE=C.UTF-8` to `os.environ` (PEP 538 locale coercion; measured:
+  `env -i python3 -c 'import os; print(dict(os.environ))'`, also with `-I`), a trap for a Python
+  engine or launcher that copies `os.environ` onto the stack.
+- **Input must not be buffered.** The C engine reads fd 0 one byte at a time, and a program run from
+  the REPL reads the lines after `run`; a buffered reader (a GHC `Handle`) would swallow them. The
+  port calls the C library's `read` through the FFI.
+- **cabal cannot build offline without a package index**, even when every dependency ships with
+  GHC; plain `ghc --make` can (about 15 s for the port from scratch).
+- **Speed is no problem**: the port runs `tests/time.s` (10 million loop iterations) in 1.8 s, against
+  11.7 s for the debug C build, which calls `getitimer` on every instruction.
 
 ## What the Python port found (2026-11-10)
 

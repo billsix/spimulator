@@ -50,6 +50,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f bubble-sort-core-test.asm
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f bubble-sort-core-test.asm
  */
 /* clang-format on */
 

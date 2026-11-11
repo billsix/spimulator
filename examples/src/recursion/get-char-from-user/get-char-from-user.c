@@ -38,6 +38,10 @@
  *     $ printf 'abc\n' | spimulator-python -f get-char-from-user-1.asm
  *     $ printf 'abc\n' | spimulator-python -f get-char-from-user-2.asm
  *
+ *   the same assembly versions, in the GHC Haskell port:
+ *     $ printf 'abc\n' | spimulator-haskell -f get-char-from-user-1.asm
+ *     $ printf 'abc\n' | spimulator-haskell -f get-char-from-user-2.asm
+ *
  *   get-char-from-user-1.asm is the deliberately broken version: its
  *   misaligned stack slot raises address-error exceptions.  -2.asm
  *   is the fixed one; it prints the value before the character.

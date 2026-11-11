@@ -29,6 +29,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f comm.asm comm.c comm.c
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f comm.asm comm.c comm.c
  */
 /* clang-format on */
 

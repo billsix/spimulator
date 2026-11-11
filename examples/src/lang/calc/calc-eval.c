@@ -55,6 +55,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f calc-eval.asm < calc-sdt.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f calc-eval.asm < calc-sdt.input
  */
 /* clang-format on */
 

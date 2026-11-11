@@ -42,6 +42,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f cat.asm cat.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f cat.asm cat.input
  */
 /* clang-format on */
 

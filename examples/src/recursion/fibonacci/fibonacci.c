@@ -68,6 +68,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f fibonacci.asm 10
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f fibonacci.asm 10
  */
 /* clang-format on */
 

@@ -48,6 +48,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f rpn-3-float.asm < rpn-3-float.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f rpn-3-float.asm < rpn-3-float.input
  */
 /* clang-format on */
 

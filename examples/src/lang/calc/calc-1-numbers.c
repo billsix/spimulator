@@ -48,6 +48,9 @@
  *
  *   the same assembly, in the Python port:
  *     $ spimulator-python -f calc-1-numbers.asm < calc-1-numbers.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f calc-1-numbers.asm < calc-1-numbers.input
  */
 /* clang-format on */
 
