@@ -1,31 +1,17 @@
-# Make the usage text list every flag, in all four engines
+# Made the usage text list every flag, in all four engines
 
-**Status:** proposed — needs go-ahead
-**Priority:** 7
-**Difficulty:** 2
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
 **Found by:** `tasks/archive/2026/11/11/man-page-rewrite.md`
 
-## BLUF
+## Summary
 
-The usage text the engine prints for a bad argument (`src/spim.c`, the usage string near `-assemble`)
-says `Usage: spim` and leaves out `-stext`/`-sdata`/`-sstack`/`-sktext`/`-skdata`, `-ldata`/`-lstack`/
-`-lkdata`, `-trap`/`-notrap`/`-trap_file`, `-pseudo`/`-nopseudo` and the short forms. Done means it
-names the program `spimulator` and lists every option the parser accepts, as
-`Documentation/spimulator.1` does, in C and in the three ports, with the port suites green.
-
-## Context
-
-- `Documentation/spimulator.1` is the complete list, written from the parser on 2026-11-11.
-- The ports print the same usage text, and the harness compares stderr (the `missing_flag_value`
-  corpus case), so the change goes into `port/python/`, `port/haskell/` and `port/rust/` with C.
-- Reproduce: `spimulator -h` prints "Unknown argument: -h (ignored)" and then the usage.
-
-## Plan
-
-1. Rewrite the usage string from the man page's option list, keeping one line per option.
-2. Make the same change in each port; run `meson test` (regression and the port suites).
-
-## Open questions
-
-None.
+The usage text printed for a bad argument (`src/spim.c`) said `Usage: spim` and left out the
+segment sizes and limits, `-pseudo`/`-nopseudo`, the `-trap` aliases and every short form. It now
+reads `Usage: spimulator [option ...] [-file] file [-file file ...] [program arguments]` and lists
+each option the parser accepts, one line each, with its short form. The list comes from
+`Documentation/spimulator.1`, whose "-explain" lines the explain-mode fix
+(`tasks/archive/2026/11/11/explain-mode-correctness-bugs.md`) had just updated. Python, Haskell and
+Rust each print the C string byte for byte, generated from the C literal; a bad argument gives
+identical stderr and exit status in all four engines. Gates: the regression suite (51/51) and every
+port suite (`meson test` 340/340).
