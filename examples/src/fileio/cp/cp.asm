@@ -57,6 +57,7 @@
 #  (Uses a nonexistent SRC so open() fails BEFORE any DST is created,
 #   so the checker creates no files; exercises the src-error path.)
 #  args: /no_such_src_xyz /no_such_dst
+#  status: 1
 #  stdout:
 #  | cp: cannot open /no_such_src_xyz
 

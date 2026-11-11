@@ -51,6 +51,7 @@
 #   and NO file is created when the checker runs; exercises the error
 #   path.  The success path writes no stdout, only a file side effect.)
 #  args: /no_such_dir_xyz/f
+#  status: 1
 #  stdout:
 #  | touch: cannot create /no_such_dir_xyz/f
 

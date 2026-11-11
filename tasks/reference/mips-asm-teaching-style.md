@@ -156,8 +156,10 @@ and fails on a mismatch:
 #  | 120
 ```
 
-`stdin: <path rel to examples/src>` replaces `args:` for stdin-driven demos. The checker
-guarantees the canonical run's **final output** — the anchor the snapshot values are derived
+`stdin: <path rel to examples/src>` replaces `args:` for stdin-driven demos, and `status: N`
+pins a canonical run that exits nonzero (the error-path runs of `cp.asm` and `touch.asm`; the
+default is 0). The checker compares stdout and the exit status, and fails when it finds no block.
+It guarantees the canonical run's **final output** — the anchor the snapshot values are derived
 from. The intermediate slot/register values in the diagram remain **human-traced from that
 same canonical run** and human-reviewed; the checker does not single-step them. Run it with
 `SPIM=builddir/spimulator python3 tools/check_asm_canonical.py <files>` (or `--all`). It is
