@@ -653,28 +653,39 @@ int main(int argc, char** argv) {
 
   if (print_usage_msg) {
     error(
-        "Usage: spim\n\
-	-bare			Bare machine (no pseudo-ops, delayed branches and loads)\n\
-	-asm			Extended machine (pseudo-ops, no delayed branches and loads) (default)\n\
-	-delayed_branches	Execute delayed branches\n\
-	-delayed_loads		Execute delayed loads\n\
-	-exception		Load exception handler (default)\n\
-	-noexception		Do not load exception handler\n\
-	-exception_file <file>	Specify exception handler in place of default\n\
-	-quiet			Do not print warnings\n\
-	-noquiet		Print warnings (default)\n\
-	-explain [N]		Narrate every instruction (teaching mode).\n\
+        "Usage: spimulator [option ...] [-file] file [-file file ...] [program arguments]\n\
+	-asm, -a		Extended machine (pseudo-ops, no delayed branches and loads) (default)\n\
+	-bare, -b		Bare machine (no pseudo-ops, delayed branches and loads)\n\
+	-delayed_branches, -db	Execute delayed branches\n\
+	-delayed_loads, -dl	Execute delayed loads\n\
+	-pseudo, -p		Accept pseudo-instructions (default)\n\
+	-nopseudo, -np		Do not accept pseudo-instructions\n\
+	-exception, -e		Load the exception handler (default); also -trap, -t\n\
+	-noexception, -ne	Do not load the exception handler; also -notrap, -nt\n\
+	-exception_file <file>, -ef <file>\n\
+				Load <file> as the exception handler; also -trap_file, -tf\n\
+	-quiet, -q		Do not print warnings\n\
+	-noquiet, -nq		Print warnings (default)\n\
+	-explain [N], -x [N]	Narrate every instruction (teaching mode).\n\
 				Level N selects detail: 1 = step header, 2 = + narration,\n\
 				3 = + bit-layout (default when N omitted),\n\
 				4 = decoder walkthrough in place of the bit-layout.\n\
-				Also accepts -explain=N. Short form: -x.\n\
-	-noexplain		Disable teaching mode (default)\n\
-	-mapped_io		Enable memory-mapped IO\n\
-	-nomapped_io		Do not enable memory-mapped IO (default)\n\
-	-file <file> [-file <file> ...] <args>\n\
-				Assembly code file(s) and arguments to program.\n\
-				Multiple -file (or -f) options accumulate into one\n\
-				symbol table; forward references resolve across files.\n\
+				Also accepts -explain=N.\n\
+	-noexplain, -nx		Disable teaching mode (default)\n\
+	-mapped_io, -mio	Enable memory-mapped IO\n\
+	-nomapped_io, -nmio	Do not enable memory-mapped IO (default)\n\
+	-stext, -st <size>	Initial text segment size, in bytes\n\
+	-sdata, -sd <size>	Initial data segment size, in bytes\n\
+	-sstack, -ss <size>	Initial stack segment size, in bytes\n\
+	-sktext, -skt <size>	Initial kernel text segment size, in bytes\n\
+	-skdata, -skd <size>	Initial kernel data segment size, in bytes\n\
+	-ldata, -ld <size>	Data segment size limit, in bytes\n\
+	-lstack, -ls <size>	Stack segment size limit, in bytes\n\
+	-lkdata, -lkd <size>	Kernel data segment size limit, in bytes\n\
+	-file <file>, -f <file>	Assembly code file; repeat to load several into one\n\
+				symbol table (forward references resolve across files).\n\
+				A bare argument is loaded as a file too; the arguments\n\
+				after the last file are the program's arguments.\n\
 	-assemble		Write assembled code to <file>.out\n\
 	-listing <file>		Write assemble-time event trace to <file> (use - for stderr)\n\
 	-print-ast		Parse to AST, print it to stderr, and exit without emitting any code\n\
