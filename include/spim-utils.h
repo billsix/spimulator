@@ -53,6 +53,7 @@ mem_addr starting_address(void);
 int program_exit_status(void);
 void write_startup_message(void);
 [[nodiscard]] void* xmalloc(size_t);
+[[nodiscard]] void* xrealloc(void*, size_t);
 [[nodiscard]] void* zmalloc(size_t);
 
 #endif

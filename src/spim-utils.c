@@ -450,6 +450,16 @@ void* xmalloc(size_t size) {
   return (x);
 }
 
+/* Resize a block of storage; out of memory is fatal, as in xmalloc. */
+
+void* xrealloc(void* block, size_t size) {
+  void* const x = realloc(block, size);
+
+  if (x == nullptr)
+    fatal_error("Out of memory at request for %zu bytes.\n", size);
+  return (x);
+}
+
 /* Allocate a zero'ed block of storage. */
 
 void* zmalloc(size_t size) {

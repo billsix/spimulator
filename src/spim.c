@@ -1216,12 +1216,12 @@ static bool parse_spim_command(bool redo) {
         }
         if (owned_strs_len + 1 > cap) {
           cap = cap == 0 ? 4 : cap * 2;
-          owned_strs = realloc(owned_strs, (size_t)cap * sizeof(char*));
+          owned_strs = xrealloc(owned_strs, (size_t)cap * sizeof(char*));
         }
         owned_strs[owned_strs_len++] = s;
       }
 
-      owned_argv = malloc((size_t)(owned_strs_len + 1) * sizeof(char*));
+      owned_argv = xmalloc((size_t)(owned_strs_len + 1) * sizeof(char*));
       owned_argv[0] = argv0;
       for (int i = 0; i < owned_strs_len; i++)
         owned_argv[1 + i] = owned_strs[i];

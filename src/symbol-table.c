@@ -403,7 +403,7 @@ char* undefined_symbol_string(void) {
         const int after_length = string_length + name_length + 2;
         if (buffer_length < after_length) {
           buffer_length = MAX(2 * buffer_length, 2 * after_length);
-          buffer = (char*)realloc(buffer, (size_t)buffer_length);
+          buffer = (char*)xrealloc(buffer, (size_t)buffer_length);
         }
         memcpy(buffer + string_length, l->name, (size_t)name_length);
         string_length += name_length;
