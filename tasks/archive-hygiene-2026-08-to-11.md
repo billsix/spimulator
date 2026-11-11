@@ -1,64 +1,38 @@
-# Rewrite 13 archived tasks into done-records; repoint dangling paths; remove one-shot ad-hoc scripts
+# Rewrote 13 archived tasks into done-records; repointed dangling paths; removed one-shot scripts
 
-**Status:** proposed — needs go-ahead
-**Priority:** 6
-**Difficulty:** 4
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
 **Source:** tasks/review/2026/11/11/repo-review.md §10.1, §10.2, §10.3, §10.4, §10.6 F13
 
-## BLUF
+## Summary
 
-Thirteen archived tasks still read as plans, several archived docs point at paths that moved, and the
-port tasks' one-shot scripts are still tracked. Done means each listed doc is a past-tense done-record,
-every path resolves, the superseded and "since done" notes are in place, and the one-shot
-`tasks/adhoc/engine-port-*` scripts are `git rm`'d.
-
-## Context
-
-- **Never rewritten** (each keeps a plan-shaped BLUF, a Plan, Open questions or future tense):
-  - `tasks/archive/2026/10/16/fix-inherited-idiosyncrasies.md` (five unchecked plan items under a
-    SUPERSEDED status) and `tasks/archive/2026/10/16/integer-conversion-hardening.md`;
-  - `tasks/archive/2026/10/30/calc-incremental-versions.md`, `tasks/archive/2026/10/30/examples-separate-io-from-algorithm.md`,
-    `tasks/archive/2026/10/30/separate-io-from-algorithm-remaining-demos.md` and `tasks/archive/2026/10/30/incremental-example-versions.md`;
-  - `tasks/archive/2026/10/31/examples-makefile-debug-build.md`, whose "settled" `DEBUG_FLAGS` at
-    :59-62 contradict `examples/src/Makefile:64-68`;
-  - `tasks/archive/2026/10/31/asm-simplification-sweep.md` and
-    `tasks/archive/2026/10/31/asm-simplification-sweep-step-1-pilot-and-style-doc.md` (which also names a
-    `tools/check_asm_traced_values.*` that became `tools/check_asm_canonical.py`);
-  - `tasks/archive/2026/09/14/trim-claude-md.md`, `tasks/archive/2026/09/02/libstr.md`,
-    `tasks/archive/2026/09/02/calc-language.md`;
-  - `tasks/archive/2026/10/28/fix-examples-listing-std-flag.md`.
-- **Dangling paths**, each now archived: `2026/10/16/fix-inherited-idiosyncrasies.md:4`,
-  `2026/10/30/incremental-example-versions.md:22,95`, `2026/10/30/calc-incremental-versions.md:93`,
-  `2026/11/10/engine-port-language-investigation.md:20`, `2026/11/10/engine-port-prereq-c-fixes.md:85`,
-  `2026/11/10/engine-ports.md:67`. Relative links: `2026/08/03/parser-leak-cleanup.md:8`,
-  `tasks/archive/2026/09/02/calc-language.md`, `tasks/archive/2026/09/02/libstr.md`.
-- **Stale claims needing a note:**
-  - `2026/11/10/engine-ports.md:43` ("not registered yet");
-  - `engine-port-python.md:165-171` (install script and corpus "missing");
-  - `engine-port-haskell.md:54-75` (planned answers reversed by its Decisions);
-  - `2026/11/11/paired-single-compare-encoding.md:42` (future-tense image gate; it passed, 293/293);
-  - `2026/11/11/python-port-match-statements.md:85-87` (wrong adhoc slug);
-  - `2026/11/08/add-dockerignore.md:14-15` (MELPA step, removed the same day);
-  - `2026/11/10/c23-modernization-pass3.md:43,49-50` (deferrals without a carry-over);
-  - `2026/10/30/wc-add-golden-test-coverage.md:6-7` (stale Status).
-- **One-shot scripts:** `git ls-files tasks/adhoc` lists `engine-port-haskell/` (2),
-  `engine-port-python/` (3; its `tasks/adhoc/engine-port-python/add_port_lines.py` is a stale copy of `tools/add_port_lines.py`)
-  and `engine-port-rust/` (3). The REPL ones feed `tasks/repl-transcript-corpus.md`. Remove them
-  after that task, or keep them until then. `engine-ports-float-format/` and
-  `integer-conversion-hardening/` are handled by `tasks/archive/2026/11/11/port-float-comparison-and-formatter-gates.md`.
-- Conventions: the task-doc-conventions.md reference doc ("done-record rewrite") from
-  github.com/billsix/runClaudeInContainer.
-
-## Plan
-
-1. Rewrite each listed doc into one past-tense voice; keep decisions and results; drop Plan, Open
-   questions and Next.
-2. Repoint every dangling path to its `tasks/archive/...` location, and add the dated notes.
-3. `git rm` the `engine-port-*` one-shot scripts (once the REPL corpus covers the REPL ones).
-4. Check: every backticked path in `tasks/archive/2026/{08,09,10,11}` resolves (a script like the
-   review's).
-
-## Open questions
-
-None.
+- **Done-record rewrites** (13 docs, 1,598 → about 810 lines): `fix-inherited-idiosyncrasies`,
+  `integer-conversion-hardening` (2026/10/16); `calc-incremental-versions`,
+  `examples-separate-io-from-algorithm`, `separate-io-from-algorithm-remaining-demos`,
+  `incremental-example-versions` (2026/10/30); `examples-makefile-debug-build`,
+  `asm-simplification-sweep`, `asm-simplification-sweep-step-1-pilot-and-style-doc` (2026/10/31);
+  `trim-claude-md` (2026/09/14); `libstr`, `calc-language` (2026/09/02);
+  `fix-examples-listing-std-flag` (2026/10/28). Items a plan listed but nobody did are now recorded
+  as not done, with the reason: the five superseded items in `fix-inherited-idiosyncrasies`, the
+  `long addr` field in `integer-conversion-hardening`, the shared `calc_eval.c` that was never made,
+  `libstr`'s deferred `strlen` consolidation, and the step-1 pilot's image gate, which was never
+  recorded as run. `examples-makefile-debug-build` now gives the `DEBUG_FLAGS` that shipped
+  (`examples/src/Makefile`). A fresh subagent did the rewrites with git forbidden, and the
+  coordinator checked the two SHAs it cites (`fb24ee2`, `8f0f38a`).
+- **Dangling and relative paths** were repointed to their `tasks/archive/...` locations
+  (`engine-port-language-investigation`, `engine-port-prereq-c-fixes`, `engine-ports`,
+  `parser-leak-cleanup`, plus the ones inside the rewritten docs).
+- **Dated notes** say where each follow-up went: `engine-ports` (Haskell registered),
+  `engine-port-python` (install script and full-tree comparison done afterwards),
+  `engine-port-haskell` (the Decisions supersede its planned answers), `paired-single-compare-encoding`
+  (the image gate passed, 293/293), `python-port-match-statements` (the adhoc directory's real name),
+  `add-dockerignore` (MELPA step removed the same day, `b6e476e`), `c23-modernization-pass3`
+  (`expand_k_data` fixed; the string macros done in `aebc787`), `wc-add-golden-test-coverage` (stale
+  Status).
+- **One-shot scripts:** six were removed with `git rm`: `engine-port-python/{add_port_lines.py,diff_engines.py}`,
+  `engine-port-haskell/differential.py` and `engine-port-rust/{diff_more.py,run-demos.sh,run-regression.sh}`.
+  The two REPL ones (`tasks/adhoc/engine-port-python/diff_repl.sh`,
+  `tasks/adhoc/engine-port-haskell/repl.py`) stay until `tasks/repl-transcript-corpus.md` replaces them.
+- **Path check:** every backticked path the rewritten docs cite exists, or is described as deleted,
+  external or a build output. Archived records that cite the removed one-shot scripts keep those
+  paths as history.
