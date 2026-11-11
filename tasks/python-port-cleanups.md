@@ -1,46 +1,42 @@
-# Python port cleanups from the 2026-11-11 review
+# Cleaned up the Python port against the Python standard
 
-**Status:** proposed — needs go-ahead
-**Priority:** 7
-**Difficulty:** 3
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
 **Source:** tasks/review/2026/11/11/repo-review.md §4.3.3, §4.3.4, §4.3.5, §4.3.6, §4.3.7, §4.3.8 F19
 
-## BLUF
+## Summary
 
-Code-quality items in `port/python/spimulator_py/` against the Python standard (the
-python-coding-standard.md reference doc from github.com/billsix/runClaudeInContainer). None changes
-behavior. Done means each is fixed, ruff and `ty` are clean, and `port-python` is green.
+No output changed. A fresh subagent did the work with git forbidden, and the coordinator reviewed
+and committed it. The files are under `port/python/spimulator_py/`.
 
-## Context
+- **Guard-only `match`es** (`parser.py` `_parse_factor`/`_parse_address`, `scanner.py`
+  `_scan_one_token`) are if/elif/else chains on one peeked token. A dotted value pattern did not
+  fit, because the arms compare with `ord("(")` and the like.
+- **Total dispatch:** `_emit_one` gained `case Kind.FILE:` (raises, since the one FILE node is the
+  root) and `case _: assert_never(...)`; `ast_nodes._imm_text`, `symbol_table._compensate_lui` and
+  `spim.py`'s ARGS loop end in an `else`. The catch-alls that stood for one member name it, with a
+  raising default: `_expand_set` (SEQ|SNE), `_expand_compare_branch` (BLEU), `_logic_immediate`
+  (XORI), `_store_integer` (SW|SC), `_fp_convert` (CVT_S_W), `_fp_move` (MOV_S|MOV_D). Each caller
+  was checked to dispatch exactly those opcodes. The REPL's unknown-command `case _` is a real
+  default and stayed.
+- **Tokens, not strings:** `_executes(*tokens: Tok)` (47 decorators, by codemod); the `Tok[f"..."]`
+  loops and mnemonic slicing became token tuples and token-keyed tables. The FP-compare rows are
+  chosen by `OpType.FP_CMP_FS_FT_INST` and the fmt field of the encoding, checked to pick the same 32
+  rows. The REPL's command variables are typed `Command`. `run.py` can't read
+  `instruction._COMPARE_CONDITIONS` at import time (a partially initialized module), so it uses the
+  encoding filter.
+- **Dead code:** `options.force_break` and `Kind.ERROR` (the last member, so no value shifts) were
+  removed, along with seven genuinely unused `noqa`s. The review's count of 10 came from
+  `--select RUF100`, which turns off the configured rules; the SIM115 ones are in use.
+  `ruff check --extend-select RUF100` is clean.
+- **Layering:** the local imports in `scanner.py` and `spim_utils.py` became module-level, because
+  no cycle existed. `console.py`'s `import termios` is a platform import and stayed. The 12 runtime
+  `assert`s now raise explicitly, so `python -O` keeps them.
+- History comments in `run.py` and `instruction.py` were rewritten to describe the present.
 
-- **Guard-only `match`es** (§4.3.3): `parser.py:287` (`_parse_factor`), `parser.py:397`
-  (`_parse_address`) and `scanner.py:471` use `case _ if scanner.peek() == TOK_INT:` in every arm,
-  because `TOK_*` are bare names that `match` would treat as captures. Match on `opcodes.TOK_INT`
-  (a dotted value pattern), or write an if/elif/else chain.
-- **History comments** (§4.3.4): `run.py:957` and `instruction.py:622` say "as before". In
-  `port/python/spimulator_py/instruction.py` the case is "other major opcodes: the top 6 bits alone are the key".
-- **Open-ended dispatch** (§4.3.5):
-  - `_emit_one` (`parser.py:1313`) has no `case _`/`assert_never`;
-  - `else`-less chains at `ast_nodes.py:126`, `symbol_table.py:249` and `spim.py:829`;
-  - catch-alls that stand for one member: `parser.py:941`, `parser.py:1011`, `run.py:403-415`,
-    `run.py:822-833`.
-- **Strings as options** (§4.3.6): `_executes(*names: str)` uses `Tok[f"{name}_OPCODE"]`, and
-  `run.py:684,691,853,886,990,1072` slice mnemonic text. The REPL `Command` values are typed `int`
-  (`_prev_cmd`, `_COMMANDS`).
-- **Dead code** (§4.3.7): `options.force_break` is only written (`run.py:120`); `Kind.ERROR` is never
-  constructed (`ast_nodes.py:214,338`, `parser.py:1409`). `ruff --select RUF100` finds 10 unused
-  `noqa` comments: `spim.py:180,316,406,697,920`, `parser.py:749,1308`, `ast_nodes.py:107`,
-  `spim_utils.py:159`, `__init__.py:19`.
-- **Layering** (§4.3.8): function-local imports break cycles (`scanner.py:252,274,401`,
-  `spim_utils.py:143`), and `assert` is used as a type guard (`parser.py:955,1395-1399`, `port/python/spimulator_py/scanner.py`),
-  which `python -O` strips.
+The two one-shot codemods (`executes_tokens.py`, `asserts_to_raises.py`) were committed under
+`tasks/adhoc/python-port-cleanups/` with the work and removed with this archive. They remain in git
+history.
 
-## Plan
-
-1. Fix each group; run ruff, `ty` (from `port/python/`) and the annotation check.
-2. Gate: `meson test --suite port-python`, and the harness.
-
-## Open questions
-
-None.
+Gates: `port/python/lint.sh` (ruff check and format, `ty`, `check_local_annotations`, 38 doctests);
+`meson test --suite port-python`, 82/82 (comparisons with C included).
