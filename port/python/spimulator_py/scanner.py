@@ -81,11 +81,15 @@ def register_name_to_number(name: str) -> int:
     """The number of a register name without the ``$`` (-1 if it is none).
 
     ``"8"``/``"31"`` are numbers, ``"f4"`` an FP register, ``"t0"`` a name.
-    Like the C engine, ``$f`` numbers are not range-checked.
+    An ``f`` number above 31 is not a register.
 
     Example:
         >>> register_name_to_number("t0"), register_name_to_number("f12")
         (8, 12)
+        >>> register_name_to_number("f31"), register_name_to_number("f32")
+        (31, -1)
+        >>> register_name_to_number("f4294967294")
+        -1
         >>> register_name_to_number("32"), register_name_to_number("x")
         (32, -1)
     """
@@ -96,7 +100,8 @@ def register_name_to_number(name: str) -> int:
     ):
         return _c_atoi(name)
     elif first == "f" and "0" <= second <= "9":
-        return _c_atoi(name[1:])
+        fp_reg: int = _c_atoi(name[1:])  # C: strtol, then $f0..$f31 only
+        return fp_reg if fp_reg <= 31 else -1
     else:
         return REGISTER_NAMES.get(name, -1)
 

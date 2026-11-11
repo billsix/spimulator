@@ -199,13 +199,16 @@ impl Machine {
 
     /// Report a syntax error at the current line (`parse_error_at`).
     fn parse_error_at(&mut self, message: &str) {
+        let line: i32 = self.scanner.line_no();
+        self.parse_error_on_line(message, line);
+    }
+
+    /// Report a syntax error on a given line (`parse_error_on_line`).
+    fn parse_error_on_line(&mut self, message: &str, line: i32) {
         self.asm.parse_error_occurred = true;
         self.asm.parse_errors_seen += 1;
-        let mut text: Vec<u8> = format!(
-            "spim: (parser) {message} on line {} of file ",
-            self.scanner.line_no()
-        )
-        .into_bytes();
+        let mut text: Vec<u8> =
+            format!("spim: (parser) {message} on line {line} of file ").into_bytes();
         text.extend_from_slice(self.asm.input_file_name.as_deref().unwrap_or(b"(stdin)"));
         text.push(b'\n');
         error_bytes(&text);
@@ -1413,11 +1416,17 @@ impl Machine {
                 self.emit_node(AstKind::DirSpace(size));
             }
             TOK_ALIGN_DIRECTIVE => {
+                let line: i32 = self.scanner.line_no(); // the expression can consume the newline
                 let n: i32 = self.parse_expression();
-                if n == 0 {
-                    self.asm.auto_align = false;
+                if !(0..=31).contains(&n) {
+                    // C shifts a 32-bit mask by it.
+                    self.parse_error_on_line("Alignment out of range (0 .. 31)", line);
+                } else {
+                    if n == 0 {
+                        self.asm.auto_align = false;
+                    }
+                    self.emit_node(AstKind::DirAlign(n));
                 }
-                self.emit_node(AstKind::DirAlign(n));
             }
             TOK_COMM_DIRECTIVE | TOK_EXTERN_DIRECTIVE => {
                 if let Some(name) = self.parse_directive_name("Expected ID") {

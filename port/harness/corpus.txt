@@ -42,3 +42,4 @@ big_stack      | -                 | -exception_file EF -sstack 1073741824 -lsta
 close_stdout   | -                 | -exception_file EF -f tt.close_stdout.s
 delay_chain    | -                 | -exception_file EF -delayed_branches -f tt.delay_chain.s
 cop1x_decode   | -                 | -exception_file EF -f tt.cop1x_decode.s
+range_checks   | -                 | -exception_file EF -f tt.range_checks.s

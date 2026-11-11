@@ -56,9 +56,14 @@ parserInit s input fileName = do
 -- | A parse error, as the parser reports it (C: @parse_error_at@).
 parseErrorAt :: Spim -> String -> IO ()
 parseErrorAt s msg = do
+  n :: Int <- lineNo s
+  parseErrorOnLine s n msg
+
+-- | A parse error reported on a given line (C: @parse_error_on_line@).
+parseErrorOnLine :: Spim -> Int -> String -> IO ()
+parseErrorOnLine s n msg = do
   set (parseErrorOccurred s) True
   modify (parseErrorsSeen s) (+ 1)
-  n :: Int <- lineNo s
   file :: Maybe String <- get (inputFileName s)
   cError (printf "spim: (parser) %s on line %d of file %s\n" msg n (maybe "(stdin)" id file))
 
@@ -1103,9 +1108,13 @@ parseDirective s d = case d of
     inText :: Bool <- get (textDir s)
     if inText then parseErrorAt s "Can't put data in text segment" else appendNode s (DirSpace (int v))
   TOK_ALIGN_DIRECTIVE -> do
+    line :: Int <- lineNo s -- the expression can consume the newline
     v :: Int32 <- parseExpression s
-    when (v == 0) $ set (autoAlign s) False
-    appendNode s (DirAlign (int v))
+    if v < 0 || v > 31 -- C shifts a 32-bit mask by it
+      then parseErrorOnLine s line "Alignment out of range (0 .. 31)"
+      else do
+        when (v == 0) $ set (autoAlign s) False
+        appendNode s (DirAlign (int v))
   TOK_COMM_DIRECTIVE -> namedSize DirComm
   TOK_EXTERN_DIRECTIVE -> namedSize DirExtern
   TOK_ERR_DIRECTIVE -> parseErrorAt s ".err directive"

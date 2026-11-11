@@ -205,6 +205,20 @@ case "$NAME" in
     grep -q '0x4600100d  trunc.w.s \$f0, \$f2' "$out" || fail "0x4600100d is not trunc.w.s"
     grep -q '0x4600100f  floor.w.s \$f0, \$f2' "$out" || fail "0x4600100f is not floor.w.s"
     ;;
+  range_checks)
+    # .align above 31 and $f32 are errors on their own lines, not undefined
+    # shifts or reads past the FP register file; the REPL's print treats
+    # $f33 (and a number too long for an int) as a label, as it does $99.
+    "$SPIM" -exception_file "$EF" -f tt.range_checks.s >"$out" 2>&1; rc=$?
+    expect_exit 2 "$rc"
+    grep -q 'Alignment out of range (0 .. 31) on line 9 of file' "$out" || fail "no .align 32 error on line 9"
+    grep -q 'Expected FP register on line 12 of file' "$out" || fail "no \$f32 error on line 12"
+    printf 'print $f31\nprint $f33\nprint $f4294967294\nexit\n' | "$SPIM" -exception_file "$EF" >"$out" 2>&1; rc=$?
+    expect_exit 0 "$rc"
+    grep -q '^FP reg 31 = 0 (single)$' "$out" || fail "print \$f31 does not print FP reg 31"
+    grep -q '^Unknown label: f33$' "$out" || fail "print \$f33 is not an unknown label"
+    grep -q '^Unknown label: f4294967294$' "$out" || fail "print \$f4294967294 is not an unknown label"
+    ;;
   imm_range)
     # An out-of-range immediate is reported on the instruction's own line (7),
     # not the next one, and the program still assembles and runs.

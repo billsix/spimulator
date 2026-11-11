@@ -198,14 +198,13 @@ def fix_current_label_address(new_addr: int) -> None:
 # --- errors -------------------------------------------------------------------------
 
 
-def _parse_error_at(message: str) -> None:
-    """Report a syntax error on the current line."""
+def _parse_error_at(message: str, line: int | None = None) -> None:
+    """Report a syntax error on line (default: the current line)."""
     pseudo_op.parse_error_occurred = True
     pseudo_op.parse_errors_seen += 1
     name: str = input_file_name if input_file_name is not None else "(stdin)"
-    console.error(
-        f"spim: (parser) {message} on line {scanner.line_no} of file {name}\n"
-    )
+    at: int = scanner.line_no if line is None else line
+    console.error(f"spim: (parser) {message} on line {at} of file {name}\n")
 
 
 def _sync_to_nl() -> None:
@@ -1165,7 +1164,11 @@ def _parse_directive(token: int) -> None:
                 return
             _append(ast_nodes.make(Kind.DIR_SPACE, number=size))
         case Tok.ALIGN_DIRECTIVE:
+            line: int = scanner.line_no  # the expression can consume the newline
             power: int = _parse_expression()
+            if not 0 <= power <= 31:  # C shifts a 32-bit mask by it
+                _parse_error_at("Alignment out of range (0 .. 31)", line)
+                return
             if power == 0:
                 _auto_align = False
             _append(ast_nodes.make(Kind.DIR_ALIGN, number=power))

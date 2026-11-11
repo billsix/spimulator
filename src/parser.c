@@ -426,12 +426,14 @@ void fix_current_label_address(mem_addr new_addr) {
 
 /* ---------------- error helpers ---------------- */
 
-static void parse_error_at(const char* msg) {
+static void parse_error_on_line(const char* msg, int line) {
   parse_error_occurred = true;
   parse_errors_seen += 1;
-  error("spim: (parser) %s on line %d of file %s\n", msg, line_no,
+  error("spim: (parser) %s on line %d of file %s\n", msg, line,
         input_file_name ? input_file_name : "(stdin)");
 }
+
+static void parse_error_at(const char* msg) { parse_error_on_line(msg, line_no); }
 
 /* Skip tokens up to (but NOT past) the next newline.  parse_line's
    tail consumes that newline; consuming it here would leave the
@@ -1064,7 +1066,13 @@ static void parse_dir_globl(void) {
 }
 
 static void parse_dir_align(void) {
+  const int line = line_no; /* the expression can consume the newline */
   const int v = parse_expression();
+  if (v < 0 || v > 31) {
+    /* align_data/align_text shift a 32-bit mask by v. */
+    parse_error_on_line("Alignment out of range (0 .. 31)", line);
+    return;
+  }
   if (v == 0) auto_align = false; /* mirror data.c's flag */
   emit_dir_align(v);
 }
