@@ -24,13 +24,13 @@ from . import memory_layout as layout
 from . import registers as regs
 from .inst import ImmExpr, Instruction
 from .machine import M32
+from .opcode_table import Tok
 from .registers import cpu
 from .traps import ExcCode
 
 type Step = Callable[[], bool | None]
 """An instruction's compiled form: run it once."""
 
-TOK: dict[str, int] = opcodes.TOKEN
 SIGN: int = 0x80000000
 
 gpr: list[int] = cpu.gpr
@@ -203,7 +203,7 @@ def _executes(
         factory: Callable[[Instruction], Step],
     ) -> Callable[[Instruction], Step]:
         for name in names:
-            _FACTORIES[TOK[f"{name}_OPCODE"]] = factory
+            _FACTORIES[Tok[f"{name}_OPCODE"]] = factory
         return factory
 
     return register
@@ -260,7 +260,7 @@ def _coprocessor_unusable(inst: Instruction) -> Step:
 
 for _name in ("BC2F", "BC2FL", "BC2T", "BC2TL", "CFC2", "COP2", "CTC2", "LDC2", "LWC2",
               "MFC2", "MTC2", "SDC2", "SWC2"):  # fmt: skip
-    _FACTORIES[TOK[f"{_name}_OPCODE"]] = _coprocessor_unusable
+    _FACTORIES[Tok[f"{_name}_OPCODE"]] = _coprocessor_unusable
 
 
 def _reserved(inst: Instruction) -> Step:
@@ -273,7 +273,7 @@ def _reserved(inst: Instruction) -> Step:
 
 
 for _name in ("RFE", "TLBP", "TLBR", "TLBWI", "TLBWR"):
-    _FACTORIES[TOK[f"{_name}_OPCODE"]] = _reserved
+    _FACTORIES[Tok[f"{_name}_OPCODE"]] = _reserved
 
 
 @_executes("CACHE", "PREF", "SYNC")
@@ -381,12 +381,12 @@ def _logic(operation: Callable[[int, int], int]) -> Callable[[Instruction], Step
     return factory
 
 
-_FACTORIES[TOK["AND_OPCODE"]] = _logic(lambda a, b: a & b)
-_FACTORIES[TOK["OR_OPCODE"]] = _logic(lambda a, b: a | b)
-_FACTORIES[TOK["XOR_OPCODE"]] = _logic(lambda a, b: a ^ b)
-_FACTORIES[TOK["NOR_OPCODE"]] = _logic(lambda a, b: ~(a | b))
-_FACTORIES[TOK["SLT_OPCODE"]] = _logic(lambda a, b: 1 if a < b else 0)
-_FACTORIES[TOK["SLTU_OPCODE"]] = _logic(lambda a, b: 1 if a & M32 < b & M32 else 0)
+_FACTORIES[Tok.AND_OPCODE] = _logic(lambda a, b: a & b)
+_FACTORIES[Tok.OR_OPCODE] = _logic(lambda a, b: a | b)
+_FACTORIES[Tok.XOR_OPCODE] = _logic(lambda a, b: a ^ b)
+_FACTORIES[Tok.NOR_OPCODE] = _logic(lambda a, b: ~(a | b))
+_FACTORIES[Tok.SLT_OPCODE] = _logic(lambda a, b: 1 if a < b else 0)
+_FACTORIES[Tok.SLTU_OPCODE] = _logic(lambda a, b: 1 if a & M32 < b & M32 else 0)
 
 
 @_executes("ANDI", "ORI", "XORI")
@@ -395,12 +395,12 @@ def _logic_immediate(inst: Instruction) -> Step:
     rt, rs, imm = inst.rt, inst.rs, inst.imm & 0xFFFF
     opcode: int = inst.opcode
 
-    if opcode == TOK["ANDI_OPCODE"]:
+    if opcode == Tok.ANDI_OPCODE:
 
         def step() -> None:
             gpr[rt] = gpr[rs] & imm
 
-    elif opcode == TOK["ORI_OPCODE"]:
+    elif opcode == Tok.ORI_OPCODE:
 
         def step() -> None:
             gpr[rt] = gpr[rs] | imm
@@ -451,9 +451,7 @@ def _count_leading(inst: Instruction) -> Step:
     """clo/clz: count the leading ones/zeros of rs."""
     rd, rs = inst.rd, inst.rs
     count: Callable[[int], int] = (
-        machine.leading_ones
-        if inst.opcode == TOK["CLO_OPCODE"]
-        else machine.leading_zeros
+        machine.leading_ones if inst.opcode == Tok.CLO_OPCODE else machine.leading_zeros
     )
 
     def step() -> None:
@@ -466,7 +464,7 @@ def _count_leading(inst: Instruction) -> Step:
 def _move_conditional(inst: Instruction) -> Step:
     """movn/movz: rd = rs if rt is nonzero/zero."""
     rd, rs, rt = inst.rd, inst.rs, inst.rt
-    if inst.opcode == TOK["MOVN_OPCODE"]:
+    if inst.opcode == Tok.MOVN_OPCODE:
 
         def step() -> None:
             if gpr[rt] != 0:
@@ -494,12 +492,12 @@ def _shift(inst: Instruction) -> Step:
         def step() -> None:
             gpr[rd] = gpr[rt]
 
-    elif opcode == TOK["SLL_OPCODE"]:
+    elif opcode == Tok.SLL_OPCODE:
 
         def step() -> None:
             gpr[rd] = (((gpr[rt] << shamt) + SIGN) & M32) - SIGN
 
-    elif opcode == TOK["SRL_OPCODE"]:
+    elif opcode == Tok.SRL_OPCODE:
 
         def step() -> None:
             gpr[rd] = (((gpr[rt] & M32) >> shamt) + SIGN & M32) - SIGN
@@ -517,12 +515,12 @@ def _shift_variable(inst: Instruction) -> Step:
     """sllv/srlv/srav by the low 5 bits of rs."""
     rd, rt, rs = inst.rd, inst.rt, inst.rs
     opcode: int = inst.opcode
-    if opcode == TOK["SLLV_OPCODE"]:
+    if opcode == Tok.SLLV_OPCODE:
 
         def step() -> None:
             gpr[rd] = (((gpr[rt] << (gpr[rs] & 31)) + SIGN) & M32) - SIGN
 
-    elif opcode == TOK["SRLV_OPCODE"]:
+    elif opcode == Tok.SRLV_OPCODE:
 
         def step() -> None:
             gpr[rd] = (((gpr[rt] & M32) >> (gpr[rs] & 31)) + SIGN & M32) - SIGN
@@ -549,12 +547,12 @@ def _multiply(inst: Instruction) -> Step:
     """mult/multu: HI:LO = rs * rt; mul also puts LO in rd (and clobbers HI)."""
     rd, rs, rt = inst.rd, inst.rs, inst.rt
     opcode: int = inst.opcode
-    if opcode == TOK["MULTU_OPCODE"]:
+    if opcode == Tok.MULTU_OPCODE:
 
         def step() -> None:
             _set_hi_lo((gpr[rs] & M32) * (gpr[rt] & M32))
 
-    elif opcode == TOK["MULT_OPCODE"]:
+    elif opcode == Tok.MULT_OPCODE:
 
         def step() -> None:
             _set_hi_lo(gpr[rs] * gpr[rt])
@@ -573,8 +571,8 @@ def _multiply_accumulate(inst: Instruction) -> Step:
     """madd/msub(u): HI:LO += or -= rs * rt, as 64-bit arithmetic."""
     rs, rt = inst.rs, inst.rt
     opcode: int = inst.opcode
-    is_unsigned: bool = opcode in (TOK["MADDU_OPCODE"], TOK["MSUBU_OPCODE"])
-    sign: int = 1 if opcode in (TOK["MADD_OPCODE"], TOK["MADDU_OPCODE"]) else -1
+    is_unsigned: bool = opcode in (Tok.MADDU_OPCODE, Tok.MSUBU_OPCODE)
+    sign: int = 1 if opcode in (Tok.MADD_OPCODE, Tok.MADDU_OPCODE) else -1
 
     def step() -> None:
         a: int = gpr[rs] & M32 if is_unsigned else gpr[rs]
@@ -622,7 +620,7 @@ def _divu(inst: Instruction) -> Step:
 def _move_from_hi_lo(inst: Instruction) -> Step:
     """mfhi/mflo: rd = HI or LO."""
     rd: int = inst.rd
-    if inst.opcode == TOK["MFHI_OPCODE"]:
+    if inst.opcode == Tok.MFHI_OPCODE:
 
         def step() -> None:
             gpr[rd] = cpu.hi
@@ -639,7 +637,7 @@ def _move_from_hi_lo(inst: Instruction) -> Step:
 def _move_to_hi_lo(inst: Instruction) -> Step:
     """mthi/mtlo: HI or LO = rs."""
     rs: int = inst.rs
-    if inst.opcode == TOK["MTHI_OPCODE"]:
+    if inst.opcode == Tok.MTHI_OPCODE:
 
         def step() -> None:
             cpu.hi = gpr[rs]
@@ -665,8 +663,8 @@ def _branch_compare(inst: Instruction) -> Step:
     """beq/bne (and their branch-likely forms): compare rs with rt."""
     rs, rt, offset = inst.rs, inst.rt, _branch_offset(inst)
     opcode: int = inst.opcode
-    nullify: bool = opcode in (TOK["BEQL_OPCODE"], TOK["BNEL_OPCODE"])
-    if opcode in (TOK["BEQ_OPCODE"], TOK["BEQL_OPCODE"]):
+    nullify: bool = opcode in (Tok.BEQL_OPCODE, Tok.BNEL_OPCODE)
+    if opcode in (Tok.BEQ_OPCODE, Tok.BEQL_OPCODE):
 
         def step() -> None:
             _branch(gpr[rs] == gpr[rt], offset, nullify)
@@ -722,7 +720,7 @@ def _branch_fp_condition(inst: Instruction) -> Step:
 def _jump_absolute(inst: Instruction) -> Step:
     """j/jal: jump within the current 256 MB region; jal links $ra."""
     target: int = (inst.target << 2) & M32
-    link: bool = inst.opcode == TOK["JAL_OPCODE"]
+    link: bool = inst.opcode == Tok.JAL_OPCODE
 
     def step() -> None:
         if link:
@@ -778,12 +776,12 @@ def _load_integer(inst: Instruction) -> Step:
     opcode: int = inst.opcode
     read: Callable[[int], int]
     mask: int = -1
-    if opcode in (TOK["LB_OPCODE"], TOK["LBU_OPCODE"]):
+    if opcode in (Tok.LB_OPCODE, Tok.LBU_OPCODE):
         read = memory.read_byte
-        mask = 0xFF if opcode == TOK["LBU_OPCODE"] else -1
-    elif opcode in (TOK["LH_OPCODE"], TOK["LHU_OPCODE"]):
+        mask = 0xFF if opcode == Tok.LBU_OPCODE else -1
+    elif opcode in (Tok.LH_OPCODE, Tok.LHU_OPCODE):
         read = memory.read_half
-        mask = 0xFFFF if opcode == TOK["LHU_OPCODE"] else -1
+        mask = 0xFFFF if opcode == Tok.LHU_OPCODE else -1
     else:
         read = memory.read_word
 
@@ -797,7 +795,7 @@ def _load_integer(inst: Instruction) -> Step:
 def _load_unaligned(inst: Instruction) -> Step:
     """lwl/lwr: merge part of an aligned word into rt (little-endian)."""
     rt, base, offset = inst.rt, inst.rs, inst.imm
-    is_left: bool = inst.opcode == TOK["LWL_OPCODE"]
+    is_left: bool = inst.opcode == Tok.LWL_OPCODE
 
     def step() -> None:
         addr: int = (gpr[base] + offset) & M32
@@ -821,8 +819,8 @@ def _store_integer(inst: Instruction) -> Step:
     """The stores (sc is a plain store: one processor, so it always succeeds)."""
     rt, base, offset = inst.rt, inst.rs, inst.imm
     write: Callable[[int, int], None] = {
-        TOK["SB_OPCODE"]: memory.write_byte,
-        TOK["SH_OPCODE"]: memory.write_half,
+        Tok.SB_OPCODE: memory.write_byte,
+        Tok.SH_OPCODE: memory.write_half,
     }.get(inst.opcode, memory.write_word)
 
     def step() -> None:
@@ -835,7 +833,7 @@ def _store_integer(inst: Instruction) -> Step:
 def _store_unaligned(inst: Instruction) -> Step:
     """swl/swr: store part of rt into an aligned word (little-endian)."""
     rt, base, offset = inst.rt, inst.rs, inst.imm
-    is_left: bool = inst.opcode == TOK["SWL_OPCODE"]
+    is_left: bool = inst.opcode == Tok.SWL_OPCODE
 
     def step() -> None:
         addr: int = (gpr[base] + offset) & M32
@@ -938,18 +936,21 @@ def _mtc0(inst: Instruction) -> Step:
     def step() -> None:
         cp0: list[int] = cpu.cpr[0]
         cp0[number] = gpr[rt]
-        if number == regs.CP0_COMPARE:
-            cp0[regs.CP0_CAUSE] = _wrap(cp0[regs.CP0_CAUSE] & ~regs.CAUSE_IP7)
-        elif number == regs.CP0_STATUS:
-            cp0[number] = _wrap(
-                (cp0[number] & regs.STATUS_MASK)
-                | (regs.STATUS_CU & 0x30000000)
-                | regs.STATUS_UM
-            )
-        elif number == regs.CP0_CAUSE:
-            cp0[number] = _wrap(cp0[number] & regs.CAUSE_MASK)
-        elif number == regs.CP0_CONFIG:
-            cp0[number] = _wrap(cp0[number] & regs.CONFIG_MASK)
+        match number:
+            case regs.CP0_COMPARE:
+                cp0[regs.CP0_CAUSE] = _wrap(cp0[regs.CP0_CAUSE] & ~regs.CAUSE_IP7)
+            case regs.CP0_STATUS:
+                cp0[number] = _wrap(
+                    (cp0[number] & regs.STATUS_MASK)
+                    | (regs.STATUS_CU & 0x30000000)
+                    | regs.STATUS_UM
+                )
+            case regs.CP0_CAUSE:
+                cp0[number] = _wrap(cp0[number] & regs.CAUSE_MASK)
+            case regs.CP0_CONFIG:
+                cp0[number] = _wrap(cp0[number] & regs.CONFIG_MASK)
+            case _:
+                pass  # any other value: nothing to do, as before
 
     return step
 
@@ -958,7 +959,7 @@ def _mtc0(inst: Instruction) -> Step:
 def _coprocessor0_control(inst: Instruction) -> Step:
     """cfc0/ctc0: move from/to a CP0 control register."""
     rt, number = inst.rt, inst.rd
-    if inst.opcode == TOK["CFC0_OPCODE"]:
+    if inst.opcode == Tok.CFC0_OPCODE:
 
         def step() -> None:
             gpr[rt] = cpu.ccr[0][number]
@@ -999,10 +1000,10 @@ def _fp_binary(
 
 
 for _fmt, _double in (("S", False), ("D", True)):
-    _FACTORIES[TOK[f"ADD_{_fmt}_OPCODE"]] = _fp_binary(lambda a, b: a + b, _double)
-    _FACTORIES[TOK[f"SUB_{_fmt}_OPCODE"]] = _fp_binary(lambda a, b: a - b, _double)
-    _FACTORIES[TOK[f"MUL_{_fmt}_OPCODE"]] = _fp_binary(lambda a, b: a * b, _double)
-    _FACTORIES[TOK[f"DIV_{_fmt}_OPCODE"]] = _fp_binary(machine.f_div, _double)
+    _FACTORIES[Tok[f"ADD_{_fmt}_OPCODE"]] = _fp_binary(lambda a, b: a + b, _double)
+    _FACTORIES[Tok[f"SUB_{_fmt}_OPCODE"]] = _fp_binary(lambda a, b: a - b, _double)
+    _FACTORIES[Tok[f"MUL_{_fmt}_OPCODE"]] = _fp_binary(lambda a, b: a * b, _double)
+    _FACTORIES[Tok[f"DIV_{_fmt}_OPCODE"]] = _fp_binary(machine.f_div, _double)
 
 
 def _fp_unary(
@@ -1030,9 +1031,9 @@ def _fp_unary(
 
 
 for _fmt, _double in (("S", False), ("D", True)):
-    _FACTORIES[TOK[f"ABS_{_fmt}_OPCODE"]] = _fp_unary(math.fabs, _double)
-    _FACTORIES[TOK[f"NEG_{_fmt}_OPCODE"]] = _fp_unary(lambda x: -x, _double)
-    _FACTORIES[TOK[f"SQRT_{_fmt}_OPCODE"]] = _fp_unary(machine.f_sqrt, _double)
+    _FACTORIES[Tok[f"ABS_{_fmt}_OPCODE"]] = _fp_unary(math.fabs, _double)
+    _FACTORIES[Tok[f"NEG_{_fmt}_OPCODE"]] = _fp_unary(lambda x: -x, _double)
+    _FACTORIES[Tok[f"SQRT_{_fmt}_OPCODE"]] = _fp_unary(machine.f_sqrt, _double)
 
 
 def _rounded(rounding: Callable[[float], float]) -> Callable[[float], float]:
@@ -1069,25 +1070,23 @@ def _fp_convert(inst: Instruction) -> Step:
     """cvt between single, double and word."""
     fd, fs = inst.shamt, inst.rd
     opcode: int = inst.opcode
-    if opcode == TOK["CVT_D_S_OPCODE"]:
+    match opcode:
+        case Tok.CVT_D_S_OPCODE:
 
-        def step() -> None:
-            regs.set_fpr_d(fd, regs.fpr_s(fs))
+            def step() -> None:
+                regs.set_fpr_d(fd, regs.fpr_s(fs))
+        case Tok.CVT_D_W_OPCODE:
 
-    elif opcode == TOK["CVT_D_W_OPCODE"]:
+            def step() -> None:
+                regs.set_fpr_d(fd, float(fpr[fs]))
+        case Tok.CVT_S_D_OPCODE:
 
-        def step() -> None:
-            regs.set_fpr_d(fd, float(fpr[fs]))
+            def step() -> None:
+                regs.set_fpr_s(fd, regs.fpr_d(fs))
+        case _:
 
-    elif opcode == TOK["CVT_S_D_OPCODE"]:
-
-        def step() -> None:
-            regs.set_fpr_s(fd, regs.fpr_d(fs))
-
-    else:
-
-        def step() -> None:
-            regs.set_fpr_s(fd, float(fpr[fs]))
+            def step() -> None:
+                regs.set_fpr_s(fd, float(fpr[fs]))
 
     return step
 
@@ -1162,7 +1161,7 @@ def _fp_move(inst: Instruction) -> Step:
 def _move_on_fp_condition(inst: Instruction) -> Step:
     """movf/movt: rd = rs if FP condition code cc is false/true."""
     rd, rs, cc = inst.rd, inst.rs, inst.rt >> 2
-    wanted: int = 0 if inst.opcode == TOK["MOVF_OPCODE"] else 1
+    wanted: int = 0 if inst.opcode == Tok.MOVF_OPCODE else 1
 
     def step() -> None:
         if regs.fcc(cc) == wanted:
@@ -1175,7 +1174,7 @@ def _move_on_fp_condition(inst: Instruction) -> Step:
 def _move_fp_word(inst: Instruction) -> Step:
     """mfc1/mtc1: copy a word's bits between rt and FP register fs."""
     rt, fs = inst.rt, inst.rd
-    if inst.opcode == TOK["MFC1_OPCODE"]:
+    if inst.opcode == Tok.MFC1_OPCODE:
 
         def step() -> None:
             gpr[rt] = fpr[fs]
@@ -1192,7 +1191,7 @@ def _move_fp_word(inst: Instruction) -> Step:
 def _fp_control(inst: Instruction) -> Step:
     """cfc1/ctc1: move from/to an FPU control register (FIR, FCSR)."""
     rt, number = inst.rt, inst.rd
-    if inst.opcode == TOK["CFC1_OPCODE"]:
+    if inst.opcode == Tok.CFC1_OPCODE:
 
         def step() -> None:
             gpr[rt] = cpu.cpr[1][number]
@@ -1211,7 +1210,7 @@ def _fp_control(inst: Instruction) -> Step:
 def _load_fp(inst: Instruction) -> Step:
     """lwc1/ldc1: load one or two words into FP registers."""
     ft, base, offset = inst.rt, inst.rs, inst.imm
-    double: bool = inst.opcode == TOK["LDC1_OPCODE"]
+    double: bool = inst.opcode == Tok.LDC1_OPCODE
 
     def step() -> None:
         addr: int = (gpr[base] + offset) & M32
@@ -1230,7 +1229,7 @@ def _load_fp(inst: Instruction) -> Step:
 def _store_fp(inst: Instruction) -> Step:
     """swc1/sdc1: store FP register(s) as one or two words."""
     ft, base, offset = inst.rt, inst.rs, inst.imm
-    double: bool = inst.opcode == TOK["SDC1_OPCODE"]
+    double: bool = inst.opcode == Tok.SDC1_OPCODE
 
     def step() -> None:
         if double:

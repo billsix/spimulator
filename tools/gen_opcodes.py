@@ -138,10 +138,11 @@ def data_lines(path: pathlib.Path) -> Iterator[tuple[int, list[str]]]:
     for line in path.read_text().split("\n"):
         if line.startswith("#"):
             continue
-        if not line:
+        elif not line:
             group += 1
             continue
-        yield group, line.split("\t")
+        else:
+            yield group, line.split("\t")
 
 
 def read_table() -> Table:
@@ -193,19 +194,24 @@ def read_table() -> Table:
         raise ValueError(
             f"{OPCODES_TSV.name}: names are not in strictly increasing order"
         )
-    if len({row.symbol for row in opcodes}) != len(opcodes) or len(known) != len(types):
-        raise ValueError("a token or a type tag is listed twice")
-    for encoding, rows in itertools.groupby(
-        sorted(opcodes, key=lambda row: row.encoding), key=lambda row: row.encoding
+    elif len({row.symbol for row in opcodes}) != len(opcodes) or len(known) != len(
+        types
     ):
-        group_rows: list[Opcode] = list(rows)
-        marked: int = sum(row.decodes for row in group_rows)
-        if (len(group_rows) > 1 and marked != 1) or (len(group_rows) == 1 and marked):
-            raise ValueError(
-                f"{OPCODES_TSV.name}: encoding {encoding:#x} needs exactly one row marked"
-                f" '*' in the decode column when rows share it, and none otherwise"
-            )
-    return Table(tuple(opcodes), tuple(types))
+        raise ValueError("a token or a type tag is listed twice")
+    else:
+        for encoding, rows in itertools.groupby(
+            sorted(opcodes, key=lambda row: row.encoding), key=lambda row: row.encoding
+        ):
+            group_rows: list[Opcode] = list(rows)
+            marked: int = sum(row.decodes for row in group_rows)
+            if (len(group_rows) > 1 and marked != 1) or (
+                len(group_rows) == 1 and marked
+            ):
+                raise ValueError(
+                    f"{OPCODES_TSV.name}: encoding {encoding:#x} needs exactly one row marked"
+                    f" '*' in the decode column when rows share it, and none otherwise"
+                )
+        return Table(tuple(opcodes), tuple(types))
 
 
 def clang_format(text: str, path: str) -> str:
@@ -760,11 +766,20 @@ def opcode_tables_c(table: Table) -> str:
         "   edit; change the .tsv and run `make generate`.\n" + C_LICENSE + "\n"
         '#include "opcode-tables.h"\n#include "opcode-types.h"\n#include "tokens.h"\n\n'
         "const name_val_val opcode_tbl[OPCODE_COUNT] = {\n"
-        + "".join(f'    {{"{row.name}", {row.symbol}, {row.type_name}}},\n' for row in table.opcodes)
+        + "".join(
+            f'    {{"{row.name}", {row.symbol}, {row.type_name}}},\n'
+            for row in table.opcodes
+        )
         + "};\n\nconst name_val_val opcode_encoding_tbl[OPCODE_COUNT] = {\n"
-        + "".join(f'    {{"{row.name}", {row.symbol}, {c_encoding(row)}}},\n' for row in table.opcodes)
+        + "".join(
+            f'    {{"{row.name}", {row.symbol}, {c_encoding(row)}}},\n'
+            for row in table.opcodes
+        )
         + "};\n\nconst name_val_val opcode_decode_tbl[OPCODE_DECODE_COUNT] = {\n"
-        + "".join(f'    {{"{row.name}", {c_encoding(row)}, {row.symbol}}},\n' for row in table.decode_rows())
+        + "".join(
+            f'    {{"{row.name}", {c_encoding(row)}, {row.symbol}}},\n'
+            for row in table.decode_rows()
+        )
         + "};\n"
     )
     return clang_format(text, "src/opcode-tables.c")
@@ -805,26 +820,28 @@ def main() -> int:
         current: str = target.read_text() if target.exists() else ""
         if wanted == current:
             continue
-        if not options.check:
+        elif not options.check:
             target.write_text(wanted)
             print(f"wrote {path}")
             continue
-        stale.append(path)
-        diff: list[str] = list(
-            difflib.unified_diff(
-                current.splitlines(),
-                wanted.splitlines(),
-                f"{path} (committed)",
-                f"{path} (generated)",
-                lineterm="",
+        else:
+            stale.append(path)
+            diff: list[str] = list(
+                difflib.unified_diff(
+                    current.splitlines(),
+                    wanted.splitlines(),
+                    f"{path} (committed)",
+                    f"{path} (generated)",
+                    lineterm="",
+                )
             )
-        )
-        print(f"stale: {path}", file=sys.stderr)
-        print("\n".join(diff[:DIFF_LINES_SHOWN]), file=sys.stderr)
-        if len(diff) > DIFF_LINES_SHOWN:
-            print(
-                f"... {len(diff) - DIFF_LINES_SHOWN} more diff lines", file=sys.stderr
-            )
+            print(f"stale: {path}", file=sys.stderr)
+            print("\n".join(diff[:DIFF_LINES_SHOWN]), file=sys.stderr)
+            if len(diff) > DIFF_LINES_SHOWN:
+                print(
+                    f"... {len(diff) - DIFF_LINES_SHOWN} more diff lines",
+                    file=sys.stderr,
+                )
     if stale:
         print(
             f"{len(stale)} generated file(s) differ from include/opcodes.tsv and"

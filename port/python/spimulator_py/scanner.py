@@ -95,9 +95,10 @@ def register_name_to_number(name: str) -> int:
         second == "" or ("0" <= second <= "9" and len(name) == 2)
     ):
         return _c_atoi(name)
-    if first == "f" and "0" <= second <= "9":
+    elif first == "f" and "0" <= second <= "9":
         return _c_atoi(name[1:])
-    return REGISTER_NAMES.get(name, -1)
+    else:
+        return REGISTER_NAMES.get(name, -1)
 
 
 @dataclass
@@ -282,7 +283,7 @@ def _scan_escape_char(text: bytes, pos: int) -> tuple[int, int]:
     }  # fmt: skip
     if first in simple:
         return simple[first], pos
-    if first in b"xX":
+    elif first in b"xX":
         high: int = text[pos] if pos < len(text) else 0
         low: int = text[pos + 1] if pos + 1 < len(text) else 0
         value: int = 0
@@ -295,8 +296,9 @@ def _scan_escape_char(text: bytes, pos: int) -> tuple[int, int]:
         else:
             console.error("Bad character in \\X construct in char literal\n")
         return value, pos + 2
-    console.error(f"Bad escape character \\{chr(first)} in char literal\n")
-    return 0, pos
+    else:
+        console.error(f"Bad escape character \\{chr(first)} in char literal\n")
+        return 0, pos
 
 
 def _decode_string(src: bytes) -> bytes:
@@ -314,48 +316,49 @@ def _decode_string(src: bytes) -> bytes:
             i += 1
             continue
         escape: int = src[i + 1]
-        if escape == ord("n"):
-            out.append(10)
-            i += 2
-        elif escape == ord("t"):
-            out.append(9)
-            i += 2
-        elif escape == ord('"'):
-            out.append(34)
-            i += 2
-        elif escape in b"0123":
-            if i + 3 >= end:
-                out.append(src[i])
-                i += 1
-                continue
-            value: int = (escape - ord("0")) << 6
-            for digit, shift in ((src[i + 2], 3), (src[i + 3], 0)):
-                if ord("0") <= digit <= ord("7"):
-                    value += (digit - ord("0")) << shift
+        match chr(escape):
+            case "n":
+                out.append(10)
+                i += 2
+            case "t":
+                out.append(9)
+                i += 2
+            case '"':
+                out.append(34)
+                i += 2
+            case "0" | "1" | "2" | "3":
+                if i + 3 >= end:
+                    out.append(src[i])
+                    i += 1
+                    continue
+                value: int = (escape - ord("0")) << 6
+                for digit, shift in ((src[i + 2], 3), (src[i + 3], 0)):
+                    if ord("0") <= digit <= ord("7"):
+                        value += (digit - ord("0")) << shift
+                    else:
+                        console.error("Bad character in \\ooo construct in string\n")
+                out.append(value & 0xFF)
+                i += 4
+            case "X":
+                if i + 3 >= end:
+                    out.append(src[i])
+                    i += 1
+                    continue
+                value = 0
+                if src[i + 2] in _HEX_DIGITS:
+                    value = _hex_value(src[i + 2])
                 else:
-                    console.error("Bad character in \\ooo construct in string\n")
-            out.append(value & 0xFF)
-            i += 4
-        elif escape == ord("X"):
-            if i + 3 >= end:
-                out.append(src[i])
+                    console.error("Bad character in \\X construct in string\n")
+                value <<= 4
+                if src[i + 3] in _HEX_DIGITS:
+                    value |= _hex_value(src[i + 3])
+                else:
+                    console.error("Bad character in \\X construct in string\n")
+                out.append(value & 0xFF)
+                i += 4
+            case _:
+                out.append(src[i])  # keep the backslash; the next byte follows
                 i += 1
-                continue
-            value = 0
-            if src[i + 2] in _HEX_DIGITS:
-                value = _hex_value(src[i + 2])
-            else:
-                console.error("Bad character in \\X construct in string\n")
-            value <<= 4
-            if src[i + 3] in _HEX_DIGITS:
-                value |= _hex_value(src[i + 3])
-            else:
-                console.error("Bad character in \\X construct in string\n")
-            out.append(value & 0xFF)
-            i += 4
-        else:
-            out.append(src[i])  # keep the backslash; the next byte follows
-            i += 1
     return bytes(out)
 
 
@@ -397,9 +400,10 @@ def _scan_register() -> Token:
     number: int = register_name_to_number(name)
     if number != -1 and name[:1] == "f" and name[1:2] != "p":
         return Token(TOK_FP_REG, number)
-    if 0 <= number < 32:
+    elif 0 <= number < 32:
         return Token(TOK_REG, number)
-    return _keyword_or_label(name, force_id=True, allow_keyword=False)
+    else:
+        return _keyword_or_label(name, force_id=True, allow_keyword=False)
 
 
 def _scan_string() -> Token:
@@ -459,34 +463,39 @@ def _scan_one_token() -> Token:
         _next_char()
         line_no += 1
         return Token(TOK_NL)
-    if char == ord(";"):
+    elif char == ord(";"):
         _next_char()
         return Token(TOK_NL)
-    _maybe_snapshot_line()
-    if char == ord("-") and _peek_char2() in _DIGITS:
-        _next_char()
-        end: int = _fp_literal_end()
-        return _scan_fp(-1, end) if end > _state.line_pos else _scan_int(-1)
-    if char in _DIGITS:
-        end = _fp_literal_end()
-        return _scan_fp(1, end) if end > _state.line_pos else _scan_int(1)
-    if char == ord("_") or char == ord(".") or char in _ALPHA:
-        return _scan_identifier(force_id)
-    if char == ord("$"):
-        return _scan_register()
-    if char == ord('"'):
-        return _scan_string()
-    if char == ord("'"):
-        return _scan_char()
-    if char == ord("?"):
-        _next_char()
-        return Token(TOK_ID, "?")
-    if char in _PUNCTUATION:
-        _next_char()
-        return Token(char, char)
-    _next_char()
-    console.error(f"Unknown character in source: '{chr(char)}' (0x{char:02x})\n")
-    return Token(TOK_NL)  # recover as if the line ended
+    else:
+        _maybe_snapshot_line()
+        match char:
+            case _ if char == ord("-") and _peek_char2() in _DIGITS:
+                _next_char()
+                end: int = _fp_literal_end()
+                return _scan_fp(-1, end) if end > _state.line_pos else _scan_int(-1)
+            case _ if char in _DIGITS:
+                end = _fp_literal_end()
+                return _scan_fp(1, end) if end > _state.line_pos else _scan_int(1)
+            case _ if char == ord("_") or char == ord(".") or char in _ALPHA:
+                return _scan_identifier(force_id)
+            case _ if char == ord("$"):
+                return _scan_register()
+            case _ if char == ord('"'):
+                return _scan_string()
+            case _ if char == ord("'"):
+                return _scan_char()
+            case _ if char == ord("?"):
+                _next_char()
+                return Token(TOK_ID, "?")
+            case _ if char in _PUNCTUATION:
+                _next_char()
+                return Token(char, char)
+            case _:
+                _next_char()
+                console.error(
+                    f"Unknown character in source: '{chr(char)}' (0x{char:02x})\n"
+                )
+                return Token(TOK_NL)  # recover as if the line ended
 
 
 # --- the lookahead buffer ------------------------------------------------------

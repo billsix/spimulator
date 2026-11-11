@@ -155,7 +155,7 @@ def check(
         )
         if str(rel.parent / asm) in DIFFERS_ON_PURPOSE:
             continue
-        if (ran.stdout, ran.returncode) != (sim.stdout, sim.returncode):
+        elif (ran.stdout, ran.returncode) != (sim.stdout, sim.returncode):
             return (
                 f"{rel}: native and {simulator_of(simulated)} runs differ\n"
                 f"  native (exit {ran.returncode}): {native}\n"

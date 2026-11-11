@@ -23,7 +23,7 @@ semantics — was **split to its own task** because it is unsafe as a mechanical
 
 - **IN: `src/` + `include/`.** **OUT: `examples/` + `pgu/` C** (teaching code read against generated
   asm — `tasks/reference/example-c-teaching-style.md`); **OUT: the `opcodes.h` OP X-macro redesign**
-  (`tasks/opcodes-x-macro-redesign.md`); **OUT: `tree-sitter/` generated C**.
+  (`tasks/archive/2026/11/11/opcodes-x-macro-redesign.md`); **OUT: `tree-sitter/` generated C**.
 - `gnu23` kept (the `MIN`/`MAX`/`ROUND_*` statement-expression macros need it); `-Werror` added.
 
 ## What was done (one commit per logical unit; see git log for the detail)
@@ -87,5 +87,5 @@ matching the pre-work baseline (`594e06b`). Verified standalone with the Dockerf
 - `tasks/archive/2026/10/16/integer-conversion-hardening.md` (the deferred integer work, since done),
   `tasks/reference/inherited-idiosyncrasies.md` (the correctness findings, now fixed),
   `tasks/reference/example-c-teaching-style.md` (why examples/pgu are out),
-  `tasks/opcodes-x-macro-redesign.md` (the OP macro, out of scope).
+  `tasks/archive/2026/11/11/opcodes-x-macro-redesign.md` (the OP macro, out of scope).
 - `tasks/archive/2026/05/22/c23-modernization.md` (pass 1).

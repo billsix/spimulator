@@ -75,19 +75,20 @@ def parse_canonical(path: Path) -> dict[str, object] | None:
         content: str | None = strip_comment(line)
         if content is None:
             break  # the block ends at the first non-comment line
-        if content.startswith("|"):
+        elif content.startswith("|"):
             expected.append(content[1:].lstrip() if content[1:].startswith(" ") else content[1:])
             continue
-        if content.startswith("args:"):
-            args = content[len("args:"):].split()
-            in_stdout = False
-        elif content.startswith("stdin:"):
-            stdin_file = content[len("stdin:"):].strip()
-            in_stdout = False
-        elif content.startswith("stdout:"):
-            in_stdout = True
-        elif in_stdout:
-            break
+        else:
+            if content.startswith("args:"):
+                args = content[len("args:"):].split()
+                in_stdout = False
+            elif content.startswith("stdin:"):
+                stdin_file = content[len("stdin:"):].strip()
+                in_stdout = False
+            elif content.startswith("stdout:"):
+                in_stdout = True
+            elif in_stdout:
+                break
     return {"args": args, "stdin_file": stdin_file, "expected": expected}
 
 

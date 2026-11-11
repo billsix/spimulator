@@ -119,14 +119,15 @@ def _imm_text(expr: ImmExpr | None) -> str:
     """An immediate as ``-print-ast`` shows it."""
     if expr is None:
         return "(null)"
-    if expr.symbol is None:
+    elif expr.symbol is None:
         return str(expr.offset)
-    text: str = expr.symbol.name
-    if expr.offset > 0:
-        text += f"+{expr.offset}"
-    elif expr.offset < 0:
-        text += str(expr.offset)
-    return text + (" (pc-rel)" if expr.pc_relative else "")
+    else:
+        text: str = expr.symbol.name
+        if expr.offset > 0:
+            text += f"+{expr.offset}"
+        elif expr.offset < 0:
+            text += str(expr.offset)
+        return text + (" (pc-rel)" if expr.pc_relative else "")
 
 
 def _string_text(data: bytes) -> str:

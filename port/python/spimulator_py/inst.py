@@ -62,7 +62,7 @@ class Instruction:
     """One instruction (C ``mips_instruction``).
 
     Attributes:
-        opcode: the opcode token (opcodes.TOKEN[...]).
+        opcode: the opcode token (a ``Tok`` member, or its int value).
         rs, rt, rd, shamt: the register bytes (each 0..255, as C's uint8_t).
         imm: the signed 16-bit immediate (bytes rd and shamt).
         target: the 32-bit J-type target (all four bytes).
