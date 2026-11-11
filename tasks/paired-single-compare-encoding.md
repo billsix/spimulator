@@ -4,7 +4,7 @@
 **Priority:** 6
 **Difficulty:** 3
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
-**Found by:** `tasks/c-switch-and-else-if-chains.md`, while adding a `default` to
+**Found by:** `tasks/archive/2026/11/11/c-switch-and-else-if-chains.md`, while adding a `default` to
 `r_cond_type_inst`'s switch (`src/instruction.c`)
 
 ## BLUF

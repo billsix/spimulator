@@ -4,7 +4,7 @@
 **Priority:** 4
 **Difficulty:** 3
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
-**Found by:** `tasks/c-switch-and-else-if-chains.md`, while converting `parse_j`'s chains
+**Found by:** `tasks/archive/2026/11/11/c-switch-and-else-if-chains.md`, while converting `parse_j`'s chains
 (`src/parser.c`) to `switch` statements
 
 ## BLUF
