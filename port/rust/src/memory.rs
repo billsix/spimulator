@@ -324,6 +324,13 @@ impl Machine {
         self.mem.k_data_top = self.mem.k_data_top.wrapping_add(delta as u32);
     }
 
+    /// The text slot of `addr`, read without side effects
+    /// (`mem_peek_inst`): no exception is raised and nothing grows.
+    /// `None` when `addr` is not an aligned location in a text segment.
+    pub fn mem_peek_inst(&self, addr: u32) -> Option<Option<InstRef>> {
+        self.mem.text_slot(addr).cloned()
+    }
+
     /// The instruction at `addr`, or `None` for an empty slot
     /// (`mem_read_inst`).  An address outside the text segments raises a
     /// bus error and reads as the instruction 0 (a `nop`).

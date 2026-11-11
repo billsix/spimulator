@@ -695,11 +695,18 @@ impl Machine {
         pseudo.source_line = saved_line;
         self.asm.pseudo_stack.push(pseudo);
         self.do_parse_pseudo(op);
-        let pseudo: AstNode = self
+        let mut pseudo: AstNode = self
             .asm
             .pseudo_stack
             .pop()
             .expect("parse_pseudo pushed this node");
+        // The expansion is the pseudo-op's line, even when its last operand
+        // read on to the newline before a child was built.
+        if let AstKind::Pseudo { children, .. } = &mut pseudo.kind {
+            for child in children.iter_mut() {
+                child.source_line = saved_line;
+            }
+        }
         self.ast_append(pseudo);
     }
 

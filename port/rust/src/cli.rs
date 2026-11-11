@@ -15,28 +15,40 @@ use crate::registers::Registers;
 use crate::spim_utils::{os_path, ExceptionHandler};
 
 /// The usage message printed after an unknown flag.
-const USAGE: &str = "Usage: spim
-\t-bare\t\t\tBare machine (no pseudo-ops, delayed branches and loads)
-\t-asm\t\t\tExtended machine (pseudo-ops, no delayed branches and loads) (default)
-\t-delayed_branches\tExecute delayed branches
-\t-delayed_loads\t\tExecute delayed loads
-\t-exception\t\tLoad exception handler (default)
-\t-noexception\t\tDo not load exception handler
-\t-exception_file <file>\tSpecify exception handler in place of default
-\t-quiet\t\t\tDo not print warnings
-\t-noquiet\t\tPrint warnings (default)
-\t-explain [N]\t\tNarrate every instruction (teaching mode).
-\t\t\t\tLevel N selects detail: 1 = semantic, 2 = + interactive,
-\t\t\t\t3 = + bit-layout (default when N omitted; historical behavior),
-\t\t\t\t4 = + progressive decoder walkthrough.
-\t\t\t\tAlso accepts -explain=N. Short form: -x.
-\t-noexplain\t\tDisable teaching mode (default)
-\t-mapped_io\t\tEnable memory-mapped IO
-\t-nomapped_io\t\tDo not enable memory-mapped IO (default)
-\t-file <file> [-file <file> ...] <args>
-\t\t\t\tAssembly code file(s) and arguments to program.
-\t\t\t\tMultiple -file (or -f) options accumulate into one
-\t\t\t\tsymbol table; forward references resolve across files.
+const USAGE: &str =
+    "Usage: spimulator [option ...] [-file] file [-file file ...] [program arguments]
+\t-asm, -a\t\tExtended machine (pseudo-ops, no delayed branches and loads) (default)
+\t-bare, -b\t\tBare machine (no pseudo-ops, delayed branches and loads)
+\t-delayed_branches, -db\tExecute delayed branches
+\t-delayed_loads, -dl\tExecute delayed loads
+\t-pseudo, -p\t\tAccept pseudo-instructions (default)
+\t-nopseudo, -np\t\tDo not accept pseudo-instructions
+\t-exception, -e\t\tLoad the exception handler (default); also -trap, -t
+\t-noexception, -ne\tDo not load the exception handler; also -notrap, -nt
+\t-exception_file <file>, -ef <file>
+\t\t\t\tLoad <file> as the exception handler; also -trap_file, -tf
+\t-quiet, -q\t\tDo not print warnings
+\t-noquiet, -nq\t\tPrint warnings (default)
+\t-explain [N], -x [N]\tNarrate every instruction (teaching mode).
+\t\t\t\tLevel N selects detail: 1 = step header, 2 = + narration,
+\t\t\t\t3 = + bit-layout (default when N omitted),
+\t\t\t\t4 = decoder walkthrough in place of the bit-layout.
+\t\t\t\tAlso accepts -explain=N.
+\t-noexplain, -nx\t\tDisable teaching mode (default)
+\t-mapped_io, -mio\tEnable memory-mapped IO
+\t-nomapped_io, -nmio\tDo not enable memory-mapped IO (default)
+\t-stext, -st <size>\tInitial text segment size, in bytes
+\t-sdata, -sd <size>\tInitial data segment size, in bytes
+\t-sstack, -ss <size>\tInitial stack segment size, in bytes
+\t-sktext, -skt <size>\tInitial kernel text segment size, in bytes
+\t-skdata, -skd <size>\tInitial kernel data segment size, in bytes
+\t-ldata, -ld <size>\tData segment size limit, in bytes
+\t-lstack, -ls <size>\tStack segment size limit, in bytes
+\t-lkdata, -lkd <size>\tKernel data segment size limit, in bytes
+\t-file <file>, -f <file>\tAssembly code file; repeat to load several into one
+\t\t\t\tsymbol table (forward references resolve across files).
+\t\t\t\tA bare argument is loaded as a file too; the arguments
+\t\t\t\tafter the last file are the program's arguments.
 \t-assemble\t\tWrite assembled code to <file>.out
 \t-listing <file>\t\tWrite assemble-time event trace to <file> (use - for stderr)
 \t-print-ast\t\tParse to AST, print it to stderr, and exit without emitting any code

@@ -936,14 +936,14 @@ impl Machine {
 
     /// The listing line of the instruction at `addr` (`inst_to_string`).
     pub fn inst_to_string(&mut self, addr: u32) -> Vec<u8> {
-        self.exception_occurred = false;
-        let instruction: Option<InstRef> = self.mem_read_inst(addr);
-        if self.exception_occurred {
+        // A side-effect-free read: showing an instruction must not raise,
+        // or clear, the exception the program's own step raised.
+        let Some(instruction) = self.mem_peek_inst(addr) else {
             error(&format!(
                 "Can't print instruction not in text segment (0x{addr:08x})\n"
             ));
             return Vec::new();
-        }
+        };
         let mut text: Vec<u8> = Vec::new();
         self.format_an_inst(&mut text, instruction.as_ref(), addr);
         text
