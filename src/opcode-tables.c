@@ -770,7 +770,6 @@ const name_val_val opcode_decode_tbl[OPCODE_DECODE_COUNT] = {
     {"swc2", (int)0xe8000000, TOK_SWC2_OPCODE},
     {"sdc1", (int)0xf4000000, TOK_SDC1_OPCODE},
     {"sdc2", (int)0xf8000000, TOK_SDC2_OPCODE},
-    {"remu", -1, TOK_REMU_PSEUDO_OP},
     {"sll", (int)0x00000000, TOK_SLL_OPCODE},
     {"movf", (int)0x00000001, TOK_MOVF_OPCODE},
     {"srl", (int)0x00000002, TOK_SRL_OPCODE},

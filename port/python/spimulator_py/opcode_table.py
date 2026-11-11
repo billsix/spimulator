@@ -804,7 +804,6 @@ DECODE: tuple[tuple[int, Tok], ...] = (
     (-402653184, Tok.SWC2_OPCODE),
     (-201326592, Tok.SDC1_OPCODE),
     (-134217728, Tok.SDC2_OPCODE),
-    (-1, Tok.REMU_PSEUDO_OP),
     (0, Tok.SLL_OPCODE),
     (1, Tok.MOVF_OPCODE),
     (2, Tok.SRL_OPCODE),

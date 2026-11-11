@@ -749,7 +749,7 @@ pub const TOK_XORI_OPCODE: i32 = 628;
 /// Where several rows share an encoding, the entry is the row
 /// `include/opcodes.tsv`'s decode column marks.
 #[rustfmt::skip]
-pub const DECODE_TABLE: [(i32, i32); 276] = [
+pub const DECODE_TABLE: [(i32, i32); 275] = [
     (-2147483648, 439), // lb
     (-2080374784, 445), // lh
     (-2013265920, 456), // lwl
@@ -774,7 +774,6 @@ pub const DECODE_TABLE: [(i32, i32); 276] = [
     (-402653184, 593), // swc2
     (-201326592, 558), // sdc1
     (-134217728, 559), // sdc2
-    (-1, 540), // remu
     (0, 571), // sll
     (1, 476), // movf
     (2, 582), // srl

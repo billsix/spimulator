@@ -43,8 +43,8 @@ in a preprocessing stage and fails, with a diff, if anything committed differs. 
 
 ## The decode column
 
-Only one encoding is shared today: `-1`, by every directive and pseudo-instruction, with the `*` on
-`remu`. Every real instruction has its own encoding, checked against GNU `as`
+Only one encoding is shared today: `-1`, by every directive and pseudo-instruction. Those rows are
+left out of the decode tables (no decode key is -1) and may not carry a `*`. Every real instruction has its own encoding, checked against GNU `as`
 (`mips64-linux-gnu-as -mabi=32 -mips32r2 -mfp64 -EB`, then `mips64-linux-gnu-objdump -d`). The COP1X
 rows (major opcode 0x13, `0x4c…`) are keyed by their funct field, and so is the decode
 (`inst_decode`'s `case 0x4c000000` in `src/instruction.c`, and each port's counterpart).

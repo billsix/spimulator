@@ -803,7 +803,6 @@ opcodeDecodeRows =
   , OpRow "swc2" TOK_SWC2_OPCODE RT_ADDR_INST (fromIntegral (0xe8000000 :: Integer))
   , OpRow "sdc1" TOK_SDC1_OPCODE FP_FT_ADDR_INST (fromIntegral (0xf4000000 :: Integer))
   , OpRow "sdc2" TOK_SDC2_OPCODE RT_ADDR_INST (fromIntegral (0xf8000000 :: Integer))
-  , OpRow "remu" TOK_REMU_PSEUDO_OP PSEUDO_OP (-1)
   , OpRow "sll" TOK_SLL_OPCODE RD_RT_SHAMT_INST (fromIntegral (0x00000000 :: Integer))
   , OpRow "movf" TOK_MOVF_OPCODE MOVC_TYPE_INST (fromIntegral (0x00000001 :: Integer))
   , OpRow "srl" TOK_SRL_OPCODE RD_RT_SHAMT_INST (fromIntegral (0x00000002 :: Integer))
