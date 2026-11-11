@@ -48,6 +48,9 @@ const name_val_val* map_string_to_name_val_val(const name_val_val tbl[],
 [[nodiscard]] bool run_program(mem_addr pc, int steps, bool display,
                                bool cont_bkpt, bool* continuable);
 mem_addr starting_address(void);
+/* The status the program exits with: its exit/exit2 value, or 128 + the
+   ExcCode of the first runtime fault when that value is 0. */
+int program_exit_status(void);
 void write_startup_message(void);
 [[nodiscard]] void* xmalloc(size_t);
 [[nodiscard]] void* zmalloc(size_t);

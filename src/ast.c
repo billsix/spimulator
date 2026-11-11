@@ -419,38 +419,42 @@ static void print_node(const ast_node* node, FILE* out, int depth) {
       return;
 
     case AST_INST_R:
-      fprintf(out, "INST_R op=%d rd=%d rs=%d rt=%d\n", node->u.inst_r.op,
-              node->u.inst_r.rd, node->u.inst_r.rs, node->u.inst_r.rt);
+      fprintf(out, "INST_R op=%s rd=%d rs=%d rt=%d\n",
+              op_token_name(node->u.inst_r.op), node->u.inst_r.rd,
+              node->u.inst_r.rs, node->u.inst_r.rt);
       return;
 
     case AST_INST_R_SHIFT:
-      fprintf(out, "INST_R_SHIFT op=%d rd=%d rt=%d shamt=%d\n",
-              node->u.inst_r_shift.op, node->u.inst_r_shift.rd,
+      fprintf(out, "INST_R_SHIFT op=%s rd=%d rt=%d shamt=%d\n",
+              op_token_name(node->u.inst_r_shift.op), node->u.inst_r_shift.rd,
               node->u.inst_r_shift.rt, node->u.inst_r_shift.shamt);
       return;
 
     case AST_INST_I:
-      fprintf(out, "INST_I op=%d rt=%d rs=%d imm=", node->u.inst_i.op,
+      fprintf(out,
+              "INST_I op=%s rt=%d rs=%d imm=", op_token_name(node->u.inst_i.op),
               node->u.inst_i.rt, node->u.inst_i.rs);
       print_imm(node->u.inst_i.imm, out);
       fputc('\n', out);
       return;
 
     case AST_INST_J:
-      fprintf(out, "INST_J op=%d target=", node->u.inst_j.op);
+      fprintf(out, "INST_J op=%s target=", op_token_name(node->u.inst_j.op));
       print_imm(node->u.inst_j.target, out);
       fputc('\n', out);
       return;
 
     case AST_INST_FP_R:
-      fprintf(out, "INST_FP_R op=%d fd=%d fs=%d ft=%d\n", node->u.inst_fp_r.op,
-              node->u.inst_fp_r.fd, node->u.inst_fp_r.fs, node->u.inst_fp_r.ft);
+      fprintf(out, "INST_FP_R op=%s fd=%d fs=%d ft=%d\n",
+              op_token_name(node->u.inst_fp_r.op), node->u.inst_fp_r.fd,
+              node->u.inst_fp_r.fs, node->u.inst_fp_r.ft);
       return;
 
     case AST_INST_FP_COMPARE:
-      fprintf(out, "INST_FP_COMPARE op=%d fs=%d ft=%d cc=%d\n",
-              node->u.inst_fp_compare.op, node->u.inst_fp_compare.fs,
-              node->u.inst_fp_compare.ft, node->u.inst_fp_compare.cc);
+      fprintf(out, "INST_FP_COMPARE op=%s fs=%d ft=%d cc=%d\n",
+              op_token_name(node->u.inst_fp_compare.op),
+              node->u.inst_fp_compare.fs, node->u.inst_fp_compare.ft,
+              node->u.inst_fp_compare.cc);
       return;
 
     case AST_PSEUDO:

@@ -38,8 +38,9 @@ ports = [
 ]
 
 # Not run against ports, with the reason:
-#   explain   the teaching mode is not ported yet (tasks/reference/engine-ports-design.md)
-port_skipped_tests = ['explain']
+#   explain, explain_parity, explain_branch_targets, explain_pseudo
+#             the teaching mode is not ported yet (tasks/reference/engine-ports-design.md)
+port_skipped_tests = ['explain', 'explain_parity', 'explain_branch_targets', 'explain_pseudo']
 
 foreach port : ports
   port_name = port[0]

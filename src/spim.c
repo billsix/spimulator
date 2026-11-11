@@ -664,9 +664,9 @@ int main(int argc, char** argv) {
 	-quiet			Do not print warnings\n\
 	-noquiet		Print warnings (default)\n\
 	-explain [N]		Narrate every instruction (teaching mode).\n\
-				Level N selects detail: 1 = semantic, 2 = + interactive,\n\
-				3 = + bit-layout (default when N omitted; historical behavior),\n\
-				4 = + progressive decoder walkthrough.\n\
+				Level N selects detail: 1 = step header, 2 = + narration,\n\
+				3 = + bit-layout (default when N omitted),\n\
+				4 = decoder walkthrough in place of the bit-layout.\n\
 				Also accepts -explain=N. Short form: -x.\n\
 	-noexplain		Disable teaching mode (default)\n\
 	-mapped_io		Enable memory-mapped IO\n\
@@ -745,14 +745,50 @@ int main(int argc, char** argv) {
          128 + ExcCode, mirroring the shell's "128 + signum" form for
          processes killed by a signal.  An explicit exit2(N) where N != 0
          takes precedence — the program said what it meant. */
-      if (first_bad_exception != -1 && spim_return_value == 0) {
-        spim_return_value = 128 + first_bad_exception;
-      }
+      spim_return_value = program_exit_status();
     }
   }
 
   return (spim_return_value);
 }
+
+#ifndef HAVE_LIBEDIT
+/* Read one command line from stdin, the way the line editor does: prompt
+   only on a terminal, and read one byte at a time so a program the line
+   runs can read the rest of stdin.  Returns the line without its newline
+   (heap-allocated), or nullptr at end of input. */
+static char* read_command_line(void) {
+  if (isatty(STDIN_FILENO)) {
+    write_output(message_out, "(spim) ");
+    fflush(stdout);
+  }
+  size_t cap = 128;
+  size_t len = 0;
+  char* line = xmalloc(cap);
+  while (true) {
+    char c;
+    if (read(STDIN_FILENO, &c, 1) <= 0) {
+      if (len == 0) {
+        free(line);
+        return nullptr;
+      }
+      break;
+    } else if (c == '\n') {
+      break;
+    } else {
+      if (len + 1 >= cap) {
+        cap *= 2;
+        char* const grown = realloc(line, cap);
+        if (grown == nullptr) fatal_error("Out of memory reading a command\n");
+        line = grown;
+      }
+      line[len++] = c;
+    }
+  }
+  line[len] = '\0';
+  return line;
+}
+#endif
 
 /* Top-level read-eval-print loop for SPIM. */
 
@@ -791,6 +827,7 @@ int main(int argc, char** argv) {
   rl_attempted_completion_function = spim_completion;
   rl_completer_word_break_characters = (char*)" \t\n";
   rl_basic_word_break_characters = " \t\n";
+#endif
 
   /* Per-iteration scratch — declared outside so the setjmp landing pad can
      unwind them if a SIGINT longjmps us out of parse_spim_command mid-line. */
@@ -798,10 +835,8 @@ int main(int argc, char** argv) {
   char* volatile repl_buf = nullptr;
   FILE* volatile repl_fp = nullptr;
   volatile bool scanner_pushed = false;
-#endif
 
   while (true) {
-#ifdef HAVE_LIBEDIT
     top_level_env_ready = true;
     if (setjmp(spim_top_level_env)) {
       /* Returned via control_c_seen longjmp. Unwind any in-flight
@@ -825,14 +860,20 @@ int main(int argc, char** argv) {
     }
 
     if (!redo) {
+#ifdef HAVE_LIBEDIT
       repl_line = readline("(spim) ");
+#else
+      repl_line = read_command_line();
+#endif
       if (repl_line == nullptr) {
         /* Ctrl-D / EOF — exit cleanly. atexit handler writes history. */
         write_output(message_out, "\n");
         console_to_spim();
         exit(0);
       }
+#ifdef HAVE_LIBEDIT
       if (*repl_line != '\0') add_history(repl_line);
+#endif
 
       /* Append '\n' so flex sees TOK_NL exactly once per command, matching
          the stdin path. Wrap the buffer in a FILE* via fmemopen and reuse
@@ -874,14 +915,6 @@ int main(int argc, char** argv) {
     repl_buf = nullptr;
     free(repl_line);
     repl_line = nullptr;
-#else
-    if (!redo) write_output(message_out, "(spim) ");
-    top_level_env_ready = true;
-    if (!setjmp(spim_top_level_env))
-      redo = parse_spim_command(redo);
-    else
-      redo = false;
-#endif
     fflush(stdout);
     fflush(stderr);
   }
@@ -940,6 +973,9 @@ static bool parse_spim_command(bool redo) {
 
       if (!redo) flush_to_newline();
       if (token == TOK_STR) {
+        /* Loading a file points the scanner at it; save the command
+           input around the load so the next command is read from it. */
+        scanner_push_source(nullptr);
         (void)read_assembly_file((char*)scan_value.p);
         scanner_pop_source();
       } else

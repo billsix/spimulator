@@ -315,6 +315,51 @@ reg_word mem_read_word(mem_addr addr) {
     return bad_mem_read(addr, 0x3);
 }
 
+bool mem_peek_inst(mem_addr addr, mips_instruction** out) {
+  if ((addr & 0x3) != 0) {
+    return false;
+  } else if ((addr >= TEXT_BOT) && (addr < text_top)) {
+    *out = text_seg[(addr - TEXT_BOT) >> 2];
+    return true;
+  } else if ((addr >= K_TEXT_BOT) && (addr < k_text_top)) {
+    *out = k_text_seg[(addr - K_TEXT_BOT) >> 2];
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool mem_peek(mem_addr addr, int mask, reg_word* out) {
+  *out = 0;
+  if ((addr & (mem_addr)mask) != 0) {
+    return false;
+  } else if (((addr >= DATA_BOT) && (addr < data_top)) ||
+             ((addr >= stack_bot) && (addr < STACK_TOP)) ||
+             ((addr >= K_DATA_BOT) && (addr < k_data_top))) {
+    /* In range and aligned, so the reader takes its plain path. */
+    switch (mask) {
+      case 0x0:
+        *out = mem_read_byte(addr);
+        return true;
+      case 0x1:
+        *out = mem_read_half(addr);
+        return true;
+      case 0x3:
+        *out = mem_read_word(addr);
+        return true;
+      default:
+        return false;
+    }
+  } else if ((addr >= TEXT_BOT) && (addr < text_top)) {
+    /* bad_mem_read's text-segment branch reads the encoding and has no
+       side effects for an aligned address. */
+    *out = bad_mem_read(addr, mask);
+    return true;
+  } else {
+    return false;
+  }
+}
+
 void mem_write_inst(mem_addr addr, mips_instruction* instruction) {
   text_modified = true;
   if ((addr >= TEXT_BOT) && (addr < text_top) && !(addr & 0x3))

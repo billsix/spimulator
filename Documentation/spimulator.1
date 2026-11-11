@@ -53,38 +53,34 @@ Do not print warnings, such as the message at an exception.
 Print warnings.  This is the default.
 .SS "Teaching mode"
 .IP "\fB-explain\fP [\fIN\fP]" 10
-Enable teaching mode. Before each instruction executes, \fIspim\fP prints a
-plain-English narration of what the instruction does; after it executes,
-\fIspim\fP prints a diff of what changed. The optional level \fIN\fP selects
-how much detail is shown:
+Enable teaching mode. \fIspim\fP first prints a listing of the loaded
+program and a one-time note on the output format; then, after each
+instruction executes, it narrates the step on standard error. The
+program runs exactly as it does without \fB-explain\fP: its output, its
+exceptions and its exit status are the same. The optional level \fIN\fP
+selects how much detail is shown:
 .RS
-.IP "\fBLevel 1\fP \(em semantic" 14
-What the instruction does in one sentence, plus the after-step register/PC
-diff. Pseudo-op headers still appear so multi-instruction expansions are
-clearly attributed to their source line. Best for a student who is just
-learning what each opcode means.
-.IP "\fBLevel 2\fP \(em + interactive" 14
-Adds explicit \fIInputs read\fP and \fIWill write\fP blocks with the current
-register values, \fITry it yourself\fP hints showing the \fIprint\fP commands
-that inspect the relevant state, syscall string-buffer dumps, and stack-frame
-intent hints (e.g. saving \fI$ra\fP across a call). Best for a student
-learning to drive the simulator and reason about register state.
+.IP "\fBLevel 1\fP \(em step header" 14
+The PC, the instruction's encoding, its disassembly and its source line.
+An instruction the assembler emitted for a pseudo-op (or for an
+instruction it had to expand, such as \fBlw\fP from a label) gets a
+one-line note naming it and its place in the expansion. When the
+program exits, the exit status is shown.
+.IP "\fBLevel 2\fP \(em + narration" 14
+Adds, per instruction: a description of the pseudo-op it came from, its
+category and mnemonic modifiers, what it did in plain English, the
+\fIInputs\fP it read and what it \fIWrote\fP (registers, and memory for
+stores), \fITry it yourself\fP hints showing the \fIprint\fP commands that
+inspect the relevant state, syscall details, and the PC change.
 .IP "\fBLevel 3\fP \(em + bit-layout" 14
 Adds the 32-bit instruction's bit-field diagram (opcode / rs / rt / rd /
 shamt / funct for R-type, opcode / rs / rt / immediate for I-type, opcode /
-target for J-type) and a mnemonic-decoding annotation that explains which
-bit pattern selected this instruction. Best for a student learning the
-machine encoding alongside the semantics (Patterson & Hennessy
-\(sc 2.5 territory).
+target for J-type) and which bit pattern selected this instruction.
 .IP "\fBLevel 4\fP \(em + decoder walkthrough" 14
-Replaces the L3 single bit-field diagram with a step-by-step decoder
-walkthrough: the same box is redrawn 2\(en3 times, with one more field
-filled in each frame, mirroring the CPU's hierarchical decoding
-(opcode \(-> sub-table selector \(-> remaining fields). Best for a
-student learning how the decoder itself works \(em the dependency
-between fields, why SPECIAL/REGIMM/J-type/I-type have different shapes,
-and how the secondary lookup tables are consulted. The final frame is
-identical to the L3 box, so no information is lost relative to L3.
+Replaces the L3 diagram with a step-by-step decoder walkthrough: the same
+box is redrawn 2\(en3 times, with one more field filled in each frame,
+mirroring the CPU's hierarchical decoding (opcode \(-> sub-table selector
+\(-> remaining fields). The final frame is identical to the L3 box.
 .RE
 .IP "" 10
 With no argument, \fB-explain\fP defaults to level 3 (the historical full

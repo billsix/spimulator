@@ -52,6 +52,16 @@ bool exception_occurred;
    gets reset before every run_spim() call. */
 int first_bad_exception = -1;
 
+int program_exit_status(void) {
+  /* An explicit exit2(N) with N != 0 says what the program meant; otherwise
+     a runtime fault (address, bus, alignment, overflow, ...) lifts the
+     status to 128 + ExcCode, the shell's "128 + signum" form. */
+  if (first_bad_exception != -1 && spim_return_value == 0)
+    return 128 + first_bad_exception;
+  else
+    return spim_return_value;
+}
+
 int initial_text_size = TEXT_SIZE;
 
 int initial_data_size = DATA_SIZE;

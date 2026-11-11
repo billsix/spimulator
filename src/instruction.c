@@ -151,6 +151,43 @@ void emit_source_clear(void) {
   emit_source_text = nullptr;
 }
 
+/* The instructions stored for the source instruction being emitted, for
+   expansion_end.  An expansion longer than the array (none is) is still
+   recorded for its first EXPANSION_MAX instructions. */
+constexpr int EXPANSION_MAX = 16;
+static int expansion_depth = 0;
+static const char* expansion_mnemonic = nullptr;
+static bool expansion_is_pseudo = false;
+static mips_instruction* expansion_insts[EXPANSION_MAX];
+static int expansion_len = 0;
+
+void expansion_begin(const char* mnemonic, bool is_pseudo) {
+  if (expansion_depth++ > 0) return;
+  /* The mnemonic's own string may be freed with its AST; keep the
+     opcode table's copy. */
+  const name_val_val* const entry =
+      map_string_to_name_val_val(opcode_tbl, OPCODE_COUNT, mnemonic);
+  expansion_mnemonic = entry != nullptr ? entry->name : nullptr;
+  expansion_is_pseudo = is_pseudo;
+  expansion_len = 0;
+}
+
+void expansion_end(void) {
+  if (--expansion_depth > 0) return;
+  if (expansion_mnemonic != nullptr &&
+      (expansion_is_pseudo || expansion_len > 1)) {
+    for (int i = 0; i < expansion_len; i++) {
+      expansion_insts[i]->expansion_of = expansion_mnemonic;
+      expansion_insts[i]->expansion_index = (uint8_t)(i + 1);
+      expansion_insts[i]->expansion_count = (uint8_t)expansion_len;
+      expansion_insts[i]->expansion_of_pseudo = expansion_is_pseudo;
+    }
+  } else {
+    /* Written as itself: the instruction keeps no expansion record. */
+  }
+  expansion_len = 0;
+}
+
 /* Store an INSTRUCTION in memory at the next location. */
 
 static void store_instruction(mips_instruction* instruction) {
@@ -172,6 +209,8 @@ static void store_instruction(mips_instruction* instruction) {
                      : source_line());
       if (ENCODING(instruction) == 0)
         SET_ENCODING(instruction, inst_encode(instruction));
+      if (expansion_depth > 0 && expansion_len < EXPANSION_MAX)
+        expansion_insts[expansion_len++] = instruction;
       asm_fire_text_inst(at, (uint32_t)ENCODING(instruction));
     }
   } else {
@@ -552,11 +591,10 @@ const char* op_token_name(int op_token) {
 }
 
 char* inst_to_string(mem_addr addr) {
-  /* Clear the flag first: mem_read_inst sets it on a bad address. */
-  exception_occurred = false;
-  mips_instruction* const instruction = mem_read_inst(addr);
-
-  if (exception_occurred) {
+  /* A side-effect-free read: showing an instruction must not raise, or
+     clear, the exception the program's own step raised. */
+  mips_instruction* instruction = nullptr;
+  if (!mem_peek_inst(addr, &instruction)) {
     error("Can't print instruction not in text segment (0x%08x)\n", addr);
     /* Callers free the result, so it must be heap-allocated — a string
        literal here would get free()d. */

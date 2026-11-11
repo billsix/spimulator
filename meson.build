@@ -154,8 +154,10 @@ regression_tests = [
   'divide_by_zero', 'core_default_handler',
   # Full-output goldens
   'core_full',
-  # Teaching-mode golden output + parity sanity
-  'explain',
+  # Teaching-mode golden output; the program runs the same with -explain;
+  # REPL step reports exceptions
+  'explain', 'explain_parity', 'explain_branch_targets', 'explain_pseudo',
+  'repl_step_exception',
   # Assemble-time event trace (Phase 1 of parse-tree migration)
   'listing',
   # AST parser parity + print-ast

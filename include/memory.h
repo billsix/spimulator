@@ -118,6 +118,13 @@ mips_instruction* mem_read_inst(mem_addr addr);
 reg_word mem_read_byte(mem_addr addr);
 reg_word mem_read_half(mem_addr addr);
 reg_word mem_read_word(mem_addr addr);
+/* Side-effect-free reads, for code that only shows memory (the teaching
+   mode, the disassembler).  They raise no exception, grow no segment and
+   touch no memory-mapped IO register.  Each returns false when ADDR is not
+   an aligned location in a segment; mem_peek_inst then leaves *OUT alone,
+   and mem_peek sets *OUT to 0.  MASK is 0, 1 or 3 for a byte, half or word. */
+[[nodiscard]] bool mem_peek_inst(mem_addr addr, mips_instruction** out);
+bool mem_peek(mem_addr addr, int mask, reg_word* out);
 void mem_write_inst(mem_addr addr, mips_instruction* instruction);
 void mem_write_byte(mem_addr addr, reg_word value);
 void mem_write_half(mem_addr addr, reg_word value);

@@ -1257,6 +1257,11 @@ static void parse_pseudo(int op) {
 
   do_parse_pseudo(op);
 
+  /* The expansion is the pseudo-op's line, even when its last operand
+     read on to the newline before a child was built. */
+  for (ast_node* c = pseudo_node->u.pseudo.child; c != nullptr; c = c->next)
+    c->source_line = saved_line;
+
   current_pseudo = saved_pseudo;
   ast_append(pseudo_node);
 }
@@ -2375,9 +2380,27 @@ static void emit_data_fp_node(const ast_node* node, void (*store)(double*)) {
   }
 }
 
+static void emit_node(const ast_node* node);
+
+/* Emit NODE, recording which instructions a pseudo-op, or a real
+   instruction the assembler has to expand, became (expansion_begin). */
 static void emit_one(const ast_node* node) {
   if (node == nullptr) return;
+  if (node->kind == AST_PSEUDO) {
+    expansion_begin(node->u.pseudo.mnemonic, true);
+    emit_node(node);
+    expansion_end();
+  } else if (node->kind == AST_INST_I) {
+    /* The one kind i_type_inst may expand (a label or wide immediate). */
+    expansion_begin(op_token_name(node->u.inst_i.op), false);
+    emit_node(node);
+    expansion_end();
+  } else {
+    emit_node(node);
+  }
+}
 
+static void emit_node(const ast_node* node) {
   /* Restore the per-node source line so listing observers (and any
      parse_error / parse_warn fired from inside an action helper)
      report the right line.  Without this, the scanner's line_no

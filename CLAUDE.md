@@ -17,10 +17,12 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
   parse mode. History (flex+bison and PARSE_DIRECT removal) + design:
   `tasks/reference/parser-ast-emit.md`.
 - **Teaching mode:** `-explain=N` (N 0–4; bare `-explain` = 3) narrates each executed
-  instruction (`explain.c`): L1 a step header (PC, encoding, disassembly, source line),
-  L2 adds category, meaning, inputs, writes and try-it hints, L3 adds a bit-field box,
-  L4 swaps it for decode frames. Known bugs (it hides exceptions) and a learner-model
-  redesign are tracked in `tasks/explain-mode-correctness-bugs.md` and
+  instruction on stderr (`explain.c`) without changing what the program does (same stdout,
+  exceptions and exit status; `explain_parity` tests it): L1 a step header (PC, encoding,
+  disassembly, source line), a one-line pseudo-op/expansion note from the assembler's
+  record (`mips_instruction`'s `expansion_*` fields), and the exit status; L2 adds the
+  pseudo-op description, category, meaning, inputs, writes and try-it hints; L3 adds a
+  bit-field box; L4 swaps it for decode frames. A learner-model redesign is tracked in
   `tasks/explain-levels-redesign.md`; target design: `tasks/reference/teaching-mode-learner-model.md`.
 - The image builds + runs the full test suite at build time and fails on any
   regression.

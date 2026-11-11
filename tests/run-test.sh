@@ -409,6 +409,12 @@ case "$NAME" in
     # bge expands to slt + beq — verify at least two children below
     # the PSEUDO bge line by checking the count of indented expansion
     # entries.
+    # Children name their opcode and carry the pseudo-op's own line, even
+    # when its last operand read on to the newline.
+    grep -q '^  \[line 8\] INST_I op=ori rt=8 rs=0 imm=100000$' "$out" \
+      || fail "li's child is not 'ori' on line 8"
+    grep -q '^  \[line 9\] INST_I op=ori rt=4 rs=0 imm=msg$' "$out" \
+      || fail "la's child is not 'ori' on line 9"
     awk '/PSEUDO mnemonic=bge/{flag=1; next} flag && /^  \[line/{c++; next} flag && /^\[line/{flag=0} END{exit (c >= 2 ? 0 : 1)}' "$out" \
       || fail "bge PSEUDO should have >=2 expansion children"
     ;;
@@ -448,6 +454,82 @@ case "$NAME" in
       || fail "stderr missing 'Exception 9' diagnostic"
     ;;
 
+  explain_parity)
+    # The teaching mode must not change what the program does: stdout and
+    # the exit status are the same at every -explain level, and the
+    # exception the unaligned load raises is still reported.  (Narration
+    # goes to stderr.)
+    ref=$(mktemp); trap 'rm -f "$out" "$ref"' EXIT
+    env -i "$SPIM" -exception_file "$EF" -f tt.explain_parity.s >"$ref" 2>/dev/null; ref_rc=$?
+    expect_exit 132 "$ref_rc"
+    grep -q 'Exception 4' "$ref" || fail "no Exception 4 report without -explain"
+    # Every level also narrates how the program ended.
+    err=$(mktemp); trap 'rm -f "$out" "$ref" "$err"' EXIT
+    for level in 1 2 3 4; do
+      env -i "$SPIM" -exception_file "$EF" -explain=$level -f tt.explain_parity.s >"$out" 2>"$err"; rc=$?
+      [ "$rc" = "$ref_rc" ] || fail "-explain=$level exit=$rc, without -explain exit=$ref_rc"
+      diff -q "$ref" "$out" >/dev/null || fail "-explain=$level stdout differs from the run without -explain"
+      grep -q "The program exited with status $ref_rc " "$err" \
+        || fail "-explain=$level does not narrate the exit status $ref_rc"
+    done
+    ;;
+  explain_branch_targets)
+    # A taken branch's narration names the address the PC moves to (the
+    # "PC: from → to" line), and the step header names the branch's own
+    # PC, in both branch modes.  In delayed mode the delay slot runs, and
+    # is narrated, before the branch is.
+    for mode in "" -delayed_branches; do
+      env -i "$SPIM" -exception_file "$EF" $mode -explain=2 -f tt.explain_branches.s \
+        2>"$out" >/dev/null; rc=$?
+      expect_exit 0 "$rc"
+      n=$(awk '
+        /^Stepped at PC = /{ at = $5; sub(/:$/, "", at); target = ""; taken = 0; next }
+        /would transfer to/{ target = $0; sub(/.*transfer to /, "", target); sub(/ .*/, "", target); next }
+        /branch was taken/{ taken = 1; next }
+        /^  PC:/ && target != "" {
+          if (taken) { n++; if ($2 != at || $4 != target) { print "bad: " $0 " target " target " at " at > "/dev/stderr"; bad = 1 } }
+          target = ""
+        }
+        END { if (bad) exit 1; print n }' "$out") || fail "${mode:-non-delayed}: a taken branch names the wrong target or PC"
+      [ "$n" = 3 ] || fail "${mode:-non-delayed}: expected 3 taken branches, saw $n"
+    done
+    ;;
+  explain_pseudo)
+    # Pseudo-op headers at -explain=1: a pseudo-op behind a label is named;
+    # an expansion's first instruction says how many there are and the
+    # rest are continuations; a syscall after a pseudo-op is not one; and
+    # a real instruction the assembler expands (lw from a label) is named.
+    env -i "$SPIM" -exception_file "$EF" -explain=1 -f tt.explain_pseudo.s >/dev/null 2>"$out"; rc=$?
+    expect_exit 0 "$rc"
+    for want in \
+      'Pseudo-op: `li` (single real instruction)' \
+      'Pseudo-op: `la` (first of 2 real instructions)' \
+      'Pseudo-op: `la` (continuation, 2 of 2)' \
+      'Expanded: `lw` (first of 2 real instructions)' \
+      'Expanded: `lw` (continuation, 2 of 2)' \
+      'Pseudo-op: `bgt` (first of 2 real instructions)' \
+      'Pseudo-op: `bgt` (continuation, 2 of 2)'; do
+      grep -qF "$want" "$out" || fail "missing '$want'"
+    done
+    # main's li (behind the label) is the first of them.
+    awk '/^Stepped at PC = 0x00400028:/{f=1; next} /^Stepped at/{f=0} f && /Pseudo-op: `li` \(single/{ok=1} END{exit !ok}' "$out" \
+      || fail "the li behind main: gets no pseudo-op line"
+    # The syscall at 0x00400034, after the la, gets no pseudo-op line.
+    awk '/^Stepped at PC = 0x00400034:/{f=1; next} /^Stepped at/{f=0} f && /Pseudo-op/{exit 1}' "$out" \
+      || fail "the syscall is narrated as part of a pseudo-op"
+    # At -explain=2 the bgt description names the immediate form it emitted.
+    env -i "$SPIM" -exception_file "$EF" -explain=2 -f tt.explain_pseudo.s >/dev/null 2>"$out"
+    grep -qF '`slti $at, $rs, imm+1` + `beq $at, $0, label`' "$out" \
+      || fail "the bgt description does not name slti + beq"
+    ;;
+  repl_step_exception)
+    # REPL `step` shows each instruction it runs; showing one must not hide
+    # the exception it raised, so `step` reports what `run` reports.
+    printf 'load "tt.explain_parity.s"\nstep 200\nexit\n' \
+      | env -i "$SPIM" -exception_file "$EF" >"$out" 2>&1; rc=$?
+    expect_exit 0 "$rc"
+    grep -q 'Exception occurred at PC=0x0040003c' "$out" || fail "step hid the unaligned load's exception"
+    ;;
   explain)
     # -explain=2 narration: byte-diff against the pinned golden file.
     #
@@ -458,10 +540,7 @@ case "$NAME" in
     # path-dependent "Loaded: ..." line before diffing.
     env -i "$SPIM" -exception_file "$EF" -explain=2 -f tt.explain.s 2>&1 \
       | grep -v '^Loaded: ' > "$out"; rc=${PIPESTATUS[0]}
-    # 132 is wrong: tt.explain.s exits 0 without -explain.  The teaching mode's
-    # memory peeks raise an exception the program never does (explain-mode bug
-    # 1, tasks/explain-mode-correctness-bugs.md); fixing it makes this 0.
-    expect_exit 132 "$rc"
+    expect_exit 0 "$rc"
     expected=$(mktemp)
     trap 'rm -f "$out" "$expected"' EXIT
     grep -v '^Loaded: ' tt.explain.expected > "$expected"

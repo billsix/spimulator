@@ -74,17 +74,19 @@ static bool running_in_delay_slot = false;
     }                                            \
   } while (0)
 
-#define JUMP_INST(TARGET)                                     \
-  do {                                                        \
-    if (delayed_branches) {                                   \
-      running_in_delay_slot = true;                           \
-      /* Continuation flag from the delay-slot instruction is \
-         discarded — the outer run_spim owns that. */       \
-      (void)run_spim(PC + BYTES_PER_WORD, 1, display);        \
-      running_in_delay_slot = false;                          \
-    }                                                         \
-    /* -4 since PC is bumped after this instruction */        \
-    PC = (TARGET) - BYTES_PER_WORD;                           \
+#define JUMP_INST(TARGET)                                           \
+  do {                                                              \
+    if (delayed_branches) {                                         \
+      const explain_snapshot branch_snap = explain_save_snapshot(); \
+      running_in_delay_slot = true;                                 \
+      /* Continuation flag from the delay-slot instruction is       \
+         discarded — the outer run_spim owns that. */             \
+      (void)run_spim(PC + BYTES_PER_WORD, 1, display);              \
+      running_in_delay_slot = false;                                \
+      explain_restore_snapshot(&branch_snap);                       \
+    }                                                               \
+    /* -4 since PC is bumped after this instruction */              \
+    PC = (TARGET) - BYTES_PER_WORD;                                 \
   } while (0)
 
 /* If the delayed_load flag is false, the result from a load is available
@@ -1034,7 +1036,10 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           break; /* Memory details not implemented */
 
         case TOK_SYSCALL_OPCODE:
-          if (!do_syscall()) return false;
+          if (!do_syscall()) {
+            explain_program_exit(instruction);
+            return false;
+          }
           break;
 
         case TOK_TEQ_OPCODE:
