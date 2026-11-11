@@ -468,30 +468,55 @@ parseB2 s op = do
           emitI s TOK_ORI_OPCODE 1 0 imm
           emitI s op src1 1 target
 
--- | @j label@ / @jal label@, or the register forms (C: @parse_j@).
+-- | @j label@ / @jal label@, or the register forms (C: @parse_j@). @jalr.hb@ keeps its own
+-- opcode (@jalr@ with the hazard-barrier bit) and takes registers only; @cop2@ shares
+-- @J_TYPE_INST@, but spim has no coprocessor 2, so it is an error.
 parseJ :: Spim -> Opcode -> IO ()
-parseJ s op = do
-  t :: Token <- peek s
-  let plainJump :: Bool
-      plainJump = op == TOK_J_OPCODE || op == TOK_JR_OPCODE
-      linkJump :: Bool
-      linkJump = op == TOK_JAL_OPCODE || op == TOK_JALR_OPCODE
-  if t == TokReg
-    then do
-      r1 :: Int <- parseRegister s
-      t2 :: Token <- peek s
-      if t2 == TokReg
+parseJ s op
+  | op == TOK_COP2_OPCODE = parseErrorAt s "cop2 is not supported: spim has no coprocessor 2"
+  | otherwise = do
+      t :: Token <- peek s
+      if t == TokReg
         then do
-          r2 :: Int <- parseRegister s
-          when plainJump $ emitR s TOK_JR_OPCODE 0 r2 0
-          when (not plainJump && linkJump) $ emitR s TOK_JALR_OPCODE r1 r2 0
-        else do
-          when plainJump $ emitR s TOK_JR_OPCODE 0 r1 0
-          when (not plainJump && linkJump) $ emitR s TOK_JALR_OPCODE 31 r1 0
-    else do
-      target :: ImmExpr <- parseLabel s
-      when plainJump $ emitJ s TOK_J_OPCODE target
-      when (not plainJump && linkJump) $ emitJ s TOK_JAL_OPCODE target
+          r1 :: Int <- parseRegister s
+          t2 :: Token <- peek s
+          if t2 == TokReg
+            then do
+              -- DEST SRC1 form
+              r2 :: Int <- parseRegister s
+              case op of
+                TOK_J_OPCODE -> emitR s TOK_JR_OPCODE 0 r2 0
+                TOK_JR_OPCODE -> emitR s TOK_JR_OPCODE 0 r2 0
+                TOK_JAL_OPCODE -> emitR s TOK_JALR_OPCODE r1 r2 0
+                TOK_JALR_OPCODE -> emitR s TOK_JALR_OPCODE r1 r2 0
+                TOK_JALR_HB_OPCODE -> emitR s TOK_JALR_HB_OPCODE r1 r2 0
+                -- Never reached: only J_TYPE_INST and RD_RS_INST opcodes come here.
+                _ -> unexpected
+            else case op of
+              -- SRC1-only form
+              TOK_J_OPCODE -> emitR s TOK_JR_OPCODE 0 r1 0
+              TOK_JR_OPCODE -> emitR s TOK_JR_OPCODE 0 r1 0
+              TOK_JAL_OPCODE -> emitR s TOK_JALR_OPCODE 31 r1 0
+              TOK_JALR_OPCODE -> emitR s TOK_JALR_OPCODE 31 r1 0
+              TOK_JALR_HB_OPCODE -> emitR s TOK_JALR_HB_OPCODE 31 r1 0
+              -- Never reached: as in the DEST SRC1 form above.
+              _ -> unexpected
+        else
+          if op == TOK_JALR_HB_OPCODE
+            then parseErrorAt s "jalr.hb needs a register operand"
+            else do
+              target :: ImmExpr <- parseLabel s
+              case op of
+                TOK_J_OPCODE -> emitJ s TOK_J_OPCODE target
+                TOK_JR_OPCODE -> emitJ s TOK_J_OPCODE target
+                TOK_JAL_OPCODE -> emitJ s TOK_JAL_OPCODE target
+                TOK_JALR_OPCODE -> emitJ s TOK_JAL_OPCODE target
+                -- Never reached: jalr.hb and cop2 are handled above.
+                _ -> unexpected
+  where
+    unexpected :: IO ()
+    unexpected =
+      fatalError ("internal error: parse_j: unexpected opcode " ++ show (opcodeToken op) ++ "\n")
 
 -- | @syscall@, or @break n@ (C: @parse_noarg@).
 parseNoarg :: Spim -> Opcode -> IO ()

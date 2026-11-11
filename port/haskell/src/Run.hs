@@ -241,6 +241,12 @@ execute s display i = case opcodeOfToken (inOpcode i) of
       pc :: Word32 <- get (regPC s)
       delayed :: Bool <- get (optDelayedBranches s)
       w reg (fromIntegral (pc + (if delayed then 8 else 4)))
+    -- jalr and jalr.hb: link in rd, then jump to rs (read before rd is written).
+    jalr :: IO Next
+    jalr = do
+      target :: Word32 <- ru rs
+      link rd
+      jump target
     signBit :: Word32 -> Bool
     signBit v = v .&. 0x80000000 /= (0 :: Word32)
     setHiLo :: Word64 -> IO ()
@@ -362,11 +368,12 @@ execute s display i = case opcodeOfToken (inOpcode i) of
         link 31
         pc :: Word32 <- get (regPC s)
         jump ((pc .&. 0xf0000000) .|. (instTarget i `shiftL` 2))
-      TOK_JALR_OPCODE -> do
-        target :: Word32 <- ru rs
-        link rd
-        jump target
+      -- The hazard-barrier forms (.hb) run as the plain ones: the simulator has no pipeline
+      -- hazards for a barrier to clear.
+      TOK_JALR_OPCODE -> jalr
+      TOK_JALR_HB_OPCODE -> jalr
       TOK_JR_OPCODE -> ru rs >>= jump
+      TOK_JR_HB_OPCODE -> ru rs >>= jump
       TOK_LB_OPCODE -> address >>= memReadByte s >>= loadInto s (DestGpr rt) >> ok
       TOK_LBU_OPCODE -> address >>= memReadByte s >>= loadInto s (DestGpr rt) . (.&. 0xff) >> ok
       TOK_LH_OPCODE -> address >>= memReadHalf s >>= loadInto s (DestGpr rt) >> ok

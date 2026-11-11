@@ -28,7 +28,7 @@ module Assemble
   ) where
 
 import AsmCommon
-import Control.Monad (when)
+import Control.Monad (unless, when)
 import Data.Bits (shiftL, shiftR, (.&.), (.|.))
 import Data.Int (Int32)
 import Data.IORef (IORef, newIORef)
@@ -95,6 +95,9 @@ storeInstruction :: Spim -> InstRef -> IO ()
 storeInstruction s ref = do
   inData :: Bool <- get (dataDir s)
   inText :: Bool <- get (textDir s)
+  -- Never reached: the parser always sets dataDir and textDir as a pair, one true.
+  unless (inData || inText) $
+    fatalError "internal error: store_instruction: neither the data nor the text segment is active\n"
   if inData
     then get ref >>= instEncodeIO >>= storeWord s
     else when inText $ do
@@ -295,25 +298,32 @@ rCondTypeInst s op fs ft cc = do
       inv = 8
       both :: Int -> Opcode -> Bool
       both a b = a == tok b
-      cond :: Int
-      cond
-        | any (both op) [TOK_C_EQ_D_OPCODE, TOK_C_EQ_S_OPCODE] = eq
-        | any (both op) [TOK_C_LE_D_OPCODE, TOK_C_LE_S_OPCODE] = inv .|. lt .|. eq
-        | any (both op) [TOK_C_LT_D_OPCODE, TOK_C_LT_S_OPCODE] = inv .|. lt
-        | any (both op) [TOK_C_NGE_D_OPCODE, TOK_C_NGE_S_OPCODE] = inv .|. lt .|. un
-        | any (both op) [TOK_C_NGLE_D_OPCODE, TOK_C_NGLE_S_OPCODE] = inv .|. un
-        | any (both op) [TOK_C_NGL_D_OPCODE, TOK_C_NGL_S_OPCODE] = inv .|. eq .|. un
-        | any (both op) [TOK_C_NGT_D_OPCODE, TOK_C_NGT_S_OPCODE] = inv .|. lt .|. eq .|. un
-        | any (both op) [TOK_C_OLT_D_OPCODE, TOK_C_OLT_S_OPCODE] = lt
-        | any (both op) [TOK_C_OLE_D_OPCODE, TOK_C_OLE_S_OPCODE] = lt .|. eq
-        | any (both op) [TOK_C_SEQ_D_OPCODE, TOK_C_SEQ_S_OPCODE] = inv .|. eq
-        | any (both op) [TOK_C_SF_D_OPCODE, TOK_C_SF_S_OPCODE] = inv
-        | any (both op) [TOK_C_F_D_OPCODE, TOK_C_F_S_OPCODE] = 0
-        | any (both op) [TOK_C_UEQ_D_OPCODE, TOK_C_UEQ_S_OPCODE] = eq .|. un
-        | any (both op) [TOK_C_ULT_D_OPCODE, TOK_C_ULT_S_OPCODE] = lt .|. un
-        | any (both op) [TOK_C_ULE_D_OPCODE, TOK_C_ULE_S_OPCODE] = lt .|. eq .|. un
-        | any (both op) [TOK_C_UN_D_OPCODE, TOK_C_UN_S_OPCODE] = un
-        | otherwise = 0
+      -- Nothing for an opcode that is not one of the 32 compares (16 conditions, .s and .d).
+      condBits :: Maybe Int
+      condBits
+        | any (both op) [TOK_C_EQ_D_OPCODE, TOK_C_EQ_S_OPCODE] = Just eq
+        | any (both op) [TOK_C_LE_D_OPCODE, TOK_C_LE_S_OPCODE] = Just (inv .|. lt .|. eq)
+        | any (both op) [TOK_C_LT_D_OPCODE, TOK_C_LT_S_OPCODE] = Just (inv .|. lt)
+        | any (both op) [TOK_C_NGE_D_OPCODE, TOK_C_NGE_S_OPCODE] = Just (inv .|. lt .|. un)
+        | any (both op) [TOK_C_NGLE_D_OPCODE, TOK_C_NGLE_S_OPCODE] = Just (inv .|. un)
+        | any (both op) [TOK_C_NGL_D_OPCODE, TOK_C_NGL_S_OPCODE] = Just (inv .|. eq .|. un)
+        | any (both op) [TOK_C_NGT_D_OPCODE, TOK_C_NGT_S_OPCODE] = Just (inv .|. lt .|. eq .|. un)
+        | any (both op) [TOK_C_OLT_D_OPCODE, TOK_C_OLT_S_OPCODE] = Just lt
+        | any (both op) [TOK_C_OLE_D_OPCODE, TOK_C_OLE_S_OPCODE] = Just (lt .|. eq)
+        | any (both op) [TOK_C_SEQ_D_OPCODE, TOK_C_SEQ_S_OPCODE] = Just (inv .|. eq)
+        | any (both op) [TOK_C_SF_D_OPCODE, TOK_C_SF_S_OPCODE] = Just inv
+        | any (both op) [TOK_C_F_D_OPCODE, TOK_C_F_S_OPCODE] = Just 0
+        | any (both op) [TOK_C_UEQ_D_OPCODE, TOK_C_UEQ_S_OPCODE] = Just (eq .|. un)
+        | any (both op) [TOK_C_ULT_D_OPCODE, TOK_C_ULT_S_OPCODE] = Just (lt .|. un)
+        | any (both op) [TOK_C_ULE_D_OPCODE, TOK_C_ULE_S_OPCODE] = Just (lt .|. eq .|. un)
+        | any (both op) [TOK_C_UN_D_OPCODE, TOK_C_UN_S_OPCODE] = Just un
+        | otherwise = Nothing
+  -- Never reached: only FP_CMP_FS_FT_INST rows reach here, and the guards above are all 32.
+  cond :: Int <-
+    maybe
+      (fatalError ("internal error: r_cond_type_inst: not an FP compare: " ++ show op ++ "\n"))
+      pure
+      condBits
   newIORef (setRs cond (setShamt (cc `shiftL` 2) (makeR op fs 0 ft))) >>= storeInstruction s
 
 -- | The register form of an immediate instruction (C: @imm_op_to_op@).

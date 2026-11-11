@@ -608,33 +608,51 @@ impl Machine {
         }
     }
 
-    /// `j label`, `j rs`, `jal label`, `jalr rs`, `jalr rd, rs`.
+    /// `j label`, `j rs`, `jal label`, `jalr rs`, `jalr rd, rs`, the same two register forms of
+    /// `jalr.hb`; `cop2` is an error (`parse_j`).
     fn parse_j(&mut self, op: i32) {
-        let is_j: bool = op == TOK_J_OPCODE || op == TOK_JR_OPCODE;
-        let is_jal: bool = op == TOK_JAL_OPCODE || op == TOK_JALR_OPCODE;
-        if self.peek() == TOK_REG {
+        // jalr.hb keeps its own opcode (jalr with the hazard-barrier bit) and takes
+        // registers only. cop2 shares J_TYPE_INST, but spim has no coprocessor 2.
+        if op == TOK_COP2_OPCODE {
+            self.parse_error_at("cop2 is not supported: spim has no coprocessor 2");
+        } else if self.peek() == TOK_REG {
             let r1: i32 = self.parse_register();
             if self.peek() == TOK_REG {
+                // DEST SRC1 form
                 let r2: i32 = self.parse_register();
-                if is_j {
-                    self.emit_r(TOK_JR_OPCODE, 0, r2, 0);
-                } else if is_jal {
-                    self.emit_r(TOK_JALR_OPCODE, r1, r2, 0);
+                match op {
+                    TOK_J_OPCODE | TOK_JR_OPCODE => self.emit_r(TOK_JR_OPCODE, 0, r2, 0),
+                    TOK_JAL_OPCODE | TOK_JALR_OPCODE => self.emit_r(TOK_JALR_OPCODE, r1, r2, 0),
+                    TOK_JALR_HB_OPCODE => self.emit_r(TOK_JALR_HB_OPCODE, r1, r2, 0),
+                    // Never reached: only J_TYPE_INST and RD_RS_INST opcodes come here.
+                    _ => crate::machine::fatal_error(&format!(
+                        "internal error: parse_j: unexpected opcode {op}\n"
+                    )),
                 }
-                return;
+            } else {
+                // SRC1-only form
+                match op {
+                    TOK_J_OPCODE | TOK_JR_OPCODE => self.emit_r(TOK_JR_OPCODE, 0, r1, 0),
+                    TOK_JAL_OPCODE | TOK_JALR_OPCODE => self.emit_r(TOK_JALR_OPCODE, 31, r1, 0),
+                    TOK_JALR_HB_OPCODE => self.emit_r(TOK_JALR_HB_OPCODE, 31, r1, 0),
+                    // Never reached: as in the DEST SRC1 form above.
+                    _ => crate::machine::fatal_error(&format!(
+                        "internal error: parse_j: unexpected opcode {op}\n"
+                    )),
+                }
             }
-            if is_j {
-                self.emit_r(TOK_JR_OPCODE, 0, r1, 0);
-            } else if is_jal {
-                self.emit_r(TOK_JALR_OPCODE, 31, r1, 0);
+        } else if op == TOK_JALR_HB_OPCODE {
+            self.parse_error_at("jalr.hb needs a register operand");
+        } else {
+            let target: ImmExpr = self.parse_label();
+            match op {
+                TOK_J_OPCODE | TOK_JR_OPCODE => self.emit_j(TOK_J_OPCODE, &target),
+                TOK_JAL_OPCODE | TOK_JALR_OPCODE => self.emit_j(TOK_JAL_OPCODE, &target),
+                // Never reached: jalr.hb and cop2 are handled above.
+                _ => crate::machine::fatal_error(&format!(
+                    "internal error: parse_j: unexpected opcode {op}\n"
+                )),
             }
-            return;
-        }
-        let target: ImmExpr = self.parse_label();
-        if is_j {
-            self.emit_j(TOK_J_OPCODE, &target);
-        } else if is_jal {
-            self.emit_j(TOK_JAL_OPCODE, &target);
         }
     }
 

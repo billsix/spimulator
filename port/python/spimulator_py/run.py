@@ -238,6 +238,8 @@ def _branch(taken: bool, offset: int, nullify: bool) -> None:
         _jump(target)
     elif nullify:
         cpu.pc = (cpu.pc + 4) & M32
+    else:
+        pass  # not taken and not nullified: the delay slot runs as the next instruction
 
 
 def _load(registers: list[int], number: int, value: int) -> None:
@@ -730,7 +732,9 @@ def _jump_absolute(inst: Instruction) -> Step:
     return step
 
 
-@_executes("JR")
+# The hazard-barrier forms (.hb) run as the plain ones: the simulator has no pipeline
+# hazards for a barrier to clear.
+@_executes("JR", "JR_HB")
 def _jr(inst: Instruction) -> Step:
     """jr: jump to the address in rs."""
     rs: int = inst.rs
@@ -741,7 +745,7 @@ def _jr(inst: Instruction) -> Step:
     return step
 
 
-@_executes("JALR")
+@_executes("JALR", "JALR_HB")
 def _jalr(inst: Instruction) -> Step:
     """jalr: rd = return address, jump to rs (read before rd is written)."""
     rd, rs = inst.rd, inst.rs

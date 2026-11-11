@@ -437,12 +437,14 @@ impl Machine {
                 let target: u32 = (pc & 0xf000_0000) | inst.target().wrapping_shl(2);
                 self.jump(target, display);
             }
-            TOK_JALR_OPCODE => {
+            // The hazard-barrier forms (.hb) run as the plain ones: the simulator has no
+            // pipeline hazards for a barrier to clear.
+            TOK_JALR_OPCODE | TOK_JALR_HB_OPCODE => {
                 let target: u32 = g(self, rs) as u32;
                 self.regs.gpr[rd] = pc.wrapping_add(delay) as i32;
                 self.jump(target, display);
             }
-            TOK_JR_OPCODE => {
+            TOK_JR_OPCODE | TOK_JR_HB_OPCODE => {
                 let target: u32 = g(self, rs) as u32;
                 self.jump(target, display);
             }

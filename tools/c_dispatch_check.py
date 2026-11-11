@@ -1,35 +1,59 @@
 #!/usr/bin/env python3
-"""List the C engine's dispatch sites that the C coding standard's dispatch rules flag.
+# ---------------------------------------------------------------------------
+# SHARED, VENDORED TOOL -- keep every copy byte-identical.
+# Canonical: runClaudeInContainer tasks/reference/c_dispatch_check.py
+#   (github.com/billsix/runClaudeInContainer). Edit the canonical, then re-copy
+#   it over every vendored copy (runCrushInContainer mirrors it).
+# Vendored into a C project's tools/ so the project's own CI is self-contained
+#   (a public repo can't rely on a mounted ~/.claude).
+# Checks the "Dispatch" rules of c-coding-standard.md.
+# ---------------------------------------------------------------------------
+"""List the C sites that the C coding standard's dispatch rules flag.
 
-The rules (the c-coding-standard.md reference doc from github.com/billsix/runClaudeInContainer,
-"Dispatch"): a decision on one value with 3+ outcomes, or tests listing several constants, is a
-`switch`; every `switch` has a `default`; a run of early-exit `if`s is one `if` / `else if` / `else`
-chain; every chain ends in an `else`. The script reads clang's JSON AST of every `src/*.c`, so a
-test written through a macro is seen as the code it expands to. It reports four kinds of site:
+The rules (c-coding-standard.md, "Dispatch"): a decision on one value with 3+ outcomes, or with
+tests that list several constants, is a ``switch``; every ``switch`` has a ``default``; a run of
+early-exit ``if``s is one ``if`` / ``else if`` / ``else`` chain; every chain ends in an ``else``.
+The tool reads clang's JSON AST of each translation unit, so a test written through a macro is
+seen as the code it expands to. It reports four kinds of site:
 
-- ``switch-chain``: an `if` / `else if` chain comparing one value with constants, with 3+ tests
-  or a test listing several constants with `||`.
-- ``no-else``: an `if` / `else if` chain with no final `else`.
-- ``guard-run``: two or more consecutive `if`s with no `else` whose bodies always leave (return,
-  break, continue, goto, or a call to a function that never returns).
-- ``no-default``: a `switch` with no `default`.
+- ``switch-chain``: an ``if`` / ``else if`` chain comparing one value with integer, character or
+  enumerator constants, with 3+ tests or a test listing several constants with ``||``.
+- ``no-else``: an ``if`` / ``else if`` chain of 2+ tests with no final ``else``.
+- ``guard-run``: two or more consecutive ``if``s with no ``else`` whose bodies always leave
+  (``return``, ``break``, ``continue``, ``goto``, or a call to a function that never returns).
+- ``no-default``: a ``switch`` with no ``default``.
 
-Written for tasks/archive/2026/11/11/c-switch-and-else-if-chains.md, which converted every site
-and records the one deliberate leave-alone: run_spim's instruction-fetch chain (src/run.c), whose
-code after the chain is the rest of the dispatch loop. Code under an `#ifdef` that the build
-leaves out is not seen.
+**Accepting a site.** Put ``dispatch-check: ok`` in a comment, with the reason, on the line where
+the flagged ``if`` or ``switch`` starts or on the line just above it::
 
-Usage::
+    /* dispatch-check: ok -- every branch leaves; the code after is the loop body */
 
-    tools/dispatch_candidates.py BUILDDIR [OUTDIR]
+**What it can't see.** Code that the build's ``#if``/``#ifdef`` leaves out. Only the ``.c`` files
+of the compile database are parsed, and only sites in those files are reported (an ``inline``
+function in a header is not). No-return functions are recognized by their ``[[noreturn]]`` /
+``_Noreturn`` / ``__attribute__((noreturn))`` attribute, plus ``exit``, ``abort``, ``_Exit``,
+``longjmp`` and ``siglongjmp``; name others with ``--noreturn``.
 
-BUILDDIR is a configured clang meson build (``CC=clang meson setup BUILDDIR``); its
-``compile_commands.json`` supplies each file's flags. The flagged sites go to stdout, one per line
-(``path:line  kind  function  detail``), and the totals to stderr. With OUTDIR, the full
-worklogs are also written there: ``if_chains.tsv`` (every chain of 2+ tests, classified),
-``guard_runs.tsv``, ``switches.tsv`` (with each subject's type) and ``summary.txt``.
+Usage, from the project root::
+
+    python3 tools/c_dispatch_check.py BUILDDIR [SOURCE ...] [--noreturn NAME ...] [--out OUTDIR]
+
+- BUILDDIR holds ``compile_commands.json`` (meson writes one; for CMake set
+  ``CMAKE_EXPORT_COMPILE_COMMANDS=ON``; for make use ``bear -- make``).
+- SOURCE: directories or ``.c`` files, relative to the working directory; only translation units
+  under them are checked. The default is every ``.c`` file under the working directory.
+- ``--out OUTDIR`` also writes the full worklogs: ``if_chains.tsv`` (every chain of 2+ tests),
+  ``guard_runs.tsv``, ``switches.tsv`` (with each subject's type) and ``summary.txt``.
+
+The flagged sites go to stdout, one per line (``path:line``, kind, function, detail;
+tab-separated), and the totals to stderr. The exit status is 0 when nothing is flagged, 1 when
+something is, and 2 when clang could not parse a file (reported on stderr; the others are still
+checked) or when no translation unit matches the sources.
+
+Written for github.com/billsix/spimulator ``tasks/archive/2026/11/11/c-switch-and-else-if-chains.md``.
 """
 
+import argparse
 import json
 import pathlib
 import shlex
@@ -39,7 +63,11 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any
 
-REPO_ROOT: pathlib.Path = pathlib.Path(__file__).resolve().parents[1]
+# Paths are reported relative to the working directory, the project root.
+ROOT: pathlib.Path = pathlib.Path.cwd()
+
+# The comment that accepts a flagged site.
+ACCEPT_MARKER: str = "dispatch-check: ok"
 
 # Functions that never return, beyond the ones the TU itself marks [[noreturn]].
 KNOWN_NORETURN: frozenset[str] = frozenset(
@@ -415,7 +443,7 @@ class Scanner:
         if not start[0] or str((self.directory / start[0]).resolve()) != self.source:
             return None
         else:
-            return f"{pathlib.Path(self.source).relative_to(REPO_ROOT)}:{start[1]}"
+            return f"{pathlib.Path(self.source).relative_to(ROOT)}:{start[1]}"
 
     def walk(self, node: Node, chained: bool = False) -> None:
         """Visit a node and its children in clang's printing order.
@@ -614,33 +642,105 @@ def iter_labels(body: Node) -> Iterator[Node]:
                 yield from iter_labels(child)
 
 
-def ast_of(entry: Node) -> Node:
+# Compiler flags that change what clang parses: they are kept, with their value when it is a
+# separate argument. Every other flag (warnings, optimization, output) is dropped.
+JOINED_FLAGS: tuple[str, ...] = (
+    "-I",
+    "-D",
+    "-U",
+    "-std=",
+    "-isystem",
+    "-iquote",
+    "-include",
+)
+SPLIT_FLAGS: frozenset[str] = frozenset(
+    {"-I", "-D", "-U", "-isystem", "-iquote", "-include"}
+)
+
+
+def parse_flags(arguments: list[str]) -> list[str]:
+    """Keep the flags of a compile command that change what clang parses.
+
+    Args:
+        arguments: The command's arguments, without the compiler itself.
+
+    Returns:
+        The include, define and standard flags, in order.
+    """
+    kept: list[str] = []
+    take_next: bool = False
+    for argument in arguments:
+        if take_next:
+            kept.append(argument)
+            take_next = False
+        elif argument in SPLIT_FLAGS:
+            kept.append(argument)
+            take_next = True
+        elif argument.startswith(JOINED_FLAGS):
+            kept.append(argument)
+        else:
+            pass  # warnings, optimization, -c, -o FILE's flag (its value is dropped below)
+    return kept
+
+
+def ast_of(entry: Node) -> Node | None:
     """Dump one compile command's file as a clang JSON AST.
 
     Args:
-        entry: A compile_commands.json entry.
+        entry: A compile_commands.json entry, with either a "command" string or an
+            "arguments" list.
 
     Returns:
-        The translation unit node.
+        The translation unit node, or None if clang could not parse the file (reported on
+        stderr).
     """
-    arguments: list[str] = shlex.split(entry["command"])
-    kept: list[str] = [
-        argument
-        for argument in arguments[1:]
-        if argument.startswith(("-I", "-D", "-std"))
-    ]
+    arguments: list[str] = (
+        list(entry["arguments"])
+        if "arguments" in entry
+        else shlex.split(entry["command"])
+    )
     command: list[str] = [
         "clang",
-        *kept,
+        *parse_flags(arguments[1:]),
         "-fsyntax-only",
         "-Xclang",
         "-ast-dump=json",
         entry["file"],
     ]
     result: subprocess.CompletedProcess[str] = subprocess.run(
-        command, cwd=entry["directory"], capture_output=True, text=True, check=True
+        command, cwd=entry["directory"], capture_output=True, text=True, check=False
     )
-    return json.loads(result.stdout)
+    if result.returncode != 0:
+        # The first error line says why; the rest of clang's output is the usual cascade.
+        first_error: str = next(
+            (line for line in result.stderr.splitlines() if "error" in line),
+            result.stderr,
+        )
+        print(
+            f"{entry['file']}: clang could not parse it: {first_error}", file=sys.stderr
+        )
+        return None
+    else:
+        return json.loads(result.stdout)
+
+
+def accepted(where: str) -> bool:
+    """Say whether a flagged site carries the accept marker.
+
+    Args:
+        where: The site's `path:line`, relative to the working directory.
+
+    Returns:
+        True if that line or the one above it contains ACCEPT_MARKER.
+    """
+    path, line = where.rsplit(":", 1)
+    lines: list[str] = (ROOT / path).read_text(errors="replace").splitlines()
+    number: int = int(line)
+    return any(
+        ACCEPT_MARKER in lines[index]
+        for index in (number - 1, number - 2)
+        if index >= 0
+    )
 
 
 def flagged(
@@ -682,45 +782,81 @@ def flagged(
     return lines
 
 
-def main(build_dir: pathlib.Path, out_dir: pathlib.Path | None) -> None:
-    """Scan every `src/*.c` file, print the flagged sites, and write the worklogs if asked.
+def selected(source: pathlib.Path, roots: list[pathlib.Path]) -> bool:
+    """Say whether a translation unit is under one of the requested sources.
 
     Args:
-        build_dir: A configured meson build directory with compile_commands.json.
-        out_dir: Where to write the full worklogs, or None.
+        source: The unit's absolute path.
+        roots: The requested directories and files, absolute.
+
+    Returns:
+        True if the unit is one of them or inside one of them.
     """
+    return any(source == root or root in source.parents for root in roots)
+
+
+def main(arguments: argparse.Namespace) -> int:
+    """Scan the requested translation units, print the flagged sites, and write the worklogs.
+
+    Args:
+        arguments: The parsed command line.
+
+    Returns:
+        The exit status: 0 clean, 1 sites flagged, 2 a file could not be parsed.
+    """
+    build_dir: pathlib.Path = pathlib.Path(arguments.build_dir).resolve()
+    roots: list[pathlib.Path] = [
+        (ROOT / source).resolve() for source in (arguments.sources or ["."])
+    ]
     entries: list[Node] = json.loads((build_dir / "compile_commands.json").read_text())
     by_file: dict[pathlib.Path, Node] = {}
     for entry in entries:
         source: pathlib.Path = (
             pathlib.Path(entry["directory"]) / entry["file"]
         ).resolve()
-        if source.parent == REPO_ROOT / "src" and source.suffix == ".c":
+        if source.suffix == ".c" and selected(source, roots) and ROOT in source.parents:
             by_file.setdefault(source, entry)
+    if not by_file:
+        # A gate whose source list matches nothing must not pass.
+        print(
+            "no .c translation unit in the compile database matches the sources",
+            file=sys.stderr,
+        )
+        return 2
     chains: list[Finding] = []
     runs: list[Finding] = []
     switches: list[Finding] = []
+    unparsed: int = 0
     for source, entry in sorted(by_file.items()):
-        unit: Node = ast_of(entry)
-        noreturn: set[str] = set(KNOWN_NORETURN)
-        collect_noreturn(unit, noreturn)
-        scanner: Scanner = Scanner(source, pathlib.Path(entry["directory"]), noreturn)
-        scanner.walk(unit)
-        chains += scanner.chains
-        runs += scanner.runs
-        switches += scanner.switches
-    summary: list[str] = [
-        f"if/else-if chains (2+ tests): {len(chains)}",
-        *(
-            f"  {chain_shape}: {sum(1 for f in chains if f.shape == chain_shape)}"
-            f" (no final else: {sum(1 for f in chains if f.shape == chain_shape and not f.has_else)})"
-            for chain_shape in ("switch", "string-table", "mixed")
-        ),
-        f"guard runs (2+ exiting ifs): {len(runs)}",
-        f"switch statements: {len(switches)}",
-        f"  without default: {sum(1 for f in switches if not f.has_else)}",
+        unit: Node | None = ast_of(entry)
+        if unit is None:
+            unparsed += 1
+            continue
+        else:
+            noreturn: set[str] = set(KNOWN_NORETURN) | set(arguments.noreturn)
+            collect_noreturn(unit, noreturn)
+            scanner: Scanner = Scanner(
+                source, pathlib.Path(entry["directory"]), noreturn
+            )
+            scanner.walk(unit)
+            chains += scanner.chains
+            runs += scanner.runs
+            switches += scanner.switches
+    findings: list[str] = flagged(chains, runs, switches)
+    reported: list[str] = [
+        line for line in findings if not accepted(line.split("\t")[0])
     ]
-    if out_dir is not None:
+    no_else: int = sum(1 for f in chains if not f.has_else)
+    no_default: int = sum(1 for f in switches if not f.has_else)
+    summary: list[str] = [
+        f"translation units: {len(by_file) - unparsed} checked, {unparsed} not parsed",
+        f"if/else-if chains (2+ tests): {len(chains)}, no final else: {no_else}",
+        f"guard runs (2+ exiting ifs): {len(runs)}",
+        f"switch statements: {len(switches)}, no default: {no_default}",
+        f"flagged: {len(reported)} (accepted: {len(findings) - len(reported)})",
+    ]
+    if arguments.out is not None:
+        out_dir: pathlib.Path = pathlib.Path(arguments.out)
         header: str = "where\tfunction\tshape\ttests\thas_else\tsubject\tdetail"
         out_dir.mkdir(parents=True, exist_ok=True)
         for name, rows in (
@@ -731,13 +867,44 @@ def main(build_dir: pathlib.Path, out_dir: pathlib.Path | None) -> None:
             rows_text: list[str] = [header, *(finding.row() for finding in rows)]
             (out_dir / f"{name}.tsv").write_text("\n".join(rows_text) + "\n")
         (out_dir / "summary.txt").write_text("\n".join(summary) + "\n")
-    for line in flagged(chains, runs, switches):
+    for line in reported:
         print(line)
     print("\n".join(summary), file=sys.stderr)
+    if unparsed:
+        return 2
+    elif reported:
+        return 1
+    else:
+        return 0
+
+
+def parse_arguments() -> argparse.Namespace:
+    """Read the command line.
+
+    Returns:
+        The parsed arguments.
+    """
+    parser: argparse.ArgumentParser = argparse.ArgumentParser(
+        description="List the C sites the C coding standard's dispatch rules flag."
+    )
+    parser.add_argument("build_dir", help="the directory holding compile_commands.json")
+    parser.add_argument(
+        "sources",
+        nargs="*",
+        help="directories or .c files to check (default: everything)",
+    )
+    parser.add_argument(
+        "--noreturn",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help="a function that never returns but is not marked so (repeatable)",
+    )
+    parser.add_argument(
+        "--out", metavar="OUTDIR", help="also write the full worklogs here"
+    )
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
-    main(
-        pathlib.Path(sys.argv[1]).resolve(),
-        pathlib.Path(sys.argv[2]).resolve() if len(sys.argv) > 2 else None,
-    )
+    sys.exit(main(parse_arguments()))

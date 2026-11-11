@@ -35,7 +35,8 @@ github.com/billsix/runClaudeInContainer, "Dispatch").
     the code after it is the rest of the dispatch loop, so nesting that one level deeper would read
     worse.
 - **`tools/dispatch_candidates.py BUILDDIR`** (promoted from this task's scanner) checks new C. On
-  this tree it lists only the leave-alone above. It is not wired into a gate.
+  this tree it lists only the leave-alone above. It is not wired into a gate. It was later replaced
+  by the shared `tools/c_dispatch_check.py` (`tasks/archive/2026/11/11/vendor-shared-dispatch-checker.md`).
 
 ## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
@@ -47,18 +48,19 @@ github.com/billsix/runClaudeInContainer, "Dispatch").
    comment saying why it is never reached. `-Wswitch-enum` keeps the compile-time check. Where
    C23's `unreachable()` would also fit, the fatal message was used instead, so a broken invariant
    is diagnosed, not undefined.
-4. Naming `include/tokens.h`'s anonymous token enum is out of scope:
-   `tasks/name-the-token-enum.md`.
+4. Naming `include/tokens.h`'s anonymous token enum is out of scope
+   (`tasks/archive/2026/11/11/name-the-token-enum.md`, later declined).
 5. The shared C coding standard gets the rules: runClaudeInContainer and runCrushInContainer,
    branch `c-dispatch-rules` in each.
 6. The scanner was promoted to `tools/`.
 
 ## Found along the way (both are bugs that predate this work; each has its own task)
 
-- **`tasks/paired-single-compare-encoding.md`.** The 16 `c.cond.ps` rows of `include/opcodes.tsv`
-  encode format field 0x13, where GNU `as` puts 0x16. The engine also can't execute them. Found
-  because `r_cond_type_inst`'s "exhaustive" switch wasn't: those rows reach it with no case.
-- **`tasks/parse-j-drops-cop2-and-jalr-hb.md`.** `cop2` and `jalr.hb` reach `parse_j` and assemble
+- **`tasks/archive/2026/11/11/paired-single-compare-encoding.md`.** The 16 `c.cond.ps` rows of
+  `include/opcodes.tsv` encoded format field 0x13, where GNU `as` puts 0x16, and the engine
+  couldn't execute them. Found because `r_cond_type_inst`'s "exhaustive" switch wasn't: those rows
+  reached it with no case. The rows were later removed.
+- **`tasks/archive/2026/11/11/parse-j-drops-cop2-and-jalr-hb.md`.** `cop2` and `jalr.hb` reach `parse_j` and assemble
   to nothing, with no error. Found while writing `parse_j`'s `default`.
 - The oracle for both is GNU binutils for MIPS (`binutils-mips64-linux-gnu`), installed and added
   to both sandboxes' base lists. LLVM's `llvm-mc` doesn't support the paired-single compares.
@@ -115,7 +117,8 @@ was archived and are in its history.
 
 ## Follow-ups
 
-- `tasks/c-dispatch-port-review.md` (proposed): whether the ports should follow any of this.
-- `tasks/paired-single-compare-encoding.md`, `tasks/parse-j-drops-cop2-and-jalr-hb.md` (proposed).
-- `tasks/name-the-token-enum.md` (proposed): a named token type, so switches on tokens can be
-  checked.
+- `tasks/archive/2026/11/11/c-dispatch-port-review.md`: what the ports followed, and why not elsewhere.
+- `tasks/archive/2026/11/11/paired-single-compare-encoding.md` and
+  `tasks/archive/2026/11/11/parse-j-drops-cop2-and-jalr-hb.md`: both bugs, fixed later the same day.
+- `tasks/archive/2026/11/11/name-the-token-enum.md` (declined): a named token type, so switches on
+  tokens could be checked.

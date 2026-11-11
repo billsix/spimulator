@@ -16,7 +16,7 @@ fields; each kind uses only some of them.
 
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any
+from typing import Any, assert_never
 
 from . import opcodes, scanner
 from .cformat import c_format
@@ -214,7 +214,7 @@ def _describe(node: Node) -> str:
         case Kind.ERROR:
             return f"ERROR {node.name if node.name is not None else '(no message)'}"
         case _:
-            raise AssertionError(node.kind)
+            assert_never(node.kind)
 
 
 def format_tree(node: Node, depth: int = 0) -> str:
@@ -338,7 +338,7 @@ def _json_fields(node: Node) -> str:
         case Kind.ERROR:
             return f',"message":{_json_name(node.name or "")}'
         case _:
-            raise AssertionError(node.kind)
+            assert_never(node.kind)
 
 
 def _json_chain(nodes: list[Node]) -> str:

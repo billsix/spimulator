@@ -933,12 +933,17 @@ static void parse_b1(int op) {
   emit_i_free(op, 0, rs, target);
 }
 
-/* J_TYPE_INST: <op> LABEL  OR  <op> SRC1 (j/jal/jr/jalr).
-   Matches.  J_OPS covers j, jal, jr, jalr;
-   with a label argument we emit j_type_inst with the right
-   absolute-jump opcode; with a register argument we emit
-   r_type_inst with the indirect-jump opcode. */
+/* J_TYPE_INST: <op> LABEL  OR  <op> SRC1 (j/jal/jr/jalr), and RD_RS_INST's
+   jalr and jalr.hb.  With a label argument we emit j_type_inst with the
+   right absolute-jump opcode; with a register argument we emit r_type_inst
+   with the indirect-jump opcode.  jalr.hb keeps its own opcode (jalr with the
+   hazard-barrier bit) and takes registers only.  cop2 shares J_TYPE_INST
+   but spim has no coprocessor 2, so it is an error. */
 static void parse_j(int op) {
+  if (op == TOK_COP2_OPCODE) {
+    parse_error_at("cop2 is not supported: spim has no coprocessor 2");
+    return;
+  }
   if (scanner_peek() == TOK_REG) {
     /* J_OPS SRC1  or  J_OPS DEST SRC1 — register-indirect jump.
      */
@@ -955,10 +960,13 @@ static void parse_j(int op) {
         case TOK_JALR_OPCODE:
           emit_r(TOK_JALR_OPCODE, r1, r2, 0);
           break;
-        default:
-          /* cop2 and jalr.hb also reach parse_j; they emit nothing here
-             (tasks/parse-j-drops-cop2-and-jalr-hb.md). */
+        case TOK_JALR_HB_OPCODE:
+          emit_r(TOK_JALR_HB_OPCODE, r1, r2, 0);
           break;
+        default:
+          /* Never reached: parse_asm_code sends only J_TYPE_INST and
+             RD_RS_INST opcodes here, and cop2 returned above. */
+          fatal_error("internal error: parse_j: unexpected opcode %d\n", op);
       }
       return;
     }
@@ -972,10 +980,17 @@ static void parse_j(int op) {
       case TOK_JALR_OPCODE:
         emit_r(TOK_JALR_OPCODE, 31, r1, 0);
         break;
-      default:
-        /* cop2 and jalr.hb: nothing emitted, as in the DEST SRC1 form above. */
+      case TOK_JALR_HB_OPCODE:
+        emit_r(TOK_JALR_HB_OPCODE, 31, r1, 0);
         break;
+      default:
+        /* Never reached: as in the DEST SRC1 form above. */
+        fatal_error("internal error: parse_j: unexpected opcode %d\n", op);
     }
+    return;
+  }
+  if (op == TOK_JALR_HB_OPCODE) {
+    parse_error_at("jalr.hb needs a register operand");
     return;
   }
   /* J_OPS LABEL — absolute-target jump */
@@ -990,8 +1005,8 @@ static void parse_j(int op) {
       emit_j(TOK_JAL_OPCODE, target);
       break;
     default:
-      /* cop2 and jalr.hb: nothing emitted, as in the register forms above. */
-      break;
+      /* Never reached: jalr.hb and cop2 returned above. */
+      fatal_error("internal error: parse_j: unexpected opcode %d\n", op);
   }
   free(target);
 }

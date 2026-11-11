@@ -411,12 +411,16 @@ def check_memory_mapped_io() -> None:
         _recv_buffer_full_timer = layout.RECV_INTERVAL
         if _recv_control & layout.RECV_INT_ENABLE:
             _raise_interrupt(layout.RECV_INT_LEVEL)
+    else:
+        pass  # no console input is waiting: nothing to receive
     if _trans_buffer_full_timer > 0:
         _trans_buffer_full_timer -= 1
     elif not _trans_control & layout.TRANS_READY:
         _trans_control |= layout.TRANS_READY
         if _trans_control & layout.TRANS_INT_ENABLE:
             _raise_interrupt(layout.TRANS_INT_LEVEL)
+    else:
+        pass  # the transmitter is already ready: nothing to finish
 
 
 def _write_memory_mapped_io(addr: int, value: int) -> None:

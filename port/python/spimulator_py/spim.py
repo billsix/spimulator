@@ -15,7 +15,7 @@ import io
 import os
 import signal
 import sys
-from typing import BinaryIO
+from typing import BinaryIO, assert_never
 
 from . import (
     assembler_event,
@@ -137,7 +137,7 @@ def _listing_observer(event: Event) -> None:
                 f" = 0x{machine.u32(event.value):08x}\n"
             )
         case _:
-            raise AssertionError(event.kind)
+            assert_never(event.kind)
     if _listing is sys.stderr.buffer:
         console.error(line)
     else:

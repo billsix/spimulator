@@ -187,6 +187,9 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
       exception_occurred = false;
       instruction = mem_read_inst(PC);
+      /* Every branch of this chain leaves, so the rest of the loop body is its
+         else; nesting all of that one level deeper would read worse. */
+      /* dispatch-check: ok -- see the comment above */
       if (exception_occurred) /* In reading instruction */
       {
         exception_occurred = false;
@@ -431,6 +434,9 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           JUMP_INST(((PC & 0xf0000000) | (TARGET(instruction) << 2)));
           break;
 
+        /* The hazard-barrier forms (.hb) run as the plain ones: the simulator
+           has no pipeline hazards for a barrier to clear. */
+        case TOK_JALR_HB_OPCODE:
         case TOK_JALR_OPCODE: {
           const mem_addr tmp = (mem_addr)gpr[RS(instruction)];
 
@@ -441,6 +447,7 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
           JUMP_INST(tmp);
         } break;
 
+        case TOK_JR_HB_OPCODE:
         case TOK_JR_OPCODE: {
           const mem_addr tmp = (mem_addr)gpr[RS(instruction)];
 
