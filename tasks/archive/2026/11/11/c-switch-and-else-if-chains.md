@@ -47,8 +47,8 @@ github.com/billsix/runClaudeInContainer, "Dispatch").
    comment saying why it is never reached. `-Wswitch-enum` keeps the compile-time check. Where
    C23's `unreachable()` would also fit, the fatal message was used instead, so a broken invariant
    is diagnosed, not undefined.
-4. Naming `include/tokens.h`'s anonymous token enum is out of scope:
-   `tasks/name-the-token-enum.md`.
+4. Naming `include/tokens.h`'s anonymous token enum is out of scope
+   (`tasks/archive/2026/11/11/name-the-token-enum.md`, later declined).
 5. The shared C coding standard gets the rules: runClaudeInContainer and runCrushInContainer,
    branch `c-dispatch-rules` in each.
 6. The scanner was promoted to `tools/`.
@@ -117,5 +117,5 @@ was archived and are in its history.
 
 - `tasks/c-dispatch-port-review.md` (proposed): whether the ports should follow any of this.
 - `tasks/paired-single-compare-encoding.md`, `tasks/parse-j-drops-cop2-and-jalr-hb.md` (proposed).
-- `tasks/name-the-token-enum.md` (proposed): a named token type, so switches on tokens can be
-  checked.
+- `tasks/archive/2026/11/11/name-the-token-enum.md` (declined): a named token type, so switches on
+  tokens could be checked.
