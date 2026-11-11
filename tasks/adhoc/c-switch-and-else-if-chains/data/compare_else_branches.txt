@@ -1,0 +1,7 @@
+SKIPPED (the before binary is not deterministic here): explain examples/src/intro/yes/yes.asm
+SKIPPED (the before binary is not deterministic here): explain examples/src/recursion/queens/queens.asm
+SKIPPED (the before binary is not deterministic here): explain tests/time.s
+SKIPPED (the before binary is not deterministic here): explain tests/timer.s
+SKIPPED (the before binary is not deterministic here): explain tests/tt.core.s
+SKIPPED (the before binary is not deterministic here): explain tests/tt.io.s
+447 comparisons, 6 skipped, status 0

@@ -520,6 +520,8 @@ void check_memory_mapped_IO(void) {
     if ((uint32_t)recv_control & RECV_INT_ENABLE) {
       RAISE_INTERRUPT(RECV_INT_LEVEL);
     }
+  } else {
+    /* No console input is waiting: nothing to receive. */
   }
 
   if (trans_buffer_full_timer > 0) {
@@ -533,6 +535,8 @@ void check_memory_mapped_IO(void) {
     if ((uint32_t)trans_control & TRANS_INT_ENABLE) {
       RAISE_INTERRUPT(TRANS_INT_LEVEL);
     }
+  } else {
+    /* The transmitter is already ready: nothing to finish. */
   }
 }
 

@@ -182,6 +182,12 @@ static void store_instruction(mips_instruction* instruction) {
         SET_ENCODING(instruction, inst_encode(instruction));
       asm_fire_text_inst(at, (uint32_t)ENCODING(instruction));
     }
+  } else {
+    /* Never reached: the parser always sets data_dir and text_dir as a pair,
+       one of them true. */
+    fatal_error(
+        "internal error: store_instruction: neither the data nor the text "
+        "segment is active\n");
   }
 }
 
@@ -1023,6 +1029,9 @@ static void format_imm_expr(str_stream* ss, imm_expr* expr, int base_reg) {
     ss_printf(ss, "-%d (-0x%08x)", -expr->offset, (unsigned int)-expr->offset);
   else if (expr->offset > 10)
     ss_printf(ss, "+%d (0x%08x)", expr->offset, (unsigned int)expr->offset);
+  else {
+    /* An offset from -10 to 10 is not printed. */
+  }
 
   if (base_reg != -1 && expr->symbol != nullptr &&
       (expr->offset > 10 || expr->offset < -10)) {

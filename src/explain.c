@@ -1459,6 +1459,8 @@ static void render_r_decode_step(uint32_t enc, int step, const char* mnemonic,
                  "rd,\n"
                  "  shamt — read them in turn.\n",
                  group_name, funct, fname, fname);
+  } else {
+    /* Step 3 has no paragraph after its field table. */
   }
 }
 
@@ -1641,6 +1643,8 @@ static void render_regimm_decode_step(uint32_t enc, int step,
                  "  with a register tested against zero and a 16-bit branch\n"
                  "  displacement.\n",
                  rt, rtname);
+  } else {
+    /* Step 3 has no paragraph after its field table. */
   }
 }
 
@@ -2494,10 +2498,13 @@ void explain_after(const mips_instruction* instruction) {
      CPU's hierarchical decoding sequence (multiple frames, same shape,
      fields filling in progressively). The L4 final frame equals the
      L3 box, so we don't show both. */
-  if (level == 3)
+  if (level == 3) {
     explain_bit_layout(instruction);
-  else if (level >= 4)
+  } else if (level >= 4) {
     explain_decoding_steps(instruction);
+  } else {
+    /* Below level 3 there is no bit layout. */
+  }
 
   /* Pseudo-op header / continuation hint.
    *
@@ -2544,6 +2551,8 @@ void explain_after(const mips_instruction* instruction) {
       write_output(message_out, "  Pseudo-op: `%s` (continuation)\n",
                    pending_pseudo_name);
     }
+  } else {
+    /* Neither path applies: this instruction gets no pseudo-op header. */
   }
   write_output(message_out, "\n");
 

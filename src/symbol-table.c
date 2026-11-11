@@ -298,6 +298,8 @@ static void resolve_a_label_sub(const label* sym, mips_instruction* instruction,
                    EXPR(instruction)->symbol == EXPR(prev_prev_inst)->symbol &&
                    IMM(prev_prev_inst) == 0) {
             EXPR(prev_prev_inst)->offset += 0x10000;
+          } else {
+            /* No matching LUI without an immediate: nothing to compensate. */
           }
         }
       } else {

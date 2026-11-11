@@ -68,6 +68,9 @@ static bool running_in_delay_slot = false;
       /* If test fails and nullify bit set, skip \
          instruction in delay slot. */           \
       PC += BYTES_PER_WORD;                      \
+    } else {                                     \
+      /* Not taken and not nullified: the delay  \
+         slot runs as the next instruction. */   \
     }                                            \
   } while (0)
 
@@ -1222,6 +1225,8 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
             if (((u_reg_word)gpr[RT(instruction)] & ~FCSR_MASK) != 0)
               /* Trying to set unsupported mode */
               RAISE_EXCEPTION(ExcCode_FPE, {});
+          } else {
+            /* The other FP control registers take any value. */
           }
           break;
 

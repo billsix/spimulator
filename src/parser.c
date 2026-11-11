@@ -88,6 +88,9 @@ static void ast_append(ast_node* node) {
     ast_pseudo_append(current_pseudo, node);
   } else if (current_file != nullptr) {
     ast_file_append(current_file, node);
+  } else {
+    /* No tree is being built (parser_init has not run): the node is
+       dropped. */
   }
 }
 
@@ -129,8 +132,9 @@ static void print_pseudo_walk(const ast_node* node, FILE* out) {
     ast_print(node, out);
   } else if (node->kind == AST_FILE) {
     print_pseudo_in_chain(node->u.file.child, out);
+  } else {
+    /* Other node kinds are skipped — -show-expansion is a focused view. */
   }
-  /* Other node kinds are skipped — -show-expansion is a focused view. */
 }
 
 void parser_set_print_ast_only(bool on) { print_ast_only_ = on; }
@@ -721,6 +725,8 @@ static addr_expr* parse_address(void) {
       } else if (scanner_peek() == '-') {
         scanner_advance();
         off = -parse_abs_addr();
+      } else {
+        /* No offset: off stays 0. */
       }
       int reg = 0;
       if (scanner_peek() == '(') {
@@ -2162,6 +2168,8 @@ static void parse_line(void) {
       } else if (scanner_peek() != TOK_EOF) {
         parse_error_at("Extra tokens after instruction");
         sync_to_nl();
+      } else {
+        /* At TOK_EOF: there is no newline to consume. */
       }
     }
   }
