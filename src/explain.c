@@ -612,6 +612,12 @@ static void subst_field_regs(char* dst, size_t cap, const char* src, int rs,
         case 'd':
           r = rd;
           break;
+        default:
+          /* Never reached: the test above admits only $rs, $rt and $rd. */
+          fatal_error(
+              "internal error: subst_field_regs: unexpected register field "
+              "'$r%c'\n",
+              src[2]);
       }
       if (r >= 0 && r < 32) {
         const int n = snprintf(dst + i, cap - i, "$%s", int_reg_names[r]);
@@ -1306,12 +1312,21 @@ static void explain_bit_layout(const mips_instruction* instruction) {
 
   const char* const mnemonic = inst_op_name(instruction);
   const int op = (int)((enc >> 26) & 0x3f);
-  if (op == 0x00 || op == 0x1c || op == 0x1f)
-    render_r_layout(enc, mnemonic);
-  else if (op == 0x02 || op == 0x03)
-    render_j_layout(enc, mnemonic);
-  else
-    render_i_layout(enc, mnemonic);
+  switch (op) {
+    case 0x00: /* SPECIAL */
+    case 0x1c: /* SPECIAL2 */
+    case 0x1f: /* SPECIAL3 */
+      render_r_layout(enc, mnemonic);
+      break;
+    case 0x02: /* j */
+    case 0x03: /* jal */
+      render_j_layout(enc, mnemonic);
+      break;
+    default:
+      /* Every other primary opcode is I-type. */
+      render_i_layout(enc, mnemonic);
+      break;
+  }
 }
 
 /* ------------ L4: progressive decoding walkthrough ------------
@@ -1386,6 +1401,11 @@ static void render_r_decode_step(uint32_t enc, int step, const char* mnemonic,
       write_output(message_out,
                    "  Step 3 — read the remaining R-type fields.\n");
       break;
+    default:
+      /* Never reached: explain_decoding_steps calls this with steps 1 to 3
+       * only. */
+      fatal_error("internal error: render_r_decode_step: no decode step %d\n",
+                  step);
   }
 
   write_output(message_out,
@@ -1439,6 +1459,8 @@ static void render_r_decode_step(uint32_t enc, int step, const char* mnemonic,
                  "rd,\n"
                  "  shamt — read them in turn.\n",
                  group_name, funct, fname, fname);
+  } else {
+    /* Step 3 has no paragraph after its field table. */
   }
 }
 
@@ -1467,6 +1489,11 @@ static void render_i_decode_step(uint32_t enc, int step, const char* mnemonic) {
       write_output(message_out,
                    "  Step 2 — read the remaining I-type fields.\n");
       break;
+    default:
+      /* Never reached: explain_decoding_steps calls this with steps 1 and 2
+       * only. */
+      fatal_error("internal error: render_i_decode_step: no decode step %d\n",
+                  step);
   }
 
   write_output(message_out,
@@ -1512,6 +1539,11 @@ static void render_j_decode_step(uint32_t enc, int step, const char* mnemonic) {
     case 2:
       write_output(message_out, "  Step 2 — read the target field.\n");
       break;
+    default:
+      /* Never reached: explain_decoding_steps calls this with steps 1 and 2
+       * only. */
+      fatal_error("internal error: render_j_decode_step: no decode step %d\n",
+                  step);
   }
 
   write_output(message_out,
@@ -1572,6 +1604,12 @@ static void render_regimm_decode_step(uint32_t enc, int step,
     case 3:
       write_output(message_out, "  Step 3 — read the rs and offset fields.\n");
       break;
+    default:
+      /* Never reached: explain_decoding_steps calls this with steps 1 to 3
+       * only. */
+      fatal_error(
+          "internal error: render_regimm_decode_step: no decode step %d\n",
+          step);
   }
 
   write_output(message_out,
@@ -1605,6 +1643,8 @@ static void render_regimm_decode_step(uint32_t enc, int step,
                  "  with a register tested against zero and a 16-bit branch\n"
                  "  displacement.\n",
                  rt, rtname);
+  } else {
+    /* Step 3 has no paragraph after its field table. */
   }
 }
 
@@ -1620,29 +1660,39 @@ static void explain_decoding_steps(const mips_instruction* instruction) {
   render_hex_bin_table(enc);
   write_output(message_out, "\n");
 
-  if (op == 0x00 || op == 0x1c || op == 0x1f) {
-    const char* const group = (op == 0x00)   ? "SPECIAL"
-                              : (op == 0x1c) ? "SPECIAL2"
-                                             : "SPECIAL3";
-    for (int s = 1; s <= 3; s++) {
-      if (s > 1) write_output(message_out, "\n");
-      render_r_decode_step(enc, s, mnemonic, group);
+  switch (op) {
+    case 0x00: /* SPECIAL */
+    case 0x1c: /* SPECIAL2 */
+    case 0x1f: /* SPECIAL3 */ {
+      const char* const group = (op == 0x00)   ? "SPECIAL"
+                                : (op == 0x1c) ? "SPECIAL2"
+                                               : "SPECIAL3";
+      for (int s = 1; s <= 3; s++) {
+        if (s > 1) write_output(message_out, "\n");
+        render_r_decode_step(enc, s, mnemonic, group);
+      }
+      break;
     }
-  } else if (op == 0x01) {
-    for (int s = 1; s <= 3; s++) {
-      if (s > 1) write_output(message_out, "\n");
-      render_regimm_decode_step(enc, s, mnemonic);
-    }
-  } else if (op == 0x02 || op == 0x03) {
-    for (int s = 1; s <= 2; s++) {
-      if (s > 1) write_output(message_out, "\n");
-      render_j_decode_step(enc, s, mnemonic);
-    }
-  } else {
-    for (int s = 1; s <= 2; s++) {
-      if (s > 1) write_output(message_out, "\n");
-      render_i_decode_step(enc, s, mnemonic);
-    }
+    case 0x01: /* REGIMM */
+      for (int s = 1; s <= 3; s++) {
+        if (s > 1) write_output(message_out, "\n");
+        render_regimm_decode_step(enc, s, mnemonic);
+      }
+      break;
+    case 0x02: /* j */
+    case 0x03: /* jal */
+      for (int s = 1; s <= 2; s++) {
+        if (s > 1) write_output(message_out, "\n");
+        render_j_decode_step(enc, s, mnemonic);
+      }
+      break;
+    default:
+      /* Every other primary opcode is I-type. */
+      for (int s = 1; s <= 2; s++) {
+        if (s > 1) write_output(message_out, "\n");
+        render_i_decode_step(enc, s, mnemonic);
+      }
+      break;
   }
 }
 
@@ -1689,6 +1739,10 @@ void explain_before(const mips_instruction* instruction, mem_addr addr) {
       snap_has_mem = true;
       break;
     }
+    default:
+      /* Any other opcode stores nothing, so there is no memory word to
+       * snapshot. */
+      break;
   }
 }
 
@@ -1962,6 +2016,10 @@ static void lookup_classification(int op, inst_category* cat,
     /* System */
     case TOK_SYSCALL_OPCODE:
       *cat = CAT_SYSTEM;
+      break;
+    default:
+      /* Any other opcode has no classification: *cat stays CAT_COUNT (unknown).
+       */
       break;
   }
 }
@@ -2440,10 +2498,13 @@ void explain_after(const mips_instruction* instruction) {
      CPU's hierarchical decoding sequence (multiple frames, same shape,
      fields filling in progressively). The L4 final frame equals the
      L3 box, so we don't show both. */
-  if (level == 3)
+  if (level == 3) {
     explain_bit_layout(instruction);
-  else if (level >= 4)
+  } else if (level >= 4) {
     explain_decoding_steps(instruction);
+  } else {
+    /* Below level 3 there is no bit layout. */
+  }
 
   /* Pseudo-op header / continuation hint.
    *
@@ -2490,6 +2551,8 @@ void explain_after(const mips_instruction* instruction) {
       write_output(message_out, "  Pseudo-op: `%s` (continuation)\n",
                    pending_pseudo_name);
     }
+  } else {
+    /* Neither path applies: this instruction gets no pseudo-op header. */
   }
   write_output(message_out, "\n");
 
@@ -2531,6 +2594,9 @@ void explain_after(const mips_instruction* instruction) {
         }
         break;
       }
+      default:
+        /* Only loads get the unchanged-destination note. */
+        break;
     }
 
     /* Side-effect fallback: anything that changed but wasn't named by

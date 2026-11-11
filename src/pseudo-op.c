@@ -162,6 +162,8 @@ void mult_inst(int op, int rd, int rs, int rt) {
     emit_i_free(TOK_BEQ_OPCODE, rd, 1, branch_offset(3));
     nop_inst();
     trap_inst();
+  } else {
+    /* Any other op, or a result into $zero: no overflow check. */
   }
   if (rd != 0) emit_r(TOK_MFLO_OPCODE, rd, 0, 0);
 }

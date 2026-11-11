@@ -66,7 +66,8 @@ static mem_addr next_k_text_pc;
    not currently read anywhere, so [[maybe_unused]] silences clang's
    -Wunused-but-set-global (new in the LLVM 23 / Fedora 45 toolchain) under
    -Werror.  Whether .align 0 should actually consult this to disable
-   auto-alignment is a latent question noted in tasks/upgrade-to-fedora-45.md. */
+   auto-alignment is a latent question noted in
+   tasks/archive/2026/11/05/upgrade-to-fedora-45.md. */
 [[maybe_unused]] static bool enable_text_auto_alignment =
     true; /* => align literal to natural bound */
 
@@ -182,6 +183,12 @@ static void store_instruction(mips_instruction* instruction) {
         SET_ENCODING(instruction, inst_encode(instruction));
       asm_fire_text_inst(at, (uint32_t)ENCODING(instruction));
     }
+  } else {
+    /* Never reached: the parser always sets data_dir and text_dir as a pair,
+       one of them true. */
+    fatal_error(
+        "internal error: store_instruction: neither the data nor the text "
+        "segment is active\n");
   }
 }
 
@@ -492,6 +499,11 @@ void r_cond_type_inst(int opcode, int fs, int ft, int cc) {
       SET_COND(instruction, COND_UN);
       break;
     }
+    default:
+      /* The paired-single compares (c.cond.ps) also reach here. They have no
+         case, so their COND field stays unset; the engine assembles them but
+         cannot execute them (tasks/paired-single-compare-encoding.md). */
+      break;
   }
   store_instruction(instruction);
 }
@@ -1018,6 +1030,9 @@ static void format_imm_expr(str_stream* ss, imm_expr* expr, int base_reg) {
     ss_printf(ss, "-%d (-0x%08x)", -expr->offset, (unsigned int)-expr->offset);
   else if (expr->offset > 10)
     ss_printf(ss, "+%d (0x%08x)", expr->offset, (unsigned int)expr->offset);
+  else {
+    /* An offset from -10 to 10 is not printed. */
+  }
 
   if (base_reg != -1 && expr->symbol != nullptr &&
       (expr->offset > 10 || expr->offset < -10)) {
@@ -1178,22 +1193,32 @@ mips_instruction* inst_decode(int32_t val) {
   int32_t a_opcode = (int32_t)((unsigned int)val & 0xfc000000);
 
   /* Field classes: (opcode is continued in other part of instruction): */
-  if (a_opcode == 0 || a_opcode == 0x70000000) /* SPECIAL or SPECIAL2 */
-    a_opcode |= (val & 0x3f);
-  else if (a_opcode == 0x04000000) /* REGIMM */
-    a_opcode |= (val & 0x001f0000);
-  else if (a_opcode == 0x40000000) /* COP0 */
-    a_opcode |= (val & 0x03e00000) | (val & 0x1f);
-  else if (a_opcode == 0x44000000) /* COP1 */
-  {
-    a_opcode |= (val & 0x03e00000);
-    if (((unsigned int)val & 0xff000000) == 0x45000000)
-      a_opcode |= (val & 0x00010000); /* BC1f/t */
-    else
+  switch (a_opcode) {
+    case 0:          /* SPECIAL */
+    case 0x70000000: /* SPECIAL2 */
       a_opcode |= (val & 0x3f);
-  } else if (a_opcode == 0x48000000 /* COPz */
-             || a_opcode == 0x4c000000)
-    a_opcode |= (val & 0x03e00000);
+      break;
+    case 0x04000000: /* REGIMM */
+      a_opcode |= (val & 0x001f0000);
+      break;
+    case 0x40000000: /* COP0 */
+      a_opcode |= (val & 0x03e00000) | (val & 0x1f);
+      break;
+    case 0x44000000: /* COP1 */
+      a_opcode |= (val & 0x03e00000);
+      if (((unsigned int)val & 0xff000000) == 0x45000000)
+        a_opcode |= (val & 0x00010000); /* BC1f/t */
+      else
+        a_opcode |= (val & 0x3f);
+      break;
+    case 0x48000000: /* COPz */
+    case 0x4c000000:
+      a_opcode |= (val & 0x03e00000);
+      break;
+    default:
+      /* Any other primary opcode is the whole key: nothing to add. */
+      break;
+  }
 
   const name_val_val* const entry =
       map_int_to_name_val_val(opcode_decode_tbl, OPCODE_DECODE_COUNT, a_opcode);

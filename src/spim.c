@@ -202,8 +202,7 @@ static char** spim_completion(const char* text, int start,
     /* First word of the line: REPL command names. */
     rl_attempted_completion_over = 1;
     return rl_completion_matches(text, command_generator);
-  }
-  if (line_is_file_command()) {
+  } else if (line_is_file_command()) {
     /* `load `, `read `, `dump `, `dumpnative ` — filename completion.
        libedit doesn't auto-fall-back to filename completion when we
        return nullptr the way GNU readline does, so we drive
@@ -236,17 +235,17 @@ static char** spim_completion(const char* text, int start,
        still helps the student see what's available — they can wrap
        it in quotes themselves. */
     return rl_completion_matches(text, rl_filename_completion_function);
-  }
-  if (line_is_label_command()) {
+  } else if (line_is_label_command()) {
     /* `breakpoint ` / `delete ` — argument is a label or hex address.
        Offer label completion from the loaded program's symbol table. */
     rl_attempted_completion_over = 1;
     return rl_completion_matches(text, label_generator);
+  } else {
+    /* Past the first word, not a file/label command: offer the cached
+       "Try it yourself" suggestions from the most recent instruction. */
+    rl_attempted_completion_over = 1;
+    return rl_completion_matches(text, suggestion_generator);
   }
-  /* Past the first word, not a file/label command: offer the cached
-     "Try it yourself" suggestions from the most recent instruction. */
-  rl_attempted_completion_over = 1;
-  return rl_completion_matches(text, suggestion_generator);
 }
 #endif
 
@@ -339,8 +338,11 @@ static const char* seg_name(asm_segment s) {
       return "ktext";
     case ASM_SEG_KDATA:
       return "kdata";
+    default:
+      /* Never reached: the cases above list every asm_segment, and the build's
+       * -Wswitch-enum fails if a new one is added without a case. */
+      fatal_error("internal error: seg_name: unknown segment %d\n", (int)s);
   }
-  return "?";
 }
 
 static void listing_observer(const asm_event* e) {
@@ -399,6 +401,12 @@ static void listing_observer(const asm_event* e) {
               e->u.forward_resolved.symbol,
               (uint32_t)e->u.forward_resolved.value);
       break;
+    default:
+      /* Never reached: the cases above list every asm_event_kind, and the
+       * build's -Wswitch-enum fails if a new one is added without a case. */
+      fatal_error(
+          "internal error: listing_observer: unknown assembler event kind %d\n",
+          (int)e->kind);
   }
 }
 
@@ -695,15 +703,11 @@ int main(int argc, char** argv) {
        tell that the build failed. */
     if (parse_errors_seen > 0) {
       return spim_return_value != 0 ? spim_return_value : 2;
-    }
-
-    /* -print-ast: AST already dumped in parse_file; nothing was
-       emitted to memory.  Exit cleanly. */
-    if (parser_get_print_ast_only()) {
+    } else if (parser_get_print_ast_only()) {
+      /* -print-ast: AST already dumped in parse_file; nothing was
+         emitted to memory.  Exit cleanly. */
       return 0;
-    }
-
-    if (assemble) {
+    } else if (assemble) {
       return write_assembled_code(program_argv[0]);
     } else if (dump_user_segments) {
       dump_data_seg(false);
@@ -1010,60 +1014,68 @@ static bool parse_spim_command(bool redo) {
        * command's tokens. */
       bool consumed_nl = false;
 
-      if (token == TOK_REG) {
-        if (redo)
-          loc += 1;
-        else
-          loc = scan_value.i;
-        print_reg(loc);
-      } else if (token == TOK_FP_REG) {
-        if (redo)
-          loc += 2;
-        else
-          loc = scan_value.i;
-        print_fp_reg(loc);
-      } else if (token == TOK_INT) {
-        if (redo) {
-          loc += 4;
-          print_mem((mem_addr)loc);
-        } else {
-          const int int_val = scan_value.i;
-          /* Peek for the N($reg) base+offset form so students can inspect
-           * memory using the same syntax they wrote in load/store ops. */
-          const int next = read_token();
-          if (next == '(') {
-            const int reg_tok = read_token();
-            const int reg = (reg_tok == TOK_REG) ? scan_value.i : -1;
-            const int close = (reg_tok == TOK_REG) ? read_token() : 0;
-            if (reg_tok == TOK_NL || close == TOK_NL) consumed_nl = true;
-            if (reg < 0 || close != ')') {
-              error("expected $reg) after '(' in print N($reg) form\n");
-            } else {
-              loc = gpr[reg] + int_val;
-              print_mem((mem_addr)loc);
-            }
-          } else {
-            /* Not the base+offset form — treat int_val as an absolute
-             * address (the standard form). */
-            loc = int_val;
-            print_mem((mem_addr)loc);
-            if (next == TOK_NL) consumed_nl = true;
-          }
-        }
-      } else if (token == TOK_ID) {
-        if (!print_reg_from_string((char*)scan_value.p)) {
+      switch (token) {
+        case TOK_REG:
           if (redo)
+            loc += 1;
+          else
+            loc = scan_value.i;
+          print_reg(loc);
+          break;
+        case TOK_FP_REG:
+          if (redo)
+            loc += 2;
+          else
+            loc = scan_value.i;
+          print_fp_reg(loc);
+          break;
+        case TOK_INT: {
+          if (redo) {
             loc += 4;
-          else
-            loc = (int)find_symbol_address((char*)scan_value.p);
-
-          if (loc != 0)
             print_mem((mem_addr)loc);
-          else
-            error("Unknown label: %s\n", (char*)scan_value.p);
+          } else {
+            const int int_val = scan_value.i;
+            /* Peek for the N($reg) base+offset form so students can inspect
+             * memory using the same syntax they wrote in load/store ops. */
+            const int next = read_token();
+            if (next == '(') {
+              const int reg_tok = read_token();
+              const int reg = (reg_tok == TOK_REG) ? scan_value.i : -1;
+              const int close = (reg_tok == TOK_REG) ? read_token() : 0;
+              if (reg_tok == TOK_NL || close == TOK_NL) consumed_nl = true;
+              if (reg < 0 || close != ')') {
+                error("expected $reg) after '(' in print N($reg) form\n");
+              } else {
+                loc = gpr[reg] + int_val;
+                print_mem((mem_addr)loc);
+              }
+            } else {
+              /* Not the base+offset form — treat int_val as an absolute
+               * address (the standard form). */
+              loc = int_val;
+              print_mem((mem_addr)loc);
+              if (next == TOK_NL) consumed_nl = true;
+            }
+          }
+          break;
         }
-      } else
-        error("Print what?\n");
+        case TOK_ID:
+          if (!print_reg_from_string((char*)scan_value.p)) {
+            if (redo)
+              loc += 4;
+            else
+              loc = (int)find_symbol_address((char*)scan_value.p);
+
+            if (loc != 0)
+              print_mem((mem_addr)loc);
+            else
+              error("Unknown label: %s\n", (char*)scan_value.p);
+          }
+          break;
+        default:
+          error("Print what?\n");
+          break;
+      }
       if (!redo && !consumed_nl) flush_to_newline();
       prev_cmd = PRINT_CMD;
       prev_token = token;
@@ -1140,14 +1152,20 @@ static bool parse_spim_command(bool redo) {
       int cap = 0;
       while ((t = read_token()) != TOK_NL && t != 0) {
         char* s = nullptr;
-        if (t == TOK_STR || t == TOK_ID) {
-          s = strdup((char*)scan_value.p);
-        } else if (t == TOK_INT) {
-          char buf[32];
-          snprintf(buf, sizeof(buf), "%d", scan_value.i);
-          s = strdup(buf);
-        } else {
-          continue;
+        switch (t) {
+          case TOK_STR:
+          case TOK_ID:
+            s = strdup((char*)scan_value.p);
+            break;
+          case TOK_INT: {
+            char buf[32];
+            snprintf(buf, sizeof(buf), "%d", scan_value.i);
+            s = strdup(buf);
+            break;
+          }
+          default:
+            /* Any other token is not an argument: skip it. */
+            continue;
         }
         if (owned_strs_len + 1 > cap) {
           cap = cap == 0 ? 4 : cap * 2;

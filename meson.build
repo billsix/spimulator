@@ -102,7 +102,12 @@ core_c_args = []
 # integer-conversion-hardening task). Enforced under BOTH the image's clang and a
 # host gcc (gcc's -Wsign-conversion is the stricter of the two; the core is clean
 # under both).
-foreach warg : ['-Wconversion', '-Wsign-conversion']
+#
+# -Wswitch-enum: a switch on an enum must name every member, even when it has a
+# default.  Every switch in the core has a default (a fatal one where the cases
+# are exhaustive), and a default turns off -Wswitch's missing-member warning, so
+# this flag keeps that compile-time check.
+foreach warg : ['-Wconversion', '-Wsign-conversion', '-Wswitch-enum']
   if cc.has_argument(warg)
     core_c_args += warg
   endif

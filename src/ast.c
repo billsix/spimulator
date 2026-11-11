@@ -22,6 +22,7 @@
 #include "ast.h"
 #include "spim-utils.h"   /* xmalloc                    */
 #include "scanner.h"      /* line_no                      */
+#include "spim.h"         /* fatal_error                  */
 #include "symbol-table.h" /* struct label definition      */
 #include "tokens.h"       /* TOK_*_OP names for ast_print */
 
@@ -252,27 +253,31 @@ ast_node* ast_make_error(const char* message) {
 /* ------------------------------------------------------------------ */
 
 ast_node* ast_file_append(ast_node* file, ast_node* stmt) {
-  if (file == nullptr || stmt == nullptr) return file;
-  if (file->u.file.child == nullptr) {
+  if (file == nullptr || stmt == nullptr) {
+    return file;
+  } else if (file->u.file.child == nullptr) {
     file->u.file.child = stmt;
     return file;
+  } else {
+    ast_node* t = file->u.file.child;
+    while (t->next != nullptr) t = t->next;
+    t->next = stmt;
+    return file;
   }
-  ast_node* t = file->u.file.child;
-  while (t->next != nullptr) t = t->next;
-  t->next = stmt;
-  return file;
 }
 
 ast_node* ast_pseudo_append(ast_node* pseudo, ast_node* child) {
-  if (pseudo == nullptr || child == nullptr) return pseudo;
-  if (pseudo->u.pseudo.child == nullptr) {
+  if (pseudo == nullptr || child == nullptr) {
+    return pseudo;
+  } else if (pseudo->u.pseudo.child == nullptr) {
     pseudo->u.pseudo.child = child;
     return pseudo;
+  } else {
+    ast_node* t = pseudo->u.pseudo.child;
+    while (t->next != nullptr) t = t->next;
+    t->next = child;
+    return pseudo;
   }
-  ast_node* t = pseudo->u.pseudo.child;
-  while (t->next != nullptr) t = t->next;
-  t->next = child;
-  return pseudo;
 }
 
 /* ------------------------------------------------------------------ */
@@ -354,6 +359,11 @@ void ast_free(ast_node* node) {
       case AST_ERROR:
         free(node->u.error.message);
         break;
+      default:
+        /* Never reached: the cases above list every ast_kind, and the build's
+         * -Wswitch-enum fails if a new one is added without a case. */
+        fatal_error("internal error: ast_free: unknown AST node kind %d\n",
+                    (int)node->kind);
     }
 
     free(node->src_text);
@@ -544,6 +554,11 @@ static void print_node(const ast_node* node, FILE* out, int depth) {
       fprintf(out, "ERROR %s\n",
               node->u.error.message ? node->u.error.message : "(no message)");
       return;
+    default:
+      /* Never reached: the cases above list every ast_kind, and the build's
+       * -Wswitch-enum fails if a new one is added without a case. */
+      fatal_error("internal error: print_node: unknown AST node kind %d\n",
+                  (int)node->kind);
   }
 }
 
@@ -700,6 +715,12 @@ static void json_kind_header(const ast_node* node, FILE* out) {
     case AST_ERROR:
       kind_name = "ERROR";
       break;
+    default:
+      /* Never reached: the cases above list every ast_kind, and the build's
+       * -Wswitch-enum fails if a new one is added without a case. */
+      fatal_error(
+          "internal error: json_kind_header: unknown AST node kind %d\n",
+          (int)node->kind);
   }
   fputs("{\"kind\":\"", out);
   fputs(kind_name, out);
@@ -870,6 +891,11 @@ static void json_node(const ast_node* node, FILE* out) {
       json_escape_string(node->u.error.message ? node->u.error.message : "", -1,
                          out);
       break;
+    default:
+      /* Never reached: the cases above list every ast_kind, and the build's
+       * -Wswitch-enum fails if a new one is added without a case. */
+      fatal_error("internal error: json_node: unknown AST node kind %d\n",
+                  (int)node->kind);
   }
 
   fputc('}', out);
