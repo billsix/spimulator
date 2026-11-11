@@ -109,13 +109,10 @@ by the planned mini C compiler:
   NEG/eval labels are prefixed (`ev_neg`, `ev_num`, `pfn_build`, `pt_build`) for
   exactly this reason (see the `neg:`/`abs:` note above).
 
-## Open observation — asm error-exit status is not propagated
+## Error exits: asm and C give the same status
 
 In batch mode, the examples' error-exit convention (`li $a0,N; li $v0,17;
-syscall`, syscall 17 = exit2, as `binary-search.asm` uses) does NOT set the
-shell exit status: the simulated program's non-zero code comes back as `0`. The
-native C side exits with the real code. So an error-path golden test that pins
-`.expected-status` would see C=1 / asm=0 and fail. `rpn`'s golden pins the
-SUCCESS path only (both exit 0). Whether spim should propagate the exit2 code in
-batch mode is worth a look (relates to the `exit-demo`/`atexit-demo` tests,
-which do pin status — check how they differ). Not yet filed as its own task.
+syscall`, syscall 17 = exit2, as `binary-search.asm` uses) sets spimulator's own
+exit status to N, as the native C side does. So an error-path golden can pin
+`.expected-status`, and `examples/tests/run-demo.sh` requires the asm status to
+equal the C status.

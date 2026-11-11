@@ -11,7 +11,7 @@
 #        text.asm and data.asm files the engine writes.
 #
 # Not here, on purpose: the teaching mode (-explain), which the ports do not
-# implement yet (tasks/engine-ports.md); interactive REPL sessions, which the
+# implement yet (tasks/engine-ports-teaching-mode.md); interactive REPL sessions, which the
 # regression suite's args_cmd and disasm tests cover per engine.
 core           | file:tt.in        | -exception_file EF -f tt.core.s
 core_builtin   | file:tt.in        | -f tt.core.s

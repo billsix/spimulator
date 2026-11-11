@@ -48,7 +48,8 @@ history (who did what, in what order, and the C bugs the ports found) is in
   example headers call each one the same way.
 - **The image installs every port's toolchain, unconditionally** (William Emerison Six
   <billsix@gmail.com>, 2026-11-10: "no conditions for that in the Dockerfile"). One group script,
-  `entrypoint/0N-install-ports.sh` (`python3`, `ghc`, `rust`, `cargo`), runs from the Dockerfile with
+  `entrypoint/05-install-ports.sh` (`python3`, `ruff`, `ty`, `ghc`, `hlint`, `rust`, `cargo`, `clippy`,
+  `rustfmt`), runs from the Dockerfile with
   no `ARG` and no `if`. A lean image keeps it too, since the ports are part of the test gate. The
   first port to start adds the script and lists every language; later ports only use it. GHC adds
   about 1 GB.

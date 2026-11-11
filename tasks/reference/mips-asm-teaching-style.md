@@ -24,7 +24,7 @@ temporary is holding a copy of it right now".
 
 ### This reverses the 2026-05-17 "register-only" decision, on purpose
 
-`PLAN-asm-comments.md` records a 2026-05-17 decision to keep simple demos **register-only**
+`tasks/archive/2026/05/23/PLAN-asm-comments.md` records a 2026-05-17 decision to keep simple demos **register-only**
 ("Most of those frames were ceremony") and introduce a stack frame only where it taught
 something. This style **overturns that** corpus-wide (maintainer's call, 2026-10-31): the
 stack-visible view is now the default even for simple demos, because seeing values on the

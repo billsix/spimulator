@@ -127,12 +127,12 @@ not spim's intentional exit-time leaks) + the integer-UB primer:
   - **Adding a language port?** Its opcode table comes from the generator too: write an emitter
     and register it. The steps are in `tasks/reference/opcode-table-generator.md` ("Adding an
     engine port in a new language"), which also explains the data files and the decode column.
-- C23; clang-format + clang-tidy; core `-Werror` (gcc + clang clean). `src/`+`include/` follow the
+- C23; clang-format + clang-tidy; core `-Werror` (the image build is clang; gcc is checked by hand on a host build, and is clean too). `src/`+`include/` follow the
   shared standard `github.com/billsix/runClaudeInContainer:tasks/reference/c-coding-standard.md` (modernized through
   `tasks/archive/2026/11/10/c23-modernization-pass3.md` and the `const` pass
-  `tasks/archive/2026/11/11/c23-const-correctness-pass.md`, which list the deliberate opt-outs; new C
-  is checked for missing `const` with `tools/const_candidates.py BUILDDIR`); the core is additionally gated under
-  `-Wconversion -Wsign-conversion` (gcc + clang), done in `tasks/archive/2026/10/16/integer-conversion-hardening.md`,
+  `tasks/archive/2026/11/11/c23-const-correctness-pass.md`, which list the deliberate opt-outs; check new C
+  for missing `const` by hand with `tools/const_candidates.py BUILDDIR`; no gate runs it); the core is additionally gated under
+  `-Wconversion -Wsign-conversion` (clang in the image; gcc clean by hand), done in `tasks/archive/2026/10/16/integer-conversion-hardening.md`,
   and under `-Wswitch-enum`: every `switch` has a `default` and every `if`/`else if` chain an `else`
   (`tasks/archive/2026/11/11/c-switch-and-else-if-chains.md`; new C is checked with
   `python3 tools/c_dispatch_check.py BUILDDIR src`, which the meson test `dispatch_check` runs; it is the shared, vendored copy of

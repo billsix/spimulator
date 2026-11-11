@@ -1,7 +1,7 @@
 ## spimulator
 
 spimulator is a text-based MIPS32 simulator — a fork of SPIM (James Larus) by
-William Emerison Six, used as a teaching tool. Works on Windows, Linux, and macOS.
+William Emerison Six, used as a teaching tool. Builds on Linux and macOS.
 
 On top of upstream SPIM, this fork adds:
 
@@ -34,10 +34,10 @@ spimulator is built with [Meson](https://mesonbuild.com/) and
     * `meson install -C builddir`
 * Run programs:
     * batch:
-        * `./builddir/spimulator -f /path/to/01-helloworld.asm`
+        * `./builddir/spimulator -f helloworld.s`
     * interactively:
         * `./builddir/spimulator`
-            * `load "/path/to/01-helloworld.asm"`
+            * `load "helloworld.s"`
             * `disasm` — print a listing of the loaded program
             * `step`
             * `step`
@@ -84,7 +84,7 @@ hand.
 
 ### Copyright
 
-spimulator is Copyright (c) 2021, by William Emerison Six, starting from git commit e10b97408f6d2c405c36ab05cdffbf40828970fd
+spimulator is Copyright (c) 2021, by William Emerison Six, starting from git commit e2d4f30
 All rights reserved.
 
 spimulator is distributed under a BSD license.  See LICENSE

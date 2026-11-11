@@ -4,7 +4,7 @@
 they survive the task's archival). Every item was `file:line`-verified by direct inspection; the HIGH bug
 was independently re-confirmed 2026-08-27. Not a task; update in place as items are fixed. The original
 full itemized table lives in the archived audit
-(`tasks/archive/.../code-idiosyncrasies-audit.md`).
+(`tasks/archive/2026/08/27/code-idiosyncrasies-audit.md`).
 
 ## Summary
 

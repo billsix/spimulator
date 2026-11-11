@@ -50,8 +50,9 @@ The old C engine sorted all 381 rows by encoding with `qsort` at startup and dec
 Which row of a pair it found depended on glibc's sort and on where the search's halving landed.
 
 Now each decode table has one row per encoding, already sorted. The `*` marks preserve exactly the
-old answers. `tasks/adhoc/opcodes-x-macro-redesign/check_decode.c` reran the old algorithm against
-every encoding and found no difference. To change which row an encoding decodes to, move the `*`.
+old answers. A one-shot program, `check_decode.c` (in git under `tasks/adhoc/opcodes-x-macro-redesign/`
+before the archive commit of `tasks/archive/2026/11/11/opcodes-x-macro-redesign.md`), reran the old
+algorithm against every encoding and found no difference. To change which row an encoding decodes to, move the `*`.
 
 ## What it writes (`OUTPUTS` in `tools/gen_opcodes.py`)
 

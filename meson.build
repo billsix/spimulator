@@ -99,9 +99,9 @@ link_libraries = [
 core_c_args = []
 # Integer-conversion gate for the core: flag silent narrowing / sign-flip
 # conversions (the simulator core was made clean under these 2026-10-16; see the
-# integer-conversion-hardening task). Enforced under BOTH the image's clang and a
-# host gcc (gcc's -Wsign-conversion is the stricter of the two; the core is clean
-# under both).
+# integer-conversion-hardening task). The image build enforces it under clang; a
+# host gcc build is checked by hand (gcc's -Wsign-conversion is the stricter of
+# the two, and the core is clean under both).
 #
 # -Wswitch-enum: a switch on an enum must name every member, even when it has a
 # default.  Every switch in the core has a default (a fatal one where the cases

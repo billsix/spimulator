@@ -37,7 +37,8 @@ was masking a genuine width/sign change would be a real bug.
 ## The gate
 
 The `spimulator` core target is built `-Wconversion -Wsign-conversion -Werror` (via `-Dcore_werror`,
-default on, in `meson.build`), under **both** the image's clang and a host gcc. The teaching code under
+default on, in `meson.build`). The image build gates it under clang only; gcc (stricter, below) is
+checked by hand with a host build, and the core is clean under it too. The teaching code under
 `examples/` is deliberately NOT gated (see `tasks/reference/example-c-teaching-style.md`).
 
 Staying clean when you touch the core:

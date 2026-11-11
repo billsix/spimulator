@@ -117,7 +117,7 @@ The ladder is ordered so each version needs **strictly less prior knowledge** th
 Where the two agree, follow them. Where they conflict — the sharp case is **unary minus /
 negative numbers**, which is parser-trivial (one rule, `factor := '-' factor`) but math-pedagogically
 *late* — state the conflict in the example's task doc and let the maintainer choose; do not silently
-pick one. (This is the open question in `tasks/calc-incremental-versions.md`.)
+pick one. (This was the open question in `tasks/archive/2026/10/30/calc-incremental-versions.md`.)
 
 A rung adds **one** concept. "Add subtraction alongside addition" is one concept (the additive
 inverse pairs with addition); "add multiplication *and* division" is one (the multiplicative pair);
