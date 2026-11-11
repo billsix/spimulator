@@ -1,136 +1,185 @@
-# One generator for every port's opcode tables; the C engine keeps its X-macro
+# One opcode data file, one generator, and generated C, Python, Haskell and Rust tables
 
-**Status:** proposed — needs go-ahead (one decision, Open questions; the maintainer wants to discuss it first)
+**Status:** proposed — needs go-ahead (design settled; implementation not started)
 **Priority:** 5
-**Difficulty:** 5
+**Difficulty:** 7
 **Created:** 2026-10-16 (William Emerison Six <billsix@gmail.com>); reframed 2026-11-11 after the engine ports
 
 ## BLUF
 
-`include/opcodes.h` is the single list of every instruction, pseudo-instruction and directive. The
-C engine reads it through an X-macro. Since the engine ports, three more programs depend on it, each
-handled differently, and nothing checks that their copies are current. The recommendation:
-- Keep the C engine's X-macro.
-- Write one Python tool, `tools/gen_opcodes.py`, that generates every port's tables from
-  `opcodes.h` and `opcode-types.h`.
-- Commit the generated files.
-- Fail the Dockerfile build and `meson test` when a committed file is out of date.
-- Make the C engine's choice between rows that share an encoding explicit, so any generator can
-  reproduce it.
+Replace the `include/opcodes.h` X-macro with one data file listing every instruction,
+pseudo-instruction and directive, and one Python tool, `tools/gen_opcodes.py`, that generates
+from it:
+- the C engine's tables;
+- the Python, Haskell and Rust ports' tables;
+- the tree-sitter grammar's keyword lists.
 
-Done means one command regenerates every port's tables, a stale file fails the gates, and the port
-suites pass.
+The generated files are committed. The Dockerfile build runs the generator as a preprocessing
+stage and fails if its output differs from what is committed. Developers regenerate with one `make`
+target and commit the result. The generator also writes each decode table already sorted, with one
+row per encoding, which removes the engines' dependence on the order glibc's `qsort` leaves equal
+keys in.
+
+Done means:
+- one command regenerates every table;
+- a stale committed file fails the image build and `meson test`;
+- every table is identical to today's, and every suite passes;
+- `README.md` and `CLAUDE.md` tell developers what to do.
 
 ## Context
 
-- **How the C side works:** the 381-row table, its four columns, the seven C consumers, the
-  enum-body `#include` in `tokens.h` and the design analysis are in
-  `tasks/reference/opcodes-x-macro.md`.
+- **How the X-macro works:** the 381 rows, four columns, seven C consumers and the enum-body
+  `#include` in `tokens.h` are in `tasks/reference/opcodes-x-macro.md`.
 - **Who reads `opcodes.h` today** (checked 2026-11-11):
-  - The C engine: `tokens.h`, `scanner.c`, `parser.c`, `instruction.c` and `dump-opcodes.c` define
-    `OP` and include the file.
-  - The tree-sitter grammar: `tree-sitter/scripts/extract-keywords.py` parses it as text into
+  - **The C engine:** `include/tokens.h`, `src/scanner.c`, `src/parser.c`, `src/instruction.c` and
+    `src/dump-opcodes.c` each define `OP` and include the file.
+  - **The tree-sitter grammar:** `tree-sitter/scripts/extract-keywords.py` parses it as text into
     `keywords.json`, and `build-keyword-lists.py` turns that into `keyword-lists.js`. Both outputs
-    are committed. The `BUILD_TREE_SITTER=1` rule in `CLAUDE.md` covers them.
-  - The Haskell port: `port/haskell/tools/GenOpcodes.hs` (a Haskell program) writes
-    `port/haskell/src/Opcodes.hs`, which is committed.
-  - The Rust port: `port/rust/tools/gen_opcodes.sh` compiles `port/rust/tools/gen_opcodes.c`, which
-    includes `opcodes.h` as the C engine does, and writes `port/rust/src/opcodes_table.rs`, which is
-    committed.
-  - The Python port: `port/python/spimulator_py/opcodes.py` parses `opcodes.h` with a regular
-    expression at import. `tasks/python-port-match-statements.md` has decided to replace that with a
+    are committed. The `BUILD_TREE_SITTER=1` rule in `CLAUDE.md` exists for this pipeline.
+  - **The Haskell port:** `port/haskell/tools/GenOpcodes.hs` writes `port/haskell/src/Opcodes.hs`,
+    which is committed.
+  - **The Rust port:** `port/rust/tools/gen_opcodes.sh` compiles `port/rust/tools/gen_opcodes.c`
+    (which includes `opcodes.h` as the C engine does) and writes `port/rust/src/opcodes_table.rs`,
+    which is committed.
+  - **The Python port:** `port/python/spimulator_py/opcodes.py` parses the rows with a regular
+    expression at import. `tasks/python-port-match-statements.md` decided to replace this with a
     committed, generated module of `IntEnum` classes.
-- **Hand-written copies of `opcode-types.h`,** the operand-shape tags, which no generator writes:
-  `port/haskell/src/OpcodeTypes.hs` and `port/rust/src/opcode_types.rs`.
+  - **Hand-written copies of `opcode-types.h`,** the operand-shape tags, that no generator writes:
+    `port/haskell/src/OpcodeTypes.hs` and `port/rust/src/opcode_types.rs`.
 - **Nothing checks the generated files.**
-  - On 2026-11-11 both were regenerated and matched byte for byte. They match only because
+  - On 2026-11-11 both port tables were regenerated and matched byte for byte, but only because
     `opcodes.h` has not changed since 2026-07-29 (`3fa59b2`).
-  - A future edit to `opcodes.h` that forgets one generator leaves that port decoding with an old
-    table, and nothing would say so until a test happened to touch the changed row.
+  - An edit that forgets one generator leaves that port decoding with an old table, unreported.
 - **Rows that share an encoding.** Six pairs of real instructions have the same value in the
   encoding column: `floor.w.s`/`prefx`, `ldxc1`/`madd.d`, `lwxc1`/`madd.s`, `round.l.s`/`swxc1`,
   `sdxc1`/`trunc.l.s`, `suxc1`/`trunc.w.s`.
-  - The C engine decodes a word by sorting a copy of the table with `qsort` and searching it with
-    `bsearch` (`instruction.c`). Which row of a pair it finds depends on the order glibc's `qsort`
-    leaves equal keys in.
-  - The Python and Haskell ports copy that order on the assumption that glibc's `qsort` is a stable
-    merge sort (`port/python/spimulator_py/opcodes.py`, `port/haskell/src/OpcodeTables.hs`). The
-    Rust generator gets the answer by running the C sort.
-  - All three match the C engine on Fedora 45's glibc, but the answer is a libc implementation
+  - The C engine sorts a copy of the table with `qsort` at startup and decodes with `bsearch`
+    (`instruction.c`). Which row of a pair it finds depends on glibc's sort order and on where
+    `bsearch`'s halving lands.
+  - The Python and Haskell ports copy both, assuming glibc's `qsort` is a stable merge sort
+    (`port/python/spimulator_py/opcodes.py`, `port/haskell/src/OpcodeTables.hs`). The Rust generator
+    gets the answer by running the C code.
+  - All three match the C engine on Fedora 45's glibc. But the answer is a libc implementation
     detail, for the C engine as much as for the ports.
-- **Generated sources are committed,** a rule now in `CLAUDE.md` under Conventions. It was added
-  2026-11-11 at the maintainer's request, for the same reason upstream committed its flex/bison
-  output until `ebe63b4`: the build needs no generator toolchain, and the diff shows what a change
-  to the source did.
-- **The earlier framing of this task (2026-10-16):** keep the X-macro or replace it with external
-  code generation, as an investigation. That question is answered by keeping it: the C build reads
-  the table directly, and its tables cannot drift from it. What is new is the ports.
+- **Committed generated sources** are a rule in `CLAUDE.md` (Conventions, added 2026-11-11). The
+  reason is the one upstream had for committing its flex/bison output until `ebe63b4`: the build
+  needs no generator toolchain, and the diff shows what a change to the source did.
+- **The maintainer's design** (William Emerison Six <billsix@gmail.com>, 2026-11-11):
+  - one tool processes one source file and generates C, Rust, Haskell and Python files;
+  - the generation runs as a preprocessing stage of the Dockerfile build;
+  - `README.md` states what developers must do;
+  - development goes through the Dockerfile by default, and `CLAUDE.md` says so.
 
-## The recommendation
+  This replaces the earlier recommendation, made the same day, to keep C's X-macro and generate
+  only the ports' tables. The reasons for generating C too:
+  - the shared-encoding answer is then settled once, in the generator, for all four languages;
+  - the source no longer has to be C macro syntax that every other consumer parses with a regular
+    expression;
+  - the generated C (plain enums and tables) is easier for a student to read than an X-macro, and
+    it retires the enum-body `#include`.
+- **The earlier framing (2026-10-16)** was "keep the X-macro or replace it", as an investigation,
+  defaulting to keep. The ports changed the balance: four languages now need the table.
 
-1. **The C engine keeps the X-macro.** It works, its tables cannot drift from `opcodes.h`, and
-   replacing it would add a generator step to the C build for no gain. The enum-body `#include` in
-   `tokens.h` stays, a documented cost.
-2. **One Python tool, `tools/gen_opcodes.py`,** reads `include/opcodes.h` and
-   `include/opcode-types.h` and writes:
-   - the Python port's `IntEnum` module, as `tasks/python-port-match-statements.md` decided;
-   - `port/haskell/src/Opcodes.hs` and `port/haskell/src/OpcodeTypes.hs`;
-   - `port/rust/src/opcodes_table.rs` and `port/rust/src/opcode_types.rs`.
+## How the generator fits the build and development
 
-   It replaces `GenOpcodes.hs`, `gen_opcodes.c`/`.sh`, and the two hand-written tag files. Python
-   suits it:
-   - the rows are plain literals (rows wrapped over two lines are the only irregularity);
-   - the Python port and `extract-keywords.py` already parse the same rows;
-   - one language for every target is easier to maintain than one generator per port.
+- **Committed, and checked in the image build.** The Dockerfile's preprocessing stage runs
+  `tools/gen_opcodes.py` over the copied source and compares its output with the committed files.
+  Any difference fails the build, with a message naming the stale files and the command that fixes
+  them. The build regenerates, but never builds from anything other than what is committed, so a
+  stale commit is reported, not hidden. (Decisions.)
+- **The same check as a `meson test`,** so a local build catches it too.
+- **The developer step is one `make` target** (for example `make generate`). It runs the tool in the
+  container and writes the generated files into the bind-mounted tree; the developer commits them
+  with the change to the data file. `README.md` gets a short "When you change the opcode table"
+  section with the commands, labelled `[HOST]`/`[CONTAINER]` as the README does elsewhere.
+- **Effect on the ports as the C engine changes:**
+  - A change to the opcode table (a new instruction, a renamed mnemonic) is one edit to the data
+    file plus `make generate`. All four languages' tables update together.
+  - A new instruction then fails the port suites until each port implements its execution. That is
+    the signal for what to carry into each port.
+  - Other C changes reach the ports as they do now: the C engine's suites run against each port
+    (`port/meson.build`) and fail until the port follows (`tasks/reference/engine-ports-design.md`).
 
-   The tree-sitter scripts can stay as they are, or read the tool's parse later.
-3. **Committed, and checked rather than regenerated in the build.** `tools/gen_opcodes.py --check`
-   writes into a scratch directory and fails if any committed file differs. It runs:
-   - in the Dockerfile build stage, so the image is built from exactly what is committed;
-   - as a `meson test`, so a local build catches a stale file too.
+## Decisions
 
-   Regenerating inside the image would hide a stale commit instead of reporting it.
-4. **Make the shared-encoding choice explicit in C first.** Give `instruction.c`'s sort a tie-break
-   (for example on the token) that reproduces today's six answers. Prove it with `dump-opcodes` and
-   the AST-parity and disassembly goldens before and after. Then the generator can compute the answer
-   instead of copying glibc, and the C engine no longer depends on `qsort`'s order.
-5. **The generated files follow the codegen rules:** a parity check against today's committed
-   files, run-to-run determinism, and a "generated, do not edit" header. Rules: the
-   `codegen-conventions.md` reference doc in github.com/billsix/runClaudeInContainer.
+- **The staleness check regenerates and compares byte for byte** (William Emerison Six
+  <billsix@gmail.com>, 2026-11-11). The Dockerfile stage and the `meson test` run the generator
+  from the data file and compare its output with the committed files; any difference fails, and
+  the message names the files and shows what differs.
+  - **Rejected: a checksum manifest** (several hashes per generated file, checked on regeneration).
+    Regeneration from an unchanged data file reproduces the stored hashes, so a hand-edited
+    committed file would pass unexamined. A mismatch would also say less than a diff, the manifest
+    is one more file to keep in sync, and several hashes guard against deliberate collisions, which
+    git diffs already expose.
+  - **Rejected: git hooks or a commit-time CI check.** The image build is the gate, as for the rest
+    of the project. A bad commit is reported at the next build, not prevented.
 
-## How this affects the ports as the C engine changes
+- **The source is a new data file from step 1** (William Emerison Six <billsix@gmail.com>,
+  2026-11-11, option (b) of two). The file is a TSV, or TOML read with Python's `tomllib`; the format
+  is chosen in step 1. Until the C cut-over (step 4), the generator also writes
+  `include/opcodes.h` and `include/opcode-types.h`, byte-identical to today's, so the C engine's
+  X-macro consumers keep working unchanged. Under this option:
+  - `opcodes.h` is a generated, committed file from the start;
+  - there is never more than one hand-edited source;
+  - the generator's parser is written once, for the final format;
+  - the byte-identical `opcodes.h` is the first parity check.
 
-- **A change to `opcodes.h`** (a new instruction, a renamed mnemonic) means running
-  `tools/gen_opcodes.py` and committing its output with the change. If that is forgotten, the
-  Dockerfile build and `meson test` fail.
-- **A new instruction** then fails the port suites until each port implements its execution. That
-  is the signal for what to carry into each port.
-- **Other C changes** reach the ports as they do now: the C engine's own suites run against each
-  port (`port/meson.build`) and fail until the port follows (`tasks/reference/engine-ports-design.md`).
+  The other option, (a), kept `opcodes.h` as the source until the cut-over. It was not chosen because
+  the parser would be written twice, and the move would happen in the riskiest step.
 
-## Open questions
+## Plan
 
-1. Adopt the recommendation above (C keeps its X-macro; one Python generator writes every port's
-   tables; committed; `--check` in the Dockerfile and meson; an explicit tie-break in C first)?
-   - The alternative is to keep the three per-port mechanisms and add only a staleness check for
-     each. That is less work, but it keeps three generators in three languages and the two
-     hand-written tag files.
+Each step is a commit or several, gated by `make image` with `BUILD_TREE_SITTER=1` (the image build
+runs the full `meson test`, port suites included) and by the generator's own parity check.
 
-   Recommendation: adopt it. The maintainer wants to discuss this before deciding (2026-11-11).
+1. **The data file and the generator** (Decisions: the source). Convert today's 381 rows to the
+   data file. The generator's first output is `include/opcodes.h` and `include/opcode-types.h`,
+   byte-identical to today's; then add the per-language outputs one at a time. Settle
+   the shared-encoding rule here. Write each decode table with one row per encoding, choosing today's
+   answer for the six pairs (computed once from the current C engine, and listed in the data file
+   or the generator with a comment). Rules: the `codegen-conventions.md` reference doc of
+   github.com/billsix/runClaudeInContainer (structured output, a parity harness, run-to-run
+   determinism, a "generated, do not edit" header).
+2. **The checks and the developer path:**
+   - the Dockerfile preprocessing stage and the `meson test`;
+   - the `make generate` target;
+   - the `README.md` developer section;
+   - in `CLAUDE.md`: the new source file; that `opcodes.h` and `opcode-types.h` are now generated
+     (the `opcodes.h` rule in Conventions and the `BUILD_TREE_SITTER=1` rule now name the data
+     file); the generated-files list; and that development goes
+     through the Dockerfile: the image build is the gate, and the generator's check is part of it.
+3. **The ports:**
+   - generate the Python port's `IntEnum` module (`tasks/python-port-match-statements.md` step 2
+     becomes this output);
+   - generate Haskell's `Opcodes.hs` and `OpcodeTypes.hs`, and Rust's `opcodes_table.rs` and
+     `opcode_types.rs`;
+   - delete `GenOpcodes.hs`, `gen_opcodes.c`/`.sh`, and the two hand-written tag files;
+   - the ports read the unique-key decode table instead of emulating `qsort` and `bsearch`;
+   - verify with the port suites and `port/harness/compare_all_programs.py` for each port.
+4. **The C cut-over.**
+   - The generator writes plain C: the `TOK_*` enum, the keyword table, the op-type table and the
+     instruction tables, already sorted. `initialize_inst_tables` stops calling `qsort`.
+   - The X-macro consumers, the enum-body `#include` in `tokens.h`, and the generated `opcodes.h`
+     and `opcode-types.h` are retired.
+   - Prove identical behavior: `dump-opcodes` output, the AST-parity and disassembly goldens, and
+     the full `meson test`, the same before and after.
+   - Update `tasks/reference/opcodes-x-macro.md` to describe the generator, or replace it with a
+     reference doc for it.
+5. **Tree-sitter:** `keywords.json` and `keyword-lists.js` come from the generator, and
+   `extract-keywords.py` is retired.
 
 ## Constraints
 
 - **`_Generic` is ruled out** (2026-10-16). It dispatches on one expression's type and cannot iterate
-  a table. The reasoning is in `tasks/reference/opcodes-x-macro.md`.
-- **Any change touching `opcodes.h` or `opcode-types.h` is verified with `make image
-  BUILD_TREE_SITTER=1`** (`CLAUDE.md`, Conventions).
-- **Every C table must stay identical:** the AST-parity goldens and the full `meson test`, port
-  suites included, are the oracle.
+  a table. Reasoning: `tasks/reference/opcodes-x-macro.md`.
+- **Every table must stay identical at every step,** in every language. The AST-parity goldens, the
+  disassembly tests and the port suites are the oracle.
+- **The build never needs to regenerate to succeed.** The committed files are complete, and the
+  Dockerfile stage only confirms they are current.
 
 ## Cross-links
 
 - `tasks/reference/opcodes-x-macro.md`: how the X-macro works, and the design analysis.
-- `tasks/python-port-match-statements.md`: its step 2 (a generator for the Python port's `IntEnum`
-  module) becomes this tool's Python output if this is adopted.
+- `tasks/python-port-match-statements.md`: its step 2 becomes this generator's Python output.
 - `tasks/reference/engine-ports-design.md`: the rules every port follows.
 - `tasks/archive/2026/10/16/c23-modernization-pass2.md`: the modernization this task was split out of.

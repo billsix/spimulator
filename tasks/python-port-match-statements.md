@@ -96,7 +96,9 @@ is converted or listed with the reason it stays as it is, and the port suites st
 
 1. Convert the four `value` chains and `ast_nodes.py:136`, each with a `case _`. Make the REPL
    commands an `IntEnum`. Run the port-python suite.
-2. Write the generator (in `port/python/tools/`) and commit the generated module. It must give the same
+2. Write the generator (in `port/python/tools/`) and commit the generated module. If
+   `tasks/opcodes-x-macro-redesign.md` (one generator for every language's opcode tables) goes ahead
+   first, this module is its Python output instead, and this step only converts the lookups. It must give the same
    token numbers as `include/tokens.h`, which `-print-ast` prints. Add a staleness check (regenerate,
    expect no diff) to `port/meson.build`. Then convert the ~290 lookups, one module per commit.
 3. Convert the `lookup` chains, one file per commit. Check that `ruff`, `ty` and
