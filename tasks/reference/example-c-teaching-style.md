@@ -81,7 +81,7 @@ template) carries a BUILD AND RUN comment block just before its first `#include`
 - After the spimulator line(s), each finished port of the engine (`port/README.md`) repeats them
   with its own command (`spimulator-python`), under "the same assembly, in the Python port:"
   ("the same assembly versions" when there are several); a new port adds its block when its task
-  reaches the examples step (`tasks/engine-ports.md`).
+  reaches the examples step (`tasks/reference/engine-ports-design.md`).
 - The `clang-format off/on` guards are required: `format.sh` reformats every `.c` on shell exit, and
   clang-format's comment reflow would split the one-line command.
 - `tools/check_example_commands.py` runs the documented lines verbatim from each demo's directory

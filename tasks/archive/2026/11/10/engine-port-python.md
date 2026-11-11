@@ -1,7 +1,7 @@
 # Ported the simulator engine to Python, equivalent to the C engine
 
 **Created:** 2026-11-10 · **Completed:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
-**Part of:** `tasks/engine-ports.md` · **Source:** tasks/review/2026/11/10/repo-review.md §5, §6, §7 F2
+**Part of:** `tasks/archive/2026/11/10/engine-ports.md` · **Source:** tasks/review/2026/11/10/repo-review.md §5, §6, §7 F2
 
 ## Summary
 
@@ -18,7 +18,7 @@ None of the comparisons had a float-formatting warning. Every example's BUILD AN
 the `spimulator-python` run. The port was written by an agent from a written brief while the
 maintainer was away, and reviewed and registered by the coordinating session. The port found three
 C engine bugs, fixed in C in `a0eefb8` (below). The teaching mode waits on the C redesign
-(`tasks/engine-ports.md`).
+(`tasks/archive/2026/11/10/engine-ports.md`).
 
 ## Decisions
 
@@ -31,7 +31,7 @@ C engine bugs, fixed in C in `a0eefb8` (below). The teaching mode waits on the C
   step 1 prerequisites in `tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md`.
 - The port lives **in this repo**, under `port/`, so the harness builds the C oracle in the same
   image ("for now"; William Emerison Six <billsix@gmail.com>, 2026-11-10).
-- Go-ahead (William Emerison Six <billsix@gmail.com>, 2026-11-10). The teaching mode (`-explain`) is out of scope for now (`tasks/engine-ports.md`).
+- Go-ahead (William Emerison Six <billsix@gmail.com>, 2026-11-10). The teaching mode (`-explain`) is out of scope for now (`tasks/archive/2026/11/10/engine-ports.md`).
 
 ## Log
 
@@ -162,10 +162,10 @@ regression test; the port then followed the fixed C engine (Log, "after the C fi
 
 ### 2026-11-10 — left for the coordinator
 
-- `entrypoint/0N-install-ports.sh` (Plan step 4, `tasks/engine-ports.md`) is not written: it is
+- `entrypoint/0N-install-ports.sh` (Plan step 4, `tasks/archive/2026/11/10/engine-ports.md`) is not written: it is
   outside the files this task's brief allowed. The port needs only Fedora's `python3`, which the
   image already has (the harness and `tools/` use it).
-- `port/harness/corpus.txt` still lacks the corpus items `tasks/engine-ports.md` lists beyond
+- `port/harness/corpus.txt` still lacks the corpus items `tasks/archive/2026/11/10/engine-ports.md` lists beyond
   `tests/` (allinsts.s from `f570a87^`, `tt.alu.bare.s`, the examples, the PGU programs); the
   harness was outside the brief too. `tasks/adhoc/engine-port-python/diff_engines.py --run` covers
   every `.s` under `tests/`, `examples/` and `pgu/` locally (172 programs identical), and the

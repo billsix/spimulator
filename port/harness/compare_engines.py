@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run each case in corpus.txt through the C engine and a port; compare them.
 
-The C engine is the standard (tasks/engine-ports.md).  For every case the
+The C engine is the standard (tasks/reference/engine-ports-design.md).  For every case the
 port must produce the same stdout, the same stderr and the same exit status.
 One difference is forgiven: a line that differs only inside printed
 floating-point numbers, when each pair of numbers is equal or very close

@@ -168,5 +168,5 @@ endforeach
 # both the C and asm sides against pinned `.expected` goldens.
 subdir('examples/src')
 
-# --- Ports of the engine, tested against the C engine (tasks/engine-ports.md)
+# --- Ports of the engine, tested against the C engine (tasks/reference/engine-ports-design.md)
 subdir('port')
