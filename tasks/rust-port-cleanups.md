@@ -1,34 +1,27 @@
-# Rust port cleanups from the 2026-11-11 review
+# Cleaned up the Rust port against the Rust standard
 
-**Status:** proposed — needs go-ahead
-**Priority:** 8
-**Difficulty:** 2
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
 **Source:** tasks/review/2026/11/11/repo-review.md §4.5.3, §4.5.4, §4.5.5 F21
 
-## BLUF
+## Summary
 
-Code-quality items in `port/rust/` against the Rust standard (the rust-coding-standard.md reference
-doc from github.com/billsix/runClaudeInContainer). None changes behavior. Done means each is fixed,
-clippy is clean, and `port-rust` is green.
+No behavior changed. A fresh subagent did the work with git forbidden, and the coordinator reviewed
+and committed it.
 
-## Context
+- **Annotations** (the house rule overrides Google's inference default): every listed binding now
+  has a type (`&Registers`, `&mut Options`, `&Label`, `Ref<'_, Instruction>`/`RefMut<'_, Instruction>`
+  at the six borrow sites, the panic hook's `Box<dyn Fn …>`). A grep of `port/rust/src` found no
+  other unannotated `let` outside the generated `opcodes_table.rs`. The two unit closures
+  (`ast.rs` `mnemonic`, `display.rs` `gpr`) got `-> ()`. A closure binding can't take a type in
+  stable Rust, so closures carry parameter and return types only, as the rest of the crate does.
+- **Trap dispatch** (`run.rs`, `execute`): the `_` arm that stood for TLTU/TLTIU names them, and a
+  new `_` arm is a fatal "internal error: run_spim: trap opcode N", commented as never reached. C has
+  no message to match: each trap is its own case of the main switch there. The `& 3` lane arms in
+  `run.rs` and `memory.rs` were total and stayed.
+- **Dead functions:** `Machine::report` (`parser.rs`) and `Machine::data_bot` (`data.rs`) had no
+  callers in src, tests or the launcher, so they were removed along with the imports they left
+  unused.
 
-- **Unannotated bindings** (§4.5.3; the house rule overrides Google's inference default):
-  `cli.rs:560,889`, `machine.rs:303`, `scanner.rs:551`, `parser.rs:183`,
-  `instruction.rs:608,722,835,888,906,920`, `spim_utils.rs:32,245`; and closures with no return type
-  at `ast.rs:308` and `display.rs:25`.
-- **`_ =>` hiding a named case** (§4.5.4): in `run.rs:598` (traps) the `_` is TLTU/TLTIU. Name them,
-  and make `_` fatal, as C does. The lane arms in `run.rs:627-659` and `memory.rs:404,454,470` are
-  total over `& 3` and can stay.
-- **Dead public functions** (§4.5.5): `Machine::report` (`parser.rs:1757`) and `data_bot`
-  (`data.rs:218`). rustc doesn't warn because they are `pub` in the library.
-
-## Plan
-
-1. Fix each item.
-2. Gate: `cargo clippy --offline --all-targets`, `cargo test --offline`, `meson test --suite port-rust`.
-
-## Open questions
-
-None.
+Gates: `cargo fmt --check`; `port/rust/lint.sh` (clippy `--all-targets -D warnings`); `cargo test
+--offline`; `meson test --suite port-rust`, 82/82 (comparisons with C included).
