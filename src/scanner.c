@@ -25,7 +25,7 @@ scan_value_t scan_value = {};
 /* Register-name → register-number lookup.  Public because instruction.c and
    explain.c also call register_name_to_number, independent of the
    scanner's internal keyword table. */
-static name_val_val register_tbl[] = {
+static const name_val_val register_tbl[] = {
     {"a0", 4, 0},  {"a1", 5, 0},   {"a2", 6, 0},   {"a3", 7, 0},
     {"at", 1, 0},  {"fp", 30, 0},  {"gp", 28, 0},  {"k0", 26, 0},
     {"k1", 27, 0}, {"kt0", 26, 0}, {"kt1", 27, 0}, {"ra", 31, 0},
@@ -44,7 +44,7 @@ int register_name_to_number(char* name) {
   } else if (c1 == 'f' && c2 >= '0' && c2 <= '9') {
     return atoi(name + 1);
   } else {
-    name_val_val* entry = map_string_to_name_val_val(
+    const name_val_val* entry = map_string_to_name_val_val(
         register_tbl, sizeof(register_tbl) / sizeof(name_val_val), name);
     return entry ? entry->value1 : -1;
   }
@@ -56,14 +56,14 @@ int register_name_to_number(char* name) {
    expands here to {name, sym, type}, dropping the binary-encoding
    column.  See opcodes.h's top-of-file comment for the X-macro pattern. */
 
-static name_val_val keyword_tbl[] = {
+static const name_val_val keyword_tbl[] = {
 #undef OP
 #define OP(NAME, OPCODE, TYPE, R_OPCODE) {NAME, OPCODE, TYPE},
 #include "opcodes.h"
 };
 
 static int check_keyword(char* id, bool allow_pseudo_ops) {
-  name_val_val* entry = map_string_to_name_val_val(
+  const name_val_val* entry = map_string_to_name_val_val(
       keyword_tbl, sizeof(keyword_tbl) / sizeof(name_val_val), id);
   if (entry == nullptr) return 0;
   if (!allow_pseudo_ops && entry->value2 == PSEUDO_OP) return 0;

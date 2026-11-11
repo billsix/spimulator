@@ -1160,7 +1160,7 @@ typedef struct {
   op_type type;
 } op_type_entry;
 
-static op_type_entry op_type_table[] = {
+static const op_type_entry op_type_table[] = {
 #define OP(NAME, OPCODE, TYPE, R_OPCODE) {OPCODE, TYPE},
 #include "opcodes.h"
 };

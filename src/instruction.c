@@ -580,7 +580,7 @@ void print_inst(mem_addr addr) {
    owned by the static name_tbl and must not be freed. */
 const char* inst_op_name(mips_instruction* instruction) {
   if (instruction == nullptr) return "<null>";
-  name_val_val* entry = map_int_to_name_val_val(
+  const name_val_val* entry = map_int_to_name_val_val(
       name_tbl, sizeof(name_tbl) / sizeof(name_val_val), OPCODE(instruction));
   return entry ? entry->name : "<unknown>";
 }
@@ -589,7 +589,7 @@ const char* inst_op_name(mips_instruction* instruction) {
    return its mnemonic — used by the AST builder to label AST_PSEUDO
    nodes. */
 const char* op_token_name(int op_token) {
-  name_val_val* entry = map_int_to_name_val_val(
+  const name_val_val* entry = map_int_to_name_val_val(
       name_tbl, sizeof(name_tbl) / sizeof(name_val_val), op_token);
   return entry ? entry->name : "<unknown>";
 }
@@ -616,7 +616,7 @@ char* inst_to_string(mem_addr addr) {
 
 void format_an_inst(str_stream* ss, mips_instruction* instruction,
                     mem_addr addr) {
-  name_val_val* entry;
+  const name_val_val* entry;
   int line_start = ss_length(ss);
 
   if (addr != 0 && inst_is_breakpoint(addr)) {
@@ -1143,7 +1143,7 @@ static void sort_i_opcode_table(void) {
 int32_t inst_encode(mips_instruction* instruction) {
   if (instruction == nullptr) return (0);
 
-  name_val_val* entry = map_int_to_name_val_val(
+  const name_val_val* entry = map_int_to_name_val_val(
       i_opcode_tbl, sizeof(i_opcode_tbl) / sizeof(name_val_val),
       OPCODE(instruction));
   if (entry == nullptr) return 0;
@@ -1288,7 +1288,7 @@ mips_instruction* inst_decode(int32_t val) {
              || a_opcode == 0x4c000000)
     a_opcode |= (val & 0x03e00000);
 
-  name_val_val* entry = map_int_to_name_val_val(
+  const name_val_val* entry = map_int_to_name_val_val(
       a_opcode_tbl, sizeof(a_opcode_tbl) / sizeof(name_val_val), a_opcode);
   if (entry == nullptr)
     return (mk_r_inst(val, 0, 0, 0, 0, 0)); /* Invalid instruction */

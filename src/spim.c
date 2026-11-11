@@ -72,7 +72,7 @@ static void save_history_at_exit(void) {
  * spim_commands must stay in sync with read_assembly_command()'s
  * str_prefix table further below. Alphabetical order so the listing
  * libedit prints on Tab-Tab reads cleanly. */
-static const char* spim_commands[] = {
+static const char* const spim_commands[] = {
     "args",           "breakpoint",    "continue",   "delete",
     "disasm",         "dump",          "dumpnative", "exit",
     "help",           "list",          "load",       "print",
@@ -139,7 +139,8 @@ static bool line_starts_with_cmd(const char* const* cmds) {
    followed by whitespace — those are the prompts where the student
    expects libedit's default filename completion to kick in. */
 static bool line_is_file_command(void) {
-  static const char* cmds[] = {"load", "read", "dump", "dumpnative", nullptr};
+  static const char* const cmds[] = {"load", "read", "dump", "dumpnative",
+                                     nullptr};
   return line_starts_with_cmd(cmds);
 }
 
@@ -148,7 +149,7 @@ static bool line_is_file_command(void) {
    address (TOK_INT) or a symbol name (TOK_ID); tab-completion offers the
    symbol names defined in the loaded program. */
 static bool line_is_label_command(void) {
-  static const char* cmds[] = {"breakpoint", "delete", nullptr};
+  static const char* const cmds[] = {"breakpoint", "delete", nullptr};
   return line_starts_with_cmd(cmds);
 }
 

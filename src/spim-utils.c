@@ -410,8 +410,8 @@ static int cmp_key_to_name(const void* key, const void* elem) {
   return strcmp((const char*)key, ((const name_val_val*)elem)->name);
 }
 
-name_val_val* map_string_to_name_val_val(name_val_val tbl[], int tbl_len,
-                                         char* id) {
+const name_val_val* map_string_to_name_val_val(const name_val_val tbl[],
+                                               int tbl_len, const char* id) {
   return bsearch(id, tbl, (size_t)tbl_len, sizeof(name_val_val),
                  cmp_key_to_name);
 }
@@ -427,8 +427,8 @@ static int cmp_key_to_value1(const void* key, const void* elem) {
   return (k > v) - (k < v);
 }
 
-name_val_val* map_int_to_name_val_val(name_val_val tbl[], int tbl_len,
-                                      int num) {
+const name_val_val* map_int_to_name_val_val(const name_val_val tbl[],
+                                            int tbl_len, int num) {
   return bsearch(&num, tbl, (size_t)tbl_len, sizeof(name_val_val),
                  cmp_key_to_value1);
 }
