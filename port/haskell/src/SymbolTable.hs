@@ -49,9 +49,13 @@ tableSize = 8191
 hashOf :: String -> Int
 hashOf name = fromIntegral ((h .&. (2 ^ (30 :: Int) - 1)) `rem` fromIntegral tableSize)
   where
+    h :: Word32
     h = foldl step (fromIntegral (length name)) name :: Word32
+    step :: Num a => a -> Char -> a
     step acc c = acc * 613 + signedChar c
-    signedChar c = let b = ord c in if b >= 128 then fromIntegral (b - 256 :: Int) else fromIntegral b
+    signedChar :: Num b => Char -> b
+    signedChar c = let b :: Int
+                       b = ord c in if b >= 128 then fromIntegral (b - 256 :: Int) else fromIntegral b
 
 -- | Empty the table (C: @initialize_symbol_table@).
 initializeSymbolTable :: Spim -> IO ()
@@ -63,7 +67,7 @@ initializeSymbolTable s = do
 -- which despite its name does not check that the label has an address).
 labelIsDefined :: Spim -> String -> IO (Maybe Label)
 labelIsDefined s name = do
-  bucket <- readArray (labelTable s) (hashOf name)
+  bucket :: [Label] <- readArray (labelTable s) (hashOf name)
   pure (case filter ((== name) . lblName) bucket of
           (l : _) -> Just l
           [] -> Nothing)
@@ -72,15 +76,16 @@ labelIsDefined s name = do
 -- (C: @lookup_label@).
 lookupLabel :: Spim -> String -> IO Label
 lookupLabel s name = do
-  found <- labelIsDefined s name
+  found :: Maybe Label <- labelIsDefined s name
   case found of
     Just l -> pure l
     Nothing -> do
-      n <- get (labelCounter s)
+      n :: Int <- get (labelCounter s)
       set (labelCounter s) (n + 1)
-      l <- Label n name <$> newIORef 0 <*> newIORef False <*> newIORef False <*> newIORef False <*> newIORef []
-      let h = hashOf name
-      bucket <- readArray (labelTable s) h
+      l :: Label <- Label n name <$> newIORef 0 <*> newIORef False <*> newIORef False <*> newIORef False <*> newIORef []
+      let h :: Int
+          h = hashOf name
+      bucket :: [Label] <- readArray (labelTable s) h
       writeArray (labelTable s) h (l : bucket)
       pure l
 
@@ -90,14 +95,14 @@ symbolIsDefined l = (/= 0) <$> get (lblAddr l)
 -- | Define a label at an address (C: @record_label@).
 recordLabel :: Spim -> String -> Word32 -> Bool -> IO Label
 recordLabel s name address resolve = do
-  l <- lookupLabel s name
-  gp <- get (lblGp l)
-  old <- get (lblAddr l)
+  l :: Label <- lookupLabel s name
+  gp :: Bool <- get (lblGp l)
+  old :: Word32 <- get (lblAddr l)
   if not gp && old /= 0
     then parseError s "Label is defined for the second time" >> pure l
     else do
       unless gp $ set (lblAddr l) address
-      global <- get (lblGlobal l)
+      global :: Bool <- get (lblGlobal l)
       fire s (EvLabelDef address (lblName l) global)
       when resolve $ resolveLabelUses s l
       unless global $ modify (localLabels s) (l :)
@@ -106,7 +111,7 @@ recordLabel s name address resolve = do
 -- | C: @make_label_global@.
 makeLabelGlobal :: Spim -> String -> IO Label
 makeLabelGlobal s name = do
-  l <- lookupLabel s name
+  l :: Label <- lookupLabel s name
   set (lblGlobal l) True
   pure l
 
@@ -115,11 +120,11 @@ makeLabelGlobal s name = do
 -- segment is copied, since the original is stored as a word and dropped.
 recordInstUsesSymbol :: Spim -> InstRef -> Label -> IO ()
 recordInstUsesSymbol s inst l = do
-  inData <- get (dataDir s)
-  (ref, at) <-
+  inData :: Bool <- get (dataDir s)
+  (ref, at) :: (InstRef, Word32) <-
     if inData
       then do
-        copy <- get inst >>= newIORef
+        copy :: InstRef <- get inst >>= newIORef
         (,) copy <$> currentDataPc s
       else (,) inst <$> currentTextPc s
   modify (lblUses l) (UseInst ref at :)
@@ -136,20 +141,21 @@ recordDataUsesSymbol s at l offset width = do
 -- (C: @resolve_label_uses@).
 resolveLabelUses :: Spim -> Label -> IO ()
 resolveLabelUses s l = do
-  uses <- get (lblUses l)
-  addr <- get (lblAddr l)
-  sbot <- get (stackBot s)
+  uses :: [LabelUse] <- get (lblUses l)
+  addr :: Word32 <- get (lblAddr l)
+  sbot :: Word32 <- get (stackBot s)
   forM_ uses $ \use -> do
-    at <- case use of
+    at :: Word32 <- case use of
       UseData at offset width -> do
-        let value = fromIntegral addr + offset :: Int32
+        let value :: Int32
+            value = fromIntegral addr + offset :: Int32
         forM_ [0 .. width - 1] $ \i ->
           memWriteByte s (at + fromIntegral i) (fromIntegral ((fromIntegral value :: Word32) `shiftR` (8 * i)) .&. 0xff)
         pure at
       UseInst inst at -> do
         resolveSub s l inst at
         when (at >= dataBot && at < sbot) $ do
-          enc <- get inst >>= instEncodeIO
+          enc :: Int32 <- get inst >>= instEncodeIO
           memWriteWord s at enc
         pure at
     fire s (EvForwardResolved at (lblName l) (fromIntegral addr))
@@ -159,8 +165,8 @@ resolveLabelUses s l = do
 -- (C: @resolve_a_label@).
 resolveALabel :: Spim -> Maybe Label -> InstRef -> IO ()
 resolveALabel s l inst = do
-  inData <- get (dataDir s)
-  pc <- if inData then currentDataPc s else currentTextPc s
+  inData :: Bool <- get (dataDir s)
+  pc :: Word32 <- if inData then currentDataPc s else currentTextPc s
   resolveSubMaybe s l inst pc
 
 resolveSub :: Spim -> Label -> InstRef -> Word32 -> IO ()
@@ -171,47 +177,52 @@ resolveSub s l = resolveSubMaybe s (Just l)
 -- target, anything else the low 16 bits.
 resolveSubMaybe :: Spim -> Maybe Label -> InstRef -> Word32 -> IO ()
 resolveSubMaybe s _ inst pc = do
-  i0 <- get inst
+  i0 :: Instruction <- get inst
   case inExpr i0 of
     Nothing -> pure ()
     Just e0 -> resolveExpr s inst i0 e0 pc
 
 resolveExpr :: Spim -> InstRef -> Instruction -> ImmExpr -> Word32 -> IO ()
 resolveExpr s inst i0 e0 pc = do
-  let e = if iePcRelative e0 then e0 {ieOffset = fromIntegral (0 - pc)} else e0
+  let e :: ImmExpr
+      e = if iePcRelative e0 then e0 {ieOffset = fromIntegral (0 - pc)} else e0
   set inst i0 {inExpr = Just e}
-  defined <- maybe (pure True) symbolIsDefined (ieSymbol e)
+  defined :: Bool <- maybe (pure True) symbolIsDefined (ieSymbol e)
   if not defined
     then cError ("Resolving undefined symbol: " ++ maybe "" lblName (ieSymbol e) ++ "\n")
     else do
-      let op = inOpcode i0
-      (value, fieldMask) <-
+      let op :: Int
+          op = inOpcode i0
+      (value, fieldMask) :: (Int32, Int32) <-
         if opcodeIsBranch op
           then do
-            byteOffset <- evalImmExpr s e {ieBits = 0}
-            delayed <- get (optDelayedBranches s)
-            let wordOffset = (byteOffset `quot` 4) - (if delayed then 1 else 0)
+            byteOffset :: Int32 <- evalImmExpr s e {ieBits = 0}
+            delayed :: Bool <- get (optDelayedBranches s)
+            let wordOffset :: Int32
+                wordOffset = (byteOffset `quot` 4) - (if delayed then 1 else 0)
             when (wordOffset < -32768 || wordOffset > 32767) $
               cError (printf "Branch target is out of range (more than 128 KB away) at pc 0x%x\n" pc)
             pure (fromIntegral (fromIntegral wordOffset .&. (0xffff :: Word32)), 0xffff)
           else
             if opcodeIsJump op
               then do
-                v <- evalImmExpr s e
+                v :: Int32 <- evalImmExpr s e
                 when ((fromIntegral v .&. 0xf0000000) /= (pc .&. 0xf0000000)) $
                   cError (printf "Target of jump differs in high-order 4 bits from instruction pc 0x%x\n" pc)
                 pure ((v .&. 0x0fffffff) `shiftR` 2, -1)
               else do
-                v <- evalImmExpr s e
+                v :: Int32 <- evalImmExpr s e
                 when (opcodeIsLoadStore op && v .&. 0x8000 /= 0) $ compensateLui s e pc
                 pure (v, 0xffff)
-      let high = value .&. complement fieldMask
+      let high :: Int32
+          high = value .&. complement fieldMask
       when (high /= 0 && high /= fromIntegral (0xffff0000 :: Word32)) $ do
         cError "Immediate value is too large for field: "
         printInst s pc
-      i1 <- get inst
-      let i2 = if opcodeIsJump op then setTarget (fromIntegral value) i1 else setImm value i1
-      enc <- instEncodeIO i2
+      i1 :: Instruction <- get inst
+      let i2 :: Instruction
+          i2 = if opcodeIsJump op then setTarget (fromIntegral value) i1 else setImm value i1
+      enc :: Int32 <- instEncodeIO i2
       set inst i2 {inEncoding = enc}
 
 -- | A load or store sign-extends its 16-bit offset, so when the low half
@@ -219,31 +230,33 @@ resolveExpr s inst i0 e0 pc = do
 -- or two instructions back) must load one more.
 compensateLui :: Spim -> ImmExpr -> Word32 -> IO ()
 compensateLui s e pc = do
-  prev <- memReadInst s (pc - 4)
-  prevPrev <- memReadInst s (pc - 8)
-  okPrev <- isPlainLui prev
+  prev :: Maybe InstRef <- memReadInst s (pc - 4)
+  prevPrev :: Maybe InstRef <- memReadInst s (pc - 8)
+  okPrev :: Bool <- isPlainLui prev
   if okPrev
     then bump prev
     else do
-      okPrevPrev <- isPlainLui prevPrev
+      okPrevPrev :: Bool <- isPlainLui prevPrev
       when okPrevPrev $ bump prevPrev
   where
+    isPlainLui :: Maybe InstRef -> IO Bool
     isPlainLui Nothing = pure False
     isPlainLui (Just ref) = do
-      i <- get ref
+      i :: Instruction <- get ref
       pure $ case inExpr i of
         Just pe -> isTok TOK_LUI_OPCODE (inOpcode i) && ieSymbol e == ieSymbol pe && instImm i == 0
         Nothing -> False
+    bump :: Maybe InstRef -> IO ()
     bump Nothing = pure ()
     bump (Just ref) = modify ref (\i -> i {inExpr = fmap (\pe -> pe {ieOffset = ieOffset pe + 0x10000}) (inExpr i)})
 
 -- | The value of an immediate expression (C: @eval_imm_expr@).
 evalImmExpr :: Spim -> ImmExpr -> IO Int32
 evalImmExpr _ e = do
-  value <- case ieSymbol e of
+  value :: Int32 <- case ieSymbol e of
     Nothing -> pure (ieOffset e)
     Just l -> do
-      addr <- get (lblAddr l)
+      addr :: Word32 <- get (lblAddr l)
       if addr /= 0
         then pure (ieOffset e + fromIntegral addr)
         else do
@@ -258,15 +271,16 @@ evalImmExpr _ e = do
 -- the next file cannot see them (C: @flush_local_labels@).
 flushLocalLabels :: Spim -> Bool -> IO ()
 flushLocalLabels s warn = do
-  locals <- get (localLabels s)
+  locals :: [Label] <- get (localLabels s)
   forM_ locals $ \l -> do
-    let h = hashOf (lblName l)
-    bucket <- readArray (labelTable s) h
+    let h :: Int
+        h = hashOf (lblName l)
+    bucket :: [Label] <- readArray (labelTable s) h
     case break ((== lblName l) . lblName) bucket of
       (before, entry : after) -> do
         writeArray (labelTable s) h (before ++ after)
-        addr <- get (lblAddr entry)
-        isConst <- get (lblConst entry)
+        addr :: Word32 <- get (lblAddr entry)
+        isConst :: Bool <- get (lblConst entry)
         when (warn && addr == 0 && not isConst) $
           cError ("Warning: local symbol " ++ lblName entry ++ " was not defined\n")
       _ -> pure ()
@@ -284,16 +298,16 @@ allLabels s = concat <$> forM [0 .. tableSize - 1] (readArray (labelTable s))
 -- | C: @print_symbols@.
 printSymbols :: Spim -> IO ()
 printSymbols s = do
-  ls <- allLabels s
+  ls :: [Label] <- allLabels s
   forM_ ls $ \l -> do
-    g <- get (lblGlobal l)
-    a <- get (lblAddr l)
+    g :: Bool <- get (lblGlobal l)
+    a :: Word32 <- get (lblAddr l)
     writeErr (printf "%s%s at 0x%08x\n" (if g then "g\t" else "\t" :: String) (lblName l) a)
 
 -- | The names of the undefined labels, one per line, or Nothing
 -- (C: @undefined_symbol_string@).
 undefinedSymbolString :: Spim -> IO (Maybe String)
 undefinedSymbolString s = do
-  ls <- allLabels s
-  names <- concat <$> forM ls (\l -> do a <- get (lblAddr l); pure [lblName l | a == 0])
+  ls :: [Label] <- allLabels s
+  names :: [String] <- concat <$> forM ls (\l -> do a :: Word32 <- get (lblAddr l); pure [lblName l | a == 0])
   pure (if null names then Nothing else Just (concatMap (++ "\n") names))

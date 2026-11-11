@@ -21,7 +21,7 @@ import Data.Char (ord)
 import Data.Int (Int32)
 import Data.Word (Word32)
 import OpcodeTables (opTokenName)
-import Text.Printf (printf)
+import Text.Printf (printf, PrintfArg)
 import Types (ImmExpr (..), Label (..))
 
 -- | One node: where it came from, and what it is.
@@ -70,7 +70,9 @@ printNode :: Int -> Node -> String
 printNode depth node =
   concat (replicate depth "  ") ++ printf "[line %d] " (nodeLine node) ++ body
   where
+    children :: [Node] -> String
     children = concatMap (printNode (depth + 1))
+    body :: String
     body = case nodeKind node of
       File src kids -> "FILE source=" ++ maybe "(stdin)" id src ++ "\n" ++ children kids
       InstR op rd rs rt -> printf "INST_R op=%d rd=%d rs=%d rt=%d\n" op rd rs rt
@@ -99,14 +101,18 @@ printNode depth node =
       DirComm name size -> printf "DIR_COMM name=%s size=%d\n" name size
       LabelDef name LabelNormal -> "LABEL_DEF name=" ++ name ++ " (placement)\n"
       LabelDef name (LabelConst v) -> printf "LABEL_DEF name=%s = %d (constant)\n" name v
+    intList :: String -> [ImmExpr] -> String
     intList tag es =
       printf "%s count=%d values=[" (tag :: String) (length es)
         ++ joinWith ", " (map showImm es) ++ "]\n"
+    fpList :: String -> [Double] -> String
     fpList tag vs =
       printf "%s count=%d values=[" (tag :: String) (length vs)
         ++ joinWith ", " (map (formatG 6) vs) ++ "]\n"
+    seg :: PrintfArg t => String -> Maybe t -> String
     seg tag (Just a) = printf "%s start=0x%08x\n" (tag :: String) a
     seg tag Nothing = tag ++ "\n"
+    escape :: Char -> String
     escape c
       | c == '\n' = "\\n"
       | c == '\t' = "\\t"
@@ -135,6 +141,8 @@ printAstJson n = jsonNode n ++ "\n"
 jsonNode :: Node -> String
 jsonNode node = "{\"kind\":\"" ++ kindName ++ "\",\"source_line\":" ++ show (nodeLine node) ++ fields ++ "}"
   where
+    kindName :: String
+    fields :: String
     (kindName, fields) = case nodeKind node of
       File src kids ->
         ("FILE", maybe "" (\s -> ",\"source_file\":" ++ jsonString s) src ++ ",\"children\":" ++ chain kids)
@@ -167,12 +175,18 @@ jsonNode node = "{\"kind\":\"" ++ kindName ++ "\",\"source_line\":" ++ show (nod
       LabelDef name LabelNormal -> ("LABEL_DEF", ",\"name\":" ++ jsonString name ++ ",\"label_kind\":\"placement\"")
       LabelDef name (LabelConst v) ->
         ("LABEL_DEF", ",\"name\":" ++ jsonString name ++ ",\"label_kind\":\"constant\"" ++ printf ",\"value\":%d" v)
+    opField :: Int -> String
     opField op = printf ",\"op\":%d,\"mnemonic\":" op ++ jsonString (opTokenName op)
+    chain :: [Node] -> String
     chain kids = "[" ++ joinWith "," (map jsonNode kids) ++ "]"
+    intValues :: [ImmExpr] -> String
     intValues es = printf ",\"count\":%d,\"values\":" (length es) ++ "[" ++ joinWith "," (map jsonImm es) ++ "]"
+    fpValues :: [Double] -> String
     fpValues vs = printf ",\"count\":%d,\"values\":[" (length vs) ++ joinWith "," (map (formatG 17) vs) ++ "]"
+    start :: PrintfArg t => Maybe t -> String
     start (Just a) = printf ",\"start_addr\":%u" a
     start Nothing = ""
+    jsonBool :: Bool -> String
     jsonBool b = if b then "true" else "false" :: String
 
 jsonImm :: ImmExpr -> String
@@ -185,6 +199,7 @@ jsonImm e =
 jsonString :: String -> String
 jsonString s = "\"" ++ concatMap esc s ++ "\""
   where
+    esc :: Char -> String
     esc c = case c of
       '"' -> "\\\""
       '\\' -> "\\\\"

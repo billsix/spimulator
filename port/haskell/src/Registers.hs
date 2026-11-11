@@ -141,7 +141,7 @@ excFPE = 15
 -- | The ExcCode field of the Cause register (C: @CP0_ExCode@).
 exceptionCode :: Spim -> IO Int
 exceptionCode s = do
-  cause <- getCp0 s cp0Cause
+  cause :: Int32 <- getCp0 s cp0Cause
   pure (fromIntegral ((fromIntegral cause .&. causeExcCode) `shiftR` 2 :: Word32))
 
 -- | The raw 32 bits of FP register n (C: @FPR_W@).
@@ -162,8 +162,8 @@ setFprSingle s n v = setFprWord s n (castFloatToWord32 v)
 -- (C: @fp_double_view[n / 2]@).
 doubleWords :: Spim -> Int -> IO Double
 doubleWords s n = do
-  lo <- fprWord s n
-  hi <- fprWord s (n + 1)
+  lo :: Word32 <- fprWord s n
+  hi :: Word32 <- fprWord s (n + 1)
   pure (castWord64ToDouble ((fromIntegral hi `shiftL` 32) .|. (fromIntegral lo :: Word64)))
 
 -- | Double register n (C: @FPR_D@): an odd number is a run-time error.
@@ -176,7 +176,8 @@ setFprDouble :: Spim -> Int -> Double -> IO ()
 setFprDouble s n v
   | odd n = runError "Odd FP double register number\n"
   | otherwise = do
-      let w = castDoubleToWord64 v
+      let w :: Word64
+          w = castDoubleToWord64 v
       setFprWord s n (fromIntegral w)
       setFprWord s (n + 1) (fromIntegral (w `shiftR` 32))
 
@@ -189,40 +190,41 @@ ccMask n
 -- | Condition code n, 0 or 1.
 fcc :: Spim -> Int -> IO Int
 fcc s n = do
-  fcsr <- getFcr s 31
+  fcsr :: Int32 <- getFcr s 31
   pure (if fromIntegral fcsr .&. ccMask n == 0 then 0 else 1)
 
 setFcc :: Spim -> Int -> Int -> IO ()
 setFcc s n v = do
-  fcsr <- fromIntegral <$> getFcr s 31
+  fcsr :: Word32 <- fromIntegral <$> getFcr s 31
   setFcr s 31 (fromIntegral (if v == 0 then fcsr .&. complement (ccMask n) else fcsr .|. ccMask n :: Word32))
 
 -- | Record an exception in the CP0 registers (C: @raise_exception@).  An
 -- interrupt is ignored while interrupts are disabled.
 raiseException :: Spim -> Int -> IO ()
 raiseException s code = do
-  status <- fromIntegral <$> getCp0 s cp0Status :: IO Word32
-  let enabled = status .&. statusIE /= 0 && status .&. statusEXL == 0
+  status :: Word32 <- fromIntegral <$> getCp0 s cp0Status :: IO Word32
+  let enabled :: Bool
+      enabled = status .&. statusIE /= 0 && status .&. statusEXL == 0
   if code /= excInt || enabled
     then do
       set (exceptionOccurred s) True
-      first <- get (firstBadException s)
+      first :: Int <- get (firstBadException s)
       if first == -1 && code /= excInt && code /= excSys && code /= excBp
         then set (firstBadException s) code
         else pure ()
-      pc <- get (regPC s)
-      inSlot <- get (runningInDelaySlot s)
+      pc :: Word32 <- get (regPC s)
+      inSlot :: Bool <- get (runningInDelaySlot s)
       if status .&. statusEXL == 0
         then
           if inSlot
             then do
               setCp0 s cp0Epc (fromIntegral ((pc - 4) .&. complement 3))
-              cause <- getCp0 s cp0Cause
+              cause :: Int32 <- getCp0 s cp0Cause
               setCp0 s cp0Cause (fromIntegral (fromIntegral cause .|. causeBD :: Word32))
             else setCp0 s cp0Epc (fromIntegral (pc .&. complement 3))
         else pure ()
-      cause <- fromIntegral <$> getCp0 s cp0Cause :: IO Word32
+      cause :: Word32 <- fromIntegral <$> getCp0 s cp0Cause :: IO Word32
       setCp0 s cp0Cause (fromIntegral ((cause .&. complement causeExcCode) .|. (fromIntegral code `shiftL` 2)))
-      st <- fromIntegral <$> getCp0 s cp0Status :: IO Word32
+      st :: Word32 <- fromIntegral <$> getCp0 s cp0Status :: IO Word32
       setCp0 s cp0Status (fromIntegral (st .|. statusEXL))
     else pure ()

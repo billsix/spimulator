@@ -64,14 +64,14 @@ scannerForceIdentifier s = S.modify (scanner s) (\st -> st {ssForceId = True})
 -- | Save the scanner and start on new input (C: @scanner_push_source@).
 scannerPushSource :: Spim -> String -> IO ()
 scannerPushSource s input = do
-  st <- S.get (scanner s)
+  st :: ScanState <- S.get (scanner s)
   S.modify (scannerStack s) (st :)
   scannerInit s input
 
 -- | Go back to the saved scanner, if there is one.
 scannerPopSource :: Spim -> IO ()
 scannerPopSource s = do
-  stack <- S.get (scannerStack s)
+  stack :: [ScanState] <- S.get (scannerStack s)
   case stack of
     (st : rest) -> S.set (scanner s) st >> S.set (scannerStack s) rest
     [] -> pure ()
@@ -79,17 +79,17 @@ scannerPopSource s = do
 -- | Run a scanning action on the machine's scanner.
 withScanner :: Spim -> Scan a -> IO a
 withScanner s act = do
-  st <- S.get (scanner s)
-  (r, st') <- runStateT act st
+  st :: ScanState <- S.get (scanner s)
+  (r, st') :: (a, ScanState) <- runStateT act st
   S.set (scanner s) st'
   pure r
 
 -- | Make sure the look-ahead buffer holds at least n tokens.
 ensureFilled :: Spim -> Int -> Scan ()
 ensureFilled s n = do
-  toks <- gets ssTokens
+  toks :: [ScanItem] <- gets ssTokens
   when (length toks < n) $ do
-    item <- scanOneToken s
+    item :: ScanItem <- scanOneToken s
     modify' (\st -> st {ssTokens = ssTokens st ++ [item]})
     ensureFilled s n
 
@@ -116,9 +116,9 @@ head' [] = ScanItem TokEOF VNone
 -- (C: @scanner_advance@).
 scannerAdvance :: Spim -> IO Token
 scannerAdvance s = do
-  ScanItem t v <- withScanner s $ do
+  (ScanItem t v :: ScanItem) <- withScanner s $ do
     ensureFilled s 1
-    toks <- gets ssTokens
+    toks :: [ScanItem] <- gets ssTokens
     modify' (\st -> st {ssTokens = drop 1 toks})
     pure (head' toks)
   case t of
@@ -141,7 +141,7 @@ peekChar2 = gets (\st -> case ssRest st of (_ : c : _) -> c; _ -> '\0')
 
 nextChar :: Scan Char
 nextChar = do
-  st <- get
+  st :: ScanState <- get
   case ssRest st of
     (c : rest) -> put st {ssRest = rest} >> pure c
     [] -> pure '\0'
@@ -155,14 +155,17 @@ atLineEnd = gets (null . ssRest)
 -- does in C.
 fillLineBuf :: Scan ()
 fillLineBuf = do
-  st <- get
+  st :: ScanState <- get
   if ssAtEof st
     then pure ()
     else
       if null (ssInput st)
         then put st {ssAtEof = True, ssLine = "", ssRest = ""}
         else do
-          let (chunk, rest) = takeLine 4095 (ssInput st)
+          let chunk :: String
+              rest :: String
+              (chunk, rest) = takeLine 4095 (ssInput st)
+              line :: String
               line = takeWhile (/= '\0') chunk
           put st {ssInput = rest, ssLine = line, ssRest = line}
   where
@@ -171,56 +174,64 @@ fillLineBuf = do
     takeLine _ [] = ([], [])
     takeLine n (c : r)
       | c == '\n' = ([c], r)
-      | otherwise = let (a, b) = takeLine (n - 1) r in (c : a, b)
+      | otherwise = let a :: String
+                        b :: String
+                        (a, b) = takeLine (n - 1) r in (c : a, b)
 
 -- | Remember the current line for error messages, at its first token.
 maybeSnapshotLine :: Scan ()
 maybeSnapshotLine = do
-  st <- get
+  st :: ScanState <- get
   when (not (ssSnapshotSaved st)) $ do
-    let line = ssLine st
+    let line :: String
+        line = ssLine st
+        trimmed :: String
         trimmed = if not (null line) && last line == '\n' then init line else line
     put st {ssSnapshot = trimmed, ssSnapshotLineNo = ssLineNo st, ssSnapshotSaved = True}
 
 -- | Scan one token (C: @scan_one_token@).
 scanOneToken :: Spim -> Scan ScanItem
 scanOneToken s = do
-  forceId <- gets ssForceId
+  forceId :: Bool <- gets ssForceId
   modify' (\st -> st {ssForceId = False})
-  found <- skipToToken
+  found :: Bool <- skipToToken
   if not found
     then pure (ScanItem TokEOF VNone)
     else haveChar forceId
   where
+    skipToToken :: Scan Bool
     skipToToken = do
       skipBlanks
-      endOfLine <- atLineEnd
+      endOfLine :: Bool <- atLineEnd
       if not endOfLine
         then pure True
         else do
-          eof <- gets ssAtEof
+          eof :: Bool <- gets ssAtEof
           if eof
             then pure False
             else do
               fillLineBuf
-              st <- get
+              st :: ScanState <- get
               if ssAtEof st && null (ssLine st)
                 then pure False
                 else put st {ssSnapshotSaved = False} >> skipToToken
+    skipBlanks :: Scan ()
     skipBlanks = do
-      c <- peekChar
-      endOfLine <- atLineEnd
+      c :: Char <- peekChar
+      endOfLine :: Bool <- atLineEnd
       if endOfLine
         then pure ()
         else case c of
           _ | c `elem` " \t\r," -> nextChar >> skipBlanks
           '#' -> skipComment >> skipBlanks
           _ -> pure ()
+    skipComment :: Scan ()
     skipComment = do
-      c <- peekChar
+      c :: Char <- peekChar
       if c /= '\0' && c /= '\n' then nextChar >> skipComment else pure ()
+    haveChar :: Bool -> Scan ScanItem
     haveChar forceId = do
-      c <- peekChar
+      c :: Char <- peekChar
       case c of
         '\n' -> do
           _ <- nextChar
@@ -229,7 +240,7 @@ scanOneToken s = do
         ';' -> nextChar >> pure (ScanItem TokNL VNone)
         _ -> do
           maybeSnapshotLine
-          c2 <- peekChar2
+          c2 :: Char <- peekChar2
           if c == '-' && cDigit c2
             then nextChar >> number (-1)
             else
@@ -249,25 +260,33 @@ scanOneToken s = do
                             _ <- nextChar
                             lift (cError (printf "Unknown character in source: '%c' (0x%02x)\n" c (ord c)))
                             pure (ScanItem TokNL VNone)
+    number :: Int -> Scan ScanItem
     number sign = do
-      fpLen <- gets (fpLiteralLength . ssRest)
+      fpLen :: Int <- gets (fpLiteralLength . ssRest)
       if fpLen > 0 then scanFp sign fpLen else scanInt sign
 
 -- | The length of a floating-point literal at the start of the text
 -- (@[0-9]+[.][0-9]+([eE][+-]?[0-9]*)?@), or 0 (C: @scan_fp_check@).
 fpLiteralLength :: String -> Int
 fpLiteralLength text =
-  let (whole, r1) = span cDigit text
+  let whole :: String
+      r1 :: String
+      (whole, r1) = span cDigit text
    in case r1 of
         ('.' : r2) | not (null whole) ->
-          let (frac, r3) = span cDigit r2
+          let frac :: String
+              r3 :: String
+              (frac, r3) = span cDigit r2
            in if null frac
                 then 0
                 else
-                  let base = length whole + 1 + length frac
+                  let base :: Int
+                      base = length whole + 1 + length frac
                    in case r3 of
                         (e : r4) | e == 'e' || e == 'E' ->
-                          let (sgn, r5) = case r4 of
+                          let sgn :: Int
+                              r5 :: String
+                              (sgn, r5) = case r4 of
                                 (p : r) | p == '+' || p == '-' -> (1, r)
                                 _ -> (0, r4)
                            in base + 1 + sgn + length (takeWhile cDigit r5)
@@ -276,18 +295,21 @@ fpLiteralLength text =
 
 scanFp :: Int -> Int -> Scan ScanItem
 scanFp sign len = do
-  st <- get
-  let (lit, rest) = splitAt len (ssRest st)
+  st :: ScanState <- get
+  let lit :: String
+      rest :: String
+      (lit, rest) = splitAt len (ssRest st)
   put st {ssRest = rest}
-  let value = fromIntegral sign * cStrtod (take 63 lit)
+  let value :: Double
+      value = fromIntegral sign * cStrtod (take 63 lit)
   pure (ScanItem TokFp (VFp value))
 
 -- | A decimal or hexadecimal integer, wrapping at 32 bits (C: @scan_int@).
 scanInt :: Int -> Scan ScanItem
 scanInt sign = do
-  c <- peekChar
-  c2 <- peekChar2
-  value <-
+  c :: Char <- peekChar
+  c2 :: Char <- peekChar2
+  value :: Word32 <-
     if c == '0' && (c2 == 'x' || c2 == 'X')
       then nextChar >> nextChar >> digits cXdigit 16
       else digits cDigit 10
@@ -296,19 +318,23 @@ scanInt sign = do
     digits :: (Char -> Bool) -> Word32 -> Scan Word32
     digits ok base = go 0
       where
+        go :: Word32 -> StateT ScanState IO Word32
         go acc = do
-          d <- peekChar
+          d :: Char <- peekChar
           if ok d then nextChar >> go (acc * base + fromIntegral (digitToInt d)) else pure acc
 
 -- | A word: a keyword, a constant's value, or an identifier
 -- (C: @scan_identifier@).
 scanIdentifier :: Spim -> Bool -> Scan ScanItem
 scanIdentifier s forceId = do
-  st <- get
-  let (word, rest) = span (\c -> c == '_' || c == '.' || cAlnum c) (ssRest st)
+  st :: ScanState <- get
+  let word :: String
+      rest :: String
+      (word, rest) = span (\c -> c == '_' || c == '.' || cAlnum c) (ssRest st)
+      ident :: String
       ident = take 255 word
   put st {ssRest = rest}
-  keyword <- if forceId then pure Nothing else lift (checkKeyword s ident)
+  keyword :: Maybe Token <- if forceId then pure Nothing else lift (checkKeyword s ident)
   case keyword of
     Just t -> pure (ScanItem t VNone)
     Nothing -> constOrId s ident
@@ -316,9 +342,10 @@ scanIdentifier s forceId = do
 -- | Look a word up in the keyword table (C: @check_keyword@).
 checkKeyword :: Spim -> String -> IO (Maybe Token)
 checkKeyword s ident = do
-  bare <- S.get (optBare s)
-  pseudo <- S.get (optAcceptPseudo s)
-  let allowPseudo = not bare && pseudo
+  bare :: Bool <- S.get (optBare s)
+  pseudo :: Bool <- S.get (optAcceptPseudo s)
+  let allowPseudo :: Bool
+      allowPseudo = not bare && pseudo
   pure $ case bsearchBy (\e -> compare ident (nvvName e)) keywordTable of
     Nothing -> Nothing
     Just e
@@ -328,11 +355,11 @@ checkKeyword s ident = do
 -- | A defined constant scans as its number; anything else is an identifier.
 constOrId :: Spim -> String -> Scan ScanItem
 constOrId s ident = do
-  ml <- lift (labelIsDefined s ident)
-  isConst <- lift (maybe (pure False) (S.get . lblConst) ml)
+  ml :: Maybe Label <- lift (labelIsDefined s ident)
+  isConst :: Bool <- lift (maybe (pure False) (S.get . lblConst) ml)
   case ml of
     Just l | isConst -> do
-      addr <- lift (S.get (lblAddr l))
+      addr :: Word32 <- lift (S.get (lblAddr l))
       pure (ScanItem TokInt (VInt (fromIntegral addr)))
     _ -> pure (ScanItem TokId (VStr ident))
 
@@ -363,11 +390,15 @@ atoi str = fromIntegral (foldl (\acc d -> acc * 10 + fromIntegral (digitToInt d)
 scanRegister :: Spim -> Scan ScanItem
 scanRegister s = do
   _ <- nextChar
-  st <- get
-  let (word, rest) = span (\c -> c == '_' || c == '.' || c == '$' || cAlnum c) (ssRest st)
+  st :: ScanState <- get
+  let word :: String
+      rest :: String
+      (word, rest) = span (\c -> c == '_' || c == '.' || c == '$' || cAlnum c) (ssRest st)
+      name :: String
       name = take 63 word
   put st {ssRest = rest}
-  let n = registerNameToNumber name
+  let n :: Int
+      n = registerNameToNumber name
   case name of
     ('f' : c2 : _) | n /= -1 && c2 /= 'p' -> pure (ScanItem TokFpReg (VInt (fromIntegral n)))
     ['f'] | n /= -1 -> pure (ScanItem TokFpReg (VInt (fromIntegral n)))
@@ -379,25 +410,26 @@ scanRegister s = do
 scanString :: Scan ScanItem
 scanString = do
   _ <- nextChar
-  body <- collect
-  c <- peekChar
+  body :: String <- collect
+  c :: Char <- peekChar
   when (c == '"') (() <$ nextChar)
-  decoded <- lift (decodeString body)
+  decoded :: String <- lift (decodeString body)
   pure (ScanItem TokStr (VStr decoded))
   where
+    collect :: StateT ScanState IO String
     collect = do
-      c <- peekChar
-      c2 <- peekChar2
+      c :: Char <- peekChar
+      c2 :: Char <- peekChar2
       if c == '\0' || c == '"'
         then pure []
         else
           if c == '\\' && c2 /= '\0'
             then do
-              a <- nextChar
-              b <- nextChar
+              a :: Char <- nextChar
+              b :: Char <- nextChar
               (\r -> a : b : r) <$> collect
             else do
-              a <- nextChar
+              a :: Char <- nextChar
               (a :) <$> collect
 
 -- | Decode @\\n@, @\\t@, @\\\"@, three-digit octal @\\NNN@ and hexadecimal
@@ -421,9 +453,10 @@ decodeString str = case str of
     numeric :: Int -> (Char -> Bool) -> String -> Int -> Int -> String -> IO String
     numeric base ok msg start shiftFirst rest = case rest of
       (c2 : c3 : more) -> do
-        b1 <- digitValue base ok msg c2
-        b2 <- digitValue base ok msg c3
-        let b = if base == 8 then start + (b1 `shiftL` 3) + b2 else ((start + b1) `shiftL` 4) .|. b2
+        b1 :: Int <- digitValue base ok msg c2
+        b2 :: Int <- digitValue base ok msg c3
+        let b :: Int
+            b = if base == 8 then start + (b1 `shiftL` 3) + b2 else ((start + b1) `shiftL` 4) .|. b2
         _ <- pure shiftFirst
         (chr (b `mod` 256) :) <$> decodeString more
       _ -> ('\\' :) <$> decodeString (drop 1 str)
@@ -436,17 +469,18 @@ decodeString str = case str of
 scanChar :: Scan ScanItem
 scanChar = do
   _ <- nextChar
-  c <- peekChar
-  v <-
+  c :: Char <- peekChar
+  v :: Int <-
     if c == '\\'
       then nextChar >> escapeChar
       else ord <$> nextChar
-  q <- peekChar
+  q :: Char <- peekChar
   when (q == '\'') (() <$ nextChar)
   pure (ScanItem TokInt (VInt (fromIntegral v)))
   where
+    escapeChar :: StateT ScanState IO Int
     escapeChar = do
-      first <- nextChar
+      first :: Char <- nextChar
       case first of
         'a' -> pure 7
         'b' -> pure 8
@@ -459,11 +493,12 @@ scanChar = do
         '\'' -> pure 39
         _
           | first == 'x' || first == 'X' -> do
-              hi <- peekChar
-              lo <- peekChar2
-              let msg = "Bad character in \\X construct in char literal\n"
-              h <- if cXdigit hi then pure (digitToInt hi `shiftL` 4) else lift (cError msg) >> pure 0
-              l <- if cXdigit lo then pure (digitToInt lo) else lift (cError msg) >> pure 0
+              hi :: Char <- peekChar
+              lo :: Char <- peekChar2
+              let msg :: String
+                  msg = "Bad character in \\X construct in char literal\n"
+              h :: Int <- if cXdigit hi then pure (digitToInt hi `shiftL` 4) else lift (cError msg) >> pure 0
+              l :: Int <- if cXdigit lo then pure (digitToInt lo) else lift (cError msg) >> pure 0
               _ <- nextChar
               _ <- nextChar
               pure (h .|. l)

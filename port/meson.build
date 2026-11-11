@@ -14,6 +14,9 @@
 #     <name>-all-programs   port/harness/compare_all_programs.py: every .s/.asm
 #                           in the repo, assembled six ways and run, against C
 #
+# and, for the Haskell port only, haskell-annotations: every do-bind and
+# let/where binding has a written type (port/haskell/tests/check-annotations.sh).
+#
 # A port is listed here when its task's harness milestone is done, so the image
 # build (which runs `meson test`) gates it from then on.  Each entry is
 # [name, executable relative to the source root].
@@ -66,3 +69,8 @@ foreach port : ports
        depends: spimulator_exe,
        suite: port_suite, timeout: 3600)
 endforeach
+
+test('haskell-annotations',
+     find_program('bash'),
+     args: [meson.current_source_dir() / 'haskell' / 'tests' / 'check-annotations.sh'],
+     suite: 'port-haskell', timeout: 1800)

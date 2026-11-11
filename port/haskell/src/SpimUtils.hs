@@ -55,8 +55,8 @@ initializeWorld s handler printMessage = do
   case handler of
     NoHandler -> pure ()
     _ -> do
-      oldBare <- get (optBare s)
-      oldPseudo <- get (optAcceptPseudo s)
+      oldBare :: Bool <- get (optBare s)
+      oldPseudo :: Bool <- get (optAcceptPseudo s)
       set (optBare s) False
       set (optAcceptPseudo s) True
       case handler of
@@ -65,7 +65,7 @@ initializeWorld s handler printMessage = do
           when printMessage $ writeErr ("Loaded: " ++ name ++ "\n")
         HandlerFiles names ->
           forM_ (splitOn ';' names) $ \file -> do
-            okRead <- readAssemblyFile s file
+            okRead :: Bool <- readAssemblyFile s file
             unless okRead $ fatalError ("Cannot read exception handler: " ++ file ++ "\n")
             when printMessage $ writeErr ("Loaded: " ++ file ++ "\n")
       set (optBare s) oldBare
@@ -78,6 +78,7 @@ initializeWorld s handler printMessage = do
   deleteAllBreakpoints s
   where
     -- strtok: the pieces between separators, skipping empty ones.
+    splitOn :: Char -> String -> [String]
     splitOn c str = case break (== c) (dropWhile (== c) str) of
       ("", _) -> []
       (piece, rest) -> piece : splitOn c rest
@@ -112,7 +113,7 @@ assembleText :: Spim -> String -> String -> IO ()
 assembleText s text name = do
   parserInit s text name
   _ <- parseFile s
-  err <- get (parseErrorOccurred s)
+  err :: Bool <- get (parseErrorOccurred s)
   flushLocalLabels s (not err)
   endOfAssemblyFile s
 
@@ -120,8 +121,8 @@ assembleText s text name = do
 -- (C: @read_assembly_file@).
 readAssemblyFile :: Spim -> String -> IO Bool
 readAssemblyFile s name = do
-  isDir <- doesDirectoryExist name
-  contents <-
+  isDir :: Bool <- doesDirectoryExist name
+  contents :: Either IOException B.ByteString <-
     if isDir
       then pure (Right B.empty)
       else try (B.readFile name) :: IO (Either IOException B.ByteString)
@@ -137,32 +138,33 @@ readAssemblyFile s name = do
 -- Unix @main(argc, argv, envp)@ would receive them (C: @initialize_run_stack@).
 initializeRunStack :: Spim -> [String] -> IO ()
 initializeRunStack s argv = do
-  env <- readEnvironment
+  env :: [String] <- readEnvironment
   setGpr s 29 (fromIntegral (stackTop - 1))
-  envAddrs <- forM env (copyStrToStack s)
-  argAddrs <- forM argv (copyStrToStack s)
-  sp <- fromIntegral <$> getGpr s 29 :: IO Word32
-  let aligned = ((sp .&. complement 3) - 4) .&. complement 7
+  envAddrs :: [Word32] <- forM env (copyStrToStack s)
+  argAddrs :: [Word32] <- forM argv (copyStrToStack s)
+  sp :: Word32 <- fromIntegral <$> getGpr s 29 :: IO Word32
+  let aligned :: Word32
+      aligned = ((sp .&. complement 3) - 4) .&. complement 7
   setGpr s 29 (fromIntegral aligned)
   _ <- copyIntToStack s 0
   forM_ (reverse envAddrs) $ \a -> copyIntToStack s (fromIntegral a) >>= setGpr s 6 . fromIntegral
   _ <- copyIntToStack s 0
   forM_ (reverse argAddrs) $ \a -> copyIntToStack s (fromIntegral a) >>= setGpr s 5 . fromIntegral
   setGpr s 4 (fromIntegral (length argv))
-  sp' <- fromIntegral <$> getGpr s 29
+  sp' :: Word32 <- fromIntegral <$> getGpr s 29
   memWriteWord s sp' (fromIntegral (length argv))
 
 -- | The process's environment strings, in order, as bytes.
 readEnvironment :: IO [String]
 readEnvironment = do
-  envp <- peek c_environ
+  envp :: Ptr CString <- peek c_environ
   if envp == nullPtr then pure [] else peekArray0 nullPtr envp >>= mapM peekCAString
 
 -- | Push a string (with its NUL) byte by byte; returns its address.
 copyStrToStack :: Spim -> String -> IO Word32
 copyStrToStack s str = do
   forM_ (reverse (map ord str ++ [0])) $ \b -> do
-    sp <- getGpr s 29
+    sp :: Int32 <- getGpr s 29
     memWriteByte s (fromIntegral sp) (fromIntegral b)
     setGpr s 29 (sp - 1)
   (+ 1) . fromIntegral <$> getGpr s 29
@@ -170,7 +172,7 @@ copyStrToStack s str = do
 -- | Push a word; returns its address.
 copyIntToStack :: Spim -> Int32 -> IO Word32
 copyIntToStack s n = do
-  sp <- getGpr s 29
+  sp :: Int32 <- getGpr s 29
   memWriteWord s (fromIntegral sp) n
   setGpr s 29 (sp - 4)
   pure (fromIntegral sp)
@@ -180,26 +182,27 @@ copyIntToStack s n = do
 -- (C: @run_program@).
 runProgram :: Spim -> Word32 -> Int -> Bool -> Bool -> IO (Bool, Bool)
 runProgram s pc0 steps0 display contBkpt = do
-  atBreak <- if contBkpt then instIsBreakpoint s pc0 else pure False
-  (pc, steps) <-
+  atBreak :: Bool <- if contBkpt then instIsBreakpoint s pc0 else pure False
+  (pc, steps) :: (Word32, Int) <-
     if atBreak
       then do
-        cur <- get (regPC s)
-        let addr = if cur == 0 then pc0 else cur
+        cur :: Word32 <- get (regPC s)
+        let addr :: Word32
+            addr = if cur == 0 then pc0 else cur
         deleteBreakpoint s addr
         set (exceptionOccurred s) False
         _ <- runSpim s addr 1 display
         addBreakpoint s addr
-        cur' <- get (regPC s)
+        cur' :: Word32 <- get (regPC s)
         pure (cur', steps0 - 1)
       else pure (pc0, steps0)
   set (exceptionOccurred s) False
-  continuable <- runSpim s pc steps display
-  exc <- get (exceptionOccurred s)
-  code <- exceptionCode s
+  continuable :: Bool <- runSpim s pc steps display
+  exc :: Bool <- get (exceptionOccurred s)
+  code :: Int <- exceptionCode s
   if exc && code == excBp
     then do
-      st <- getCp0 s cp0Status
+      st :: Int32 <- getCp0 s cp0Status
       setCp0 s cp0Status (st .&. complement (fromIntegral statusEXL))
       pure (True, continuable)
     else pure (False, continuable)
