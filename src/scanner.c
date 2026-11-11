@@ -761,7 +761,7 @@ void scanner_pop_source(void) {
    indented and newline-terminated, for the parse-error printer. */
 char* erroneous_line(void) {
   const size_t len = strlen(current_line_buf);
-  char* const r = (char*)xmalloc((size_t)(int)(len + 16));
+  char* const r = (char*)xmalloc(len + 16);
   snprintf(r, len + 16, "\t  %s\n", current_line_buf);
   return r;
 }
@@ -773,7 +773,7 @@ char* source_line(void) {
   if (!current_line_saved) return nullptr;
   const size_t len = strlen(current_line_buf);
   /* "NNN: " prefix — up to 10 digits + ": " + line + NUL */
-  char* const r = (char*)xmalloc((size_t)(int)(len + 16));
+  char* const r = (char*)xmalloc(len + 16);
   snprintf(r, len + 16, "%d: %s", current_line_no_saved, current_line_buf);
   return r;
 }
