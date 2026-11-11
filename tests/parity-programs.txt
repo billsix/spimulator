@@ -7,8 +7,7 @@
 # Every listed program must assemble and write a dump; one that does not
 # fails the test.  Left out on purpose:
 #   tt.parse_error.s  its parse fails by design, so there is nothing to pin.
-#   tt.alu.bare.s     19 lines do not assemble in the fork (see
-#                     tasks/alu-bare-test-assembler-strictness.md).
+tt.alu.bare.s           -bare -noexception
 tt.argv.s               default
 tt.bare.s               -delayed_branches -delayed_loads -noexception
 tt.be.s                 default

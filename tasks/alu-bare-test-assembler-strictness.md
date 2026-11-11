@@ -1,41 +1,55 @@
-# Make upstream's ALU torture test `tt.alu.bare.s` run: loosen the assembler or edit the test
+# Make upstream's ALU torture test `tt.alu.bare.s` run
 
-**Status:** proposed — needs go-ahead (one decision, Open questions)
-**Priority:** 6
-**Difficulty:** 3
 **Created:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
+**Done:** 2026-11-11
 **Source:** tasks/review/2026/11/10/repo-review.md §6.1 (F7)
 
-## BLUF
+## Summary
 
-`tests/tt.alu.bare.s` is James Larus's ALU torture test for bare-machine mode. Upstream ran it as
-`spim -bare -noexception -file tt.alu.bare.s` (`git show 6cb6a08:spim/Makefile`, lines 160–165). In
-the fork, 19 of its lines do not assemble, so it has never run. Done means it runs in the regression
-suite under `-bare -noexception` and prints `Passed all tests`.
+`tests/tt.alu.bare.s` is James Larus's ALU torture test for bare-machine mode, which upstream ran as
+`spim -bare -noexception -file tt.alu.bare.s` (`git show 6cb6a08:spim/Makefile`, lines 160–165). It had
+never run in the fork: 19 of its lines did not assemble. The test was edited to fit the fork, and it
+now runs in the regression suite as `alu_bare` (and as `python-alu_bare`, `haskell-alu_bare`,
+`rust-alu_bare` in the port suites), printing `Passed all tests`.
 
-## Context
+## Decision
 
-The 19 errors, from `spimulator -bare -noexception -f tests/tt.alu.bare.s`, have two causes:
-- **Immediates out of range (9 lines).** Examples: `addi $2, $3, 65432` on lines 414–426, and
-  `ori`/`xori` with `-1` on lines 588, 818, 1439, 1443 and 1445. Upstream's assembler silently
-  truncated these to 16 bits; the fork reports `immediate value (65432) out of range`. The fork's
-  check is right for a teaching assembler, which should say when a constant does not fit.
-- **Coprocessor 0, 2 and 3 instructions the fork does not have (10 lines).** `mtc3`, `mfc3`,
-  `ctc3`, `lwc3`, `swc3` and `swc0`, around lines 1601–1779. These are MIPS-I instructions that
-  MIPS32 removed (coprocessor 3 is gone, and `lwc3` became `pref`), and the fork's opcode table
-  follows MIPS32 (`include/opcodes.h` has `mtc2`/`lwc2`/`swc2`, not the c3 forms). The parser
-  reports `Instruction not yet supported`.
+The maintainer chose to edit the test rather than loosen the assembler (William Emerison Six
+<billsix@gmail.com>, 2026-11-11, option (a) of the two offered). The other option was to make the
+assembler truncate out-of-range immediates under `-bare` and to add the MIPS-I coprocessor-3
+instructions. It was rejected because the fork's range check is a teaching feature and MIPS32 has no
+coprocessor 3.
 
-`tt.fpu.bare.s` (the FPU twin) passes and runs as the `fpu_bare` test since 2026-11-10.
+## What changed in the test
 
-## Open questions
+The header of `tests/tt.alu.bare.s` lists the changes. Each removed section is marked by a comment
+where it was.
+- **Nine immediates written in range.** `addi $4 $0 0xff98` became `-104` (and likewise `0xffba`,
+  `0xffdc`, `0xfffe`). `-1` in `ori`, `xori` and `lui` became `0xffff`. Each is the value the
+  instruction received under upstream's silent 16-bit truncation, so the test checks what it always
+  checked.
+- **Coprocessor 0, 2 and 3 sections removed.**
+  - The coprocessor-3 tests (`ctc3`/`cfc3`, `mtc3`/`mfc3`, `lwc3`/`swc3`): MIPS32 has no
+    coprocessor 3.
+  - The `lwc0`/`swc0` test: MIPS32 uses those opcodes for `ll`/`sc`.
+  - The coprocessor-2 tests (`ctc2`/`cfc2`, `mtc2`/`mfc2`, `lwc2`/`swc2`): these were not among the
+    19 errors, because they assemble. But spimulator has no coprocessor 2, and its instructions
+    raise Coprocessor Unusable (`src/run.c`), so the run stopped there with exit 139 (128 + ExcCode
+    11). Removing them follows from the same decision.
+- Only text-segment code was removed, so the test's hard-coded data addresses (`lui`/`ori 0x1000xxxx`)
+  still point at the same strings.
 
-1. How should `tt.alu.bare.s` be made to run?
-   - (a) Edit the test: write the immediates in range (`-104` for `65432`, `0xffff` for `-1`) and
-     delete or rewrite the coprocessor-3 sections, with a header comment saying what changed from
-     upstream and why.
-   - (b) Loosen the assembler to accept and truncate out-of-range immediates under `-bare`, and add
-     the MIPS-I coprocessor-3 instructions.
+## Other changes
 
-   Recommendation: (a). The fork's range check is a teaching feature, MIPS32 has no coprocessor 3,
-   and the test file's upstream origin is recorded in git (`30efcf3`).
+- `tests/run-test.sh` and `meson.build` gained the `alu_bare` case.
+- `tests/parity-programs.txt` lists the file, so `ast_parity_all` pins its assembled bytes;
+  `tests/golden.ast_parity_all.txt` was regenerated with `tests/gen-parity-golden.sh`, and the change
+  only added lines.
+- `port/harness/corpus.txt` has an `alu_bare` case.
+
+## Found along the way
+
+- An "immediate value out of range" error names the line after the bad instruction. Recorded as
+  `tasks/immediate-range-error-line-number.md` (proposed).
+- Exit statuses 134 and 139 seen while debugging were not crashes: they are the fork's 128 + ExcCode
+  convention (bus error on an instruction fetch, Coprocessor Unusable).

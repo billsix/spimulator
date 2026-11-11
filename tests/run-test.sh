@@ -62,6 +62,12 @@ case "$NAME" in
     grep -v '^Loaded: ' "$err" | diff -u golden.core.stderr - >/dev/null \
       || fail "stderr differs from golden.core.stderr"
     ;;
+  alu_bare)
+    # Upstream's ALU torture test, in bare-machine mode as upstream ran it
+    # (edited for MIPS32; the file's header says what changed).
+    "$SPIM" -bare -noexception -f tt.alu.bare.s >"$out" 2>&1
+    expect_sentinel
+    ;;
   fpu_bare)
     # Upstream's FPU torture test, in bare-machine mode as upstream ran it.
     "$SPIM" -bare -noexception -f tt.fpu.bare.s >"$out" 2>&1
