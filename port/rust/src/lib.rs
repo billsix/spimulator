@@ -21,7 +21,7 @@
 //! | [`spim_utils`]  | `spim-utils.c`                    | set-up, stack, breakpoints       |
 //! | [`display`]     | `display-utils.c`                 | register and memory dumps        |
 //! | [`registers`]   | `registers.h`                     | the register file                |
-//! | [`opcodes`]     | `opcodes.h`, `tokens.h`           | the opcode table                 |
+//! | [`opcodes`]     | `opcodes.tsv`, `tokens.h`         | the opcode table                 |
 //! | [`listing`]     | `assembler-event.c`               | the `-listing` trace             |
 //! | [`console`]     | IO in `spim.c`                    | unbuffered input and output      |
 //! | [`cformat`]     | (glibc `printf`)                  | C's float formatting             |

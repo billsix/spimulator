@@ -7,7 +7,7 @@ Six's [spimulator](https://github.com/billsix/spimulator) fork.
 
 This grammar lives as a subdirectory of the spimulator repo
 (`tree-sitter/`) so the keyword surface stays in lockstep with
-`include/opcodes.h`.  It's for **editor integration only** — syntax
+the opcode table, `include/opcodes.tsv`.  It's for **editor integration only** — syntax
 highlighting, structural navigation, code folds in editors that
 support tree-sitter (Helix, Neovim 0.5+, Zed, Emacs 29+ via
 `treesit.el`, VS Code via wasm).  It does NOT replace the
@@ -60,7 +60,8 @@ After `../include/opcodes.tsv` changes, regenerate from the repo root
 make    # tree-sitter generate → tree-sitter test
 ```
 
-The Makefile hardcodes `../include/opcodes.h` as the source of truth.
+The keyword lists come from `../include/opcodes.tsv` (via
+`../tools/gen_opcodes.py`); the Makefile only builds and tests the parser.
 
 ## Grammar shape
 

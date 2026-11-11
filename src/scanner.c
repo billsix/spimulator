@@ -17,6 +17,7 @@
 #include "scanner.h"      /* scan_value, line_no */
 #include "tokens.h"       /* TOK_* token values */
 #include "opcode-types.h" /* op_type tag enumerators (ASM_DIR, RD_RS_RT_INST, ...) */
+#include "opcode-tables.h" /* opcode_tbl: keyword -> {token, op_type} */
 
 /* Runtime-visible globals. */
 int line_no = 1;
@@ -51,20 +52,12 @@ int register_name_to_number(const char* name) {
 }
 
 /* --- keyword table ---------------------------------------- */
-/* Maps a recognized keyword string to its (token, type) pair.  Built
-   from the X-macro list in opcodes.h: each OP(name, sym, type, enc) row
-   expands here to {name, sym, type}, dropping the binary-encoding
-   column.  See opcodes.h's top-of-file comment for the X-macro pattern. */
-
-static const name_val_val keyword_tbl[] = {
-#undef OP
-#define OP(NAME, OPCODE, TYPE, R_OPCODE) {NAME, OPCODE, TYPE},
-#include "opcodes.h"
-};
+/* Keywords are looked up in opcode_tbl (opcode-tables.h), generated from
+   include/opcodes.tsv and sorted by name: {name, token, op_type}. */
 
 static int check_keyword(const char* id, bool allow_pseudo_ops) {
-  const name_val_val* const entry = map_string_to_name_val_val(
-      keyword_tbl, sizeof(keyword_tbl) / sizeof(name_val_val), id);
+  const name_val_val* const entry =
+      map_string_to_name_val_val(opcode_tbl, OPCODE_COUNT, id);
   if (entry == nullptr) return 0;
   if (!allow_pseudo_ops && entry->value2 == PSEUDO_OP) return 0;
   return entry->value1;

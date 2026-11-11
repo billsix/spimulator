@@ -68,6 +68,7 @@ source_files = files(
   'src/run.c',
   'src/memory.c',
   'src/instruction.c',
+  'src/opcode-tables.c',
   'src/data.c',
   'src/symbol-table.c',
   'src/syscall.c',

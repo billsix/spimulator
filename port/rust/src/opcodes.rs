@@ -11,7 +11,7 @@ use std::cmp::Ordering;
 use crate::opcode_types::OpType;
 pub use crate::opcodes_table::*;
 
-/// One row of `include/opcodes.h`.
+/// One row of `include/opcodes.tsv`.
 #[derive(Clone, Copy, Debug)]
 pub struct OpcodeRow {
     /// The mnemonic as the student types it (`"addu"`, `".word"`).
@@ -76,7 +76,7 @@ pub fn c_bsearch<T>(table: &[T], compare_key_to: impl Fn(&T) -> Ordering) -> Opt
 
 /// The row for a mnemonic or directive name, as the scanner's
 /// `check_keyword` finds it (a `strcmp` binary search of the table in
-/// `opcodes.h` order).
+/// `opcodes.tsv` order).
 ///
 /// ```
 /// use spimulator::opcodes::{keyword_row, TOK_ADDU_OPCODE};
