@@ -83,5 +83,6 @@ branch's own, were formatted.
 
 ## Follow-ups
 
-- The scans that found the chains (`match_candidates.py`, `elif_chain_candidates.py`, under
-  `tasks/adhoc/python-match-statements/`) are one-shot and leave with this task's archive.
+- The scans that found the chains (`match_candidates.py`, `elif_chain_candidates.py`) lived under
+  `tasks/adhoc/python-match-statements/`, not under this task's slug. They were one-shot and were
+  removed with this task's archive; they remain in git history.

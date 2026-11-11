@@ -287,12 +287,16 @@ if ! diff -q "$expected" "$out_asm" > /dev/null; then
 $(diff "$expected" "$out_asm" | head -10)"
 fi
 
-# --- Exit-status check, if pinned ---
+# --- Exit-status check: the pinned status, or else the C side's ---
 if [ -n "$expected_status" ]; then
   [ -f "$expected_status" ] || fail "missing status golden: $expected_status"
   want=$(tr -d ' \t\n' < "$expected_status")
   [ "$c_status"   = "$want" ] || fail "C exit was $c_status, expected $want"
   [ "$asm_status" = "$want" ] || fail "asm exit was $asm_status, expected $want"
+else
+  # The asm is the C demo's translation, so it must exit the same way; this
+  # also catches a simulator that prints the right output and then crashes.
+  [ "$asm_status" = "$c_status" ] || fail "asm exit was $asm_status, the C binary's was $c_status"
 fi
 
 echo "PASS: $NAME"

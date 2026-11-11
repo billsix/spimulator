@@ -43,7 +43,10 @@ int register_name_to_number(const char* name) {
       (c2 == '\0' || (('0' <= c2 && c2 <= '9') && *(name + 2) == '\0'))) {
     return atoi(name);
   } else if (c1 == 'f' && c2 >= '0' && c2 <= '9') {
-    return atoi(name + 1);
+    /* $f0..$f31; a larger number is not a register (and atoi would
+       overflow on a long one). */
+    const long fp_reg = strtol(name + 1, nullptr, 10);
+    return fp_reg <= 31 ? (int)fp_reg : -1;
   } else {
     const name_val_val* const entry = map_string_to_name_val_val(
         register_tbl, sizeof(register_tbl) / sizeof(name_val_val), name);
@@ -761,7 +764,7 @@ void scanner_pop_source(void) {
    indented and newline-terminated, for the parse-error printer. */
 char* erroneous_line(void) {
   const size_t len = strlen(current_line_buf);
-  char* const r = (char*)xmalloc((size_t)(int)(len + 16));
+  char* const r = (char*)xmalloc(len + 16);
   snprintf(r, len + 16, "\t  %s\n", current_line_buf);
   return r;
 }
@@ -773,7 +776,7 @@ char* source_line(void) {
   if (!current_line_saved) return nullptr;
   const size_t len = strlen(current_line_buf);
   /* "NNN: " prefix — up to 10 digits + ": " + line + NUL */
-  char* const r = (char*)xmalloc((size_t)(int)(len + 16));
+  char* const r = (char*)xmalloc(len + 16);
   snprintf(r, len + 16, "%d: %s", current_line_no_saved, current_line_buf);
   return r;
 }

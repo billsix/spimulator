@@ -1,0 +1,3 @@
+load "tt.le.s"
+run
+print_all_regs hex

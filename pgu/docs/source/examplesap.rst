@@ -41,7 +41,7 @@ format, then a step per instruction. A step header looks like::
 
    Stepped at PC = 0x00400028:
        memory[0x00400028] = 0x34040000   →   ori $a0, $r0, 0
-       source line 110:         li $a0, 0    # the status code to return
+       source line 105:         li $a0, 0    # the status code to return
 
 — the **PC**, the 32-bit **machine code**, the **disassembly** (ABI
 register names), and the **source line**. Here the disassembly is
@@ -51,26 +51,33 @@ and this is the real instruction produced for it.
 How much spimulator says is set by the level, ``-explain=N``:
 
 - **0** — silent; the program just runs.
-- **1** — the step header, and nothing more.
+- **1** — the step header, a one-line pseudo-op note when the
+  instruction came from a pseudo-op (or an instruction the assembler
+  expanded), and how the program exited.
 - **2** — adds, per instruction: its category, what it did in plain
   English, the inputs it read, what it wrote, and a "try it" hint.
 - **3** — adds a bit-layout box showing the instruction's fields.
-- **4** — adds a step-by-step decode of the 32-bit word.
+- **4** — replaces the box with a step-by-step decode of the 32-bit word.
+
+At every level the program runs exactly as it does without
+``-explain``: the same output, the same exceptions, the same exit
+status.
 
 The *same* instruction — the ``li $a0, 0`` that begins ``exit`` — at
 four levels. At ``-explain=1``::
 
    Stepped at PC = 0x00400028:
        memory[0x00400028] = 0x34040000   →   ori $a0, $r0, 0
-       source line 110:         li $a0, 0    # the status code to return
+       source line 105:         li $a0, 0    # the status code to return
+     Pseudo-op: `li` (single real instruction)
 
 At ``-explain=2`` (adds the narration)::
 
-     Category: Logical
+     Category: Constant
      What it did:
        OR Immediate — computed $r0 OR zero-extended immediate; the
        result was placed in $a0.
-     Inputs (before this step):    immediate = 0  (0x0000)
+     Inputs (before this step):    immediate = 0  (0x0000, zero-extended)
      Wrote:    $a0:  0x00000001  →  0x00000000   (decimal 0)
      PC:  0x00400028  →  0x0040002c
 
@@ -1012,13 +1019,18 @@ you watch the exact instruction blow up::
 
    Stepped at PC = 0x00400034:
        memory[0x00400034] = 0xafc80000   →   sw $t0, 0($fp)
-       source line 126:         sw $t0, 0($fp)   # store $t0 into the ch slot
-   Exception occurred at PC=0x00400034
-     Unaligned address in store: 0x7ffff3f7
-     Exception 5  [Address error in store]
+       source line 111:         sw $t0, 0($fp)   # store $t0 into the ch slot
 
-``$fp`` holds ``0x7ffff3f7`` — not a multiple of 4 — so the ``sw``
-faults (exactly the rule from :ref:`records`). The second demo,
+   Exception occurred at PC=0x00400034
+     Unaligned address in store: 0x7ffff28b
+
+The steps that follow are the exception handler's (at ``0x80000180``),
+which prints ``Exception 5  [Address error in store]  occurred and
+ignored`` and resumes the program after the ``sw``; the program ends
+with status 133 (128 + exception code 5), with or without ``-explain``.
+``$fp`` holds ``0x7ffff28b`` (the exact address depends on the
+environment) — not a multiple of 4 — so the ``sw`` faults (exactly the
+rule from :ref:`records`). The second demo,
 ``get-char-from-user-2``, fixes the frame size so every slot is
 word-aligned, and it just works::
 

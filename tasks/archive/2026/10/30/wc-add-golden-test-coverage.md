@@ -1,10 +1,8 @@
 # Give the `wc` demo golden-test coverage
 
-**Status:** done 2026-10-30 (William Emerison Six <billsix@gmail.com>) — verified
-standalone (`meson test --suite examples` 34/34, `wc` OK on both C and asm) and
-in the containerized `make image` gate (examples suite 59/59 with `wc` OK both
-sides; UBSan 25/25; ASan 25/25; image tagged). Staged for the maintainer's
-commit; archives on its own commit after the work commit.
+**Completed:** 2026-10-30 (William Emerison Six <billsix@gmail.com>). Verified standalone
+(`meson test --suite examples` 34/34, `wc` OK on both C and asm) and in the containerized
+`make image` gate (examples suite 59/59 with `wc` OK both sides; UBSan 25/25; ASan 25/25).
 **Priority:** 6
 **Difficulty:** 3
 

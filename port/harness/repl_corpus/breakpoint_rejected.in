@@ -1,0 +1,4 @@
+breakpoint 0x10
+breakpoint 0x10000000
+breakpoint
+exit

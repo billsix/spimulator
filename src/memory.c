@@ -88,6 +88,19 @@ static int32_t data_size_limit, stack_size_limit, k_data_size_limit;
 void make_memory(int text_size, int data_size, int data_limit, int stack_size,
                  int stack_limit, int k_text_size, int k_data_size,
                  int k_data_limit) {
+  /* A text segment that can hold no instruction, or a kernel text segment
+     that stops short of the exception vector, would make every exception
+     jump to an address outside its segment, and the run would loop. */
+  /* dispatch-check: ok -- two independent checks of two flags, not one value */
+  if (text_size < BYTES_PER_WORD)
+    fatal_error(
+        "-stext %d: the text segment needs at least one word (4 bytes)\n",
+        text_size);
+  if (k_text_size < (int)(EXCEPTION_ADDR - K_TEXT_BOT) + BYTES_PER_WORD)
+    fatal_error(
+        "-sktext %d: the kernel text segment must hold the exception handler "
+        "at 0x80000180 (at least 388 bytes)\n",
+        k_text_size);
   if (data_size <= 65536) data_size = 65536;
   data_size = ROUND_UP(data_size, BYTES_PER_WORD); /* Keep word aligned */
 
@@ -300,6 +313,51 @@ reg_word mem_read_word(mem_addr addr) {
     return k_data_seg[(addr - K_DATA_BOT) >> 2];
   else
     return bad_mem_read(addr, 0x3);
+}
+
+bool mem_peek_inst(mem_addr addr, mips_instruction** out) {
+  if ((addr & 0x3) != 0) {
+    return false;
+  } else if ((addr >= TEXT_BOT) && (addr < text_top)) {
+    *out = text_seg[(addr - TEXT_BOT) >> 2];
+    return true;
+  } else if ((addr >= K_TEXT_BOT) && (addr < k_text_top)) {
+    *out = k_text_seg[(addr - K_TEXT_BOT) >> 2];
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool mem_peek(mem_addr addr, int mask, reg_word* out) {
+  *out = 0;
+  if ((addr & (mem_addr)mask) != 0) {
+    return false;
+  } else if (((addr >= DATA_BOT) && (addr < data_top)) ||
+             ((addr >= stack_bot) && (addr < STACK_TOP)) ||
+             ((addr >= K_DATA_BOT) && (addr < k_data_top))) {
+    /* In range and aligned, so the reader takes its plain path. */
+    switch (mask) {
+      case 0x0:
+        *out = mem_read_byte(addr);
+        return true;
+      case 0x1:
+        *out = mem_read_half(addr);
+        return true;
+      case 0x3:
+        *out = mem_read_word(addr);
+        return true;
+      default:
+        return false;
+    }
+  } else if ((addr >= TEXT_BOT) && (addr < text_top)) {
+    /* bad_mem_read's text-segment branch reads the encoding and has no
+       side effects for an aligned address. */
+    *out = bad_mem_read(addr, mask);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 void mem_write_inst(mem_addr addr, mips_instruction* instruction) {

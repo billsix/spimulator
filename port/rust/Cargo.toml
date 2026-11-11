@@ -22,3 +22,7 @@ path = "src/main.rs"
 # run_error unwinds to the top level (the C engine longjmps there), so
 # keep the default unwinding panics.
 panic = "unwind"
+# Integer overflow panics in the release build too, so an overflow the C engine
+# wraps (C's int arithmetic on this host) must be spelled wrapping_* here; an
+# unintended one fails the port suites instead of hiding until a debug build.
+overflow-checks = true

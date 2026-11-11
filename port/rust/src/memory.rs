@@ -16,7 +16,7 @@
 //! hosts the C engine runs on.
 
 use crate::instruction::{InstRef, Instruction};
-use crate::machine::{error, run_error, Machine};
+use crate::machine::{error, fatal_error, run_error, Machine};
 use crate::run::ExcCode;
 
 /// Bottom of the user text segment.
@@ -145,6 +145,20 @@ impl Memory {
         k_data_size: i32,
         k_data_limit: i32,
     ) -> Memory {
+        // A text segment that can hold no instruction, or a kernel text
+        // segment that stops short of the exception vector, would make every
+        // exception jump outside its segment, and the run would loop.
+        if text_size < 4 {
+            fatal_error(&format!(
+                "-stext {text_size}: the text segment needs at least one word (4 bytes)\n"
+            ));
+        }
+        if k_text_size < 0x180 + 4 {
+            fatal_error(&format!(
+                "-sktext {k_text_size}: the kernel text segment must hold the exception \
+                 handler at 0x80000180 (at least 388 bytes)\n"
+            ));
+        }
         // The data segment holds at least the 64K small-data area.
         let data_size: i32 = round_up_4(data_size.max(65536));
         let stack_size: i32 = round_up_4(stack_size);
@@ -256,6 +270,11 @@ impl Machine {
             ));
             run_error(&format!("Use -ldata # with # > {new_size}\n"));
         }
+        // The sizes are C ints: a growth that wraps negative passes the limit
+        // check, and C's realloc of that size then fails.
+        if new_size < 0 {
+            fatal_error("realloc failed in expand_data\n");
+        }
         self.mem.data.resize(size_of(new_size), 0);
         self.mem.data_top = self.mem.data_top.wrapping_add(delta as u32);
     }
@@ -271,6 +290,11 @@ impl Machine {
             run_error(&format!(
                 "Can't expand stack segment by {addl_bytes} bytes to {new_size} bytes.\nUse -lstack # with # > {new_size}\n"
             ));
+        }
+        // As in expand_data; C hands the negative int to xmalloc as a size_t.
+        if new_size < 0 {
+            let request: u64 = i64::from(new_size) as u64;
+            fatal_error(&format!("Out of memory at request for {request} bytes.\n"));
         }
         let mut new_stack: Vec<u8> = vec![0; size_of(new_size)];
         let start: usize = size_of(new_size - old_size);
@@ -292,8 +316,19 @@ impl Machine {
                 "Can't expand kernel data segment by {addl_bytes} bytes to {new_size} bytes.\nUse -lkdata # with # > {new_size}\n"
             ));
         }
+        // As in expand_data.
+        if new_size < 0 {
+            fatal_error("realloc failed in expand_k_data\n");
+        }
         self.mem.k_data.resize(size_of(new_size), 0);
         self.mem.k_data_top = self.mem.k_data_top.wrapping_add(delta as u32);
+    }
+
+    /// The text slot of `addr`, read without side effects
+    /// (`mem_peek_inst`): no exception is raised and nothing grows.
+    /// `None` when `addr` is not an aligned location in a text segment.
+    pub fn mem_peek_inst(&self, addr: u32) -> Option<Option<InstRef>> {
+        self.mem.text_slot(addr).cloned()
     }
 
     /// The instruction at `addr`, or `None` for an empty slot

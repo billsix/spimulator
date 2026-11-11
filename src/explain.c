@@ -215,235 +215,164 @@ const char* explain_suggestion(size_t i) {
 /* ------------ pseudo-op narration ------------
  *
  * The assembler expands pseudo-instructions (la, li, move, b, bge, ...) into
- * one-or-more real instructions before they reach the run loop. By the time
- * explain_before() sees an instruction, the pseudo-op name is gone — only
- * the expanded real instruction is left. We recover the pseudo-op by parsing
- * the SOURCE() line attached to the instruction, then emit a short
- * pedagogical header explaining what the pseudo-op means and that what
- * follows is the assembler's expansion. For multi-instruction expansions,
- * the second (and later) emitted instructions have no source line of their
- * own — we mark them as continuations.
- *
- * Listing is alphabetical for easy maintenance. `may_be_multi` enables the
- * continuation hint when the next instruction arrives with no source line.
+ * one-or-more real instructions before they reach the run loop, and expands
+ * a real instruction whose operand does not fit (lw from a label, an
+ * immediate wider than 16 bits) the same way.  It records on each emitted
+ * instruction the mnemonic written and the instruction's place in the
+ * expansion (mips_instruction's expansion_* fields), and the narration
+ * names them: a header on the first instruction, a continuation hint on
+ * the rest.  This table describes each pseudo-op; it is alphabetical for
+ * easy maintenance.
  */
 struct pseudo_info {
   const char* name;
   const char* what_it_means;
-  bool may_be_multi;
 };
 
 static const struct pseudo_info pseudo_ops[] = {
     {"abs",
      "Absolute Value — set $rd to |$rs|. Multi-instruction expansion using\n"
-     "    arithmetic-shift / xor / sub to avoid a conditional branch.",
-     true},
+     "    arithmetic-shift / xor / sub to avoid a conditional branch."},
     {"b",
-     "Branch — unconditional jump to a label. Encoded as `beq $0, $0, label`\n"
-     "    ($0 always equals $0, so the branch is always taken).",
-     false},
+     "Branch — unconditional jump to a label. Encoded as `bgez $0, label`\n"
+     "    ($0 is never negative, so the branch is always taken)."},
     {"bal",
      "Branch-and-Link — unconditional call to a label, saving the return\n"
-     "    address in $ra. Encoded as `bgezal $0, label`.",
-     false},
+     "    address in $ra. Encoded as `bgezal $0, label`."},
     {"beqz",
      "Branch if Equal to Zero — branch if $rs == 0. Encoded as\n"
-     "    `beq $rs, $0, label`.",
-     false},
+     "    `beq $rs, $0, label`."},
     {"bnez",
      "Branch if Not Equal to Zero — branch if $rs != 0. Encoded as\n"
-     "    `bne $rs, $0, label`.",
-     false},
+     "    `bne $rs, $0, label`."},
     {"bge",
      "Branch if Greater or Equal (signed) — branch if $rs >= $rt. Expands\n"
-     "    to `slt $at, $rs, $rt` + `beq $at, $0, label`.",
-     true},
+     "    to `slt $at, $rs, $rt` + `beq $at, $0, label` (with an immediate,\n"
+     "    `slti $at, $rs, imm` + `beq`)."},
     {"bgeu",
      "Branch if Greater or Equal (unsigned) — branch if $rs >= $rt unsigned.\n"
-     "    Expands to `sltu $at, $rs, $rt` + `beq $at, $0, label`.",
-     true},
+     "    Expands to `sltu $at, $rs, $rt` + `beq $at, $0, label`."},
     {"bgt",
      "Branch if Greater Than (signed) — branch if $rs > $rt. Expands to\n"
-     "    `slt $at, $rt, $rs` + `bne $at, $0, label`.",
-     true},
+     "    `slt $at, $rt, $rs` + `bne $at, $0, label` (with an immediate,\n"
+     "    `slti $at, $rs, imm+1` + `beq $at, $0, label`)."},
     {"bgtu",
      "Branch if Greater Than (unsigned) — branch if $rs > $rt unsigned.\n"
-     "    Expands to `sltu $at, $rt, $rs` + `bne $at, $0, label`.",
-     true},
+     "    Expands to `sltu $at, $rt, $rs` + `bne $at, $0, label`."},
     {"ble",
      "Branch if Less or Equal (signed) — branch if $rs <= $rt. Expands to\n"
-     "    `slt $at, $rt, $rs` + `beq $at, $0, label`.",
-     true},
+     "    `slt $at, $rt, $rs` + `beq $at, $0, label` (with an immediate,\n"
+     "    `slti $at, $rs, imm+1` + `bne $at, $0, label`)."},
     {"bleu",
      "Branch if Less or Equal (unsigned) — branch if $rs <= $rt unsigned.\n"
-     "    Expands to `sltu $at, $rt, $rs` + `beq $at, $0, label`.",
-     true},
+     "    Expands to `sltu $at, $rt, $rs` + `beq $at, $0, label`."},
     {"blt",
      "Branch if Less Than (signed) — branch if $rs < $rt. Expands to\n"
-     "    `slt $at, $rs, $rt` + `bne $at, $0, label`.",
-     true},
+     "    `slt $at, $rs, $rt` + `bne $at, $0, label` (with an immediate,\n"
+     "    `slti $at, $rs, imm` + `bne`)."},
     {"bltu",
      "Branch if Less Than (unsigned) — branch if $rs < $rt unsigned.\n"
-     "    Expands to `sltu $at, $rs, $rt` + `bne $at, $0, label`.",
-     true},
+     "    Expands to `sltu $at, $rs, $rt` + `bne $at, $0, label`."},
     {"la",
-     "Load Address — set $rd to the 32-bit address of a label. Typically\n"
-     "    expands to `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)` (or just\n"
-     "    `addiu` for relocations that fit in 16 bits).",
-     true},
+     "Load Address — set $rd to the 32-bit address of a label. Expands to\n"
+     "    `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)`, or just the `lui`\n"
+     "    when the low 16 bits are 0; `la $rd, N($rs)` is `addi $rd, $rs, N`."},
     {"ld",
      "Load Doubleword — load 64 bits into a register pair. Expands to two\n"
-     "    `lw` instructions covering offsets 0 and 4.",
-     true},
+     "    `lw` instructions covering offsets 0 and 4."},
     {"li",
-     "Load Immediate — set $rd to a 32-bit constant. Small constants emit\n"
-     "    one `ori` or `addiu`; larger ones expand to `lui` + `ori`.",
-     true},
+     "Load Immediate — set $rd to a 32-bit constant. One that fits in 16\n"
+     "    unsigned bits is one `ori $rd, $0, imm`; any other expands to `lui`\n"
+     "    + `ori`, or just the `lui` when the low 16 bits are 0."},
     {"move",
      "Move — copy $rs into $rd. Encoded as `addu $rd, $0, $rs` (adding $zero\n"
-     "    is the simplest way to copy a register).",
-     false},
+     "    is the simplest way to copy a register)."},
     {"mulo",
      "Multiply with Overflow check — signed multiply that traps on overflow.\n"
-     "    Expands to `mult` plus an overflow check plus `mflo`.",
-     true},
+     "    Expands to `mult` plus an overflow check plus `mflo`."},
     {"mulou",
-     "Multiply Unsigned with Overflow check — unsigned variant of `mulo`.",
-     true},
+     "Multiply Unsigned with Overflow check — unsigned variant of `mulo`."},
     {"neg",
      "Negate (signed; traps on overflow) — set $rd = -$rs. Encoded as\n"
-     "    `sub $rd, $0, $rs`.",
-     false},
+     "    `sub $rd, $0, $rs`."},
     {"negu",
      "Negate Unsigned — set $rd = -$rs with no overflow trap. Encoded as\n"
-     "    `subu $rd, $0, $rs`.",
-     false},
+     "    `subu $rd, $0, $rs`."},
     {"nop",
      "No Operation — do nothing for one cycle. Encoded as `sll $0, $0, 0`\n"
      "    (a shift writing to $zero, which is hardwired to 0 and discards\n"
-     "    the result).",
-     false},
+     "    the result)."},
     {"not",
      "Bitwise NOT — set $rd to the one's complement of $rs. Encoded as\n"
-     "    `nor $rd, $rs, $0` (NOR with $zero is logical NOT).",
-     false},
+     "    `nor $rd, $rs, $0` (NOR with $zero is logical NOT)."},
     {"rem",
-     "Signed Remainder — set $rd = $rs % $rt. Expands to `div $rs, $rt`\n"
-     "    + `mfhi $rd`.",
-     true},
+     "Signed Remainder — set $rd = $rs % $rt. Expands to a zero-divisor\n"
+     "    check (`bne` + `break`), then `div $rs, $rt` + `mfhi $rd`."},
     {"remu",
-     "Unsigned Remainder — set $rd = $rs % $rt unsigned. Expands to\n"
-     "    `divu $rs, $rt` + `mfhi $rd`.",
-     true},
+     "Unsigned Remainder — set $rd = $rs % $rt unsigned. Expands to a\n"
+     "    zero-divisor check, then `divu $rs, $rt` + `mfhi $rd`."},
     {"rol",
      "Rotate Left — multi-instruction expansion using sll, srl, and or to\n"
-     "    rotate the bits of $rs left.",
-     true},
+     "    rotate the bits of $rs left."},
     {"ror",
-     "Rotate Right — multi-instruction expansion using srl, sll, and or.",
-     true},
+     "Rotate Right — multi-instruction expansion using srl, sll, and or."},
     {"sd",
      "Store Doubleword — store 64 bits from a register pair. Expands to two\n"
-     "    `sw` instructions at offsets 0 and 4.",
-     true},
+     "    `sw` instructions at offsets 0 and 4."},
     {"seq",
      "Set if Equal — set $rd = ($rs == $rt) ? 1 : 0. Expands to `xor` +\n"
-     "    `sltiu`.",
-     true},
+     "    `sltiu`."},
     {"sne",
      "Set if Not Equal — set $rd = ($rs != $rt) ? 1 : 0. Expands to `xor` +\n"
-     "    `sltu` against $zero.",
-     true},
-    {"sge", "Set if Greater or Equal (signed) — $rd = ($rs >= $rt) ? 1 : 0.",
-     true},
-    {"sgeu", "Set if Greater or Equal (unsigned).", true},
-    {"sgt", "Set if Greater Than (signed) — $rd = ($rs > $rt) ? 1 : 0.", true},
-    {"sgtu", "Set if Greater Than (unsigned).", true},
-    {"sle", "Set if Less or Equal (signed) — $rd = ($rs <= $rt) ? 1 : 0.",
-     true},
-    {"sleu", "Set if Less or Equal (unsigned).", true},
+     "    `sltu` against $zero."},
+    {"sge", "Set if Greater or Equal (signed) — $rd = ($rs >= $rt) ? 1 : 0."},
+    {"sgeu", "Set if Greater or Equal (unsigned)."},
+    {"sgt", "Set if Greater Than (signed) — $rd = ($rs > $rt) ? 1 : 0."},
+    {"sgtu", "Set if Greater Than (unsigned)."},
+    {"sle", "Set if Less or Equal (signed) — $rd = ($rs <= $rt) ? 1 : 0."},
+    {"sleu", "Set if Less or Equal (unsigned)."},
     {"ulh",
      "Unaligned Load Halfword (signed) — read 16 bits at a possibly-unaligned\n"
-     "    address. Expands to byte loads + shifts.",
-     true},
+     "    address. Expands to byte loads + shifts."},
     {"ulhu",
-     "Unaligned Load Halfword Unsigned — zero-extending variant of `ulh`.",
-     true},
+     "Unaligned Load Halfword Unsigned — zero-extending variant of `ulh`."},
     {"ulw",
      "Unaligned Load Word — read 32 bits at a possibly-unaligned address.\n"
-     "    Expands to `lwl` + `lwr` (or a sequence of byte loads).",
-     true},
+     "    Expands to `lwl` + `lwr` (or a sequence of byte loads)."},
     {"ush",
      "Unaligned Store Halfword — write 16 bits at a possibly-unaligned "
-     "address.",
-     true},
+     "address."},
     {"usw",
      "Unaligned Store Word — write 32 bits at a possibly-unaligned address.\n"
-     "    Expands to `swl` + `swr`.",
-     true},
-    {nullptr, nullptr, false},
+     "    Expands to `swl` + `swr`."},
+    {nullptr, nullptr},
 };
 
-/* Continuation state. Set when a pseudo-op's first real instruction is
- * narrated; consulted on the next instruction to decide whether to emit a
- * "(continuation of `X` expansion above)" hint. */
-static const char* pending_pseudo_name = nullptr;
-static bool pending_pseudo_multi = false;
-
-/* Walk past the "NNN: " line-number prefix that source_line() prepends. */
-static const char* skip_source_prefix(const char* s) {
-  while (*s == ' ' || *s == '\t') s++;
-  while (*s >= '0' && *s <= '9') s++;
-  if (*s == ':') s++;
-  while (*s == ' ' || *s == '\t') s++;
-  return s;
-}
-
-/* Match s against a pseudo-op mnemonic, requiring the mnemonic to be followed
- * by end-of-token (whitespace, comment, end of string). Returns the entry or
- * nullptr. */
-static const struct pseudo_info* find_pseudo_in_source(const char* src) {
-  if (!src) return nullptr;
-  const char* const s = skip_source_prefix(src);
-  for (int i = 0; pseudo_ops[i].name != nullptr; i++) {
-    const size_t n = strlen(pseudo_ops[i].name);
-    if (strncmp(s, pseudo_ops[i].name, n) != 0) continue;
-    const char after = s[n];
-    if (after == ' ' || after == '\t' || after == '\0' || after == '\n' ||
-        after == '#')
-      return &pseudo_ops[i];
-  }
+/* The table entry for the pseudo-op named NAME, or nullptr. */
+static const struct pseudo_info* find_pseudo(const char* name) {
+  for (int i = 0; pseudo_ops[i].name != nullptr; i++)
+    if (strcmp(name, pseudo_ops[i].name) == 0) return &pseudo_ops[i];
   return nullptr;
 }
 
-/* read_mem_* will raise a real CPU exception on bad addresses (e.g. an
-   uninitialized base register). The narrator must not mutate
-   exception_occurred / CP0 state out from under the real dispatch, so wrap
-   peeks in save/restore. */
+/* The narrator only shows memory: mem_peek raises no exception and grows
+   no segment, so it cannot change what the program does.  A location
+   outside every segment reads as 0. */
 static reg_word peek_word(mem_addr addr) {
-  const bool se = exception_occurred;
-  const reg_word sbv = CP0_BadVAddr;
-  const reg_word v = mem_read_word(addr);
-  exception_occurred = se;
-  CP0_BadVAddr = sbv;
+  reg_word v;
+  (void)mem_peek(addr, 0x3, &v);
   return v;
 }
 
 static reg_word peek_half(mem_addr addr) {
-  const bool se = exception_occurred;
-  const reg_word sbv = CP0_BadVAddr;
-  const reg_word v = mem_read_half(addr);
-  exception_occurred = se;
-  CP0_BadVAddr = sbv;
+  reg_word v;
+  (void)mem_peek(addr, 0x1, &v);
   return v;
 }
 
 static reg_word peek_byte(mem_addr addr) {
-  const bool se = exception_occurred;
-  const reg_word sbv = CP0_BadVAddr;
-  const reg_word v = mem_read_byte(addr);
-  exception_occurred = se;
-  CP0_BadVAddr = sbv;
+  reg_word v;
+  (void)mem_peek(addr, 0x0, &v);
   return v;
 }
 
@@ -465,6 +394,14 @@ static void say_input_reg(int r) {
 static void say_input_imm(int imm_signed) {
   write_output(message_out, "    immediate = %d  (0x%04x)\n", imm_signed,
                imm_signed & 0xffff);
+}
+
+/* True for the I-type opcodes (primary opcode field PRIMARY) whose 16-bit
+   immediate is zero-extended (andi, ori, xori), or, for lui, used as is
+   in the upper half: none of them sign-extends it. */
+static bool imm_not_sign_extended(int primary) {
+  return primary == 0x0c || primary == 0x0d || primary == 0x0e ||
+         primary == 0x0f;
 }
 
 /* Result-side: print "$X: before -> after (decimal N)" using the
@@ -656,6 +593,8 @@ static void tpl_i2_arith(int level, const mips_instruction* instruction,
                          const char* op_label, const char* op_text) {
   const int rs = RS(instruction), rt = RT(instruction);
   const short imm = (short)IMM(instruction);
+  const bool zero_ext = imm_not_sign_extended(
+      (int)(((uint32_t)inst_encode(instruction) >> 26) & 0x3f));
   char buf[512];
   /* For I-type, "$rt" in the op_text refers to the source field; the
      destination is also rt architecturally but we always describe it
@@ -668,7 +607,11 @@ static void tpl_i2_arith(int level, const mips_instruction* instruction,
   if (level >= 2) {
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_reg(rs);
-    say_input_imm(imm);
+    if (zero_ext)
+      write_output(message_out, "    immediate = %u  (0x%04x, zero-extended)\n",
+                   (unsigned)(uint16_t)imm, (unsigned)(uint16_t)imm);
+    else
+      say_input_imm(imm);
     write_output(message_out, "  Wrote:\n");
     say_wrote_reg(rt);
     say_try_regs(rs, rt, 0, 0);
@@ -1013,13 +956,25 @@ static void tpl_store_fp(int level, const mips_instruction* instruction,
   }
 }
 
+/* The address a taken branch goes to, computed as run.c's BRANCH_INST
+   does: the instruction's own PC (snap_PC; the live PC has moved on) plus
+   the stored displacement, plus 4 more with delayed branches. */
+static mem_addr branch_target(const mips_instruction* instruction) {
+  const mem_addr target = snap_PC + (mem_addr)BRANCH_OFFSET(instruction);
+  return delayed_branches ? target + BYTES_PER_WORD : target;
+}
+
+/* The address a j/jal goes to, as run.c computes it: the top four bits
+   of the PC above the 26-bit word index shifted left by 2. */
+static mem_addr jump_target(const mips_instruction* instruction) {
+  return (snap_PC & 0xf0000000u) | ((mem_addr)TARGET(instruction) << 2);
+}
+
 static void tpl_branch_2reg(int level, const mips_instruction* instruction,
                             const char* op_label, const char* op_symbol,
                             bool taken) {
   const int rs = RS(instruction), rt = RT(instruction);
-  /* Target is computed from the instruction's own PC (snap_PC) plus 4 +
-     displacement. Live PC has already advanced past this instruction. */
-  const mem_addr target = snap_PC + 4 + (mem_addr)BRANCH_OFFSET(instruction);
+  const mem_addr target = branch_target(instruction);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — would transfer to 0x%08x if ($%s %s $%s).\n", op_label,
@@ -1041,7 +996,7 @@ static void tpl_branch_1reg(int level, const mips_instruction* instruction,
                             const char* op_label, const char* op_symbol,
                             bool taken) {
   const int rs = RS(instruction);
-  const mem_addr target = snap_PC + 4 + (mem_addr)BRANCH_OFFSET(instruction);
+  const mem_addr target = branch_target(instruction);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — would transfer to 0x%08x if ($%s %s 0).\n", op_label,
@@ -1274,10 +1229,12 @@ static void render_i_layout(uint32_t enc, const char* mnemonic) {
                "    │ %s │ %s │ %s │ %s │\n"
                "    └────────┴───────┴───────┴──────────────────┘\n"
                "      opcode    rs      rt        immediate (16-bit)\n"
-               "      = 0x%02x  = $%-4s = $%-4s   = %d  (signed) / 0x%04x\n"
+               "      = 0x%02x  = $%-4s = $%-4s   = %d  (%s) / 0x%04x\n"
                "    -> opcode=0x%02x selects the `%s` instruction.\n",
                b_op, b_rs, b_rt, b_im, op, int_reg_names[rs], int_reg_names[rt],
-               (int)imm_s, imm_u, op, mnemonic);
+               imm_not_sign_extended(op) ? (int)imm_u : (int)imm_s,
+               imm_not_sign_extended(op) ? "unsigned" : "signed", imm_u, op,
+               mnemonic);
 }
 
 static void render_j_layout(uint32_t enc, const char* mnemonic) {
@@ -1470,6 +1427,7 @@ static void render_i_decode_step(uint32_t enc, int step, const char* mnemonic) {
   const uint32_t rt = (enc >> 16) & 0x1f;
   const int16_t imm_s = (int16_t)(enc & 0xffff);
   const uint16_t imm_u = (uint16_t)(enc & 0xffff);
+  const bool unsigned_imm = imm_not_sign_extended((int)op);
 
   char b_op[7], b_rs[6], b_rt[6], b_im[17];
   write_bits(b_op, enc, 31, 26);
@@ -1503,13 +1461,16 @@ static void render_i_decode_step(uint32_t enc, int step, const char* mnemonic) {
                b_op, fld_rs, fld_rt, fld_im);
   write_output(message_out, "   opcode    %-7s %-7s %s\n",
                (step >= 2) ? "rs" : "?", (step >= 2) ? "rt" : "?",
-               (step >= 2) ? "imm (16-bit, signed)" : "?");
+               (step >= 2) ? (unsigned_imm ? "imm (16-bit, unsigned)"
+                                           : "imm (16-bit, signed)")
+                           : "?");
 
   if (step == 1) {
     write_output(message_out, "   = 0x%02x\n", op);
   } else {
     write_output(message_out, "   = 0x%02x    = $%-5s = $%-5s = %d  (0x%04x)\n",
-                 op, int_reg_names[rs], int_reg_names[rt], (int)imm_s, imm_u);
+                 op, int_reg_names[rs], int_reg_names[rt],
+                 unsigned_imm ? (int)imm_u : (int)imm_s, imm_u);
   }
 
   if (step == 1) {
@@ -1517,8 +1478,9 @@ static void render_i_decode_step(uint32_t enc, int step, const char* mnemonic) {
                  "  Opcode 0x%02x in the primary table is `%s`. This is an\n"
                  "  I-type instruction; the rest of the word is rs, rt, "
                  "and\n"
-                 "  a 16-bit signed immediate.\n",
-                 op, mnemonic ? mnemonic : "?");
+                 "  a 16-bit %s immediate.\n",
+                 op, mnemonic ? mnemonic : "?",
+                 unsigned_imm ? "unsigned" : "signed");
   }
 }
 
@@ -1628,8 +1590,9 @@ static void render_regimm_decode_step(uint32_t enc, int step,
   } else {
     write_output(
         message_out,
-        "   = 0x%02x    = $%-5s = %-6s = %d  (target = PC+4 + (offset<<2))\n",
-        op, int_reg_names[rs], rtname, (int)imm_s);
+        "   = 0x%02x    = $%-5s = %-6s = %d  (target = %s + (offset<<2))\n", op,
+        int_reg_names[rs], rtname, (int)imm_s,
+        delayed_branches ? "PC+4" : "PC");
   }
 
   if (step == 1) {
@@ -1731,7 +1694,8 @@ void explain_before(const mips_instruction* instruction, mem_addr addr) {
   switch (OPCODE(instruction)) {
     case TOK_SW_OPCODE:
     case TOK_SH_OPCODE:
-    case TOK_SB_OPCODE: {
+    case TOK_SB_OPCODE:
+    case TOK_SC_OPCODE: {
       const int base = BASE(instruction);
       const short off = (short)IOFFSET(instruction);
       snap_mem_addr = (mem_addr)(gpr[base] + off);
@@ -1739,11 +1703,63 @@ void explain_before(const mips_instruction* instruction, mem_addr addr) {
       snap_has_mem = true;
       break;
     }
+    case TOK_SWL_OPCODE:
+    case TOK_SWR_OPCODE: {
+      /* These merge bytes into the aligned word holding the address, so
+         that word is the one to show before and after. */
+      const int base = BASE(instruction);
+      const short off = (short)IOFFSET(instruction);
+      snap_mem_addr = (mem_addr)(gpr[base] + off) & ~(mem_addr)0x3;
+      snap_mem_val = peek_word(snap_mem_addr);
+      snap_has_mem = true;
+      break;
+    }
     default:
-      /* Any other opcode stores nothing, so there is no memory word to
-       * snapshot. */
+      /* No other opcode's narration shows the memory it overwrote (swc1
+       * and sdc1 store too, but their template names only the address),
+       * so there is nothing to snapshot. */
       break;
   }
+}
+
+void explain_program_exit(const mips_instruction* instruction) {
+  if (explain_level == 0) return;
+  explain_print_step_header(snap_PC, instruction);
+  const int status = program_exit_status();
+  write_output(message_out,
+               "  What it did:\n"
+               "    System Call %d (%s) — the program ended.\n",
+               snap_R[REG_V0], snap_R[REG_V0] == 10 ? "exit" : "exit2");
+  if (status != spim_return_value) {
+    write_output(message_out,
+                 "  The program exited with status %d (128 + exception code "
+                 "%d:\n  an exception occurred earlier in the run).\n\n",
+                 status, first_bad_exception);
+  } else {
+    write_output(message_out, "  The program exited with status %d.\n\n",
+                 status);
+  }
+}
+
+explain_snapshot explain_save_snapshot(void) {
+  explain_snapshot s = {.hi = snap_HI,
+                        .lo = snap_LO,
+                        .pc = snap_PC,
+                        .has_mem = snap_has_mem,
+                        .mem_addr = snap_mem_addr,
+                        .mem_val = snap_mem_val};
+  memcpy(s.r, snap_R, sizeof(s.r));
+  return s;
+}
+
+void explain_restore_snapshot(const explain_snapshot* s) {
+  memcpy(snap_R, s->r, sizeof(snap_R));
+  snap_HI = s->hi;
+  snap_LO = s->lo;
+  snap_PC = s->pc;
+  snap_has_mem = s->has_mem;
+  snap_mem_addr = s->mem_addr;
+  snap_mem_val = s->mem_val;
 }
 
 /* ------------ Category preamble (L2+) ------------
@@ -1769,20 +1785,23 @@ typedef enum {
   CAT_DATA_TRANSFER,
   CAT_COND_BRANCH,
   CAT_UNCOND_JUMP,
+  CAT_COMPARISON,
+  CAT_CONSTANT,
   CAT_SYSTEM,
   CAT_COUNT
 } inst_category;
 
 typedef enum {
-  MOD_U_UNSIGNED_ARITH, /* `u` on arith: no overflow trap */
-  MOD_U_ZERO_EXTEND,    /* `u` on narrow load: zero-extend not sign */
-  MOD_I_IMMEDIATE,      /* `i` suffix: 16-bit constant in instruction */
-  MOD_V_VARIABLE_SHIFT, /* `v` suffix: shift count from a register */
-  MOD_AL_AND_LINK,      /* `al` suffix: write $ra (subroutine call) */
-  MOD_L_LIKELY,         /* `l` suffix: branch-likely (delay-slot nullify) */
-  MOD_W_WORD,           /* word-width memory access (32 bits) */
-  MOD_H_HALFWORD,       /* halfword-width memory access (16 bits) */
-  MOD_B_BYTE,           /* byte-width memory access (8 bits) */
+  MOD_U_UNSIGNED_ARITH,   /* `u` on arith: no overflow trap */
+  MOD_U_ZERO_EXTEND,      /* `u` on narrow load: zero-extend not sign */
+  MOD_U_UNSIGNED_COMPARE, /* `u` on slt: compare as unsigned numbers */
+  MOD_I_IMMEDIATE,        /* `i` suffix: 16-bit constant in instruction */
+  MOD_V_VARIABLE_SHIFT,   /* `v` suffix: shift count from a register */
+  MOD_AL_AND_LINK,        /* `al` suffix: write $ra (subroutine call) */
+  MOD_L_LIKELY,           /* `l` suffix: branch-likely (delay-slot nullify) */
+  MOD_W_WORD,             /* word-width memory access (32 bits) */
+  MOD_H_HALFWORD,         /* halfword-width memory access (16 bits) */
+  MOD_B_BYTE,             /* byte-width memory access (8 bits) */
   MOD_COUNT
 } inst_modifier;
 
@@ -1792,6 +1811,8 @@ static const char* category_names[CAT_COUNT] = {
     [CAT_DATA_TRANSFER] = "Data transfer",
     [CAT_COND_BRANCH] = "Conditional branch",
     [CAT_UNCOND_JUMP] = "Unconditional jump",
+    [CAT_COMPARISON] = "Comparison",
+    [CAT_CONSTANT] = "Constant",
     [CAT_SYSTEM] = "System / coprocessor",
 };
 
@@ -1814,21 +1835,31 @@ static const char* category_descriptions[CAT_COUNT] = {
         "    (COD §2.7.)",
     [CAT_UNCOND_JUMP] =
         "Transfer PC unconditionally — no condition test. (COD §2.8.)",
+    [CAT_COMPARISON] =
+        "Compare two values and set a register to 1 or 0; a following\n"
+        "    beq/bne branches on the result. (COD §2.7.)",
+    [CAT_CONSTANT] =
+        "Build a constant in a register, with no memory access: `lui`\n"
+        "    sets the upper 16 bits, `ori` the lower 16. (COD §2.10.)",
     [CAT_SYSTEM] = "Operating-system services and miscellaneous control.",
 };
 
 static const char* modifier_letters[MOD_COUNT] = {
-    [MOD_U_UNSIGNED_ARITH] = "`u`", [MOD_U_ZERO_EXTEND] = "`u`",
-    [MOD_I_IMMEDIATE] = "`i`",      [MOD_V_VARIABLE_SHIFT] = "`v`",
-    [MOD_AL_AND_LINK] = "`al`",     [MOD_L_LIKELY] = "`l`",
-    [MOD_W_WORD] = "`w`",           [MOD_H_HALFWORD] = "`h`",
-    [MOD_B_BYTE] = "`b`",
+    [MOD_U_UNSIGNED_ARITH] = "`u`",   [MOD_U_ZERO_EXTEND] = "`u`",
+    [MOD_U_UNSIGNED_COMPARE] = "`u`", [MOD_I_IMMEDIATE] = "`i`",
+    [MOD_V_VARIABLE_SHIFT] = "`v`",   [MOD_AL_AND_LINK] = "`al`",
+    [MOD_L_LIKELY] = "`l`",           [MOD_W_WORD] = "`w`",
+    [MOD_H_HALFWORD] = "`h`",         [MOD_B_BYTE] = "`b`",
 };
 
 static const char* modifier_descriptions[MOD_COUNT] = {
     [MOD_U_UNSIGNED_ARITH] =
-        "unsigned: no trap on overflow. The plain (no-`u`) form\n"
-        "          traps on overflow; the `u` form silently wraps.",
+        "no overflow trap: the `u` form wraps around on overflow,\n"
+        "          where the plain (no-`u`) form traps.  Despite the\n"
+        "          name the operands are not treated as unsigned.",
+    [MOD_U_UNSIGNED_COMPARE] =
+        "unsigned: compare the operands as unsigned numbers.  The\n"
+        "          plain (no-`u`) form compares them as signed.",
     [MOD_U_ZERO_EXTEND] =
         "unsigned: zero-extend the loaded value to 32 bits. The\n"
         "          plain (no-`u`) load sign-extends instead.",
@@ -1864,11 +1895,26 @@ static const char* modifier_descriptions[MOD_COUNT] = {
         "          compilers to fill the delay slot more aggressively.",
 };
 
-static void lookup_classification(int op, inst_category* cat,
-                                  inst_modifier mods[3], int* n_mods) {
+static void lookup_classification(const mips_instruction* instruction,
+                                  inst_category* cat, inst_modifier mods[3],
+                                  int* n_mods) {
   *n_mods = 0;
   *cat = CAT_COUNT; /* default = unknown */
-  switch (op) {
+  const char* const from = instruction->expansion_of;
+  if (from != nullptr && strcmp(from, "nop") == 0) {
+    /* A nop does nothing; the shift it is encoded as is not the point. */
+    return;
+  } else if (from != nullptr &&
+             (strcmp(from, "li") == 0 || strcmp(from, "la") == 0) &&
+             (OPCODE(instruction) == TOK_LUI_OPCODE ||
+              OPCODE(instruction) == TOK_ORI_OPCODE)) {
+    /* The lui/ori of an li or la builds a constant (an address is one). */
+    *cat = CAT_CONSTANT;
+    return;
+  } else {
+    /* Classified by its own opcode below. */
+  }
+  switch (OPCODE(instruction)) {
     /* Arithmetic */
     case TOK_ADD_OPCODE:
     case TOK_SUB_OPCODE:
@@ -1955,7 +2001,7 @@ static void lookup_classification(int op, inst_category* cat,
       mods[(*n_mods)++] = MOD_B_BYTE;
       break;
     case TOK_LUI_OPCODE:
-      *cat = CAT_DATA_TRANSFER;
+      *cat = CAT_CONSTANT;
       break;
 
     /* Conditional branch */
@@ -1965,21 +2011,25 @@ static void lookup_classification(int op, inst_category* cat,
     case TOK_BGTZ_OPCODE:
     case TOK_BLEZ_OPCODE:
     case TOK_BLTZ_OPCODE:
-    case TOK_SLT_OPCODE:
       *cat = CAT_COND_BRANCH;
+      break;
+
+    /* Comparison */
+    case TOK_SLT_OPCODE:
+      *cat = CAT_COMPARISON;
       break;
     case TOK_SLTU_OPCODE:
-      *cat = CAT_COND_BRANCH;
-      mods[(*n_mods)++] = MOD_U_UNSIGNED_ARITH;
+      *cat = CAT_COMPARISON;
+      mods[(*n_mods)++] = MOD_U_UNSIGNED_COMPARE;
       break;
     case TOK_SLTI_OPCODE:
-      *cat = CAT_COND_BRANCH;
+      *cat = CAT_COMPARISON;
       mods[(*n_mods)++] = MOD_I_IMMEDIATE;
       break;
     case TOK_SLTIU_OPCODE:
-      *cat = CAT_COND_BRANCH;
+      *cat = CAT_COMPARISON;
       mods[(*n_mods)++] = MOD_I_IMMEDIATE;
-      mods[(*n_mods)++] = MOD_U_UNSIGNED_ARITH;
+      mods[(*n_mods)++] = MOD_U_UNSIGNED_COMPARE;
       break;
     case TOK_BGEZAL_OPCODE:
     case TOK_BLTZAL_OPCODE:
@@ -2005,10 +2055,12 @@ static void lookup_classification(int op, inst_category* cat,
     /* Unconditional jump */
     case TOK_J_OPCODE:
     case TOK_JR_OPCODE:
+    case TOK_JR_HB_OPCODE:
       *cat = CAT_UNCOND_JUMP;
       break;
     case TOK_JAL_OPCODE:
     case TOK_JALR_OPCODE:
+    case TOK_JALR_HB_OPCODE:
       *cat = CAT_UNCOND_JUMP;
       mods[(*n_mods)++] = MOD_AL_AND_LINK;
       break;
@@ -2028,7 +2080,7 @@ static void emit_category_preamble(const mips_instruction* instruction) {
   inst_category cat;
   inst_modifier mods[3];
   int n_mods;
-  lookup_classification(OPCODE(instruction), &cat, mods, &n_mods);
+  lookup_classification(instruction, &cat, mods, &n_mods);
 
   if (cat == CAT_COUNT) return; /* unknown opcode; skip preamble */
 
@@ -2044,6 +2096,16 @@ static void emit_category_preamble(const mips_instruction* instruction) {
                    modifier_descriptions[m]);
     }
   }
+}
+
+/* The `.hb` forms of jr and jalr: what the hazard barrier is for, and that
+   spim, which has no pipeline hazards to clear, runs them as the plain
+   jump. */
+static void say_hazard_barrier(void) {
+  write_output(message_out,
+               "    The `.hb` (hazard barrier) form also waits until earlier\n"
+               "    changes to processor state have taken effect; spim has no\n"
+               "    such hazards, so it runs this as the plain jump.\n");
 }
 
 /* render_dispatch: walks the opcode switch and emits each template's
@@ -2287,7 +2349,7 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
     /* Jumps. PC change is captured by the side-effect fallback at the
        end of explain_after, so per-jump templates don't repeat it. */
     case TOK_J_OPCODE: {
-      const mem_addr target = TARGET(instruction) << 2;
+      const mem_addr target = jump_target(instruction);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
                    "    Jump — jumped unconditionally to 0x%08x.\n", target);
@@ -2298,7 +2360,7 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
       break;
     }
     case TOK_JAL_OPCODE: {
-      const mem_addr target = TARGET(instruction) << 2;
+      const mem_addr target = jump_target(instruction);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
                    "    Jump and Link — saved the return address into "
@@ -2315,7 +2377,8 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
       }
       break;
     }
-    case TOK_JR_OPCODE: {
+    case TOK_JR_OPCODE:
+    case TOK_JR_HB_OPCODE: {
       const int rs = RS(instruction);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
@@ -2323,6 +2386,7 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
                    "    (Used to return from a subroutine when $rs == $ra.)\n"
                    "    Destination = 0x%08x.\n",
                    int_reg_names[rs], (mem_addr)snap_R[rs]);
+      if (OPCODE(instruction) == TOK_JR_HB_OPCODE) say_hazard_barrier();
       if (level >= 2) {
         write_output(message_out, "  Inputs (before this step):\n");
         say_input_reg(rs);
@@ -2330,7 +2394,8 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
       }
       break;
     }
-    case TOK_JALR_OPCODE: {
+    case TOK_JALR_OPCODE:
+    case TOK_JALR_HB_OPCODE: {
       const int rd = RD(instruction), rs = RS(instruction);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
@@ -2338,6 +2403,7 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
                    "into $%s,\n    then jumped to the address in $%s "
                    "(0x%08x).\n",
                    int_reg_names[rd], int_reg_names[rs], (mem_addr)snap_R[rs]);
+      if (OPCODE(instruction) == TOK_JALR_HB_OPCODE) say_hazard_barrier();
       if (level >= 2) {
         write_output(message_out, "  Inputs (before this step):\n");
         say_input_reg(rs);
@@ -2506,53 +2572,68 @@ void explain_after(const mips_instruction* instruction) {
     /* Below level 3 there is no bit layout. */
   }
 
-  /* Pseudo-op header / continuation hint.
-   *
-   * Two paths:
-   *   (a) Current instruction has a SOURCE line — try to match it
-   *       against a pseudo-op mnemonic and emit a header.
-   *   (b) No SOURCE line, but the previous step matched a may-be-multi
-   *       pseudo-op — emit a continuation hint. */
-  if (accept_pseudo_insts && SOURCE(instruction) != nullptr) {
-    const struct pseudo_info* const p =
-        find_pseudo_in_source(SOURCE(instruction));
-    if (p != nullptr) {
+  /* Pseudo-op header / continuation hint, from the assembler's record of
+   * what this instruction was emitted for: a header on the first
+   * instruction of an expansion, a continuation hint on the others. */
+  if (instruction->expansion_of != nullptr) {
+    const char* const name = instruction->expansion_of;
+    const int index = instruction->expansion_index;
+    const int count = instruction->expansion_count;
+    const bool pseudo = instruction->expansion_of_pseudo;
+    const char* const l1_label = pseudo ? "Pseudo-op" : "Expanded";
+    const struct pseudo_info* const p = pseudo ? find_pseudo(name) : nullptr;
+    if (index > 1) {
       if (level >= 2) {
-        /* Full 4-line block: header + description + footer. */
+        write_output(message_out,
+                     "  (continuation of the `%s` expansion above — same "
+                     "source line,\n   this was real instruction %d of %d)\n",
+                     name, index, count);
+      } else {
+        /* L1 compact form of the continuation hint. */
+        write_output(message_out, "  %s: `%s` (continuation, %d of %d)\n",
+                     l1_label, name, index, count);
+      }
+    } else if (level >= 2) {
+      /* Full block: header + description + footer. */
+      if (p != nullptr) {
         write_output(message_out,
                      "  Pseudo-instruction `%s` (as written in source):\n"
-                     "    %s\n"
-                     "  This was the %s real instruction the assembler "
-                     "emitted for it.\n",
-                     p->name, p->what_it_means,
-                     p->may_be_multi ? "first" : "single");
+                     "    %s\n",
+                     name, p->what_it_means);
+      } else if (pseudo) {
+        write_output(message_out,
+                     "  Pseudo-instruction `%s` (as written in source).\n",
+                     name);
       } else {
-        /* L1 compact form: single line, no verbose description.  Keeps
-           every L1 instruction block roughly uniform in height while
-           still signaling "you wrote a pseudo-op here." */
-        write_output(message_out, "  Pseudo-op: `%s` (%s real instruction)\n",
-                     p->name, p->may_be_multi ? "first" : "single");
+        write_output(message_out,
+                     "  `%s` (as written in source) needs more than one real "
+                     "instruction:\n"
+                     "    its operand does not fit in one, so the assembler "
+                     "expanded the line.\n",
+                     name);
       }
-      pending_pseudo_name = p->name;
-      pending_pseudo_multi = p->may_be_multi;
+      if (count == 1) {
+        write_output(message_out,
+                     "  This was the single real instruction the assembler "
+                     "emitted for it.\n");
+      } else {
+        write_output(message_out,
+                     "  This was the first of the %d real instructions the "
+                     "assembler emitted for it.\n",
+                     count);
+      }
+    } else if (count == 1) {
+      /* L1 compact form: single line, no verbose description.  Keeps
+         every L1 instruction block roughly uniform in height while
+         still signaling "you wrote a pseudo-op here." */
+      write_output(message_out, "  %s: `%s` (single real instruction)\n",
+                   l1_label, name);
     } else {
-      pending_pseudo_name = nullptr;
-      pending_pseudo_multi = false;
-    }
-  } else if (pending_pseudo_name != nullptr && pending_pseudo_multi) {
-    if (level >= 2) {
-      write_output(message_out,
-                   "  (continuation of the `%s` pseudo-op expansion above —\n"
-                   "   same source line, this was the next real instruction "
-                   "emitted)\n",
-                   pending_pseudo_name);
-    } else {
-      /* L1 compact form of the continuation hint. */
-      write_output(message_out, "  Pseudo-op: `%s` (continuation)\n",
-                   pending_pseudo_name);
+      write_output(message_out, "  %s: `%s` (first of %d real instructions)\n",
+                   l1_label, name, count);
     }
   } else {
-    /* Neither path applies: this instruction gets no pseudo-op header. */
+    /* Written as itself: this instruction gets no pseudo-op header. */
   }
   write_output(message_out, "\n");
 

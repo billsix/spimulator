@@ -1,7 +1,19 @@
 # Plan: clang cross-compile-to-assembly matrix in the Docker image
 
+**Status:** proposed — needs go-ahead
+**Depends on:** `tasks/examples-c-debug-build-via-meson.md` (its open questions 1-3 decide whether this task is kept)
 **Priority:** 6
 **Difficulty:** 5
+
+## BLUF
+
+Cross-compile every C demo to assembly listings for five architectures at image-build time, for
+students to compare. Done means the image ships the listings under a fixed naming scheme.
+
+## Context
+
+- Decision 3 of `tasks/examples-c-debug-build-via-meson.md` (drop the native `.s` listings)
+  contradicts this task; its open question 1 recommends retiring it.
 
 ## Goal
 

@@ -83,7 +83,7 @@ fail on the engine from before the fixes, built from `HEAD` in a scratch directo
 - **`tt.alu.bare.s` still does not run:** 19 of its lines do not assemble in the fork (immediates
   out of range, and MIPS-I coprocessor-3 instructions MIPS32 removed). Whether to edit the test or
   loosen the assembler is the maintainer's call: `tasks/alu-bare-test-assembler-strictness.md`
-  (proposed).
+  (proposed), since done: `tasks/archive/2026/11/11/alu-bare-test-assembler-strictness.md`.
 - **The `bare` test is left as it is.** Review §6.2 says it never passes `-bare`. Upstream ran
   `tt.bare.s` the same way (`-delayed_branches -delayed_loads -noexception`;
   `git show 6cb6a08:spim/Makefile`, line 135): it tests delayed branches and loads, not bare mode.
@@ -107,7 +107,7 @@ fail on the engine from before the fixes, built from `HEAD` in a scratch directo
   before. Its output is the same as `core_full`'s.
 - **`explain_parity` deleted.** It compared `-dump` output, and `-dump` never runs the program, so
   the test could not fail. A real one (the program's output must not change with `-explain`) belongs
-  with `tasks/explain-mode-correctness-bugs.md`, which now says so. `-explain=1` on `tt.core.s` is
+  with `tasks/archive/2026/11/11/explain-mode-correctness-bugs.md`, which now says so. `-explain=1` on `tt.core.s` is
   too verbose for that (about 45 million stderr lines in a minute), so it needs a small program.
 
 **Also noticed:** assembling the shipped exception handler prints `Target of jump differs in

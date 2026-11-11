@@ -22,8 +22,9 @@
 -- the last character.
 module Main (main) where
 
+import Control.Monad (when)
 import Data.Array (Array)
-import Data.List (intercalate, isSuffixOf, nub, sortOn)
+import Data.List (find, intercalate, isSuffixOf, nub, sortOn)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (listToMaybe)
 import qualified Data.Set as Set
@@ -37,6 +38,7 @@ import GHC.Types.Name (Name, nameOccName)
 import GHC.Types.Name.Cache (NameCache, initNameCache)
 import GHC.Types.Name.Occurrence (occNameString)
 import GHC.Types.SrcLoc (srcSpanEndCol, srcSpanEndLine, srcSpanStartCol, srcSpanStartLine)
+import GHC.Utils.Encoding.UTF8 (utf8DecodeByteString)
 import System.Directory (listDirectory)
 import System.Environment (getArgs)
 import System.Exit (exitFailure)
@@ -59,20 +61,22 @@ main = do
     [l, h, "--check"] -> pure (l, h, True)
     _ -> fail "usage: binding-types LIBDIR HIEDIR [--check]"
   files :: [FilePath] <- listDirectory hieDir
+  let hieFiles :: [FilePath]
+      hieFiles = filter (".hie" `isSuffixOf`) files
+  -- An empty directory would pass with nothing checked.
+  when (null hieFiles) $ fail ("binding-types: no .hie files in " ++ hieDir)
   cache :: NameCache <- initNameCache 'h' []
   dflags :: DynFlags <- runGhc (Just libdir) getSessionDynFlags
   found :: [[Missing]] <-
     mapM
       (\file -> missingIn dflags . hie_file_result <$> readHieFile cache (hieDir </> file))
-      (filter (".hie" `isSuffixOf`) files)
+      hieFiles
   let missing :: [Missing]
       missing = sortOn position (concat found)
   mapM_ (putStrLn . render) missing
-  if check && not (null missing)
-    then do
-      putStrLn (show (length missing) ++ " binding(s) without a written type")
-      exitFailure
-    else pure ()
+  when (check && not (null missing)) $ do
+    putStrLn (show (length missing) ++ " binding(s) without a written type")
+    exitFailure
   where
     position :: Missing -> (FilePath, Int, Int)
     position m = (missingFile m, srcSpanStartLine (missingSpan m), srcSpanStartCol (missingSpan m))
@@ -93,19 +97,19 @@ main = do
         s :: Span
         s = missingSpan m
 
--- | An AST node with the annotations of every node above it, nearest first.
+-- | An AST node with every node above it, nearest first.
 data Located = Located
   { locNode :: HieAST TypeIndex
-  , locAbove :: [Set.Set NodeAnnotation]
+  , locAbove :: [HieAST TypeIndex]
   }
 
--- | Every node of a tree, each with its ancestors' annotations.
+-- | Every node of a tree, each with its ancestors.
 nodes :: HieAST TypeIndex -> [Located]
 nodes = go []
   where
-    go :: [Set.Set NodeAnnotation] -> HieAST TypeIndex -> [Located]
+    go :: [HieAST TypeIndex] -> HieAST TypeIndex -> [Located]
     go above node =
-      Located node above : concatMap (go (annotations node : above)) (nodeChildren node)
+      Located node above : concatMap (go (node : above)) (nodeChildren node)
 
 -- | The node infos of a node, from every origin GHC recorded.
 infos :: HieAST TypeIndex -> [NodeInfo TypeIndex]
@@ -169,9 +173,23 @@ missingIn dflags hie = doBinds ++ patternBinds ++ localBinds
         , TyDecl `Set.member` identInfo details
         ]
 
+    -- The module's source, one string per line.
+    sourceLines :: [String]
+    sourceLines = lines (utf8DecodeByteString (hie_hs_src hie))
+    -- Whether an HsDo node is a list or monad comprehension rather than a do
+    -- block: the .hie file records both as HsDo, and only a comprehension's
+    -- source starts with a bracket (a do block starts with do, mdo or M.do).
+    isComprehension :: HieAST TypeIndex -> Bool
+    isComprehension node = take 1 (drop (srcSpanStartCol start - 1) line) == "["
+      where
+        start :: Span
+        start = nodeSpan node
+        line :: String
+        line = concat (take 1 (drop (srcSpanStartLine start - 1) sourceLines))
+
     -- do-binds: the pattern (first child) of a BindStmt whose nearest
-    -- statement container is a do block (not a guard), unless the pattern is
-    -- a SigPat already or a wildcard.
+    -- statement container is a do block (not a guard or a comprehension),
+    -- unless the pattern is a SigPat already or a wildcard.
     doBinds :: [Missing]
     doBinds =
       [ Missing "do" file (nodeSpan pat) (unwords (map (nameText . fst) (patternVariables pat))) (typeText ix)
@@ -188,9 +206,11 @@ missingIn dflags hie = doBinds ++ patternBinds ++ localBinds
     isSigned pat =
       hasConstr "SigPat" (annotations pat)
         || (hasConstr "ParPat" (annotations pat) && any (hasConstr "SigPat" . annotations) (nodeChildren pat))
-    inDoBlock :: [Set.Set NodeAnnotation] -> Bool
+    inDoBlock :: [HieAST TypeIndex] -> Bool
     inDoBlock above =
-      maybe False (hasConstr "HsDo") (listToMaybe (filter (\a -> hasConstr "HsDo" a || hasConstr "GRHS" a) above))
+      case find (\n -> hasConstr "HsDo" (annotations n) || hasConstr "GRHS" (annotations n)) above of
+        Just container -> hasConstr "HsDo" (annotations container) && not (isComprehension container)
+        Nothing -> False
 
     -- Local pattern bindings, (hi, lo) = e in a let or where: every bound
     -- variable without a signature, reported at the binding's start.

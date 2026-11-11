@@ -14,7 +14,8 @@ import Data.Bits (shiftR, (.&.))
 import Data.Char (chr, ord, toLower)
 import Data.Int (Int32)
 import Data.IORef (IORef, newIORef)
-import Data.List (isPrefixOf)
+import Data.List (intercalate, isPrefixOf)
+import Data.Maybe (fromMaybe, listToMaybe)
 import Data.Word (Word32, Word8)
 import qualified Data.ByteString.Char8 as B
 import AsmCommon (currentTextPc)
@@ -110,28 +111,39 @@ handlerFor o
 -- | The usage message for a bad flag.
 usage :: String
 usage =
-  "Usage: spim\n\
-  \\t-bare\t\t\tBare machine (no pseudo-ops, delayed branches and loads)\n\
-  \\t-asm\t\t\tExtended machine (pseudo-ops, no delayed branches and loads) (default)\n\
-  \\t-delayed_branches\tExecute delayed branches\n\
-  \\t-delayed_loads\t\tExecute delayed loads\n\
-  \\t-exception\t\tLoad exception handler (default)\n\
-  \\t-noexception\t\tDo not load exception handler\n\
-  \\t-exception_file <file>\tSpecify exception handler in place of default\n\
-  \\t-quiet\t\t\tDo not print warnings\n\
-  \\t-noquiet\t\tPrint warnings (default)\n\
-  \\t-explain [N]\t\tNarrate every instruction (teaching mode).\n\
-  \\t\t\t\tLevel N selects detail: 1 = semantic, 2 = + interactive,\n\
-  \\t\t\t\t3 = + bit-layout (default when N omitted; historical behavior),\n\
-  \\t\t\t\t4 = + progressive decoder walkthrough.\n\
-  \\t\t\t\tAlso accepts -explain=N. Short form: -x.\n\
-  \\t-noexplain\t\tDisable teaching mode (default)\n\
-  \\t-mapped_io\t\tEnable memory-mapped IO\n\
-  \\t-nomapped_io\t\tDo not enable memory-mapped IO (default)\n\
-  \\t-file <file> [-file <file> ...] <args>\n\
-  \\t\t\t\tAssembly code file(s) and arguments to program.\n\
-  \\t\t\t\tMultiple -file (or -f) options accumulate into one\n\
-  \\t\t\t\tsymbol table; forward references resolve across files.\n\
+  "Usage: spimulator [option ...] [-file] file [-file file ...] [program arguments]\n\
+  \\t-asm, -a\t\tExtended machine (pseudo-ops, no delayed branches and loads) (default)\n\
+  \\t-bare, -b\t\tBare machine (no pseudo-ops, delayed branches and loads)\n\
+  \\t-delayed_branches, -db\tExecute delayed branches\n\
+  \\t-delayed_loads, -dl\tExecute delayed loads\n\
+  \\t-pseudo, -p\t\tAccept pseudo-instructions (default)\n\
+  \\t-nopseudo, -np\t\tDo not accept pseudo-instructions\n\
+  \\t-exception, -e\t\tLoad the exception handler (default); also -trap, -t\n\
+  \\t-noexception, -ne\tDo not load the exception handler; also -notrap, -nt\n\
+  \\t-exception_file <file>, -ef <file>\n\
+  \\t\t\t\tLoad <file> as the exception handler; also -trap_file, -tf\n\
+  \\t-quiet, -q\t\tDo not print warnings\n\
+  \\t-noquiet, -nq\t\tPrint warnings (default)\n\
+  \\t-explain [N], -x [N]\tNarrate every instruction (teaching mode).\n\
+  \\t\t\t\tLevel N selects detail: 1 = step header, 2 = + narration,\n\
+  \\t\t\t\t3 = + bit-layout (default when N omitted),\n\
+  \\t\t\t\t4 = decoder walkthrough in place of the bit-layout.\n\
+  \\t\t\t\tAlso accepts -explain=N.\n\
+  \\t-noexplain, -nx\t\tDisable teaching mode (default)\n\
+  \\t-mapped_io, -mio\tEnable memory-mapped IO\n\
+  \\t-nomapped_io, -nmio\tDo not enable memory-mapped IO (default)\n\
+  \\t-stext, -st <size>\tInitial text segment size, in bytes\n\
+  \\t-sdata, -sd <size>\tInitial data segment size, in bytes\n\
+  \\t-sstack, -ss <size>\tInitial stack segment size, in bytes\n\
+  \\t-sktext, -skt <size>\tInitial kernel text segment size, in bytes\n\
+  \\t-skdata, -skd <size>\tInitial kernel data segment size, in bytes\n\
+  \\t-ldata, -ld <size>\tData segment size limit, in bytes\n\
+  \\t-lstack, -ls <size>\tStack segment size limit, in bytes\n\
+  \\t-lkdata, -lkd <size>\tKernel data segment size limit, in bytes\n\
+  \\t-file <file>, -f <file>\tAssembly code file; repeat to load several into one\n\
+  \\t\t\t\tsymbol table (forward references resolve across files).\n\
+  \\t\t\t\tA bare argument is loaded as a file too; the arguments\n\
+  \\t\t\t\tafter the last file are the program's arguments.\n\
   \\t-assemble\t\tWrite assembled code to <file>.out\n\
   \\t-listing <file>\t\tWrite assemble-time event trace to <file> (use - for stderr)\n\
   \\t-print-ast\t\tParse to AST, print it to stderr, and exit without emitting any code\n\
@@ -157,32 +169,51 @@ spimMain s argv listingRef = do
   envHandler :: Maybe String <- lookupEnv "SPIM_EXCEPTION_HANDLER"
   let opts0 :: Options
       opts0 = Options envHandler True False False False
-      n :: Int
-      n = length argv
-      arg :: Int -> Maybe String
-      arg k = if k < n then Just (argv !! k) else Nothing
-      setB :: (Spim -> IORef a) -> a -> IO ()
+      setB :: (Spim -> IORef Bool) -> Bool -> IO ()
       setB ref v = set (ref s) v
-      int :: Int -> Int
-      int k = maybe 0 atoi (arg k)
       sizes :: ((Int, Int, Int, Int, Int, Int, Int, Int) -> (Int, Int, Int, Int, Int, Int, Int, Int)) -> IO ()
       sizes f = modify (initialSizes s) f
-      loop :: Int -> Options -> Loading -> IO (Options, Loading)
-      loop i o ld
-        | i >= n = pure (o, ld)
-        | otherwise = do
-            let a :: String
-                a = argv !! i
+      -- i is the index in argv of the first argument left, a.
+      loop :: Int -> [String] -> Options -> Loading -> IO (Options, Loading)
+      loop _ [] o ld = pure (o, ld)
+      loop i (a : more) o ld = do
+            let value :: Maybe String
+                value = listToMaybe more
+                int :: Int
+                int = maybe 0 atoi value
+                -- Past a flag and its value.
+                skipValue :: Options -> Loading -> IO (Options, Loading)
+                skipValue = loop (i + 2) (drop 1 more)
                 next :: Options -> IO (Options, Loading)
-                next o' = loop (i + 1) o' ld
+                next o' = loop (i + 1) more o' ld
                 -- A flag that takes a value, given last: say so, and show
                 -- the usage (C: flag_value_missing).
                 withValue :: IO (Options, Loading) -> IO (Options, Loading)
                 withValue act
-                  | i + 1 < n = act
+                  | not (null more) = act
                   | otherwise = do
                       cError ("spimulator: " ++ a ++ " requires a value\n")
-                      loop (i + 1) o ld {badUsage = True}
+                      loop (i + 1) more o ld {badUsage = True}
+                -- Load file, argv's argument fileI; after is what follows
+                -- it.  An explicit -file goes on reading arguments; a bare
+                -- file name ends them, the rest being the program's.
+                loadFile :: Bool -> Int -> String -> [String] -> IO (Options, Loading)
+                loadFile explicit fileI file after = do
+                  unless (worldReady ld) $ do
+                    h :: ExceptionFiles <- handlerFor o
+                    quiet :: Bool <- get (optQuiet s)
+                    initializeWorld s h (not quiet)
+                  let ld1 :: Loading
+                      ld1 = ld {worldReady = True, attempted = True}
+                  ok :: Bool <- readAssemblyFile s file
+                  if not ok
+                    then pure (o, ld1)
+                    else do
+                      let ld2 :: Loading
+                          ld2 = ld1 {loaded = True, lastFile = fileI}
+                      if explicit
+                        then loop (fileI + 1) after o ld2
+                        else pure (o, ld2 {programArgs = file : after})
                 is :: [String] -> Bool
                 is xs = a `elem` xs
             case () of
@@ -194,7 +225,7 @@ spimMain s argv listingRef = do
                 | is ["-exception", "-e", "-trap", "-t"] -> next o {loadHandler = True}
                 | is ["-noexception", "-ne", "-notrap", "-nt"] -> next o {loadHandler = False}
                 | is ["-exception_file", "-ef", "-trap_file", "-tf"] ->
-                    withValue $ loop (i + 2) o {exceptionFile = Just (maybe "" id (arg (i + 1))), loadHandler = True} ld
+                    withValue $ skipValue o {exceptionFile = Just (fromMaybe "" value), loadHandler = True} ld
                 | is ["-mapped_io", "-mio"] -> setB optMappedIo True >> next o
                 | is ["-nomapped_io", "-nmio"] -> setB optMappedIo False >> next o
                 | is ["-pseudo", "-p"] -> setB optAcceptPseudo True >> next o
@@ -205,46 +236,25 @@ spimMain s argv listingRef = do
                 | is ["-explain", "-x"] || "-explain=" `isPrefixOf` a || "-x=" `isPrefixOf` a -> do
                     writeErr "spimulator-haskell: the teaching mode (-explain) is not supported by this port\n"
                     exitSpim 2
-                | is ["-stext", "-st"] -> withValue $ sizes (\(_, b, c, d, e, f, g, h) -> (int (i + 1), b, c, d, e, f, g, h)) >> loop (i + 2) o ld
-                | is ["-sdata", "-sd"] -> withValue $ sizes (\(t, _, c, d, e, f, g, h) -> (t, int (i + 1), c, d, e, f, g, h)) >> loop (i + 2) o ld
-                | is ["-ldata", "-ld"] -> withValue $ sizes (\(t, b, _, d, e, f, g, h) -> (t, b, int (i + 1), d, e, f, g, h)) >> loop (i + 2) o ld
-                | is ["-sstack", "-ss"] -> withValue $ sizes (\(t, b, c, _, e, f, g, h) -> (t, b, c, int (i + 1), e, f, g, h)) >> loop (i + 2) o ld
-                | is ["-lstack", "-ls"] -> withValue $ sizes (\(t, b, c, d, _, f, g, h) -> (t, b, c, d, int (i + 1), f, g, h)) >> loop (i + 2) o ld
-                | is ["-sktext", "-skt"] -> withValue $ sizes (\(t, b, c, d, e, _, g, h) -> (t, b, c, d, e, int (i + 1), g, h)) >> loop (i + 2) o ld
-                | is ["-skdata", "-skd"] -> withValue $ sizes (\(t, b, c, d, e, f, _, h) -> (t, b, c, d, e, f, int (i + 1), h)) >> loop (i + 2) o ld
-                | is ["-lkdata", "-lkd"] -> withValue $ sizes (\(t, b, c, d, e, f, g, _) -> (t, b, c, d, e, f, g, int (i + 1))) >> loop (i + 2) o ld
-                | (is ["-file", "-f"] && i + 1 < n) || take 1 a /= "-" -> do
-                    let explicit :: Bool
-                        explicit = take 1 a == "-"
-                    if not explicit && loaded ld
-                      then pure (o, ld)
-                      else do
-                        let fileI :: Int
-                            fileI = if explicit then i + 1 else i
-                        unless (worldReady ld) $ do
-                          h :: ExceptionFiles <- handlerFor o
-                          quiet :: Bool <- get (optQuiet s)
-                          initializeWorld s h (not quiet)
-                        let ld1 :: Loading
-                            ld1 = ld {worldReady = True, attempted = True}
-                        ok :: Bool <- readAssemblyFile s (argv !! fileI)
-                        if not ok
-                          then pure (o, ld1)
-                          else do
-                            let ld2 :: Loading
-                                ld2 = ld1 {loaded = True, lastFile = fileI}
-                            if explicit
-                              then loop (fileI + 1) o ld2
-                              else pure (o, ld2 {programArgs = drop fileI argv})
+                | is ["-stext", "-st"] -> withValue $ sizes (\(_, b, c, d, e, f, g, h) -> (int, b, c, d, e, f, g, h)) >> skipValue o ld
+                | is ["-sdata", "-sd"] -> withValue $ sizes (\(t, _, c, d, e, f, g, h) -> (t, int, c, d, e, f, g, h)) >> skipValue o ld
+                | is ["-ldata", "-ld"] -> withValue $ sizes (\(t, b, _, d, e, f, g, h) -> (t, b, int, d, e, f, g, h)) >> skipValue o ld
+                | is ["-sstack", "-ss"] -> withValue $ sizes (\(t, b, c, _, e, f, g, h) -> (t, b, c, int, e, f, g, h)) >> skipValue o ld
+                | is ["-lstack", "-ls"] -> withValue $ sizes (\(t, b, c, d, _, f, g, h) -> (t, b, c, d, int, f, g, h)) >> skipValue o ld
+                | is ["-sktext", "-skt"] -> withValue $ sizes (\(t, b, c, d, e, _, g, h) -> (t, b, c, d, e, int, g, h)) >> skipValue o ld
+                | is ["-skdata", "-skd"] -> withValue $ sizes (\(t, b, c, d, e, f, _, h) -> (t, b, c, d, e, f, int, h)) >> skipValue o ld
+                | is ["-lkdata", "-lkd"] -> withValue $ sizes (\(t, b, c, d, e, f, g, _) -> (t, b, c, d, e, f, g, int)) >> skipValue o ld
+                | is ["-file", "-f"], file : after <- more -> loadFile True (i + 1) file after
+                | take 1 a /= "-" -> if loaded ld then pure (o, ld) else loadFile False i a more
                 | a == "-assemble" -> next o {assembleOnly = True}
                 | a == "-print-ast" -> setB printAstFlag True >> setB printAstOnly True >> next o
                 | a == "-show-expansion" -> setB showExpansionFlag True >> setB printAstOnly True >> next o
                 | a == "-print-ast-json" -> setB printAstJsonFlag True >> setB printAstOnly True >> next o
                 | a == "-listing" ->
-                    case arg (i + 1) of
+                    case value of
                       Nothing -> do
                         cError "\n-listing requires a filename argument\n"
-                        loop (i + 1) o ld {badUsage = True}
+                        loop (i + 1) more o ld {badUsage = True}
                       Just path -> do
                         opened :: Maybe Listing <-
                           if path == "-"
@@ -253,17 +263,17 @@ spimMain s argv listingRef = do
                         case opened of
                           Nothing -> do
                             cError ("\nCannot open listing file '" ++ path ++ "'\n")
-                            loop (i + 2) o ld {badUsage = True}
+                            skipValue o ld {badUsage = True}
                           Just l -> do
                             writeIORef listingRef l
                             set (asmObserver s) (Just (listingObserver s l))
-                            loop (i + 2) o ld
+                            skipValue o ld
                 | a == "-dump" -> next o {dumpUser = True}
                 | a == "-full_dump" -> next o {dumpAll = True}
                 | otherwise -> do
                     cError ("\nUnknown argument: " ++ a ++ " (ignored)\n")
-                    loop (i + 1) o ld {badUsage = True}
-  (o, ld0) :: (Options, Loading) <- loop 0 opts0 (Loading False False False (-1) [] False)
+                    loop (i + 1) more o ld {badUsage = True}
+  (o, ld0) :: (Options, Loading) <- loop 0 argv opts0 (Loading False False False (-1) [] False)
   let ld :: Loading
       ld = if loaded ld0 && null (programArgs ld0) then ld0 {programArgs = drop (lastFile ld0) argv} else ld0
   when (badUsage ld) $ cError usage
@@ -397,11 +407,11 @@ writeAssembledCode s name = do
       let addrsTo :: Word32 -> Word32 -> [Word32]
           addrsTo a b = takeWhile (< b) [a, a + 4 ..]
       codes :: [Int32] <- mapM (\a -> memReadInst s a >>= maybe (pure 0) (\r -> get r >>= instEncodeIO)) (addrsTo start end)
-      -- C prints ", " after every word but the one at end - 4.
-      let list :: Word32 -> Word32 -> [Int32] -> String
-          list from to xs = concat (zipWith (\a c -> printf "0x%x" (fromIntegral c :: Word32) ++ (if a /= to - 4 then ", " else "")) (addrsTo from to) xs)
+      -- The words, separated by ", ".
+      let list :: [Int32] -> String
+          list xs = intercalate ", " (map (\c -> printf "0x%x" (fromIntegral c :: Word32)) xs)
           textPart :: String
-          textPart = printf ".text # 0x%x .. 0x%x\n.word " start end ++ list start end codes ++ "\n"
+          textPart = printf ".text # 0x%x .. 0x%x\n.word " start end ++ list codes ++ "\n"
       userKernelDataSegment s False
       bare :: Bool <- get (optBare s)
       let dstart :: Word32
@@ -411,7 +421,7 @@ writeAssembledCode s name = do
         if dend > dstart
           then do
             ws :: [Int32] <- mapM (memReadWord s) (addrsTo dstart dend)
-            pure (printf ".data # 0x%x .. 0x%x\n.word " dstart dend ++ list dstart dend ws ++ "\n")
+            pure (printf ".data # 0x%x .. 0x%x\n.word " dstart dend ++ list ws ++ "\n")
           else pure ""
       B.writeFile (name ++ ".out") (B.pack (textPart ++ dataPart))
       pure False

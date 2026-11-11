@@ -93,14 +93,14 @@ engine finishes each in seconds. Interactive teaching use (`-explain`, `step`) i
 
 | C subsystem (lines) | What it does | Port notes |
 |---|---|---|
-| `scanner.c` + `parser.c` + `ast.c` + `pseudo-op.c` (~6.4K) | hand-written recursive descent → AST → emit | port as recursive descent (the C is already that shape), or a parsing library (Lark in Python, `chumsky`/`nom` in Rust, ANTLR for Java/C#). The C's quirks (§5.4: `,` as whitespace and as FP decimal separator, constants substituted at scan time, only the first unresolved symbol kept) must be reproduced on purpose; a grammar generator makes accidental "fixes" easy, so keep the AST-parity goldens as the gate |
+| `scanner.c` + `parser.c` + `ast.c` + `pseudo-op.c` (~6.4K) | hand-written recursive descent → AST → emit | port as recursive descent (the C is already that shape), or a parsing library (Lark in Python, `chumsky`/`nom` in Rust, ANTLR for Java/C#). The C's quirks (§5.4: `,` as whitespace, constants substituted at scan time, only the first unresolved symbol kept) must be reproduced on purpose; a grammar generator makes accidental "fixes" easy, so keep the AST-parity goldens as the gate |
 | `symbol-table.c` (~400) | hash table + forward references | the **dump order** depends on the C hash (`h = len; h = h*613 + (unsigned)c` …, §5.4); a port must reimplement the hash, not use a dict's order |
 | `run.c` + `memory.c` (~2.3K) | fetch/decode/execute, segments | `match` on opcode; segments as `bytearray` + base address; keep the delay-slot and delayed-load state explicit (§5.5) |
-| `instruction.c` + `opcodes.h` (~2K) | codec, disassembly, the X-macro table | generate the opcode table (it is data; since 2026-11-11 `tools/gen_opcodes.py` writes every port's from `include/opcodes.tsv`, `tasks/reference/opcode-table-generator.md`); keep the listing format of §5.7 byte-exact |
+| `instruction.c` + the generated opcode tables (~2K) | codec, disassembly, the X-macro table | generate the opcode table (it is data; since 2026-11-11 `tools/gen_opcodes.py` writes every port's from `include/opcodes.tsv`, `tasks/reference/opcode-table-generator.md`); keep the listing format of §5.7 byte-exact |
 | `syscall.c` (~220) | syscalls 1–17 | `open` passes **host** flag values through (§5.6): a port must map them the way the C does on Linux |
 | `exceptions.s` | trap handler (MIPS asm, `#embed`ed) | reuse the same file unchanged; the AST-parity dumps depend on its addresses |
 | `spim.c` + `spim-utils.c` + `display-utils.c` (~2.5K) | CLI, REPL, register display | `setjmp`/`longjmp` (Ctrl-C, `run_error`) become exceptions — cleaner in every candidate language; libedit becomes Python `readline`/`cmd`, Rust `rustyline` |
-| `explain.c` (~2.6K) | teaching narration | port last; its known bugs (`tasks/explain-mode-correctness-bugs.md`, audit §3.6) should be fixed in C first so the oracle is right |
+| `explain.c` (~2.6K) | teaching narration | port last; its known bugs (`tasks/archive/2026/11/11/explain-mode-correctness-bugs.md`, audit §3.6) should be fixed in C first so the oracle is right |
 
 ## Differential test plan
 
@@ -117,7 +117,7 @@ on the environment).
    only check the last line; capture the C engine's full stdout+stderr+status for each as a pinned
    golden (audit §6.4), so formatting and exception messages are compared too.
 3. **Corpus**, in the order a port reaches it:
-   - `tests/` regression suite (25 tests, `tests/run-test.sh`) plus upstream's two bare-machine
+   - `tests/` regression suite (`tests/run-test.sh`) plus upstream's two bare-machine
      torture tests `tt.alu.bare.s` and `tt.fpu.bare.s`, run with `-bare -noexception` (audit §6.1;
      never run in the fork until the `fpu_bare` and `alu_bare` cases, 2026-11-10 and 2026-11-11).
    - The AST-parity goldens (`tests/golden.ast_parity*.txt`) — assembler output bytes, independent of
@@ -133,9 +133,11 @@ on the environment).
    - Generated cases: a small random-instruction generator for the ALU/FPU (operands drawn from edge
      values: 0, ±1, INT_MIN, INT_MAX, 0x8000, 0xffff, NaN, ±inf, denormals), assembled once, executed
      by both engines with the register file dumped — the cheapest way to find width bugs.
-4. **Harness shape:** one new driver (to be written by the port task), e.g. `tools/diff_engines.py OLD NEW [CASES…]`, running each case through
-   both binaries with the same flags/stdin/argv and reporting the first differing line; wired as a
-   meson suite so it runs in the image gate.
+4. **Harness shape:** `port/harness/compare_engines.py --reference C --engine PORT [CASES…]` runs
+   each case of `port/harness/corpus.txt` through both binaries with the same flags/stdin/argv and
+   reports the first differing line; `port/harness/compare_all_programs.py` does the same for every
+   program in the tree. Both are meson tests in each `port-<language>` suite, so they run in the
+   image gate.
 5. **Nondeterministic cases** are excluded or controlled: `tt.core.s`'s timer test spins on CP0 Count
    driven by a 10 ms wall clock (audit §6 oracle notes), `time.s` is a benchmark, and mapped-IO
    latency is counted in instruction chunks; give the port a deterministic timer and exclude those.
@@ -177,15 +179,15 @@ at run time: untyped constant arithmetic is exact); GHC's `Text.Printf` `%.18g` 
 <billsix@gmail.com>, 2026-11-10): a port must match the C engine functionally. A float printed with
 different digits, when the values are the same or very close, is reported as a warning, not a
 failure. The tolerance and how the harness detects it: `tasks/reference/engine-ports-design.md`. Matching glibc
-exactly is still the goal where it is cheap, and it is cheap in all three languages measured.
-`bash tasks/adhoc/engine-ports-float-format/run.sh` checks each one against glibc `printf` on 158,029
-doubles, in all five formats the C engine prints (`%.8f`, `%.18g`, `%.17g`, `%g`, `%#-13.6g`):
+exactly is still the goal where it is cheap, and it is cheap in all three languages measured. Each
+port's formatter is checked against glibc `printf`, in all five formats the C engine prints (`%.8f`,
+`%.18g`, `%.17g`, `%g`, `%#-13.6g`), by a meson test in its suite:
 
-| Language | Formatter | Result |
-|---|---|---|
-| Python | `cformat.py`: the `%` operator; adds the `-nan` sign Python drops | identical |
-| Rust | `cformat.rs`, about 60 lines, std only: `{:.N}` and `{:.Ne}` are already correctly rounded, so it applies C's `%g` rules (fixed vs exponential, stripping zeros, `#`, the two-digit exponent) and `nan`/`inf` | identical |
-| GHC Haskell | `CFormat.hs`, about 90 lines: rounds the exact `Rational` value (below) | identical |
+| Language | Formatter | Checked by | Result |
+|---|---|---|---|
+| Python | `port/python/spimulator_py/cformat.py`: the `%` operator; adds the `-nan` sign Python drops | `python-float-format` (`tools/check_float_format.py`, 158,029 doubles) | identical |
+| Rust | `port/rust/src/cformat.rs`, about 60 lines, std only: `{:.N}` and `{:.Ne}` are already correctly rounded, so it applies C's `%g` rules (fixed vs exponential, stripping zeros, `#`, the two-digit exponent) and `nan`/`inf` | `rust-cargo-test` (`port/rust/tests/cformat_vs_c.rs`, its own set of 58,028 doubles, and the doctests) | identical |
+| GHC Haskell | `port/haskell/src/CFormat.hs`, about 90 lines: rounds the exact `Rational` value (below) | `haskell-float-format` (`port/haskell/tests/check-format.sh`, 158,029 doubles) | identical |
 
 Java was not re-tested; `BigDecimal` rounding fixed its one measured case.
 
@@ -195,10 +197,10 @@ GHC's `Text.Printf` and `Numeric.showFFloat` format from the shortest round-trip
 (`floatToDigits`) and pad with zeros. glibc formats the exact binary value. A Double's exact value is
 `toRational x`, so a pure-Haskell formatter rounds it with integer arithmetic: exact decimal
 exponent, ties-to-even rounding, the `%g` fixed/exponential rule, `#`, width, `inf`/`nan` by the sign
-bit. `tasks/adhoc/engine-ports-float-format/CFormat.hs` implements all five formats the C engine uses
-(`%.8f`, `%.18g`, `%.17g`, `%g`, `%#-13.6g`). It is byte-identical to glibc on 158,029 values
-(`bash tasks/adhoc/engine-ports-float-format/run.sh`). Detail: `tasks/archive/2026/11/10/engine-port-haskell.md`.
-The port's copy is `port/haskell/src/CFormat.hs`, checked by `port/haskell/tests/check-format.sh`.
+bit. `port/haskell/src/CFormat.hs` implements all five formats the C engine uses (`%.8f`, `%.18g`,
+`%.17g`, `%g`, `%#-13.6g`). It is byte-identical to glibc on 158,029 values
+(`port/haskell/tests/check-format.sh`, the meson test `haskell-float-format`). Detail:
+`tasks/archive/2026/11/10/engine-port-haskell.md`.
 
 ### What the Haskell port taught (2026-11-10)
 
@@ -215,10 +217,10 @@ each had a direct answer.
 - **The C struct's unions matter.** `mips_instruction` overlays the register bytes, the 16-bit
   immediate and the 26-bit target, and the engine relies on it (FD lives in the shamt byte). The
   port keeps one `Word32` with byte accessors.
-- **The C library's searches are part of the output.** Six encodings sit on two opcode rows each;
-  `bsearch` over a `qsort`ed table picks one. Reproducing glibc's stable merge sort and its exact
-  `bsearch` loop reproduces the choice (disassembling 0x4600000f gives `prefx`, not `floor.w.s`).
-  The other ports need the same.
+- **Every encoding has one opcode row.** The C engine once let glibc's `qsort` + `bsearch` pick
+  between six duplicated rows; the rows now carry their real encodings, and every port's generated
+  decode table has one row per encoding (`tasks/reference/opcode-table-generator.md`, "The decode
+  column"). Disassembling 0x4600000f gives `floor.w.s` in every engine.
 - **Reading numbers matters as much as printing them.** `atof` is in the assembler (FP literals) and
   in read_float/read_double; an exact `Rational` conversion rounded once matches glibc on 60,035
   strings, once NaN is glibc's positive quiet NaN (GHC's `0/0` is negative) and keeps a `nan(n)`
@@ -253,8 +255,8 @@ Traps beyond the table above, each one a byte-level difference until handled:
   `SIG_DFL` and do not catch `BrokenPipeError`.
 - **Python raises where x86 computes**: `x / 0.0`, `math.sqrt(-1)`, `int(nan)`, `math.ceil(inf)`,
   `struct.pack('<f', 1e300)` (OverflowError, where C's `(float)` gives infinity).
-- **glibc's `qsort` + `bsearch` decide duplicate keys**: six encodings belong to two mnemonics
-  each, and the disassembler's pick depends on the stable sort and the exact halving loop.
+- **Encodings are decoded by table lookup, not by a search**: the generated decode table has one
+  row per encoding.
 - **Bytes, not text**: source lines, MIPS strings and file names may hold any byte; a `str`
   holding one character per byte (Latin-1) round-trips them.
 - **C's undefined behavior has to be reproduced, crash included**, where a test can see it: the
@@ -288,8 +290,8 @@ C. Beyond the table above:
   the stack, so it re-execs with `/proc/$$/environ`.
 - **Speed is no problem**: `tt.core.s` runs in 0.11 s (0.10 s for the debug C build); the timer polls
   `Instant::now()` per instruction where C calls `getitimer`.
-- **Float text came out identical** with the promoted `cformat.rs` (58,028 doubles against glibc in
-  `cargo test`); no case of the corpus warned.
+- **Float text came out identical** with `port/rust/src/cformat.rs` (58,028 doubles against glibc
+  in `cargo test`, the meson test `rust-cargo-test`); no case of the corpus warned.
 
 ## Cross-links
 

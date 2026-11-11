@@ -161,26 +161,42 @@ impl AstNode {
                 }
             }
             AstKind::InstR { op, rd, rs, rt } => {
-                bprint!(out, "INST_R op={op} rd={rd} rs={rs} rt={rt}\n")
+                bprint!(
+                    out,
+                    "INST_R op={} rd={rd} rs={rs} rt={rt}\n",
+                    token_name(*op)
+                )
             }
             AstKind::InstRShift { op, rd, rt, shamt } => {
-                bprint!(out, "INST_R_SHIFT op={op} rd={rd} rt={rt} shamt={shamt}\n")
+                bprint!(
+                    out,
+                    "INST_R_SHIFT op={} rd={rd} rt={rt} shamt={shamt}\n",
+                    token_name(*op)
+                )
             }
             AstKind::InstI { op, rt, rs, imm } => {
-                bprint!(out, "INST_I op={op} rt={rt} rs={rs} imm=");
+                bprint!(out, "INST_I op={} rt={rt} rs={rs} imm=", token_name(*op));
                 Self::print_imm(imm, symbols, out);
                 out.push(b'\n');
             }
             AstKind::InstJ { op, target } => {
-                bprint!(out, "INST_J op={op} target=");
+                bprint!(out, "INST_J op={} target=", token_name(*op));
                 Self::print_imm(target, symbols, out);
                 out.push(b'\n');
             }
             AstKind::InstFpR { op, fd, fs, ft } => {
-                bprint!(out, "INST_FP_R op={op} fd={fd} fs={fs} ft={ft}\n")
+                bprint!(
+                    out,
+                    "INST_FP_R op={} fd={fd} fs={fs} ft={ft}\n",
+                    token_name(*op)
+                )
             }
             AstKind::InstFpCompare { op, fs, ft, cc } => {
-                bprint!(out, "INST_FP_COMPARE op={op} fs={fs} ft={ft} cc={cc}\n")
+                bprint!(
+                    out,
+                    "INST_FP_COMPARE op={} fs={fs} ft={ft} cc={cc}\n",
+                    token_name(*op)
+                )
             }
             AstKind::Pseudo { mnemonic, children } => {
                 bprint!(out, "PSEUDO mnemonic={mnemonic}\n");
@@ -305,7 +321,7 @@ impl AstNode {
             "{{\"kind\":\"{kind_name}\",\"source_line\":{}",
             self.source_line
         );
-        let mnemonic = |out: &mut Vec<u8>, op: i32| {
+        let mnemonic = |out: &mut Vec<u8>, op: i32| -> () {
             bprint!(out, ",\"op\":{op},\"mnemonic\":");
             json_string(out, token_name(op).as_bytes());
         };

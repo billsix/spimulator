@@ -2,9 +2,9 @@
 
 **Status:** proposed — needs go-ahead (open questions below)
 **Priority:** 4
-**Difficulty:** 7
+**Difficulty:** 8
 **Created:** 2026-11-05 (William Emerison Six <billsix@gmail.com>)
-**Depends on:** `tasks/explain-mode-correctness-bugs.md` (fix the bugs first)
+**Depends on:** `tasks/archive/2026/11/11/explain-mode-correctness-bugs.md` (fix the bugs first)
 
 ## BLUF
 
@@ -108,13 +108,17 @@ hanoi used. Done means:
      lint;
    - replace the single 4,716-line L2 golden with the small ones.
 8. **Docs:**
-   - `Documentation/spim.1`, the usage text, `CLAUDE.md` (its teaching-mode bullet);
+   - `Documentation/spimulator.1`, the usage text, `CLAUDE.md` (its teaching-mode bullet);
    - `pgu/docs/source/examplesap.rst` ("Reading -explain output"), `examples/TEACHING-ASSEMBLER-INTERNALS.md`,
      `examples/READING-ORDER.md`;
    - a `ChangeLog` entry, since the flags change.
 
    Then drop the reference doc's "draft" status.
-9. **Gates:** `meson test` (line editing enabled and disabled), a nested `make image` (including the
+9. **Ports** (added 2026-11-11): the new `-encoding` flag and the REPL `explain` command are part of
+   the command-line and REPL surface every port mirrors; add them to each port, or make each port
+   reject them the way C rejects an unknown flag, until `tasks/engine-ports-teaching-mode.md` ports the
+   narration (`CLAUDE.md`: "A C behavior change must be followed in every port"; the port suites (`port-python`, `port-haskell`, `port-rust`) fail until each port matches).
+10. **Gates:** `meson test` (line editing enabled and disabled), a nested `make image` (including the
    sanitizer gate), and `BUILD_TREE_SITTER=1` if any `opcodes.tsv` column is touched.
 
 ## Open questions

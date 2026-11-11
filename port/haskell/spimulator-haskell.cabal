@@ -38,6 +38,6 @@ executable spimulator-haskell
     Syscall
     Types
   build-depends:
-    base, array, bytestring, directory, filepath, haskeline, mtl
+    base, array, bytestring, containers, directory, filepath, haskeline, mtl, unix
   default-language: Haskell2010
   ghc-options:      -O1 -Wall -Werror -rtsopts=ignoreAll

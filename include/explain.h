@@ -5,6 +5,7 @@
 
 #include "spim.h"
 #include "instruction.h"
+#include "registers.h"
 
 /* Teaching detail level:
      0 — off (no narration; baseline spim behavior)
@@ -38,6 +39,26 @@ void explain_print_step_header(mem_addr pc,
    surfacing hidden suggestions via Tab would undermine the level
    distinction). Returned pointers are owned by explain.c and remain valid
    until the next explain_before / explain_clear_suggestions call. */
+/* Narrate the exit syscall that ended the program, and the status the
+   program exits with (at every level >= 1; explain_after never runs for
+   it, since the run stops at the syscall). */
+void explain_program_exit(const mips_instruction* instruction);
+
+/* The state explain_before records for explain_after.  With delayed
+   branches the delay-slot instruction runs (and is narrated) between a
+   branch's explain_before and explain_after, so run.c saves the branch's
+   snapshot around it and restores it before the branch is narrated. */
+typedef struct {
+  reg_word r[R_LENGTH];
+  reg_word hi, lo;
+  mem_addr pc;
+  bool has_mem;
+  mem_addr mem_addr;
+  reg_word mem_val;
+} explain_snapshot;
+explain_snapshot explain_save_snapshot(void);
+void explain_restore_snapshot(const explain_snapshot* s);
+
 size_t explain_suggestion_count(void);
 const char* explain_suggestion(size_t i);
 void explain_clear_suggestions(void);

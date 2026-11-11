@@ -17,10 +17,12 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
   parse mode. History (flex+bison and PARSE_DIRECT removal) + design:
   `tasks/reference/parser-ast-emit.md`.
 - **Teaching mode:** `-explain=N` (N 0–4; bare `-explain` = 3) narrates each executed
-  instruction (`explain.c`): L1 a step header (PC, encoding, disassembly, source line),
-  L2 adds category, meaning, inputs, writes and try-it hints, L3 adds a bit-field box,
-  L4 swaps it for decode frames. Known bugs (it hides exceptions) and a learner-model
-  redesign are tracked in `tasks/explain-mode-correctness-bugs.md` and
+  instruction on stderr (`explain.c`) without changing what the program does (same stdout,
+  exceptions and exit status; `explain_parity` tests it): L1 a step header (PC, encoding,
+  disassembly, source line), a one-line pseudo-op/expansion note from the assembler's
+  record (`mips_instruction`'s `expansion_*` fields), and the exit status; L2 adds the
+  pseudo-op description, category, meaning, inputs, writes and try-it hints; L3 adds a
+  bit-field box; L4 swaps it for decode frames. A learner-model redesign is tracked in
   `tasks/explain-levels-redesign.md`; target design: `tasks/reference/teaching-mode-learner-model.md`.
 - The image builds + runs the full test suite at build time and fails on any
   regression.
@@ -61,7 +63,7 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
   behavior change must be followed in every port**, or the port suites fail. The Haskell port follows the shared
   Haskell coding standard: every do-bind and `let`/`where` binding typed, checked by
   `port/haskell/tests/check-annotations.sh` (meson `haskell-annotations`).
-- `Documentation/spim.1`, `meson.build`, `meson_options.txt`, `.clang-format`,
+- `Documentation/spimulator.1` (the man page), `meson.build`, `meson_options.txt`, `.clang-format`,
   `.clang-tidy`.
 
 ## Build / container workflow
@@ -80,7 +82,8 @@ is for quick iteration only.
 - `make help` *(default)* — list the documented targets.
 - `make image` — check the generated files, build + test spim at image-build time; build the
   examples' native artifacts; optionally build the tree-sitter grammar / Emacs integration.
-- `make generate` — regenerate every opcode table from `include/opcodes.tsv` in the container;
+- `make generate` — regenerate every opcode table from `include/opcodes.tsv`, on the existing image (not
+  `generate: image`: the image build rejects stale tables, so it fails until you regenerate);
   commit the result with the data-file change (`README.md`, "Changing the opcode table").
 - `make shell` *(runs `format` first)* — dev shell.
 - `make format` — clang-format; `lint.sh` runs `clang-tidy`. Both run on shell exit.
@@ -126,15 +129,15 @@ not spim's intentional exit-time leaks) + the integer-UB primer:
   - **Adding a language port?** Its opcode table comes from the generator too: write an emitter
     and register it. The steps are in `tasks/reference/opcode-table-generator.md` ("Adding an
     engine port in a new language"), which also explains the data files and the decode column.
-- C23; clang-format + clang-tidy; core `-Werror` (gcc + clang clean). `src/`+`include/` follow the
+- C23; clang-format + clang-tidy; core `-Werror` (the image build is clang; gcc is checked by hand on a host build, and is clean too). `src/`+`include/` follow the
   shared standard `github.com/billsix/runClaudeInContainer:tasks/reference/c-coding-standard.md` (modernized through
   `tasks/archive/2026/11/10/c23-modernization-pass3.md` and the `const` pass
-  `tasks/archive/2026/11/11/c23-const-correctness-pass.md`, which list the deliberate opt-outs; new C
-  is checked for missing `const` with `tools/const_candidates.py BUILDDIR`); the core is additionally gated under
-  `-Wconversion -Wsign-conversion` (gcc + clang), done in `tasks/archive/2026/10/16/integer-conversion-hardening.md`,
+  `tasks/archive/2026/11/11/c23-const-correctness-pass.md`, which list the deliberate opt-outs; check new C
+  for missing `const` by hand with `tools/const_candidates.py BUILDDIR`; no gate runs it); the core is additionally gated under
+  `-Wconversion -Wsign-conversion` (clang in the image; gcc clean by hand), done in `tasks/archive/2026/10/16/integer-conversion-hardening.md`,
   and under `-Wswitch-enum`: every `switch` has a `default` and every `if`/`else if` chain an `else`
   (`tasks/archive/2026/11/11/c-switch-and-else-if-chains.md`; new C is checked with
-  `python3 tools/c_dispatch_check.py BUILDDIR src`, which must exit 0; it is the shared, vendored copy of
+  `python3 tools/c_dispatch_check.py BUILDDIR src`, which the meson test `dispatch_check` runs; it is the shared, vendored copy of
   `github.com/billsix/runClaudeInContainer:tasks/reference/c_dispatch_check.py`, kept byte-identical). `include/opcodes.tsv` is the single source of truth for
   the simulator, the ports and the tree-sitter grammar; edit it and run `make generate`, never the
   generated tables. **Any change to `opcodes.tsv` (or `opcode-types.tsv`) must be gated with
@@ -156,14 +159,15 @@ not spim's intentional exit-time leaks) + the integer-UB primer:
   local in a `-N($fp)` slot, a per-routine columnar SYMBOL TABLE, and an ascii
   stack-frame SNAPSHOT with hand-traced values checked by
   `tools/check_asm_canonical.py`); deliberate register/idiom/bug demos are exempt.
-  Guide: `tasks/reference/mips-asm-teaching-style.md` (the living reference). The
-  corpus-wide rollout is COMPLETE (2026-10-31): every non-exempt demo converted; record +
-  per-topic archive under `tasks/archive/2026/10/31/asm-simplification-sweep*.md`.
+  Guide: `tasks/reference/mips-asm-teaching-style.md` (the living reference). Every
+  non-exempt demo follows it; a new demo must too (the conversion record is
+  `tasks/archive/2026/10/31/asm-simplification-sweep*.md`).
 
 ## Reviews
 
-Latest deep review: `tasks/review/2026/11/10/repo-review.md` (simulator core + full git
-history; C23 worklist and port-behavior inventory). Records are frozen; act on them through tasks.
+Latest deep review: `tasks/review/2026/11/11/repo-review.md` (the engine ports, the opcode
+generator and the C dispatch work; carries over `tasks/review/2026/11/10/repo-review.md`, the
+simulator core and full git history). Records are frozen; act on them through tasks.
 
 ## Tasks (in-flight)
 

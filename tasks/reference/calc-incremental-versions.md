@@ -1,7 +1,7 @@
 # calc incremental versions — the per-rung build spec
 
 **Reference document** — the deterministic blueprint for the six leader rungs of the calculator
-ladder. Read with `tasks/calc-incremental-versions.md` (the plan/decisions) and
+ladder. Read with `tasks/archive/2026/10/30/calc-incremental-versions.md` (the plan/decisions) and
 `tasks/reference/incremental-example-decomposition.md` (the method). Each rung is a `.c` + a matching
 spim `.asm` + `.input` + `.expected`, trimmed from the finished `calc-sdt.{c,asm}`. Integer-first
 (rungs 1–5 integer; rung 6 introduces the FPU/decimals); each rung does its own stdin I/O; no

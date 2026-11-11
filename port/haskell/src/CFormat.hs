@@ -12,7 +12,7 @@
 -- module works from the exact value: 'toRational' turns a Double into the
 -- fraction it really is, and from there every format is integer arithmetic.
 -- Tested byte-identical to glibc on 158,029 values
--- (tasks/adhoc/engine-ports-float-format/run.sh).
+-- (port/haskell/tests/check-format.sh, the meson test haskell-float-format).
 module CFormat
   ( formatF
   , formatG
@@ -60,9 +60,9 @@ special x
 stripZeros :: String -> String
 stripZeros s
   | '.' `notElem` s = s
-  | otherwise = case reverse (dropWhile (== '0') (reverse s)) of
-      str | last str == '.' -> init str
-      str -> str
+  | otherwise = case dropWhile (== '0') (reverse s) of
+      '.' : rest -> reverse rest
+      rest -> reverse rest
 
 -- | "-" for a negative number or negative zero.
 sign :: Double -> String
@@ -155,7 +155,7 @@ cStrtod text =
         ('-' : r) -> (True, r)
         ('+' : r) -> (False, r)
         _ -> (False, s)
-      apply :: Num a => a -> a
+      apply :: Double -> Double
       apply v = if neg then negate v else v
       lower :: String
       lower = map toLower body
@@ -181,7 +181,7 @@ nanWithPayload rest = castWord64ToDouble (0x7ff8000000000000 .|. (payload .&. 0x
     payload = case rest of
       ('(' : r) | (inside, ')' : _) <- span (\c -> isAlphaNum c || c == '_') r -> number inside
       _ -> 0
-    number :: (Num b, Read b) => String -> b
+    number :: String -> Word64
     number t = case map toLower t of
       ('0' : 'x' : h) | not (null h), all isHexDigit h -> foldl (\a c -> a * 16 + fromIntegral (digitToInt c)) 0 h
       ('0' : o) | all (`elem` "01234567") o -> foldl (\a c -> a * 8 + fromIntegral (digitToInt c)) 0 o

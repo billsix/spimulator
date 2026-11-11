@@ -7,7 +7,7 @@ this module turns into the lookups the rest of the port uses.  So the port
 can never disagree with the C engine about a mnemonic, its operand shape, or
 its encoding.
 
-Token numbers matter: ``-print-ast`` prints them (``INST_R op=268``), so they
+Token numbers matter: ``-print-ast-json`` prints them (``"op":268``), so they
 are numbered exactly as include/tokens.h numbers them: the eight structural
 tokens from 256, then one per row in file order.
 """
@@ -105,6 +105,6 @@ def token_for_encoding(a_opcode: int) -> int | None:
 
     Example:
         >>> name_of(token_for_encoding(0x4600000f) or 0)
-        'prefx'
+        'floor.w.s'
     """
     return _BY_ENCODING.get(a_opcode)

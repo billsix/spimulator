@@ -236,6 +236,11 @@ afterj:
         jalr    $t9                 # call $t9; return address goes to $ra
         # $v0 now = 64
 
+        # --- jalr.hb / jr.hb (the hazard-barrier forms) ---
+        la      $t9, square_hb
+        li      $a0, 8
+        jalr.hb $t9                 # call, as jalr; returns with jr.hb
+
         # --- print_int (syscall 1) ---
         addu    $a0, $v0, $zero     # $a0 = 64 (the squared result)
         li      $v0, 1              # syscall: print_int
@@ -292,3 +297,9 @@ ps_end:
 square: mult    $a0, $a0
         mflo    $v0
         jr      $ra
+
+# square(x) again, returning with jr.hb.
+square_hb:
+        mult    $a0, $a0
+        mflo    $v0
+        jr.hb   $ra

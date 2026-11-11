@@ -1,0 +1,2 @@
+load "tt.fpu.bare.s"
+print_all_regs

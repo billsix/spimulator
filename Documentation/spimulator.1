@@ -1,0 +1,152 @@
+.TH SPIMULATOR 1
+.SH NAME
+spimulator \- a MIPS32 simulator for teaching
+.SH SYNOPSIS
+.B spimulator
+[\fIoptions\fP] [\fB\-file\fP \fIfile\fP ...] [\fIargs\fP ...]
+.SH DESCRIPTION
+\fBspimulator\fP assembles and runs MIPS32 assembly programs.  It is a fork of
+James Larus's SPIM, maintained as a teaching tool: it adds a teaching mode that
+narrates each instruction as it runs, and views of what the assembler builds.
+.PP
+With one or more \fB\-file\fP options (or a bare file name), it loads the
+files, runs the program from \fB__start\fP, and exits with the program's
+status.  With no file, it starts an interactive prompt that loads, runs,
+steps and inspects programs; type \fBhelp\fP there for its commands.
+.PP
+The same engine is also implemented in Python, Haskell and Rust, as the
+commands \fBspimulator\-python\fP, \fBspimulator\-haskell\fP and
+\fBspimulator\-rust\fP.  They take the options below, except \fB\-explain\fP,
+and give the same output and exit status.
+.SH OPTIONS
+Each option's short form follows it.  An option that takes a value must not be
+the last argument.
+.SS "The machine"
+.IP "\fB\-asm\fP, \fB\-a\fP" 8
+Simulate the virtual machine the assembler provides: pseudo-instructions,
+no delayed branches or loads.  This is the default.
+.IP "\fB\-bare\fP, \fB\-b\fP" 8
+Simulate a bare MIPS machine: no pseudo-instructions or extra addressing
+modes, delayed branches and loads.  Implies \fB\-quiet\fP.
+.IP "\fB\-delayed_branches\fP, \fB\-db\fP" 8
+Execute the instruction after a branch or jump (the delay slot) before
+transferring control.
+.IP "\fB\-delayed_loads\fP, \fB\-dl\fP" 8
+Simulate non-interlocked loads: a loaded value is visible one instruction
+later.
+.IP "\fB\-pseudo\fP, \fB\-p\fP / \fB\-nopseudo\fP, \fB\-np\fP" 8
+Accept (the default) or reject pseudo-instructions.
+.SS "The exception handler"
+.IP "\fB\-exception\fP, \fB\-e\fP / \fB\-trap\fP, \fB\-t\fP" 8
+Load the exception handler and the startup code that calls \fBmain\fP.  This
+is the default; the handler built into the program is used.
+.IP "\fB\-noexception\fP, \fB\-ne\fP / \fB\-notrap\fP, \fB\-nt\fP" 8
+Load neither.  Execution then starts at the label \fB__start\fP, and an
+exception jumps to 0x80000180, which must hold a handler.
+.IP "\fB\-exception_file\fP \fIfile\fP, \fB\-ef\fP / \fB\-trap_file\fP \fIfile\fP, \fB\-tf\fP" 8
+Load the exception handler and startup code from \fIfile\fP instead of the
+built-in one.
+.SS Messages
+.IP "\fB\-quiet\fP, \fB\-q\fP" 8
+Do not print warnings, such as the message at an exception.
+.IP "\fB\-noquiet\fP, \fB\-nq\fP" 8
+Print warnings.  This is the default.
+.SS "Teaching mode"
+.IP "\fB-explain\fP [\fIN\fP]" 10
+Enable teaching mode. \fIspim\fP first prints a listing of the loaded
+program and a one-time note on the output format; then, after each
+instruction executes, it narrates the step on standard error. The
+program runs exactly as it does without \fB-explain\fP: its output, its
+exceptions and its exit status are the same. The optional level \fIN\fP
+selects how much detail is shown:
+.RS
+.IP "\fBLevel 1\fP \(em step header" 14
+The PC, the instruction's encoding, its disassembly and its source line.
+An instruction the assembler emitted for a pseudo-op (or for an
+instruction it had to expand, such as \fBlw\fP from a label) gets a
+one-line note naming it and its place in the expansion. When the
+program exits, the exit status is shown.
+.IP "\fBLevel 2\fP \(em + narration" 14
+Adds, per instruction: a description of the pseudo-op it came from, its
+category and mnemonic modifiers, what it did in plain English, the
+\fIInputs\fP it read and what it \fIWrote\fP (registers, and memory for
+stores), \fITry it yourself\fP hints showing the \fIprint\fP commands that
+inspect the relevant state, syscall details, and the PC change.
+.IP "\fBLevel 3\fP \(em + bit-layout" 14
+Adds the 32-bit instruction's bit-field diagram (opcode / rs / rt / rd /
+shamt / funct for R-type, opcode / rs / rt / immediate for I-type, opcode /
+target for J-type) and which bit pattern selected this instruction.
+.IP "\fBLevel 4\fP \(em + decoder walkthrough" 14
+Replaces the L3 diagram with a step-by-step decoder walkthrough: the same
+box is redrawn 2\(en3 times, with one more field filled in each frame,
+mirroring the CPU's hierarchical decoding (opcode \(-> sub-table selector
+\(-> remaining fields). The final frame is identical to the L3 box.
+.RE
+.IP "" 10
+With no argument, \fB-explain\fP defaults to level 3 (the historical full
+output). The level may also be given with an equals sign: \fB-explain=2\fP.
+Short form: \fB-x\fP (\fB-x 1\fP, \fB-x=2\fP, etc.); \fB-explain=0\fP turns it off.
+The ports (below) do not have the teaching mode yet, and reject this option.
+.IP "\fB\-noexplain\fP, \fB\-nx\fP" 8
+Turn the teaching mode off.  This is the default.
+.SS "Memory-mapped IO"
+.IP "\fB\-mapped_io\fP, \fB\-mio\fP" 8
+Enable the memory-mapped terminal device.  A program that reads the terminal
+through syscalls cannot also use it.
+.IP "\fB\-nomapped_io\fP, \fB\-nmio\fP" 8
+Disable it.  This is the default.
+.SS "Memory sizes"
+.IP "\fB\-stext\fP, \fB\-st\fP; \fB\-sdata\fP, \fB\-sd\fP; \fB\-sstack\fP, \fB\-ss\fP; \fB\-sktext\fP, \fB\-skt\fP; \fB\-skdata\fP, \fB\-skd\fP \fIsize\fP" 8
+The initial size, in bytes, of the text, data, stack, kernel text and kernel
+data segments.  The kernel segments hold the exception handler; there is no
+kernel stack.
+.IP "\fB\-ldata\fP, \fB\-ld\fP; \fB\-lstack\fP, \fB\-ls\fP; \fB\-lkdata\fP, \fB\-lkd\fP \fIsize\fP" 8
+The limit, in bytes, that the data, stack and kernel data segments may grow
+to.
+.SS "Loading and running"
+.IP "\fB\-file\fP \fIfile\fP, \fB\-f\fP \fIfile\fP" 8
+Load \fIfile\fP.  The option may be repeated: the files' text, data and
+symbols accumulate into one symbol table, so references resolve across
+files, as with the prompt's \fBload\fP command; there is no separate link
+step.  A bare argument that is not an option is loaded as a file too.  The
+arguments after the last file are the program's arguments; its argv[0] is the
+last file loaded.
+.SS "What the assembler builds"
+Each of these assembles the files and, instead of running the program, or
+before it, writes:
+.IP "\fB\-assemble\fP" 8
+the assembled code, to \fIfile\fP.out.
+.IP "\fB\-dump\fP" 8
+the user text and data segments, to text.asm and data.asm.
+.IP "\fB\-full_dump\fP" 8
+the user and kernel text and data segments, to text.asm and data.asm.
+.IP "\fB\-listing\fP \fIfile\fP" 8
+an assemble-time event trace (labels defined, instructions and data emitted,
+forward references resolved, each with its source line) to \fIfile\fP, or to
+standard error for \fB\-\fP.  The program then runs.
+.IP "\fB\-print\-ast\fP" 8
+the parsed program as an indented tree, to standard error; then exit.
+.IP "\fB\-print\-ast\-json\fP" 8
+the same tree as JSON, to standard output; then exit.
+.IP "\fB\-show\-expansion\fP" 8
+just the pseudo-instructions and what each becomes, to standard error; then
+exit.
+.SH "EXIT STATUS"
+.IP \(bu 3
+The program's status: the value it passes to the exit2 syscall (17), or
+\fBmain\fP's return value, which the startup code passes on.
+.IP \(bu 3
+128 plus the exception code, if an exception occurred and the program did not
+set a non-zero status itself (an unaligned load exits 132).
+.IP \(bu 3
+2 after an assembly error, 1 when the files cannot be loaded or a symbol is
+undefined, and 255 after an internal error.
+.SH FILES
+.IP src/exceptions.s 8
+The source of the default exception handler, built into the program.
+.SH "SEE ALSO"
+https://github.com/billsix/spimulator
+.br
+The original SPIM: https://spimsimulator.sourceforge.net/
+.SH AUTHORS
+SPIM: James R. Larus.  spimulator: William Emerison Six.

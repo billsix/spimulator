@@ -24,7 +24,7 @@ from . import memory_layout as layout
 from . import registers as regs
 from .inst import ImmExpr, Instruction
 from .machine import M32
-from .opcode_table import Tok
+from .opcode_table import OpType, Tok
 from .registers import cpu
 from .traps import ExcCode
 
@@ -117,7 +117,6 @@ def run_spim(initial_pc: int, steps_to_run: int, display: bool) -> bool:
                 # points at the instruction to return to.
                 traps.raise_exception(ExcCode.INT)
                 syscall.handle_exception()
-            options.force_break = False
             for _ in range(step_size):
                 gpr[0] = 0  # $0 is always zero
                 poll -= 1
@@ -195,15 +194,15 @@ _FACTORIES: dict[int, Callable[[Instruction], Step]] = {}
 
 
 def _executes(
-    *names: str,
+    *tokens: Tok,
 ) -> Callable[[Callable[[Instruction], Step]], Callable[[Instruction], Step]]:
     """Register the decorated function as the compiler for these opcodes."""
 
     def register(
         factory: Callable[[Instruction], Step],
     ) -> Callable[[Instruction], Step]:
-        for name in names:
-            _FACTORIES[Tok[f"{name}_OPCODE"]] = factory
+        for token in tokens:
+            _FACTORIES[token] = factory
         return factory
 
     return register
@@ -260,9 +259,13 @@ def _coprocessor_unusable(inst: Instruction) -> Step:
     return step
 
 
-for _name in ("BC2F", "BC2FL", "BC2T", "BC2TL", "CFC2", "COP2", "CTC2", "LDC2", "LWC2",
-              "MFC2", "MTC2", "SDC2", "SWC2"):  # fmt: skip
-    _FACTORIES[Tok[f"{_name}_OPCODE"]] = _coprocessor_unusable
+for _token in (
+    Tok.BC2F_OPCODE, Tok.BC2FL_OPCODE, Tok.BC2T_OPCODE, Tok.BC2TL_OPCODE,
+    Tok.CFC2_OPCODE, Tok.COP2_OPCODE, Tok.CTC2_OPCODE, Tok.LDC2_OPCODE,
+    Tok.LWC2_OPCODE, Tok.MFC2_OPCODE, Tok.MTC2_OPCODE, Tok.SDC2_OPCODE,
+    Tok.SWC2_OPCODE,
+):  # fmt: skip
+    _FACTORIES[_token] = _coprocessor_unusable
 
 
 def _reserved(inst: Instruction) -> Step:
@@ -274,11 +277,17 @@ def _reserved(inst: Instruction) -> Step:
     return step
 
 
-for _name in ("RFE", "TLBP", "TLBR", "TLBWI", "TLBWR"):
-    _FACTORIES[Tok[f"{_name}_OPCODE"]] = _reserved
+for _token in (
+    Tok.RFE_OPCODE,
+    Tok.TLBP_OPCODE,
+    Tok.TLBR_OPCODE,
+    Tok.TLBWI_OPCODE,
+    Tok.TLBWR_OPCODE,
+):
+    _FACTORIES[_token] = _reserved
 
 
-@_executes("CACHE", "PREF", "SYNC")
+@_executes(Tok.CACHE_OPCODE, Tok.PREF_OPCODE, Tok.SYNC_OPCODE)
 def _no_operation(inst: Instruction) -> Step:
     """Cache and memory-ordering details are not simulated."""
 
@@ -291,7 +300,7 @@ def _no_operation(inst: Instruction) -> Step:
 # --- integer arithmetic and logic ----------------------------------------------------
 
 
-@_executes("ADD")
+@_executes(Tok.ADD_OPCODE)
 def _add(inst: Instruction) -> Step:
     """add: rd = rs + rt, trapping on signed overflow."""
     rd, rs, rt = inst.rd, inst.rs, inst.rt
@@ -306,7 +315,7 @@ def _add(inst: Instruction) -> Step:
     return step
 
 
-@_executes("ADDI")
+@_executes(Tok.ADDI_OPCODE)
 def _addi(inst: Instruction) -> Step:
     """addi: rt = rs + imm, trapping on signed overflow."""
     rt, rs, imm = inst.rt, inst.rs, inst.imm
@@ -321,7 +330,7 @@ def _addi(inst: Instruction) -> Step:
     return step
 
 
-@_executes("ADDIU")
+@_executes(Tok.ADDIU_OPCODE)
 def _addiu(inst: Instruction) -> Step:
     """addiu: rt = rs + imm, wrapping (no trap, despite the "u")."""
     rt, rs, imm = inst.rt, inst.rs, inst.imm
@@ -332,7 +341,7 @@ def _addiu(inst: Instruction) -> Step:
     return step
 
 
-@_executes("ADDU")
+@_executes(Tok.ADDU_OPCODE)
 def _addu(inst: Instruction) -> Step:
     """addu: rd = rs + rt, wrapping."""
     rd, rs, rt = inst.rd, inst.rs, inst.rt
@@ -343,7 +352,7 @@ def _addu(inst: Instruction) -> Step:
     return step
 
 
-@_executes("SUB")
+@_executes(Tok.SUB_OPCODE)
 def _sub(inst: Instruction) -> Step:
     """sub: rd = rs - rt, trapping on signed overflow."""
     rd, rs, rt = inst.rd, inst.rs, inst.rt
@@ -358,7 +367,7 @@ def _sub(inst: Instruction) -> Step:
     return step
 
 
-@_executes("SUBU")
+@_executes(Tok.SUBU_OPCODE)
 def _subu(inst: Instruction) -> Step:
     """subu: rd = rs - rt, wrapping."""
     rd, rs, rt = inst.rd, inst.rs, inst.rt
@@ -391,7 +400,7 @@ _FACTORIES[Tok.SLT_OPCODE] = _logic(lambda a, b: 1 if a < b else 0)
 _FACTORIES[Tok.SLTU_OPCODE] = _logic(lambda a, b: 1 if a & M32 < b & M32 else 0)
 
 
-@_executes("ANDI", "ORI", "XORI")
+@_executes(Tok.ANDI_OPCODE, Tok.ORI_OPCODE, Tok.XORI_OPCODE)
 def _logic_immediate(inst: Instruction) -> Step:
     """andi/ori/xori: the immediate is zero-extended."""
     rt, rs, imm = inst.rt, inst.rs, inst.imm & 0xFFFF
@@ -407,15 +416,21 @@ def _logic_immediate(inst: Instruction) -> Step:
         def step() -> None:
             gpr[rt] = gpr[rs] | imm
 
-    else:
+    elif opcode == Tok.XORI_OPCODE:
 
         def step() -> None:
             gpr[rt] = gpr[rs] ^ imm
 
+    else:
+        raise AssertionError(
+            f"_logic_immediate: opcode {opcode} is not andi/ori/xori; only they are"
+            " registered"
+        )
+
     return step
 
 
-@_executes("SLTI")
+@_executes(Tok.SLTI_OPCODE)
 def _slti(inst: Instruction) -> Step:
     """slti: rt = 1 if rs < imm (signed)."""
     rt, rs, imm = inst.rt, inst.rs, inst.imm
@@ -426,7 +441,7 @@ def _slti(inst: Instruction) -> Step:
     return step
 
 
-@_executes("SLTIU")
+@_executes(Tok.SLTIU_OPCODE)
 def _sltiu(inst: Instruction) -> Step:
     """sltiu: the immediate is sign-extended, then compared unsigned."""
     rt, rs, imm = inst.rt, inst.rs, inst.imm & M32
@@ -437,7 +452,7 @@ def _sltiu(inst: Instruction) -> Step:
     return step
 
 
-@_executes("LUI")
+@_executes(Tok.LUI_OPCODE)
 def _lui(inst: Instruction) -> Step:
     """lui: rt = imm << 16."""
     rt, value = inst.rt, machine.s32(inst.imm << 16)
@@ -448,7 +463,7 @@ def _lui(inst: Instruction) -> Step:
     return step
 
 
-@_executes("CLO", "CLZ")
+@_executes(Tok.CLO_OPCODE, Tok.CLZ_OPCODE)
 def _count_leading(inst: Instruction) -> Step:
     """clo/clz: count the leading ones/zeros of rs."""
     rd, rs = inst.rd, inst.rs
@@ -462,7 +477,7 @@ def _count_leading(inst: Instruction) -> Step:
     return step
 
 
-@_executes("MOVN", "MOVZ")
+@_executes(Tok.MOVN_OPCODE, Tok.MOVZ_OPCODE)
 def _move_conditional(inst: Instruction) -> Step:
     """movn/movz: rd = rs if rt is nonzero/zero."""
     rd, rs, rt = inst.rd, inst.rs, inst.rt
@@ -484,7 +499,7 @@ def _move_conditional(inst: Instruction) -> Step:
 # --- shifts ----------------------------------------------------------------------------
 
 
-@_executes("SLL", "SRL", "SRA")
+@_executes(Tok.SLL_OPCODE, Tok.SRL_OPCODE, Tok.SRA_OPCODE)
 def _shift(inst: Instruction) -> Step:
     """sll/srl/sra by the constant shamt (srl is logical, sra arithmetic)."""
     rd, rt, shamt = inst.rd, inst.rt, inst.shamt
@@ -512,7 +527,7 @@ def _shift(inst: Instruction) -> Step:
     return step
 
 
-@_executes("SLLV", "SRLV", "SRAV")
+@_executes(Tok.SLLV_OPCODE, Tok.SRLV_OPCODE, Tok.SRAV_OPCODE)
 def _shift_variable(inst: Instruction) -> Step:
     """sllv/srlv/srav by the low 5 bits of rs."""
     rd, rt, rs = inst.rd, inst.rt, inst.rs
@@ -544,7 +559,7 @@ def _set_hi_lo(product: int) -> None:
     cpu.hi = _wrap(product >> 32)
 
 
-@_executes("MULT", "MULTU", "MUL")
+@_executes(Tok.MULT_OPCODE, Tok.MULTU_OPCODE, Tok.MUL_OPCODE)
 def _multiply(inst: Instruction) -> Step:
     """mult/multu: HI:LO = rs * rt; mul also puts LO in rd (and clobbers HI)."""
     rd, rs, rt = inst.rd, inst.rs, inst.rt
@@ -568,7 +583,7 @@ def _multiply(inst: Instruction) -> Step:
     return step
 
 
-@_executes("MADD", "MADDU", "MSUB", "MSUBU")
+@_executes(Tok.MADD_OPCODE, Tok.MADDU_OPCODE, Tok.MSUB_OPCODE, Tok.MSUBU_OPCODE)
 def _multiply_accumulate(inst: Instruction) -> Step:
     """madd/msub(u): HI:LO += or -= rs * rt, as 64-bit arithmetic."""
     rs, rt = inst.rs, inst.rt
@@ -585,7 +600,7 @@ def _multiply_accumulate(inst: Instruction) -> Step:
     return step
 
 
-@_executes("DIV")
+@_executes(Tok.DIV_OPCODE)
 def _div(inst: Instruction) -> Step:
     """div: LO = rs / rt, HI = rs % rt, truncating toward zero.
 
@@ -603,7 +618,7 @@ def _div(inst: Instruction) -> Step:
     return step
 
 
-@_executes("DIVU")
+@_executes(Tok.DIVU_OPCODE)
 def _divu(inst: Instruction) -> Step:
     """divu: unsigned division; by zero leaves HI and LO unchanged."""
     rs, rt = inst.rs, inst.rt
@@ -618,7 +633,7 @@ def _divu(inst: Instruction) -> Step:
     return step
 
 
-@_executes("MFHI", "MFLO")
+@_executes(Tok.MFHI_OPCODE, Tok.MFLO_OPCODE)
 def _move_from_hi_lo(inst: Instruction) -> Step:
     """mfhi/mflo: rd = HI or LO."""
     rd: int = inst.rd
@@ -635,7 +650,7 @@ def _move_from_hi_lo(inst: Instruction) -> Step:
     return step
 
 
-@_executes("MTHI", "MTLO")
+@_executes(Tok.MTHI_OPCODE, Tok.MTLO_OPCODE)
 def _move_to_hi_lo(inst: Instruction) -> Step:
     """mthi/mtlo: HI or LO = rs."""
     rs: int = inst.rs
@@ -660,7 +675,7 @@ def _branch_offset(inst: Instruction) -> int:
     return inst.imm << 2
 
 
-@_executes("BEQ", "BEQL", "BNE", "BNEL")
+@_executes(Tok.BEQ_OPCODE, Tok.BEQL_OPCODE, Tok.BNE_OPCODE, Tok.BNEL_OPCODE)
 def _branch_compare(inst: Instruction) -> Step:
     """beq/bne (and their branch-likely forms): compare rs with rt."""
     rs, rt, offset = inst.rs, inst.rt, _branch_offset(inst)
@@ -679,23 +694,67 @@ def _branch_compare(inst: Instruction) -> Step:
     return step
 
 
-_SIGN_TESTS: dict[str, Callable[[int], bool]] = {
-    "BGEZ": lambda value: value >= 0,
-    "BGTZ": lambda value: value > 0,
-    "BLEZ": lambda value: value <= 0,
-    "BLTZ": lambda value: value < 0,
+def _non_negative(value: int) -> bool:
+    """bgez's test."""
+    return value >= 0
+
+
+def _positive(value: int) -> bool:
+    """bgtz's test."""
+    return value > 0
+
+
+def _non_positive(value: int) -> bool:
+    """blez's test."""
+    return value <= 0
+
+
+def _negative(value: int) -> bool:
+    """bltz's test."""
+    return value < 0
+
+
+_SIGN_TESTS: dict[int, Callable[[int], bool]] = {
+    Tok.BGEZ_OPCODE: _non_negative,
+    Tok.BGEZL_OPCODE: _non_negative,
+    Tok.BGEZAL_OPCODE: _non_negative,
+    Tok.BGEZALL_OPCODE: _non_negative,
+    Tok.BGTZ_OPCODE: _positive,
+    Tok.BGTZL_OPCODE: _positive,
+    Tok.BLEZ_OPCODE: _non_positive,
+    Tok.BLEZL_OPCODE: _non_positive,
+    Tok.BLTZ_OPCODE: _negative,
+    Tok.BLTZL_OPCODE: _negative,
+    Tok.BLTZAL_OPCODE: _negative,
+    Tok.BLTZALL_OPCODE: _negative,
 }
 
+# The sign branches that link $ra.
+_LINKING_SIGN_BRANCHES: frozenset[int] = frozenset(
+    {Tok.BGEZAL_OPCODE, Tok.BGEZALL_OPCODE, Tok.BLTZAL_OPCODE, Tok.BLTZALL_OPCODE}
+)
 
-@_executes("BGEZ", "BGEZL", "BGTZ", "BGTZL", "BLEZ", "BLEZL", "BLTZ", "BLTZL",
-           "BGEZAL", "BGEZALL", "BLTZAL", "BLTZALL")  # fmt: skip
+
+@_executes(
+    Tok.BGEZ_OPCODE,
+    Tok.BGEZL_OPCODE,
+    Tok.BGTZ_OPCODE,
+    Tok.BGTZL_OPCODE,
+    Tok.BLEZ_OPCODE,
+    Tok.BLEZL_OPCODE,
+    Tok.BLTZ_OPCODE,
+    Tok.BLTZL_OPCODE,
+    Tok.BGEZAL_OPCODE,
+    Tok.BGEZALL_OPCODE,
+    Tok.BLTZAL_OPCODE,
+    Tok.BLTZALL_OPCODE,
+)
 def _branch_sign(inst: Instruction) -> Step:
     """The branches on the sign of rs; the -AL forms link $ra first."""
     rs, offset = inst.rs, _branch_offset(inst)
-    name: str = opcodes.name_of(inst.opcode).upper()
-    link: bool = "AL" in name
+    link: bool = inst.opcode in _LINKING_SIGN_BRANCHES
     nullify: bool = instruction.opcode_is_nullified_branch(inst.opcode)
-    test: Callable[[int], bool] = _SIGN_TESTS[name[:4]]
+    test: Callable[[int], bool] = _SIGN_TESTS[inst.opcode]
 
     def step() -> None:
         if link:
@@ -706,7 +765,7 @@ def _branch_sign(inst: Instruction) -> Step:
     return step
 
 
-@_executes("BC1F", "BC1FL", "BC1T", "BC1TL")
+@_executes(Tok.BC1F_OPCODE, Tok.BC1FL_OPCODE, Tok.BC1T_OPCODE, Tok.BC1TL_OPCODE)
 def _branch_fp_condition(inst: Instruction) -> Step:
     """bc1f/bc1t: branch on FP condition code cc (rt holds cc, nd, tf)."""
     offset: int = _branch_offset(inst)
@@ -718,7 +777,7 @@ def _branch_fp_condition(inst: Instruction) -> Step:
     return step
 
 
-@_executes("J", "JAL")
+@_executes(Tok.J_OPCODE, Tok.JAL_OPCODE)
 def _jump_absolute(inst: Instruction) -> Step:
     """j/jal: jump within the current 256 MB region; jal links $ra."""
     target: int = (inst.target << 2) & M32
@@ -734,7 +793,7 @@ def _jump_absolute(inst: Instruction) -> Step:
 
 # The hazard-barrier forms (.hb) run as the plain ones: the simulator has no pipeline
 # hazards for a barrier to clear.
-@_executes("JR", "JR_HB")
+@_executes(Tok.JR_OPCODE, Tok.JR_HB_OPCODE)
 def _jr(inst: Instruction) -> Step:
     """jr: jump to the address in rs."""
     rs: int = inst.rs
@@ -745,7 +804,7 @@ def _jr(inst: Instruction) -> Step:
     return step
 
 
-@_executes("JALR", "JALR_HB")
+@_executes(Tok.JALR_OPCODE, Tok.JALR_HB_OPCODE)
 def _jalr(inst: Instruction) -> Step:
     """jalr: rd = return address, jump to rs (read before rd is written)."""
     rd, rs = inst.rd, inst.rs
@@ -758,7 +817,7 @@ def _jalr(inst: Instruction) -> Step:
     return step
 
 
-@_executes("ERET")
+@_executes(Tok.ERET_OPCODE)
 def _eret(inst: Instruction) -> Step:
     """eret: clear EXL and return to EPC (with a delay slot if delayed)."""
 
@@ -773,7 +832,14 @@ def _eret(inst: Instruction) -> Step:
 # --- loads and stores --------------------------------------------------------------------
 
 
-@_executes("LB", "LBU", "LH", "LHU", "LW", "LL")
+@_executes(
+    Tok.LB_OPCODE,
+    Tok.LBU_OPCODE,
+    Tok.LH_OPCODE,
+    Tok.LHU_OPCODE,
+    Tok.LW_OPCODE,
+    Tok.LL_OPCODE,
+)
 def _load_integer(inst: Instruction) -> Step:
     """The loads; a faulting load still writes 0 to rt."""
     rt, base, offset = inst.rt, inst.rs, inst.imm
@@ -795,7 +861,7 @@ def _load_integer(inst: Instruction) -> Step:
     return step
 
 
-@_executes("LWL", "LWR")
+@_executes(Tok.LWL_OPCODE, Tok.LWR_OPCODE)
 def _load_unaligned(inst: Instruction) -> Step:
     """lwl/lwr: merge part of an aligned word into rt (little-endian)."""
     rt, base, offset = inst.rt, inst.rs, inst.imm
@@ -818,14 +884,23 @@ def _load_unaligned(inst: Instruction) -> Step:
     return step
 
 
-@_executes("SB", "SH", "SW", "SC")
+@_executes(Tok.SB_OPCODE, Tok.SH_OPCODE, Tok.SW_OPCODE, Tok.SC_OPCODE)
 def _store_integer(inst: Instruction) -> Step:
     """The stores (sc is a plain store: one processor, so it always succeeds)."""
     rt, base, offset = inst.rt, inst.rs, inst.imm
-    write: Callable[[int, int], None] = {
-        Tok.SB_OPCODE: memory.write_byte,
-        Tok.SH_OPCODE: memory.write_half,
-    }.get(inst.opcode, memory.write_word)
+    write: Callable[[int, int], None]
+    match inst.opcode:
+        case Tok.SB_OPCODE:
+            write = memory.write_byte
+        case Tok.SH_OPCODE:
+            write = memory.write_half
+        case Tok.SW_OPCODE | Tok.SC_OPCODE:
+            write = memory.write_word
+        case _:
+            raise AssertionError(
+                f"_store_integer: opcode {inst.opcode} is not a store; only they are"
+                " registered"
+            )
 
     def step() -> None:
         write((gpr[base] + offset) & M32, gpr[rt])
@@ -833,7 +908,7 @@ def _store_integer(inst: Instruction) -> Step:
     return step
 
 
-@_executes("SWL", "SWR")
+@_executes(Tok.SWL_OPCODE, Tok.SWR_OPCODE)
 def _store_unaligned(inst: Instruction) -> Step:
     """swl/swr: store part of rt into an aligned word (little-endian)."""
     rt, base, offset = inst.rt, inst.rs, inst.imm
@@ -858,21 +933,33 @@ def _store_unaligned(inst: Instruction) -> Step:
 
 # --- traps, break and syscall ---------------------------------------------------------------
 
-_TRAP_TESTS: dict[str, Callable[[int, int], bool]] = {
-    "TEQ": lambda a, b: a == b,
-    "TNE": lambda a, b: a != b,
-    "TGE": lambda a, b: a >= b,
-    "TLT": lambda a, b: a < b,
-    "TGEU": lambda a, b: a & M32 >= b & M32,
-    "TLTU": lambda a, b: a & M32 < b & M32,
-}
+# Each trap's comparison, shared by its register and its immediate form.
+_TRAP_TESTS: dict[int, Callable[[int, int], bool]] = {}
+_trap_test: Callable[[int, int], bool]
+for _register_form, _immediate_form, _trap_test in (
+    (Tok.TEQ_OPCODE, Tok.TEQI_OPCODE, lambda a, b: a == b),
+    (Tok.TNE_OPCODE, Tok.TNEI_OPCODE, lambda a, b: a != b),
+    (Tok.TGE_OPCODE, Tok.TGEI_OPCODE, lambda a, b: a >= b),
+    (Tok.TLT_OPCODE, Tok.TLTI_OPCODE, lambda a, b: a < b),
+    (Tok.TGEU_OPCODE, Tok.TGEIU_OPCODE, lambda a, b: a & M32 >= b & M32),
+    (Tok.TLTU_OPCODE, Tok.TLTIU_OPCODE, lambda a, b: a & M32 < b & M32),
+):
+    _TRAP_TESTS[_register_form] = _trap_test
+    _TRAP_TESTS[_immediate_form] = _trap_test
 
 
-@_executes("TEQ", "TNE", "TGE", "TLT", "TGEU", "TLTU")
+@_executes(
+    Tok.TEQ_OPCODE,
+    Tok.TNE_OPCODE,
+    Tok.TGE_OPCODE,
+    Tok.TLT_OPCODE,
+    Tok.TGEU_OPCODE,
+    Tok.TLTU_OPCODE,
+)
 def _trap_register(inst: Instruction) -> Step:
     """Trap if the comparison of rs with rt holds."""
     rs, rt = inst.rs, inst.rt
-    test: Callable[[int, int], bool] = _TRAP_TESTS[opcodes.name_of(inst.opcode).upper()]
+    test: Callable[[int, int], bool] = _TRAP_TESTS[inst.opcode]
 
     def step() -> None:
         if test(gpr[rs], gpr[rt]):
@@ -881,13 +968,18 @@ def _trap_register(inst: Instruction) -> Step:
     return step
 
 
-@_executes("TEQI", "TNEI", "TGEI", "TLTI", "TGEIU", "TLTIU")
+@_executes(
+    Tok.TEQI_OPCODE,
+    Tok.TNEI_OPCODE,
+    Tok.TGEI_OPCODE,
+    Tok.TLTI_OPCODE,
+    Tok.TGEIU_OPCODE,
+    Tok.TLTIU_OPCODE,
+)
 def _trap_immediate(inst: Instruction) -> Step:
     """Trap if the comparison of rs with the sign-extended immediate holds."""
     rs, imm = inst.rs, inst.imm
-    test: Callable[[int, int], bool] = _TRAP_TESTS[
-        opcodes.name_of(inst.opcode).upper().replace("I", "", 1)
-    ]
+    test: Callable[[int, int], bool] = _TRAP_TESTS[inst.opcode]
 
     def step() -> None:
         if test(gpr[rs], imm):
@@ -896,7 +988,7 @@ def _trap_immediate(inst: Instruction) -> Step:
     return step
 
 
-@_executes("BREAK")
+@_executes(Tok.BREAK_OPCODE)
 def _break(inst: Instruction) -> Step:
     """break: a Bp exception; ``break 1`` is a debugger breakpoint (stop)."""
     is_debugger: bool = inst.rd == 1
@@ -908,7 +1000,7 @@ def _break(inst: Instruction) -> Step:
     return step
 
 
-@_executes("SYSCALL")
+@_executes(Tok.SYSCALL_OPCODE)
 def _syscall(inst: Instruction) -> Step:
     """syscall: the service number is in $v0 (syscall.py)."""
 
@@ -921,7 +1013,7 @@ def _syscall(inst: Instruction) -> Step:
 # --- coprocessor 0 ----------------------------------------------------------------------------
 
 
-@_executes("MFC0")
+@_executes(Tok.MFC0_OPCODE)
 def _mfc0(inst: Instruction) -> Step:
     """mfc0: rt = a CP0 register (its number is in the rd byte)."""
     rt, number = inst.rt, inst.rd
@@ -932,7 +1024,7 @@ def _mfc0(inst: Instruction) -> Step:
     return step
 
 
-@_executes("MTC0")
+@_executes(Tok.MTC0_OPCODE)
 def _mtc0(inst: Instruction) -> Step:
     """mtc0: a CP0 register = rt, keeping only its writable bits."""
     rt, number = inst.rt, inst.rd
@@ -954,12 +1046,12 @@ def _mtc0(inst: Instruction) -> Step:
             case regs.CP0_CONFIG:
                 cp0[number] = _wrap(cp0[number] & regs.CONFIG_MASK)
             case _:
-                pass  # any other value: nothing to do, as before
+                pass  # other CP0 registers keep the whole value written
 
     return step
 
 
-@_executes("CFC0", "CTC0")
+@_executes(Tok.CFC0_OPCODE, Tok.CTC0_OPCODE)
 def _coprocessor0_control(inst: Instruction) -> Step:
     """cfc0/ctc0: move from/to a CP0 control register."""
     rt, number = inst.rt, inst.rd
@@ -1003,11 +1095,14 @@ def _fp_binary(
     return factory
 
 
-for _fmt, _double in (("S", False), ("D", True)):
-    _FACTORIES[Tok[f"ADD_{_fmt}_OPCODE"]] = _fp_binary(lambda a, b: a + b, _double)
-    _FACTORIES[Tok[f"SUB_{_fmt}_OPCODE"]] = _fp_binary(lambda a, b: a - b, _double)
-    _FACTORIES[Tok[f"MUL_{_fmt}_OPCODE"]] = _fp_binary(lambda a, b: a * b, _double)
-    _FACTORIES[Tok[f"DIV_{_fmt}_OPCODE"]] = _fp_binary(machine.f_div, _double)
+for _add_token, _sub_token, _mul_token, _div_token, _double in (
+    (Tok.ADD_S_OPCODE, Tok.SUB_S_OPCODE, Tok.MUL_S_OPCODE, Tok.DIV_S_OPCODE, False),
+    (Tok.ADD_D_OPCODE, Tok.SUB_D_OPCODE, Tok.MUL_D_OPCODE, Tok.DIV_D_OPCODE, True),
+):
+    _FACTORIES[_add_token] = _fp_binary(lambda a, b: a + b, _double)
+    _FACTORIES[_sub_token] = _fp_binary(lambda a, b: a - b, _double)
+    _FACTORIES[_mul_token] = _fp_binary(lambda a, b: a * b, _double)
+    _FACTORIES[_div_token] = _fp_binary(machine.f_div, _double)
 
 
 def _fp_unary(
@@ -1034,10 +1129,13 @@ def _fp_unary(
     return factory
 
 
-for _fmt, _double in (("S", False), ("D", True)):
-    _FACTORIES[Tok[f"ABS_{_fmt}_OPCODE"]] = _fp_unary(math.fabs, _double)
-    _FACTORIES[Tok[f"NEG_{_fmt}_OPCODE"]] = _fp_unary(lambda x: -x, _double)
-    _FACTORIES[Tok[f"SQRT_{_fmt}_OPCODE"]] = _fp_unary(machine.f_sqrt, _double)
+for _abs_token, _neg_token, _sqrt_token, _double in (
+    (Tok.ABS_S_OPCODE, Tok.NEG_S_OPCODE, Tok.SQRT_S_OPCODE, False),
+    (Tok.ABS_D_OPCODE, Tok.NEG_D_OPCODE, Tok.SQRT_D_OPCODE, True),
+):
+    _FACTORIES[_abs_token] = _fp_unary(math.fabs, _double)
+    _FACTORIES[_neg_token] = _fp_unary(lambda x: -x, _double)
+    _FACTORIES[_sqrt_token] = _fp_unary(machine.f_sqrt, _double)
 
 
 def _rounded(rounding: Callable[[float], float]) -> Callable[[float], float]:
@@ -1045,23 +1143,40 @@ def _rounded(rounding: Callable[[float], float]) -> Callable[[float], float]:
     return lambda x: float(rounding(x)) if math.isfinite(x) else x
 
 
-_TO_WORD: dict[str, Callable[[float], float]] = {
-    "CEIL": _rounded(math.ceil),
-    "FLOOR": _rounded(math.floor),
-    "ROUND": lambda x: x + 0.5,  # then truncated: spim's own rounding
-    "TRUNC": lambda x: x,
-    "CVT": lambda x: x,
-}
+# Each conversion to a word: how it adjusts the value before truncating, and
+# whether it reads a double (the .d form) or a single (the .s form).
+_TO_WORD: dict[int, tuple[Callable[[float], float], Callable[[int], float]]] = {}
+_to_word_adjust: Callable[[float], float]
+for _double_form, _single_form, _to_word_adjust in (
+    (Tok.CEIL_W_D_OPCODE, Tok.CEIL_W_S_OPCODE, _rounded(math.ceil)),
+    (Tok.FLOOR_W_D_OPCODE, Tok.FLOOR_W_S_OPCODE, _rounded(math.floor)),
+    # then truncated: spim's own rounding
+    (Tok.ROUND_W_D_OPCODE, Tok.ROUND_W_S_OPCODE, lambda x: x + 0.5),
+    (Tok.TRUNC_W_D_OPCODE, Tok.TRUNC_W_S_OPCODE, lambda x: x),
+    (Tok.CVT_W_D_OPCODE, Tok.CVT_W_S_OPCODE, lambda x: x),
+):
+    _TO_WORD[_double_form] = (_to_word_adjust, regs.fpr_d)
+    _TO_WORD[_single_form] = (_to_word_adjust, regs.fpr_s)
 
 
-@_executes("CEIL_W_D", "CEIL_W_S", "FLOOR_W_D", "FLOOR_W_S", "ROUND_W_D", "ROUND_W_S",
-           "TRUNC_W_D", "TRUNC_W_S", "CVT_W_D", "CVT_W_S")  # fmt: skip
+@_executes(
+    Tok.CEIL_W_D_OPCODE,
+    Tok.CEIL_W_S_OPCODE,
+    Tok.FLOOR_W_D_OPCODE,
+    Tok.FLOOR_W_S_OPCODE,
+    Tok.ROUND_W_D_OPCODE,
+    Tok.ROUND_W_S_OPCODE,
+    Tok.TRUNC_W_D_OPCODE,
+    Tok.TRUNC_W_S_OPCODE,
+    Tok.CVT_W_D_OPCODE,
+    Tok.CVT_W_S_OPCODE,
+)
 def _fp_to_word(inst: Instruction) -> Step:
     """Convert fs to a 32-bit integer in fd (x86's INT_MIN when out of range)."""
     fd, fs = inst.shamt, inst.rd
-    name: str = opcodes.name_of(inst.opcode)
-    adjust: Callable[[float], float] = _TO_WORD[name.split(".")[0].upper()]
-    read: Callable[[int], float] = regs.fpr_d if name.endswith(".d") else regs.fpr_s
+    adjust: Callable[[float], float]
+    read: Callable[[int], float]
+    adjust, read = _TO_WORD[inst.opcode]
 
     def step() -> None:
         fpr[fd] = machine.to_s32(adjust(read(fs)))
@@ -1069,7 +1184,9 @@ def _fp_to_word(inst: Instruction) -> Step:
     return step
 
 
-@_executes("CVT_D_S", "CVT_D_W", "CVT_S_D", "CVT_S_W")
+@_executes(
+    Tok.CVT_D_S_OPCODE, Tok.CVT_D_W_OPCODE, Tok.CVT_S_D_OPCODE, Tok.CVT_S_W_OPCODE
+)
 def _fp_convert(inst: Instruction) -> Step:
     """cvt between single, double and word."""
     fd, fs = inst.shamt, inst.rd
@@ -1087,10 +1204,14 @@ def _fp_convert(inst: Instruction) -> Step:
 
             def step() -> None:
                 regs.set_fpr_s(fd, regs.fpr_d(fs))
-        case _:
+        case Tok.CVT_S_W_OPCODE:
 
             def step() -> None:
                 regs.set_fpr_s(fd, float(fpr[fs]))
+        case _:
+            raise AssertionError(
+                f"_fp_convert: opcode {opcode} is not a cvt; only they are registered"
+            )
 
     return step
 
@@ -1123,33 +1244,52 @@ def _fp_compare(double: bool) -> Callable[[Instruction], Step]:
     return factory
 
 
+# The FP compares are the table's c.cond.fmt rows; the fmt field (bits 21-25)
+# is 0x11 for a double, 0x10 for a single.
 for _row in opcodes.ROWS:
-    if _row.name.startswith("c.") and _row.name.endswith((".s", ".d")):
-        _FACTORIES[_row.token] = _fp_compare(_row.name.endswith(".d"))
+    if _row.kind == OpType.FP_CMP_FS_FT_INST:
+        _FACTORIES[_row.token] = _fp_compare((_row.encoding >> 21) & 0x1F == 0x11)
 
 
-@_executes("MOV_S", "MOVF_S", "MOVT_S", "MOVN_S", "MOVZ_S",
-           "MOV_D", "MOVF_D", "MOVT_D", "MOVN_D", "MOVZ_D")  # fmt: skip
+@_executes(
+    Tok.MOV_S_OPCODE,
+    Tok.MOVF_S_OPCODE,
+    Tok.MOVT_S_OPCODE,
+    Tok.MOVN_S_OPCODE,
+    Tok.MOVZ_S_OPCODE,
+    Tok.MOV_D_OPCODE,
+    Tok.MOVF_D_OPCODE,
+    Tok.MOVT_D_OPCODE,
+    Tok.MOVN_D_OPCODE,
+    Tok.MOVZ_D_OPCODE,
+)
 def _fp_move(inst: Instruction) -> Step:
     """mov.fmt, and its conditional forms (on a cc, or on a register)."""
     fd, fs, rt = inst.shamt, inst.rd, inst.rt
-    name: str = opcodes.name_of(inst.opcode)
-    double: bool = name.endswith(".d")
-    kind: str = name.split(".")[0]
+    opcode: int = inst.opcode
+    double: bool = opcode in (
+        Tok.MOV_D_OPCODE, Tok.MOVF_D_OPCODE, Tok.MOVT_D_OPCODE, Tok.MOVN_D_OPCODE,
+        Tok.MOVZ_D_OPCODE,
+    )  # fmt: skip
 
     def condition() -> bool:
         """Whether this move happens."""
-        match kind:
-            case "movf":
+        match opcode:
+            case Tok.MOVF_S_OPCODE | Tok.MOVF_D_OPCODE:
                 return regs.fcc(rt >> 2) == 0
-            case "movt":
+            case Tok.MOVT_S_OPCODE | Tok.MOVT_D_OPCODE:
                 return regs.fcc(rt >> 2) != 0
-            case "movn":
+            case Tok.MOVN_S_OPCODE | Tok.MOVN_D_OPCODE:
                 return gpr[rt] != 0
-            case "movz":
+            case Tok.MOVZ_S_OPCODE | Tok.MOVZ_D_OPCODE:
                 return gpr[rt] == 0
-            case _:
+            case Tok.MOV_S_OPCODE | Tok.MOV_D_OPCODE:
                 return True
+            case _:
+                raise AssertionError(
+                    f"_fp_move: opcode {opcode} is not an FP move; only they are"
+                    " registered"
+                )
 
     def step() -> None:
         if condition():
@@ -1161,7 +1301,7 @@ def _fp_move(inst: Instruction) -> Step:
     return step
 
 
-@_executes("MOVF", "MOVT")
+@_executes(Tok.MOVF_OPCODE, Tok.MOVT_OPCODE)
 def _move_on_fp_condition(inst: Instruction) -> Step:
     """movf/movt: rd = rs if FP condition code cc is false/true."""
     rd, rs, cc = inst.rd, inst.rs, inst.rt >> 2
@@ -1174,7 +1314,7 @@ def _move_on_fp_condition(inst: Instruction) -> Step:
     return step
 
 
-@_executes("MFC1", "MTC1")
+@_executes(Tok.MFC1_OPCODE, Tok.MTC1_OPCODE)
 def _move_fp_word(inst: Instruction) -> Step:
     """mfc1/mtc1: copy a word's bits between rt and FP register fs."""
     rt, fs = inst.rt, inst.rd
@@ -1191,7 +1331,7 @@ def _move_fp_word(inst: Instruction) -> Step:
     return step
 
 
-@_executes("CFC1", "CTC1")
+@_executes(Tok.CFC1_OPCODE, Tok.CTC1_OPCODE)
 def _fp_control(inst: Instruction) -> Step:
     """cfc1/ctc1: move from/to an FPU control register (FIR, FCSR)."""
     rt, number = inst.rt, inst.rd
@@ -1210,7 +1350,7 @@ def _fp_control(inst: Instruction) -> Step:
     return step
 
 
-@_executes("LWC1", "LDC1")
+@_executes(Tok.LWC1_OPCODE, Tok.LDC1_OPCODE)
 def _load_fp(inst: Instruction) -> Step:
     """lwc1/ldc1: load one or two words into FP registers."""
     ft, base, offset = inst.rt, inst.rs, inst.imm
@@ -1229,7 +1369,7 @@ def _load_fp(inst: Instruction) -> Step:
     return step
 
 
-@_executes("SWC1", "SDC1")
+@_executes(Tok.SWC1_OPCODE, Tok.SDC1_OPCODE)
 def _store_fp(inst: Instruction) -> Step:
     """swc1/sdc1: store FP register(s) as one or two words."""
     ft, base, offset = inst.rt, inst.rs, inst.imm

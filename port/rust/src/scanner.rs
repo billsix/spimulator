@@ -18,7 +18,7 @@ use crate::machine::{error_bytes, fatal_error};
 use crate::opcode_types::OpType;
 use crate::opcodes::{c_bsearch, keyword_row, TOK_EOF, TOK_FP, TOK_FP_REG, TOK_ID, TOK_INT};
 use crate::opcodes::{TOK_NL, TOK_REG, TOK_STR};
-use crate::symbol_table::SymbolTable;
+use crate::symbol_table::{Label, SymbolTable};
 
 /// The size of the line buffer (`LINE_BUF_MAX`).
 const LINE_BUF_MAX: usize = 4096;
@@ -82,7 +82,18 @@ pub fn register_name_to_number(name: &[u8]) -> i32 {
     if c1.is_ascii_digit() && (c2 == 0 || (c2.is_ascii_digit() && c3 == 0)) {
         c_atoi(name)
     } else if c1 == b'f' && c2.is_ascii_digit() {
-        c_atoi(&name[1..])
+        // $f0..$f31 only; the digits are read without overflow (C: strtol,
+        // then the range test), so a long number is not a register.
+        let fp_reg: u64 = name[1..]
+            .iter()
+            .take_while(|c: &&u8| c.is_ascii_digit())
+            .fold(0, |acc: u64, c: &u8| {
+                acc.saturating_mul(10).saturating_add(u64::from(c - b'0'))
+            });
+        i32::try_from(fp_reg)
+            .ok()
+            .filter(|n: &i32| *n <= 31)
+            .unwrap_or(-1)
     } else {
         let index: Option<usize> = c_bsearch(&REGISTER_NAMES, |entry: &(&str, i32)| {
             name.cmp(entry.0.as_bytes())
@@ -548,7 +559,7 @@ impl Scanner {
     fn identifier_or_constant(&self, id: Vec<u8>, context: &ScanContext<'_>) -> Token {
         let name: String = String::from_utf8_lossy(&id).into_owned();
         if let Some(label) = context.symbols.find(&name) {
-            let label = context.symbols.label(label);
+            let label: &Label = context.symbols.label(label);
             if label.constant {
                 return Token {
                     kind: TOK_INT,

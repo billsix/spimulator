@@ -33,8 +33,15 @@ void ss_init(str_stream* ss) {
 }
 
 void ss_clear(str_stream* ss) {
+  /* Start over with an empty stream.  Rewinding is not enough: a memstream
+     keeps what was written past the new position, so a shorter text written
+     after the rewind would end in the old text's tail. */
+  if (ss->stream != nullptr) {
+    fclose(ss->stream);
+    free(ss->buf);
+  }
+  *ss = (str_stream){};
   ss_lazy_init(ss);
-  rewind(ss->stream);
 }
 
 void ss_erase(str_stream* ss, int n) {

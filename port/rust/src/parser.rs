@@ -16,13 +16,13 @@ use std::rc::Rc;
 
 use crate::ast::{AstKind, AstNode};
 use crate::instruction::{opcode_is_nullified_branch, opcode_is_true_branch, ImmExpr};
-use crate::machine::{error, error_bytes, Machine};
+use crate::machine::{error_bytes, Machine};
 use crate::opcode_types::OpType;
 use crate::opcodes::*;
 use crate::pseudo_op::{branch_offset, op_to_imm_op};
 use crate::registers::REG_GP;
 use crate::scanner::ScanContext;
-use crate::symbol_table::LabelId;
+use crate::symbol_table::{Label, LabelId};
 
 /// An address operand, `offset(register)` with an optional label
 /// (`addr_expr`).
@@ -180,7 +180,7 @@ impl Machine {
     fn make_addr_expr(&mut self, offset: i32, symbol: Option<&str>, reg: i32) -> AddrExpr {
         if let (0, Some(name)) = (reg, symbol) {
             let id: LabelId = self.symbols.lookup(name);
-            let label = self.symbols.label(id);
+            let label: &Label = self.symbols.label(id);
             if label.gp {
                 let value: i64 = i64::from(offset) + label.addr - i64::from(self.mem.gp_midpoint);
                 return AddrExpr {
@@ -199,13 +199,16 @@ impl Machine {
 
     /// Report a syntax error at the current line (`parse_error_at`).
     fn parse_error_at(&mut self, message: &str) {
+        let line: i32 = self.scanner.line_no();
+        self.parse_error_on_line(message, line);
+    }
+
+    /// Report a syntax error on a given line (`parse_error_on_line`).
+    fn parse_error_on_line(&mut self, message: &str, line: i32) {
         self.asm.parse_error_occurred = true;
         self.asm.parse_errors_seen += 1;
-        let mut text: Vec<u8> = format!(
-            "spim: (parser) {message} on line {} of file ",
-            self.scanner.line_no()
-        )
-        .into_bytes();
+        let mut text: Vec<u8> =
+            format!("spim: (parser) {message} on line {line} of file ").into_bytes();
         text.extend_from_slice(self.asm.input_file_name.as_deref().unwrap_or(b"(stdin)"));
         text.push(b'\n');
         error_bytes(&text);
@@ -394,15 +397,18 @@ impl Machine {
 
     /// A signed 16-bit immediate (warns if it does not fit).
     fn parse_imm16(&mut self) -> ImmExpr {
+        // The instruction's line, before parsing the immediate scans the newline.
+        let line: i32 = self.scanner.line_no();
         let expr: ImmExpr = self.parse_imm32();
-        self.check_imm_range(&expr, -0x8000, 0x7fff);
+        self.check_imm_range(&expr, -0x8000, 0x7fff, line);
         expr
     }
 
     /// An unsigned 16-bit immediate (warns if it does not fit).
     fn parse_uimm16(&mut self) -> ImmExpr {
+        let line: i32 = self.scanner.line_no(); // as in parse_imm16
         let expr: ImmExpr = self.parse_imm32();
-        self.check_uimm_range(&expr, 0, 0xffff);
+        self.check_uimm_range(&expr, 0, 0xffff, line);
         expr
     }
 
@@ -689,11 +695,18 @@ impl Machine {
         pseudo.source_line = saved_line;
         self.asm.pseudo_stack.push(pseudo);
         self.do_parse_pseudo(op);
-        let pseudo: AstNode = self
+        let mut pseudo: AstNode = self
             .asm
             .pseudo_stack
             .pop()
             .expect("parse_pseudo pushed this node");
+        // The expansion is the pseudo-op's line, even when its last operand
+        // read on to the newline before a child was built.
+        if let AstKind::Pseudo { children, .. } = &mut pseudo.kind {
+            for child in children.iter_mut() {
+                child.source_line = saved_line;
+            }
+        }
         self.ast_append(pseudo);
     }
 
@@ -793,15 +806,24 @@ impl Machine {
                 }
             }
             TOK_MFC1_D_PSEUDO_OP | TOK_MTC1_D_PSEUDO_OP => {
+                let line: i32 = self.scanner.line_no(); // the last operand can consume the newline
                 let reg: i32 = self.parse_register();
                 let copreg: i32 = self.parse_copreg();
+                if reg == 31 || copreg == 31 {
+                    // The pair's second register would be 32.
+                    self.parse_error_on_line(
+                        "Register pair starts at the last register (31)",
+                        line,
+                    );
+                    return;
+                }
                 let real: i32 = if op == TOK_MFC1_D_PSEUDO_OP {
                     TOK_MFC1_OPCODE
                 } else {
                     TOK_MTC1_OPCODE
                 };
                 self.emit_fp_r(real, 0, copreg, reg);
-                self.emit_fp_r(real, 0, copreg + 1, reg + 1);
+                self.emit_fp_r(real, 0, copreg.wrapping_add(1), reg.wrapping_add(1));
             }
             TOK_LI_D_PSEUDO_OP => {
                 let fd: i32 = self.parse_fp_register();
@@ -820,7 +842,7 @@ impl Machine {
                     0,
                     &ImmExpr::constant((bits >> 32) as i32),
                 );
-                self.emit_fp_r(TOK_MTC1_OPCODE, 0, fd + 1, 1);
+                self.emit_fp_r(TOK_MTC1_OPCODE, 0, fd.wrapping_add(1), 1);
             }
             TOK_LI_S_PSEUDO_OP => {
                 let fd: i32 = self.parse_fp_register();
@@ -855,10 +877,19 @@ impl Machine {
                 } else {
                     TOK_SW_OPCODE
                 };
+                let line: i32 = self.scanner.line_no(); // the address can consume the newline
                 let rt: i32 = self.parse_register();
                 let addr: AddrExpr = self.parse_address();
+                if rt == 31 {
+                    // The pair's second register would be 32.
+                    self.parse_error_on_line(
+                        "Register pair starts at the last register (31)",
+                        line,
+                    );
+                    return;
+                }
                 self.emit_i(real, rt, addr.reg, &addr.imm);
-                self.emit_i(real, rt + 1, addr.reg, &addr.imm.plus(4));
+                self.emit_i(real, rt.wrapping_add(1), addr.reg, &addr.imm.plus(4));
             }
             TOK_ULW_PSEUDO_OP => {
                 let rt: i32 = self.parse_register();
@@ -955,9 +986,10 @@ impl Machine {
             }
             self.emit_r(TOK_OR_OPCODE, rd, rd, 1);
         } else {
+            let line: i32 = self.scanner.line_no(); // as in parse_imm16
             let imm: ImmExpr = self.parse_imm32();
             let distance: i32 = self.eval_imm_expr(&imm);
-            self.check_imm_range(&imm, 0, 31);
+            self.check_imm_range(&imm, 0, 31, line);
             if right {
                 self.emit_r_shift(TOK_SLL_OPCODE, 1, rs, distance.wrapping_neg());
                 self.emit_r_shift(TOK_SRL_OPCODE, rd, rs, distance);
@@ -1409,11 +1441,17 @@ impl Machine {
                 self.emit_node(AstKind::DirSpace(size));
             }
             TOK_ALIGN_DIRECTIVE => {
+                let line: i32 = self.scanner.line_no(); // the expression can consume the newline
                 let n: i32 = self.parse_expression();
-                if n == 0 {
-                    self.asm.auto_align = false;
+                if !(0..=31).contains(&n) {
+                    // C shifts a 32-bit mask by it.
+                    self.parse_error_on_line("Alignment out of range (0 .. 31)", line);
+                } else {
+                    if n == 0 {
+                        self.asm.auto_align = false;
+                    }
+                    self.emit_node(AstKind::DirAlign(n));
                 }
-                self.emit_node(AstKind::DirAlign(n));
             }
             TOK_COMM_DIRECTIVE | TOK_EXTERN_DIRECTIVE => {
                 if let Some(name) = self.parse_directive_name("Expected ID") {
@@ -1750,11 +1788,5 @@ impl Machine {
             AstKind::InstFpCompare { op, fs, ft, cc } => self.r_cond_type_inst(*op, *fs, *ft, *cc),
             AstKind::Pseudo { children, .. } => self.emit_chain(children),
         }
-    }
-
-    /// `print_symbols`-style debugging aid: report a parse-time problem
-    /// the C engine reports with a plain message.
-    pub fn report(&self, message: &str) {
-        error(message);
     }
 }

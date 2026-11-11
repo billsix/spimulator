@@ -19,18 +19,18 @@ history (who did what, in what order, and the C bugs the ports found) is in
   2026-11-10): for the same arguments and stdin, the same stdout, stderr and exit status, on every case
   in the corpus.
 - **Float-to-text differences do not gate a port.** Where two outputs differ only inside a printed
-  floating-point number, and the two numbers parse to the same value or to very close values, the
-  harness reports a formatting difference as a warning and passes the case. Two NaNs count as the same
-  whatever their sign. A different value beyond that tolerance is a functional failure, because it
-  means the arithmetic differs. The tolerance, defined in one place in the harness: the two values
-  differ by at most one unit in the last digit printed (covers `%.8f` rounding a tie the other way),
-  or by a relative 1e-15, about ten units in the last place of a double (covers digit-printing and
-  last-bit rounding differences, not a wrong computation).
-  A port still fixes its formatting where that is cheap: tested formatters that match glibc exactly
-  exist for Python, Haskell and Rust (`tasks/adhoc/engine-ports-float-format/`), so a warning should
-  be rare. (William Emerison Six <billsix@gmail.com>, 2026-11-10: "floating point to string issues
-  are not something that should stop a port … but if you can fix it like you do for ghc haskell,
-  please do.")
+  floating-point number, and the two numbers parse to the same value, or to values within 4 units in
+  the last place of a double (`ULP_TOLERANCE` in `port/harness/compare_engines.py`), the harness
+  reports a formatting difference as a warning and passes the case. Two NaNs count as the same
+  whatever their sign. Anything beyond that is a functional failure: `0.5` against `0.6`, or `3.14159`
+  against `3.1416`, is a different value, not a formatting difference. (William Emerison Six
+  <billsix@gmail.com>, 2026-11-11, from `tasks/review/2026/11/11/repo-review.md` §5.1; the earlier rule
+  also forgave one unit in the last printed digit, which passed real errors.)
+  A port still matches glibc exactly where that is cheap: each port's formatter is checked against
+  glibc by a meson test in its suite (`python-float-format`, `haskell-float-format`,
+  `rust-cargo-test`), so a warning should be rare. (William Emerison Six <billsix@gmail.com>,
+  2026-11-10: "floating point to string issues are not something that should stop a port … but if
+  you can fix it like you do for ghc haskell, please do.")
 - **The corpus:** `tests/`, the AST-parity goldens, `tt.alu.bare.s`/`tt.fpu.bare.s`
   under `-bare`, `allinsts.s` from `f570a87^`, the examples, the PGU programs. A case that cannot be
   run deterministically (timing, environment addresses) is fixed or excluded by name in the harness,
@@ -48,7 +48,8 @@ history (who did what, in what order, and the C bugs the ports found) is in
   example headers call each one the same way.
 - **The image installs every port's toolchain, unconditionally** (William Emerison Six
   <billsix@gmail.com>, 2026-11-10: "no conditions for that in the Dockerfile"). One group script,
-  `entrypoint/0N-install-ports.sh` (`python3`, `ghc`, `rust`, `cargo`), runs from the Dockerfile with
+  `entrypoint/05-install-ports.sh` (`python3`, `ruff`, `ty`, `ghc`, `hlint`, `rust`, `cargo`, `clippy`,
+  `rustfmt`), runs from the Dockerfile with
   no `ARG` and no `if`. A lean image keeps it too, since the ports are part of the test gate. The
   first port to start adds the script and lists every language; later ports only use it. GHC adds
   about 1 GB.
@@ -64,12 +65,12 @@ history (who did what, in what order, and the C bugs the ports found) is in
   `tasks/reference/example-c-teaching-style.md` and the example template get the new line too. This
   is the last step of each port's task.
 - **The teaching mode is not ported yet** (William Emerison Six <billsix@gmail.com>, 2026-11-10). Each port stops after the CLI/REPL milestone;
-  `-explain` waits for `tasks/explain-mode-correctness-bugs.md` and `tasks/explain-levels-redesign.md`
+  `-explain` waits for `tasks/archive/2026/11/11/explain-mode-correctness-bugs.md` and `tasks/explain-levels-redesign.md`
   in C, because porting it now would port output that is about to change. A port given `-explain`
   says it is not supported, and the harness excludes the explain cases by name, with that reason.
 - **Order of milestones, the same for every port:** machine arithmetic → assembler (gate: AST-parity
   bytes) → executor + syscalls (gate: regression + examples) → CLI/REPL → teaching mode
-  (`-explain`, after `tasks/explain-mode-correctness-bugs.md` lands in C).
+  (`-explain`, after `tasks/archive/2026/11/11/explain-mode-correctness-bugs.md` lands in C).
 
 
 ## How a port is tested
@@ -79,9 +80,12 @@ history (who did what, in what order, and the C bugs the ports found) is in
 - every regression test except the teaching mode;
 - every examples demo;
 - the documented example commands (`tools/check_example_commands.py --port`);
-- `port/harness/compare_engines.py`: 23 cases from `port/harness/corpus.txt`;
+- `port/harness/compare_engines.py`: 33 cases from `port/harness/corpus.txt`;
 - `port/harness/compare_all_programs.py`: every `.s`/`.asm` in the repo, assembled six ways and run,
-  about 1,200 cases, four skipped by name.
+  about 1,300 cases, six skipped by name (two step-limit programs and yes(1), in run and listing modes).
+- `port/harness/compare_repl.py`: 26 REPL sessions from `port/harness/repl_corpus/`, covering every
+  command in `src/spim.c`'s command table, compared as whole transcripts (stdout, stderr, exit
+  status and any `dump` files).
 
 The image build runs them all. A behavior change in C fails every port's suite until the port
 follows it. A new port is an entry in `ports`, plus `tools/add_port_lines.py NAME LABEL` for the

@@ -16,6 +16,7 @@ Block grammar (comment lines; leading '#' then spaces are stripped):
     #CANONICAL (...free text...)
     #  args: 5 7            # whitespace-split argv; omit / blank for none
     #  stdin: path/rel/to/examples/src   # optional
+    #  status: 1            # the expected exit status; omit for 0
     #  stdout:
     #  | first expected line
     #  | second expected line
@@ -27,7 +28,8 @@ Usage:
 Environment:
     SPIM   path to the spimulator binary (default: <repo>/builddir/spimulator)
 
-Exit status: 0 if every checked block matches, 1 otherwise.
+Exit status: 0 if every checked block matches (stdout and exit status), 1
+otherwise, including when no block was found.
 """
 
 from __future__ import annotations
@@ -69,6 +71,7 @@ def parse_canonical(path: Path) -> dict[str, object] | None:
 
     args: list[str] = []
     stdin_file: str | None = None
+    status: int = 0
     expected: list[str] = []
     in_stdout: bool = False
     for line in lines[start + 1:]:
@@ -85,15 +88,26 @@ def parse_canonical(path: Path) -> dict[str, object] | None:
             elif content.startswith("stdin:"):
                 stdin_file = content[len("stdin:"):].strip()
                 in_stdout = False
+            elif content.startswith("status:"):
+                status = int(content[len("status:"):].strip())
+                in_stdout = False
             elif content.startswith("stdout:"):
                 in_stdout = True
             elif in_stdout:
                 break
-    return {"args": args, "stdin_file": stdin_file, "expected": expected}
+    return {
+        "args": args,
+        "stdin_file": stdin_file,
+        "status": status,
+        "expected": expected,
+    }
 
 
-def run_demo(asm: Path, args: list[str], stdin_file: str | None) -> str:
-    """Run `spim -f asm args` (optional stdin), return stdout (stderr dropped)."""
+def run_demo(asm: Path, args: list[str], stdin_file: str | None) -> tuple[str, int]:
+    """Run `spim -f asm args` (optional stdin); return stdout and the exit status.
+
+    stderr is dropped.
+    """
     cmd: list[str] = [str(spim_path()), "-f", str(asm), *args]
     stdin_bytes: bytes = b""
     if stdin_file:
@@ -102,7 +116,7 @@ def run_demo(asm: Path, args: list[str], stdin_file: str | None) -> str:
         cmd, input=stdin_bytes, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
         check=False,
     )
-    return completed.stdout.decode()
+    return completed.stdout.decode(), completed.returncode
 
 
 def check_file(asm: Path) -> bool | None:
@@ -113,13 +127,18 @@ def check_file(asm: Path) -> bool | None:
     args: list[str] = block["args"]  # type: ignore[assignment]
     stdin_file: str | None = block["stdin_file"]  # type: ignore[assignment]
     expected_lines: list[str] = block["expected"]  # type: ignore[assignment]
-    actual: str = run_demo(asm, args, stdin_file)
+    expected_status: int = block["status"]  # type: ignore[assignment]
+    actual: str
+    status: int
+    actual, status = run_demo(asm, args, stdin_file)
     actual_lines: list[str] = actual.splitlines()
     rel: str = asm.relative_to(REPO_ROOT).as_posix()
-    if actual_lines == expected_lines:
+    if actual_lines == expected_lines and status == expected_status:
         print(f"PASS  {rel}")
         return True
     print(f"FAIL  {rel}", file=sys.stderr)
+    if status != expected_status:
+        print(f"  exit status: expected {expected_status}, got {status}", file=sys.stderr)
     print(f"  expected: {expected_lines!r}", file=sys.stderr)
     print(f"  actual:   {actual_lines!r}", file=sys.stderr)
     return False
@@ -146,7 +165,9 @@ def main(argv: list[str]) -> int:
         if not result:
             status = 1
     if checked == 0:
+        # Checking nothing must not pass.
         print("no #CANONICAL blocks found in the given files", file=sys.stderr)
+        return 1
     return status
 
 

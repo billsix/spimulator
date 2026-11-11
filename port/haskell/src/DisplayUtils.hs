@@ -12,6 +12,7 @@ import CFormat (formatGAlt, leftIn)
 import Control.Monad (forM)
 import Data.Bits (complement, (.&.))
 import Data.Int (Int32)
+import Data.List (intercalate, transpose)
 import Data.Word (Word32)
 import GHC.Float (float2Double)
 import InstFormat (formatAnInst)
@@ -19,7 +20,7 @@ import Memory
 import Output (writeErr)
 import Registers
 import State
-import Text.Printf (printf, PrintfType)
+import Text.Printf (printf)
 import Types (InstRef)
 
 hex :: Int32 -> Word32
@@ -40,33 +41,32 @@ formatRegisters s hexFlag = do
   fir :: Int32 <- getFcr s 0
   fcsr :: Int32 <- getFcr s 31
   doubles :: [Double] <- mapM (\k -> doubleWords s (2 * k)) [0 .. 15]
+  wordPairs :: [(Word32, Word32)] <- mapM (\k -> (,) <$> fprWord s (2 * k) <*> fprWord s (2 * k + 1)) [0 .. 15]
   words' :: [Word32] <- mapM (fprWord s) [0 .. 31]
   singles :: [Float] <- mapM (fprSingle s) [0 .. 31]
-  let gr :: PrintfType t => Int -> t
-      gr n =
+  let gr :: Int -> String -> Int32 -> String
+      gr n name v =
         if hexFlag
-          then printf "R%-2d (%2s) = %08x" n (regNames !! n) (hex (regs !! n))
-          else printf "R%-2d (%2s) = %-10d" n (regNames !! n) (regs !! n)
+          then printf "R%-2d (%2s) = %08x" n name (hex v)
+          else printf "R%-2d (%2s) = %-10d" n name v
       grFill :: String
       grFill = if hexFlag then "  " else " "
-      generalRow :: Int -> String
-      generalRow k = concatMap (\c -> gr (k + 8 * c) ++ (if c < 3 then grFill else "\n")) [0 .. 3 :: Int]
       fpVal :: Double -> String
       fpVal d = leftIn 13 (formatGAlt True 6 d)
-      doubleCell :: PrintfType t => Int -> t
-      doubleCell k =
+      doubleCell :: Int -> Double -> (Word32, Word32) -> String
+      doubleCell k d (w0, w1) =
         if hexFlag
-          then printf "FP%-2d=%08x,%08x" (2 * k) (words' !! (2 * k)) (words' !! (2 * k + 1))
-          else printf "FP%-2d = %s" (2 * k) (fpVal (doubles !! k))
-      doubleRow :: Int -> String
-      doubleRow k = concatMap (\c -> doubleCell (k + 4 * c) ++ (if c < 3 then " " else "\n")) [0 .. 3 :: Int]
-      singleCell :: PrintfType t => Int -> t
-      singleCell k =
+          then printf "FP%-2d=%08x,%08x" (2 * k) w0 w1
+          else printf "FP%-2d = %s" (2 * k) (fpVal d)
+      singleCell :: Int -> Word32 -> Float -> String
+      singleCell k v f =
         if hexFlag
-          then printf "FP%-2d=%08x" k (words' !! k)
-          else printf "FP%-2d = %s" k (fpVal (float2Double (singles !! k)))
-      singleRow :: Int -> String
-      singleRow k = concatMap (\c -> singleCell (k + 8 * c) ++ (if c < 3 then " " else "\n")) [0 .. 3 :: Int]
+          then printf "FP%-2d=%08x" k v
+          else printf "FP%-2d = %s" k (fpVal (float2Double f))
+      -- The cells in rows of four, laid out down the columns: with n rows,
+      -- row k holds cells k, k + n, k + 2n and k + 3n.
+      table :: String -> Int -> [String] -> String
+      table fill n cells = concatMap (\row -> intercalate fill row ++ "\n") (transpose (chunksOf n cells))
   pure $
     printf " PC      = %08x   " pc
       ++ printf "EPC     = %08x  " (hex epc)
@@ -76,13 +76,13 @@ formatRegisters s hexFlag = do
       ++ printf "HI      = %08x  " (hex hi)
       ++ printf " LO      = %08x\n" (hex lo)
       ++ "\t\t\t\t General Registers\n"
-      ++ concatMap generalRow [0 .. 7]
+      ++ table grFill 8 (zipWith3 gr [0 ..] regNames regs)
       ++ printf "\n FIR    = %08x   " (hex fir)
       ++ printf " FCSR    = %08x   " (hex fcsr)
       ++ "\t\t\t      Double Floating Point Registers\n"
-      ++ concatMap doubleRow [0 .. 3]
+      ++ table " " 4 (zipWith3 doubleCell [0 ..] doubles wordPairs)
       ++ "\t\t\t      Single Floating Point Registers\n"
-      ++ concatMap singleRow [0 .. 7]
+      ++ table " " 8 (zipWith3 singleCell [0 ..] words' singles)
 
 -- | Disassemble the instructions in [from, to) (C: @format_insts@).
 formatInsts :: Spim -> Word32 -> Word32 -> IO String
@@ -144,10 +144,24 @@ partialLine :: Spim -> Word32 -> IO (String, Word32)
 partialLine s addr
   | addr `rem` 16 == 0 = pure ("", addr)
   | otherwise = do
-      let addrs :: [Word32]
-          addrs = takeWhile (\a -> a `rem` 16 /= 0) [addr, addr + 4 ..]
+      -- The words that start before the next boundary.  For a word-aligned
+      -- address the last one ends on it; an unaligned one (the C engine
+      -- never stops on it) ends past it.
+      let count :: Word32
+          count = (16 - addr `rem` 16 + 3) `quot` 4
+          addrs :: [Word32]
+          addrs = [addr + 4 * k | k <- [0 .. count - 1]]
       cells :: [String] <- mapM (\a -> printf "  0x%08x" . hex <$> memReadWord s a) addrs
-      pure (printf "[0x%08x]\t\t      " addr ++ concat cells ++ "\n", last addrs + 4)
+      pure (printf "[0x%08x]\t\t      " addr ++ concat cells ++ "\n", addr + 4 * count)
+
+-- | A list cut into pieces of n elements (the last may be shorter).
+chunksOf :: forall x. Int -> [x] -> [[x]]
+chunksOf _ [] = []
+chunksOf n xs = piece : chunksOf n rest
+  where
+    piece :: [x]
+    rest :: [x]
+    (piece, rest) = splitAt n xs
 
 -- | The data, stack and kernel data segments (C: @format_data_segs@).
 formatDataSegs :: Spim -> IO String

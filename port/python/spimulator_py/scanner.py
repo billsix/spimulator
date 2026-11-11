@@ -22,7 +22,7 @@ one character per byte.
 from dataclasses import dataclass, field
 from typing import BinaryIO
 
-from . import console, opcodes, options, symbol_table
+from . import console, machine, opcodes, options, symbol_table
 from .opcodes import (
     TOK_EOF,
     TOK_FP,
@@ -81,11 +81,15 @@ def register_name_to_number(name: str) -> int:
     """The number of a register name without the ``$`` (-1 if it is none).
 
     ``"8"``/``"31"`` are numbers, ``"f4"`` an FP register, ``"t0"`` a name.
-    Like the C engine, ``$f`` numbers are not range-checked.
+    An ``f`` number above 31 is not a register.
 
     Example:
         >>> register_name_to_number("t0"), register_name_to_number("f12")
         (8, 12)
+        >>> register_name_to_number("f31"), register_name_to_number("f32")
+        (31, -1)
+        >>> register_name_to_number("f4294967294")
+        -1
         >>> register_name_to_number("32"), register_name_to_number("x")
         (32, -1)
     """
@@ -96,7 +100,8 @@ def register_name_to_number(name: str) -> int:
     ):
         return _c_atoi(name)
     elif first == "f" and "0" <= second <= "9":
-        return _c_atoi(name[1:])
+        fp_reg: int = _c_atoi(name[1:])  # C: strtol, then $f0..$f31 only
+        return fp_reg if fp_reg <= 31 else -1
     else:
         return REGISTER_NAMES.get(name, -1)
 
@@ -241,8 +246,6 @@ def _fp_literal_end() -> int:
 
 def _scan_fp(sign: int, end: int) -> Token:
     """A float literal ending at end, through C's ``atof`` (63 bytes max)."""
-    from . import machine
-
     text: bytes = _state.line_buf[_state.line_pos : end][:63]
     _state.line_pos = end
     return Token(TOK_FP, sign * machine.c_atof(text))
@@ -250,8 +253,6 @@ def _scan_fp(sign: int, end: int) -> Token:
 
 def _scan_int(sign: int) -> Token:
     """A decimal or ``0x`` hex integer, wrapped to 32 bits."""
-    from . import machine
-
     value: int = 0
     if _peek_char() == ord("0") and _peek_char2() in b"xX":
         _next_char()
@@ -373,8 +374,6 @@ def _keyword_or_label(name: str, force_id: bool, allow_keyword: bool) -> Token:
             return Token(token, token)
     label: symbol_table.Label | None = symbol_table.label_is_defined(name)
     if label is not None and label.const_flag:
-        from . import machine
-
         return Token(TOK_INT, machine.s32(label.addr))
     return Token(TOK_ID, name)
 
@@ -468,34 +467,33 @@ def _scan_one_token() -> Token:
         return Token(TOK_NL)
     else:
         _maybe_snapshot_line()
-        match char:
-            case _ if char == ord("-") and _peek_char2() in _DIGITS:
-                _next_char()
-                end: int = _fp_literal_end()
-                return _scan_fp(-1, end) if end > _state.line_pos else _scan_int(-1)
-            case _ if char in _DIGITS:
-                end = _fp_literal_end()
-                return _scan_fp(1, end) if end > _state.line_pos else _scan_int(1)
-            case _ if char == ord("_") or char == ord(".") or char in _ALPHA:
-                return _scan_identifier(force_id)
-            case _ if char == ord("$"):
-                return _scan_register()
-            case _ if char == ord('"'):
-                return _scan_string()
-            case _ if char == ord("'"):
-                return _scan_char()
-            case _ if char == ord("?"):
-                _next_char()
-                return Token(TOK_ID, "?")
-            case _ if char in _PUNCTUATION:
-                _next_char()
-                return Token(char, char)
-            case _:
-                _next_char()
-                console.error(
-                    f"Unknown character in source: '{chr(char)}' (0x{char:02x})\n"
-                )
-                return Token(TOK_NL)  # recover as if the line ended
+        if char == ord("-") and _peek_char2() in _DIGITS:
+            _next_char()
+            end: int = _fp_literal_end()
+            return _scan_fp(-1, end) if end > _state.line_pos else _scan_int(-1)
+        elif char in _DIGITS:
+            end = _fp_literal_end()
+            return _scan_fp(1, end) if end > _state.line_pos else _scan_int(1)
+        elif char == ord("_") or char == ord(".") or char in _ALPHA:
+            return _scan_identifier(force_id)
+        elif char == ord("$"):
+            return _scan_register()
+        elif char == ord('"'):
+            return _scan_string()
+        elif char == ord("'"):
+            return _scan_char()
+        elif char == ord("?"):
+            _next_char()
+            return Token(TOK_ID, "?")
+        elif char in _PUNCTUATION:
+            _next_char()
+            return Token(char, char)
+        else:
+            _next_char()
+            console.error(
+                f"Unknown character in source: '{chr(char)}' (0x{char:02x})\n"
+            )
+            return Token(TOK_NL)  # recover as if the line ended
 
 
 # --- the lookahead buffer ------------------------------------------------------
@@ -514,7 +512,8 @@ def peek() -> int:
     if _state.tokens[0] is None:
         _ensure_filled(1)
     token: Token | None = _state.tokens[0]
-    assert token is not None
+    if token is None:
+        raise AssertionError("peek: token is None")
     return token.type
 
 
@@ -522,7 +521,8 @@ def peek2() -> int:
     """The type of the token after the next one."""
     _ensure_filled(2)
     token: Token | None = _state.tokens[1]
-    assert token is not None
+    if token is None:
+        raise AssertionError("peek2: token is None")
     return token.type
 
 
@@ -536,7 +536,8 @@ def advance() -> int:
     global scan_value
     _ensure_filled(1)
     token: Token | None = _state.tokens[0]
-    assert token is not None
+    if token is None:
+        raise AssertionError("advance: token is None")
     if token.type in _VALUED:
         scan_value = token.value
     _state.tokens = [_state.tokens[1], _state.tokens[2], None]

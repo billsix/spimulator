@@ -10,7 +10,6 @@
 //! all of it; user data starts after it.
 
 use crate::machine::Machine;
-use crate::memory::DATA_BOT;
 use crate::registers::REG_GP;
 
 impl Machine {
@@ -212,10 +211,5 @@ impl Machine {
             self.mem_write_word(at, bits);
             self.increment_data_pc(4);
         }
-    }
-
-    /// The first address of user data (where a `-bare` dump starts).
-    pub fn data_bot(&self) -> u32 {
-        DATA_BOT
     }
 }

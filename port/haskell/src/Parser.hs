@@ -56,9 +56,14 @@ parserInit s input fileName = do
 -- | A parse error, as the parser reports it (C: @parse_error_at@).
 parseErrorAt :: Spim -> String -> IO ()
 parseErrorAt s msg = do
+  n :: Int <- lineNo s
+  parseErrorOnLine s n msg
+
+-- | A parse error reported on a given line (C: @parse_error_on_line@).
+parseErrorOnLine :: Spim -> Int -> String -> IO ()
+parseErrorOnLine s n msg = do
   set (parseErrorOccurred s) True
   modify (parseErrorsSeen s) (+ 1)
-  n :: Int <- lineNo s
   file :: Maybe String <- get (inputFileName s)
   cError (printf "spim: (parser) %s on line %d of file %s\n" msg n (maybe "(stdin)" id file))
 
@@ -266,34 +271,37 @@ parseImm32 s = do
           pure (constImmExpr (v `shiftR` (int sh .&. 31)))
     _ -> constImmExpr <$> parseAbsAddr s
 
--- | Warn when a known immediate is outside a range (C: @check_imm_range@).
-checkImmRange :: Spim -> ImmExpr -> Int32 -> Int32 -> IO ()
-checkImmRange s e lo hi = do
+-- | Warn when a known immediate is outside a range (C: @check_imm_range@), on
+-- the instruction's line: the scanner's line can already be the next one, as
+-- reading past the immediate scans the newline.
+checkImmRange :: Spim -> ImmExpr -> Int32 -> Int32 -> Int -> IO ()
+checkImmRange s e lo hi line = do
   known :: Bool <- maybe (pure True) symbolIsDefined (ieSymbol e)
   when known $ do
     v :: Int32 <- evalImmExpr s e
-    when (v < lo || hi < v) $ rangeError s v lo hi
+    when (v < lo || hi < v) $ rangeError v lo hi line
 
-checkUimmRange :: Spim -> ImmExpr -> Word32 -> Word32 -> IO ()
-checkUimmRange s e lo hi = do
+checkUimmRange :: Spim -> ImmExpr -> Word32 -> Word32 -> Int -> IO ()
+checkUimmRange s e lo hi line = do
   known :: Bool <- maybe (pure True) symbolIsDefined (ieSymbol e)
   when known $ do
     v :: Word32 <- fromIntegral <$> evalImmExpr s e
-    when (v < lo || hi < v) $ rangeError s (fromIntegral v) (fromIntegral lo) (fromIntegral hi)
+    when (v < lo || hi < v) $ rangeError (fromIntegral v) (fromIntegral lo) (fromIntegral hi) line
 
-rangeError :: Spim -> Int32 -> Int32 -> Int32 -> IO ()
-rangeError s v lo hi = do
-  n :: Int <- lineNo s
-  cError (printf "spim: (parser) immediate value (%d) out of range (%d .. %d) on line %d\n" v lo hi n)
+rangeError :: Int32 -> Int32 -> Int32 -> Int -> IO ()
+rangeError v lo hi line =
+  cError (printf "spim: (parser) immediate value (%d) out of range (%d .. %d) on line %d\n" v lo hi line)
 
 parseImm16, parseUimm16 :: Spim -> IO ImmExpr
 parseImm16 s = do
+  line :: Int <- lineNo s
   e :: ImmExpr <- parseImm32 s
-  checkImmRange s e (-0x8000) 0x7fff
+  checkImmRange s e (-0x8000) 0x7fff line
   pure e
 parseUimm16 s = do
+  line :: Int <- lineNo s
   e :: ImmExpr <- parseImm32 s
-  checkUimmRange s e 0 0xffff
+  checkUimmRange s e 0 0xffff line
   pure e
 
 -- | A branch target (C: @parse_label@): pc-relative, so its offset is
@@ -607,7 +615,11 @@ parsePseudo s op = do
   doParsePseudo s op
   kids :: [Node] <- get (astScope s)
   set (astScope s) outer
-  appendBuilt s start {nodeKind = Pseudo (opTokenName (tok op)) (reverse kids)}
+  -- The expansion is the pseudo-op's line, even when its last operand
+  -- read on to the newline before a child was built.
+  let atLine :: Node -> Node
+      atLine kid = kid {nodeLine = nodeLine start}
+  appendBuilt s start {nodeKind = Pseudo (opTokenName (tok op)) (reverse (map atLine kids))}
 
 -- | The expansion of each pseudo-instruction (C: @do_parse_pseudo@).
 doParsePseudo :: Spim -> Opcode -> IO ()
@@ -632,9 +644,10 @@ doParsePseudo s op = case op of
           else emitR s TOK_SRLV_OPCODE 1 1 rs >> emitR s TOK_SLLV_OPCODE rd rt rs
         emitR s TOK_OR_OPCODE rd rd 1
       else do
+        line :: Int <- lineNo s
         imm :: ImmExpr <- parseImm32 s
         dist :: Int <- int <$> evalImmExpr s imm
-        checkImmRange s imm 0 31
+        checkImmRange s imm 0 31 line
         if op == TOK_ROR_PSEUDO_OP
           then emitRShift s TOK_SLL_OPCODE 1 rs (negate dist) >> emitRShift s TOK_SRL_OPCODE rd rs dist
           else emitRShift s TOK_SRL_OPCODE 1 rs (negate dist) >> emitRShift s TOK_SLL_OPCODE rd rs dist
@@ -692,10 +705,14 @@ doParsePseudo s op = case op of
   _ | op == TOK_MFC1_D_PSEUDO_OP || op == TOK_MTC1_D_PSEUDO_OP -> do
     let real :: Opcode
         real = if op == TOK_MFC1_D_PSEUDO_OP then TOK_MFC1_OPCODE else TOK_MTC1_OPCODE
+    line :: Int <- lineNo s -- the last operand can consume the newline
     r :: Int <- parseRegister s
     copreg :: Int <- coprocessorRegister s
-    emitFpR s real 0 copreg r
-    emitFpR s real 0 (copreg + 1) (r + 1)
+    if r == 31 || copreg == 31 -- the pair's second register would be 32
+      then parseErrorOnLine s line "Register pair starts at the last register (31)"
+      else do
+        emitFpR s real 0 copreg r
+        emitFpR s real 0 (copreg + 1) (r + 1)
   TOK_LI_D_PSEUDO_OP -> do
     fd :: Int <- parseFpRegister s
     t :: Token <- peek s
@@ -725,10 +742,14 @@ doParsePseudo s op = case op of
   _ | op == TOK_LD_PSEUDO_OP || op == TOK_SD_PSEUDO_OP -> do
     let real :: Opcode
         real = if op == TOK_LD_PSEUDO_OP then TOK_LW_OPCODE else TOK_SW_OPCODE
+    line :: Int <- lineNo s -- the address can consume the newline
     rt :: Int <- parseRegister s
     (r, imm) :: (Int, ImmExpr) <- parseAddress s
-    emitI s real rt r imm
-    emitI s real (rt + 1) r (incrExprOffset imm 4)
+    if rt == 31 -- the pair's second register would be 32
+      then parseErrorOnLine s line "Register pair starts at the last register (31)"
+      else do
+        emitI s real rt r imm
+        emitI s real (rt + 1) r (incrExprOffset imm 4)
   TOK_ULW_PSEUDO_OP -> do
     rt :: Int <- parseRegister s
     (r, imm) :: (Int, ImmExpr) <- parseAddress s
@@ -1099,9 +1120,13 @@ parseDirective s d = case d of
     inText :: Bool <- get (textDir s)
     if inText then parseErrorAt s "Can't put data in text segment" else appendNode s (DirSpace (int v))
   TOK_ALIGN_DIRECTIVE -> do
+    line :: Int <- lineNo s -- the expression can consume the newline
     v :: Int32 <- parseExpression s
-    when (v == 0) $ set (autoAlign s) False
-    appendNode s (DirAlign (int v))
+    if v < 0 || v > 31 -- C shifts a 32-bit mask by it
+      then parseErrorOnLine s line "Alignment out of range (0 .. 31)"
+      else do
+        when (v == 0) $ set (autoAlign s) False
+        appendNode s (DirAlign (int v))
   TOK_COMM_DIRECTIVE -> namedSize DirComm
   TOK_EXTERN_DIRECTIVE -> namedSize DirExtern
   TOK_ERR_DIRECTIVE -> parseErrorAt s ".err directive"

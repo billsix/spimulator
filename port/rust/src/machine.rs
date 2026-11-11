@@ -300,7 +300,8 @@ pub fn catch_run_error<T>(body: impl FnOnce() -> T) -> Option<T> {
 /// Keep the default panic message for real panics, but say nothing for a
 /// [`run_error`], which has printed its own message.
 pub fn install_panic_hook() {
-    let default_hook = panic::take_hook();
+    let default_hook: Box<dyn Fn(&panic::PanicHookInfo<'_>) + Sync + Send + 'static> =
+        panic::take_hook();
     panic::set_hook(Box::new(move |info: &panic::PanicHookInfo<'_>| {
         if !info.payload().is::<RunErrorUnwind>() {
             default_hook(info);

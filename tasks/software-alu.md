@@ -1,7 +1,19 @@
 # Task: implement the ALU in C, bit-level, per H&P
 
+**Status:** proposed — investigate first, then plan, then build
 **Priority:** 6
 **Difficulty:** 8
+
+## BLUF
+
+Replace host arithmetic for MIPS ALU instructions with a bit-level software ALU (ripple-carry adder
+from full-adder slices, per Patterson & Hennessy ch. 4), optionally narrated by the teaching mode.
+Done means the chosen tier gives the same results as today on every suite, in C and every port.
+
+## Context
+
+- The scope tiers, hook points, risks and effort are below.
+- Shares cycle vocabulary with `tasks/timing-model.md` if both land.
 
 ## Goal
 
@@ -183,6 +195,12 @@ With FP (Tier 4): an additional 2–3 weeks.
 Total without FP: ~3 weeks. With FP: ~5–6 weeks. These are
 "continuous focused work" estimates; real calendar time is
 typically 2–3× given test/debug cycles.
+
+## Ports (added 2026-11-11)
+
+The software ALU must give the same results as the hardware one, so the ports need no change for
+the arithmetic. Anything it makes visible (the optional bit-level state for explain mode, a new
+flag) is output, and follows in every port (`CLAUDE.md`: "A C behavior change must be followed in every port"; the port suites (`port-python`, `port-haskell`, `port-rust`) fail until each port matches).
 
 ## First concrete step
 

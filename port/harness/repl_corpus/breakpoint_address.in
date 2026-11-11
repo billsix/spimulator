@@ -1,0 +1,7 @@
+load "tt.le.s"
+breakpoint 0x400010
+breakpoint 0x400010
+run
+step 3
+continue
+exit

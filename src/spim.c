@@ -653,28 +653,39 @@ int main(int argc, char** argv) {
 
   if (print_usage_msg) {
     error(
-        "Usage: spim\n\
-	-bare			Bare machine (no pseudo-ops, delayed branches and loads)\n\
-	-asm			Extended machine (pseudo-ops, no delayed branches and loads) (default)\n\
-	-delayed_branches	Execute delayed branches\n\
-	-delayed_loads		Execute delayed loads\n\
-	-exception		Load exception handler (default)\n\
-	-noexception		Do not load exception handler\n\
-	-exception_file <file>	Specify exception handler in place of default\n\
-	-quiet			Do not print warnings\n\
-	-noquiet		Print warnings (default)\n\
-	-explain [N]		Narrate every instruction (teaching mode).\n\
-				Level N selects detail: 1 = semantic, 2 = + interactive,\n\
-				3 = + bit-layout (default when N omitted; historical behavior),\n\
-				4 = + progressive decoder walkthrough.\n\
-				Also accepts -explain=N. Short form: -x.\n\
-	-noexplain		Disable teaching mode (default)\n\
-	-mapped_io		Enable memory-mapped IO\n\
-	-nomapped_io		Do not enable memory-mapped IO (default)\n\
-	-file <file> [-file <file> ...] <args>\n\
-				Assembly code file(s) and arguments to program.\n\
-				Multiple -file (or -f) options accumulate into one\n\
-				symbol table; forward references resolve across files.\n\
+        "Usage: spimulator [option ...] [-file] file [-file file ...] [program arguments]\n\
+	-asm, -a		Extended machine (pseudo-ops, no delayed branches and loads) (default)\n\
+	-bare, -b		Bare machine (no pseudo-ops, delayed branches and loads)\n\
+	-delayed_branches, -db	Execute delayed branches\n\
+	-delayed_loads, -dl	Execute delayed loads\n\
+	-pseudo, -p		Accept pseudo-instructions (default)\n\
+	-nopseudo, -np		Do not accept pseudo-instructions\n\
+	-exception, -e		Load the exception handler (default); also -trap, -t\n\
+	-noexception, -ne	Do not load the exception handler; also -notrap, -nt\n\
+	-exception_file <file>, -ef <file>\n\
+				Load <file> as the exception handler; also -trap_file, -tf\n\
+	-quiet, -q		Do not print warnings\n\
+	-noquiet, -nq		Print warnings (default)\n\
+	-explain [N], -x [N]	Narrate every instruction (teaching mode).\n\
+				Level N selects detail: 1 = step header, 2 = + narration,\n\
+				3 = + bit-layout (default when N omitted),\n\
+				4 = decoder walkthrough in place of the bit-layout.\n\
+				Also accepts -explain=N.\n\
+	-noexplain, -nx		Disable teaching mode (default)\n\
+	-mapped_io, -mio	Enable memory-mapped IO\n\
+	-nomapped_io, -nmio	Do not enable memory-mapped IO (default)\n\
+	-stext, -st <size>	Initial text segment size, in bytes\n\
+	-sdata, -sd <size>	Initial data segment size, in bytes\n\
+	-sstack, -ss <size>	Initial stack segment size, in bytes\n\
+	-sktext, -skt <size>	Initial kernel text segment size, in bytes\n\
+	-skdata, -skd <size>	Initial kernel data segment size, in bytes\n\
+	-ldata, -ld <size>	Data segment size limit, in bytes\n\
+	-lstack, -ls <size>	Stack segment size limit, in bytes\n\
+	-lkdata, -lkd <size>	Kernel data segment size limit, in bytes\n\
+	-file <file>, -f <file>	Assembly code file; repeat to load several into one\n\
+				symbol table (forward references resolve across files).\n\
+				A bare argument is loaded as a file too; the arguments\n\
+				after the last file are the program's arguments.\n\
 	-assemble		Write assembled code to <file>.out\n\
 	-listing <file>		Write assemble-time event trace to <file> (use - for stderr)\n\
 	-print-ast		Parse to AST, print it to stderr, and exit without emitting any code\n\
@@ -745,14 +756,50 @@ int main(int argc, char** argv) {
          128 + ExcCode, mirroring the shell's "128 + signum" form for
          processes killed by a signal.  An explicit exit2(N) where N != 0
          takes precedence — the program said what it meant. */
-      if (first_bad_exception != -1 && spim_return_value == 0) {
-        spim_return_value = 128 + first_bad_exception;
-      }
+      spim_return_value = program_exit_status();
     }
   }
 
   return (spim_return_value);
 }
+
+#ifndef HAVE_LIBEDIT
+/* Read one command line from stdin, the way the line editor does: prompt
+   only on a terminal, and read one byte at a time so a program the line
+   runs can read the rest of stdin.  Returns the line without its newline
+   (heap-allocated), or nullptr at end of input. */
+static char* read_command_line(void) {
+  if (isatty(STDIN_FILENO)) {
+    write_output(message_out, "(spim) ");
+    fflush(stdout);
+  }
+  size_t cap = 128;
+  size_t len = 0;
+  char* line = xmalloc(cap);
+  while (true) {
+    char c;
+    if (read(STDIN_FILENO, &c, 1) <= 0) {
+      if (len == 0) {
+        free(line);
+        return nullptr;
+      }
+      break;
+    } else if (c == '\n') {
+      break;
+    } else {
+      if (len + 1 >= cap) {
+        cap *= 2;
+        char* const grown = realloc(line, cap);
+        if (grown == nullptr) fatal_error("Out of memory reading a command\n");
+        line = grown;
+      }
+      line[len++] = c;
+    }
+  }
+  line[len] = '\0';
+  return line;
+}
+#endif
 
 /* Top-level read-eval-print loop for SPIM. */
 
@@ -791,6 +838,7 @@ int main(int argc, char** argv) {
   rl_attempted_completion_function = spim_completion;
   rl_completer_word_break_characters = (char*)" \t\n";
   rl_basic_word_break_characters = " \t\n";
+#endif
 
   /* Per-iteration scratch — declared outside so the setjmp landing pad can
      unwind them if a SIGINT longjmps us out of parse_spim_command mid-line. */
@@ -798,10 +846,8 @@ int main(int argc, char** argv) {
   char* volatile repl_buf = nullptr;
   FILE* volatile repl_fp = nullptr;
   volatile bool scanner_pushed = false;
-#endif
 
   while (true) {
-#ifdef HAVE_LIBEDIT
     top_level_env_ready = true;
     if (setjmp(spim_top_level_env)) {
       /* Returned via control_c_seen longjmp. Unwind any in-flight
@@ -825,14 +871,20 @@ int main(int argc, char** argv) {
     }
 
     if (!redo) {
+#ifdef HAVE_LIBEDIT
       repl_line = readline("(spim) ");
+#else
+      repl_line = read_command_line();
+#endif
       if (repl_line == nullptr) {
         /* Ctrl-D / EOF — exit cleanly. atexit handler writes history. */
         write_output(message_out, "\n");
         console_to_spim();
         exit(0);
       }
+#ifdef HAVE_LIBEDIT
       if (*repl_line != '\0') add_history(repl_line);
+#endif
 
       /* Append '\n' so flex sees TOK_NL exactly once per command, matching
          the stdin path. Wrap the buffer in a FILE* via fmemopen and reuse
@@ -874,14 +926,6 @@ int main(int argc, char** argv) {
     repl_buf = nullptr;
     free(repl_line);
     repl_line = nullptr;
-#else
-    if (!redo) write_output(message_out, "(spim) ");
-    top_level_env_ready = true;
-    if (!setjmp(spim_top_level_env))
-      redo = parse_spim_command(redo);
-    else
-      redo = false;
-#endif
     fflush(stdout);
     fflush(stderr);
   }
@@ -940,6 +984,9 @@ static bool parse_spim_command(bool redo) {
 
       if (!redo) flush_to_newline();
       if (token == TOK_STR) {
+        /* Loading a file points the scanner at it; save the command
+           input around the load so the next command is read from it. */
+        scanner_push_source(nullptr);
         (void)read_assembly_file((char*)scan_value.p);
         scanner_pop_source();
       } else
@@ -1515,8 +1562,9 @@ static bool write_assembled_code(const char* program_name) {
   (void)fprintf(fp, ".text # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
   for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
     const int32_t code = inst_encode(mem_read_inst(addr));
-    (void)fprintf(fp, "0x%x%s", code,
-                  addr != (dump_end - BYTES_PER_WORD) ? ", " : "");
+    /* ", " goes before each word but the first: the segment's end need not
+       fall on a word, so "not the last word" can't be tested by address. */
+    (void)fprintf(fp, "%s0x%x", addr != dump_start ? ", " : "", code);
   }
   (void)fprintf(fp, "\n");
 
@@ -1533,8 +1581,7 @@ static bool write_assembled_code(const char* program_name) {
     (void)fprintf(fp, ".data # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
     for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
       const int32_t code = mem_read_word(addr);
-      (void)fprintf(fp, "0x%x%s", code,
-                    addr != (dump_end - BYTES_PER_WORD) ? ", " : "");
+      (void)fprintf(fp, "%s0x%x", addr != dump_start ? ", " : "", code);
     }
     (void)fprintf(fp, "\n");
   }

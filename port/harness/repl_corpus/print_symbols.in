@@ -1,0 +1,4 @@
+load "tt.multifile.helper.s"
+load "tt.multifile.s"
+print_symbols
+exit

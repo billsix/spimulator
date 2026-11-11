@@ -39,4 +39,5 @@ only the compares, so that work is `tasks/paired-single-instructions-unsupported
 - Every meson suite passes, 293/293: regression, `generated_opcode_tables`, examples, port-python,
   port-haskell with its annotation check, and port-rust.
 - gcc and clang `-Werror` builds are clean. `hlint`, clippy, `cargo fmt` and ruff are clean.
-- The image gate, with `BUILD_TREE_SITTER=1` (its default), runs at the end of the branch.
+- The image gate, with `BUILD_TREE_SITTER=1` (its default), passed at the end of the branch: 293/293
+  meson tests.

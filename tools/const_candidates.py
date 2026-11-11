@@ -28,8 +28,10 @@ Usage::
 
     tools/const_candidates.py BUILDDIR [FILE ...]
 
-BUILDDIR holds ``compile_commands.json``. The candidates go to stdout, one per
-line, and the totals per category to stderr.
+BUILDDIR holds ``compile_commands.json``. A FILE is a ``src/*.c`` path relative
+to the working directory; one that names no translation unit is an error (exit
+status 2). The candidates go to stdout, one per line, and the totals per
+category to stderr.
 """
 
 import collections
@@ -57,11 +59,76 @@ DROPPED_FLAGS: frozenset[str] = frozenset(
     {"-c", "-MD", "-Werror", "-fdiagnostics-color=always"}
 )
 TRANSPARENT_KINDS: frozenset[str] = frozenset({"ImplicitCastExpr", "ParenExpr"})
+# What an argument can be wrapped in and still pass the pointer it names.
+ARGUMENT_WRAPPER_KINDS: frozenset[str] = frozenset(
+    {"ImplicitCastExpr", "ParenExpr", "CStyleCastExpr"}
+)
 ACCESS_KINDS: frozenset[str] = frozenset(
     {"ImplicitCastExpr", "ParenExpr", "MemberExpr", "ArraySubscriptExpr"}
 )
 
 type Node = dict[str, Any]
+
+
+class LocationTracker:
+    """Follows clang's JSON locations, which omit a file or line equal to the previous one."""
+
+    def __init__(self) -> None:
+        """Start with no line seen."""
+        self.line: int = 0
+
+    def visit(self, loc: Node) -> None:
+        """Update the current line from one JSON location.
+
+        Args:
+            loc: a clang JSON location object (possibly with spelling/expansion parts).
+        """
+        for part in ("spellingLoc", "expansionLoc"):
+            if part in loc:
+                self.visit(loc[part])
+        if "line" in loc:
+            self.line = loc["line"]
+
+    def visit_node(self, node: Node) -> int:
+        """Update from a node's own location and range, in clang's printing order.
+
+        Args:
+            node: a clang JSON AST node.
+
+        Returns:
+            int: the line of the node's own location.
+        """
+        line: int = self.line
+        if "loc" in node:
+            self.visit(node["loc"])
+            line = self.line
+        node_range: Node = node.get("range", {})
+        for end in ("begin", "end"):
+            if end in node_range:
+                self.visit(node_range[end])
+        return line
+
+
+def declaration_lines(root: Node) -> dict[str, int]:
+    """The source line of every node, by id, walking in clang's printing order.
+
+    clang's JSON writes a location's line only when it differs from the line
+    last printed, so a node's line is known only by visiting everything before it.
+
+    Args:
+        root: the ``TranslationUnitDecl`` node.
+
+    Returns:
+        dict[str, int]: each node id's line.
+    """
+    tracker: LocationTracker = LocationTracker()
+    lines: dict[str, int] = {}
+    stack: list[Node] = [root]
+    while stack:
+        node: Node = stack.pop()
+        lines[node.get("id", "")] = tracker.visit_node(node)
+        stack.extend(reversed(node.get("inner", [])))
+    return lines
 
 
 def clang_arguments(entry: Mapping[str, Any]) -> list[str]:
@@ -152,6 +219,34 @@ def referenced_id(node: Node) -> str | None:
         if node.get("kind") == "DeclRefExpr"
         else None
     )
+
+
+def argument_id(node: Node) -> str | None:
+    """The id of the name an argument passes, through casts, ``&p[i]`` and ``&p->f``.
+
+    Args:
+        node: a call argument.
+
+    Returns:
+        str | None: the declaration's id, or None when the argument passes no
+        plain name.
+
+    Example:
+        >>> p = {"kind": "DeclRefExpr", "referencedDecl": {"id": "0x1"}}
+        >>> argument_id({"kind": "CStyleCastExpr", "inner": [p]})
+        '0x1'
+        >>> argument_id({"kind": "UnaryOperator", "opcode": "&",
+        ...              "inner": [{"kind": "ArraySubscriptExpr", "inner": [p]}]})
+        '0x1'
+        >>> print(argument_id({"kind": "IntegerLiteral"}))
+        None
+    """
+    while node.get("kind") in ARGUMENT_WRAPPER_KINDS and node.get("inner"):
+        node = node["inner"][0]
+    if node.get("kind") == "UnaryOperator" and node.get("opcode") == "&":
+        return base_id(node["inner"][0])
+    else:
+        return referenced_id(node)
 
 
 def base_id(node: Node) -> str | None:
@@ -249,7 +344,7 @@ def scan_function(function: Node) -> list[tuple[str, Node]]:
                 modified.add(referenced_id(node["inner"][0]))
             case "CallExpr", _:
                 passed_to_a_call.update(
-                    referenced_id(argument) for argument in node.get("inner", [])[1:]
+                    argument_id(argument) for argument in node.get("inner", [])[1:]
                 )
             case _:
                 pass  # no other node binds, writes or passes a name
@@ -273,23 +368,35 @@ def main() -> int:
     """Print every candidate and the totals per category.
 
     Returns:
-        int: the exit status, 0.
+        int: the exit status: 0, or 2 when a FILE names no translation unit.
     """
     build: pathlib.Path = pathlib.Path(sys.argv[1])
-    wanted: set[pathlib.Path] = {(REPO / f).resolve() for f in sys.argv[2:]}
+    wanted: set[pathlib.Path] = {pathlib.Path(f).resolve() for f in sys.argv[2:]}
     entries: list[dict[str, Any]] = [
         e
         for e in json.loads((build / "compile_commands.json").read_text())
         if pathlib.Path(e["directory"], e["file"]).resolve().parent == REPO / "src"
         and (not wanted or pathlib.Path(e["directory"], e["file"]).resolve() in wanted)
     ]
+    unmatched: set[pathlib.Path] = wanted - {
+        pathlib.Path(e["directory"], e["file"]).resolve() for e in entries
+    }
+    if unmatched:
+        print(
+            "no src/*.c translation unit for: "
+            + ", ".join(sorted(str(f) for f in unmatched)),
+            file=sys.stderr,
+        )
+        return 2
     counts: collections.Counter[str] = collections.Counter()
     for entry in entries:
         name: str = pathlib.Path(entry["file"]).name
         # clang's JSON gives a node's file only when it differs from the
         # previous node's, so the current file is carried along.
         current_file: str | None = None
-        for node in ast_for(entry).get("inner", []):
+        root: Node = ast_for(entry)
+        lines: dict[str, int] = declaration_lines(root)
+        for node in root.get("inner", []):
             current_file = node.get("loc", {}).get("file") or current_file
             is_definition: bool = node.get("kind") == "FunctionDecl" and any(
                 child.get("kind") == "CompoundStmt" for child in node.get("inner", [])
@@ -301,7 +408,7 @@ def main() -> int:
             for category, declaration in scan_function(node):
                 counts[category] += 1
                 print(
-                    f"{name}:{declaration.get('loc', {}).get('line', '?')}: {category}:"
+                    f"{name}:{lines[declaration['id']]}: {category}:"
                     f" {node['name']}: {declaration.get('name')}"
                     f" ({declaration['type']['qualType']})"
                 )

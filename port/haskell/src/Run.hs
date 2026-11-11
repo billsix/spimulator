@@ -16,8 +16,9 @@ module Run
 
 import Control.Monad (when)
 import Data.Array.IO (readArray, writeArray)
-import Data.Bits (complement, countLeadingZeros, shiftL, shiftR, testBit, (.&.), (.|.), xor, Bits)
+import Data.Bits (complement, countLeadingZeros, shiftL, shiftR, testBit, (.&.), (.|.), xor)
 import Data.Int (Int32, Int64, Int16, Int16)
+import qualified Data.Set as Set
 import Data.Word (Word32, Word64)
 import GHC.Clock (getMonotonicTimeNSec)
 import GHC.Float (castDoubleToWord64, castFloatToWord32, castWord64ToDouble, double2Float, float2Double)
@@ -256,9 +257,9 @@ execute s display i = case opcodeOfToken (inOpcode i) of
       hi :: Int32 <- get (regHI s)
       lo :: Int32 <- get (regLO s)
       pure ((fromIntegral (fromIntegral hi :: Word32) `shiftL` 32) .|. fromIntegral (fromIntegral lo :: Word32) :: Word64)
-    signedProduct :: Integral a => a -> a -> Word64
+    signedProduct :: Int32 -> Int32 -> Word64
     signedProduct a b = fromIntegral (fromIntegral a * fromIntegral b :: Int64) :: Word64
-    unsignedProduct :: Integral a => a -> a -> Word64
+    unsignedProduct :: Int32 -> Int32 -> Word64
     unsignedProduct a b = (fromIntegral (fromIntegral a :: Word32) * fromIntegral (fromIntegral b :: Word32)) :: Word64
     trapIf :: Bool -> IO Next
     trapIf c = when c (raise excTr) >> ok
@@ -287,7 +288,7 @@ execute s display i = case opcodeOfToken (inOpcode i) of
           cond = instCond i
           cc :: Int
           cc = fd `shiftR` 2
-          result :: (Num a, Bits a) => a -> a -> a -> a
+          result :: Int -> Int -> Int -> Int
           result l e u = (if cond .&. 4 /= 0 then l else 0) .|. (if cond .&. 2 /= 0 then e else 0) .|. (if cond .&. 1 /= 0 then u else 0)
           b :: Bool -> Int
           b x = if x then 1 else 0 :: Int
@@ -535,19 +536,11 @@ execute s display i = case opcodeOfToken (inOpcode i) of
       TOK_BC1FL_OPCODE -> fpBranch
       TOK_BC1T_OPCODE -> fpBranch
       TOK_BC1TL_OPCODE -> fpBranch
-      _ | op `elem` singleCompares -> do
-            a :: Float <- single fs
-            b :: Float <- single ft
-            compareFp (isNaN a || isNaN b) (a < b) (a == b)
-        | op `elem` doubleCompares -> do
-            a :: Double <- double fs
-            b :: Double <- double ft
-            compareFp (isNaN a || isNaN b) (a < b) (a == b)
       TOK_CFC1_OPCODE -> getFcr s fs >>= w rt >> ok
       TOK_CTC1_OPCODE -> do
         v :: Int32 <- r rt
         setFcr s fs v
-        if fs == 31 && fromIntegral v .&. complement (0xfe800000 :: Word32) /= 0 then raiseOk excFPE else ok
+        if fs == 31 && fromIntegral v .&. complement fcsrMask /= 0 then raiseOk excFPE else ok
       TOK_CEIL_W_D_OPCODE -> double fs >>= setW fd . toInt32 . cCeil >> ok
       TOK_CEIL_W_S_OPCODE -> single fs >>= setW fd . toInt32 . cCeil . float2Double >> ok
       TOK_CVT_D_S_OPCODE -> single fs >>= setD fd . float2Double >> ok
@@ -607,7 +600,18 @@ execute s display i = case opcodeOfToken (inOpcode i) of
         ok
       TOK_TRUNC_W_D_OPCODE -> double fs >>= setW fd . toInt32 >> ok
       TOK_TRUNC_W_S_OPCODE -> single fs >>= setW fd . toInt32 . float2Double >> ok
-      _ -> unknown
+      -- The c.cond.fmt compares, here at the end so that no other opcode
+      -- pays for the set lookups.
+      _
+        | op `Set.member` singleCompares -> do
+            a :: Float <- single fs
+            b :: Float <- single ft
+            compareFp (isNaN a || isNaN b) (a < b) (a == b)
+        | op `Set.member` doubleCompares -> do
+            a :: Double <- double fs
+            b :: Double <- double ft
+            compareFp (isNaN a || isNaN b) (a < b) (a == b)
+        | otherwise -> unknown
     shiftReg :: IO Int
     shiftReg = (\v -> fromIntegral (v .&. 0x1f)) <$> r rs
     shiftBy :: IO Int -> (Int32 -> Int -> Int32) -> IO Next
@@ -616,7 +620,7 @@ execute s display i = case opcodeOfToken (inOpcode i) of
       v :: Int32 <- r rt
       w rd (if n >= 0 && n < 32 then f v n else v)
       ok
-    multiplyAdd :: (Int32 -> Int32 -> t) -> (Word64 -> t -> Word64) -> IO Next
+    multiplyAdd :: (Int32 -> Int32 -> Word64) -> (Word64 -> Word64 -> Word64) -> IO Next
     multiplyAdd product' combine = do
       old :: Word64 <- hiLo
       a :: Int32 <- r rs
@@ -649,13 +653,21 @@ readCtlReg s n = readArray (cpControl s) n
 writeCtlReg :: Spim -> Int -> Int32 -> IO ()
 writeCtlReg s n v = writeArray (cpControl s) n v
 
-singleCompares, doubleCompares :: [Opcode]
+-- | The FCSR bits a program may set; ctc1 of any other bit to FCSR raises
+-- a floating-point exception.
+fcsrMask :: Word32
+fcsrMask = 0xfe800000
+
+-- | The single- and double-precision c.cond.fmt compares.
+singleCompares, doubleCompares :: Set.Set Opcode
 singleCompares =
+  Set.fromList
   [ TOK_C_F_S_OPCODE, TOK_C_UN_S_OPCODE, TOK_C_EQ_S_OPCODE, TOK_C_UEQ_S_OPCODE, TOK_C_OLT_S_OPCODE
   , TOK_C_OLE_S_OPCODE, TOK_C_ULT_S_OPCODE, TOK_C_ULE_S_OPCODE, TOK_C_SF_S_OPCODE, TOK_C_NGLE_S_OPCODE
   , TOK_C_SEQ_S_OPCODE, TOK_C_NGL_S_OPCODE, TOK_C_LT_S_OPCODE, TOK_C_NGE_S_OPCODE, TOK_C_LE_S_OPCODE
   , TOK_C_NGT_S_OPCODE ]
 doubleCompares =
+  Set.fromList
   [ TOK_C_F_D_OPCODE, TOK_C_UN_D_OPCODE, TOK_C_EQ_D_OPCODE, TOK_C_UEQ_D_OPCODE, TOK_C_OLT_D_OPCODE
   , TOK_C_OLE_D_OPCODE, TOK_C_ULT_D_OPCODE, TOK_C_ULE_D_OPCODE, TOK_C_SF_D_OPCODE, TOK_C_NGLE_D_OPCODE
   , TOK_C_SEQ_D_OPCODE, TOK_C_NGL_D_OPCODE, TOK_C_LT_D_OPCODE, TOK_C_NGE_D_OPCODE, TOK_C_LE_D_OPCODE

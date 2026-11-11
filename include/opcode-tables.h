@@ -17,7 +17,7 @@
 constexpr int OPCODE_COUNT = 365;
 
 /* The number of distinct encodings: the rows of opcode_decode_tbl. */
-constexpr int OPCODE_DECODE_COUNT = 270;
+constexpr int OPCODE_DECODE_COUNT = 275;
 
 /* {name, token, op_type} per row, in opcodes.tsv's order, which is sorted
    both by name (the scanner's keyword search) and by token (a token's

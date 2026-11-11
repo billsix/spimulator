@@ -1,14 +1,23 @@
 # Audit string-equality code in the examples for a stops-short bug
 
 **Status:** audit COMPLETE 2026-07-07 — **no stops-short bug found**; open
-pending Bill's pointer to what he observed (question at bottom).
+pending the maintainer's pointer to what they observed (question at bottom).
 **Priority:** 7
 **Difficulty:** 2
 **Created:** 2026-07-07
-**Scope note (Bill):** the suspected bug is in the **example code**, not in
+**Scope note (William Emerison Six <billsix@gmail.com>):** the suspected bug is in the **example code**, not in
 spimulator itself.
 
-## Report (Bill, 2026-07-07)
+## BLUF
+
+An audit of every string-equality routine in the examples for a "stops short" bug (a prefix
+passing as equal). It found none. Done means the maintainer points at what they saw, or closes it.
+
+## Context
+
+- The audit results are below; the question for the maintainer is at the end.
+
+## Report (William Emerison Six <billsix@gmail.com>, 2026-07-07)
 
 String-equality code somewhere "stops short": it can report two strings equal
 without requiring both the same bytes *and* the same length (a prefix passing
@@ -32,7 +41,7 @@ length-counted compare missing the length check.
 | `pgu/` (book + asm ports) | no string-equality listings (swept `src/`, `upstreamSource/`, `docs/source/*.rst`) |
 | simulator: `streq` (spim.h), symbol table, `map_string_to_name_val_val` (the shared register/keyword lookup, spim-utils.c:414) | correct — the lookup's match test requires **both** strings at NUL; prefix in either direction is a miss. `str_prefix` in the REPL is prefix-matching **by design** (command abbreviation). |
 
-## Question for Bill
+## Question for the maintainer
 
 No current code exhibits the described bug. Three possibilities:
 

@@ -50,6 +50,6 @@ where it was.
 ## Found along the way
 
 - An "immediate value out of range" error names the line after the bad instruction. Recorded as
-  `tasks/immediate-range-error-line-number.md` (proposed).
+  `tasks/archive/2026/11/11/immediate-range-error-line-number.md` (proposed).
 - Exit statuses 134 and 139 seen while debugging were not crashes: they are the fork's 128 + ExcCode
   convention (bus error on an instruction fetch, Coprocessor Unusable).

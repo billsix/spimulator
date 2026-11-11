@@ -57,6 +57,17 @@ typedef struct inst_s {
   int32_t encoding;
   imm_expr* expr;
   char* source_line;
+  /* Set on each instruction the assembler emitted for a pseudo-op, or for
+     a real instruction it had to expand into more than one (lw from a
+     label becomes lui $at + lw): the mnemonic written in the source (a
+     static string), this instruction's 1-based position in the
+     expansion, how many instructions the line became, and whether the
+     mnemonic is a pseudo-op.  Null, 0 and false for an instruction
+     written as itself. */
+  const char* expansion_of;
+  uint8_t expansion_index;
+  uint8_t expansion_count;
+  bool expansion_of_pseudo;
 } mips_instruction;
 
 #define OPCODE(INST) (INST)->opcode
@@ -221,6 +232,14 @@ void free_inst(mips_instruction* instruction);
    (AST) emission where the scanner has moved past the instruction's
    line.  emit_ast sets it per node (may be null) and clears it when
    done; while cleared, store_instruction reads the live scanner line. */
+/* Bracket the emission of one source instruction (MNEMONIC is the
+   mnemonic written; IS_PSEUDO says it is a pseudo-op).  The instructions
+   stored in between get their expansion_* fields set at
+   expansion_end: always for a pseudo-op, and for a real instruction only
+   when it became more than one.  A begin inside another begin is part of
+   the outer one. */
+void expansion_begin(const char* mnemonic, bool is_pseudo);
+void expansion_end(void);
 void emit_source_set(const char* s);
 void emit_source_clear(void);
 void i_type_inst(int opcode, int rt, int rs, const imm_expr* expr);

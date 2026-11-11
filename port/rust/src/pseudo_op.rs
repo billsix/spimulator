@@ -185,31 +185,29 @@ impl Machine {
         self.emit_i(TOK_ORI_OPCODE, rd, 0, &ImmExpr::constant(if_eq));
     }
 
-    /// Warn if a known immediate is outside `min..=max` (`check_imm_range`).
-    pub fn check_imm_range(&mut self, expr: &ImmExpr, min: i32, max: i32) {
+    /// Warn if a known immediate is outside `min..=max` (`check_imm_range`),
+    /// on `line`, the instruction's line: the scanner's line can already be
+    /// the next one, as reading past the immediate scans the newline.
+    pub fn check_imm_range(&mut self, expr: &ImmExpr, min: i32, max: i32, line: i32) {
         if self.expr_is_known(expr) {
             let value: i32 = self.eval_imm_expr(expr);
             if value < min || max < value {
                 error(&format!(
-                    "spim: (parser) immediate value ({value}) out of range ({min} .. {max}) on line {}\n",
-                    self.scanner.line_no()
+                    "spim: (parser) immediate value ({value}) out of range ({min} .. {max}) on line {line}\n"
                 ));
             }
         }
     }
 
     /// Warn if a known immediate is outside `min..=max` as an unsigned
-    /// number (`check_uimm_range`).
-    pub fn check_uimm_range(&mut self, expr: &ImmExpr, min: u32, max: u32) {
+    /// number (`check_uimm_range`), on `line`.
+    pub fn check_uimm_range(&mut self, expr: &ImmExpr, min: u32, max: u32, line: i32) {
         if self.expr_is_known(expr) {
             let value: u32 = self.eval_imm_expr(expr) as u32;
             if value < min || max < value {
                 error(&format!(
-                    "spim: (parser) immediate value ({}) out of range ({} .. {}) on line {}\n",
-                    value as i32,
-                    min as i32,
-                    max as i32,
-                    self.scanner.line_no()
+                    "spim: (parser) immediate value ({}) out of range ({} .. {}) on line {line}\n",
+                    value as i32, min as i32, max as i32,
                 ));
             }
         }

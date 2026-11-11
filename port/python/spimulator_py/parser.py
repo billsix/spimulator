@@ -15,7 +15,7 @@ scanning, and an expression keeps only the first undefined symbol it sees.
 """
 
 from collections.abc import Callable
-from typing import BinaryIO
+from typing import BinaryIO, assert_never
 
 from . import (
     ast_nodes,
@@ -198,14 +198,13 @@ def fix_current_label_address(new_addr: int) -> None:
 # --- errors -------------------------------------------------------------------------
 
 
-def _parse_error_at(message: str) -> None:
-    """Report a syntax error on the current line."""
+def _parse_error_at(message: str, line: int | None = None) -> None:
+    """Report a syntax error on line (default: the current line)."""
     pseudo_op.parse_error_occurred = True
     pseudo_op.parse_errors_seen += 1
     name: str = input_file_name if input_file_name is not None else "(stdin)"
-    console.error(
-        f"spim: (parser) {message} on line {scanner.line_no} of file {name}\n"
-    )
+    at: int = scanner.line_no if line is None else line
+    console.error(f"spim: (parser) {message} on line {at} of file {name}\n")
 
 
 def _sync_to_nl() -> None:
@@ -226,14 +225,16 @@ def _expect(expected: int, what: str) -> bool:
 def _int_value() -> int:
     """The scanner's last integer value."""
     value: int | float | str = scanner.scan_value
-    assert isinstance(value, int)
+    if not isinstance(value, int):
+        raise TypeError(f"_int_value: expected int, got {type(value).__name__}")
     return value
 
 
 def _str_value() -> str:
     """The scanner's last identifier or string value."""
     value: int | float | str = scanner.scan_value
-    assert isinstance(value, str)
+    if not isinstance(value, str):
+        raise TypeError(f"_str_value: expected str, got {type(value).__name__}")
     return value
 
 
@@ -284,27 +285,27 @@ def _parse_abs_addr() -> int:
 def _parse_factor() -> int:
     """``INT``, ``( EXPR )``, or a name (its address, or 0 if undefined yet)."""
     global _expr_unresolved_label
-    match scanner.peek():
-        case _ if scanner.peek() == TOK_INT:
-            scanner.advance()
-            return _int_value()
-        case _ if scanner.peek() == ord("("):
-            scanner.advance()
-            value: int = _parse_expr()
-            _expect(ord(")"), "Expected ')'")
-            return value
-        case _ if scanner.peek() == TOK_ID:
-            scanner.advance()
-            label: symbol_table.Label = symbol_table.lookup_label(_str_value())
-            if label.addr == 0:
-                # A forward reference: emit_ast records the use at the right PC.
-                if _expr_unresolved_label is None:
-                    _expr_unresolved_label = label
-                return 0
-            return machine.s32(label.addr)
-        case _:
-            _parse_error_at("Expected expression")
+    token: int = scanner.peek()
+    if token == TOK_INT:
+        scanner.advance()
+        return _int_value()
+    elif token == ord("("):
+        scanner.advance()
+        value: int = _parse_expr()
+        _expect(ord(")"), "Expected ')'")
+        return value
+    elif token == TOK_ID:
+        scanner.advance()
+        label: symbol_table.Label = symbol_table.lookup_label(_str_value())
+        if label.addr == 0:
+            # A forward reference: emit_ast records the use at the right PC.
+            if _expr_unresolved_label is None:
+                _expr_unresolved_label = label
             return 0
+        return machine.s32(label.addr)
+    else:
+        _parse_error_at("Expected expression")
+        return 0
 
 
 def _parse_term() -> int:
@@ -370,15 +371,18 @@ def _parse_imm32() -> ImmExpr:
 
 def _parse_imm16() -> ImmExpr:
     """A signed 16-bit immediate (a warning if it does not fit)."""
+    # The instruction's line, before parsing the immediate scans the newline.
+    line: int = scanner.line_no
     expr: ImmExpr = _parse_imm32()
-    pseudo_op.check_imm_range(expr, instruction.IMM_MIN, instruction.IMM_MAX)
+    pseudo_op.check_imm_range(expr, instruction.IMM_MIN, instruction.IMM_MAX, line)
     return expr
 
 
 def _parse_uimm16() -> ImmExpr:
     """An unsigned 16-bit immediate."""
+    line: int = scanner.line_no  # as in _parse_imm16
     expr: ImmExpr = _parse_imm32()
-    pseudo_op.check_uimm_range(expr, instruction.UIMM_MIN, instruction.UIMM_MAX)
+    pseudo_op.check_uimm_range(expr, instruction.UIMM_MIN, instruction.UIMM_MAX, line)
     return expr
 
 
@@ -394,47 +398,47 @@ def _parse_label() -> ImmExpr:
 def _parse_address() -> AddrExpr:
     """A load/store address: ``(REG)``, ``ABS [(REG)]``, ``ID [+-ABS] [(REG)]``."""
     scanner.force_identifier()
-    match scanner.peek():
-        case _ if scanner.peek() == ord("("):
+    token: int = scanner.peek()
+    if token == ord("("):
+        scanner.advance()
+        reg: int = _parse_register()
+        _expect(ord(")"), "Expected ')' after register")
+        return instruction.make_addr_expr(0, None, reg)
+    elif token == TOK_INT:
+        offset: int = _parse_abs_addr()
+        if scanner.peek() == ord("+") and scanner.peek2() == TOK_ID:
             scanner.advance()
-            reg: int = _parse_register()
-            _expect(ord(")"), "Expected ')' after register")
-            return instruction.make_addr_expr(0, None, reg)
-        case _ if scanner.peek() == TOK_INT:
-            offset: int = _parse_abs_addr()
-            if scanner.peek() == ord("+") and scanner.peek2() == TOK_ID:
-                scanner.advance()
-                scanner.force_identifier()
-                scanner.advance()
-                return instruction.make_addr_expr(offset, _str_value(), 0)
-            elif scanner.peek() == ord("("):
-                scanner.advance()
-                reg = _parse_register()
-                _expect(ord(")"), "Expected ')'")
-                return instruction.make_addr_expr(offset, None, reg)
-            else:
-                return instruction.make_addr_expr(offset, None, 0)
-        case _ if scanner.peek() == TOK_ID:
+            scanner.force_identifier()
             scanner.advance()
-            name: str = _str_value()
-            offset = 0
-            if scanner.peek() == ord("+"):
-                scanner.advance()
-                offset = _parse_abs_addr()
-            elif scanner.peek() == ord("-"):
-                scanner.advance()
-                offset = -_parse_abs_addr()
-            else:
-                pass  # no offset: offset stays 0
-            reg = 0
-            if scanner.peek() == ord("("):
-                scanner.advance()
-                reg = _parse_register()
-                _expect(ord(")"), "Expected ')'")
-            return instruction.make_addr_expr(offset, name, reg)
-        case _:
-            _parse_error_at("Expected address")
-            return instruction.make_addr_expr(0, None, 0)
+            return instruction.make_addr_expr(offset, _str_value(), 0)
+        elif scanner.peek() == ord("("):
+            scanner.advance()
+            reg = _parse_register()
+            _expect(ord(")"), "Expected ')'")
+            return instruction.make_addr_expr(offset, None, reg)
+        else:
+            return instruction.make_addr_expr(offset, None, 0)
+    elif token == TOK_ID:
+        scanner.advance()
+        name: str = _str_value()
+        offset = 0
+        if scanner.peek() == ord("+"):
+            scanner.advance()
+            offset = _parse_abs_addr()
+        elif scanner.peek() == ord("-"):
+            scanner.advance()
+            offset = -_parse_abs_addr()
+        else:
+            pass  # no offset: offset stays 0
+        reg = 0
+        if scanner.peek() == ord("("):
+            scanner.advance()
+            reg = _parse_register()
+            _expect(ord(")"), "Expected ')'")
+        return instruction.make_addr_expr(offset, name, reg)
+    else:
+        _parse_error_at("Expected address")
+        return instruction.make_addr_expr(0, None, 0)
 
 
 # --- instructions -----------------------------------------------------------------
@@ -742,22 +746,27 @@ def _parse_pseudo(op: int) -> None:
     saved: Node | None = _current_pseudo
     _current_pseudo = node
     _expand_pseudo(op)
+    # The expansion is the pseudo-op's line, even when its last operand read
+    # on to the newline before a child was built.
+    for child in node.children:
+        child.source_line = node.source_line
     _current_pseudo = saved
     _append(node)
 
 
-def _expand_pseudo(op: int) -> None:  # noqa: C901 - one case per pseudo-op, as in C
+def _expand_pseudo(op: int) -> None:
     """Parse a pseudo-instruction's operands and emit its expansion."""
     match op:
         case Tok.LI_PSEUDO_OP:
             rt: int = _parse_register()
             emit_i(Tok.ORI_OPCODE, rt, 0, _parse_imm32())
         case Tok.MOVE_PSEUDO_OP | Tok.NEG_PSEUDO_OP | Tok.NEGU_PSEUDO_OP:
-            real: int = {
+            register_ops: dict[int, int] = {
                 Tok.MOVE_PSEUDO_OP: Tok.ADDU_OPCODE,
                 Tok.NEG_PSEUDO_OP: Tok.SUB_OPCODE,
                 Tok.NEGU_PSEUDO_OP: Tok.SUBU_OPCODE,
-            }[op]
+            }
+            real: int = register_ops[op]
             rd: int = _parse_register()
             emit_r(real, rd, 0, _parse_register())
         case Tok.NOT_PSEUDO_OP:
@@ -803,26 +812,35 @@ def _expand_pseudo(op: int) -> None:  # noqa: C901 - one case per pseudo-op, as 
                     pseudo_op.mult_inst(op, rd, rs, 1)
         case Tok.MFC1_D_PSEUDO_OP | Tok.MTC1_D_PSEUDO_OP:
             real = Tok.MFC1_OPCODE if op == Tok.MFC1_D_PSEUDO_OP else Tok.MTC1_OPCODE
+            line: int = scanner.line_no  # the last operand can consume the newline
             reg: int = _parse_register()
             copreg: int = _parse_copreg_operand()
+            if 31 in (reg, copreg):  # the pair's second register would be 32
+                _parse_error_at("Register pair starts at the last register (31)", line)
+                return
             emit_fp_r(real, 0, copreg, reg)
             emit_fp_r(real, 0, copreg + 1, reg + 1)
         case Tok.LI_D_PSEUDO_OP | Tok.LI_S_PSEUDO_OP:
             _expand_li_fp(op)
         case Tok.L_D_PSEUDO_OP | Tok.L_S_PSEUDO_OP | Tok.S_D_PSEUDO_OP | Tok.S_S_PSEUDO_OP:  # fmt: skip
-            real = {
+            fp_memory_ops: dict[int, int] = {
                 Tok.L_D_PSEUDO_OP: Tok.LDC1_OPCODE,
                 Tok.L_S_PSEUDO_OP: Tok.LWC1_OPCODE,
                 Tok.S_D_PSEUDO_OP: Tok.SDC1_OPCODE,
                 Tok.S_S_PSEUDO_OP: Tok.SWC1_OPCODE,
-            }[op]
+            }
+            real = fp_memory_ops[op]
             fr: int = _parse_fp_register()
             address: AddrExpr = _parse_address()
             emit_i(real, fr, address.reg_no, address.imm)
         case Tok.LD_PSEUDO_OP | Tok.SD_PSEUDO_OP:
             real = Tok.LW_OPCODE if op == Tok.LD_PSEUDO_OP else Tok.SW_OPCODE
+            line = scanner.line_no  # the address can consume the newline
             rt = _parse_register()
             address = _parse_address()
+            if rt == 31:  # the pair's second register would be 32
+                _parse_error_at("Register pair starts at the last register (31)", line)
+                return
             emit_i(real, rt, address.reg_no, address.imm)
             emit_i(
                 real,
@@ -907,9 +925,10 @@ def _expand_rotate(op: int) -> None:
             emit_r(Tok.SLLV_OPCODE, rd, rt, rs)
         emit_r(Tok.OR_OPCODE, rd, rd, 1)
         return
+    line: int = scanner.line_no  # as in _parse_imm16
     imm: ImmExpr = _parse_imm32()
     distance: int = instruction.eval_imm_expr(imm)
-    pseudo_op.check_imm_range(imm, 0, 31)
+    pseudo_op.check_imm_range(imm, 0, 31, line)
     first: int = Tok.SLL_OPCODE if is_right else Tok.SRL_OPCODE
     second: int = Tok.SRL_OPCODE if is_right else Tok.SLL_OPCODE
     emit_r_shift(first, 1, rs, -distance)
@@ -938,8 +957,12 @@ def _expand_set(op: int) -> None:
             pseudo_op.set_gt_inst(op, rd, rs, rt)
         case Tok.SGE_PSEUDO_OP | Tok.SGEU_PSEUDO_OP:
             pseudo_op.set_ge_inst(op, rd, rs, rt)
-        case _:
+        case Tok.SEQ_PSEUDO_OP | Tok.SNE_PSEUDO_OP:
             pseudo_op.set_eq_inst(op, rd, rs, rt)
+        case _:
+            raise AssertionError(
+                f"_expand_set: op {op} is not a set pseudo-op; only they reach here"
+            )
 
 
 def _expand_li_fp(op: int) -> None:
@@ -950,7 +973,8 @@ def _expand_li_fp(op: int) -> None:
         return
     scanner.advance()
     value: int | float | str = scanner.scan_value
-    assert isinstance(value, float)
+    if not isinstance(value, float):
+        raise TypeError(f"_expand_li_fp: expected float, got {type(value).__name__}")
     if op == Tok.LI_D_PSEUDO_OP:
         low: int
         high: int
@@ -1008,11 +1032,16 @@ def _expand_compare_branch(op: int) -> None:
             emit_i(Tok.BEQ_OPCODE, rs, 1, pseudo_op.branch_offset(3))
             emit_r(Tok.SLTU_OPCODE, 1, rs, 1)
             emit_i(Tok.BEQ_OPCODE, 0, 1, target)
-        case _:  # bleu
+        case Tok.BLEU_PSEUDO_OP:
             emit_i(Tok.ORI_OPCODE, 1, 0, imm)
             emit_i(Tok.BEQ_OPCODE, rs, 1, target)
             emit_r(Tok.SLTU_OPCODE, 1, rs, 1)
             emit_i(Tok.BNE_OPCODE, 0, 1, target)
+        case _:
+            raise AssertionError(
+                f"_expand_compare_branch: op {op} is not a compare-branch pseudo-op;"
+                " only they reach here"
+            )
 
 
 # --- directives -------------------------------------------------------------------
@@ -1074,7 +1103,10 @@ def _parse_fp_expr_list() -> None:
             return
         scanner.advance()
         value: int | float | str = scanner.scan_value
-        assert isinstance(value, float)
+        if not isinstance(value, float):
+            raise TypeError(
+                f"_parse_fp_expr_list: expected float, got {type(value).__name__}"
+            )
         _data_doubles.append(value)
         if scanner.peek() in (TOK_NL, TOK_EOF):
             break
@@ -1161,7 +1193,11 @@ def _parse_directive(token: int) -> None:
                 return
             _append(ast_nodes.make(Kind.DIR_SPACE, number=size))
         case Tok.ALIGN_DIRECTIVE:
+            line: int = scanner.line_no  # the expression can consume the newline
             power: int = _parse_expression()
+            if not 0 <= power <= 31:  # C shifts a 32-bit mask by it
+                _parse_error_at("Alignment out of range (0 .. 31)", line)
+                return
             if power == 0:
                 _auto_align = False
             _append(ast_nodes.make(Kind.DIR_ALIGN, number=power))
@@ -1305,7 +1341,7 @@ def _emit_data_ints(node: Node, store: Callable[[int], None], width: int) -> Non
             store(instruction.eval_imm_expr(expr))
 
 
-def _emit_one(node: Node) -> None:  # noqa: C901 - one case per node kind
+def _emit_one(node: Node) -> None:
     """Store one node: the action the C engine's emit_one takes for its kind."""
     global data_dir, text_dir, _auto_align
     scanner.line_no = node.source_line
@@ -1392,10 +1428,12 @@ def _emit_one(node: Node) -> None:  # noqa: C901 - one case per node kind
         case Kind.INST_R_SHIFT:
             instruction.r_sh_type_inst(node.op, node.rd, node.rt, node.shamt)
         case Kind.INST_I:
-            assert node.imm is not None
+            if node.imm is None:
+                raise AssertionError("_emit_one: node.imm is None")
             instruction.i_type_inst(node.op, node.rt, node.rs, node.imm.copy())
         case Kind.INST_J:
-            assert node.imm is not None
+            if node.imm is None:
+                raise AssertionError("_emit_one: node.imm is None")
             instruction.j_type_inst(node.op, node.imm.copy())
         case Kind.INST_FP_R:
             instruction.r_co_type_inst(node.op, node.fd, node.fs, node.ft)
@@ -1406,5 +1444,9 @@ def _emit_one(node: Node) -> None:  # noqa: C901 - one case per node kind
                 _emit_one(child)
                 if child.kind not in (Kind.LABEL_DEF, Kind.DIR_GLOBL):
                     _clear_labels()
-        case Kind.FILE | Kind.ERROR:
-            pass  # never a direct child of the file
+        case Kind.FILE:
+            raise AssertionError(
+                "_emit_one: a FILE node is never a child; emit_ast walks its children"
+            )
+        case _:
+            assert_never(node.kind)

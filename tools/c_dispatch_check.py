@@ -380,6 +380,8 @@ class Finding:
         has_else: Whether the chain ends in a plain `else` (or the switch has a `default`).
         subject: The common subject, or the distinct subjects joined by " | ".
         detail: The constants, or what follows a guard run.
+        constants: The constants the tests compare with, one entry each (empty for a run or
+            a switch).
     """
 
     where: str
@@ -389,6 +391,7 @@ class Finding:
     has_else: bool
     subject: str
     detail: str
+    constants: tuple[str, ...] = ()
 
     def row(self) -> str:
         """Render as one TSV line.
@@ -610,7 +613,7 @@ class Scanner:
         subjects: list[str] = list(
             dict.fromkeys(test.subject or "<other>" for test in tests)
         )
-        constants: str = ",".join(c for test in tests for c in test.constants)
+        constants: tuple[str, ...] = tuple(c for test in tests for c in test.constants)
         return Finding(
             where=location,
             function=self.function,
@@ -618,7 +621,8 @@ class Scanner:
             tests=len(tests),
             has_else=has_else,
             subject=" | ".join(subjects),
-            detail=" ".join(part for part in (constants, detail) if part),
+            detail=" ".join(part for part in (",".join(constants), detail) if part),
+            constants=constants,
         )
 
 
@@ -755,13 +759,23 @@ def flagged(
 
     Returns:
         One line per flagged site: `path:line`, kind, function and detail, tab-separated.
+
+    A two-test chain on one subject is a switch only when a test lists several constants, and
+    a `','` constant counts once:
+
+    >>> chain = Finding(where="a.c:3", function="f", shape="switch", tests=2, has_else=True,
+    ...                 subject="c", detail="',','a'", constants=("','", "'a'"))
+    >>> flagged([chain], [], [])
+    []
+    >>> flagged([Finding(where="a.c:3", function="f", shape="switch", tests=2, has_else=True,
+    ...                  subject="c", detail="1,2,3", constants=("1", "2", "3"))], [], [])
+    ['a.c:3\\tswitch-chain\\tf\\tc']
     """
     lines: list[str] = []
     for chain in chains:
-        # The constants are comma-joined in `detail`; more constants than tests means an `||` list.
-        constant_count: int = len(chain.detail.split(",")) if chain.detail else 0
+        # More constants than tests means a test lists several (an `||` list).
         if chain.shape == "switch" and (
-            chain.tests >= 3 or constant_count > chain.tests
+            chain.tests >= 3 or len(chain.constants) > chain.tests
         ):
             lines.append(
                 f"{chain.where}\tswitch-chain\t{chain.function}\t{chain.subject}"

@@ -1,0 +1,10 @@
+load "tt.le.s"
+breakpoint main
+list
+run
+disasm
+continue
+delete main
+list
+delete main
+exit

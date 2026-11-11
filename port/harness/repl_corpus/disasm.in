@@ -1,0 +1,3 @@
+load "tt.le.s"
+disasm
+exit

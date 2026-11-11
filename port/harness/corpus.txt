@@ -11,8 +11,8 @@
 #        text.asm and data.asm files the engine writes.
 #
 # Not here, on purpose: the teaching mode (-explain), which the ports do not
-# implement yet (tasks/engine-ports.md); interactive REPL sessions, which the
-# regression suite's args_cmd and disasm tests cover per engine.
+# implement yet (tasks/engine-ports-teaching-mode.md); REPL sessions, which
+# compare_repl.py compares (port/harness/repl_corpus/).
 core           | file:tt.in        | -exception_file EF -f tt.core.s
 core_builtin   | file:tt.in        | -f tt.core.s
 core_dump      | -                 | -exception_file EF -dump -f tt.core.s
@@ -37,3 +37,12 @@ stderr_split   | -                 | -exception_file EF -f tt.stderr_split.s
 divide_by_zero | -                 | -exception_file EF -f tt.divide_by_zero.s
 pseudo         | -                 | -exception_file EF -f tt.pseudo.s
 engine_fixes   | -                 | -exception_file EF -f tt.engine_fixes.s
+big_sbrk       | -                 | -exception_file EF -f tt.big_sbrk.s
+big_stack      | -                 | -exception_file EF -sstack 1073741824 -lstack 2000000000 -f tt.big_stack.s
+close_stdout   | -                 | -exception_file EF -f tt.close_stdout.s
+delay_chain    | -                 | -exception_file EF -delayed_branches -f tt.delay_chain.s
+cop1x_decode   | -                 | -exception_file EF -f tt.cop1x_decode.s
+range_checks   | -                 | -exception_file EF -f tt.range_checks.s
+register_pair  | -                 | -exception_file EF -f tt.register_pair.s
+small_ktext    | -                 | -sktext 0 -exception_file EF -f tt.le.s
+small_text     | -                 | -stext 0 -exception_file EF -f tt.le.s

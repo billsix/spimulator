@@ -1,0 +1,7 @@
+load "tt.le.s"
+step
+step 5
+
+
+print $pc
+exit

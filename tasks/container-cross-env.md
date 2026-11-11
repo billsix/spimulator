@@ -1,7 +1,20 @@
 # Plan: cross-compilers + qemu-user in the container
 
+**Status:** proposed — needs go-ahead
+**Depends on:** `tasks/examples-c-debug-build-via-meson.md` (its open questions 1-3 decide whether this task is kept)
 **Priority:** 5
 **Difficulty:** 4
+
+## BLUF
+
+Install cross compilers and qemu-user in the container so every C demo can be built and run for
+x86_64, i386, arm, aarch64 and mips, which tests the multiarch `_start` shim (`crt0.h`) in CI. Done
+means one command builds and runs a demo for each architecture in the image.
+
+## Context
+
+- The goal, the commands and the plan are below.
+- Whether this stays is open question 2 of `tasks/examples-c-debug-build-via-meson.md`.
 
 ## Goal
 
@@ -9,7 +22,7 @@ Bake into the `/examples` container the tooling needed to
 build and run any C demo for any of the five target Linux
 architectures (`x86_64`, `i386`, `arm`, `aarch64`, `mips`).
 That makes the multiarch `_start` shim (`crt0.h`) verifiable
-inside the dev/CI environment, not just on Bill's hardware.
+inside the dev/CI environment, not just on the maintainer's hardware.
 
 Concretely:
 
@@ -33,9 +46,9 @@ Three reasons:
    out across ~30 demos but only the x86_64 branch is actually
    exercised by the existing builds.  Without an in-container
    way to cross-compile + run, an arm/aarch64/mips/i386
-   regression goes undetected until Bill notices it on real
+   regression goes undetected until the maintainer notices it on real
    hardware — slow loop.
-2. **The container is the dev environment.**  Bill's reaction
+2. **The container is the dev environment.**  The maintainer's reaction
    when I said "this needs cross-binutils installed" was
    essentially "that's what the container is for."  Right.
    Anything a future session needs to do its job should be
@@ -94,7 +107,7 @@ Then `qemu-aarch64-static /tmp/out one two three` runs it.
 - One toolchain (clang) targets all five arches; no per-arch
   package proliferation.
 - Matches how PGU's `/pgu/src/c/*.c` are already being built
-  (clang-multi-target is a familiar idiom in Bill's other
+  (clang-multi-target is a familiar idiom in the maintainer's other
   repos).
 
 **Cons:**
@@ -104,7 +117,7 @@ Then `qemu-aarch64-static /tmp/out one two three` runs it.
   translate this") would need the gcc cross toolchains in
   addition.
 - No sysroot means anything that includes a libc header (any
-  non-freestanding code Bill might add later) breaks.  Today
+  non-freestanding code the maintainer might add later) breaks.  Today
   none does.
 
 ### Option B — clang + lld + GNU cross toolchains + qemu-user-static (full)
@@ -136,7 +149,7 @@ Total disk: ~500 MB – 1 GB above the base.
 - Two compilers per target = the "compare GCC vs clang
   codegen" lesson becomes possible.
 - Per-arch sysroots come along; non-freestanding code paths
-  (if/when Bill adds them) Just Work.
+  (if/when the maintainer adds them) Just Work.
 - More "standard" — matches the toolchain a real distribution
   would ship.
 
@@ -285,8 +298,8 @@ The natural rollout order is:
 
 ## Out of scope
 
-- Real-hardware verification on Bill's actual ARM/aarch64
-  devices.  qemu-user is close but not perfect; Bill's
+- Real-hardware verification on the maintainer's actual ARM/aarch64
+  devices.  qemu-user is close but not perfect; the maintainer's
   hardware is the final arbiter.  This plan only addresses
   "in-container CI-able verification."
 - Other Unixes (FreeBSD, macOS).  No cross-compile for

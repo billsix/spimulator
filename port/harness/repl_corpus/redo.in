@@ -1,0 +1,9 @@
+load "tt.le.s"
+print $4
+
+
+print $f0
+
+step
+
+exit

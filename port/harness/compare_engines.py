@@ -41,7 +41,11 @@ TESTS: pathlib.Path = REPO / "tests"
 NUMBER: re.Pattern[str] = re.compile(
     r"[-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?|[-+]?(?:inf|nan)"
 )
-RELATIVE_TOLERANCE: float = 1e-15
+# The exit status recorded for a run that hit the timeout.
+TIMED_OUT: int = -1
+
+# How many units in the last place two printed floats may differ by.
+ULP_TOLERANCE: int = 4
 
 
 @dataclass(frozen=True)
@@ -101,7 +105,7 @@ def run(engine: str, case: Case, exception_file: str, timeout: float) -> Run:
                 timeout=timeout,
             )
         except subprocess.TimeoutExpired:
-            return Run("", f"<timed out after {timeout} s>", -1, {})
+            return Run("", f"<timed out after {timeout} s>", TIMED_OUT, {})
         dumps: dict[str, str] = {
             name: (cwd / name).read_text(errors="replace")
             for name in ("text.asm", "data.asm")
@@ -115,15 +119,22 @@ def run(engine: str, case: Case, exception_file: str, timeout: float) -> Run:
     return Run(done.stdout.decode(errors="replace"), stderr, done.returncode, dumps)
 
 
-def last_digit_unit(text: str) -> float:
-    """The value of one unit in the last printed digit of a number."""
-    mantissa, _, exponent = text.lower().partition("e")
-    decimals: int = len(mantissa.partition(".")[2])
-    return 10.0 ** (int(exponent or 0) - decimals)
-
-
 def close(a_text: str, b_text: str) -> bool:
-    """Two printed numbers: equal, very close, or both NaN."""
+    """Two printed numbers: the same value to within a few ULP, or both NaN.
+
+    The tolerance covers only genuine formatting differences in the last bits of
+    a value printed with all its digits (``%.17g``). A value printed with fewer
+    digits that differs is a different value, and fails.
+
+    >>> close("0.5", "0.5"), close("1e+10", "10000000000")
+    (True, True)
+    >>> close("0.5", "0.6"), close("1e+10", "2e+10"), close("3.14159", "3.1416")
+    (False, False, False)
+    >>> close("0.30000000000000004", "0.30000000000000009")
+    True
+    >>> close("nan", "-nan"), close("inf", "inf"), close("inf", "-inf")
+    (True, True, False)
+    """
     if a_text == b_text:
         return True
     a: float = float(a_text)
@@ -133,11 +144,7 @@ def close(a_text: str, b_text: str) -> bool:
     elif math.isinf(a) or math.isinf(b):
         return a == b
     else:
-        allowed: float = max(
-            RELATIVE_TOLERANCE * max(abs(a), abs(b)),
-            max(last_digit_unit(a_text), last_digit_unit(b_text)),
-        )
-        return abs(a - b) <= allowed
+        return abs(a - b) <= ULP_TOLERANCE * max(math.ulp(a), math.ulp(b))
 
 
 def float_only_difference(a: str, b: str) -> bool:
@@ -211,14 +218,29 @@ def main() -> int:
     # resolved against the directory the harness was started from.
     reference: str = resolve_engine(options.reference)
     engine: str = resolve_engine(options.engine)
+    corpus: list[Case] = load_corpus()
+    unknown: list[str] = sorted(set(options.cases) - {c.name for c in corpus})
     cases: list[Case] = [
-        c for c in load_corpus() if not options.cases or c.name in options.cases
+        c for c in corpus if not options.cases or c.name in options.cases
     ]
+    if unknown or not cases:
+        # A selection that runs nothing must not pass.
+        print(f"no such case: {', '.join(unknown)}" if unknown else "no cases selected")
+        return 1
     counts: dict[str, int] = {"PASS": 0, "WARN": 0, "FAIL": 0}
     for case in cases:
         want: Run = run(reference, case, options.exception_file, options.timeout)
         got: Run = run(engine, case, options.exception_file, options.timeout)
-        verdict, notes = compare(want, got)
+        verdict: str
+        notes: list[str]
+        if want.status == TIMED_OUT:
+            # Both engines timing out would compare equal; a hung reference proves nothing.
+            verdict, notes = (
+                "FAIL",
+                [f"the C engine timed out after {options.timeout} s"],
+            )
+        else:
+            verdict, notes = compare(want, got)
         counts[verdict] += 1
         print(f"{verdict} {case.name}")
         for note in notes[:10]:

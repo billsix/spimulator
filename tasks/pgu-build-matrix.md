@@ -1,7 +1,20 @@
 # Plan: clang cross-compile-to-assembly matrix in the Docker image
 
+**Status:** proposed — needs go-ahead
+**Depends on:** `tasks/examples-c-debug-build-via-meson.md` (its open questions 1-3 decide whether this task is kept)
 **Priority:** 5
 **Difficulty:** 5
+
+## BLUF
+
+Cross-compile every C port in `pgu/src/c/` to assembly listings for five architectures at
+image-build time, next to the book's hand-written x86-32 assembly. Done means the image ships the
+listings under a fixed naming scheme.
+
+## Context
+
+- Whether `tasks/examples-c-debug-build-via-meson.md`'s decision 3 applies to `pgu/` is its open
+  question 3 (recommendation: leave pgu alone, since the book is about x86 assembly).
 
 ## Goal
 
@@ -291,7 +304,7 @@ One layer only (no runtime execution since we don't link):
 
 3. **Spot-check vs the book's hand-written x86-32 assembly.**
    Open `asm-out/i386/exit.s` (clang's output) next to
-   `src/exit.s` (Bill's hand-written port of the book's
+   `src/exit.s` (the maintainer's hand-written port of the book's
    original).  They should be doing the same thing in
    recognizably the same idiom — that's the whole pedagogy.
    If they look unrelated, something's wrong with either the

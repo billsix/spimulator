@@ -41,34 +41,44 @@ from .cformat import c_format
 from .registers import cpu
 
 USAGE: str = (
-    "Usage: spim\n"
-    "\t-bare\t\t\tBare machine (no pseudo-ops, delayed branches and loads)\n"
-    "\t-asm\t\t\tExtended machine (pseudo-ops, no delayed branches and loads) (default)\n"
-    "\t-delayed_branches\tExecute delayed branches\n"
-    "\t-delayed_loads\t\tExecute delayed loads\n"
-    "\t-exception\t\tLoad exception handler (default)\n"
-    "\t-noexception\t\tDo not load exception handler\n"
-    "\t-exception_file <file>\tSpecify exception handler in place of default\n"
-    "\t-quiet\t\t\tDo not print warnings\n"
-    "\t-noquiet\t\tPrint warnings (default)\n"
-    "\t-explain [N]\t\tNarrate every instruction (teaching mode).\n"
-    "\t\t\t\tLevel N selects detail: 1 = semantic, 2 = + interactive,\n"
-    "\t\t\t\t3 = + bit-layout (default when N omitted; historical behavior),\n"
-    "\t\t\t\t4 = + progressive decoder walkthrough.\n"
-    "\t\t\t\tAlso accepts -explain=N. Short form: -x.\n"
-    "\t-noexplain\t\tDisable teaching mode (default)\n"
-    "\t-mapped_io\t\tEnable memory-mapped IO\n"
-    "\t-nomapped_io\t\tDo not enable memory-mapped IO (default)\n"
-    "\t-file <file> [-file <file> ...] <args>\n"
-    "\t\t\t\tAssembly code file(s) and arguments to program.\n"
-    "\t\t\t\tMultiple -file (or -f) options accumulate into one\n"
-    "\t\t\t\tsymbol table; forward references resolve across files.\n"
+    "Usage: spimulator [option ...] [-file] file [-file file ...] [program arguments]\n"
+    "\t-asm, -a\t\tExtended machine (pseudo-ops, no delayed branches and loads) (default)\n"
+    "\t-bare, -b\t\tBare machine (no pseudo-ops, delayed branches and loads)\n"
+    "\t-delayed_branches, -db\tExecute delayed branches\n"
+    "\t-delayed_loads, -dl\tExecute delayed loads\n"
+    "\t-pseudo, -p\t\tAccept pseudo-instructions (default)\n"
+    "\t-nopseudo, -np\t\tDo not accept pseudo-instructions\n"
+    "\t-exception, -e\t\tLoad the exception handler (default); also -trap, -t\n"
+    "\t-noexception, -ne\tDo not load the exception handler; also -notrap, -nt\n"
+    "\t-exception_file <file>, -ef <file>\n"
+    "\t\t\t\tLoad <file> as the exception handler; also -trap_file, -tf\n"
+    "\t-quiet, -q\t\tDo not print warnings\n"
+    "\t-noquiet, -nq\t\tPrint warnings (default)\n"
+    "\t-explain [N], -x [N]\tNarrate every instruction (teaching mode).\n"
+    "\t\t\t\tLevel N selects detail: 1 = step header, 2 = + narration,\n"
+    "\t\t\t\t3 = + bit-layout (default when N omitted),\n"
+    "\t\t\t\t4 = decoder walkthrough in place of the bit-layout.\n"
+    "\t\t\t\tAlso accepts -explain=N.\n"
+    "\t-noexplain, -nx\t\tDisable teaching mode (default)\n"
+    "\t-mapped_io, -mio\tEnable memory-mapped IO\n"
+    "\t-nomapped_io, -nmio\tDo not enable memory-mapped IO (default)\n"
+    "\t-stext, -st <size>\tInitial text segment size, in bytes\n"
+    "\t-sdata, -sd <size>\tInitial data segment size, in bytes\n"
+    "\t-sstack, -ss <size>\tInitial stack segment size, in bytes\n"
+    "\t-sktext, -skt <size>\tInitial kernel text segment size, in bytes\n"
+    "\t-skdata, -skd <size>\tInitial kernel data segment size, in bytes\n"
+    "\t-ldata, -ld <size>\tData segment size limit, in bytes\n"
+    "\t-lstack, -ls <size>\tStack segment size limit, in bytes\n"
+    "\t-lkdata, -lkd <size>\tKernel data segment size limit, in bytes\n"
+    "\t-file <file>, -f <file>\tAssembly code file; repeat to load several into one\n"
+    "\t\t\t\tsymbol table (forward references resolve across files).\n"
+    "\t\t\t\tA bare argument is loaded as a file too; the arguments\n"
+    "\t\t\t\tafter the last file are the program's arguments.\n"
     "\t-assemble\t\tWrite assembled code to <file>.out\n"
     "\t-listing <file>\t\tWrite assemble-time event trace to <file> (use - for stderr)\n"
     "\t-print-ast\t\tParse to AST, print it to stderr, and exit without emitting any code\n"
     "\t-print-ast-json\t\tParse to AST, dump JSON to stdout (for tooling), and exit\n"
-    "\t-show-expansion\t\tParse to AST, print just the pseudo-op wrappers + their"
-    " expansion, and exit\n"
+    "\t-show-expansion\t\tParse to AST, print just the pseudo-op wrappers + their expansion, and exit\n"
     "\t-dump\t\t\tWrite user data and text segments into files\n"
     "\t-full_dump\t\tWrite user and kernel data and text into files.\n"
 )
@@ -164,6 +174,11 @@ def main(arguments: list[str]) -> int:
     # Python ignores SIGPIPE; C does not, so `spimulator ... | head` ends the
     # simulator when head exits.  Restore the default.
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    # A delay slot runs through a recursive run_spim call, as in C, so a jump in
+    # the delay slot of a jump nests one level deeper.  C nests about 10,000 levels
+    # before its stack runs out; Python's default limit of 1,000 frames stopped
+    # at about 330.  Allow several frames per level beyond C's depth.
+    sys.setrecursionlimit(max(sys.getrecursionlimit(), 100_000))
     try:
         return _main(arguments)
     except console.RunError:
@@ -177,7 +192,7 @@ def main(arguments: list[str]) -> int:
         return code if isinstance(code, int) else 1
 
 
-def _main(argv: list[str]) -> int:  # noqa: C901 - the C engine's flag loop
+def _main(argv: list[str]) -> int:
     """The body of :func:`main`."""
     global exception_file_name, load_exception_handler, program_argv, _listing
     assembly_file_loaded: bool = False
@@ -556,7 +571,7 @@ class Command(enum.IntEnum):
     ARGS = 20
 
 
-_prev_cmd: int = Command.NOP
+_prev_cmd: Command = Command.NOP
 _prev_token: int = 0
 _run_addr: int = 0
 _step_count: int = 0
@@ -611,7 +626,7 @@ def _str_prefix(text: str, command: str, min_match: int) -> bool:
     return command.startswith(text) and len(text) >= min_match
 
 
-_COMMANDS: list[tuple[str, int, int]] = [
+_COMMANDS: list[tuple[str, int, Command]] = [
     ("exit", 2, Command.EXIT),
     ("quit", 2, Command.EXIT),
     ("print", 1, Command.PRINT),
@@ -634,7 +649,7 @@ _COMMANDS: list[tuple[str, int, int]] = [
 ]
 
 
-def _read_assembly_command() -> int:
+def _read_assembly_command() -> Command:
     """Read a command word; the first matching (prefix, min) entry wins."""
     token: int = _read_token()
     if token == opcodes.TOK_NL:
@@ -694,7 +709,7 @@ def _report_breakpoint(stopped: bool) -> None:
         console.message(f"Breakpoint encountered at 0x{cpu.pc:08x}\n")
 
 
-def parse_spim_command(redo: bool) -> bool:  # noqa: C901 - one case per command
+def parse_spim_command(redo: bool) -> bool:
     """Execute one REPL command (or, with redo, the previous one again).
 
     Returns:
@@ -705,7 +720,7 @@ def parse_spim_command(redo: bool) -> bool:  # noqa: C901 - one case per command
     """
     global _prev_cmd, _prev_token, _run_addr, _step_count, _print_loc, _bkpt_addr
     global program_argv
-    cmd: int = _prev_cmd if redo else _read_assembly_command()
+    cmd: Command = _prev_cmd if redo else _read_assembly_command()
     if cmd == Command.EXIT:
         console.console_to_spim()
         raise SystemExit(0)
@@ -830,6 +845,8 @@ def parse_spim_command(redo: bool) -> bool:  # noqa: C901 - one case per command
                     words.append(_value_str())
                 elif token == opcodes.TOK_INT:
                     words.append(str(_value_int()))
+                else:
+                    pass  # any other token is not an argument word
             program_argv = [argv0, *words]
             _prev_cmd = Command.ARGS
         case Command.HELP:
@@ -903,7 +920,7 @@ def _print_address(address: int) -> bool:
     return following == opcodes.TOK_NL
 
 
-def _dump_command(cmd: int, token: int) -> None:
+def _dump_command(cmd: Command, token: int) -> None:
     """``dump``/``dumpnative ["FILE"]``: the user code as raw words."""
     global _prev_cmd
     filename: str

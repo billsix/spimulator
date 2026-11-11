@@ -1,0 +1,4 @@
+load "tt.read_int_eof.s"
+run
+5
+7

@@ -92,12 +92,16 @@ fn formats_like_glibc_printf() {
         .arg(&binary)
         .arg(&source)
         .status();
+    // Skip only when there is no C compiler at all; a compiler that runs and
+    // fails is a broken oracle, and must fail the test, not hide it.
     match compiled {
         Ok(status) if status.success() => {}
-        _ => {
-            eprintln!("cformat_vs_c: no working C compiler; skipped");
+        Ok(status) => panic!("cformat_vs_c: compiling the oracle failed: {status}"),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            eprintln!("cformat_vs_c: no C compiler (cc); skipped");
             return;
         }
+        Err(error) => panic!("cformat_vs_c: could not run cc: {error}"),
     }
     let values: Vec<u64> = test_values();
     let input: String = values.iter().map(|v: &u64| format!("{v:x}\n")).collect();

@@ -2,10 +2,21 @@
 
 **Status:** proposed — investigate → plan → execute, in that order
 **Priority:** 6
-**Difficulty:** 6
+**Difficulty:** 7
 **Created:** 2026-07-07
 
-## Request (Bill, 2026-07-07)
+## BLUF
+
+An optional timing model that makes a program's cost perceptible (base cost per instruction, more
+for register and memory traffic), reported with the CPU-time equation of Patterson & Hennessy ch. 1.
+Done means a flag enables it, `run` is slowed or reported accordingly, and every port matches.
+
+## Context
+
+- Investigate, then plan, then execute, in that order (phases below).
+- Shares cycle vocabulary with `tasks/software-alu.md` if both land.
+
+## Request (William Emerison Six <billsix@gmail.com>, 2026-07-07)
 
 For teaching performance: add an **optional** timing delay so that executing a
 program takes perceptibly different amounts of time depending on what it does.
@@ -85,7 +96,10 @@ CPI × clock cycle time.
 Only after phases 1–2 are reviewed. Implementation likely: a small
 `src/timing.c` (cost tables keyed off the existing `op_type` tags +
 accumulator + reporter), hooks in `run.c`'s dispatch and `syscall.c`'s exit
-path, flag parsing in `spim.c`.
+path, flag parsing in `spim.c`. **Ports** (added 2026-11-11): the new flag and its report are output, so
+each port (Python, Haskell, Rust) gets the same cost tables and report (`CLAUDE.md`: "A C behavior change must be followed in every port"; the port suites (`port-python`, `port-haskell`, `port-rust`) fail until each port matches). The cost
+tables are data and could become a column of `include/opcodes.tsv`, which the generator already
+writes for every engine.
 
 ## Open questions
 

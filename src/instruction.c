@@ -62,15 +62,6 @@ static mem_addr next_text_pc;
 
 static mem_addr next_k_text_pc;
 
-/* Set by align_text (.align) and the text_begins_at_point pair; its value is
-   not currently read anywhere, so [[maybe_unused]] silences clang's
-   -Wunused-but-set-global (new in the LLVM 23 / Fedora 45 toolchain) under
-   -Werror.  Whether .align 0 should actually consult this to disable
-   auto-alignment is a latent question noted in
-   tasks/archive/2026/11/05/upgrade-to-fedora-45.md. */
-[[maybe_unused]] static bool enable_text_auto_alignment =
-    true; /* => align literal to natural bound */
-
 #define INST_PC (in_kernel ? next_k_text_pc : next_text_pc)
 
 /* Set ADDRESS at which the next instruction is stored. */
@@ -78,23 +69,23 @@ static mem_addr next_k_text_pc;
 void text_begins_at_point(mem_addr addr) {
   next_text_pc = addr;
   in_kernel = false;
-  enable_text_auto_alignment = true;
 }
 
 void k_text_begins_at_point(mem_addr addr) {
   next_k_text_pc = addr;
   in_kernel = false;
-  enable_text_auto_alignment = true;
 }
 
 /* Arrange that the next instruction is stored on a memory boundary with its
-   low ALIGNMENT bits equal to 0.  If argument is 0, disable automatic
-   alignment.*/
+   low ALIGNMENT bits equal to 0.  An ALIGNMENT of 0 does nothing in text:
+   .align 0 turns off the automatic alignment of .half, .word, .float and
+   .double, which applies only in the data segments (set_data_alignment), and
+   instructions are always word-aligned. */
 
 void align_text(int alignment) {
-  if (alignment == 0)
-    enable_text_auto_alignment = false;
-  else if (in_kernel) {
+  if (alignment == 0) {
+    /* Nothing to turn off in text (see above). */
+  } else if (in_kernel) {
     next_k_text_pc =
         (next_k_text_pc + (1u << alignment) - 1) & (0xffffffff << alignment);
     fix_current_label_address(next_k_text_pc);
@@ -160,6 +151,43 @@ void emit_source_clear(void) {
   emit_source_text = nullptr;
 }
 
+/* The instructions stored for the source instruction being emitted, for
+   expansion_end.  An expansion longer than the array (none is) is still
+   recorded for its first EXPANSION_MAX instructions. */
+constexpr int EXPANSION_MAX = 16;
+static int expansion_depth = 0;
+static const char* expansion_mnemonic = nullptr;
+static bool expansion_is_pseudo = false;
+static mips_instruction* expansion_insts[EXPANSION_MAX];
+static int expansion_len = 0;
+
+void expansion_begin(const char* mnemonic, bool is_pseudo) {
+  if (expansion_depth++ > 0) return;
+  /* The mnemonic's own string may be freed with its AST; keep the
+     opcode table's copy. */
+  const name_val_val* const entry =
+      map_string_to_name_val_val(opcode_tbl, OPCODE_COUNT, mnemonic);
+  expansion_mnemonic = entry != nullptr ? entry->name : nullptr;
+  expansion_is_pseudo = is_pseudo;
+  expansion_len = 0;
+}
+
+void expansion_end(void) {
+  if (--expansion_depth > 0) return;
+  if (expansion_mnemonic != nullptr &&
+      (expansion_is_pseudo || expansion_len > 1)) {
+    for (int i = 0; i < expansion_len; i++) {
+      expansion_insts[i]->expansion_of = expansion_mnemonic;
+      expansion_insts[i]->expansion_index = (uint8_t)(i + 1);
+      expansion_insts[i]->expansion_count = (uint8_t)expansion_len;
+      expansion_insts[i]->expansion_of_pseudo = expansion_is_pseudo;
+    }
+  } else {
+    /* Written as itself: the instruction keeps no expansion record. */
+  }
+  expansion_len = 0;
+}
+
 /* Store an INSTRUCTION in memory at the next location. */
 
 static void store_instruction(mips_instruction* instruction) {
@@ -181,6 +209,8 @@ static void store_instruction(mips_instruction* instruction) {
                      : source_line());
       if (ENCODING(instruction) == 0)
         SET_ENCODING(instruction, inst_encode(instruction));
+      if (expansion_depth > 0 && expansion_len < EXPANSION_MAX)
+        expansion_insts[expansion_len++] = instruction;
       asm_fire_text_inst(at, (uint32_t)ENCODING(instruction));
     }
   } else {
@@ -561,11 +591,10 @@ const char* op_token_name(int op_token) {
 }
 
 char* inst_to_string(mem_addr addr) {
-  /* Clear the flag first: mem_read_inst sets it on a bad address. */
-  exception_occurred = false;
-  mips_instruction* const instruction = mem_read_inst(addr);
-
-  if (exception_occurred) {
+  /* A side-effect-free read: showing an instruction must not raise, or
+     clear, the exception the program's own step raised. */
+  mips_instruction* instruction = nullptr;
+  if (!mem_peek_inst(addr, &instruction)) {
     error("Can't print instruction not in text segment (0x%08x)\n", addr);
     /* Callers free the result, so it must be heap-allocated — a string
        literal here would get free()d. */
@@ -1211,9 +1240,11 @@ mips_instruction* inst_decode(int32_t val) {
       else
         a_opcode |= (val & 0x3f);
       break;
-    case 0x48000000: /* COPz */
-    case 0x4c000000:
+    case 0x48000000: /* COP2: the rs field */
       a_opcode |= (val & 0x03e00000);
+      break;
+    case 0x4c000000: /* COP1X: the funct field */
+      a_opcode |= (val & 0x3f);
       break;
     default:
       /* Any other primary opcode is the whole key: nothing to add. */

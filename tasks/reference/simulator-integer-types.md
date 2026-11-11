@@ -37,7 +37,8 @@ was masking a genuine width/sign change would be a real bug.
 ## The gate
 
 The `spimulator` core target is built `-Wconversion -Wsign-conversion -Werror` (via `-Dcore_werror`,
-default on, in `meson.build`), under **both** the image's clang and a host gcc. The teaching code under
+default on, in `meson.build`). The image build gates it under clang only; gcc (stricter, below) is
+checked by hand with a host build, and the core is clean under it too. The teaching code under
 `examples/` is deliberately NOT gated (see `tasks/reference/example-c-teaching-style.md`).
 
 Staying clean when you touch the core:
@@ -52,13 +53,14 @@ Staying clean when you touch the core:
   under both before declaring done.
 - To find conversions: build with the flags and read the diagnostics (each names the from→to types);
   `clang -Xclang -ast-dump` / `clang-query` show every subexpression's type and the implicit casts.
-  Tooling snapshot: `tasks/adhoc/integer-conversion-hardening/` (`discover.sh`, `analyze.py`).
+  The one-shot scan used for the hardening (`discover.sh`, `analyze.py`) is in git history:
+  `git log --all -- tasks/adhoc/integer-conversion-hardening/`. The `-Wconversion` gate replaced it.
 
 ## Not yet covered
 
 - **Big-endian paths** (`#ifdef SPIM_BIGENDIAN` in `memory.c`) are not compiled on the little-endian
   host, so their conversions are untouched — `tasks/big-endian-conversion-hardening.md` (blocked).
-- A pre-existing `scanner.c` `(int)(len + 16)` narrowing — `tasks/scanner-xmalloc-int-narrowing.md`.
+- A pre-existing `scanner.c` `(int)(len + 16)` narrowing — `tasks/archive/2026/11/11/scanner-xmalloc-int-narrowing.md`.
 
 ## Cross-links
 

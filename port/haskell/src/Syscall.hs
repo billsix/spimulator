@@ -12,7 +12,7 @@ module Syscall
 
 import CFormat (cStrtod, formatF, formatG)
 import Control.Monad (forM_, when)
-import Data.Array.IO (getBounds, readArray, writeArray, IOUArray)
+import Data.Array.IO (readArray, writeArray)
 import Data.Char (chr)
 import Data.Int (Int32)
 import Data.Word (Word32, Word8)
@@ -100,12 +100,11 @@ doSyscall s = do
       setFprDouble s 0 (cStrtod str)
       continue
     8 -> do
-      ref :: Maybe (IOUArray Int Word8, Int) <- memReference s (fromIntegral a0)
+      ref :: Maybe SegmentRef <- memReference s (fromIntegral a0)
       str :: String <- readInput (fromIntegral a1)
       case ref of
         Nothing -> pure ()
-        Just (arr, off) -> do
-          (_, hi) :: (Int, Int) <- getBounds arr
+        Just (arr, off, hi) -> do
           let bytes :: [(Int, Word8)]
               bytes = zip [off ..] (map (fromIntegral . fromEnum) str ++ [0 | fromIntegral a1 - length str > 0])
           forM_ bytes $ \(i, b) -> when (i <= hi) (writeArray arr i b)
@@ -129,13 +128,13 @@ doSyscall s = do
       continue
     14 -> do
       _ <- memReference s (fromIntegral (a1 + a2 - 1))
-      ref :: Maybe (IOUArray Int Word8, Int) <- memReference s (fromIntegral a1)
+      ref :: Maybe SegmentRef <- memReference s (fromIntegral a1)
       n :: Int32 <- transfer ref (fromIntegral a2) $ \p len -> cRead (fromIntegral a0) p len
       setGpr s 2 n
       continue
     15 -> do
       _ <- memReference s (fromIntegral (a1 + a2 - 1))
-      ref :: Maybe (IOUArray Int Word8, Int) <- memReference s (fromIntegral a1)
+      ref :: Maybe SegmentRef <- memReference s (fromIntegral a1)
       n :: Int32 <- transferOut ref (fromIntegral a2) $ \p len -> cWrite (fromIntegral a0) p len
       setGpr s 2 n
       continue
@@ -149,11 +148,10 @@ doSyscall s = do
     continue :: IO Bool
     continue = pure True
     -- read(2) into simulated memory: through a host buffer, then copied in.
-    transfer :: Maybe (IOUArray Int Word8, Int) -> Int -> (Ptr Word8 -> CSize -> IO CInt) -> IO Int32
+    transfer :: Maybe SegmentRef -> Int -> (Ptr Word8 -> CSize -> IO CInt) -> IO Int32
     transfer ref len act = case ref of
       Nothing -> pure (-1)
-      Just (arr, off) -> do
-        (_, hi) :: (Int, Int) <- getBounds arr
+      Just (arr, off, hi) -> do
         let room :: Int
             room = max 0 (min len (hi - off + 1))
         allocaBytes (max 1 len) $ \p -> do
@@ -161,11 +159,10 @@ doSyscall s = do
           forM_ [0 .. min (fromIntegral n) room - 1] $ \i -> peekByteOff p i >>= writeArray arr (off + i)
           pure (fromIntegral n :: Int32)
     -- write(2) from simulated memory: copied into a host buffer first.
-    transferOut :: Maybe (IOUArray Int Word8, Int) -> Int -> (Ptr Word8 -> CSize -> IO CInt) -> IO Int32
+    transferOut :: Maybe SegmentRef -> Int -> (Ptr Word8 -> CSize -> IO CInt) -> IO Int32
     transferOut ref len act = case ref of
       Nothing -> pure (-1)
-      Just (arr, off) -> do
-        (_, hi) :: (Int, Int) <- getBounds arr
+      Just (arr, off, hi) -> do
         let room :: Int
             room = max 0 (min len (hi - off + 1))
         allocaBytes (max 1 len) $ \p -> do

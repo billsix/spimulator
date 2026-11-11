@@ -1,0 +1,5 @@
+load "tt.divide_by_zero.s"
+step 40
+print $epc
+print $cause
+exit

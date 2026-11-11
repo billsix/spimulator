@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Run the Rust port of the spimulator engine: port/rust/target/release/
-# spimulator-rust, built first (offline, standard library only) if it is
-# missing.  Tests and example headers call this one fixed path.
+# spimulator-rust, built first (offline, standard library only) when it is
+# missing or older than a source file, as the Haskell launcher does, so a
+# source edit or a regenerated opcode table is never tested against an old
+# binary.  Tests and example headers call this one fixed path.
 #
 # The engine copies its environment onto the simulated stack, so the
 # program's stack addresses depend on it.  Bash adds PWD and SHLVL to the
@@ -11,7 +13,11 @@
 # Resolve symbolic links: tests may call this script through one.
 here=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
 binary="$here/target/release/spimulator-rust"
-if [ ! -x "$binary" ]; then
+stale() {
+    [ ! -x "$binary" ] ||
+        [ -n "$(find "$here/src" "$here/Cargo.toml" -newer "$binary" -print -quit 2>/dev/null)" ]
+}
+if stale; then
     # Quiet unless the build fails: a test compares this command's stderr.
     log=$(mktemp)
     # An empty environment (the tests run with one) still needs a PATH.

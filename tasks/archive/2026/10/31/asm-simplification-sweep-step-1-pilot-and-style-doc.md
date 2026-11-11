@@ -1,114 +1,57 @@
-# Step 1 — pilot the asm simplification style + write the reference doc
+# Step 1: Piloted the asm simplification style and wrote the reference doc
 
-**Part of:** `asm-simplification-sweep.md`
-**Depends on:** nothing (first step)
-**Next:** the per-topic rollout steps (filed once this pilot fixes the style)
+**Part of:** `tasks/archive/2026/10/31/asm-simplification-sweep.md`
+**Next:** the per-topic rollout, steps 2–10 (listed in the umbrella)
+**Completed:** 2026-10-31
 
-**Status:** done + archived 2026-10-31 — four pilot demos converted + verified, reference
-doc + value-checker written, and the maintainer (William Emerison Six <billsix@gmail.com>)
-signed off on the style ("1) yes"). The style is durable in
-`tasks/reference/mips-asm-teaching-style.md`; the per-topic rollout is tracked by the
-umbrella `asm-simplification-sweep.md`. The transient-temporary boundary (gcd's `t = a % b`
-stays in a register) was confirmed ("2) that's fine").
-**Priority:** 5
-**Difficulty:** 5
+The Shape-B style decided in the umbrella (every C local stack-homed, a per-routine columnar SYMBOL
+TABLE, traced-value frame snapshots, deliberate-lesson files exempt) was proved on four demos before
+the ~80-file rollout. The step produced the converted demos, the durable style guide
+`tasks/reference/mips-asm-teaching-style.md`, and the value checker. The plan named the checker
+`tools/check_asm_traced_values.*` (name and implementation to be decided); it was built as
+`tools/check_asm_canonical.py`. The maintainer, William Emerison Six <billsix@gmail.com>, signed off
+on the style ("1) yes") and on the transient-temporary boundary below ("2) that's fine").
 
-## Done so far (2026-10-31)
+## Pilot set (one of each shape)
 
-- Converted + verified byte-identical to pre-change output (before/after diff over an input
-  range, incl. edge/error cases): `intro/increment-ints/increment-ints-1.asm` (no-frame →
-  frame; no `jal` so no saved `$ra`), `arguments/factorial/factorial.asm` (loop; the worked
-  example from the design discussion), `arguments/gcd/gcd.asm` (two `jal atoi`, `$ra` + argv
-  on the stack), `transforms/wc/wc.asm` (I/O byte loop; `&c` on the stack). `meson test
-  --suite examples` 34/34 (wc's golden passes).
-- Wrote `tasks/reference/mips-asm-teaching-style.md` (the durable style guide).
-- Wrote `tools/check_asm_canonical.py` + a `#CANONICAL` block in each converted file;
-  verified it passes on all four and FAILS on a deliberately corrupted value.
+- `examples/src/intro/increment-ints/increment-ints-1.asm`: register-only with no frame, the
+  sharpest test of the reversed 2026-05-17 register-only decision. It gained a frame; with no `jal`,
+  no `$ra` is saved.
+- `examples/src/arguments/factorial/factorial.asm`: a loop with counter and accumulator, the worked
+  example from the design discussion (`n`/`result` at `-4`/`-8($fp)`; snapshot at `factorial 5`,
+  pass 4: `-8($fp)=60` shadowed in `$t0`).
+- `examples/src/arguments/gcd/gcd.asm`: two `jal atoi` calls, so `$ra` and argv are saved on
+  the stack and the table's register and memory columns are both exercised. It was chosen
+  over `examples/src/recursion/fibonacci/fibonacci.asm`.
+- `examples/src/transforms/wc/wc.asm`: an I/O byte loop with `&c` on the stack. It was chosen over
+  `head`, whose argv parsing and `os_open` error paths made it a poor first example, and because it
+  has a golden.
 
-### Decisions settled during the pilot (recorded in the reference doc)
+`print1through10` was the alternative for the first slot; it was converted later in step 2.
 
-- **Column order:** `C variable | memory addr | register | C type | bytes | role / notes`.
-- **Frame convention:** `$fp` is a fixed base; layout `-4` saved `$ra` / `-8` saved `$fp` /
-  locals below; **save `$ra` only when the routine makes a `jal`** (syscalls preserve it).
-- **"How few registers":** persistent C locals get stack homes; a transient sub-expression
-  temporary consumed immediately (e.g. gcd's `t = a % b`) may stay in a scratch register.
-  **Flag for sign-off:** confirm this boundary, vs full memory-machine spilling of `t` too.
-- **Shared leaf helpers** (`atoi`/`print_uint`) stay register-based (labelled as such).
-- **Checker scope:** guarantees the canonical run's final output; intermediate snapshot
-  values are human-traced from that same run. Not auto-wired into the gate.
-- **Width:** SYMBOL TABLE / SNAPSHOT blocks are exempt from 80 cols; instruction lines ≤80.
-- **Verification reality:** most demos have NO golden (~⅓ do), so the rollout's primary gate
-  is before/after output equivalence, plus goldens where they exist, plus the checker.
+## Decisions (recorded in the style doc)
 
-## BLUF
+- Column order: `C variable | memory addr | register | C type | bytes | role / notes`.
+- Frame convention: `$fp` is a fixed base, with saved `$ra` at `-4`, saved `$fp` at `-8`, locals
+  below. `$ra` is saved only when the routine makes a `jal`, since syscalls preserve it.
+- "How few registers": persistent C locals get stack homes; a transient sub-expression temporary
+  consumed immediately (gcd's `t = a % b`) may stay in a scratch register, rather than spilling it
+  as a full memory machine would. The maintainer confirmed this boundary.
+- Shared leaf helpers (`atoi`, `print_uint`) stay register-based and are labelled as such.
+- Checker scope: `tools/check_asm_canonical.py` reads a `#CANONICAL` block in each converted file
+  and guarantees the canonical run's final output; intermediate snapshot values are human-traced
+  from the same run. It was not wired into the gate automatically.
+- Width: SYMBOL TABLE and SNAPSHOT blocks are exempt from 80 columns; instruction lines stay
+  within 80.
+- Verification reality: only about a third of the demos have a golden, so the rollout's primary gate
+  became before/after output equivalence, plus goldens where present, plus the checker.
 
-Prove the Shape-B target style on ~4 representative demos, author
-`tasks/reference/mips-asm-teaching-style.md` as the durable style guide, and build the
-`tools/` checker that re-derives traced snapshot values from a real spim run. The maintainer
-(William Emerison Six <billsix@gmail.com>) signs off on the pilot before any rollout starts.
-"Done" = the pilot demos converted and golden-green, the reference doc written, the
-value-checker working and run on the pilot demos, and maintainer sign-off recorded here.
+The existing four-layer comments (L1 C block, L3 block comments, L4 inline) and ABI register names
+were kept.
 
-## Context
+## Results
 
-See the umbrella `asm-simplification-sweep.md` for the full design and the settled
-decisions (Shape B, columnar per-routine SYMBOL TABLE with a `bytes` column, traced values,
-exempt deliberate-lesson files). This step turns those decisions into a concrete, approved
-style on a small set before committing ~80 files to it.
-
-## Pilot demo set (one of each shape)
-
-Pick the smallest clear example of each shape so the reference doc can show all cases:
-
-- `intro/increment-ints/increment-ints-1.asm` or `intro/print1through10/print1through10.asm`
-  — a **register-only-today, no-frame** simple demo. This is the sharpest test of the
-  2026-05-17 reversal: it gains a stack frame it did not have.
-- `arguments/factorial/factorial.asm` — a **loop with a counter + accumulator**. Already
-  carries a prose SYMBOL TABLE and is register-only today; the worked example in the design
-  discussion was built from it (loads `n`/`result` from `-4`/`-8($fp)` into scratch regs,
-  stores back; snapshot at `factorial 5`, pass 4: slot `-8($fp)=60` shadowed in `$t0`).
-- `recursion/fibonacci/fibonacci.asm` or `arguments/gcd/gcd.asm` — a routine that **must
-  save `$ra`/locals across a `jal`**, so the frame earns its keep and the SYMBOL TABLE's
-  dual register+memory columns are fully exercised.
-- one `transforms/` filter — a **byte-loop over I/O**. Used `transforms/wc/wc.asm` (simple
-  two-counter loop, and it has a golden) rather than `head` (whose multi-shape argv parsing
-  and `os_open` error paths make it a poor *first* example).
-
-(Final pilot set: increment-ints-1, factorial, gcd, wc — covers no-frame→frame, loop,
-cross-`jal` save, I/O loop.)
-
-## What to produce
-
-1. **Converted pilot `.asm` files**, each in the full target style:
-   - every C local given a `-N($fp)` home; scratch registers are working copies only;
-   - a **per-routine columnar SYMBOL TABLE**
-     (`C variable | memory addr | register | C type | bytes | role / notes`);
-   - an **ascii-art frame snapshot with traced values** at a few key points, for one
-     canonical input stated in the file;
-   - the existing 4-layer comments (L1 C block, L3 block comments, L4 inline) preserved;
-     ABI register names; no behavior change.
-2. **`tasks/reference/mips-asm-teaching-style.md`** — the durable guide: the Shape-B
-   default and WHY it reverses the 2026-05-17 register-only decision; the SYMBOL TABLE
-   column spec with a rendered example; the snapshot/traced-value convention and where
-   snapshots go; the **exempt deliberate-lesson files** named as intentional
-   counter-examples; the canonical-input convention; a pointer to the value-checker.
-3. **`tools/check_asm_traced_values.*`** (name/impl TBD) — parses each demo's snapshot
-   annotations, runs the demo under spim with its canonical input, and fails if a traced
-   value disagrees with the run. Wire it into the examples gate (propose, don't auto-add to
-   CI without the maintainer). This is what keeps traced values from rotting silently.
-
-## Verification
-
-- `run-demo.sh` PASS (C side AND asm-under-spim) for each pilot demo — stdout goldens
-  unchanged, proving the register→stack rewrite is behavior-preserving.
-- The value-checker passes on the pilot demos, and is shown to FAIL when a traced value is
-  deliberately corrupted (prove the gate bites).
-- Containerized `make image` gate green.
-- **Maintainer sign-off on the pilot style recorded here** before the rollout steps are
-  filed.
-
-## Open questions
-
-None blocking — design is settled in the umbrella. Record here, during the pilot: the final
-pilot demo set, the exact snapshot-placement rule, and the checker's annotation format (how
-a snapshot marks which values are machine-checkable).
+All four demos were byte-identical to their pre-change output over an input range including edge and
+error cases. `meson test --suite examples` passed 34/34, including wc's golden. The checker passed
+on all four and failed on a deliberately corrupted value, showing the gate bites. This record does
+not state that the containerized `make image` gate was run for this step.

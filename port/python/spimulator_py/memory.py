@@ -64,6 +64,18 @@ def make_memory(
     global k_text_seg, k_text_top, k_data_seg, k_data_top
     global _data_size_limit, _stack_size_limit, _k_data_size_limit
     global text_modified, data_modified
+    # A text segment that can hold no instruction, or a kernel text segment
+    # that stops short of the exception vector, would make every exception
+    # jump outside its segment, and the run would loop.
+    if text_size < 4:
+        raise console.fatal_error(
+            f"-stext {text_size}: the text segment needs at least one word (4 bytes)\n"
+        )
+    if k_text_size < 0x180 + 4:
+        raise console.fatal_error(
+            f"-sktext {k_text_size}: the kernel text segment must hold the exception"
+            " handler at 0x80000180 (at least 388 bytes)\n"
+        )
     data_size = _round_up(max(data_size, 65536), 4)
     text_seg = [None] * ((text_size + 3) // 4)
     text_top = layout.TEXT_BOT + text_size
@@ -87,11 +99,15 @@ def make_memory(
 def expand_data(addl_bytes: int) -> None:
     """Grow the data segment by addl_bytes (``sbrk``).
 
+    The sizes are C ints: a growth that wraps negative passes the limit check, and
+    C's ``realloc`` of that size then fails.
+
     Raises:
         RunError: the growth is negative or passes the data limit.
+        SystemExit: the new size wrapped negative (C: realloc fails).
     """
     global data_top
-    delta: int = _round_up(addl_bytes, 4)
+    delta: int = machine.s32(_round_up(addl_bytes, 4))
     old_size: int = data_top - layout.DATA_BOT
     new_size: int = machine.s32(old_size + delta)
     if addl_bytes < 0 or new_size > _data_size_limit:
@@ -99,45 +115,64 @@ def expand_data(addl_bytes: int) -> None:
             f"Can't expand data segment by {addl_bytes} bytes to {new_size} bytes\n"
         )
         raise console.run_error(f"Use -ldata # with # > {new_size}\n")
-    data_seg.extend(bytes(new_size - old_size))
+    elif new_size < 0:
+        raise console.fatal_error("realloc failed in expand_data\n")
+    else:
+        data_seg.extend(bytes(new_size - old_size))
     data_top += delta
 
 
 def expand_stack(addl_bytes: int) -> None:
     """Grow the stack downward: at least double it, or by addl_bytes.
 
+    The sizes are C ints: a growth that wraps negative passes the limit check, and
+    C's ``xmalloc`` of that size (as a ``size_t``) then fails.
+
     Raises:
         RunError: the growth passes the stack limit.
+        SystemExit: the new size wrapped negative (C: xmalloc fails).
     """
     global stack_seg, stack_bot
-    delta: int = _round_up(addl_bytes, 4)
+    delta: int = machine.s32(_round_up(addl_bytes, 4))
     old_size: int = layout.STACK_TOP - stack_bot
-    new_size: int = old_size + max(delta, old_size)
+    new_size: int = machine.s32(old_size + max(delta, old_size))
     if addl_bytes < 0 or new_size > _stack_size_limit:
         raise console.run_error(
             f"Can't expand stack segment by {addl_bytes} bytes to {new_size}"
             f" bytes.\nUse -lstack # with # > {new_size}\n"
         )
-    stack_seg = bytearray(new_size - old_size) + stack_seg
+    elif new_size < 0:
+        # C passes the negative int to xmalloc as a size_t.
+        raise console.fatal_error(
+            f"Out of memory at request for {new_size % (1 << 64)} bytes.\n"
+        )
+    else:
+        stack_seg = bytearray(new_size - old_size) + stack_seg
     stack_bot -= new_size - old_size
 
 
 def expand_k_data(addl_bytes: int) -> None:
     """Grow the kernel data segment by addl_bytes.
 
+    The sizes are C ints, as in `expand_data`.
+
     Raises:
         RunError: the growth passes the kernel data limit.
+        SystemExit: the new size wrapped negative (C: realloc fails).
     """
     global k_data_top
-    delta: int = _round_up(addl_bytes, 4)
+    delta: int = machine.s32(_round_up(addl_bytes, 4))
     old_size: int = k_data_top - layout.K_DATA_BOT
-    new_size: int = old_size + delta
+    new_size: int = machine.s32(old_size + delta)
     if addl_bytes < 0 or new_size > _k_data_size_limit:
         raise console.run_error(
             f"Can't expand kernel data segment by {addl_bytes} bytes to {new_size}"
             f" bytes.\nUse -lkdata # with # > {new_size}\n"
         )
-    k_data_seg.extend(bytes(new_size - old_size))
+    elif new_size < 0:
+        raise console.fatal_error("realloc failed in expand_k_data\n")
+    else:
+        k_data_seg.extend(bytes(new_size - old_size))
     k_data_top += delta
 
 
@@ -178,6 +213,26 @@ def read_inst(addr: int) -> Instruction | None:
     traps.raise_exception(ExcCode.IBE)
     regs.cpu.cpr[0][regs.CP0_BADVADDR] = machine.s32(addr)
     return instruction.inst_decode(0)
+
+
+def peek_inst(addr: int) -> tuple[bool, Instruction | None]:
+    """The instruction at addr, read without side effects (C ``mem_peek_inst``).
+
+    For code that only shows memory, such as the disassembler: it raises no
+    exception and touches no register.
+
+    Returns:
+        ``(True, the instruction)`` (which may be ``None`` for an empty slot)
+        when addr is an aligned text-segment location, else ``(False, None)``.
+    """
+    if addr & 3:
+        return (False, None)
+    elif layout.TEXT_BOT <= addr < text_top:
+        return (True, text_seg[(addr - layout.TEXT_BOT) >> 2])
+    elif layout.K_TEXT_BOT <= addr < k_text_top:
+        return (True, k_text_seg[(addr - layout.K_TEXT_BOT) >> 2])
+    else:
+        return (False, None)
 
 
 def read_byte(addr: int) -> int:

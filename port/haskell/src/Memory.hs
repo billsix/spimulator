@@ -18,6 +18,7 @@
 module Memory
   ( makeMemory
   , memReadInst
+  , memPeekInst
   , memWriteInst
   , memReadByte
   , memReadHalf
@@ -28,6 +29,7 @@ module Memory
   , expandData
   , expandKData
   , memReference
+  , SegmentRef
   , readCString
   , checkMemoryMappedIO
   , consoleInputAvailable
@@ -43,13 +45,14 @@ import Data.Array.IO (IOUArray, getBounds, newArray, readArray, writeArray, IOAr
 import Data.Bits (complement, shiftL, shiftR, (.&.), (.|.))
 import Data.Char (chr)
 import Data.Int (Int16, Int32, Int8)
-import Data.IORef (newIORef)
+import Data.IORef (IORef, newIORef)
 import Data.Word (Word32, Word8)
 import Foreign.C.Types (CInt (..))
 import Foreign.Marshal.Alloc (allocaBytes)
 import Foreign.Ptr (Ptr, plusPtr)
 import Foreign.Storable (poke)
 import Instruction (instDecode)
+import Numeric (showHex)
 import Output
 import Registers
 import State
@@ -73,13 +76,23 @@ makeMemory :: Spim -> IO ()
 makeMemory s = do
   (textSize, dataSize0, dataLimit, stackSize0, stackLimit, kTextSize, kDataSize0, kDataLimit) :: (Int, Int, Int, Int, Int, Int, Int, Int) <-
     get (initialSizes s)
+  -- A text segment that can hold no instruction, or a kernel text segment
+  -- that stops short of the exception vector, would make every exception
+  -- jump outside its segment, and the run would loop.
+  when (textSize < 4) $
+    fatalError ("-stext " ++ show textSize ++ ": the text segment needs at least one word (4 bytes)\n")
+  when (kTextSize < 0x180 + 4) $
+    fatalError
+      ( "-sktext " ++ show kTextSize
+          ++ ": the kernel text segment must hold the exception handler at 0x80000180 (at least 388 bytes)\n"
+      )
   let dataSize' :: Int
       dataSize' = if dataSize0 <= 65536 then 65536 else roundUp dataSize0 4
       stackSize :: Int
       stackSize = roundUp stackSize0 4
       kDataSize :: Int
       kDataSize = roundUp kDataSize0 4
-      instSlots :: Integral a => a -> a
+      instSlots :: Int -> Int
       instSlots n = (n + 3) `quot` 4
   t :: IOArray Int (Maybe InstRef) <- newArray (0, max 0 (instSlots textSize - 1)) Nothing
   set (textSeg s) t
@@ -100,6 +113,10 @@ makeMemory s = do
   set (kDataTop s) (kDataBot + fromIntegral kDataSize)
   set (kDataSizeLimit s) kDataLimit
 
+-- | Wrap a size to a C int, as C's int arithmetic does on this host.
+wrap32 :: Int -> Int
+wrap32 n = fromIntegral (fromIntegral n :: Int32)
+
 -- | Grow a byte segment to a new size, keeping its contents at the start.
 growBytes :: IOUArray Int Word8 -> Int -> IO (IOUArray Int Word8)
 growBytes old newSize = do
@@ -111,39 +128,78 @@ growBytes old newSize = do
 -- | Grow the data segment by n bytes (C: @expand_data@), for sbrk and for
 -- data directives that run off the end.
 expandData :: Spim -> Int -> IO ()
-expandData s addl = do
-  top :: Word32 <- get (dataTop s)
-  limit :: Int <- get (dataSizeLimit s)
+expandData s =
+  growSegment
+    UpwardSegment
+      { upBottom = dataBot
+      , upTop = dataTop s
+      , upLimit = dataSizeLimit s
+      , upBytes = dataSeg s
+      , upTooBig = \addl newSize -> do
+          cError ("Can't expand data segment by " ++ show addl ++ " bytes to " ++ show newSize ++ " bytes\n")
+          runError ("Use -ldata # with # > " ++ show newSize ++ "\n")
+      , upReallocFailed = "realloc failed in expand_data\n"
+      }
+
+-- | A segment that grows up from a fixed bottom: the data and kernel data
+-- segments.
+data UpwardSegment = UpwardSegment
+  { upBottom :: Word32
+  , upTop :: IORef Word32
+  , upLimit :: IORef Int
+  , upBytes :: IORef (IOUArray Int Word8)
+  , upTooBig :: Int -> Int -> IO ()
+  -- ^ The report of a growth by n bytes to a size past the limit.
+  , upReallocFailed :: String
+  -- ^ The fatal error for a size that wrapped negative.
+  }
+
+-- | Grow an upward segment by n bytes (the body of C's @expand_data@ and
+-- @expand_k_data@).
+growSegment :: UpwardSegment -> Int -> IO ()
+growSegment seg addl = do
+  top :: Word32 <- get (upTop seg)
+  limit :: Int <- get (upLimit seg)
+  -- The sizes are C ints: a growth that wraps negative passes the limit check,
+  -- and C's realloc of that size then fails.
   let delta :: Int
-      delta = roundUp addl 4
+      delta = wrap32 (roundUp addl 4)
       oldSize :: Int
-      oldSize = fromIntegral (top - dataBot) :: Int
+      oldSize = fromIntegral (top - upBottom seg) :: Int
       newSize :: Int
-      newSize = fromIntegral (fromIntegral (oldSize + delta) :: Int32) :: Int
-  when (addl < 0 || newSize > limit) $ do
-    cError ("Can't expand data segment by " ++ show addl ++ " bytes to " ++ show newSize ++ " bytes\n")
-    runError ("Use -ldata # with # > " ++ show newSize ++ "\n")
-  seg :: IOUArray Int Word8 <- get (dataSeg s)
-  new :: IOUArray Int Word8 <- growBytes seg newSize
-  set (dataSeg s) new
-  set (dataTop s) (top + fromIntegral delta)
+      newSize = wrap32 (oldSize + delta)
+  when (addl < 0 || newSize > limit) $ upTooBig seg addl newSize
+  when (newSize < 0) $ fatalError (upReallocFailed seg)
+  bytes :: IOUArray Int Word8 <- get (upBytes seg)
+  (_, hi) :: (Int, Int) <- getBounds bytes
+  -- The array keeps spare capacity, so a run of small sbrk calls copies the
+  -- segment only when the capacity runs out, not on every call.  Bytes past
+  -- the top are unreachable (byteSegment stops at it), so they stay zero.
+  when (newSize > hi + 1) $ do
+    new :: IOUArray Int Word8 <- growBytes bytes (max newSize (min limit (2 * (hi + 1))))
+    set (upBytes seg) new
+  set (upTop seg) (top + fromIntegral delta)
 
 -- | Grow the stack down (C: @expand_stack@): at least double it.
 expandStack :: Spim -> Int -> IO ()
 expandStack s addl = do
   bot :: Word32 <- get (stackBot s)
   limit :: Int <- get (stackSizeLimit s)
+  -- The sizes are C ints, as in 'growSegment'; C hands a negative size to
+  -- xmalloc as a size_t.
   let delta :: Int
-      delta = roundUp addl 4
+      delta = wrap32 (roundUp addl 4)
       oldSize :: Int
       oldSize = fromIntegral (stackTop - bot) :: Int
       newSize :: Int
-      newSize = oldSize + max delta oldSize
+      newSize = wrap32 (oldSize + max delta oldSize)
   when (addl < 0 || newSize > limit) $
     runError
       ( "Can't expand stack segment by " ++ show addl ++ " bytes to " ++ show newSize
           ++ " bytes.\nUse -lstack # with # > " ++ show newSize ++ "\n"
       )
+  when (newSize < 0) $
+    fatalError ("Out of memory at request for " ++ show (toInteger newSize `mod` (2 ^ (64 :: Int))) ++ " bytes.\n")
   old :: IOUArray Int Word8 <- get (stackSeg s)
   new :: IOUArray Int Word8 <- newArray (0, newSize - 1) 0
   let shift :: Int
@@ -154,50 +210,52 @@ expandStack s addl = do
 
 -- | Grow the kernel data segment (C: @expand_k_data@).
 expandKData :: Spim -> Int -> IO ()
-expandKData s addl = do
-  top :: Word32 <- get (kDataTop s)
-  limit :: Int <- get (kDataSizeLimit s)
-  let delta :: Int
-      delta = roundUp addl 4
-      oldSize :: Int
-      oldSize = fromIntegral (top - kDataBot) :: Int
-      newSize :: Int
-      newSize = oldSize + delta
-  when (addl < 0 || newSize > limit) $
-    runError
-      ( "Can't expand kernel data segment by " ++ show addl ++ " bytes to " ++ show newSize
-          ++ " bytes.\nUse -lkdata # with # > " ++ show newSize ++ "\n"
-      )
-  seg :: IOUArray Int Word8 <- get (kDataSeg s)
-  new :: IOUArray Int Word8 <- growBytes seg newSize
-  set (kDataSeg s) new
-  set (kDataTop s) (top + fromIntegral delta)
+expandKData s =
+  growSegment
+    UpwardSegment
+      { upBottom = kDataBot
+      , upTop = kDataTop s
+      , upLimit = kDataSizeLimit s
+      , upBytes = kDataSeg s
+      , upTooBig = \addl newSize ->
+          runError
+            ( "Can't expand kernel data segment by " ++ show addl ++ " bytes to " ++ show newSize
+                ++ " bytes.\nUse -lkdata # with # > " ++ show newSize ++ "\n"
+            )
+      , upReallocFailed = "realloc failed in expand_k_data\n"
+      }
 
--- | Which byte segment holds an address: the bytes and the offset in them.
-byteSegment :: Spim -> Word32 -> IO (Maybe (IOUArray Int Word8, Int))
+-- | A place in a byte segment: the segment's bytes, the offset of the address
+-- in them, and the segment's last valid offset.  The array can be longer than
+-- the segment (the data segment grows with spare capacity), so the last
+-- offset, not the array's bounds, is where the segment ends.
+type SegmentRef = (IOUArray Int Word8, Int, Int)
+
+-- | Which byte segment holds an address.
+byteSegment :: Spim -> Word32 -> IO (Maybe SegmentRef)
 byteSegment s addr = do
   dtop :: Word32 <- get (dataTop s)
   sbot :: Word32 <- get (stackBot s)
   kdtop :: Word32 <- get (kDataTop s)
   if addr >= dataBot && addr < dtop
-    then (\a -> Just (a, fromIntegral (addr - dataBot))) <$> get (dataSeg s)
+    then (\a -> Just (a, fromIntegral (addr - dataBot), fromIntegral (dtop - dataBot) - 1)) <$> get (dataSeg s)
     else
       if addr >= sbot && addr < stackTop
-        then (\a -> Just (a, fromIntegral (addr - sbot))) <$> get (stackSeg s)
+        then (\a -> Just (a, fromIntegral (addr - sbot), fromIntegral (stackTop - sbot) - 1)) <$> get (stackSeg s)
         else
           if addr >= kDataBot && addr < kdtop
-            then (\a -> Just (a, fromIntegral (addr - kDataBot))) <$> get (kDataSeg s)
+            then (\a -> Just (a, fromIntegral (addr - kDataBot), fromIntegral (kdtop - kDataBot) - 1)) <$> get (kDataSeg s)
             else pure Nothing
 
 -- | The bytes behind an address, for the system calls that hand memory to
 -- the host (C: @mem_reference@).  Text addresses give Nothing (the C engine
 -- points into its table of instruction pointers there).  An address in no
 -- segment is a run-time error.
-memReference :: Spim -> Word32 -> IO (Maybe (IOUArray Int Word8, Int))
+memReference :: Spim -> Word32 -> IO (Maybe SegmentRef)
 memReference s addr = do
   ttop :: Word32 <- get (textTop s)
   kttop :: Word32 <- get (kTextTop s)
-  seg :: Maybe (IOUArray Int Word8, Int) <- byteSegment s addr
+  seg :: Maybe SegmentRef <- byteSegment s addr
   case seg of
     Just r -> pure (Just r)
     Nothing
@@ -208,11 +266,10 @@ memReference s addr = do
 -- printed with @%s@).  It stops at the end of the segment.
 readCString :: Spim -> Word32 -> IO String
 readCString s addr = do
-  ref :: Maybe (IOUArray Int Word8, Int) <- memReference s addr
+  ref :: Maybe SegmentRef <- memReference s addr
   case ref of
     Nothing -> pure ""
-    Just (arr, off) -> do
-      (_, hi) :: (Int, Int) <- getBounds arr
+    Just (arr, off, hi) -> do
       let go :: Int -> String -> IO String
           go i acc
             | i > hi = pure (reverse acc)
@@ -236,6 +293,23 @@ memReadInst s addr = do
           raiseException s excIBE
           setCp0 s cp0BadVAddr (fromIntegral addr)
           Just <$> newIORef (instDecode 0)
+
+-- | The instruction at an address, read without side effects: no
+-- exception is raised and nothing changes.  'Nothing' when the address is
+-- not an aligned location in a text segment (C: @mem_peek_inst@).
+memPeekInst :: Spim -> Word32 -> IO (Maybe (Maybe InstRef))
+memPeekInst s addr = do
+  ttop :: Word32 <- get (textTop s)
+  kttop :: Word32 <- get (kTextTop s)
+  if addr .&. 3 /= 0
+    then pure Nothing
+    else
+      if addr >= textBot && addr < ttop
+        then Just <$> (get (textSeg s) >>= \a -> readArray a (fromIntegral ((addr - textBot) `shiftR` 2)))
+        else
+          if addr >= kTextBot && addr < kttop
+            then Just <$> (get (kTextSeg s) >>= \a -> readArray a (fromIntegral ((addr - kTextBot) `shiftR` 2)))
+            else pure Nothing
 
 -- | Store an instruction (C: @mem_write_inst@).
 memWriteInst :: Spim -> Word32 -> Maybe InstRef -> IO ()
@@ -267,25 +341,25 @@ writeBytes arr off n v = forM_ [0 .. n - 1] $ \i -> writeArray arr (off + i) (fr
 -- | Load a byte, sign-extended (C: @mem_read_byte@).
 memReadByte :: Spim -> Word32 -> IO Int32
 memReadByte s addr = do
-  seg :: Maybe (IOUArray Int Word8, Int) <- byteSegment s addr
+  seg :: Maybe SegmentRef <- byteSegment s addr
   case seg of
-    Just (arr, off) -> fromIntegral . (fromIntegral :: Word8 -> Int8') <$> readArray arr off
+    Just (arr, off, _) -> fromIntegral . (fromIntegral :: Word8 -> Int8') <$> readArray arr off
     Nothing -> badMemRead s addr 0
 
 -- | Load a half word, sign-extended (C: @mem_read_half@).
 memReadHalf :: Spim -> Word32 -> IO Int32
 memReadHalf s addr = do
-  seg :: Maybe (IOUArray Int Word8, Int) <- byteSegment s addr
+  seg :: Maybe SegmentRef <- byteSegment s addr
   case seg of
-    Just (arr, off) | addr .&. 1 == 0 -> fromIntegral . (fromIntegral :: Word32 -> Int16') <$> readBytes arr off 2
+    Just (arr, off, _) | addr .&. 1 == 0 -> fromIntegral . (fromIntegral :: Word32 -> Int16') <$> readBytes arr off 2
     _ -> badMemRead s addr 1
 
 -- | Load a word (C: @mem_read_word@).
 memReadWord :: Spim -> Word32 -> IO Int32
 memReadWord s addr = do
-  seg :: Maybe (IOUArray Int Word8, Int) <- byteSegment s addr
+  seg :: Maybe SegmentRef <- byteSegment s addr
   case seg of
-    Just (arr, off) | addr .&. 3 == 0 -> fromIntegral <$> readBytes arr off 4
+    Just (arr, off, _) | addr .&. 3 == 0 -> fromIntegral <$> readBytes arr off 4
     _ -> badMemRead s addr 3
 
 type Int8' = Int8
@@ -294,23 +368,23 @@ type Int16' = Int16
 
 memWriteByte :: Spim -> Word32 -> Int32 -> IO ()
 memWriteByte s addr v = do
-  seg :: Maybe (IOUArray Int Word8, Int) <- byteSegment s addr
+  seg :: Maybe SegmentRef <- byteSegment s addr
   case seg of
-    Just (arr, off) -> writeArray arr off (fromIntegral v)
+    Just (arr, off, _) -> writeArray arr off (fromIntegral v)
     Nothing -> badMemWrite s addr v 0
 
 memWriteHalf :: Spim -> Word32 -> Int32 -> IO ()
 memWriteHalf s addr v = do
-  seg :: Maybe (IOUArray Int Word8, Int) <- byteSegment s addr
+  seg :: Maybe SegmentRef <- byteSegment s addr
   case seg of
-    Just (arr, off) | addr .&. 1 == 0 -> writeBytes arr off 2 (fromIntegral v)
+    Just (arr, off, _) | addr .&. 1 == 0 -> writeBytes arr off 2 (fromIntegral v)
     _ -> badMemWrite s addr v 1
 
 memWriteWord :: Spim -> Word32 -> Int32 -> IO ()
 memWriteWord s addr v = do
-  seg :: Maybe (IOUArray Int Word8, Int) <- byteSegment s addr
+  seg :: Maybe SegmentRef <- byteSegment s addr
   case seg of
-    Just (arr, off) | addr .&. 3 == 0 -> writeBytes arr off 4 (fromIntegral v)
+    Just (arr, off, _) | addr .&. 3 == 0 -> writeBytes arr off 4 (fromIntegral v)
     _ -> badMemWrite s addr v 3
 
 -- | Is an address just below the stack, so that touching it should grow
@@ -329,7 +403,7 @@ badMemRead s addr mask = do
   ttop :: Word32 <- get (textTop s)
   grow :: Bool <- belowStack s addr
   if addr .&. mask /= 0
-    then raiseAt excAdEL >> pure 0
+    then raiseAt s addr excAdEL >> pure 0
     else
       if addr >= textBot && addr < ttop
         then do
@@ -348,10 +422,12 @@ badMemRead s addr mask = do
             else
               if addr >= mmIoBot
                 then readMemoryMappedIO s addr
-                else raiseAt excDBE >> pure 0
-  where
-    raiseAt :: Int -> IO ()
-    raiseAt code = raiseException s code >> setCp0 s cp0BadVAddr (fromIntegral addr)
+                else raiseAt s addr excDBE >> pure 0
+
+-- | Raise an exception for a bad access to an address, recording the address
+-- in BadVAddr.
+raiseAt :: Spim -> Word32 -> Int -> IO ()
+raiseAt s addr code = raiseException s code >> setCp0 s cp0BadVAddr (fromIntegral addr)
 
 -- | The unusual and erroneous stores (C: @bad_mem_write@).  A store into
 -- the text segment re-decodes the changed word into an instruction.
@@ -360,7 +436,7 @@ badMemWrite s addr value mask = do
   ttop :: Word32 <- get (textTop s)
   grow :: Bool <- belowStack s addr
   if addr .&. mask /= 0
-    then raiseAt excAdES
+    then raiseAt s addr excAdES
     else
       if addr >= textBot && addr < ttop
         then do
@@ -374,7 +450,7 @@ badMemWrite s addr value mask = do
               old :: Word32 <- fromIntegral . inEncoding <$> get ref :: IO Word32
               let v :: Word32
                   v = fromIntegral value :: Word32
-                  sh :: Num a => Word32 -> a
+                  sh :: Word32 -> Int
                   sh n = 8 * fromIntegral (addr .&. n)
               pure $ fromIntegral $ case mask of
                 0 -> (old .&. complement (0xff `shiftL` sh 3)) .|. ((v .&. 0xff) `shiftL` sh 3)
@@ -397,14 +473,11 @@ badMemWrite s addr value mask = do
                     0 -> writeArray seg off (fromIntegral value)
                     1 -> writeBytes seg off 2 (fromIntegral value)
                     _ -> writeBytes seg off 4 (fromIntegral value)
-                else raiseAt excDBE
+                else raiseAt s addr excDBE
             else
               if addr >= mmIoBot
                 then writeMemoryMappedIO s addr value
-                else raiseAt excDBE
-  where
-    raiseAt :: Int -> IO ()
-    raiseAt code = raiseException s code >> setCp0 s cp0BadVAddr (fromIntegral addr)
+                else raiseAt s addr excDBE
 
 -- The memory-mapped console: a receiver (keyboard) and a transmitter
 -- (display), each with a control word and a data word.
@@ -527,9 +600,4 @@ readMemoryMappedIO s addr
   | otherwise = runError ("Read from unused memory-mapped IO address (0x" ++ hex addr ++ ")\n")
 
 hex :: Word32 -> String
-hex 0 = "0"
-hex n = go n ""
-  where
-    go :: Integral a => a -> String -> String
-    go 0 acc = acc
-    go k acc = go (k `quot` 16) ("0123456789abcdef" !! fromIntegral (k `rem` 16) : acc)
+hex n = showHex n ""

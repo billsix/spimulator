@@ -17,7 +17,8 @@ single-precision result; the traps are `//`/`%` flooring and binary64 single-pre
 a subsystem map, the differential-test plan (regression suite, AST goldens, the never-executed
 upstream bare-machine tests, `allinsts.s` from `f570a87^`, the examples and PGU programs), and the
 restore commands for the old flex/bison grammar. The follow-on port is scaffolded as
-`tasks/engine-port-python.md` (proposed — needs go-ahead; the language is its first open question).
+`tasks/engine-port-python.md` (proposed — needs go-ahead; the language is its first open question),
+since done and archived as `tasks/archive/2026/11/10/engine-port-python.md`.
 
 ## How it was done
 

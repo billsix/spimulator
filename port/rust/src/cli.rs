@@ -7,35 +7,48 @@
 
 use std::io::Write;
 
-use crate::machine::Machine;
 use crate::machine::{catch_run_error, error, error_bytes, install_panic_hook};
+use crate::machine::{Machine, Options};
 use crate::memory::{DATA_BOT, K_TEXT_BOT, TEXT_BOT};
 use crate::opcodes::{TOK_EOF, TOK_FP_REG, TOK_ID, TOK_INT, TOK_NL, TOK_REG, TOK_STR};
+use crate::registers::Registers;
 use crate::spim_utils::{os_path, ExceptionHandler};
 
 /// The usage message printed after an unknown flag.
-const USAGE: &str = "Usage: spim
-\t-bare\t\t\tBare machine (no pseudo-ops, delayed branches and loads)
-\t-asm\t\t\tExtended machine (pseudo-ops, no delayed branches and loads) (default)
-\t-delayed_branches\tExecute delayed branches
-\t-delayed_loads\t\tExecute delayed loads
-\t-exception\t\tLoad exception handler (default)
-\t-noexception\t\tDo not load exception handler
-\t-exception_file <file>\tSpecify exception handler in place of default
-\t-quiet\t\t\tDo not print warnings
-\t-noquiet\t\tPrint warnings (default)
-\t-explain [N]\t\tNarrate every instruction (teaching mode).
-\t\t\t\tLevel N selects detail: 1 = semantic, 2 = + interactive,
-\t\t\t\t3 = + bit-layout (default when N omitted; historical behavior),
-\t\t\t\t4 = + progressive decoder walkthrough.
-\t\t\t\tAlso accepts -explain=N. Short form: -x.
-\t-noexplain\t\tDisable teaching mode (default)
-\t-mapped_io\t\tEnable memory-mapped IO
-\t-nomapped_io\t\tDo not enable memory-mapped IO (default)
-\t-file <file> [-file <file> ...] <args>
-\t\t\t\tAssembly code file(s) and arguments to program.
-\t\t\t\tMultiple -file (or -f) options accumulate into one
-\t\t\t\tsymbol table; forward references resolve across files.
+const USAGE: &str =
+    "Usage: spimulator [option ...] [-file] file [-file file ...] [program arguments]
+\t-asm, -a\t\tExtended machine (pseudo-ops, no delayed branches and loads) (default)
+\t-bare, -b\t\tBare machine (no pseudo-ops, delayed branches and loads)
+\t-delayed_branches, -db\tExecute delayed branches
+\t-delayed_loads, -dl\tExecute delayed loads
+\t-pseudo, -p\t\tAccept pseudo-instructions (default)
+\t-nopseudo, -np\t\tDo not accept pseudo-instructions
+\t-exception, -e\t\tLoad the exception handler (default); also -trap, -t
+\t-noexception, -ne\tDo not load the exception handler; also -notrap, -nt
+\t-exception_file <file>, -ef <file>
+\t\t\t\tLoad <file> as the exception handler; also -trap_file, -tf
+\t-quiet, -q\t\tDo not print warnings
+\t-noquiet, -nq\t\tPrint warnings (default)
+\t-explain [N], -x [N]\tNarrate every instruction (teaching mode).
+\t\t\t\tLevel N selects detail: 1 = step header, 2 = + narration,
+\t\t\t\t3 = + bit-layout (default when N omitted),
+\t\t\t\t4 = decoder walkthrough in place of the bit-layout.
+\t\t\t\tAlso accepts -explain=N.
+\t-noexplain, -nx\t\tDisable teaching mode (default)
+\t-mapped_io, -mio\tEnable memory-mapped IO
+\t-nomapped_io, -nmio\tDo not enable memory-mapped IO (default)
+\t-stext, -st <size>\tInitial text segment size, in bytes
+\t-sdata, -sd <size>\tInitial data segment size, in bytes
+\t-sstack, -ss <size>\tInitial stack segment size, in bytes
+\t-sktext, -skt <size>\tInitial kernel text segment size, in bytes
+\t-skdata, -skd <size>\tInitial kernel data segment size, in bytes
+\t-ldata, -ld <size>\tData segment size limit, in bytes
+\t-lstack, -ls <size>\tStack segment size limit, in bytes
+\t-lkdata, -lkd <size>\tKernel data segment size limit, in bytes
+\t-file <file>, -f <file>\tAssembly code file; repeat to load several into one
+\t\t\t\tsymbol table (forward references resolve across files).
+\t\t\t\tA bare argument is loaded as a file too; the arguments
+\t\t\t\tafter the last file are the program's arguments.
 \t-assemble\t\tWrite assembled code to <file>.out
 \t-listing <file>\t\tWrite assemble-time event trace to <file> (use - for stderr)
 \t-print-ast\t\tParse to AST, print it to stderr, and exit without emitting any code
@@ -557,7 +570,7 @@ impl Engine {
     fn print_reg_from_string(&self, name: &[u8]) -> bool {
         let lower: Vec<u8> = name.iter().take(100).map(u8::to_ascii_lowercase).collect();
         let name: &[u8] = lower.strip_prefix(b"$").unwrap_or(&lower);
-        let regs = &self.machine.regs;
+        let regs: &Registers = &self.machine.regs;
         let (label, value): (&str, i32) = match name {
             b"pc" => ("PC", regs.pc as i32),
             b"hi" => ("HI", regs.hi),
@@ -712,12 +725,8 @@ impl Engine {
                 .machine
                 .mem_read_inst(addr)
                 .map_or(0, |inst| inst.borrow().encode());
-            let separator: &str = if addr != end.wrapping_sub(4) {
-                ", "
-            } else {
-                ""
-            };
-            out.push_str(&format!("0x{:x}{separator}", code as u32));
+            let separator: &str = if addr != start { ", " } else { "" };
+            out.push_str(&format!("{separator}0x{:x}", code as u32));
             addr = addr.wrapping_add(4);
         }
         out.push('\n');
@@ -733,12 +742,8 @@ impl Engine {
             let mut addr: u32 = start;
             while addr < end {
                 let code: i32 = self.machine.mem_read_word(addr);
-                let separator: &str = if addr != end.wrapping_sub(4) {
-                    ", "
-                } else {
-                    ""
-                };
-                out.push_str(&format!("0x{:x}{separator}", code as u32));
+                let separator: &str = if addr != start { ", " } else { "" };
+                out.push_str(&format!("{separator}0x{:x}", code as u32));
                 addr = addr.wrapping_add(4);
             }
             out.push('\n');
@@ -886,7 +891,7 @@ pub fn main() -> i32 {
         let arg: &[u8] = &args[i];
         let is: &dyn Fn(&str, &str) -> bool =
             &|long: &str, short: &str| arg == long.as_bytes() || arg == short.as_bytes();
-        let options = &mut engine.machine.options;
+        let options: &mut Options = &mut engine.machine.options;
         if is("-asm", "-a") {
             options.bare_machine = false;
             options.delayed_branches = false;
@@ -1021,7 +1026,10 @@ pub fn main() -> i32 {
             } else {
                 match std::fs::File::create(os_path(path)) {
                     Ok(file) => {
-                        engine.machine.listing = Some(Box::new(std::io::BufWriter::new(file)));
+                        // Line-buffered: every listing event is one line, and
+                        // fatal_error's process::exit runs no destructors, so a
+                        // BufWriter would lose its tail where C's exit() flushes.
+                        engine.machine.listing = Some(Box::new(std::io::LineWriter::new(file)));
                     }
                     Err(_) => {
                         let mut message: Vec<u8> = b"\nCannot open listing file '".to_vec();

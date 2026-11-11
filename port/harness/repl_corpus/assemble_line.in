@@ -1,0 +1,4 @@
+load "tt.le.s"
+. addiu $t0, $zero, 7
+print $t0
+exit

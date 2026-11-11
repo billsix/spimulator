@@ -186,7 +186,9 @@ maybeSnapshotLine = do
     let line :: String
         line = ssLine st
         trimmed :: String
-        trimmed = if not (null line) && last line == '\n' then init line else line
+        trimmed = case reverse line of
+          '\n' : rest -> reverse rest
+          _ -> line
     put st {ssSnapshot = trimmed, ssSnapshotLineNo = ssLineNo st, ssSnapshotSaved = True}
 
 -- | Scan one token (C: @scan_one_token@).
@@ -379,7 +381,13 @@ registerNameToNumber :: String -> Int
 registerNameToNumber name = case name of
   [c1] | cDigit c1 -> atoi name
   [c1, c2] | cDigit c1 && cDigit c2 -> atoi name
-  ('f' : c2 : _) | cDigit c2 -> atoi (drop 1 name)
+  ('f' : c2 : _)
+    | cDigit c2 ->
+        -- $f0..$f31 only; the digits are read unbounded, as C's strtol (then
+        -- the range test) does, so a long number is not a register.
+        let fpReg :: Integer
+            fpReg = read (takeWhile cDigit (drop 1 name))
+         in if fpReg <= 31 then fromIntegral fpReg else -1
   _ -> maybe (-1) id (lookup name registerTable)
 
 -- | C's @atoi@ for the digits at the start of a string.

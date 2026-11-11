@@ -21,7 +21,6 @@
 #include "pseudo-op.h"
 #include "ast.h"
 
-
 /* ------- runtime-visible globals --------------------------- */
 
 bool data_dir = false; /* => item in data segment */
@@ -426,11 +425,15 @@ void fix_current_label_address(mem_addr new_addr) {
 
 /* ---------------- error helpers ---------------- */
 
-static void parse_error_at(const char* msg) {
+static void parse_error_on_line(const char* msg, int line) {
   parse_error_occurred = true;
   parse_errors_seen += 1;
-  error("spim: (parser) %s on line %d of file %s\n", msg, line_no,
+  error("spim: (parser) %s on line %d of file %s\n", msg, line,
         input_file_name ? input_file_name : "(stdin)");
+}
+
+static void parse_error_at(const char* msg) {
+  parse_error_on_line(msg, line_no);
 }
 
 /* Skip tokens up to (but NOT past) the next newline.  parse_line's
@@ -644,14 +647,18 @@ static imm_expr* parse_imm32(void) {
 
 /* IMM16, UIMM16 — IMM32 plus range check */
 static imm_expr* parse_imm16(void) {
+  /* The instruction's line: parsing the immediate can scan the newline after
+     it, which advances line_no. */
+  const int line = line_no;
   imm_expr* const e = parse_imm32();
-  check_imm_range(e, IMM_MIN, IMM_MAX);
+  check_imm_range(e, IMM_MIN, IMM_MAX, line);
   return e;
 }
 
 static imm_expr* parse_uimm16(void) {
+  const int line = line_no; /* as in parse_imm16 */
   imm_expr* const e = parse_imm32();
-  check_uimm_range(e, UIMM_MIN, UIMM_MAX);
+  check_uimm_range(e, UIMM_MIN, UIMM_MAX, line);
   return e;
 }
 
@@ -942,11 +949,8 @@ static void parse_b1(int op) {
 static void parse_j(int op) {
   if (op == TOK_COP2_OPCODE) {
     parse_error_at("cop2 is not supported: spim has no coprocessor 2");
-    return;
-  }
-  if (scanner_peek() == TOK_REG) {
-    /* J_OPS SRC1  or  J_OPS DEST SRC1 — register-indirect jump.
-     */
+  } else if (scanner_peek() == TOK_REG) {
+    /* J_OPS SRC1  or  J_OPS DEST SRC1 — register-indirect jump. */
     const int r1 = parse_register();
     if (scanner_peek() == TOK_REG) {
       /* DEST SRC1 form */
@@ -965,50 +969,48 @@ static void parse_j(int op) {
           break;
         default:
           /* Never reached: parse_asm_code sends only J_TYPE_INST and
-             RD_RS_INST opcodes here, and cop2 returned above. */
+             RD_RS_INST opcodes here, and cop2 is handled above. */
           fatal_error("internal error: parse_j: unexpected opcode %d\n", op);
       }
-      return;
+    } else {
+      /* SRC1-only form */
+      switch (op) {
+        case TOK_J_OPCODE:
+        case TOK_JR_OPCODE:
+          emit_r(TOK_JR_OPCODE, 0, r1, 0);
+          break;
+        case TOK_JAL_OPCODE:
+        case TOK_JALR_OPCODE:
+          emit_r(TOK_JALR_OPCODE, 31, r1, 0);
+          break;
+        case TOK_JALR_HB_OPCODE:
+          emit_r(TOK_JALR_HB_OPCODE, 31, r1, 0);
+          break;
+        default:
+          /* Never reached: as in the DEST SRC1 form above. */
+          fatal_error("internal error: parse_j: unexpected opcode %d\n", op);
+      }
     }
-    /* SRC1-only form */
+  } else if (op == TOK_JALR_HB_OPCODE) {
+    parse_error_at("jalr.hb needs a register operand");
+  } else {
+    /* J_OPS LABEL — absolute-target jump */
+    imm_expr* const target = parse_label();
     switch (op) {
       case TOK_J_OPCODE:
       case TOK_JR_OPCODE:
-        emit_r(TOK_JR_OPCODE, 0, r1, 0);
+        emit_j(TOK_J_OPCODE, target);
         break;
       case TOK_JAL_OPCODE:
       case TOK_JALR_OPCODE:
-        emit_r(TOK_JALR_OPCODE, 31, r1, 0);
-        break;
-      case TOK_JALR_HB_OPCODE:
-        emit_r(TOK_JALR_HB_OPCODE, 31, r1, 0);
+        emit_j(TOK_JAL_OPCODE, target);
         break;
       default:
-        /* Never reached: as in the DEST SRC1 form above. */
+        /* Never reached: jalr.hb and cop2 are handled above. */
         fatal_error("internal error: parse_j: unexpected opcode %d\n", op);
     }
-    return;
+    free(target);
   }
-  if (op == TOK_JALR_HB_OPCODE) {
-    parse_error_at("jalr.hb needs a register operand");
-    return;
-  }
-  /* J_OPS LABEL — absolute-target jump */
-  imm_expr* const target = parse_label();
-  switch (op) {
-    case TOK_J_OPCODE:
-    case TOK_JR_OPCODE:
-      emit_j(TOK_J_OPCODE, target);
-      break;
-    case TOK_JAL_OPCODE:
-    case TOK_JALR_OPCODE:
-      emit_j(TOK_JAL_OPCODE, target);
-      break;
-    default:
-      /* Never reached: jalr.hb and cop2 returned above. */
-      fatal_error("internal error: parse_j: unexpected opcode %d\n", op);
-  }
-  free(target);
 }
 
 /* NOARG_TYPE_INST: <op>  (syscall) or <op> IMM (break N, sync N).
@@ -1065,7 +1067,13 @@ static void parse_dir_globl(void) {
 }
 
 static void parse_dir_align(void) {
+  const int line = line_no; /* the expression can consume the newline */
   const int v = parse_expression();
+  if (v < 0 || v > 31) {
+    /* align_data/align_text shift a 32-bit mask by v. */
+    parse_error_on_line("Alignment out of range (0 .. 31)", line);
+    return;
+  }
   if (v == 0) auto_align = false; /* mirror data.c's flag */
   emit_dir_align(v);
 }
@@ -1249,6 +1257,11 @@ static void parse_pseudo(int op) {
 
   do_parse_pseudo(op);
 
+  /* The expansion is the pseudo-op's line, even when its last operand
+     read on to the newline before a child was built. */
+  for (ast_node* c = pseudo_node->u.pseudo.child; c != nullptr; c = c->next)
+    c->source_line = saved_line;
+
   current_pseudo = saved_pseudo;
   ast_append(pseudo_node);
 }
@@ -1311,9 +1324,10 @@ static void do_parse_pseudo(int op) {
         }
         emit_r(TOK_OR_OPCODE, rd, rd, 1);
       } else {
+        const int line = line_no; /* as in parse_imm16 */
         imm_expr* const imm = parse_imm32();
         const int dist = eval_imm_expr(imm);
-        check_imm_range(imm, 0, 31);
+        check_imm_range(imm, 0, 31, line);
         if (op == TOK_ROR_PSEUDO_OP) {
           emit_r_shift(TOK_SLL_OPCODE, 1, rs, -dist);
           emit_r_shift(TOK_SRL_OPCODE, rd, rs, dist);
@@ -1438,9 +1452,16 @@ static void do_parse_pseudo(int op) {
     case TOK_MFC1_D_PSEUDO_OP: {
       /* mfc1.d REG COP_REG  →  two mfc1 instructions
        */
+      const int line = line_no; /* the last operand can consume the newline */
       const int reg = parse_register();
       const int copreg =
           scanner_peek() == TOK_FP_REG ? parse_fp_register() : parse_register();
+      if (reg == 31 || copreg == 31) {
+        /* the pair's second register would be 32, past the register file */
+        parse_error_on_line("Register pair starts at the last register (31)",
+                            line);
+        break;
+      }
       emit_fp_r(TOK_MFC1_OPCODE, 0, copreg, reg);
       emit_fp_r(TOK_MFC1_OPCODE, 0, copreg + 1, reg + 1);
       break;
@@ -1448,9 +1469,16 @@ static void do_parse_pseudo(int op) {
     case TOK_MTC1_D_PSEUDO_OP: {
       /* mtc1.d REG COP_REG  →  two mtc1 instructions
        */
+      const int line = line_no; /* the last operand can consume the newline */
       const int reg = parse_register();
       const int copreg =
           scanner_peek() == TOK_FP_REG ? parse_fp_register() : parse_register();
+      if (reg == 31 || copreg == 31) {
+        /* the pair's second register would be 32, past the register file */
+        parse_error_on_line("Register pair starts at the last register (31)",
+                            line);
+        break;
+      }
       emit_fp_r(TOK_MTC1_OPCODE, 0, copreg, reg);
       emit_fp_r(TOK_MTC1_OPCODE, 0, copreg + 1, reg + 1);
       break;
@@ -1530,8 +1558,17 @@ static void do_parse_pseudo(int op) {
     case TOK_LD_PSEUDO_OP: {
       /* ld DEST ADDRESS  — load doubleword pseudo, expands to
          two lw instructions */
+      const int line = line_no; /* the address can consume the newline */
       const int rt = parse_register();
       addr_expr* const addr = parse_address();
+      if (rt == 31) {
+        /* the pair's second register would be 32, past the register file */
+        parse_error_on_line("Register pair starts at the last register (31)",
+                            line);
+        free(addr_expr_imm(addr));
+        free(addr);
+        break;
+      }
       emit_i(TOK_LW_OPCODE, rt, addr_expr_reg(addr), addr_expr_imm(addr));
       emit_i_free(TOK_LW_OPCODE, rt + 1, addr_expr_reg(addr),
                   incr_expr_offset(addr_expr_imm(addr), 4));
@@ -1541,8 +1578,17 @@ static void do_parse_pseudo(int op) {
     }
     case TOK_SD_PSEUDO_OP: {
       /* sd SRC1 ADDRESS — store doubleword pseudo. */
+      const int line = line_no; /* the address can consume the newline */
       const int rt = parse_register();
       addr_expr* const addr = parse_address();
+      if (rt == 31) {
+        /* the pair's second register would be 32, past the register file */
+        parse_error_on_line("Register pair starts at the last register (31)",
+                            line);
+        free(addr_expr_imm(addr));
+        free(addr);
+        break;
+      }
       emit_i(TOK_SW_OPCODE, rt, addr_expr_reg(addr), addr_expr_imm(addr));
       emit_i_free(TOK_SW_OPCODE, rt + 1, addr_expr_reg(addr),
                   incr_expr_offset(addr_expr_imm(addr), 4));
@@ -2334,9 +2380,27 @@ static void emit_data_fp_node(const ast_node* node, void (*store)(double*)) {
   }
 }
 
+static void emit_node(const ast_node* node);
+
+/* Emit NODE, recording which instructions a pseudo-op, or a real
+   instruction the assembler has to expand, became (expansion_begin). */
 static void emit_one(const ast_node* node) {
   if (node == nullptr) return;
+  if (node->kind == AST_PSEUDO) {
+    expansion_begin(node->u.pseudo.mnemonic, true);
+    emit_node(node);
+    expansion_end();
+  } else if (node->kind == AST_INST_I) {
+    /* The one kind i_type_inst may expand (a label or wide immediate). */
+    expansion_begin(op_token_name(node->u.inst_i.op), false);
+    emit_node(node);
+    expansion_end();
+  } else {
+    emit_node(node);
+  }
+}
 
+static void emit_node(const ast_node* node) {
   /* Restore the per-node source line so listing observers (and any
      parse_error / parse_warn fired from inside an action helper)
      report the right line.  Without this, the scanner's line_no
