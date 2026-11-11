@@ -16,7 +16,7 @@ A batch of doc claims that don't match the tree. Done means each one below says 
   `tasks/reference/simulator-integer-types.md:225` and `meson.build:102` say the core is "gated" under
   gcc and clang. Every image build is `CC=clang`, so gcc is manual. `CLAUDE.md` says new C "is checked
   with" `tools/c_dispatch_check.py` and `tools/const_candidates.py`. No gate runs them, until
-  `tasks/dispatch-check-gate.md` wires the first.
+  `tasks/archive/2026/11/11/dispatch-check-gate.md` wires the first.
 - **`tasks/reference/engine-port-language-choice.md`** (§1.2), still in the present tense:
   - :136 plans `tools/diff_engines.py`, but `port/harness/compare_engines.py` exists;
   - :218-221 and :256-257 require the glibc `qsort`/`bsearch` order, which the decode column now
