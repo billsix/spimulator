@@ -1,79 +1,81 @@
 # C23 modernization pass 4: `const` wherever it can go in `src/` and `include/`
 
-**Status:** proposed — needs go-ahead
-**Priority:** 5
-**Difficulty:** 4
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
+**Branch:** `c23-const-correctness-pass`
 **Follows:** `tasks/archive/2026/11/10/c23-modernization-pass3.md`
 
-## BLUF
+## Outcome
 
-Add `const` to every binding in the simulator core that is never changed, following the shared C
-coding standard's `const` rules: about 460 scalar locals, 120 pointer locals that are never
-repointed, 44 pointer parameters that are never written through, up to 88 more once the functions
-they are passed to take `const`, and one file-scope table. Behavior must not change. Done means every
-candidate in the worklist is either `const` or listed with the reason it cannot be, and the image gate
-passes: both compilers at `-Werror`, the suites, and UBSan and ASan.
+The simulator core now has `const` on every binding that never changes and that C allows to be
+`const`, following the "`const` by default" rules of the `c-coding-standard.md` reference doc in
+github.com/billsix/runClaudeInContainer. Six commits on the branch, one per kind of binding:
 
-## Context
+| Commit | What became const |
+|---|---|
+| const pass 1 | The file-scope tables `spim_commands`, the two completion `cmds` tables (`const char* const`), `op_type_table`, `register_tbl` and `keyword_tbl`. For the last two, `map_string_to_name_val_val` and `map_int_to_name_val_val` take a const table and key and return a const entry, and their nine callers hold a `const name_val_val*`. |
+| const pass 2 | 58 pointer parameters never written through (`const T*`), with their prototypes in `include/` and forward declarations in `src/`. Among them are `find_symbol_address(const char*)`, the `explain_*` entry points and `copy_inst`. |
+| const pass 3 | `DEFAULT_RUN_LOCATION` and `END_OF_TRAP_HANDLER_SYMBOL`, deferred by pass 3, are `constexpr char[]` now that `find_symbol_address` takes `const char*`. |
+| const pass 4 | About 120 pointer locals never repointed (`T* const p`). |
+| const pass 5 | About 300 scalar locals assigned only at their declaration. MADD/MSUB's `product_low` is split out of its declaration with `product_high`, which changes. The locals inside `MIN`, `MAX`, `ROUND_UP` and `ROUND_DOWN` are const. |
+| const pass 6 | explain.c's `special_funct_to_name` and `regimm_rt_to_name` tables (`const char* const`). |
 
-- **The rules** are in the `c-coding-standard.md` reference doc of github.com/billsix/runClaudeInContainer
-  (section "`const` by default"):
-  - pointee-`const` on pointer parameters, but not top-level `const` on parameters;
-  - top-level `const` on locals, including never-repointed pointer locals (`T *const p`);
-  - both `const`s on file-scope tables of pointers.
-- **Opt-outs**, from that doc and the `c-modernization-sweep.md` reference doc of the same repo:
-  - setjmp-live locals (`main`, `top_level`);
-  - address-taken or output locals;
+Behavior is unchanged, and was shown four ways at every commit:
+- clang and gcc debug builds at `-Werror` under `-Wconversion -Wsign-conversion`. Writing a const
+  object, or dropping a qualifier, is a compile error, so this is the main proof.
+- The regression suite.
+- A comparison of every object's machine code at `-O2` against the tree before the pass
+  (`compare_text.sh`). Every object's `.text` is byte-identical except `spim.c`. There clang
+  scheduled three whitespace comparisons in `spim_completion` in another order once it knew the
+  `cmds` tables were constant; the instruction lists, sorted, are identical. Pass 3 also changed
+  relocation offsets into the string pool.
+- clang-tidy with the project's `.clang-tidy`: no warnings on the changed files.
+
+The full `meson test` (283 OK, including the teaching-mode goldens and the three port suites) and
+`make image` (sanitizers on) passed on the final commit. The ports needed no change.
+
+## How
+
+The candidates came from a scan of clang's JSON AST, `const_candidates.py`, because clang-tidy's
+`misc-const-correctness` checks C++ only and reports nothing on C. A codemod, `apply_const.py`, then
+did three things:
+- inserted `const` at every candidate;
+- built with clang `-Werror`, and put back each candidate that a compile error named;
+- repeated from a fresh scan until a run kept nothing new. A `const` on a callee can make its
+  callers' parameters possible.
+
+Clean builds are the proof that each insertion is sound. Formatting was applied to the changed lines
+only (`format_changed.sh`), because the tree has formatting differences that predate this pass.
+
+Two scan bugs were found and fixed during the pass:
+- **Wrong function blamed for errors.** The regex that finds an error's enclosing function also
+  matched indented calls, so errors were pinned on the wrong function. The first run stopped after
+  60 builds; its partial edit was reverted before the re-run.
+- **Pointer locals missed.** The scan read `const char *p` as already const, though only the
+  pointee is, and so skipped 45 pointer locals.
+
+## Not const, with the reason
+
+- **44 pointer parameters the compiler rejected.** Nearly all pass the pointer on to, or store it in,
+  something that is not const: for example `ss_lazy_init`'s `str_stream*`, or a callback whose
+  function type is fixed. The list with each compiler message was in
+  `tasks/adhoc/c23-const-correctness-pass/data/rejected-param-*.txt` (removed at archive, so see
+  the archive commit's parent).
+- **Skipped by rule:**
+  - `FILE*` parameters, because stdio takes `FILE*`;
+  - `T**` parameters, because `T**` does not convert to `const T**` in C;
+  - function pointers.
+- **`name_tbl`, `i_opcode_tbl`, `a_opcode_tbl`:** `initialize_inst_tables` sorts them with `qsort` at
+  startup.
+- **Opt-outs from the coding standard and the `c-modernization-sweep.md` reference doc:**
+  - the setjmp functions `main` and `top_level`;
   - loop and list cursors;
-  - teaching C under `examples/` and `pgu/`, which this project does not modernize (`CLAUDE.md`).
-- **Pass 3 left this gap.** It added `const` only to format strings. It deferred const-correct
-  string parameters: `DEFAULT_RUN_LOCATION` and `END_OF_TRAP_HANDLER_SYMBOL` stay macros until
-  `find_symbol_address` takes a `const char*` (`tasks/archive/2026/11/10/c23-modernization-pass3.md`,
-  "Opted out").
-- **The worklist** is `tasks/adhoc/c23-const-correctness-pass/data/candidates.txt`, made by
-  `tasks/adhoc/c23-const-correctness-pass/const_candidates.py BUILDDIR`.
-  - The script walks clang's JSON AST, because clang-tidy's `misc-const-correctness` checks C++
-    only and reports nothing on C. `readability-non-const-parameter` found one site.
-  - Each line is `file:line: category: function: name (type)`. A line number of `?` means clang
-    left the line out because it is the same as the previous node's.
-  - The counts are an upper bound; the compiler decides.
+  - address-taken locals;
+  - top-level `const` on parameters (not part of the caller's contract).
 
-  | Category | Count | Change |
-  |---|---|---|
-  | `local-scalar` | 459 | `const T x = …` |
-  | `local-pointer` | 121 | `T *const p = …` |
-  | `param-pointee` | 44 | `const T *p` (19 of them `mips_instruction *`) |
-  | `param-cascade` | 88 | `const T *p` once each callee takes `const` (21 `char *`, 16 `FILE *`, 13 `mips_instruction *`, 12 `str_stream *`, 12 `imm_expr *`) |
+## Tools
 
-  By file: `parser.c` 239, `explain.c` 149, `run.c` 72, `scanner.c` 39, `instruction.c` 39,
-  `spim.c` 31, `ast.c` 30, `memory.c` 29, and fewer than 20 in each of the rest.
-- **What the script does not cover:**
-  - `static inline` functions in `include/`;
-  - file-scope objects never written after initialization;
-  - prototypes in `include/*.h`, which must match their definitions. Twenty-four prototypes in
-    `include/` take or return a non-const `char*`.
-- **File-scope table:** `src/spim.c` `spim_commands[]` is `static const char* []`. It needs the
-  second `const` to move to `.rodata`.
-- **The ports are unaffected.** `const` changes no behavior, so `port/` needs no change and the port
-  suites need not be run apart from the image gate.
-
-## Plan
-
-1. One commit per category, smallest risk first:
-   - the file-scope table and file-scope objects;
-   - `param-pointee` with the matching header prototypes;
-   - `param-cascade`, callees first, so `find_symbol_address(const char*)` lets the two string
-     macros of pass 3 become `constexpr char[]`;
-   - `local-pointer`;
-   - `local-scalar`, file by file.
-2. Leave `FILE *` parameters non-const, because stdio takes `FILE *`. Record this opt-out, and any
-   other site that cannot be `const`, in the done-record with its reason.
-3. Verify each commit:
-   - local gcc and clang `-Werror` builds under `-Wconversion -Wsign-conversion`, and `meson test`.
-   - A no-behavior-change check: the `.text` of each object at `-O2` is byte-identical before and
-     after. A `const` local compiles to the same code, so any difference points at a mistake.
-4. At the end, run `make image` (sanitizers on) and re-run the script. Each remaining candidate must
-   be listed with its reason.
-5. The script is a one-shot: `git rm` `tasks/adhoc/c23-const-correctness-pass/` in the archive
-   commit.
+- **Kept:** `tools/const_candidates.py`, the scan, promoted at archive so new code can be checked
+  the same way.
+- **Removed at archive** (one-shot): `apply_const.py`, `file_scope_candidates.py`, `compare_text.sh`
+  and `format_changed.sh`, from `tasks/adhoc/c23-const-correctness-pass/`.
