@@ -38,8 +38,6 @@ hand today, but only because whoever edits the ports runs them. Done means a mes
    `port-haskell-lint` (`hlint`; see question 1).
 3. Gate: `make image`. Introduce one lint error per port to confirm each test fails, then revert.
 
-## Open questions
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
-1. `hlint` reports 7 and 12 advisory hints in `port/haskell/src/Parser.hs` and `port/haskell/src/Run.hs` today. Should it be (a) a gate
-   at zero hints, after fixing or suppressing them, or (b) advisory, run but never failing?
-   Recommend (b), as the Haskell standard says, unless the maintainer wants it strict.
+1. `hlint` runs advisory (option (b)): it is run and its hints shown, but it never fails the gate.

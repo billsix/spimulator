@@ -48,9 +48,7 @@ Several open tasks predate the ports and the generator and no longer read true. 
 4. Rebuild `tasks/README.md`'s ordering section from the record's backlog table, and drop the ChangeLog
    step.
 
-## Open questions
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
-1. `tasks/minimal-nested-image.md`: (a) rewrite it against `MINIMAL_IMAGE`, or (b) retire it, since nested
-   builds are now full by default? Recommend (b) unless a lean export image is still wanted.
-2. `tasks/codebase-cleanup-plan.md`: (a) trim it to the open items, or (b) archive it and file the few open
-   items as their own tasks? Recommend (a).
+1. `minimal-nested-image.md` is retired (option (b)): nested builds are full by default.
+2. `codebase-cleanup-plan.md` is trimmed to its open items (option (a)).

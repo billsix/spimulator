@@ -29,7 +29,6 @@ writers removed.
    delete it and its writers.
 3. Gate: `make image`.
 
-## Open questions
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
-1. Should `.align 0` in text disable auto-alignment (a), or should the dead flag go (b)? Recommend
-   (a) if upstream's manual documents it, else (b).
+1. Read upstream's manual and history first. If they document `.align 0` as disabling auto-alignment in text, honor it in every engine (option (a)); otherwise remove the dead flag and its writers (option (b)). Record which, with the evidence.

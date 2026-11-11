@@ -42,7 +42,6 @@ All re-run on 2026-11-11 against the C engine (`builddir/spimulator`) and the th
    (and spell every intended wrap `wrapping_*`). See question 1.
 4. Gate: `make image` (all port suites and `<port>-compare`).
 
-## Open questions
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
-1. For the Rust overflow gate: (a) set `overflow-checks = true` in the release profile, or (b) add
-   a debug-build harness run? Recommend (a): one build, and every intended wrap becomes explicit.
+1. The Rust overflow gate is `overflow-checks = true` in `[profile.release]` (option (a)); every intended wrap is spelled `wrapping_*`.

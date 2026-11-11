@@ -40,8 +40,6 @@ what actually happens, including a host fallback.
    confirm `make image` then passes. Revert the dummy row.
 4. Update `README.md`, `CLAUDE.md` and `tasks/reference/opcode-table-generator.md`.
 
-## Open questions
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
-1. Which mechanism: (a) `generate` runs on the existing image, or (b) a separate build stage that
-   stops before the check? Recommend (a): it is one Makefile line, and the image's Python and
-   clang-format don't depend on the table.
+1. `generate` runs on the existing image (option (a)): it no longer depends on `image`, and fails with a hint when no image exists yet.

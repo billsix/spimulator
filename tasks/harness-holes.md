@@ -35,7 +35,6 @@ fixed, and is covered by a self-test of the harness.
    up to date.
 4. Gate: `make image`; check that each hole now fails, using a scratch "hang" engine.
 
-## Open questions
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
-1. Copy all of `pgu/` into the image, or only what the comparison needs? Recommend only the `.s`
-   sources and their includes, to keep the engine layers' cache independent of the book.
+1. The image copies only the pgu `.s` sources and what they include, not the whole book.

@@ -38,8 +38,6 @@ a Status line, a BLUF and Context.
    drop the narrative.
 2. No code changes.
 
-## Open questions
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
-1. `tasks/reference/inherited-idiosyncrasies.md`: (a) archive it as the record of the 2026-08 audit,
-   or (b) trim it to the items still open? Recommend (b): the 2026-11-10 review's §3 table is the
-   better record of what is open.
+1. `tasks/reference/inherited-idiosyncrasies.md` is trimmed to the items still open (option (b)).

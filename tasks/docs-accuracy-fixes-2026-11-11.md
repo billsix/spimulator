@@ -47,9 +47,6 @@ A batch of doc claims that don't match the tree. Done means each one below says 
 1. Fix each item; re-check every changed path with `ls`.
 2. No code changes.
 
-## Open questions
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
-1. `README.md:80`'s copyright commit `e10b97408f6d…` isn't in this repository. Is it from a history
-   before a rewrite, and should the line cite (a) the upstream baseline `6cb6a08` (as the 2026-11-10
-   review identified), or (b) the maintainer's first commit `e2d4f30`? Recommend (b), as the start of
-   the maintainer's copyright.
+1. `README.md:80` cites the maintainer's first commit `e2d4f30` (option (b)).

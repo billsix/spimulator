@@ -33,7 +33,6 @@ item below is fixed in C with a regression test, and the three ports give the sa
 2. Order: 4 and 6 (range checks), then 3, 1, 5, 2.
 3. Gate: `make image` (UBSan and ASan included).
 
-## Open questions
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
-1. Item 2 (`-skt 0`): should a text segment too small for the exception handler be (a) a startup
-   error, or (b) clamped to a minimum size? Recommend (a): say what is wrong, as `cop2` now does.
+1. A text segment too small for the exception handler (`-skt 0`) is a startup error (option (a)).
