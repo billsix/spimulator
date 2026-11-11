@@ -7,15 +7,16 @@
  * editor integration only (syntax highlighting, structural
  * navigation, folds) — it does NOT replace spim's parser.
  *
- * Keyword surface is generated from spim's include/opcodes.h via
- * scripts/extract-keywords.py; the resulting lists are pasted
- * inline here as `KEYWORDS.<kind>` for readability.
+ * The keyword surface comes from spim's opcode table,
+ * include/opcodes.tsv: tools/gen_opcodes.py writes the lists to
+ * scripts/keyword-lists.js, which is required below as
+ * `KEYWORDS.<kind>`.
  *
  * @license BSD-3-Clause
  */
 
 // ---------------------------------------------------------------
-// Keyword inventory (extracted from spim's opcodes.h, 381 entries).
+// Keyword inventory (from spim's opcodes.tsv, 381 entries).
 // Categories match the hand parser's dispatch table.
 // ---------------------------------------------------------------
 

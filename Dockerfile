@@ -107,6 +107,9 @@ COPY port/            ${SPIM_SRC_DIR}/port
 # regenerate with `make generate` and commit the result.  The C output is
 # formatted with the repo's .clang-format, so it is copied first.
 COPY .clang-format ${SPIM_SRC_DIR}/
+# The grammar's keyword lists are generated too; the rest of tree-sitter/ is
+# copied later, so a grammar edit does not rebuild the engine layers.
+COPY tree-sitter/scripts/keyword-lists.js ${SPIM_SRC_DIR}/tree-sitter/scripts/keyword-lists.js
 RUN cd ${SPIM_SRC_DIR} && python3 tools/gen_opcodes.py --check
 
 # Build from source.  --prefix sets the install root explicitly; meson's

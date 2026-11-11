@@ -49,14 +49,15 @@ the `queries/highlights.scm` query.
 
 The grammar's keyword list (381 entries: 41 directives, 49
 pseudo-ops, 291 real opcodes across 25 instruction-type
-categories) is generated from spim's `include/opcodes.h` X-macro
-table via `scripts/extract-keywords.py` → `scripts/keywords.json`
-→ `scripts/build-keyword-lists.py` → `scripts/keyword-lists.js`.
+categories) comes from spim's opcode table, `include/opcodes.tsv`:
+`tools/gen_opcodes.py` writes it to `scripts/keyword-lists.js`, which
+is committed, along with every other table generated from that file.
 
-To regenerate after `../include/opcodes.h` changes:
+After `../include/opcodes.tsv` changes, regenerate from the repo root
+(`make generate`, see the top-level README), then rebuild the parser:
 
 ```sh
-make    # extract-keywords → keyword-lists → tree-sitter generate → tree-sitter test
+make    # tree-sitter generate → tree-sitter test
 ```
 
 The Makefile hardcodes `../include/opcodes.h` as the source of truth.
