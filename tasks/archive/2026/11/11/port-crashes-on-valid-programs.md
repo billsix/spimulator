@@ -48,7 +48,7 @@ now gives the same stdout, stderr and exit status. The harness pins all four
 
 An `fp_reg_overflow` case (`li.d $f2147483647`) was tried. Python and Haskell crash on it, but C
 passes it only by writing out of bounds (undefined behavior), so it belongs with the scanner range
-check in `tasks/c-undefined-behavior-fixes-then-ports.md` (item 6). The Rust `wrapping_add` changes
+check in `tasks/archive/2026/11/11/c-undefined-behavior-fixes-then-ports.md` (item 6). The Rust `wrapping_add` changes
 stay.
 
 ## Verification

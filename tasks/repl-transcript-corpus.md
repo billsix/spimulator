@@ -24,7 +24,7 @@ compares the full transcript (stdout, stderr, exit status), covering every comma
 - Starting points, one-shot scripts from the port tasks: `tasks/adhoc/engine-port-python/diff_repl.sh`
   and `tasks/adhoc/engine-port-haskell/repl.py`. They are still tracked (the record's §10.2).
 - Known divergence to expect: `print_all_regs` followed by `print_all_regs hex` leaves three stale
-  lines in C (a C bug, `ss_clear`; `tasks/c-undefined-behavior-fixes-then-ports.md`). The Haskell
+  lines in C (a C bug, `ss_clear`; `tasks/archive/2026/11/11/c-undefined-behavior-fixes-then-ports.md`). The Haskell
   port's output is the correct one.
 - Ports must be run with the same environment (the stack holds the environment), as the harness
   already does with `env -i`.
