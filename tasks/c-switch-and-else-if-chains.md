@@ -1,6 +1,6 @@
 # Use `switch` for the C engine's dispatch chains, and `else if` for its guard runs
 
-**Status:** proposed — needs go-ahead; open questions below
+**Status:** in progress (branch `c-switch-and-else-if-chains`)
 **Priority:** 6
 **Difficulty:** 4
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
@@ -156,30 +156,20 @@ it.
 7. Done-record, archive, `git rm` the adhoc scripts (or promote `scan_conditionals.py` to `tools/`
    if question 6 says so).
 
-## Open questions
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
-1. **Which one-value chains become a `switch`?** (a) Only chains of 3+ tests (3 sites: §1). (b) Those,
-   plus the 2-test chains where a test lists several constants with `||` (7 more: `parse_j` ×3,
-   `parse_asm_code` at `src/parser.c:1754` and `:1764`, `explain_bit_layout`, and
-   `parse_spim_command` at `src/spim.c:1143`). (c) All 23. **Recommend (b):** stacked
-   labels are clearer than `||` lists; a plain two-way test on one constant reads fine as `if`/`else`.
-2. **Where does the code after a converted guard run go?** (a) Into the chain's final `else`, as the
-   Python rule and port do. (b) After the chain, unindented, with the chain ending in `else if`.
-   **Recommend (a)** for parity with the ports and the total-dispatch rule. The parser functions'
-   tails are short (under 20 lines).
-3. **Should the 7 exhaustive enum switches stay without a `default`?** **Recommend yes:** a `default`
-   would silence `-Wswitch` for those switches, and that check is the stronger guarantee. Each gets a
-   comment saying so.
-4. **Should `include/tokens.h`'s anonymous token enum get a name?** That would be a generator change,
-   the C analogue of the Python `Tok` enum: for example `typedef enum spim_token : int32_t {…}
-   spim_token;`. It would let a switch on a `spim_token` subject be checked, but the opcode fields
-   are stored as `int16_t`, so retyping them is a wider change. **Recommend:** not in this task;
-   scaffold its own task if wanted.
-5. **Should the shared C coding standard get these rules?** That would add "a dispatch on one value
-   is a `switch` with a `default`, except an exhaustive enum switch, which `-Wswitch` checks" and
-   "a run of mutually exclusive guards is one `else if` chain". It is three copies, in
-   runClaudeInContainer and runCrushInContainer. **Recommend yes**, as its own commit in each
-   sandbox repo.
-6. **Keep the scanner?** (a) `git rm` the adhoc scripts at archive, as one-shot work. (b) Promote
-   `scan_conditionals.py` to `tools/`, like `tools/const_candidates.py`, so new C can be checked.
-   **Recommend (b)** if question 5 adds the rule, otherwise (a).
+1. **One-value chains:** convert the 3 chains of 3+ tests and the 7 two-test chains whose tests list
+   several constants with `||` (§1). A plain two-way test on one constant stays `if`/`else`.
+2. **Guard runs:** the code after a converted run goes into the chain's final `else`, as in the
+   Python port.
+3. **The 7 exhaustive enum switches get a `default` too.** It calls `fatal_error` with a message
+   naming the function and the bad value, and carries a comment saying it is never reached and why
+   (every member is listed, and `-Wswitch-enum` checks that). A `default` turns off `-Wswitch`'s
+   missing-member warning for that switch, so the core is built with **`-Wswitch-enum`**, which
+   warns even when a `default` exists. That keeps the compile-time check and adds the run-time
+   one. The two switches that deliberately leave many `ast_kind` members to their `default`
+   (`src/parser.c:241`, `:344`) opt out of `-Wswitch-enum` at the site, with the reason.
+4. **The token enum's name** is not part of this task. It gets its own proposed task.
+5. **The shared C coding standard gets the rules**, as its own commit in runClaudeInContainer and
+   runCrushInContainer (three copies, kept byte-identical).
+6. **The scanner is promoted to `tools/`**, so new C can be checked, like `tools/const_candidates.py`.
