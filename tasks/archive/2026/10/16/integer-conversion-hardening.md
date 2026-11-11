@@ -49,7 +49,7 @@ control registers `recv_control`/`trans_control` retyped to `uint32_t`; the CP0 
 - `tasks/big-endian-conversion-hardening.md` (**blocked** on big-endian hardware) — the
   `#ifdef SPIM_BIGENDIAN` paths in `memory.c` were never compiled on the little-endian host, so their
   latent conversions are untouched; mirror the little-endian casts if BE is ever built.
-- `tasks/scanner-xmalloc-int-narrowing.md` (proposed) — the pre-existing inner `(int)(len + 16)`
+- `tasks/archive/2026/11/11/scanner-xmalloc-int-narrowing.md` (proposed) — the pre-existing inner `(int)(len + 16)`
   narrowing in two `scanner.c` `xmalloc` calls; dropping it is a logic change, not a conversion-warning
   fix.
 

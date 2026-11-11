@@ -59,7 +59,7 @@ Staying clean when you touch the core:
 
 - **Big-endian paths** (`#ifdef SPIM_BIGENDIAN` in `memory.c`) are not compiled on the little-endian
   host, so their conversions are untouched — `tasks/big-endian-conversion-hardening.md` (blocked).
-- A pre-existing `scanner.c` `(int)(len + 16)` narrowing — `tasks/scanner-xmalloc-int-narrowing.md`.
+- A pre-existing `scanner.c` `(int)(len + 16)` narrowing — `tasks/archive/2026/11/11/scanner-xmalloc-int-narrowing.md`.
 
 ## Cross-links
 
