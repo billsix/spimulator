@@ -1,34 +1,39 @@
 # Decide what `.align 0` means in text: disable auto-alignment, or not
 
-**Status:** proposed — needs go-ahead
-**Priority:** 7
-**Difficulty:** 2
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
+**Branch:** `review-2026-11-11-batch`
 **Source:** tasks/review/2026/11/11/repo-review.md §10.5 F16
 
-## BLUF
+## Outcome
 
-`enable_text_auto_alignment` (`src/instruction.c:71`) is written by `.align` and never read, so
-`.align 0` in text doesn't disable auto-alignment, which upstream's `db67bc9` apparently intended.
-The question was left open in an archived task and is tracked nowhere. Done means a decision, and
-either the variable read where text items are placed (in every engine), or the variable and its
-writers removed.
+Option (b): the dead flag is gone. `enable_text_auto_alignment` and its three writers were removed
+from `src/instruction.c`, and `align_text(0)` is an explicit no-op, with a comment saying why.
+Nothing changes in what the assembler produces, and the ports never had the flag.
 
-## Context
+## The evidence
 
-- `src/instruction.c:66-72` carries `[[maybe_unused]] static bool enable_text_auto_alignment`.
-- The 2026-11-10 review's §3.25 found it write-only, and
-  `tasks/archive/2026/11/05/upgrade-to-fedora-45.md:31-35` left the question open.
-- Upstream SPIM's `.align 0` semantics (git history: `git log -S enable_text_auto_alignment`).
-- Any behavior change goes to every port (`CLAUDE.md`).
-
-## Plan
-
-1. Read upstream's intent from `db67bc9` and the SPIM manual.
-2. Decide (question 1), then either honor the flag in C and every port with a regression test, or
-   delete it and its writers.
-3. Gate: `make image`.
+- **The manual.** `Documentation/H_P_AppendixA/HP_AppA.html` says ".align 0 turns off automatic
+  alignment of .half, .word, .float, and .double directives until the next .data or .kdata
+  directive". That is data-segment behavior.
+- **The code.** Automatic alignment happens only in the data segments: every `set_data_alignment`
+  call in `src/parser.c` is guarded by `if (data_dir)`. In text, directives are never auto-aligned,
+  and instructions are always word-aligned, so there is nothing for `.align 0` to turn off.
+- **History.** Upstream added the text flag in 2021 (`2d506c1`, "Fix .align") as a twin of the data
+  flag, and never read it. It was marked `[[maybe_unused]]` in `db67bc9`, when LLVM 23 started
+  warning about it.
 
 ## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
-1. Read upstream's manual and history first. If they document `.align 0` as disabling auto-alignment in text, honor it in every engine (option (a)); otherwise remove the dead flag and its writers (option (b)). Record which, with the evidence.
+1. Read upstream's manual and history first; honor `.align 0` in text only if they document it.
+   They don't, so the flag was removed.
+
+## Seen, not changed (LEAD)
+
+`k_text_begins_at_point` sets `in_kernel = false`, which looks wrong for kernel text. Upstream
+`6cb6a08` has the same line; it may be harmless if the callers set `in_kernel` afterwards. Not
+investigated.
+
+## Verification
+
+gcc and clang build warning-clean; regression passes (41/41).
