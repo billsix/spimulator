@@ -65,8 +65,8 @@ commit, with the port suites green) and changes not needed (each with a reason).
 
 ## How
 
-- `tools/dispatch_candidates.py BUILDDIR` lists the C sites, which is the checklist's source. Each
-  port's counterpart has the same function name, or a leading `_` in Python.
-  The task's one-shot `crossref_python.py` mapped C functions to Python ones. It was removed when
-  the task was archived; `git log --all -- tasks/adhoc/c-switch-and-else-if-chains/` finds it.
+- `python3 tools/c_dispatch_check.py BUILDDIR src --out DIR` writes every C site to `DIR`, which is
+  the checklist's source. Each port's counterpart has the same function name, or a leading `_` in
+  Python. The task's one-shot `crossref_python.py` mapped C functions to Python ones. It was removed
+  when the task was archived; `git log --all -- tasks/adhoc/c-switch-and-else-if-chains/` finds it.
 - Gate: `make image`; the port suites are `port-python`, `port-haskell`, `port-rust`.

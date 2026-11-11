@@ -131,7 +131,8 @@ not spim's intentional exit-time leaks) + the integer-UB primer:
   `-Wconversion -Wsign-conversion` (gcc + clang), done in `tasks/archive/2026/10/16/integer-conversion-hardening.md`,
   and under `-Wswitch-enum`: every `switch` has a `default` and every `if`/`else if` chain an `else`
   (`tasks/archive/2026/11/11/c-switch-and-else-if-chains.md`; new C is checked with
-  `tools/dispatch_candidates.py BUILDDIR`, which should list only `run_spim`'s fetch chain). `include/opcodes.tsv` is the single source of truth for
+  `python3 tools/c_dispatch_check.py BUILDDIR src`, which must exit 0; it is the shared, vendored copy of
+  `github.com/billsix/runClaudeInContainer:tasks/reference/c_dispatch_check.py`, kept byte-identical). `include/opcodes.tsv` is the single source of truth for
   the simulator, the ports and the tree-sitter grammar; edit it and run `make generate`, never the
   generated tables. **Any change to `opcodes.tsv` (or `opcode-types.tsv`) must be gated with
   `BUILD_TREE_SITTER=1`**: `grammar.js` builds its keyword rules from the generated

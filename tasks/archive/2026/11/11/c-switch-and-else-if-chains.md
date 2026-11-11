@@ -35,7 +35,8 @@ github.com/billsix/runClaudeInContainer, "Dispatch").
     the code after it is the rest of the dispatch loop, so nesting that one level deeper would read
     worse.
 - **`tools/dispatch_candidates.py BUILDDIR`** (promoted from this task's scanner) checks new C. On
-  this tree it lists only the leave-alone above. It is not wired into a gate.
+  this tree it lists only the leave-alone above. It is not wired into a gate. It was later replaced
+  by the shared `tools/c_dispatch_check.py` (`tasks/archive/2026/11/11/vendor-shared-dispatch-checker.md`).
 
 ## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 

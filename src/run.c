@@ -187,6 +187,9 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
       exception_occurred = false;
       instruction = mem_read_inst(PC);
+      /* Every branch of this chain leaves, so the rest of the loop body is its
+         else; nesting all of that one level deeper would read worse. */
+      /* dispatch-check: ok -- see the comment above */
       if (exception_occurred) /* In reading instruction */
       {
         exception_occurred = false;
