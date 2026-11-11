@@ -1,0 +1,42 @@
+port/harness/compare_engines.py:63: 3 ifs (return) + result
+port/harness/compare_engines.py:130: 2 ifs (return) + result
+port/python/spimulator_py/ast_nodes.py:120: 2 ifs (return) + result
+port/python/spimulator_py/instruction.py:337: 2 ifs (return) + result
+port/python/spimulator_py/instruction.py:641: 14 ifs (return) + result
+port/python/spimulator_py/instruction.py:704: 24 ifs (return) + result
+port/python/spimulator_py/machine.py:245: 3 ifs (return) + result
+port/python/spimulator_py/machine.py:263: 2 ifs (return) + result
+port/python/spimulator_py/machine.py:323: 2 ifs (return) + result
+port/python/spimulator_py/machine.py:305: 2 ifs (return) + result
+port/python/spimulator_py/memory.py:154: 5 ifs (return) + result
+port/python/spimulator_py/memory.py:184: 3 ifs (return) + result
+port/python/spimulator_py/memory.py:456: 4 ifs (return) + result
+port/python/spimulator_py/memory.py:173: 2 ifs (return)
+port/python/spimulator_py/memory.py:196: 3 ifs (return)
+port/python/spimulator_py/memory.py:208: 3 ifs (return)
+port/python/spimulator_py/memory.py:225: 2 ifs (return)
+port/python/spimulator_py/memory.py:255: 3 ifs (return)
+port/python/spimulator_py/memory.py:272: 3 ifs (return)
+port/python/spimulator_py/memory.py:314: 2 ifs (return) + result
+port/python/spimulator_py/parser.py:268: 2 ifs (return) + result
+port/python/spimulator_py/parser.py:286: 3 ifs (return) + result
+port/python/spimulator_py/parser.py:341: 2 ifs (return) + result
+port/python/spimulator_py/parser.py:392: 3 ifs (return) + result
+port/python/spimulator_py/parser.py:444: 4 ifs (return) + result
+port/python/spimulator_py/parser.py:1165: 2 ifs (return) + result
+port/python/spimulator_py/parser.py:1173: 2 ifs (return) + result
+port/python/spimulator_py/parser.py:344: 2 ifs (return) + result
+port/python/spimulator_py/parser.py:399: 2 ifs (return) + result
+port/python/spimulator_py/scanner.py:94: 2 ifs (return) + result
+port/python/spimulator_py/scanner.py:283: 2 ifs (return) + result
+port/python/spimulator_py/scanner.py:398: 2 ifs (return) + result
+port/python/spimulator_py/scanner.py:458: 2 ifs (return) + result
+port/python/spimulator_py/scanner.py:466: 8 ifs (return) + result
+port/python/spimulator_py/spim.py:352: 3 ifs (return) + result
+port/python/spimulator_py/spim.py:607: 2 ifs (return) + result
+port/python/spimulator_py/spim.py:615: 2 ifs (return) + result
+port/python/spimulator_py/spim.py:485: 2 ifs (return) + result
+port/python/spimulator_py/syscall.py:172: 2 ifs (return) + result
+tools/check_asm_canonical.py:76: 2 ifs (break,continue) + result
+tools/check_example_commands.py:156: 2 ifs (continue,return)
+tree-sitter/scripts/build-keyword-lists.py:27: 3 ifs (return) + result
