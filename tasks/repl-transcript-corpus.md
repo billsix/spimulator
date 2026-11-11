@@ -1,44 +1,29 @@
-# Compare full REPL transcripts across the engines
+# Compared full REPL transcripts across the engines
 
-**Status:** proposed — needs go-ahead
-**Priority:** 4
-**Difficulty:** 6
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
 **Source:** tasks/review/2026/11/11/repo-review.md §6.1, §10.2 F7
 
-## BLUF
+## Summary
 
-Most REPL commands have no test on any engine. A port's REPL can diverge from C without failing
-anything. Done means a harness corpus of REPL sessions that runs each one on C and on every port and
-compares the full transcript (stdout, stderr, exit status), covering every command in
-`src/spim.c`'s command table. The one-shot REPL differs in `tasks/adhoc/` are promoted or removed.
-
-## Context
-
-- The commands are at `src/spim.c:75-80`. The REPL inputs in `tests/run-test.sh` use only load,
-  read, disasm, args, run, quit, exit, print, print_all_regs, `.` and a bare breakpoint, and those
-  tests only grep for a line or two.
-- Never exercised: step, continue, delete, list, dump, dumpnative, help, print_symbols,
-  reinitialize, and a breakpoint that actually fires.
-- `port/harness/corpus.txt:13-14` excludes the REPL on purpose.
-- Starting points, one-shot scripts from the port tasks: `tasks/adhoc/engine-port-python/diff_repl.sh`
-  and `tasks/adhoc/engine-port-haskell/repl.py`. They are still tracked (the record's §10.2).
-- Known divergence to expect: `print_all_regs` followed by `print_all_regs hex` leaves three stale
-  lines in C (a C bug, `ss_clear`; `tasks/archive/2026/11/11/c-undefined-behavior-fixes-then-ports.md`). The Haskell
-  port's output is the correct one.
-- Ports must be run with the same environment (the stack holds the environment), as the harness
-  already does with `env -i`.
-
-## Plan
-
-1. Write `port/harness/repl_corpus/*.in` sessions: one per command, plus breakpoint + continue +
-   step + delete, redo of each redo-able command, and `reinitialize` between loads.
-2. Add a `compare_repl.py` (or a mode of `port/harness/compare_engines.py`) that feeds each session to C and a
-   port and compares the whole transcript. Register it per port in `port/meson.build`.
-3. Fix or record each divergence it finds. A C bug goes to C first.
-4. `git rm` the one-shot `tasks/adhoc/engine-port-*` REPL scripts once the corpus covers them.
-5. Gate: `make image`.
-
-## Open questions
-
-None.
+- **`port/harness/repl_corpus/`** holds 26 sessions, one `.in` file each. Together they cover every
+  command in `src/spim.c`'s command table: args, breakpoint (by label and by address, a rejected
+  one, and one that fires), continue, delete, disasm, dump, dumpnative, exit, help, list, load,
+  print (registers including `$f33`/`$99`, memory, labels), print_all_regs (hex, FPU, and twice in a
+  row), print_symbols, quit, read, reinitialize, run, step (including into an exception), the `.`
+  command, redo on an empty line, end of input, and a last line with no newline.
+- **`port/harness/compare_repl.py`** feeds each session to the C engine and a port, in a scratch
+  directory with `tests/` linked in and an empty environment. It compares stdout, stderr (minus the
+  `Loaded:` line), exit status and the files `dump` writes, using `compare_engines.py`'s comparison
+  and float tolerance. A hung C run is a FAIL, and so is a selection that matches nothing. It is
+  registered as `<port>-repl` in each port suite.
+- **Results:** all three ports passed 26/26 against the committed C engine. The divergence this task
+  expected (`print_all_regs` after `print_all_regs hex`) had already been fixed in C by
+  `tasks/archive/2026/11/11/c-undefined-behavior-fixes-then-ports.md`; the `print_all_regs_twice`
+  session pins it. The `step_exception` session then caught the REPL `step` change in
+  `tasks/explain-mode-correctness-bugs.md` before the ports had it, as intended.
+- The one-shot REPL differs `tasks/adhoc/engine-port-haskell/repl.py` and
+  `tasks/adhoc/engine-port-python/diff_repl.sh` were removed. Their sessions are in the corpus, and
+  the scripts remain in git history.
+- `port/README.md`, `tasks/reference/engine-ports-design.md` and `port/harness/corpus.txt`'s header
+  name the new comparison.
