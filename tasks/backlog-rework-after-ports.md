@@ -1,52 +1,30 @@
-# Rework the backlog after the ports: retire or trim stale tasks, add ports steps, rewrite tasks/README.md ordering
+# Reworked the backlog after the ports
 
-**Status:** proposed — needs go-ahead
-**Priority:** 5
-**Difficulty:** 3
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
 **Source:** tasks/review/2026/11/11/repo-review.md §9.1, §9.2, §9.3, §9.4, §1.1 F15
 
-## BLUF
+## Summary
 
-Several open tasks predate the ports and the generator and no longer read true. Done means:
-- `tasks/codebase-cleanup-plan.md` holds only its open items, or is archived;
-- `tasks/archive/2026/11/11/minimal-nested-image.md` is rewritten against `MINIMAL_IMAGE`, or retired;
-- each behavior-changing task has a "follow in every port" step, and a rating to match;
-- `tasks/engine-ports-teaching-mode.md` uses `Depends on` instead of `blocked`;
-- `tasks/README.md`'s ordering section is rebuilt from the current backlog.
-
-## Context
-
-- `tasks/codebase-cleanup-plan.md`:
-  - done: A1–A4, A6, A10, B2, C4 and C5 (a grep each: `parse_br_imm32`, `parser_error_occurred`,
-    `README.rtf`, `bldInstall`, `wsock32`, `_AIX`, `str_copy`, the include guards);
-  - F4 is about the retired `opcodes.h`, and G2 is marked superseded;
-  - its verification gate leaves out the ports and `make image`, and it has no Status or BLUF.
-- `tasks/archive/2026/11/11/minimal-nested-image.md:3-24,145` builds on the `NESTED_PODMAN`-keyed idiom. The fleet
-  replaced that with the opt-in `MINIMAL_IMAGE` on 2026-09-27 (the minimal-nested-images.md
-  reference doc from github.com/billsix/runClaudeInContainer). It also cites `opcodes.h`.
-- These change C behavior with no ports step (`CLAUDE.md`: "A C behavior change must be followed in
-  every port"):
-  - `ast-column-tracking` (`-print-ast` output, compared by the port suites);
-  - `explain-mode-correctness-bugs` (the REPL `step` fix and `-show-expansion`);
-  - `explain-levels-redesign` (a new `-encoding` flag and a REPL `explain` command);
-  - `timing-model`;
-  - `software-alu`.
-- `tasks/engine-ports-teaching-mode.md:3-5` is `blocked` on two in-repo tasks. The task-doc
-  convention is Priority plus `Depends on`.
-- `tasks/examples-c-debug-build-via-meson.md:3` says "ready to implement" with three open questions;
-  `string-equality-audit` is done and waits on an answer.
-- `tasks/README.md:111-175`, "Ordering & dependencies (reviewed 2026-07-07)", is mostly about
-  archived work. Its ChangeLog step is obsolete, and its status table doesn't match the statuses in
-  use. The record's §9 has the backlog as it reads today.
-
-## Plan
-
-1. Trim or archive `tasks/codebase-cleanup-plan.md`; rewrite or retire `tasks/archive/2026/11/11/minimal-nested-image.md` (question 1).
-2. Add a ports step to each of the five tasks, and re-rate their Difficulty.
-3. Fix the status lines (`engine-ports-teaching-mode`, `examples-c-debug-build-via-meson`).
-4. Rebuild `tasks/README.md`'s ordering section from the record's backlog table, and drop the ChangeLog
-   step.
+- **`tasks/codebase-cleanup-plan.md`** was trimmed to its open items (decision 2, option (a)). Each
+  item was checked with a grep first: A1–A6, A8–A10, B1, B2, C3, C4, C5, E1, E2 and E4 were done. C2
+  was dropped, because `eval_imm_expr` is called from four files and belongs in the header. A7 was
+  reworded: the `label_names_cache` realloc is checked now, but a bare `owned_strs = realloc(` in
+  `src/spim.c` is not. Left open: A7, B3, C1, and E3, which now covers only stack overflow and
+  kernel-mode transitions, since `tests/tt.core.s` exercises `break`. The "not pursued" decisions
+  (Tier F, G1–G6) were kept as a short list. The plan now has a BLUF, a Status, a ports-aware gate and
+  two open questions (B3, C1).
+- **`tasks/minimal-nested-image.md`** was retired (decision 1, option (b)) and archived as
+  `tasks/archive/2026/11/11/minimal-nested-image.md`.
+- **Ports steps** were added to `ast-column-tracking`, `explain-mode-correctness-bugs`,
+  `explain-levels-redesign`, `timing-model` and `software-alu`. The first four went up one
+  Difficulty step. `software-alu` stayed at 8: its arithmetic must not change, and only what it
+  makes visible follows in the ports.
+- **Status lines:** `engine-ports-teaching-mode` uses `**Depends on:**` instead of `blocked`, and
+  `examples-c-debug-build-via-meson` says it waits on three open questions.
+- **`tasks/README.md`**: the status table now lists the statuses in use, the ordering section was
+  rebuilt from the current backlog (reviewed 2026-11-11), and the ChangeLog step was replaced by the
+  done-record and `git mv` steps.
 
 ## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
