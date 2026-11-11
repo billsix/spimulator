@@ -1,37 +1,34 @@
-# Fix the C bugs and undefined behavior the ports exposed, then follow in every port
+# Fixed the C bugs and undefined behavior the ports exposed, and followed in every port
 
-**Status:** proposed — needs go-ahead
-**Priority:** 5
-**Difficulty:** 6
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
 **Source:** tasks/review/2026/11/11/repo-review.md §4.1.7, §4.3.1, §4.3.2, §4.5.6 F12
 
-## BLUF
+## Summary
 
-The port readers found places where C itself is wrong or undefined, so a port can't match it. The
-maintainer decided (the record's question 1): fix C first, then make each port follow. Done means each
-item below is fixed in C with a regression test, and the three ports give the same result.
+The maintainer decided (the record's question 1) that C is fixed first and the ports follow. Each item
+was done in C, Python, Haskell and Rust in one commit, with a regression case that fails on the old
+engine. All are registered in `meson.build`'s `regression_tests`; the ones the harness can compare
+are also in `port/harness/corpus.txt`, which now has 33 cases.
 
-## Context
+| # | Item | Fix | Test |
+|---|---|---|---|
+| 4 | `.align N` for N < 0 or N ≥ 32 shifted a 32-bit mask out of range | parse error "Alignment out of range (0 .. 31)" | `range_checks` |
+| 6 | `$fN` above 31 read past the FP register file; `atoi` overflowed on a long number | `register_name_to_number` returns -1, so the assembler says "Expected FP register" and the REPL's `print` treats it as a label (as it already did `$99`) | `range_checks` (also covers the moved `fp_reg_overflow` case) |
+| 3 | `ld`/`sd`/`mfc1.d`/`mtc1.d` starting at register 31 wrote register 32 | parse error "Register pair starts at the last register (31)"; pairs from 30 still assemble. Odd registers were left allowed, as GNU `as` allows them for o32 `ld`/`sd` | `register_pair` (the old engine hangs) |
+| 1 | `print_all_regs hex` after `print_all_regs` ended in three stale lines | `ss_clear` closes and frees the memstream instead of rewinding it; this also covers the data/text dumps and `disasm`. The ports were already right | `print_all_regs_twice` |
+| 5 | `-assemble` left a trailing `", "` when a segment ended off a word | `", "` goes before each word but the first (C, Haskell, Rust; Python's join was right) | `assemble_odd_end` |
+| 2 | `-sktext` below 388 bytes or `-stext` below 4 looped forever | fatal startup error naming the flag (decision 1, option (a)). `-stext 0` had the same loop, so it was included | `small_text_segments`, corpus `small_ktext`/`small_text` |
 
-| # | Item | Evidence |
-|---|---|---|
-| 1 | `print_all_regs` after `print_all_regs hex` leaves three stale lines | `src/spim.c` `print_all_regs`: its static `str_stream` is cleared by `ss_clear`, which rewinds the `open_memstream` without truncating. Haskell's output is the correct one |
-| 2 | `-skt 0` loops forever on "Invalid address (0x80000180) for instruction" | both C and the ports; C used 3.5 GB before it was killed |
-| 3 | `ld $31`, `sd $31`, and `mfc1.d`/`mtc1.d` with register 31 write `gpr[32]` | C undefined behavior (it lands in HI); Python raises `IndexError` (`parser.py:790-822`). Reject the last or odd register for the pair forms |
-| 4 | `.align N` for N ≥ 32 | `src/data.c:78,82` and `src/instruction.c:99,103` shift unbounded (`1u << 40` is UB); Python computes mask 0 (`data.py:67-72`). The 2026-11-10 review's §3.14. Range-check 0..31 |
-| 5 | `-assemble` leaves a trailing `", "` when the data segment doesn't end on a word | C's separator test `addr == end-4`; Python's `", ".join` never does (`spim.py:420-425`) |
-| 6 | out-of-range `$fN` (`print $f33`, `print $f4294967294`) | C reads past the array; Python prints `FP reg 1`, Rust "Odd FP double register number" (`cli.rs:539-551`). Range-check `$fN` in the scanner |
+The `.align` and pair errors are reported on the instruction's own line. A new
+`parse_error_on_line` (C) and its port counterparts take the line number captured before the
+operands, since the last operand can consume the newline. The `make_memory` guard pair is accepted
+by `tools/c_dispatch_check.py` with a `dispatch-check: ok` comment, because it checks two flags,
+not one value.
 
-- Every C fix changes behavior, so each needs its port changes in the same change, or the port
-  suites fail (`CLAUDE.md`).
-
-## Plan
-
-1. For each item: add a regression test (`tests/run-test.sh` plus `meson.build`) that fails today, fix
-   C, then fix Python, Haskell and Rust until the port suites pass.
-2. Order: 4 and 6 (range checks), then 3, 1, 5, 2.
-3. Gate: `make image` (UBSan and ASan included).
+Gates: the gcc and clang local builds; `meson test` 330/330 (regression, examples and the three
+port suites, lints included); clang regression 47/47. The image gate runs at the end of the batch
+branch.
 
 ## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
