@@ -523,28 +523,59 @@ def _parse_b2(op: int) -> None:
 
 
 def _parse_j(op: int) -> None:
-    """``j``/``jal``/``jr``/``jalr`` with a label or register(s)."""
-    is_plain_jump: bool = op in (Tok.J_OPCODE, Tok.JR_OPCODE)
-    is_link: bool = op in (Tok.JAL_OPCODE, Tok.JALR_OPCODE)
-    if scanner.peek() == TOK_REG:
+    """``j``/``jal``/``jr``/``jalr``/``jalr.hb`` with a label or register(s); ``cop2`` is an error.
+
+    ``jalr.hb`` keeps its own opcode (``jalr`` with the hazard-barrier bit) and takes registers
+    only. ``cop2`` shares ``J_TYPE_INST``, but spim has no coprocessor 2.
+    """
+    if op == Tok.COP2_OPCODE:
+        _parse_error_at("cop2 is not supported: spim has no coprocessor 2")
+        return
+    elif scanner.peek() == TOK_REG:
         r1: int = _parse_register()
         if scanner.peek() == TOK_REG:
+            # DEST SRC1 form
             r2: int = _parse_register()
-            if is_plain_jump:
-                emit_r(Tok.JR_OPCODE, 0, r2, 0)
-            elif is_link:
-                emit_r(Tok.JALR_OPCODE, r1, r2, 0)
-            return
-        if is_plain_jump:
-            emit_r(Tok.JR_OPCODE, 0, r1, 0)
-        elif is_link:
-            emit_r(Tok.JALR_OPCODE, 31, r1, 0)
-        return
-    target: ImmExpr = _parse_label()
-    if is_plain_jump:
-        emit_j(Tok.J_OPCODE, target)
-    elif is_link:
-        emit_j(Tok.JAL_OPCODE, target)
+            match op:
+                case Tok.J_OPCODE | Tok.JR_OPCODE:
+                    emit_r(Tok.JR_OPCODE, 0, r2, 0)
+                case Tok.JAL_OPCODE | Tok.JALR_OPCODE:
+                    emit_r(Tok.JALR_OPCODE, r1, r2, 0)
+                case Tok.JALR_HB_OPCODE:
+                    emit_r(Tok.JALR_HB_OPCODE, r1, r2, 0)
+                case _:
+                    # Never reached: only J_TYPE_INST and RD_RS_INST opcodes come here.
+                    raise console.fatal_error(
+                        f"internal error: parse_j: unexpected opcode {op}\n"
+                    )
+        else:
+            # SRC1-only form
+            match op:
+                case Tok.J_OPCODE | Tok.JR_OPCODE:
+                    emit_r(Tok.JR_OPCODE, 0, r1, 0)
+                case Tok.JAL_OPCODE | Tok.JALR_OPCODE:
+                    emit_r(Tok.JALR_OPCODE, 31, r1, 0)
+                case Tok.JALR_HB_OPCODE:
+                    emit_r(Tok.JALR_HB_OPCODE, 31, r1, 0)
+                case _:
+                    # Never reached: as in the DEST SRC1 form above.
+                    raise console.fatal_error(
+                        f"internal error: parse_j: unexpected opcode {op}\n"
+                    )
+    elif op == Tok.JALR_HB_OPCODE:
+        _parse_error_at("jalr.hb needs a register operand")
+    else:
+        target: ImmExpr = _parse_label()
+        match op:
+            case Tok.J_OPCODE | Tok.JR_OPCODE:
+                emit_j(Tok.J_OPCODE, target)
+            case Tok.JAL_OPCODE | Tok.JALR_OPCODE:
+                emit_j(Tok.JAL_OPCODE, target)
+            case _:
+                # Never reached: jalr.hb and cop2 are handled above.
+                raise console.fatal_error(
+                    f"internal error: parse_j: unexpected opcode {op}\n"
+                )
 
 
 def _parse_noarg(op: int) -> None:
