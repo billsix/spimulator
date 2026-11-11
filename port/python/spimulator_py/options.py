@@ -26,9 +26,6 @@ quiet: bool = False
 mapped_io: bool = False
 """Simulate the memory-mapped console (receiver/transmitter registers)."""
 
-force_break: bool = False
-"""Set to stop the executor's loop (the C engine's Ctrl-C hook)."""
-
 spim_return_value: int = 0
 """The exit status the simulator will return (set by syscalls 10 and 17)."""
 

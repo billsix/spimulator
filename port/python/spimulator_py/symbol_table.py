@@ -188,7 +188,8 @@ def resolve_a_label(sym: Label | None, inst: Instruction) -> None:
 def _resolve_a_label_sub(sym: Label | None, inst: Instruction, pc: int) -> None:
     """Fill inst's immediate (or target) from its expression, for address pc."""
     expr: ImmExpr | None = inst.expr
-    assert expr is not None
+    if expr is None:
+        raise AssertionError("_resolve_a_label_sub: expr is None")
     if expr.pc_relative:
         expr.offset = machine.s32(-pc)  # the instruction may have moved
     if expr.symbol is not None and expr.symbol.addr == 0:
@@ -242,7 +243,8 @@ def _resolve_a_label_sub(sym: Label | None, inst: Instruction, pc: int) -> None:
 
 def _compensate_lui(inst: Instruction, pc: int) -> None:
     """Bump the matching ``lui`` before a load/store whose offset is negative."""
-    assert inst.expr is not None
+    if inst.expr is None:
+        raise AssertionError("_compensate_lui: inst.expr is None")
     prev: Instruction | None = memory.read_inst(machine.u32(pc - 4))
     prev_prev: Instruction | None = memory.read_inst(machine.u32(pc - 8))
     lui: int = instruction.Tok.LUI_OPCODE
@@ -263,6 +265,8 @@ def _compensate_lui(inst: Instruction, pc: int) -> None:
     ):
         # An addu of the index register sits between the lui and the load.
         prev_prev.expr.offset += 0x10000
+    else:
+        pass  # no matching lui: the offset needs no compensation
 
 
 def flush_local_labels(issue_undef_warnings: bool) -> None:

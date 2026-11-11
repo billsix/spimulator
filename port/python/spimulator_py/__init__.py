@@ -16,4 +16,4 @@ specific prior written permission.
 # The modules import one another, as the C files include one another's
 # headers.  Loading spim first loads them all in an order that works, so any
 # module of the package can be imported on its own (doctests do).
-from . import spim  # noqa: E402, F401
+from . import spim  # noqa: F401

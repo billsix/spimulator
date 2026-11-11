@@ -13,7 +13,7 @@ import sys
 from types import ModuleType
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-import spimulator_py  # noqa: E402 - needs the path insert above
+import spimulator_py
 
 
 def main() -> int:

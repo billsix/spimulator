@@ -20,6 +20,7 @@ from . import (
     memory,
     options,
     parser,
+    pseudo_op,
     run,
     scanner,
     symbol_table,
@@ -147,8 +148,6 @@ def _assemble(source: BinaryIO, name: str) -> None:
     """Parse and emit one source file, then close its scope."""
     parser.parser_init(source, name)
     parser.parse_file()
-    from . import pseudo_op
-
     symbol_table.flush_local_labels(not pseudo_op.parse_error_occurred)
     data.end_of_assembly_file()
 

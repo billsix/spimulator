@@ -182,7 +182,7 @@ def main(arguments: list[str]) -> int:
         return code if isinstance(code, int) else 1
 
 
-def _main(argv: list[str]) -> int:  # noqa: C901 - the C engine's flag loop
+def _main(argv: list[str]) -> int:
     """The body of :func:`main`."""
     global exception_file_name, load_exception_handler, program_argv, _listing
     assembly_file_loaded: bool = False
@@ -561,7 +561,7 @@ class Command(enum.IntEnum):
     ARGS = 20
 
 
-_prev_cmd: int = Command.NOP
+_prev_cmd: Command = Command.NOP
 _prev_token: int = 0
 _run_addr: int = 0
 _step_count: int = 0
@@ -616,7 +616,7 @@ def _str_prefix(text: str, command: str, min_match: int) -> bool:
     return command.startswith(text) and len(text) >= min_match
 
 
-_COMMANDS: list[tuple[str, int, int]] = [
+_COMMANDS: list[tuple[str, int, Command]] = [
     ("exit", 2, Command.EXIT),
     ("quit", 2, Command.EXIT),
     ("print", 1, Command.PRINT),
@@ -639,7 +639,7 @@ _COMMANDS: list[tuple[str, int, int]] = [
 ]
 
 
-def _read_assembly_command() -> int:
+def _read_assembly_command() -> Command:
     """Read a command word; the first matching (prefix, min) entry wins."""
     token: int = _read_token()
     if token == opcodes.TOK_NL:
@@ -699,7 +699,7 @@ def _report_breakpoint(stopped: bool) -> None:
         console.message(f"Breakpoint encountered at 0x{cpu.pc:08x}\n")
 
 
-def parse_spim_command(redo: bool) -> bool:  # noqa: C901 - one case per command
+def parse_spim_command(redo: bool) -> bool:
     """Execute one REPL command (or, with redo, the previous one again).
 
     Returns:
@@ -710,7 +710,7 @@ def parse_spim_command(redo: bool) -> bool:  # noqa: C901 - one case per command
     """
     global _prev_cmd, _prev_token, _run_addr, _step_count, _print_loc, _bkpt_addr
     global program_argv
-    cmd: int = _prev_cmd if redo else _read_assembly_command()
+    cmd: Command = _prev_cmd if redo else _read_assembly_command()
     if cmd == Command.EXIT:
         console.console_to_spim()
         raise SystemExit(0)
@@ -835,6 +835,8 @@ def parse_spim_command(redo: bool) -> bool:  # noqa: C901 - one case per command
                     words.append(_value_str())
                 elif token == opcodes.TOK_INT:
                     words.append(str(_value_int()))
+                else:
+                    pass  # any other token is not an argument word
             program_argv = [argv0, *words]
             _prev_cmd = Command.ARGS
         case Command.HELP:
@@ -908,7 +910,7 @@ def _print_address(address: int) -> bool:
     return following == opcodes.TOK_NL
 
 
-def _dump_command(cmd: int, token: int) -> None:
+def _dump_command(cmd: Command, token: int) -> None:
     """``dump``/``dumpnative ["FILE"]``: the user code as raw words."""
     global _prev_cmd
     filename: str

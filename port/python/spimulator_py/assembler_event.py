@@ -64,7 +64,8 @@ def _fire(
     double: float = 0.0,
 ) -> None:
     """Hand an event to the observer (the caller checked there is one)."""
-    assert observer is not None
+    if observer is None:
+        raise AssertionError("_fire: observer is None")
     observer(Event(kind, scanner.line_no, addr, name, flag, value, double))
 
 

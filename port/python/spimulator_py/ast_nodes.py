@@ -50,7 +50,6 @@ class Kind(Enum):
     DIR_COMM = auto()
     LABEL_DEF = auto()
     FILE = auto()
-    ERROR = auto()
 
 
 @dataclass(eq=False)
@@ -104,7 +103,7 @@ class Node:
     is_constant: bool = False
 
 
-def make(kind: Kind, **fields: Any) -> Node:  # noqa: ANN401 - Node's own fields
+def make(kind: Kind, **fields: Any) -> Node:
     """A new node, stamped with the scanner's current line (C ``new_node``)."""
     node: Node = Node(kind, **fields)
     node.source_line = scanner.line_no
@@ -127,6 +126,8 @@ def _imm_text(expr: ImmExpr | None) -> str:
             text += f"+{expr.offset}"
         elif expr.offset < 0:
             text += str(expr.offset)
+        else:
+            pass  # a zero offset prints as the bare name
         return text + (" (pc-rel)" if expr.pc_relative else "")
 
 
@@ -211,8 +212,6 @@ def _describe(node: Node) -> str:
             if node.is_constant:
                 return f"LABEL_DEF name={node.name} = {node.number} (constant)"
             return f"LABEL_DEF name={node.name} (placement)"
-        case Kind.ERROR:
-            return f"ERROR {node.name if node.name is not None else '(no message)'}"
         case _:
             assert_never(node.kind)
 
@@ -335,8 +334,6 @@ def _json_fields(node: Node) -> str:
             kind: str = "constant" if node.is_constant else "placement"
             value: str = f',"value":{node.number}' if node.is_constant else ""
             return f',"name":{_json_name(node.name or "")},"label_kind":"{kind}"{value}'
-        case Kind.ERROR:
-            return f',"message":{_json_name(node.name or "")}'
         case _:
             assert_never(node.kind)
 

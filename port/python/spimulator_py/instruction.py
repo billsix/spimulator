@@ -85,26 +85,26 @@ _SIGNED_IMMEDIATE_OPCODES: frozenset[int] = frozenset({
 
 # The condition bits each FP compare stores (r_cond_type_inst).
 _COMPARE_CONDITIONS: dict[int, int] = {}
-for _suffix, _cond in (
-    ("EQ", COND_EQ),
-    ("LE", COND_IN | COND_LT | COND_EQ),
-    ("LT", COND_IN | COND_LT),
-    ("NGE", COND_IN | COND_LT | COND_UN),
-    ("NGLE", COND_IN | COND_UN),
-    ("NGL", COND_IN | COND_EQ | COND_UN),
-    ("NGT", COND_IN | COND_LT | COND_EQ | COND_UN),
-    ("OLT", COND_LT),
-    ("OLE", COND_LT | COND_EQ),
-    ("SEQ", COND_IN | COND_EQ),
-    ("SF", COND_IN),
-    ("F", 0),
-    ("UEQ", COND_EQ | COND_UN),
-    ("ULT", COND_LT | COND_UN),
-    ("ULE", COND_LT | COND_EQ | COND_UN),
-    ("UN", COND_UN),
+for _double_form, _single_form, _cond in (
+    (Tok.C_EQ_D_OPCODE, Tok.C_EQ_S_OPCODE, COND_EQ),
+    (Tok.C_LE_D_OPCODE, Tok.C_LE_S_OPCODE, COND_IN | COND_LT | COND_EQ),
+    (Tok.C_LT_D_OPCODE, Tok.C_LT_S_OPCODE, COND_IN | COND_LT),
+    (Tok.C_NGE_D_OPCODE, Tok.C_NGE_S_OPCODE, COND_IN | COND_LT | COND_UN),
+    (Tok.C_NGLE_D_OPCODE, Tok.C_NGLE_S_OPCODE, COND_IN | COND_UN),
+    (Tok.C_NGL_D_OPCODE, Tok.C_NGL_S_OPCODE, COND_IN | COND_EQ | COND_UN),
+    (Tok.C_NGT_D_OPCODE, Tok.C_NGT_S_OPCODE, COND_IN | COND_LT | COND_EQ | COND_UN),
+    (Tok.C_OLT_D_OPCODE, Tok.C_OLT_S_OPCODE, COND_LT),
+    (Tok.C_OLE_D_OPCODE, Tok.C_OLE_S_OPCODE, COND_LT | COND_EQ),
+    (Tok.C_SEQ_D_OPCODE, Tok.C_SEQ_S_OPCODE, COND_IN | COND_EQ),
+    (Tok.C_SF_D_OPCODE, Tok.C_SF_S_OPCODE, COND_IN),
+    (Tok.C_F_D_OPCODE, Tok.C_F_S_OPCODE, 0),
+    (Tok.C_UEQ_D_OPCODE, Tok.C_UEQ_S_OPCODE, COND_EQ | COND_UN),
+    (Tok.C_ULT_D_OPCODE, Tok.C_ULT_S_OPCODE, COND_LT | COND_UN),
+    (Tok.C_ULE_D_OPCODE, Tok.C_ULE_S_OPCODE, COND_LT | COND_EQ | COND_UN),
+    (Tok.C_UN_D_OPCODE, Tok.C_UN_S_OPCODE, COND_UN),
 ):
-    for _fmt in ("D", "S"):
-        _COMPARE_CONDITIONS[Tok[f"C_{_suffix}_{_fmt}_OPCODE"]] = _cond
+    _COMPARE_CONDITIONS[_double_form] = _cond
+    _COMPARE_CONDITIONS[_single_form] = _cond
 
 _FP_MOVE_ON_GPR: frozenset[int] = frozenset(
     {Tok.MOVN_S_OPCODE, Tok.MOVN_D_OPCODE, Tok.MOVZ_S_OPCODE, Tok.MOVZ_D_OPCODE}
@@ -621,7 +621,7 @@ def inst_decode(word: int) -> Instruction:
         case 0x4C000000:  # COP1X: the funct field
             a |= val & 0x3F
         case _:
-            pass  # any other value: nothing to do, as before
+            pass  # other major opcodes: the top 6 bits alone are the key
     token: int | None = opcodes.token_for_encoding(machine.s32(a))
     if token is None:
         return _mk_inst(val, 0)
