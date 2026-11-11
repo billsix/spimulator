@@ -164,6 +164,12 @@ foreach name : regression_tests
        suite: 'regression')
 endforeach
 
+# Every generated opcode table must match the data files it comes from
+# (tools/gen_opcodes.py; regenerate with `make generate`).
+test('generated_opcode_tables', find_program('python3'),
+     args: [meson.current_source_dir() / 'tools' / 'gen_opcodes.py', '--check'],
+     suite: 'regression')
+
 # --- Examples curriculum (paired C + MIPS-asm teaching demos) -----------
 # Builds the demos and registers `examples`-suite tests that validate
 # both the C and asm sides against pinned `.expected` goldens.

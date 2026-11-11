@@ -65,12 +65,19 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
 Standalone: `meson setup builddir --buildtype=debug -Dline_editing=enabled &&
 meson compile -C builddir && meson test -C builddir`.
 
-Container (Fedora-44 + podman family template) — build args `USE_EMACS`,
+Container (Fedora-45 + podman family template) — build args `USE_EMACS`,
 `BUILD_TREE_SITTER`, `BUILD_DOCS`:
 
+**Development goes through the Dockerfile by default:** `make image` is the gate. It checks that
+the generated opcode tables are current (its preprocessing stage runs `tools/gen_opcodes.py
+--check`), builds, runs every meson suite, and runs the sanitizer gate. A standalone `meson` build
+is for quick iteration only.
+
 - `make help` *(default)* — list the documented targets.
-- `make image` — build + test spim at image-build time; build the examples' native
-  artifacts; optionally build the tree-sitter grammar / Emacs integration.
+- `make image` — check the generated files, build + test spim at image-build time; build the
+  examples' native artifacts; optionally build the tree-sitter grammar / Emacs integration.
+- `make generate` — regenerate every opcode table from `include/opcodes.tsv` in the container;
+  commit the result with the data-file change (`README.md`, "Changing the opcode table").
 - `make shell` *(runs `format` first)* — dev shell.
 - `make format` — clang-format; `lint.sh` runs `clang-tidy`. Both run on shell exit.
 - `make html` / `pdf` / `epub` / `docs` *(BUILD_DOCS)* — build the **pgu** book via

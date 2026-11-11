@@ -106,6 +106,15 @@ update-emacs-packages: ## USE_EMACS=1: rebuild image, wipe+reinstall elpa, strip
 	@echo "Done: reinstalled packages, stripped *.elc/*.eln, staged elpa -- review and commit."
 
 
+.PHONY: generate
+generate: image ## Regenerate every opcode table from include/opcodes.tsv (tools/gen_opcodes.py); commit the result
+	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) --rm \
+		--entrypoint /bin/bash \
+		$(FILES_TO_MOUNT) \
+		$(CONTAINER_NAME) \
+		-c 'cd $(REPO_MOUNT) && python3 tools/gen_opcodes.py'
+
+
 .PHONY: format
 format: image ## Format the C code
 	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) -it --rm \
