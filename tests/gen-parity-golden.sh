@@ -24,35 +24,14 @@ EF=${2:-$TESTS_DIR/../src/exceptions.s}
 case "$SPIM" in /*) ;; *) SPIM=$(realpath "$SPIM") ;; esac
 case "$EF"   in /*) ;; *) EF=$(realpath "$EF") ;; esac
 
-capture() { # $1=prog -> append bare text+data dump (with headers) to stdout
-  local prog=$1 d
-  d=$(mktemp -d)
-  ( cd "$d" && "$SPIM" -exception_file "$EF" -dump \
-      -f "$TESTS_DIR/$prog" </dev/null >/dev/null 2>&1 ) || true
-  local seg
-  for seg in text data; do
-    if [ -f "$d/$seg.asm" ]; then
-      echo "### $prog :: $seg ###"
-      sed 's/[[:space:]]*;.*$//' "$d/$seg.asm"
-    fi
-  done
-  rm -rf "$d"
-}
+# shellcheck source=tests/parity-capture.sh
+. "$TESTS_DIR/parity-capture.sh"
 
 # ast_parity: tt.core.s only.
-capture tt.core.s > "$TESTS_DIR/golden.ast_parity.txt"
+capture tt.core.s default > "$TESTS_DIR/golden.ast_parity.txt"
 
-# ast_parity_all: the representative program set (keep in sync with the
-# `progs` list in run-test.sh's ast_parity_all case).
-: > "$TESTS_DIR/golden.ast_parity_all.txt"
-for prog in \
-    tt.alu.bare.s tt.argv.s tt.bare.s tt.be.s tt.core.s tt.dir.s \
-    tt.divide_by_zero.s tt.explain.s tt.fpu.bare.s tt.io.s tt.le.s \
-    tt.listing.s tt.missing_main.s tt.octal_escape.s tt.pseudo.s \
-    tt.read_char_eof.s tt.read_int_eof.s tt.return_value.s \
-    tt.stderr_split.s tt.unaligned.s; do
-  [ -f "$TESTS_DIR/$prog" ] && capture "$prog" >> "$TESTS_DIR/golden.ast_parity_all.txt"
-done
+# ast_parity_all: every program in tests/parity-programs.txt.
+capture_all > "$TESTS_DIR/golden.ast_parity_all.txt"
 
 echo "Regenerated goldens in $TESTS_DIR:"
 echo "  golden.ast_parity.txt      ($(wc -l < "$TESTS_DIR/golden.ast_parity.txt") lines)"

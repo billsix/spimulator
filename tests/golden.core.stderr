@@ -1,0 +1,93 @@
+Target of jump differs in high-order 4 bits from instruction pc 0x80000258
+Target of jump differs in high-order 4 bits from instruction pc 0x400700
+Exception occurred at PC=0x00400044
+  Unaligned address in instruction/data fetch: 0x00400001
+Exception occurred at PC=0x00400048
+  Unaligned address in store: 0x00400001
+Exception occurred at PC=0x0040005c
+  Bad address in data/stack read: 0x00d89680
+Exception occurred at PC=0x00400060
+Exception occurred at PC=0x0040006c
+  Arithmetic overflow
+Exception occurred at PC=0x00400458
+Exception occurred at PC=0x004005e4
+Exception occurred at PC=0x004006d8
+Exception occurred at PC=0x00400798
+  Bad address in text read: 0x0040079a
+Exception occurred at PC=0x004007d8
+  Bad address in text read: 0x004007da
+Exception occurred at PC=0x0040085c
+  Unaligned address in instruction/data fetch: 0x800003e7
+Exception occurred at PC=0x00400860
+  Unaligned address in instruction/data fetch: 0x800003eb
+Exception occurred at PC=0x00400864
+  Bad address in data/stack read: 0x800003e8
+Exception occurred at PC=0x00400868
+  Bad address in data/stack read: 0x800003ec
+Exception occurred at PC=0x004008d0
+  Unaligned address in instruction/data fetch: 0x800003e7
+Exception occurred at PC=0x004008d4
+  Bad address in data/stack read: 0x800003e8
+Exception occurred at PC=0x00400934
+  Unaligned address in instruction/data fetch: 0x800003e7
+Exception occurred at PC=0x00400938
+  Bad address in data/stack read: 0x800003e8
+Exception occurred at PC=0x00400ab8
+  Unaligned address in instruction/data fetch: 0x800003e7
+Exception occurred at PC=0x00400abc
+  Bad address in data/stack read: 0x800003e8
+Exception occurred at PC=0x00401280
+Exception occurred at PC=0x004013c4
+  Unaligned address in store: 0x800003e7
+Exception occurred at PC=0x004013c8
+  Unaligned address in store: 0x800003eb
+Exception occurred at PC=0x004013cc
+  Bad address in data/stack read: 0x800003e8
+Exception occurred at PC=0x004013d0
+  Bad address in data/stack read: 0x800003ec
+Exception occurred at PC=0x004018b8
+  Arithmetic overflow
+Exception occurred at PC=0x00401998
+  Unaligned address in store: 0x800003e7
+Exception occurred at PC=0x0040199c
+  Bad address in data/stack read: 0x800003e8
+Exception occurred at PC=0x00401b00
+  Trap
+Exception occurred at PC=0x00401b18
+  Trap
+Exception occurred at PC=0x00401b38
+  Trap
+Exception occurred at PC=0x00401b3c
+  Trap
+Exception occurred at PC=0x00401b58
+  Trap
+Exception occurred at PC=0x00401b5c
+  Trap
+Exception occurred at PC=0x00401b7c
+  Trap
+Exception occurred at PC=0x00401b80
+  Trap
+Exception occurred at PC=0x00401ba4
+  Trap
+Exception occurred at PC=0x00401ba8
+  Trap
+Exception occurred at PC=0x00401bbc
+  Reserved instruction execution
+Exception occurred at PC=0x00401bc0
+  Reserved instruction execution
+Exception occurred at PC=0x00401bc4
+  Reserved instruction execution
+Exception occurred at PC=0x00401bc8
+  Reserved instruction execution
+Exception occurred at PC=0x00401be4
+  Trap
+Exception occurred at PC=0x00401c04
+  Trap
+Exception occurred at PC=0x00401c28
+  Trap
+Exception occurred at PC=0x00401c50
+  Trap
+Exception occurred at PC=0x00401c70
+  Trap
+Exception occurred at PC=0x00401c88
+  Trap

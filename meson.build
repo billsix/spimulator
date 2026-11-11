@@ -132,16 +132,21 @@ exception_file = meson.current_source_dir() / 'src' / 'exceptions.s'
 
 regression_tests = [
   # Standard "Passed all tests" sentinel
-  'bare', 'core', 'le', 'dir', 'octal_escape', 'argv', 'multifile',
+  'bare', 'core', 'le', 'dir', 'octal_escape', 'argv', 'multifile', 'fpu_bare',
   'read_int_eof', 'read_int_space_sep',
   # Custom criteria
   'read_char_eof', 'args_cmd', 'disasm',
   # Unix-process conformance (exit codes)
   'return_value', 'unaligned', 'missing_main', 'parse_error', 'stderr_split',
+  'parse_error_data_list',
+  # Engine fixes made before the ports (self-checking)
+  'engine_fixes',
   # Exception-handler paths
-  'divide_by_zero',
+  'divide_by_zero', 'core_default_handler',
+  # Full-output goldens
+  'core_full',
   # Teaching-mode golden output + parity sanity
-  'explain', 'explain_parity',
+  'explain',
   # Assemble-time event trace (Phase 1 of parse-tree migration)
   'listing',
   # AST parser parity + print-ast
@@ -160,3 +165,6 @@ endforeach
 # Builds the demos and registers `examples`-suite tests that validate
 # both the C and asm sides against pinned `.expected` goldens.
 subdir('examples/src')
+
+# --- Ports of the engine, tested against the C engine (tasks/engine-ports.md)
+subdir('port')

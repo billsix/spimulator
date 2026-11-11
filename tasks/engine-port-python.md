@@ -1,6 +1,6 @@
 # Port the simulator engine to Python, proven against the C engine
 
-**Status:** ready — decisions made (Decisions); not started
+**Status:** go-ahead given; waits on `tasks/engine-port-prereq-c-fixes.md`
 **Priority:** 6
 **Difficulty:** 8
 **Created:** 2026-11-10 (from `tasks/archive/2026/11/10/engine-port-language-investigation.md`)
@@ -61,3 +61,4 @@ header shows how to run its `.asm` through `spimulator-python`.
   step 1 prerequisites in `tasks/engine-port-prereq-c-fixes.md`.
 - The port lives **in this repo**, under `port/`, so the harness builds the C oracle in the same
   image ("for now"; William Emerison Six <billsix@gmail.com>, 2026-11-10).
+- Go-ahead (William Emerison Six <billsix@gmail.com>, 2026-11-10). The teaching mode (`-explain`) is out of scope for now (`tasks/engine-ports.md`).

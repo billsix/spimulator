@@ -424,22 +424,26 @@ static void bad_mem_write(mem_addr addr, mem_word value, int mask) {
         case 0x0:
           tmp = ENCODING(text_seg[(addr - TEXT_BOT) >> 2]);
 #ifdef SPIM_BIGENDIAN
-          tmp = ((tmp & ~(0xff << (8 * (3 - (addr & 0x3))))) |
-                 (value & 0xff) << (8 * (3 - (addr & 0x3))));
+          tmp =
+              (mem_word)(((uint32_t)tmp &
+                          ~(0xffu << (8 * (3 - (addr & 0x3))))) |
+                         ((uint32_t)value & 0xffu) << (8 * (3 - (addr & 0x3))));
 #else
-          tmp = ((tmp & ~(0xff << (8 * (addr & 0x3)))) |
-                 (value & 0xff) << (8 * (addr & 0x3)));
+          tmp = (mem_word)(((uint32_t)tmp & ~(0xffu << (8 * (addr & 0x3)))) |
+                           ((uint32_t)value & 0xffu) << (8 * (addr & 0x3)));
 #endif
           break;
 
         case 0x1:
           tmp = ENCODING(text_seg[(addr - TEXT_BOT) >> 2]);
 #ifdef SPIM_BIGENDIAN
-          tmp = ((tmp & ~(0xffff << (8 * (2 - (addr & 0x2))))) |
-                 (value & 0xffff) << (8 * (2 - (addr & 0x2))));
+          tmp = (mem_word)(((uint32_t)tmp &
+                            ~(0xffffu << (8 * (2 - (addr & 0x2))))) |
+                           ((uint32_t)value & 0xffffu)
+                               << (8 * (2 - (addr & 0x2))));
 #else
-          tmp = ((tmp & ~(0xffff << (8 * (addr & 0x2)))) |
-                 (value & 0xffff) << (8 * (addr & 0x2)));
+          tmp = (mem_word)(((uint32_t)tmp & ~(0xffffu << (8 * (addr & 0x2)))) |
+                           ((uint32_t)value & 0xffffu) << (8 * (addr & 0x2)));
 #endif
           break;
 
