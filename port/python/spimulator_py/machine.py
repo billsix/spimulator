@@ -244,11 +244,12 @@ def f_div(a: float, b: float) -> float:
     """
     if b != 0.0:
         return a / b
-    if math.isnan(a):
+    elif math.isnan(a):
         return a
-    if a == 0.0:
+    elif a == 0.0:
         return DEFAULT_NAN
-    return math.copysign(math.inf, a) * math.copysign(1.0, b)
+    else:
+        return math.copysign(math.inf, a) * math.copysign(1.0, b)
 
 
 def f_sqrt(x: float) -> float:
@@ -262,9 +263,10 @@ def f_sqrt(x: float) -> float:
     """
     if math.isnan(x):
         return x
-    if x < 0.0:
+    elif x < 0.0:
         return DEFAULT_NAN
-    return math.sqrt(x)
+    else:
+        return math.sqrt(x)
 
 
 def to_s32(x: float) -> int:
@@ -304,9 +306,10 @@ def c_atof(text: bytes) -> float:
         try:
             if candidate.lower().lstrip("+-").startswith("0x"):
                 return float.fromhex(candidate)
-            if candidate.lower().lstrip("+-").startswith(("in", "na")):
+            elif candidate.lower().lstrip("+-").startswith(("in", "na")):
                 return _special_float(candidate)
-            return float(candidate)
+            else:
+                return float(candidate)
         except ValueError:
             continue
     return 0.0
@@ -322,6 +325,7 @@ def _special_float(text: str) -> float:
     sign: float = -1.0 if text.startswith("-") else 1.0
     if body in ("inf", "infinity"):
         return sign * math.inf
-    if body == "nan" or (body.startswith("nan(") and body.endswith(")")):
+    elif body == "nan" or (body.startswith("nan(") and body.endswith(")")):
         return math.copysign(math.nan, sign)
-    raise ValueError(text)
+    else:
+        raise ValueError(text)

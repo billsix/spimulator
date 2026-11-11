@@ -62,11 +62,12 @@ class Run:
 def parse_stdin(field: str) -> bytes | None:
     if field == "-":
         return None
-    if field.startswith("file:"):
+    elif field.startswith("file:"):
         return (TESTS / field.removeprefix("file:")).read_bytes()
-    if field.startswith("text:"):
+    elif field.startswith("text:"):
         return field.removeprefix("text:").replace("\\n", "\n").encode()
-    raise ValueError(f"corpus: bad STDIN field {field!r}")
+    else:
+        raise ValueError(f"corpus: bad STDIN field {field!r}")
 
 
 def load_corpus() -> list[Case]:
@@ -129,13 +130,14 @@ def close(a_text: str, b_text: str) -> bool:
     b: float = float(b_text)
     if math.isnan(a) and math.isnan(b):
         return True
-    if math.isinf(a) or math.isinf(b):
+    elif math.isinf(a) or math.isinf(b):
         return a == b
-    allowed: float = max(
-        RELATIVE_TOLERANCE * max(abs(a), abs(b)),
-        max(last_digit_unit(a_text), last_digit_unit(b_text)),
-    )
-    return abs(a - b) <= allowed
+    else:
+        allowed: float = max(
+            RELATIVE_TOLERANCE * max(abs(a), abs(b)),
+            max(last_digit_unit(a_text), last_digit_unit(b_text)),
+        )
+        return abs(a - b) <= allowed
 
 
 def float_only_difference(a: str, b: str) -> bool:

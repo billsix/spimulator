@@ -422,6 +422,8 @@ def convert_elif(path: pathlib.Path, line: int) -> bool:
     lines: list[str] = text.split("\n")
     block, index = enclosing_block(ast.parse(text), line)
     run: list[ast.If] = run_of(block, index)
+    if len(run) < 2:
+        return False  # no longer a run (an inner run was converted); rescan
     rest: list[ast.stmt] = list(block[index + len(run) :])
     pad: str = " " * run[0].col_offset
     if rest:

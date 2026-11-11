@@ -270,12 +270,13 @@ def _parse_abs_addr() -> int:
             return value
         scanner.advance()
         return machine.s32(value + _int_value())
-    if scanner.peek() == TOK_INT:
+    elif scanner.peek() == TOK_INT:
         scanner.advance()
         if _int_value() >= 0:
             _parse_error_at("Syntax error")
         return machine.s32(value + _int_value())
-    return value
+    else:
+        return value
 
 
 def _parse_factor() -> int:
@@ -344,11 +345,12 @@ def _parse_imm32() -> ImmExpr:
         if scanner.peek() == ord("+"):
             scanner.advance()
             return instruction.make_imm_expr(_parse_abs_addr(), name, False)
-        if scanner.peek() == ord("-"):
+        elif scanner.peek() == ord("-"):
             scanner.advance()
             return instruction.make_imm_expr(-_parse_abs_addr(), name, False)
-        return instruction.make_imm_expr(0, name, False)
-    if scanner.peek() == ord("("):
+        else:
+            return instruction.make_imm_expr(0, name, False)
+    elif scanner.peek() == ord("("):
         scanner.advance()
         value: int = _parse_abs_addr()
         _expect(ord(")"), "Expected ')'")
@@ -360,7 +362,8 @@ def _parse_imm32() -> ImmExpr:
         scanner.advance()
         shift: int = _int_value()
         return instruction.make_imm_expr(value >> (shift & 31), None, False)
-    return instruction.make_imm_expr(_parse_abs_addr(), None, False)
+    else:
+        return instruction.make_imm_expr(_parse_abs_addr(), None, False)
 
 
 def _parse_imm16() -> ImmExpr:
@@ -402,12 +405,13 @@ def _parse_address() -> AddrExpr:
                 scanner.force_identifier()
                 scanner.advance()
                 return instruction.make_addr_expr(offset, _str_value(), 0)
-            if scanner.peek() == ord("("):
+            elif scanner.peek() == ord("("):
                 scanner.advance()
                 reg = _parse_register()
                 _expect(ord(")"), "Expected ')'")
                 return instruction.make_addr_expr(offset, None, reg)
-            return instruction.make_addr_expr(offset, None, 0)
+            else:
+                return instruction.make_addr_expr(offset, None, 0)
         case _ if scanner.peek() == TOK_ID:
             scanner.advance()
             name: str = _str_value()
@@ -1161,28 +1165,30 @@ def _parse_line() -> None:
     if scanner.peek() == TOK_NL:
         scanner.advance()
         return
-    if scanner.peek() == TOK_EOF:
+    elif scanner.peek() == TOK_EOF:
         return
-    if scanner.peek() == TOK_ID and scanner.peek2() in (ord(":"), ord("=")):
-        _parse_opt_label()
-    token: int = scanner.peek()
-    if token == TOK_NL:
-        scanner.advance()
-        return
-    if token == TOK_EOF:
-        return
-    if instruction.kind_of(token) == opcodes.ASM_DIR:
-        _parse_directive(scanner.advance())
     else:
-        _parse_asm_code()
-    _clear_labels()
-    if pseudo_op.parse_error_occurred:
-        _sync_to_nl()
-    elif scanner.peek() == TOK_NL:
-        scanner.advance()
-    elif scanner.peek() != TOK_EOF:
-        _parse_error_at("Extra tokens after instruction")
-        _sync_to_nl()
+        if scanner.peek() == TOK_ID and scanner.peek2() in (ord(":"), ord("=")):
+            _parse_opt_label()
+        token: int = scanner.peek()
+        if token == TOK_NL:
+            scanner.advance()
+            return
+        elif token == TOK_EOF:
+            return
+        else:
+            if instruction.kind_of(token) == opcodes.ASM_DIR:
+                _parse_directive(scanner.advance())
+            else:
+                _parse_asm_code()
+            _clear_labels()
+            if pseudo_op.parse_error_occurred:
+                _sync_to_nl()
+            elif scanner.peek() == TOK_NL:
+                scanner.advance()
+            elif scanner.peek() != TOK_EOF:
+                _parse_error_at("Extra tokens after instruction")
+                _sync_to_nl()
 
 
 def parser_init(source: BinaryIO | None, file_name: str | None) -> None:

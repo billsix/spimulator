@@ -153,15 +153,16 @@ def reference(addr: int) -> tuple[bytearray | None, int]:
     """
     if layout.TEXT_BOT <= addr < text_top:
         return None, addr - layout.TEXT_BOT
-    if layout.DATA_BOT <= addr < data_top:
+    elif layout.DATA_BOT <= addr < data_top:
         return data_seg, addr - layout.DATA_BOT
-    if stack_bot <= addr < layout.STACK_TOP:
+    elif stack_bot <= addr < layout.STACK_TOP:
         return stack_seg, addr - stack_bot
-    if layout.K_TEXT_BOT <= addr < k_text_top:
+    elif layout.K_TEXT_BOT <= addr < k_text_top:
         return None, addr - layout.K_TEXT_BOT
-    if layout.K_DATA_BOT <= addr < k_data_top:
+    elif layout.K_DATA_BOT <= addr < k_data_top:
         return k_data_seg, addr - layout.K_DATA_BOT
-    raise console.run_error("Memory address out of bounds\n")
+    else:
+        raise console.run_error("Memory address out of bounds\n")
 
 
 # --- reads -------------------------------------------------------------------
@@ -172,7 +173,7 @@ def read_inst(addr: int) -> Instruction | None:
     if not addr & 3:
         if layout.TEXT_BOT <= addr < text_top:
             return text_seg[(addr - layout.TEXT_BOT) >> 2]
-        if layout.K_TEXT_BOT <= addr < k_text_top:
+        elif layout.K_TEXT_BOT <= addr < k_text_top:
             return k_text_seg[(addr - layout.K_TEXT_BOT) >> 2]
     traps.raise_exception(ExcCode.IBE)
     regs.cpu.cpr[0][regs.CP0_BADVADDR] = machine.s32(addr)
@@ -183,11 +184,12 @@ def read_byte(addr: int) -> int:
     """The signed byte at addr (C ``mem_read_byte``)."""
     if layout.DATA_BOT <= addr < data_top:
         return machine.s8(data_seg[addr - layout.DATA_BOT])
-    if stack_bot <= addr < layout.STACK_TOP:
+    elif stack_bot <= addr < layout.STACK_TOP:
         return machine.s8(stack_seg[addr - stack_bot])
-    if layout.K_DATA_BOT <= addr < k_data_top:
+    elif layout.K_DATA_BOT <= addr < k_data_top:
         return machine.s8(k_data_seg[addr - layout.K_DATA_BOT])
-    return _bad_read(addr, 0)
+    else:
+        return _bad_read(addr, 0)
 
 
 def read_half(addr: int) -> int:
@@ -195,9 +197,9 @@ def read_half(addr: int) -> int:
     if not addr & 1:
         if layout.DATA_BOT <= addr < data_top:
             return _HALF.unpack_from(data_seg, addr - layout.DATA_BOT)[0]
-        if stack_bot <= addr < layout.STACK_TOP:
+        elif stack_bot <= addr < layout.STACK_TOP:
             return _HALF.unpack_from(stack_seg, addr - stack_bot)[0]
-        if layout.K_DATA_BOT <= addr < k_data_top:
+        elif layout.K_DATA_BOT <= addr < k_data_top:
             return _HALF.unpack_from(k_data_seg, addr - layout.K_DATA_BOT)[0]
     return _bad_read(addr, 1)
 
@@ -207,9 +209,9 @@ def read_word(addr: int) -> int:
     if not addr & 3:
         if layout.DATA_BOT <= addr < data_top:
             return _WORD.unpack_from(data_seg, addr - layout.DATA_BOT)[0]
-        if stack_bot <= addr < layout.STACK_TOP:
+        elif stack_bot <= addr < layout.STACK_TOP:
             return _WORD.unpack_from(stack_seg, addr - stack_bot)[0]
-        if layout.K_DATA_BOT <= addr < k_data_top:
+        elif layout.K_DATA_BOT <= addr < k_data_top:
             return _WORD.unpack_from(k_data_seg, addr - layout.K_DATA_BOT)[0]
     return _bad_read(addr, 3)
 
@@ -225,7 +227,7 @@ def write_inst(addr: int, inst: Instruction | None) -> None:
         if layout.TEXT_BOT <= addr < text_top:
             text_seg[(addr - layout.TEXT_BOT) >> 2] = inst
             return
-        if layout.K_TEXT_BOT <= addr < k_text_top:
+        elif layout.K_TEXT_BOT <= addr < k_text_top:
             k_text_seg[(addr - layout.K_TEXT_BOT) >> 2] = inst
             return
     traps.raise_exception(ExcCode.IBE)
@@ -255,10 +257,10 @@ def write_half(addr: int, value: int) -> None:
         if layout.DATA_BOT <= addr < data_top:
             _HALF.pack_into(data_seg, addr - layout.DATA_BOT, machine.s16(value))
             return
-        if stack_bot <= addr < layout.STACK_TOP:
+        elif stack_bot <= addr < layout.STACK_TOP:
             _HALF.pack_into(stack_seg, addr - stack_bot, machine.s16(value))
             return
-        if layout.K_DATA_BOT <= addr < k_data_top:
+        elif layout.K_DATA_BOT <= addr < k_data_top:
             _HALF.pack_into(k_data_seg, addr - layout.K_DATA_BOT, machine.s16(value))
             return
     _bad_write(addr, value, 1)
@@ -272,10 +274,10 @@ def write_word(addr: int, value: int) -> None:
         if layout.DATA_BOT <= addr < data_top:
             _WORD.pack_into(data_seg, addr - layout.DATA_BOT, machine.s32(value))
             return
-        if stack_bot <= addr < layout.STACK_TOP:
+        elif stack_bot <= addr < layout.STACK_TOP:
             _WORD.pack_into(stack_seg, addr - stack_bot, machine.s32(value))
             return
-        if layout.K_DATA_BOT <= addr < k_data_top:
+        elif layout.K_DATA_BOT <= addr < k_data_top:
             _WORD.pack_into(k_data_seg, addr - layout.K_DATA_BOT, machine.s32(value))
             return
     _bad_write(addr, value, 3)
@@ -313,9 +315,10 @@ def _bad_read(addr: int, mask: int) -> int:
         word: int = machine.u32(_text_word(addr))
         if mask == 0:
             return (word >> (8 * (addr & 3))) & 0xFF
-        if mask == 1:
+        elif mask == 1:
             return (word >> (8 * (addr & 2))) & 0xFFFF
-        return machine.s32(word)
+        else:
+            return machine.s32(word)
     elif _is_just_below_stack(addr):
         expand_stack(stack_bot - addr + 4)
         return 0

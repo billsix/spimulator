@@ -169,13 +169,12 @@ def handle_exception() -> None:
         )
     traps.exception_occurred = False
     cpu.pc = layout.EXCEPTION_ADDR
-    if code in (ExcCode.INT, ExcCode.BP):
+    if code in (ExcCode.INT, ExcCode.BP) or options.quiet:
         return
-    if options.quiet:
-        return
-    if code in _EXCEPTION_MESSAGES:
-        console.error(
-            _EXCEPTION_MESSAGES[code].format(machine.u32(cp0[regs.CP0_BADVADDR]))
-        )
     else:
-        console.error(f"Unknown exception: {code}\n")
+        if code in _EXCEPTION_MESSAGES:
+            console.error(
+                _EXCEPTION_MESSAGES[code].format(machine.u32(cp0[regs.CP0_BADVADDR]))
+            )
+        else:
+            console.error(f"Unknown exception: {code}\n")

@@ -355,39 +355,42 @@ def _after_arguments(
         top_level()
     if pseudo_op.parse_errors_seen > 0:
         return options.spim_return_value or 2
-    if parser.print_ast_only:
+    elif parser.print_ast_only:
         return 0
-    if assemble:
+    elif assemble:
         return 1 if write_assembled_code(program_argv[0]) else 0
-    if dump_user:
-        _dump_data_seg(False)
-        _dump_text_seg(False)
-    elif dump_all:
-        _dump_data_seg(True)
-        _dump_text_seg(True)
     else:
-        console.console_to_program()
-        spim_utils.initialize_run_stack(program_argv)
-        try:
-            undefined: str | None = symbol_table.undefined_symbol_string()
-            if undefined is not None:
-                console.message(f"The following symbols are undefined:\n{undefined}\n")
-                console.console_to_spim()
-                return options.spim_return_value or 1
-            spim_utils.run_program(
-                symbol_table.find_symbol_address(layout.DEFAULT_RUN_LOCATION),
-                layout.DEFAULT_RUN_STEPS,
-                False,
-                False,
-            )
-        except console.RunError:
-            pass  # run_error printed its message; C longjmps to here
-        console.console_to_spim()
-        if traps.first_bad_exception != -1 and options.spim_return_value == 0:
-            # A fault the program did not survive cleanly: 128 + ExcCode, like
-            # a shell's 128 + signal number.  An explicit exit2(N) wins.
-            options.spim_return_value = 128 + traps.first_bad_exception
-    return options.spim_return_value
+        if dump_user:
+            _dump_data_seg(False)
+            _dump_text_seg(False)
+        elif dump_all:
+            _dump_data_seg(True)
+            _dump_text_seg(True)
+        else:
+            console.console_to_program()
+            spim_utils.initialize_run_stack(program_argv)
+            try:
+                undefined: str | None = symbol_table.undefined_symbol_string()
+                if undefined is not None:
+                    console.message(
+                        f"The following symbols are undefined:\n{undefined}\n"
+                    )
+                    console.console_to_spim()
+                    return options.spim_return_value or 1
+                spim_utils.run_program(
+                    symbol_table.find_symbol_address(layout.DEFAULT_RUN_LOCATION),
+                    layout.DEFAULT_RUN_STEPS,
+                    False,
+                    False,
+                )
+            except console.RunError:
+                pass  # run_error printed its message; C longjmps to here
+            console.console_to_spim()
+            if traps.first_bad_exception != -1 and options.spim_return_value == 0:
+                # A fault the program did not survive cleanly: 128 + ExcCode, like
+                # a shell's 128 + signal number.  An explicit exit2(N) wins.
+                options.spim_return_value = 128 + traps.first_bad_exception
+        return options.spim_return_value
 
 
 def write_assembled_code(program_name: str) -> bool:
@@ -488,9 +491,10 @@ def _read_line() -> bytes | None:
         byte: bytes = console.read_byte()
         if not byte:
             return bytes(line) if line else None
-        if byte == b"\n":
+        elif byte == b"\n":
             return bytes(line)
-        line += byte
+        else:
+            line += byte
 
 
 def top_level() -> None:
@@ -635,17 +639,19 @@ def _read_assembly_command() -> int:
     token: int = _read_token()
     if token == opcodes.TOK_NL:
         return Command.REDO
-    if token != opcodes.TOK_ID:
+    elif token != opcodes.TOK_ID:
         return Command.UNKNOWN
-    word: str = _value_str()
-    for command, min_match, number in _COMMANDS:
-        if _str_prefix(word, command, min_match):
-            return number
-    if word.startswith("?"):
-        return Command.HELP
-    if word.startswith("."):
-        return Command.ASM
-    return Command.UNKNOWN
+    else:
+        word: str = _value_str()
+        for command, min_match, number in _COMMANDS:
+            if _str_prefix(word, command, min_match):
+                return number
+        if word.startswith("?"):
+            return Command.HELP
+        elif word.startswith("."):
+            return Command.ASM
+        else:
+            return Command.UNKNOWN
 
 
 HELP_TEXT: str = (

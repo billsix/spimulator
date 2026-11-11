@@ -304,9 +304,10 @@ def eval_imm_expr(expr: ImmExpr) -> int:
         value = 0
     if expr.bits > 0:
         return (value >> 16) & 0xFFFF
-    if expr.bits < 0:
+    elif expr.bits < 0:
         return value & 0xFFFF
-    return value
+    else:
+        return value
 
 
 def make_addr_expr(offset: int, symbol: str | None, reg_no: int) -> AddrExpr:
