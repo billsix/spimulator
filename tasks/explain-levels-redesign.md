@@ -108,7 +108,7 @@ hanoi used. Done means:
      lint;
    - replace the single 4,716-line L2 golden with the small ones.
 8. **Docs:**
-   - `Documentation/spim.1`, the usage text, `CLAUDE.md` (its teaching-mode bullet);
+   - `Documentation/spimulator.1`, the usage text, `CLAUDE.md` (its teaching-mode bullet);
    - `pgu/docs/source/examplesap.rst` ("Reading -explain output"), `examples/TEACHING-ASSEMBLER-INTERNALS.md`,
      `examples/READING-ORDER.md`;
    - a `ChangeLog` entry, since the flags change.

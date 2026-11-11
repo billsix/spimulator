@@ -77,7 +77,7 @@ currently locks in bug 3).
   `meson test`. All 25 pass with line editing enabled. CI or the image should test both settings.
 - `-show-expansion` prints raw opcode numbers (`op=544`) instead of mnemonics, and child line numbers off by
   one.
-- `Documentation/spim.1`, the usage text, and `CLAUDE.md` each describe the levels differently from the
+- `Documentation/spimulator.1`, the usage text, and `CLAUDE.md` each describe the levels differently from the
   code. Only `pgu/docs/source/examplesap.rst` matches, and its "A bug on purpose" section shows an exception
   at L1 that bug 1 hides. Make all four describe the current behaviour (the redesign will change them again).
 

@@ -61,7 +61,7 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
   behavior change must be followed in every port**, or the port suites fail. The Haskell port follows the shared
   Haskell coding standard: every do-bind and `let`/`where` binding typed, checked by
   `port/haskell/tests/check-annotations.sh` (meson `haskell-annotations`).
-- `Documentation/spim.1`, `meson.build`, `meson_options.txt`, `.clang-format`,
+- `Documentation/spimulator.1` (the man page), `meson.build`, `meson_options.txt`, `.clang-format`,
   `.clang-tidy`.
 
 ## Build / container workflow

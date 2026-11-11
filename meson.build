@@ -124,8 +124,8 @@ spimulator_exe = executable('spimulator',
 )
 
 # Install the man page. Meson uses the filename's trailing digit as the
-# section number, so Documentation/spim.1 installs to share/man/man1/spim.1.
-install_man('Documentation/spim.1')
+# section number, so Documentation/spimulator.1 installs to share/man/man1/spimulator.1.
+install_man('Documentation/spimulator.1')
 
 # --- Regression tests ----------------------------------------------------
 #
