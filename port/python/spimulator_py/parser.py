@@ -761,11 +761,12 @@ def _expand_pseudo(op: int) -> None:
             rt: int = _parse_register()
             emit_i(Tok.ORI_OPCODE, rt, 0, _parse_imm32())
         case Tok.MOVE_PSEUDO_OP | Tok.NEG_PSEUDO_OP | Tok.NEGU_PSEUDO_OP:
-            real: int = {
+            register_ops: dict[int, int] = {
                 Tok.MOVE_PSEUDO_OP: Tok.ADDU_OPCODE,
                 Tok.NEG_PSEUDO_OP: Tok.SUB_OPCODE,
                 Tok.NEGU_PSEUDO_OP: Tok.SUBU_OPCODE,
-            }[op]
+            }
+            real: int = register_ops[op]
             rd: int = _parse_register()
             emit_r(real, rd, 0, _parse_register())
         case Tok.NOT_PSEUDO_OP:
@@ -822,12 +823,13 @@ def _expand_pseudo(op: int) -> None:
         case Tok.LI_D_PSEUDO_OP | Tok.LI_S_PSEUDO_OP:
             _expand_li_fp(op)
         case Tok.L_D_PSEUDO_OP | Tok.L_S_PSEUDO_OP | Tok.S_D_PSEUDO_OP | Tok.S_S_PSEUDO_OP:  # fmt: skip
-            real = {
+            fp_memory_ops: dict[int, int] = {
                 Tok.L_D_PSEUDO_OP: Tok.LDC1_OPCODE,
                 Tok.L_S_PSEUDO_OP: Tok.LWC1_OPCODE,
                 Tok.S_D_PSEUDO_OP: Tok.SDC1_OPCODE,
                 Tok.S_S_PSEUDO_OP: Tok.SWC1_OPCODE,
-            }[op]
+            }
+            real = fp_memory_ops[op]
             fr: int = _parse_fp_register()
             address: AddrExpr = _parse_address()
             emit_i(real, fr, address.reg_no, address.imm)
