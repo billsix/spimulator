@@ -37,11 +37,13 @@ expect_exit() {
 case "$NAME" in
   # --- Dockerfile smoke set: tests that print "Passed all tests" ---
   bare)
-    "$SPIM" -delayed_branches -delayed_loads -noexception -f tt.bare.s >"$out" 2>&1
+    "$SPIM" -delayed_branches -delayed_loads -noexception -f tt.bare.s >"$out" 2>&1; rc=$?
+    expect_exit 0 "$rc"
     expect_sentinel
     ;;
   core)
-    "$SPIM" -exception_file "$EF" -f tt.core.s <tt.in >"$out" 2>&1
+    "$SPIM" -exception_file "$EF" -f tt.core.s <tt.in >"$out" 2>&1; rc=$?
+    expect_exit 4 "$rc"
     expect_sentinel
     ;;
   core_full|core_default_handler)
@@ -65,28 +67,34 @@ case "$NAME" in
   alu_bare)
     # Upstream's ALU torture test, in bare-machine mode as upstream ran it
     # (edited for MIPS32; the file's header says what changed).
-    "$SPIM" -bare -noexception -f tt.alu.bare.s >"$out" 2>&1
+    "$SPIM" -bare -noexception -f tt.alu.bare.s >"$out" 2>&1; rc=$?
+    expect_exit 0 "$rc"
     expect_sentinel
     ;;
   fpu_bare)
     # Upstream's FPU torture test, in bare-machine mode as upstream ran it.
-    "$SPIM" -bare -noexception -f tt.fpu.bare.s >"$out" 2>&1
+    "$SPIM" -bare -noexception -f tt.fpu.bare.s >"$out" 2>&1; rc=$?
+    expect_exit 0 "$rc"
     expect_sentinel
     ;;
   le)
-    "$SPIM" -exception_file "$EF" -f tt.le.s >"$out" 2>&1
+    "$SPIM" -exception_file "$EF" -f tt.le.s >"$out" 2>&1; rc=$?
+    expect_exit 4 "$rc"
     expect_sentinel
     ;;
   dir)
-    "$SPIM" -exception_file "$EF" -f tt.dir.s >"$out" 2>&1
+    "$SPIM" -exception_file "$EF" -f tt.dir.s >"$out" 2>&1; rc=$?
+    expect_exit 4 "$rc"
     expect_sentinel
     ;;
   octal_escape)
-    "$SPIM" -exception_file "$EF" -f tt.octal_escape.s >"$out" 2>&1
+    "$SPIM" -exception_file "$EF" -f tt.octal_escape.s >"$out" 2>&1; rc=$?
+    expect_exit 4 "$rc"
     expect_sentinel
     ;;
   argv)
-    "$SPIM" -exception_file "$EF" -f tt.argv.s alpha beta gamma >"$out" 2>&1
+    "$SPIM" -exception_file "$EF" -f tt.argv.s alpha beta gamma >"$out" 2>&1; rc=$?
+    expect_exit 4 "$rc"
     expect_sentinel
     ;;
   multifile)
@@ -94,21 +102,25 @@ case "$NAME" in
     # orders to confirm cross-file forward references resolve either
     # way — load-order shouldn't matter.
     "$SPIM" -exception_file "$EF" \
-      -f tt.multifile.helper.s -f tt.multifile.s >"$out" 2>&1
+      -f tt.multifile.helper.s -f tt.multifile.s >"$out" 2>&1; rc=$?
+    expect_exit 0 "$rc"
     expect_sentinel
     "$SPIM" -exception_file "$EF" \
-      -f tt.multifile.s -f tt.multifile.helper.s >"$out" 2>&1
+      -f tt.multifile.s -f tt.multifile.helper.s >"$out" 2>&1; rc=$?
+    expect_exit 0 "$rc"
     expect_sentinel
     ;;
   read_int_eof)
-    printf '5\n7\n' | "$SPIM" -exception_file "$EF" -f tt.read_int_eof.s >"$out" 2>&1
+    printf '5\n7\n' | "$SPIM" -exception_file "$EF" -f tt.read_int_eof.s >"$out" 2>&1; rc=$?
+    expect_exit 4 "$rc"
     expect_sentinel
     ;;
   read_int_space_sep)
     # Space-separated ints on one line, one int per syscall-5 call
     # (scanf-style), mixed with newline separators and a negative.
     printf '43 3 12\n-5 8\n' | "$SPIM" -exception_file "$EF" \
-      -f tt.read_int_space_sep.s >"$out" 2>&1
+      -f tt.read_int_space_sep.s >"$out" 2>&1; rc=$?
+    expect_exit 4 "$rc"
     expect_sentinel
     ;;
 
@@ -117,7 +129,8 @@ case "$NAME" in
     # REPL command: load a program, print its listing, confirm the
     # segment header and user-text addresses appear.
     printf 'load "tt.le.s"\ndisasm\nexit\n' | "$SPIM" -exception_file "$EF" \
-      >"$out" 2>&1
+      >"$out" 2>&1; rc=$?
+    expect_exit 0 "$rc"
     grep -q 'USER TEXT SEGMENT' "$out" || fail "missing segment header"
     grep -q '\[0x004000' "$out" || fail "missing user-text addresses"
     ;;
@@ -125,14 +138,16 @@ case "$NAME" in
     # Test outputs 'abc' (no trailing newline) then 'Passed all tests\n', so
     # 'Passed all tests' is NOT on its own line.  grep -q for the substring,
     # not the sentinel pattern.
-    echo -n abc | "$SPIM" -exception_file "$EF" -f tt.read_char_eof.s >"$out" 2>&1
+    echo -n abc | "$SPIM" -exception_file "$EF" -f tt.read_char_eof.s >"$out" 2>&1; rc=$?
+    expect_exit 4 "$rc"
     grep -q 'Passed all tests' "$out" || fail "missing 'Passed all tests' substring"
     ;;
   args_cmd)
     # REPL test: read a file, then change argv twice via the 'args' command,
     # verify each run sees the new argv[1].
     printf 'read "tt.args-cmd.s"\nargs zebra\nrun\nargs amber\nrun\nquit\n' \
-      | "$SPIM" -exception_file "$EF" >"$out" 2>&1
+      | "$SPIM" -exception_file "$EF" >"$out" 2>&1; rc=$?
+    expect_exit 0 "$rc"
     grep -q 'argv1=z' "$out" || fail "first run didn't see argv1=z"
     grep -q 'argv1=a' "$out" || fail "second run didn't see argv1=a"
     ;;
@@ -161,9 +176,11 @@ case "$NAME" in
   hazard_barrier)
     # jr.hb and jalr.hb run as jr and jalr, and keep their own encodings
     # (bit 10, the hazard barrier, set), matching GNU as.
-    "$SPIM" -exception_file "$EF" -f tt.hazard_barrier.s >"$out" 2>&1
+    "$SPIM" -exception_file "$EF" -f tt.hazard_barrier.s >"$out" 2>&1; rc=$?
+    expect_exit 4 "$rc"
     expect_sentinel
-    printf 'load "tt.hazard_barrier.s"\ndisasm\nexit\n' | "$SPIM" -exception_file "$EF" >"$out" 2>&1
+    printf 'load "tt.hazard_barrier.s"\ndisasm\nexit\n' | "$SPIM" -exception_file "$EF" >"$out" 2>&1; rc=$?
+    expect_exit 0 "$rc"
     grep -q '0x0100fc09  jalr.hb' "$out" || fail "jalr.hb \$t0 is not 0x0100fc09"
     grep -q '0x01008c09  jalr.hb' "$out" || fail "jalr.hb \$s1, \$t0 is not 0x01008c09"
     grep -q '0x03e00408  jr.hb' "$out" || fail "jr.hb \$ra is not 0x03e00408"
@@ -200,7 +217,8 @@ case "$NAME" in
     # print_all_regs and breakpoint without an operand: the command after
     # them must still run.  Each used to read on into the next line.
     printf 'print_all_regs\nprint $sp\nbreakpoint\nprint $ra\n' \
-      | timeout 10 "$SPIM" -noexception >"$out" 2>&1
+      | timeout 10 "$SPIM" -noexception >"$out" 2>&1; rc=$?
+    expect_exit 0 "$rc"
     grep -q '^Reg 29 = ' "$out" || fail "'print \$sp' after print_all_regs did not run"
     grep -q 'Must supply an address for breakpoint' "$out" || fail "no breakpoint usage error"
     grep -q '^Reg 31 = ' "$out" || fail "'print \$ra' after breakpoint did not run"
@@ -209,7 +227,8 @@ case "$NAME" in
     # The REPL's `.` command assembles one line, after the loaded program:
     # it used to assemble the loaded file a second time first.
     printf 'load "tt.repl_dot.s"\n. addiu $t0, $zero, 7\ndisasm\n' \
-      | timeout 10 "$SPIM" -noexception >"$out" 2>&1
+      | timeout 10 "$SPIM" -noexception >"$out" 2>&1; rc=$?
+    expect_exit 0 "$rc"
     n=$(grep -c '^\[0x004000' "$out")
     [ "$n" = 3 ] || fail "expected 3 instructions in the text segment, got $n"
     grep -q '^\[0x00400008\].*addiu \$t0, \$r0, 7' "$out" || fail "the . line is not at 0x00400008"
@@ -226,12 +245,14 @@ case "$NAME" in
     ;;
   engine_fixes)
     # Self-checking: the engine fixes of tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md.
-    timeout 10 "$SPIM" -exception_file "$EF" -f tt.engine_fixes.s >"$out" 2>&1
+    timeout 10 "$SPIM" -exception_file "$EF" -f tt.engine_fixes.s >"$out" 2>&1; rc=$?
+    expect_exit 0 "$rc"
     expect_sentinel
     ;;
   stderr_split)
     # Banner on stderr, 'ok' on stdout.  Verify stdout is exactly 'ok\n'.
-    stdout_only=$("$SPIM" -exception_file "$EF" -f tt.stderr_split.s 2>/dev/null)
+    stdout_only=$("$SPIM" -exception_file "$EF" -f tt.stderr_split.s 2>/dev/null); rc=$?
+    expect_exit 0 "$rc"
     [ "$stdout_only" = "ok" ] || fail "stdout was '$stdout_only', expected 'ok'"
     ;;
 
@@ -312,7 +333,8 @@ case "$NAME" in
     # patterns rather than diffing a golden file because exception_file
     # addresses are environment-dependent.
     lst=$(mktemp); trap 'rm -f "$out" "$lst"' EXIT
-    "$SPIM" -exception_file "$EF" -listing "$lst" -f tt.listing.s >"$out" 2>&1
+    "$SPIM" -exception_file "$EF" -listing "$lst" -f tt.listing.s >"$out" 2>&1; rc=$?
+    expect_exit 0 "$rc"
     grep -q "label  b1 .*defined at" "$lst" \
       || fail "missing label def for b1"
     grep -q "label  main .*defined at .*(global)" "$lst" \
@@ -350,7 +372,11 @@ case "$NAME" in
     # conditions under which the golden file was captured.  Strip the
     # path-dependent "Loaded: ..." line before diffing.
     env -i "$SPIM" -exception_file "$EF" -explain=2 -f tt.explain.s 2>&1 \
-      | grep -v '^Loaded: ' > "$out"
+      | grep -v '^Loaded: ' > "$out"; rc=${PIPESTATUS[0]}
+    # 132 is wrong: tt.explain.s exits 0 without -explain.  The teaching mode's
+    # memory peeks raise an exception the program never does (explain-mode bug
+    # 1, tasks/explain-mode-correctness-bugs.md); fixing it makes this 0.
+    expect_exit 132 "$rc"
     expected=$(mktemp)
     trap 'rm -f "$out" "$expected"' EXIT
     grep -v '^Loaded: ' tt.explain.expected > "$expected"
