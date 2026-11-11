@@ -242,8 +242,8 @@ void expansion_begin(const char* mnemonic, bool is_pseudo);
 void expansion_end(void);
 void emit_source_set(const char* s);
 void emit_source_clear(void);
-void i_type_inst(int opcode, int rt, int rs, const imm_expr* expr);
-void i_type_inst_free(int opcode, int rt, int rs, imm_expr* expr);
+void i_type(int opcode, int rt, int rs, const imm_expr* expr);
+void i_type_free(int opcode, int rt, int rs, imm_expr* expr);
 [[nodiscard]] imm_expr* incr_expr_offset(const imm_expr* expr, int32_t value);
 [[nodiscard]] mips_instruction* inst_decode(int32_t value);
 int32_t inst_encode(const mips_instruction* instruction);
@@ -252,7 +252,7 @@ bool inst_is_breakpoint(mem_addr addr);
 /* Lookup mnemonic for a raw opcode token (TOK_*_OP, TOK_*_POP).
    Returned pointer is owned by the static opcode_tbl (opcode-tables.h). */
 [[nodiscard]] const char* op_token_name(int op_token);
-void j_type_inst(int opcode, imm_expr* target);
+void j_type(int opcode, imm_expr* target);
 void k_text_begins_at_point(mem_addr addr);
 [[nodiscard]] addr_expr* make_addr_expr(int offs, const char* sym, int reg_no);
 [[nodiscard]] imm_expr* make_imm_expr(int offs, const char* sym,
@@ -264,10 +264,10 @@ bool opcode_is_jump(int opcode);
 bool opcode_is_load_store(int opcode);
 void print_inst(mem_addr addr);
 [[nodiscard]] char* inst_to_string(mem_addr addr);
-void r_co_type_inst(int opcode, int fd, int fs, int ft);
-void r_cond_type_inst(int opcode, int fs, int ft, int cc);
-void r_sh_type_inst(int opcode, int rd, int rt, int shamt);
-void r_type_inst(int opcode, int rd, int rs, int rt);
+void r_co_type(int opcode, int fd, int fs, int ft);
+void r_cond_type(int opcode, int fs, int ft, int cc);
+void r_sh_type(int opcode, int rd, int rt, int shamt);
+void r_type(int opcode, int rd, int rs, int rt);
 void raise_exception(mips_exc_code excode);
 [[nodiscard]] mips_instruction* set_breakpoint(mem_addr addr);
 void test_assembly(mips_instruction* instruction);

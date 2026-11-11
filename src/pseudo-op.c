@@ -81,7 +81,7 @@ int imm_op_to_op(int opcode) {
 }
 
 /* Forward declarations for runtime helpers still provided by instruction.c.
-   The instruction-emit calls (r_type_inst, i_type_inst_free, ...) come
+   The instruction-emit calls (r_type, i_type_free, ...) come
    in via parser.h's emit_* dispatch wrappers so they participate in
    AST construction. */
 

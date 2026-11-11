@@ -31,11 +31,10 @@ static void store_instruction(mips_instruction* instruction);
 static imm_expr* upper_bits_of_expr(const imm_expr* old_expr);
 
 static void format_imm_expr(str_stream* ss, imm_expr* expr, int base_reg);
-static void i_type_inst_full_word(int opcode, int rt, int rs,
-                                  const imm_expr* expr, bool value_known,
-                                  int32_t value);
+static void i_type_full_word(int opcode, int rt, int rs, const imm_expr* expr,
+                             bool value_known, int32_t value);
 static void inst_cmp(mips_instruction* inst1, mips_instruction* inst2);
-static mips_instruction* make_r_type_inst(int opcode, int rd, int rs, int rt);
+static mips_instruction* make_r_type(int opcode, int rd, int rs, int rt);
 static mips_instruction* mk_i_inst(int32_t value, int opcode, int rs, int rt,
                                    int offset);
 static mips_instruction* mk_j_inst(int32_t value, int opcode, int target);
@@ -222,8 +221,8 @@ static void store_instruction(mips_instruction* instruction) {
   }
 }
 
-void i_type_inst_free(int opcode, int rt, int rs, imm_expr* expr) {
-  i_type_inst(opcode, rt, rs, expr);
+void i_type_free(int opcode, int rt, int rs, imm_expr* expr) {
+  i_type(opcode, rt, rs, expr);
   free(expr);
 }
 
@@ -233,7 +232,7 @@ void i_type_inst_free(int opcode, int rt, int rs, imm_expr* expr) {
    machine, we resolve symbolic address, but they better produce values
    that fit into instruction's immediate field. */
 
-void i_type_inst(int opcode, int rt, int rs, const imm_expr* expr) {
+void i_type(int opcode, int rt, int rs, const imm_expr* expr) {
   mips_instruction* instruction =
       (mips_instruction*)zmalloc(sizeof(mips_instruction));
 
@@ -259,7 +258,7 @@ void i_type_inst(int opcode, int rt, int rs, const imm_expr* expr) {
               : ((unsigned int)value & 0xffff0000) != 0))) {
       // Non-immediate value
       free_inst(instruction);
-      i_type_inst_full_word(opcode, rt, rs, expr, true, value);
+      i_type_full_word(opcode, rt, rs, expr, true, value);
       return;
     } else
       resolve_a_label(expr->symbol, instruction);
@@ -273,7 +272,7 @@ void i_type_inst(int opcode, int rt, int rs, const imm_expr* expr) {
        sequence for 32 bit value. */
     free_inst(instruction);
 
-    i_type_inst_full_word(opcode, rt, rs, expr, false, 0);
+    i_type_full_word(opcode, rt, rs, expr, false, 0);
     return;
   }
 
@@ -283,17 +282,15 @@ void i_type_inst(int opcode, int rt, int rs, const imm_expr* expr) {
 /* The immediate value for an instruction will (or may) not fit in 16 bits.
    Build the value from its piece with separate instructions. */
 
-static void i_type_inst_full_word(int opcode, int rt, int rs,
-                                  const imm_expr* expr, bool value_known,
-                                  int32_t value) {
+static void i_type_full_word(int opcode, int rt, int rs, const imm_expr* expr,
+                             bool value_known, int32_t value) {
   if (opcode_is_load_store(opcode)) {
     int32_t offset;
 
     if (expr->symbol != nullptr && expr->symbol->gp_flag && rs == 0 &&
         IMM_MIN <= (offset = (int32_t)(expr->symbol->addr + expr->offset)) &&
         offset <= IMM_MAX) {
-      i_type_inst_free(opcode, rt, REG_GP,
-                       make_imm_expr(offset, nullptr, false));
+      i_type_free(opcode, rt, REG_GP, make_imm_expr(offset, nullptr, false));
     } else if (value_known) {
       int high = (value >> 16) & 0xffff;
       const int low = value & 0xffff;
@@ -306,33 +303,33 @@ static void i_type_inst_full_word(int opcode, int rt, int rs,
           high += 1;
         }
 
-        i_type_inst_free(TOK_LUI_OPCODE, 1, 0, const_imm_expr(high));
+        i_type_free(TOK_LUI_OPCODE, 1, 0, const_imm_expr(high));
         if (rs != 0) /* Base register */
         {
-          r_type_inst(TOK_ADDU_OPCODE, 1, 1, rs);
+          r_type(TOK_ADDU_OPCODE, 1, 1, rs);
         }
         /* lower_bits_of_expr copies its argument, so the const_imm_expr
            node it wraps is not adopted by anyone — free the intermediate. */
         imm_expr* const low_expr = const_imm_expr(low);
-        i_type_inst_free(opcode, rt, 1, lower_bits_of_expr(low_expr));
+        i_type_free(opcode, rt, 1, lower_bits_of_expr(low_expr));
         free(low_expr);
       } else {
         /* Special case, sign-extension of low 16 bits sets high to 0xffff */
-        i_type_inst_free(opcode, rt, rs, const_imm_expr(low));
+        i_type_free(opcode, rt, rs, const_imm_expr(low));
       }
     } else {
       /* Use $at */
       /* Need to adjust if lower bits are negative */
-      i_type_inst_free(TOK_LUI_OPCODE, 1, 0, upper_bits_of_expr(expr));
+      i_type_free(TOK_LUI_OPCODE, 1, 0, upper_bits_of_expr(expr));
       if (rs != 0) /* Base register */
       {
-        r_type_inst(TOK_ADDU_OPCODE, 1, 1, rs);
+        r_type(TOK_ADDU_OPCODE, 1, 1, rs);
       }
-      i_type_inst_free(opcode, rt, 1, lower_bits_of_expr(expr));
+      i_type_free(opcode, rt, 1, lower_bits_of_expr(expr));
     }
   } else if (opcode_is_branch(opcode)) {
     /* This only allows branches +/- 32K, which is not correct! */
-    i_type_inst_free(opcode, rt, rs, lower_bits_of_expr(expr));
+    i_type_free(opcode, rt, rs, lower_bits_of_expr(expr));
   } else
   /* Computation instruction */
   {
@@ -341,8 +338,8 @@ static void i_type_inst_full_word(int opcode, int rt, int rs,
     if (expr->symbol != nullptr && expr->symbol->gp_flag && rs == 0 &&
         IMM_MIN <= (offset = (int32_t)(expr->symbol->addr + expr->offset)) &&
         offset <= IMM_MAX) {
-      i_type_inst_free((opcode == TOK_LUI_OPCODE ? TOK_ADDIU_OPCODE : opcode),
-                       rt, REG_GP, make_imm_expr(offset, nullptr, false));
+      i_type_free((opcode == TOK_LUI_OPCODE ? TOK_ADDIU_OPCODE : opcode), rt,
+                  REG_GP, make_imm_expr(offset, nullptr, false));
     } else {
       /* Use $at */
       if ((opcode == TOK_ORI_OPCODE || opcode == TOK_ADDI_OPCODE ||
@@ -351,7 +348,7 @@ static void i_type_inst_full_word(int opcode, int rt, int rs,
         produce_immediate(expr, rt, value_known, value);
       } else {
         produce_immediate(expr, 1, value_known, value);
-        r_type_inst(imm_op_to_op(opcode), rt, rs, 1);
+        r_type(imm_op_to_op(opcode), rt, rs, 1);
       }
     }
   }
@@ -360,12 +357,12 @@ static void i_type_inst_full_word(int opcode, int rt, int rs,
 static void produce_immediate(const imm_expr* expr, int rt, bool value_known,
                               int32_t value) {
   if (value_known && (value & 0xffff) == 0) {
-    i_type_inst_free(TOK_LUI_OPCODE, rt, 0, upper_bits_of_expr(expr));
+    i_type_free(TOK_LUI_OPCODE, rt, 0, upper_bits_of_expr(expr));
   } else if (value_known && ((unsigned int)value & 0xffff0000) == 0) {
-    i_type_inst_free(TOK_ORI_OPCODE, rt, 0, lower_bits_of_expr(expr));
+    i_type_free(TOK_ORI_OPCODE, rt, 0, lower_bits_of_expr(expr));
   } else {
-    i_type_inst_free(TOK_LUI_OPCODE, 1, 0, upper_bits_of_expr(expr));
-    i_type_inst_free(TOK_ORI_OPCODE, rt, 1, lower_bits_of_expr(expr));
+    i_type_free(TOK_LUI_OPCODE, 1, 0, upper_bits_of_expr(expr));
+    i_type_free(TOK_ORI_OPCODE, rt, 1, lower_bits_of_expr(expr));
   }
 }
 
@@ -373,7 +370,7 @@ static void produce_immediate(const imm_expr* expr, int rt, bool value_known,
    fields. NB, even the immediate value may not fit in the field, this
    routine will not produce more than one instruction. */
 
-void j_type_inst(int opcode, imm_expr* target) {
+void j_type(int opcode, imm_expr* target) {
   mips_instruction* instruction =
       (mips_instruction*)zmalloc(sizeof(mips_instruction));
 
@@ -391,7 +388,7 @@ void j_type_inst(int opcode, imm_expr* target) {
 /* Return a register-type instruction with the given OPCODE, RD, RS, and RT
    fields. */
 
-static mips_instruction* make_r_type_inst(int opcode, int rd, int rs, int rt) {
+static mips_instruction* make_r_type(int opcode, int rd, int rs, int rt) {
   mips_instruction* instruction =
       (mips_instruction*)zmalloc(sizeof(mips_instruction));
 
@@ -405,15 +402,15 @@ static mips_instruction* make_r_type_inst(int opcode, int rd, int rs, int rt) {
 /* Return a register-type instruction with the given OPCODE, RD, RS, and RT
    fields. */
 
-void r_type_inst(int opcode, int rd, int rs, int rt) {
-  store_instruction(make_r_type_inst(opcode, rd, rs, rt));
+void r_type(int opcode, int rd, int rs, int rt) {
+  store_instruction(make_r_type(opcode, rd, rs, rt));
 }
 
 /* Return a register-type instruction with the given OPCODE, FD, FS, and FT
    fields. */
 
-void r_co_type_inst(int opcode, int fd, int fs, int ft) {
-  mips_instruction* instruction = make_r_type_inst(opcode, fs, 0, ft);
+void r_co_type(int opcode, int fd, int fs, int ft) {
+  mips_instruction* instruction = make_r_type(opcode, fs, 0, ft);
   SET_FD(instruction, fd);
   store_instruction(instruction);
 }
@@ -421,8 +418,8 @@ void r_co_type_inst(int opcode, int fd, int fs, int ft) {
 /* Return a register-shift instruction with the given OPCODE, RD, RT, and
    SHAMT fields.*/
 
-void r_sh_type_inst(int opcode, int rd, int rt, int shamt) {
-  mips_instruction* instruction = make_r_type_inst(opcode, rd, 0, rt);
+void r_sh_type(int opcode, int rd, int rt, int shamt) {
+  mips_instruction* instruction = make_r_type(opcode, rd, 0, rt);
   SET_SHAMT(instruction, shamt & 0x1f);
   store_instruction(instruction);
 }
@@ -430,8 +427,8 @@ void r_sh_type_inst(int opcode, int rd, int rt, int shamt) {
 /* Return a floating-point compare instruction with the given OPCODE,
    FS, FT, and CC fields.*/
 
-void r_cond_type_inst(int opcode, int fs, int ft, int cc) {
-  mips_instruction* instruction = make_r_type_inst(opcode, fs, 0, ft);
+void r_cond_type(int opcode, int fs, int ft, int cc) {
+  mips_instruction* instruction = make_r_type(opcode, fs, 0, ft);
   SET_FD(instruction, cc << 2);
   switch (opcode) {
     case TOK_C_EQ_D_OPCODE:
@@ -532,7 +529,7 @@ void r_cond_type_inst(int opcode, int fs, int ft, int cc) {
     default:
       /* Never reached: only FP_CMP_FS_FT_INST rows reach here, and the cases
          above are all 32 of them (16 conditions, .s and .d). */
-      fatal_error("internal error: r_cond_type_inst: not an FP compare: %d\n",
+      fatal_error("internal error: r_cond_type: not an FP compare: %d\n",
                   opcode);
   }
   store_instruction(instruction);
@@ -940,7 +937,7 @@ bool opcode_is_load_store(int opcode) {
 
 bool inst_is_breakpoint(mem_addr addr) {
   if (break_inst == nullptr)
-    break_inst = make_r_type_inst(TOK_BREAK_OPCODE, 1, 0, 0);
+    break_inst = make_r_type(TOK_BREAK_OPCODE, 1, 0, 0);
 
   return (mem_read_inst(addr) == break_inst);
 }
@@ -950,7 +947,7 @@ bool inst_is_breakpoint(mem_addr addr) {
 
 mips_instruction* set_breakpoint(mem_addr addr) {
   if (break_inst == nullptr)
-    break_inst = make_r_type_inst(TOK_BREAK_OPCODE, 1, 0, 0);
+    break_inst = make_r_type(TOK_BREAK_OPCODE, 1, 0, 0);
 
   exception_occurred = false;
   mips_instruction* const old_inst = mem_read_inst(addr);

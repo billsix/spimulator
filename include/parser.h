@@ -15,7 +15,7 @@
 
 /* Parser execution model: the parser builds an abstract syntax tree,
    then emit_ast() walks it in source order calling the action helpers
-   (r_type_inst / store_word / ...) that commit each statement to memory.
+   (r_type / store_word / ...) that commit each statement to memory.
    The older inline "syntax-directed translation" path was removed
    2026-08-03; the AST is now the sole driver.  The -print-ast /
    -show-expansion / -print-ast-json flags dump the tree and skip the
@@ -66,8 +66,8 @@ char* input_file_name_get(void);
    parser.c and pseudo_op.c routes through these to append the
    corresponding node to the AST under construction.  Signatures mirror
    the underlying action helpers:
-     - emit_i: caller retains ownership of `imm` (mirrors i_type_inst).
-     - emit_i_free: caller transfers ownership (mirrors i_type_inst_free).
+     - emit_i: caller retains ownership of `imm` (mirrors i_type).
+     - emit_i_free: caller transfers ownership (mirrors i_type_free).
      - emit_j: caller retains ownership. */
 void emit_r(int op, int rd, int rs, int rt);
 void emit_r_shift(int op, int rd, int rt, int shamt);

@@ -7,7 +7,7 @@
 --    'Node's, one per statement; a pseudo-instruction becomes a 'Pseudo'
 --    node holding the real instructions it expands to.
 -- 2. /emit/: 'emitAst' walks the nodes in order and calls the assembling
---    actions ('iTypeInst', 'storeWord', 'recordLabel', ...) that put each
+--    actions ('iType', 'storeWord', 'recordLabel', ...) that put each
 --    statement into memory.
 --
 -- @-print-ast@, @-print-ast-json@ and @-show-expansion@ print the nodes
@@ -1308,12 +1308,12 @@ emitOne s node = do
     LabelDef name (LabelConst v) -> do
       l :: Label <- recordLabel s name (fromIntegral v) True
       set (lblConst l) True
-    InstR op rd rs rt -> rTypeInst s op rd rs rt
-    InstRShift op rd rt sh -> rShTypeInst s op rd rt sh
-    InstI op rt rs imm -> iTypeInst s op rt rs imm
-    InstJ op target -> jTypeInst s op target
-    InstFpR op fd fs ft -> rCoTypeInst s op fd fs ft
-    InstFpCompare op fs ft cc -> rCondTypeInst s op fs ft cc
+    InstR op rd rs rt -> rType s op rd rs rt
+    InstRShift op rd rt sh -> rShType s op rd rt sh
+    InstI op rt rs imm -> iType s op rt rs imm
+    InstJ op target -> jType s op target
+    InstFpR op fd fs ft -> rCoType s op fd fs ft
+    InstFpCompare op fs ft cc -> rCondType s op fs ft cc
     Pseudo _ kids -> emitList s kids
   where
     segText :: Foldable t => Bool -> t Word32 -> IO ()

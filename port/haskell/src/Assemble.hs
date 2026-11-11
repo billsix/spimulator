@@ -2,7 +2,7 @@
 -- of src/instruction.c).
 --
 -- The emitter calls these with an instruction's opcode and operands.  The
--- interesting one is 'iTypeInst': a MIPS immediate is only 16 bits, so an
+-- interesting one is 'iType': a MIPS immediate is only 16 bits, so an
 -- immediate that does not fit (a big constant, or an address) becomes two
 -- or three instructions using the assembler's register @$at@ ($1), and an
 -- immediate naming a label not yet defined is recorded and patched later.
@@ -12,12 +12,12 @@ module Assemble
   , alignText
   , setTextPc
   , userKernelTextSegment
-  , iTypeInst
-  , jTypeInst
-  , rTypeInst
-  , rCoTypeInst
-  , rShTypeInst
-  , rCondTypeInst
+  , iType
+  , jType
+  , rType
+  , rCoType
+  , rShType
+  , rCondType
   , makeImmExpr
   , constImmExpr
   , incrExprOffset
@@ -167,10 +167,10 @@ signedImmOp op =
                     , TOK_TEQI_OPCODE, TOK_TGEI_OPCODE, TOK_TGEIU_OPCODE, TOK_TLTI_OPCODE
                     , TOK_TLTIU_OPCODE, TOK_TNEI_OPCODE ]
 
--- | An immediate instruction @op rt, rs, expr@ (C: @i_type_inst@).  It may
+-- | An immediate instruction @op rt, rs, expr@ (C: @i_type@).  It may
 -- become several instructions when the value does not fit in 16 bits.
-iTypeInst :: Spim -> Int -> Int -> Int -> ImmExpr -> IO ()
-iTypeInst s op rt rs expr = do
+iType :: Spim -> Int -> Int -> Int -> ImmExpr -> IO ()
+iType s op rt rs expr = do
   ref :: InstRef <- newIORef ((setRt rt (setRs rs (emptyInstruction op))) {inExpr = Just expr})
   known :: Bool <- maybe (pure True) symbolIsDefined (ieSymbol expr)
   bare :: Bool <- get (optBare s)
@@ -187,23 +187,23 @@ iTypeInst s op rt rs expr = do
               then (v .&. 0xffff8000) /= 0 && (v .&. 0xffff8000) /= 0xffff8000
               else (v .&. 0xffff0000) /= 0
       if not bare && tooBig
-        then iTypeInstFullWord s op rt rs expr True value
+        then iTypeFullWord s op rt rs expr True value
         else resolveALabel s (ieSymbol expr) ref >> storeInstruction s ref
     else
       if bare || ieBits expr /= 0
         then case ieSymbol expr of
           Just l -> recordInstUsesSymbol s ref l >> storeInstruction s ref
           Nothing -> storeInstruction s ref
-        else iTypeInstFullWord s op rt rs expr False 0
+        else iTypeFullWord s op rt rs expr False 0
 
 -- | The immediate does not (or may not) fit in 16 bits: build the value in
--- @$at@ with @lui@ / @ori@ first (C: @i_type_inst_full_word@).
-iTypeInstFullWord :: Spim -> Int -> Int -> Int -> ImmExpr -> Bool -> Int32 -> IO ()
-iTypeInstFullWord s op rt rs expr known value = do
+-- @$at@ with @lui@ / @ori@ first (C: @i_type_full_word@).
+iTypeFullWord :: Spim -> Int -> Int -> Int -> ImmExpr -> Bool -> Int32 -> IO ()
+iTypeFullWord s op rt rs expr known value = do
   gpOffset :: Maybe Int32 <- smallGpOffset
   if opcodeIsLoadStore op
     then case gpOffset of
-      Just offset -> iTypeInst s op rt 28 (constImmExpr offset)
+      Just offset -> iType s op rt 28 (constImmExpr offset)
       Nothing
         | known -> do
             let high0 :: Int32
@@ -214,27 +214,27 @@ iTypeInstFullWord s op rt rs expr known value = do
               then do
                 let high :: Int32
                     high = if low .&. 0x8000 /= 0 then high0 + 1 else high0
-                iTypeInst s (tok TOK_LUI_OPCODE) 1 0 (constImmExpr high)
-                when (rs /= 0) $ rTypeInst s (tok TOK_ADDU_OPCODE) 1 1 rs
-                iTypeInst s op rt 1 (lowerBits (constImmExpr low))
-              else iTypeInst s op rt rs (constImmExpr low)
+                iType s (tok TOK_LUI_OPCODE) 1 0 (constImmExpr high)
+                when (rs /= 0) $ rType s (tok TOK_ADDU_OPCODE) 1 1 rs
+                iType s op rt 1 (lowerBits (constImmExpr low))
+              else iType s op rt rs (constImmExpr low)
         | otherwise -> do
-            iTypeInst s (tok TOK_LUI_OPCODE) 1 0 (upperBits expr)
-            when (rs /= 0) $ rTypeInst s (tok TOK_ADDU_OPCODE) 1 1 rs
-            iTypeInst s op rt 1 (lowerBits expr)
+            iType s (tok TOK_LUI_OPCODE) 1 0 (upperBits expr)
+            when (rs /= 0) $ rType s (tok TOK_ADDU_OPCODE) 1 1 rs
+            iType s op rt 1 (lowerBits expr)
     else
       if opcodeIsBranch op
-        then iTypeInst s op rt rs (lowerBits expr)
+        then iType s op rt rs (lowerBits expr)
         else case gpOffset of
           Just offset ->
-            iTypeInst s (if isTok TOK_LUI_OPCODE op then tok TOK_ADDIU_OPCODE else op) rt 28 (constImmExpr offset)
+            iType s (if isTok TOK_LUI_OPCODE op then tok TOK_ADDIU_OPCODE else op) rt 28 (constImmExpr offset)
           Nothing
             | op `elem` map tok [TOK_ORI_OPCODE, TOK_ADDI_OPCODE, TOK_ADDIU_OPCODE, TOK_LUI_OPCODE] && rs == 0 ->
                 produceImmediate s expr rt known value
             | otherwise -> do
                 produceImmediate s expr 1 known value
                 op' :: Int <- immOpToOp op
-                rTypeInst s op' rt rs 1
+                rType s op' rt rs 1
   where
     -- A label in the $gp area, used without a base register, can be
     -- reached with a 16-bit offset from $gp.
@@ -251,15 +251,15 @@ iTypeInstFullWord s op rt rs expr known value = do
 -- | Load a 32-bit value into a register (C: @produce_immediate@).
 produceImmediate :: Spim -> ImmExpr -> Int -> Bool -> Int32 -> IO ()
 produceImmediate s expr rt known value
-  | known && value .&. 0xffff == 0 = iTypeInst s (tok TOK_LUI_OPCODE) rt 0 (upperBits expr)
-  | known && (fromIntegral value .&. (0xffff0000 :: Word32)) == 0 = iTypeInst s (tok TOK_ORI_OPCODE) rt 0 (lowerBits expr)
+  | known && value .&. 0xffff == 0 = iType s (tok TOK_LUI_OPCODE) rt 0 (upperBits expr)
+  | known && (fromIntegral value .&. (0xffff0000 :: Word32)) == 0 = iType s (tok TOK_ORI_OPCODE) rt 0 (lowerBits expr)
   | otherwise = do
-      iTypeInst s (tok TOK_LUI_OPCODE) 1 0 (upperBits expr)
-      iTypeInst s (tok TOK_ORI_OPCODE) rt 1 (lowerBits expr)
+      iType s (tok TOK_LUI_OPCODE) 1 0 (upperBits expr)
+      iType s (tok TOK_ORI_OPCODE) rt 1 (lowerBits expr)
 
--- | A jump to a label (C: @j_type_inst@).
-jTypeInst :: Spim -> Int -> ImmExpr -> IO ()
-jTypeInst s op target0 = do
+-- | A jump to a label (C: @j_type@).
+jType :: Spim -> Int -> ImmExpr -> IO ()
+jType s op target0 = do
   let target :: ImmExpr
       target = target0 {ieOffset = 0, iePcRelative = False}
   ref :: InstRef <- newIORef ((emptyInstruction op) {inExpr = Just target})
@@ -272,22 +272,22 @@ jTypeInst s op target0 = do
 makeR :: Int -> Int -> Int -> Int -> Instruction
 makeR op rd rs rt = setRd rd (setRt rt (setRs rs (emptyInstruction op)))
 
--- | C: @r_type_inst@.
-rTypeInst :: Spim -> Int -> Int -> Int -> Int -> IO ()
-rTypeInst s op rd rs rt = newIORef (makeR op rd rs rt) >>= storeInstruction s
+-- | C: @r_type@.
+rType :: Spim -> Int -> Int -> Int -> Int -> IO ()
+rType s op rd rs rt = newIORef (makeR op rd rs rt) >>= storeInstruction s
 
--- | An FP instruction; FD goes in the shamt byte (C: @r_co_type_inst@).
-rCoTypeInst :: Spim -> Int -> Int -> Int -> Int -> IO ()
-rCoTypeInst s op fd fs ft = newIORef (setShamt fd (makeR op fs 0 ft)) >>= storeInstruction s
+-- | An FP instruction; FD goes in the shamt byte (C: @r_co_type@).
+rCoType :: Spim -> Int -> Int -> Int -> Int -> IO ()
+rCoType s op fd fs ft = newIORef (setShamt fd (makeR op fs 0 ft)) >>= storeInstruction s
 
--- | A shift by a constant (C: @r_sh_type_inst@).
-rShTypeInst :: Spim -> Int -> Int -> Int -> Int -> IO ()
-rShTypeInst s op rd rt shamt = newIORef (setShamt (shamt .&. 0x1f) (makeR op rd 0 rt)) >>= storeInstruction s
+-- | A shift by a constant (C: @r_sh_type@).
+rShType :: Spim -> Int -> Int -> Int -> Int -> IO ()
+rShType s op rd rt shamt = newIORef (setShamt (shamt .&. 0x1f) (makeR op rd 0 rt)) >>= storeInstruction s
 
 -- | An FP compare: the condition bits go in the rs byte, the condition
--- code (times four) in shamt (C: @r_cond_type_inst@).
-rCondTypeInst :: Spim -> Int -> Int -> Int -> Int -> IO ()
-rCondTypeInst s op fs ft cc = do
+-- code (times four) in shamt (C: @r_cond_type@).
+rCondType :: Spim -> Int -> Int -> Int -> Int -> IO ()
+rCondType s op fs ft cc = do
   let un :: Int
       un = 1
       eq :: Int
@@ -321,7 +321,7 @@ rCondTypeInst s op fs ft cc = do
   -- Never reached: only FP_CMP_FS_FT_INST rows reach here, and the guards above are all 32.
   cond :: Int <-
     maybe
-      (fatalError ("internal error: r_cond_type_inst: not an FP compare: " ++ show op ++ "\n"))
+      (fatalError ("internal error: r_cond_type: not an FP compare: " ++ show op ++ "\n"))
       pure
       condBits
   newIORef (setRs cond (setShamt (cc `shiftL` 2) (makeR op fs 0 ft))) >>= storeInstruction s

@@ -347,7 +347,7 @@ impl Instruction {
         instruction
     }
 
-    /// An R-type instruction built by the assembler (`make_r_type_inst`).
+    /// An R-type instruction built by the assembler (`make_r_type`).
     pub fn r_type(opcode: i32, rd: i32, rs: i32, rt: i32) -> Instruction {
         let mut instruction: Instruction = Instruction::new(opcode);
         instruction.set_rs(rs);
@@ -621,10 +621,10 @@ impl Machine {
         }
     }
 
-    /// Build and store an I-type instruction (`i_type_inst`).  The
+    /// Build and store an I-type instruction (`i_type`).  The
     /// immediate may not fit in 16 bits; then this produces a sequence of
     /// instructions that builds the value in `$at` first.
-    pub fn i_type_inst(&mut self, opcode: i32, rt: i32, rs: i32, expr: &ImmExpr) {
+    pub fn i_type(&mut self, opcode: i32, rt: i32, rs: i32, expr: &ImmExpr) {
         let mut instruction: Instruction = Instruction::new(opcode);
         instruction.set_rs(rs);
         instruction.set_rt(rt);
@@ -639,7 +639,7 @@ impl Machine {
                 bits & 0xffff_0000 != 0
             };
             if !self.options.bare_machine && too_big {
-                self.i_type_inst_full_word(opcode, rt, rs, expr, true, value);
+                self.i_type_full_word(opcode, rt, rs, expr, true, value);
                 return;
             }
             self.resolve_a_label(&instruction);
@@ -649,15 +649,15 @@ impl Machine {
             self.record_inst_uses_symbol(&instruction, id);
         } else {
             // All 32 bits of an unknown value: assume it will not fit.
-            self.i_type_inst_full_word(opcode, rt, rs, expr, false, 0);
+            self.i_type_full_word(opcode, rt, rs, expr, false, 0);
             return;
         }
         self.store_instruction(instruction);
     }
 
     /// Build an I-type instruction whose immediate does not fit in 16
-    /// bits, using `$at` (`i_type_inst_full_word`).
-    fn i_type_inst_full_word(
+    /// bits, using `$at` (`i_type_full_word`).
+    fn i_type_full_word(
         &mut self,
         opcode: i32,
         rt: i32,
@@ -669,7 +669,7 @@ impl Machine {
         let gp_offset: Option<i32> = self.gp_relative_offset(expr, rs);
         if opcode_is_load_store(opcode) {
             if let Some(offset) = gp_offset {
-                self.i_type_inst(opcode, rt, REG_GP as i32, &ImmExpr::constant(offset));
+                self.i_type(opcode, rt, REG_GP as i32, &ImmExpr::constant(offset));
             } else if value_known {
                 let mut high: i32 = (value >> 16) & 0xffff;
                 let low: i32 = value & 0xffff;
@@ -679,32 +679,32 @@ impl Machine {
                         // The load sign-extends the low half; compensate.
                         high += 1;
                     }
-                    self.i_type_inst(TOK_LUI_OPCODE, 1, 0, &ImmExpr::constant(high));
+                    self.i_type(TOK_LUI_OPCODE, 1, 0, &ImmExpr::constant(high));
                     if rs != 0 {
-                        self.r_type_inst(TOK_ADDU_OPCODE, 1, 1, rs);
+                        self.r_type(TOK_ADDU_OPCODE, 1, 1, rs);
                     }
-                    self.i_type_inst(opcode, rt, 1, &ImmExpr::constant(low).lower_bits());
+                    self.i_type(opcode, rt, 1, &ImmExpr::constant(low).lower_bits());
                 } else {
                     // Sign-extending the low half gives the high half.
-                    self.i_type_inst(opcode, rt, rs, &ImmExpr::constant(low));
+                    self.i_type(opcode, rt, rs, &ImmExpr::constant(low));
                 }
             } else {
-                self.i_type_inst(TOK_LUI_OPCODE, 1, 0, &expr.upper_bits());
+                self.i_type(TOK_LUI_OPCODE, 1, 0, &expr.upper_bits());
                 if rs != 0 {
-                    self.r_type_inst(TOK_ADDU_OPCODE, 1, 1, rs);
+                    self.r_type(TOK_ADDU_OPCODE, 1, 1, rs);
                 }
-                self.i_type_inst(opcode, rt, 1, &expr.lower_bits());
+                self.i_type(opcode, rt, 1, &expr.lower_bits());
             }
         } else if opcode_is_branch(opcode) {
             // This only allows branches +/- 32K, which is not correct!
-            self.i_type_inst(opcode, rt, rs, &expr.lower_bits());
+            self.i_type(opcode, rt, rs, &expr.lower_bits());
         } else if let Some(offset) = gp_offset {
             let op: i32 = if opcode == TOK_LUI_OPCODE {
                 TOK_ADDIU_OPCODE
             } else {
                 opcode
             };
-            self.i_type_inst(op, rt, REG_GP as i32, &ImmExpr::constant(offset));
+            self.i_type(op, rt, REG_GP as i32, &ImmExpr::constant(offset));
         } else if matches!(
             opcode,
             TOK_ORI_OPCODE | TOK_ADDI_OPCODE | TOK_ADDIU_OPCODE | TOK_LUI_OPCODE
@@ -713,7 +713,7 @@ impl Machine {
             self.produce_immediate(expr, rt, value_known, value);
         } else {
             self.produce_immediate(expr, 1, value_known, value);
-            self.r_type_inst(crate::pseudo_op::imm_op_to_op(opcode), rt, rs, 1);
+            self.r_type(crate::pseudo_op::imm_op_to_op(opcode), rt, rs, 1);
         }
     }
 
@@ -733,17 +733,17 @@ impl Machine {
     /// (`produce_immediate`).
     fn produce_immediate(&mut self, expr: &ImmExpr, rt: i32, value_known: bool, value: i32) {
         if value_known && value & 0xffff == 0 {
-            self.i_type_inst(TOK_LUI_OPCODE, rt, 0, &expr.upper_bits());
+            self.i_type(TOK_LUI_OPCODE, rt, 0, &expr.upper_bits());
         } else if value_known && value as u32 & 0xffff_0000 == 0 {
-            self.i_type_inst(TOK_ORI_OPCODE, rt, 0, &expr.lower_bits());
+            self.i_type(TOK_ORI_OPCODE, rt, 0, &expr.lower_bits());
         } else {
-            self.i_type_inst(TOK_LUI_OPCODE, 1, 0, &expr.upper_bits());
-            self.i_type_inst(TOK_ORI_OPCODE, rt, 1, &expr.lower_bits());
+            self.i_type(TOK_LUI_OPCODE, 1, 0, &expr.upper_bits());
+            self.i_type(TOK_ORI_OPCODE, rt, 1, &expr.lower_bits());
         }
     }
 
-    /// Build and store a jump (`j_type_inst`).
-    pub fn j_type_inst(&mut self, opcode: i32, target: &ImmExpr) {
+    /// Build and store a jump (`j_type`).
+    pub fn j_type(&mut self, opcode: i32, target: &ImmExpr) {
         let target: ImmExpr = ImmExpr {
             offset: 0,
             pc_relative: false,
@@ -761,29 +761,29 @@ impl Machine {
         self.store_instruction(instruction);
     }
 
-    /// Build and store an R-type instruction (`r_type_inst`).
-    pub fn r_type_inst(&mut self, opcode: i32, rd: i32, rs: i32, rt: i32) {
+    /// Build and store an R-type instruction (`r_type`).
+    pub fn r_type(&mut self, opcode: i32, rd: i32, rs: i32, rt: i32) {
         self.store_instruction(Instruction::r_type(opcode, rd, rs, rt).into_ref());
     }
 
-    /// Build and store a coprocessor R-type instruction (`r_co_type_inst`).
-    pub fn r_co_type_inst(&mut self, opcode: i32, fd: i32, fs: i32, ft: i32) {
+    /// Build and store a coprocessor R-type instruction (`r_co_type`).
+    pub fn r_co_type(&mut self, opcode: i32, fd: i32, fs: i32, ft: i32) {
         let mut instruction: Instruction = Instruction::r_type(opcode, fs, 0, ft);
         instruction.set_shamt(fd);
         self.store_instruction(instruction.into_ref());
     }
 
-    /// Build and store a shift by a constant (`r_sh_type_inst`).
-    pub fn r_sh_type_inst(&mut self, opcode: i32, rd: i32, rt: i32, shamt: i32) {
+    /// Build and store a shift by a constant (`r_sh_type`).
+    pub fn r_sh_type(&mut self, opcode: i32, rd: i32, rt: i32, shamt: i32) {
         let mut instruction: Instruction = Instruction::r_type(opcode, rd, 0, rt);
         instruction.set_shamt(shamt & 0x1f);
         self.store_instruction(instruction.into_ref());
     }
 
-    /// Build and store a floating-point compare (`r_cond_type_inst`).  The
+    /// Build and store a floating-point compare (`r_cond_type`).  The
     /// compare's condition bits say which outcomes (unordered, equal,
     /// less) make it true, and whether NaN operands trap.
-    pub fn r_cond_type_inst(&mut self, opcode: i32, fs: i32, ft: i32, cc: i32) {
+    pub fn r_cond_type(&mut self, opcode: i32, fs: i32, ft: i32, cc: i32) {
         const UN: i32 = 0x1;
         const EQ: i32 = 0x2;
         const LT: i32 = 0x4;
@@ -810,7 +810,7 @@ impl Machine {
             // Never reached: only FP_CMP_FS_FT_INST rows reach here, and the arms above
             // are all 32 of them (16 conditions, .s and .d).
             _ => crate::machine::fatal_error(&format!(
-                "internal error: r_cond_type_inst: not an FP compare: {opcode}\n"
+                "internal error: r_cond_type: not an FP compare: {opcode}\n"
             )),
         };
         instruction.set_rs(cond);
