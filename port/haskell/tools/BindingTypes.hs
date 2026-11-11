@@ -1,7 +1,7 @@
 -- | List the bindings of the Haskell port that must carry a written type and
 -- do not, with the type GHC inferred for each.
 --
--- The rule (tasks/haskell-port-annotate-every-binding.md, Decisions): every
+-- The rule (tasks/archive/2026/11/11/haskell-port-annotate-every-binding.md, Decisions): every
 -- do-bind, every @let@ or @where@ binding, and every local pattern binding has
 -- a written type; lambda, case-alternative, argument-pattern, pattern-guard
 -- and list-comprehension variables are exempt.  The facts come from the

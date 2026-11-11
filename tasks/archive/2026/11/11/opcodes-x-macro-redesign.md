@@ -110,5 +110,5 @@ The design, the decode column, and how a new language plugs in are in
 
 ## Follow-ups
 
-- `tasks/python-port-match-statements.md` step 2 is now only the conversion of the ~290 lookups:
+- `tasks/archive/2026/11/11/python-port-match-statements.md`: its step 2 became only the conversion of the ~290 lookups:
   the `Tok` and `OpType` `IntEnum`s exist.

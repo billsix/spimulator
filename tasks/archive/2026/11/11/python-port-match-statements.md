@@ -2,7 +2,7 @@
 
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
 **Completed:** 2026-11-11
-**Branch:** spimulator `python-port-match-statements`, off `opcodes-generator` (it needs the generated
+**Branch:** spimulator `python-port-match-statements`, stacked on `haskell-annotate-bindings` and `opcodes-generator` (it needs the generated
 `Tok` and `OpType` enums)
 
 ## Outcome

@@ -40,7 +40,7 @@ arguments, an explicit `(unsigned)` for `long l->addr` printed with `%08x`).
   of an `FPR_S` for the delayed-load slot, so it cannot be a function; the `SET_*` brace-block macros
   carry an implicit conversion a function signature would change.
 - **The instruction-field accessors** (`RS()`, `SET_RD()`, …): left as macros; turning ~40 accessor
-  pairs into functions is a large mechanical change better done with `tasks/opcodes-x-macro-redesign.md`.
+  pairs into functions is a large mechanical change better done with `tasks/archive/2026/11/11/opcodes-x-macro-redesign.md`.
 - **Scanner push/pop snapshot:** still field-by-field; the state is separate file-scope globals
   including arrays, so a compound literal does not apply without regrouping the state.
 - **`memset` of heap segments and the global register arrays**: arrays cannot be reassigned with `= {}`.
