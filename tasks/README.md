@@ -38,24 +38,22 @@ Most open tasks are independent. The ones that aren't:
 
 **Chains (do left before right):**
 
-- `explain-mode-correctness-bugs` → `explain-levels-redesign` → `engine-ports-teaching-mode`. Fix
-  the teaching-mode bugs first so the redesign's goldens start from correct output (target design:
+- `explain-levels-redesign` → `engine-ports-teaching-mode`. The redesign starts from correct output
+  (the bugs were fixed in `tasks/archive/2026/11/11/explain-mode-correctness-bugs.md`; target design:
   `tasks/reference/teaching-mode-learner-model.md`); the ports get the teaching mode last.
-- `c-undefined-behavior-fixes-then-ports`: C first, then each port, in that one task.
-- `repl-transcript-corpus` before removing the last one-shot REPL scripts under `tasks/adhoc/`.
 - `examples-c-debug-build-via-meson` decides the fate of `examples-build-matrix`,
   `container-cross-env` and `pgu-build-matrix` (its open questions 1-3).
 - `mini-c-compiler` (capstone) after the shared asm library work in `multi-file-load`; its
   acceptance harness is the demo goldens.
 
 **Every C behavior change follows in every port** (`CLAUDE.md`): `ast-column-tracking`,
-`explain-mode-correctness-bugs`, `explain-levels-redesign`, `timing-model` and `software-alu` each
-have a ports step. The port suites fail until each port matches.
+`explain-levels-redesign`, `timing-model` and `software-alu` each have a ports step. The port suites
+fail until each port matches.
 
 **Independent, any order:** `timing-model` and `software-alu` (share cycle vocabulary if both land;
-`timing-model` is much cheaper), `duplicate-cop1x-encodings`, `codebase-cleanup-plan`'s items, the
-three `*-port-cleanups` tasks, `usage-text-matches-flags`, `doc-convention-cleanups`,
-`review-tool-fixes-2026-11-11`.
+`timing-model` is much cheaper), `ast-column-tracking`, `string-equality-audit` (waits on the
+maintainer), `paired-single-instructions-unsupported` (on hold), `big-endian-conversion-hardening`
+(blocked).
 
 ## Logging completed work
 

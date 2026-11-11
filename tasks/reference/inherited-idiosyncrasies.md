@@ -20,8 +20,8 @@ correctness fixes (the `fatal_error` format-string bug, `dump-opcodes.c`'s impli
 In the demo and book layers (`examples/src`, `pgu/src`): `argc`/`argv` are used legitimately (one
 `(void)argc;` in `pgu/src/c/toupper-nomm-simplified.c` is deliberate), byte buffers are already
 `unsigned char`/`int8_t`, and there are no implicit-int definitions, no `register` and no `char*`
-byte buffers. Naming-style consistency and header hygiene are in `tasks/codebase-cleanup-plan.md`
-(items B3 and C1).
+byte buffers. The emitter naming (the `_inst` suffix) was settled, and the `include/spim.h` split
+declined, in `tasks/archive/2026/11/11/codebase-cleanup-plan.md`.
 
 ## Cross-links
 
