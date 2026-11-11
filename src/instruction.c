@@ -492,6 +492,11 @@ void r_cond_type_inst(int opcode, int fs, int ft, int cc) {
       SET_COND(instruction, COND_UN);
       break;
     }
+    default:
+      /* The paired-single compares (c.cond.ps) also reach here. They have no
+         case, so their COND field stays unset; the engine assembles them but
+         cannot execute them (tasks/paired-single-compare-encoding.md). */
+      break;
   }
   store_instruction(instruction);
 }

@@ -339,8 +339,11 @@ static const char* seg_name(asm_segment s) {
       return "ktext";
     case ASM_SEG_KDATA:
       return "kdata";
+    default:
+      /* Never reached: the cases above list every asm_segment, and the build's
+       * -Wswitch-enum fails if a new one is added without a case. */
+      fatal_error("internal error: seg_name: unknown segment %d\n", (int)s);
   }
-  return "?";
 }
 
 static void listing_observer(const asm_event* e) {
@@ -399,6 +402,12 @@ static void listing_observer(const asm_event* e) {
               e->u.forward_resolved.symbol,
               (uint32_t)e->u.forward_resolved.value);
       break;
+    default:
+      /* Never reached: the cases above list every asm_event_kind, and the
+       * build's -Wswitch-enum fails if a new one is added without a case. */
+      fatal_error(
+          "internal error: listing_observer: unknown assembler event kind %d\n",
+          (int)e->kind);
   }
 }
 

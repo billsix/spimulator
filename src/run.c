@@ -544,6 +544,11 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
 
               case 3:
                 break;
+              default:
+                /* Never reached: byte is addr & 0x3, which is 0 to 3, and each
+                 * of those has a case. */
+                fatal_error("internal error: run_spim: LWL byte lane %d\n",
+                            byte);
             }
 #endif
           LOAD_INST_BASE(&gpr[RT(instruction)], word);
@@ -597,6 +602,11 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
                 word = (reg_word)(((u_reg_word)reg_val & 0xffffff00) |
                                   (((u_reg_word)word & 0xff000000) >> 24));
                 break;
+              default:
+                /* Never reached: byte is addr & 0x3, which is 0 to 3, and each
+                 * of those has a case. */
+                fatal_error("internal error: run_spim: LWR byte lane %d\n",
+                            byte);
             }
 #endif
           LOAD_INST_BASE(&gpr[RT(instruction)], word);
@@ -946,6 +956,10 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
             case 3:
               data = reg;
               break;
+            default:
+              /* Never reached: byte is addr & 0x3, which is 0 to 3, and each of
+               * those has a case. */
+              fatal_error("internal error: run_spim: SWL byte lane %d\n", byte);
           }
 #endif
           mem_write_word(addr & 0xfffffffc, data);
@@ -996,6 +1010,10 @@ bool run_spim(mem_addr initial_PC, int steps_to_run, bool display) {
               data = (mem_word)((((unsigned)reg << 24) & 0xff000000) |
                                 (data & 0xffffff));
               break;
+            default:
+              /* Never reached: byte is addr & 0x3, which is 0 to 3, and each of
+               * those has a case. */
+              fatal_error("internal error: run_spim: SWR byte lane %d\n", byte);
           }
 #endif
           mem_write_word(addr & 0xfffffffc, data);

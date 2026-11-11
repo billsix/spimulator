@@ -238,6 +238,11 @@ static void data_int_finalize(void) {
       (imm_expr**)xmalloc((size_t)data_int_count * sizeof(imm_expr*));
   memcpy(exprs, data_int_buf, (size_t)data_int_count * sizeof(imm_expr*));
   ast_node* node;
+  /* Integer values are only collected after data_int_begin, whose callers pass
+     AST_DATA_BYTE, _HALF or _WORD; no other kind builds a data-int node, so
+     -Wswitch-enum's demand for a case per kind does not apply here. */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch-enum"
   switch (data_int_kind) {
     case AST_DATA_BYTE:
       node = ast_make_data_byte(data_int_count, exprs);
@@ -252,6 +257,7 @@ static void data_int_finalize(void) {
       node = ast_make_data_word(data_int_count, exprs);
       break;
   }
+#pragma GCC diagnostic pop
   node->source_line = data_directive_line;
   ast_append(node);
   data_int_count = 0;
@@ -341,6 +347,11 @@ static void emit_dir_seg(ast_kind kind, bool has_addr, mem_addr addr) {
      setting the PC) happen at emit time from emit_one; here we only
      record the directive in the AST. */
   ast_node* n;
+  /* kind is only ever one of the four segment directives; the other kinds are
+     not segments, so -Wswitch-enum's demand for a case per kind does not apply
+     here. */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch-enum"
   switch (kind) {
     case AST_DIR_TEXT:
       n = ast_make_dir_text(has_addr, addr);
@@ -358,6 +369,7 @@ static void emit_dir_seg(ast_kind kind, bool has_addr, mem_addr addr) {
       n = ast_make_dir_data(has_addr, addr);
       break;
   }
+#pragma GCC diagnostic pop
   ast_append(n);
 }
 
@@ -1304,6 +1316,13 @@ static void do_parse_pseudo(int op) {
         case TOK_SNE_PSEUDO_OP:
           set_eq_inst(op, rd, rs, rt);
           break;
+        default:
+          /* Never reached: the enclosing case admits only the eight
+           * set-on-compare pseudo-ops listed above. */
+          fatal_error(
+              "internal error: do_parse_pseudo: not a set-on-compare "
+              "pseudo-op: %d\n",
+              op);
       }
       break;
     }
@@ -2424,5 +2443,10 @@ static void emit_one(const ast_node* node) {
         }
       }
       return;
+    default:
+      /* Never reached: the cases above list every ast_kind, and the build's
+       * -Wswitch-enum fails if a new one is added without a case. */
+      fatal_error("internal error: emit_one: unknown AST node kind %d\n",
+                  (int)node->kind);
   }
 }

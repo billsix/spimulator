@@ -612,6 +612,12 @@ static void subst_field_regs(char* dst, size_t cap, const char* src, int rs,
         case 'd':
           r = rd;
           break;
+        default:
+          /* Never reached: the test above admits only $rs, $rt and $rd. */
+          fatal_error(
+              "internal error: subst_field_regs: unexpected register field "
+              "'$r%c'\n",
+              src[2]);
       }
       if (r >= 0 && r < 32) {
         const int n = snprintf(dst + i, cap - i, "$%s", int_reg_names[r]);
@@ -1386,6 +1392,11 @@ static void render_r_decode_step(uint32_t enc, int step, const char* mnemonic,
       write_output(message_out,
                    "  Step 3 — read the remaining R-type fields.\n");
       break;
+    default:
+      /* Never reached: explain_decoding_steps calls this with steps 1 to 3
+       * only. */
+      fatal_error("internal error: render_r_decode_step: no decode step %d\n",
+                  step);
   }
 
   write_output(message_out,
@@ -1467,6 +1478,11 @@ static void render_i_decode_step(uint32_t enc, int step, const char* mnemonic) {
       write_output(message_out,
                    "  Step 2 — read the remaining I-type fields.\n");
       break;
+    default:
+      /* Never reached: explain_decoding_steps calls this with steps 1 and 2
+       * only. */
+      fatal_error("internal error: render_i_decode_step: no decode step %d\n",
+                  step);
   }
 
   write_output(message_out,
@@ -1512,6 +1528,11 @@ static void render_j_decode_step(uint32_t enc, int step, const char* mnemonic) {
     case 2:
       write_output(message_out, "  Step 2 — read the target field.\n");
       break;
+    default:
+      /* Never reached: explain_decoding_steps calls this with steps 1 and 2
+       * only. */
+      fatal_error("internal error: render_j_decode_step: no decode step %d\n",
+                  step);
   }
 
   write_output(message_out,
@@ -1572,6 +1593,12 @@ static void render_regimm_decode_step(uint32_t enc, int step,
     case 3:
       write_output(message_out, "  Step 3 — read the rs and offset fields.\n");
       break;
+    default:
+      /* Never reached: explain_decoding_steps calls this with steps 1 to 3
+       * only. */
+      fatal_error(
+          "internal error: render_regimm_decode_step: no decode step %d\n",
+          step);
   }
 
   write_output(message_out,
@@ -1689,6 +1716,10 @@ void explain_before(const mips_instruction* instruction, mem_addr addr) {
       snap_has_mem = true;
       break;
     }
+    default:
+      /* Any other opcode stores nothing, so there is no memory word to
+       * snapshot. */
+      break;
   }
 }
 
@@ -1962,6 +1993,10 @@ static void lookup_classification(int op, inst_category* cat,
     /* System */
     case TOK_SYSCALL_OPCODE:
       *cat = CAT_SYSTEM;
+      break;
+    default:
+      /* Any other opcode has no classification: *cat stays CAT_COUNT (unknown).
+       */
       break;
   }
 }
@@ -2531,6 +2566,9 @@ void explain_after(const mips_instruction* instruction) {
         }
         break;
       }
+      default:
+        /* Only loads get the unchanged-destination note. */
+        break;
     }
 
     /* Side-effect fallback: anything that changed but wasn't named by
