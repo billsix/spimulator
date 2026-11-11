@@ -1,126 +1,51 @@
-# Fix the teaching mode's correctness bugs (it hides exceptions and misstates what ran)
+# Fixed the teaching mode's correctness bugs
 
-**Status:** proposed — needs go-ahead
-**Priority:** 2
-**Difficulty:** 5
 **Created:** 2026-11-05 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
 **Source:** tasks/review/2026/11/11/repo-review.md §4.1.2, §4.1.4 F10 (added 2026-11-11)
-**Next:** `tasks/explain-levels-redesign.md` (fix these first, so the redesign's goldens start from correct output)
 
-## BLUF
+## Summary
 
-`-explain` misleads the learner in several ways. The worst is that at any level it **swallows exceptions and
-can change the program's exit status**. Fix the bugs below without redesigning the levels, and add a test for
-each so it can't come back. Done means every bug has a regression test that failed before the fix, `meson test`
-passes with line editing both enabled and disabled, and `tests/tt.explain.expected` is regenerated (it
-currently locks in bug 3).
+A 2026-11-05 audit found `-explain` misleading the learner. All nine bugs, the two F10 additions
+and the side findings were fixed in C, each with a regression check that failed before its fix.
+The levels were not redesigned; that is `tasks/explain-levels-redesign.md`. A fresh subagent did
+the C work with git forbidden, the coordinator reviewed and committed it, and three more subagents
+mirrored the port-visible part in Python, Haskell and Rust.
 
-## Context (read first)
+| # | Bug | Fix | Pinned by |
+|---|---|---|---|
+| 1 | Exceptions swallowed: `inst_to_string` cleared `exception_occurred` before `run_spim` checked it (also REPL `step`); the old peek save/restore missed `first_bad_exception` | side-effect-free `mem_peek_inst`/`mem_peek` (`src/memory.c`) | `explain_parity` (same stdout and status at L0–L4), `repl_step_exception`; the `explain` case now expects exit 0 |
+| 2 | Branch targets 4 bytes off; in delayed mode the delay slot overwrote the branch's snapshot | `branch_target`/`jump_target` as `run.c` computes them; `explain_save_snapshot`/`explain_restore_snapshot` around the delay slot | `explain_branch_targets` (with and without `-delayed_branches`) |
+| 3–5 | `syscall` narrated as "continuation of li"; "first" twice; pseudo-ops behind labels and symbol-relative loads/stores missed | the assembler records each instruction's expansion (`expansion_of/index/count/of_pseudo` on `mips_instruction`), and `explain_after` narrates from it ("first of N", "k of N", "Expanded:") | `explain_pseudo`, the golden |
+| 6 | Pseudo-op descriptions contradicted the emitted code | table corrected (b, bgt/ble/bge/blt immediate forms, la, li, rem/remu) | `explain_pseudo`, the golden |
+| 7 | Wrong categories and glosses | Comparison and Constant categories; sltu's `u` is an unsigned compare; nop has no category | the golden |
+| 8 | ori's immediate called signed at L3/L4 | andi/ori/xori/lui zero-extended at every level | the golden |
+| 9 | Program exit never narrated | `explain_program_exit` at levels 1–4 ("The program exited with status N", with the 128+code note) | `explain_parity` |
+| F10 | `jr.hb`/`jalr.hb` unexplained; `explain_before`'s false "stores nothing" | both tokens in both switches; sc and swl/swr snapshotted (swc1/sdc1 print no memory values, and the comment says so) | `tests/tt.explain.s` |
 
-- Found by an audit on 2026-11-05: built `spimulator` out of tree and ran sample programs at L0–L4. The
-  audit's transcripts were in a session scratch directory, which no longer exists; each bug below includes
-  its reproduction.
-- Code: `src/explain.c` (`explain_print_step_header`, `explain_after`, `lookup_classification`, the branch
-  `tpl_*` templates, `skip_source_prefix`); `src/run.c` `run_spim`; `src/instruction.c` `inst_to_string`.
-- The target behaviour for wording and levels is `tasks/reference/teaching-mode-learner-model.md`. This task
-  fixes only what is *wrong*, not what is merely weak.
+Side findings:
+- **`-Dline_editing=disabled`:** eight tests failed, not two. The no-libedit REPL never pushed a
+  scanner source, printed the prompt without a newline on a pipe, and `.` read the rest of stdin.
+  Both builds now share one read loop (`read_command_line`), and the eight pass.
+- **`-show-expansion` / `-print-ast`:** they print `op=<mnemonic>`, and a pseudo-op's children carry
+  its line (`show_expansion` checks both).
+- **The four level descriptions** (man page, usage text, `CLAUDE.md`, `pgu/docs/source/examplesap.rst`)
+  match the code.
 
-## Bugs
+`tests/tt.explain.expected` and `tests/golden.ast_parity_all.txt` were regenerated, and the whole
+diff was read. To keep the address shift from the added `.hb` lines out of it, the new binary was
+first diffed on the original `tt.explain.s`.
 
-1. **Exceptions are swallowed (verified 2026-11-05).**
-   - **Cause:** `explain_print_step_header()` calls `inst_to_string()`, which sets
-     `exception_occurred = 0` (in `src/instruction.c`, at the top of `inst_to_string`). That runs before
-     `run_spim` checks `if (exception_occurred) handle_exception()`.
-   - **Repro:** a three-line program `main: li $t0, 0x10010001 / lw $t1, 0($t0) / jr $ra`.
-     - Without `-explain`, it prints "Exception occurred at PC=… Unaligned address … Exception 4 … occurred
-       and ignored".
-     - With `-explain=1`, it prints nothing about the exception. L2 even says the load happened.
-   - The exit status can differ too: `get-char-from-user-1` exited 133 at L0 and 132 at L1.
-   - REPL `step` without explain hits the same problem through `print_inst()`: `step` shows no exception
-     where `run` does.
-   - **Fix direction:** make the disassembly-to-string path not touch the simulator's exception state
-     (save/restore, or a side-effect-free reader).
-2. **Branch targets are 4 bytes off** in the default non-delayed mode. The branch templates use
-   `snap_PC + 4 + BRANCH_OFFSET`. Example: `b beginningOfLoop` says it "would transfer to 0x00400040" while
-   the PC line shows `→ 0x0040003c`. Compute the target the way `run.c` does, for both delayed and
-   non-delayed mode.
-3. **Every `syscall` is narrated as "continuation of the `li` pseudo-op".** The parser emits `syscall` with
-   no source line, and `explain_after` treats any source-less instruction after a multi-instruction
-   pseudo-op as its continuation. This happened on 11 of 11 syscalls in `print1through10`.
-4. **The first/continuation labels are wrong the other way too.** The second half of a real two-instruction
-   expansion carries the source line, so `bgt` says "This was the first real instruction" twice. A `li`/`la`
-   that expands to one instruction still says "first".
-5. **Pseudo-ops behind a label are missed.** `skip_source_prefix()` skips only the `NN:` prefix, so
-   `main: li $v0, 4` gets no pseudo-op header. Symbol-relative `lw $t1, foobar` / `sw $t3, buf` (which expand
-   to `lui $at` + `lw`/`sw`) are never recognized as expansions.
-6. **Fixed pseudo-op descriptions contradict what was emitted.**
-   - `b` claims "Encoded as `beq $0,$0`" but `bgez $r0` was emitted.
-   - `bgt $t0,10` claims "slt…+bne" but `slti $at,$t0,11` + `beq` was emitted.
-   - `la` claims "lui+ori" but only `lui` was emitted.
+**Ports** (plan step 4): the port suites skip the new `explain_*` cases, since the ports have no
+teaching mode. Python, Haskell and Rust followed everything visible outside `-explain`: a
+side-effect-free text peek in `inst_to_string` (REPL `step` runs the handler; no spurious IBE),
+`op=<mnemonic>` in the AST text dumps, and the children's line numbers. The `step_exception` REPL
+session (`port/harness/repl_corpus/`) caught the `step` change before the ports had it.
 
-   Short-term fix: correct the table. The redesign replaces it with the real expansion.
-7. **Wrong categories and modifier glosses** in `lookup_classification()`:
-   - `slt`/`sltu`/`slti`/`sltiu` are filed as "Conditional branch".
-   - The `u` in `sltu` is glossed as "no trap on overflow"; it means unsigned compare.
-   - `lui` is filed as "Data transfer … memory".
-   - `nop` and `li`→`ori` are filed as "Logical: bitwise operations and shifts".
-   - `addiu` says "unsigned" next to "sign-extended immediate".
-8. **Levels contradict each other.** For `ori`, L2 says "zero-extended", L3 shows the immediate "(signed)",
-   and L4 says "a 16-bit signed immediate". `ori`'s immediate is zero-extended.
-9. **The program's exit is never narrated.** The exit `syscall` ends the run before `explain_after` runs.
-   Examples: `helloworld.s` exits with status 4 (`$v0` left at 4, passed through by `__start`) and nothing
-   says so. Narrate "program exited with status N" at every level.
+Left as found: syscalls still have no source line in `disasm`/listings, since a fix would change
+listing output in every engine and the narration no longer depends on it; `rem` with an immediate
+skips the zero check (the table describes the register form).
 
-## Side findings (same audit; fix here, since they are small)
-
-- With `-Dline_editing=disabled`, piped REPL input breaks: the `args_cmd` and `disasm` tests fail in
-  `meson test`. All 25 pass with line editing enabled. CI or the image should test both settings.
-- `-show-expansion` prints raw opcode numbers (`op=544`) instead of mnemonics, and child line numbers off by
-  one.
-- `Documentation/spimulator.1`, the usage text, and `CLAUDE.md` each describe the levels differently from the
-  code. Only `pgu/docs/source/examplesap.rst` matches, and its "A bug on purpose" section shows an exception
-  at L1 that bug 1 hides. Make all four describe the current behaviour (the redesign will change them again).
-
-## Plan
-
-1. For each bug, add a failing regression test first: a small `.s` plus expected output, or a property check
-   in `tests/`. Bug 1 has the cheapest strong test: run the same program at L0–L4 and assert stdout without
-   narration and the exit status are identical.
-2. Fix the bugs one at a time, in priority order: 1, 2, 9, 3–5, 6–8, then the side findings.
-3. Regenerate `tests/tt.explain.expected` and read the diff by hand (it should differ only where a bug was).
-4. **Ports** (added 2026-11-11): the REPL `step` fix and `-show-expansion` change output the ports
-   produce too; follow each in the Python, Haskell and Rust ports (`CLAUDE.md`: "A C behavior change must be followed in every port"; the port suites (`port-python`, `port-haskell`, `port-rust`) fail until each port matches). The teaching
-   narration itself is not ported yet (`tasks/engine-ports-teaching-mode.md`).
-5. Gates: `meson test` with `line_editing` enabled and disabled; a nested `make image` (the image runs the
-   suite plus the UBSan and ASan gates).
-
-## Open questions
-
-None. These are bugs; the wording and level design are decided in the redesign task.
-
-## Note from the engine-port prerequisites (2026-11-10)
-
-The `explain_parity` regression test was deleted: it compared `-dump` output, and `-dump` never runs
-the program, so explain mode could not change what it compared (review
-`tasks/review/2026/11/10/repo-review.md` §6.6). A real parity test belongs with this task: the
-program's stdout and exit status must be the same with and without `-explain`, which would catch the
-hidden-exception bugs above. Use a small program: `-explain=1` on `tests/tt.core.s` writes about 45
-million stderr lines in a minute and does not finish. Record:
-`tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md`, "Log".
-
-## Added from the 2026-11-11 review (F10)
-
-Two more teaching-mode defects, from `tasks/review/2026/11/11/repo-review.md` §4.1.2 and §4.1.4.
-Fix them with the bugs above.
-
-- **`jr.hb` and `jalr.hb` get no explanation.** `src/explain.c` `lookup_classification` and
-  `render_dispatch` have no case for `TOK_JR_HB_OPCODE` or `TOK_JALR_HB_OPCODE`. Under `-explain=2`,
-  `jr.hb $t0` prints "(no detailed explanation for this opcode yet — see the disassembly above)",
-  while `jr` gets a category and an explanation. Both became executable on 2026-11-11
-  (`tasks/archive/2026/11/11/parse-j-drops-cop2-and-jalr-hb.md`). Add the `.hb` tokens beside
-  `TOK_JR_OPCODE`/`TOK_JALR_OPCODE` in both switches, and add a line for them in
-  `tests/tt.explain.s` so the golden pins it.
-- **`explain_before`'s `default` comment is false.** It says "Any other opcode stores nothing", but
-  swl, swr, sc, swc1 and sdc1 store too. Only sw/sh/sb snapshot memory, so those stores never print
-  "memory at" or "Wrote to memory" (the 2026-11-10 review's §3.26). Snapshot them too, or, if that
-  is out of scope, make the comment say "not snapshotted".
+Gates: gcc (line editing on) and clang (off) regression + examples 86/86 each for the C work; after
+the ports, `meson test` 340/340 (gcc) and clang regression 51/51; `dispatch_check` 0 flagged. The
+image gate ran at the end of the batch branch.
