@@ -39,7 +39,8 @@ in a preprocessing stage and fails, with a diff, if anything committed differs. 
   - names in strictly increasing byte order, because the C scanner finds keywords with `bsearch`;
   - no repeated token or tag;
   - every row's tag is defined;
-  - exactly one `*` per shared encoding, and none elsewhere.
+  - exactly one `*` per shared encoding, none elsewhere, and none on a `-1` row;
+  - no repeated type value, and every name printable ASCII.
 
 ## The decode column
 
