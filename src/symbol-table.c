@@ -17,8 +17,8 @@
 
 /* Local functions: */
 
-static void get_hash(char* name, int* slot_no, label** entry);
-static void resolve_a_label_sub(label* sym, mips_instruction* instruction,
+static void get_hash(const char* name, int* slot_no, label** entry);
+static void resolve_a_label_sub(const label* sym, mips_instruction* instruction,
                                 mem_addr pc);
 
 /* Keep track of the memory location that a label represents.  If we
@@ -61,7 +61,7 @@ void initialize_symbol_table(void) {
    record is already in the table, set ENTRY to point to it.  Otherwise,
    set ENTRY to be nullptr. */
 
-static void get_hash(char* name, int* slot_no, label** entry) {
+static void get_hash(const char* name, int* slot_no, label** entry) {
   int len = (int)strlen(name);
 
   /* Compute hash code.  (unsigned)(name[i]) sign-extends a negative
@@ -85,7 +85,7 @@ static void get_hash(char* name, int* slot_no, label** entry) {
 /* Lookup label with NAME.  Either return its symbol table entry or nullptr
    if it is not in the table. */
 
-label* label_is_defined(char* name) {
+label* label_is_defined(const char* name) {
   int hi;
   label* entry;
 
@@ -97,7 +97,7 @@ label* label_is_defined(char* name) {
 /* Return a label with a given NAME.  If an label with that name has
    previously been looked-up, the same node is returned this time.  */
 
-label* lookup_label(char* name) {
+label* lookup_label(const char* name) {
   int hi;
   label* entry;
 
@@ -116,7 +116,7 @@ label* lookup_label(char* name) {
 /* Record that the label named NAME refers to ADDRESS.	If RESOLVE_USES is
    true, resolve all references to it.  Return the label structure. */
 
-label* record_label(char* name, mem_addr address, bool resolve_uses) {
+label* record_label(const char* name, mem_addr address, bool resolve_uses) {
   label* l = lookup_label(name);
 
   if (!l->gp_flag) {
@@ -142,7 +142,7 @@ label* record_label(char* name, mem_addr address, bool resolve_uses) {
 
 /* Make the label named NAME global.  Return its symbol. */
 
-label* make_label_global(char* name) {
+label* make_label_global(const char* name) {
   label* l = lookup_label(name);
 
   l->global_flag = true;
@@ -225,7 +225,7 @@ void resolve_a_label(label* sym, mips_instruction* instruction) {
                       (data_dir ? current_data_pc() : current_text_pc()));
 }
 
-static void resolve_a_label_sub(label* sym, mips_instruction* instruction,
+static void resolve_a_label_sub(const label* sym, mips_instruction* instruction,
                                 mem_addr pc) {
   if (instruction == nullptr) {
     /* Memory data: */
@@ -351,7 +351,7 @@ void flush_local_labels(bool issue_undef_warnings) {
 
 /* Return the address of SYMBOL or 0 if it is undefined. */
 
-mem_addr find_symbol_address(char* symbol) {
+mem_addr find_symbol_address(const char* symbol) {
   label* l = lookup_label(symbol);
 
   if (l == nullptr || l->addr == 0)

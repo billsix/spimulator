@@ -36,7 +36,7 @@ static const name_val_val register_tbl[] = {
     {"t6", 14, 0}, {"t7", 15, 0},  {"t8", 24, 0},  {"t9", 25, 0},
     {"v0", 2, 0},  {"v1", 3, 0},   {"zero", 0, 0}};
 
-int register_name_to_number(char* name) {
+int register_name_to_number(const char* name) {
   int c1 = *name, c2 = *(name + 1);
   if ('0' <= c1 && c1 <= '9' &&
       (c2 == '\0' || (('0' <= c2 && c2 <= '9') && *(name + 2) == '\0'))) {
@@ -62,7 +62,7 @@ static const name_val_val keyword_tbl[] = {
 #include "opcodes.h"
 };
 
-static int check_keyword(char* id, bool allow_pseudo_ops) {
+static int check_keyword(const char* id, bool allow_pseudo_ops) {
   const name_val_val* entry = map_string_to_name_val_val(
       keyword_tbl, sizeof(keyword_tbl) / sizeof(name_val_val), id);
   if (entry == nullptr) return 0;

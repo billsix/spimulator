@@ -38,7 +38,7 @@ void format_registers(str_stream* ss, bool print_gpr_hex, bool print_fpr_hex);
 void initialize_registers(void);
 void initialize_stack(const char* command_line);
 void initialize_run_stack(int argc, char** argv);
-void initialize_world(char* exception_file_names, bool print_message);
+void initialize_world(const char* exception_file_names, bool print_message);
 void list_breakpoints(void);
 const name_val_val* map_int_to_name_val_val(const name_val_val tbl[],
                                             int tbl_len, int num);

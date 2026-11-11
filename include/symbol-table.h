@@ -34,15 +34,15 @@ typedef struct label {
 
 /* Exported functions: */
 
-mem_addr find_symbol_address(char* symbol);
+mem_addr find_symbol_address(const char* symbol);
 void flush_local_labels(bool issue_undef_warnings);
 void initialize_symbol_table(void);
-label* label_is_defined(char* name);
-[[nodiscard]] label* lookup_label(char* name);
-label* make_label_global(char* name);
+label* label_is_defined(const char* name);
+[[nodiscard]] label* lookup_label(const char* name);
+label* make_label_global(const char* name);
 void print_symbols(void);
 void print_undefined_symbols(void);
-label* record_label(char* name, mem_addr address, bool resolve_uses);
+label* record_label(const char* name, mem_addr address, bool resolve_uses);
 void record_data_uses_symbol(mem_addr location, label* sym, int32_t offset,
                              int width);
 void record_inst_uses_symbol(mips_instruction* instruction, label* sym);

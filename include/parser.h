@@ -56,7 +56,7 @@ void parser_init(FILE* in, char* file_name);
 
 void fix_current_label_address(mem_addr new_addr);
 int imm_op_to_op(int opcode);
-void parse_error(char* s);
+void parse_error(const char* s);
 
 /* Name of the current input file (set by parser_init).  May be null
    when assembling from a non-file stream. */
@@ -71,9 +71,9 @@ char* input_file_name_get(void);
      - emit_j: caller retains ownership. */
 void emit_r(int op, int rd, int rs, int rt);
 void emit_r_shift(int op, int rd, int rt, int shamt);
-void emit_i(int op, int rt, int rs, imm_expr* imm);
+void emit_i(int op, int rt, int rs, const imm_expr* imm);
 void emit_i_free(int op, int rt, int rs, imm_expr* imm);
-void emit_j(int op, imm_expr* target);
+void emit_j(int op, const imm_expr* target);
 void emit_fp_r(int op, int fd, int fs, int ft);
 void emit_fp_compare(int op, int fs, int ft, int cc);
 

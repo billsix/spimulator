@@ -275,7 +275,7 @@ static int read_assembly_command(void);
 static bool str_prefix(char* s1, char* s2, int min_match);
 [[noreturn]] static void top_level(void);
 static int read_token(void);
-[[nodiscard]] static bool write_assembled_code(char* program_name);
+[[nodiscard]] static bool write_assembled_code(const char* program_name);
 static void dump_data_seg(bool kernel_also);
 static void dump_text_seg(bool kernel_also);
 
@@ -1468,7 +1468,7 @@ static void print_all_regs(bool hex_flag) {
   write_output(message_out, "%s\n", ss_to_string(&ss));
 }
 
-static bool write_assembled_code(char* program_name) {
+static bool write_assembled_code(const char* program_name) {
   if (parse_error_occurred) {
     return (parse_error_occurred);
   }

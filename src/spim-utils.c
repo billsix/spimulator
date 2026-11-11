@@ -25,7 +25,7 @@
 /* Internal functions: */
 
 static mem_addr copy_int_to_stack(int n);
-static mem_addr copy_str_to_stack(char* s);
+static mem_addr copy_str_to_stack(const char* s);
 static void delete_all_breakpoints(void);
 static bool load_embedded_exception_handler(bool print_message);
 
@@ -70,7 +70,7 @@ mem_addr initial_k_data_limit = K_DATA_LIMIT;
 
 /* Initialize or reinitialize the state of the machine. */
 
-void initialize_world(char* exception_file_names, bool print_message) {
+void initialize_world(const char* exception_file_names, bool print_message) {
   /* Allocate the floating point registers */
   if (fp_single_view == nullptr)
     fp_double_view = (double*)xmalloc(FPR_LENGTH * sizeof(double));
@@ -283,7 +283,7 @@ void initialize_run_stack(int argc, char** argv) {
   mem_write_word((mem_addr)gpr[REG_SP], argc); /* Leave argc on stack */
 }
 
-static mem_addr copy_str_to_stack(char* s) {
+static mem_addr copy_str_to_stack(const char* s) {
   int i = (int)strlen(s);
   while (i >= 0) {
     mem_write_byte((mem_addr)gpr[REG_SP], s[i]);

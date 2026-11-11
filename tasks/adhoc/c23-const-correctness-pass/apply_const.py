@@ -46,7 +46,7 @@ ERROR_LINE: re.Pattern[str] = re.compile(
     r"^(?P<file>[^:\s]+\.[ch]):(?P<line>\d+):(?P<col>\d+): error: (?P<message>.*)$"
 )
 IDENTIFIER: re.Pattern[str] = re.compile(r"[A-Za-z_]\w*")
-MAX_BUILDS: int = 60
+MAX_BUILDS_PER_ROUND: int = 400
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -299,7 +299,8 @@ def enclosing_function(path: pathlib.Path, line: int) -> str | None:
     definitions: Iterator[re.Match[str]] = (
         m
         for m in (
-            re.match(r"^(?:[\w\[\]: ]+[\s*])?(\w+)\(", text) for text in reversed(lines)
+            re.match(r"^(?:[A-Za-z_\[][\w\[\]: ]*[\s*]+)?(\w+)\(", text)
+            for text in reversed(lines)
         )
         if m is not None
     )
@@ -351,7 +352,6 @@ def main() -> int:
     rejected: dict[str, str] = {}
     category_of: dict[str, str] = {}
     kept: set[str] = set()
-    builds: int = 0
     while True:
         # Each translation unit is scanned against the tree as it now is.
         tried: list[Insertion] = [
@@ -367,7 +367,8 @@ def main() -> int:
             i.path: i.path.read_bytes() for i in tried
         }
         apply(tried)
-        while (errors := build_errors(build)) and builds < MAX_BUILDS:
+        builds: int = 0
+        while (errors := build_errors(build)) and builds < MAX_BUILDS_PER_ROUND:
             builds += 1
             for error in errors:
                 for key in blamed(error, tried):
@@ -377,7 +378,11 @@ def main() -> int:
             tried = [i for i in tried if i.key not in rejected]
             apply(tried)
         if errors:
-            raise RuntimeError(f"still failing after {MAX_BUILDS} builds: {errors[:3]}")
+            for path, data in originals.items():
+                path.write_bytes(data)
+            raise RuntimeError(
+                f"still failing after {MAX_BUILDS_PER_ROUND} builds: {errors[:3]}"
+            )
         kept.update(i.key for i in tried)
         print(
             f"round: {len({i.key for i in tried})} kept, {len(rejected)} rejected so far",

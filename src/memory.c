@@ -46,7 +46,7 @@ mem_addr k_data_top;
 static mem_word bad_mem_read(mem_addr addr, int mask);
 static void bad_mem_write(mem_addr addr, mem_word value, int mask);
 static mips_instruction* bad_text_read(mem_addr addr);
-static void bad_text_write(mem_addr addr, mips_instruction* instruction);
+static void bad_text_write(mem_addr addr, const mips_instruction* instruction);
 static void free_instructions(mips_instruction** instruction, int n);
 static mem_word read_memory_mapped_IO(mem_addr addr);
 static void write_memory_mapped_IO(mem_addr addr, mem_word value);
@@ -352,7 +352,7 @@ static mips_instruction* bad_text_read(mem_addr addr) {
   return (inst_decode(0));
 }
 
-static void bad_text_write(mem_addr addr, mips_instruction* instruction) {
+static void bad_text_write(mem_addr addr, const mips_instruction* instruction) {
   RAISE_EXCEPTION(ExcCode_IBE, CP0_BadVAddr = (reg_word)addr);
   mem_write_word(addr, ENCODING(instruction));
 }

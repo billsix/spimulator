@@ -120,7 +120,7 @@ void increment_data_pc(int delta) {
 
 /* Process a .extern NAME SIZE directive. */
 
-void extern_directive(char* name, int size) {
+void extern_directive(const char* name, int size) {
   label* sym = make_label_global(name);
 
   if (!bare_machine && !sym->gp_flag  // Not already a global symbol
@@ -134,7 +134,7 @@ void extern_directive(char* name, int size) {
 
 /* Process a .lcomm NAME SIZE directive. */
 
-void lcomm_directive(char* name, int size) {
+void lcomm_directive(const char* name, int size) {
   if (!bare_machine && size > 0 && size <= SMALL_DATA_SEG_MAX_SIZE &&
       next_gp_item_addr + (mem_addr)size < gp_midpoint + 32 * kilo) {
     label* sym = record_label(name, next_gp_item_addr, true);

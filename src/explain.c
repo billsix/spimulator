@@ -121,7 +121,8 @@ static void emit_legend(void) {
    labeled lead-in to the per-instruction narration) and from the
    default step display in run.c so the no-explain step output has the
    same shape. Level-independent. */
-void explain_print_step_header(mem_addr pc, mips_instruction* instruction) {
+void explain_print_step_header(mem_addr pc,
+                               const mips_instruction* instruction) {
   if (!legend_emitted) {
     emit_legend();
     legend_emitted = true;
@@ -623,7 +624,7 @@ static void subst_field_regs(char* dst, size_t cap, const char* src, int rs,
   dst[i] = '\0';
 }
 
-static void tpl_r3_arith(int level, mips_instruction* instruction,
+static void tpl_r3_arith(int level, const mips_instruction* instruction,
                          const char* op_label, const char* op_text) {
   int rs = RS(instruction), rt = RT(instruction), rd = RD(instruction);
   char buf[512];
@@ -643,7 +644,7 @@ static void tpl_r3_arith(int level, mips_instruction* instruction,
   }
 }
 
-static void tpl_i2_arith(int level, mips_instruction* instruction,
+static void tpl_i2_arith(int level, const mips_instruction* instruction,
                          const char* op_label, const char* op_text) {
   int rs = RS(instruction), rt = RT(instruction);
   short imm = (short)IMM(instruction);
@@ -666,7 +667,7 @@ static void tpl_i2_arith(int level, mips_instruction* instruction,
   }
 }
 
-static void tpl_shift(int level, mips_instruction* instruction,
+static void tpl_shift(int level, const mips_instruction* instruction,
                       const char* op_label, const char* op_text) {
   int rt = RT(instruction), rd = RD(instruction), sh = SHAMT(instruction);
   char buf[512];
@@ -697,7 +698,7 @@ static void say_effective_address(int base, short off, mem_addr ea) {
       int_reg_names[base], sign, absoff, snap_R[base], sign, absoff, ea);
 }
 
-static void tpl_load(int level, mips_instruction* instruction,
+static void tpl_load(int level, const mips_instruction* instruction,
                      const char* op_label, const char* op_text, int width) {
   int rt = RT(instruction), base = BASE(instruction);
   short off = (short)IOFFSET(instruction);
@@ -738,7 +739,7 @@ static void tpl_load(int level, mips_instruction* instruction,
   }
 }
 
-static void tpl_store(int level, mips_instruction* instruction,
+static void tpl_store(int level, const mips_instruction* instruction,
                       const char* op_label, const char* op_text, int width) {
   int rt = RT(instruction), base = BASE(instruction);
   short off = (short)IOFFSET(instruction);
@@ -778,7 +779,7 @@ static void tpl_store(int level, mips_instruction* instruction,
    versa) to assemble a full 32-bit word from any byte address —
    the trick compilers use to load a misaligned word in two
    instructions instead of trapping. */
-static void tpl_load_unaligned(int level, mips_instruction* instruction,
+static void tpl_load_unaligned(int level, const mips_instruction* instruction,
                                const char* op_label, const char* op_text) {
   int rt = RT(instruction), base = BASE(instruction);
   short off = (short)IOFFSET(instruction);
@@ -812,7 +813,7 @@ static void tpl_load_unaligned(int level, mips_instruction* instruction,
    containing the addressed byte, leaving the other bytes
    intact.  Pair them to spill a 32-bit register to any byte
    address. */
-static void tpl_store_unaligned(int level, mips_instruction* instruction,
+static void tpl_store_unaligned(int level, const mips_instruction* instruction,
                                 const char* op_label, const char* op_text) {
   int rt = RT(instruction), base = BASE(instruction);
   short off = (short)IOFFSET(instruction);
@@ -844,7 +845,7 @@ static void tpl_store_unaligned(int level, mips_instruction* instruction,
    this CPU's link register with the address so a subsequent sc to
    the same address can detect intervening writes.  spim is
    single-threaded; ll behaves as a plain word load. */
-static void tpl_load_linked(int level, mips_instruction* instruction) {
+static void tpl_load_linked(int level, const mips_instruction* instruction) {
   int rt = RT(instruction), base = BASE(instruction);
   short off = (short)IOFFSET(instruction);
   mem_addr ea = (mem_addr)(snap_R[base] + off);
@@ -875,7 +876,8 @@ static void tpl_load_linked(int level, mips_instruction* instruction) {
    1 (success) / 0 (failure) to $rt.  spim's sc always stores
    unconditionally and does NOT update $rt — code that polls $rt
    after sc will see the value it had going in. */
-static void tpl_store_conditional(int level, mips_instruction* instruction) {
+static void tpl_store_conditional(int level,
+                                  const mips_instruction* instruction) {
   int rt = RT(instruction), base = BASE(instruction);
   short off = (short)IOFFSET(instruction);
   mem_addr ea = (mem_addr)(snap_R[base] + off);
@@ -909,7 +911,7 @@ static void tpl_store_conditional(int level, mips_instruction* instruction) {
    memory to the FP register $fN.  ldc1 reads 8 bytes into the
    register pair $fN / $f(N+1) and (in spim) needs at least 4-byte
    alignment — real MIPS requires 8-byte alignment for ldc1. */
-static void tpl_load_fp(int level, mips_instruction* instruction,
+static void tpl_load_fp(int level, const mips_instruction* instruction,
                         const char* op_label, int width) {
   int ft = FT(instruction), base = BASE(instruction);
   short off = (short)IOFFSET(instruction);
@@ -961,7 +963,7 @@ static void tpl_load_fp(int level, mips_instruction* instruction,
 /* swc1, sdc1 — coprocessor-1 (FP) stores.  Transfer width bytes from
    FP register $fN to memory.  sdc1 writes 8 bytes (the pair $fN /
    $f(N+1)) and (in spim) needs at least 4-byte alignment. */
-static void tpl_store_fp(int level, mips_instruction* instruction,
+static void tpl_store_fp(int level, const mips_instruction* instruction,
                          const char* op_label, int width) {
   int ft = FT(instruction), base = BASE(instruction);
   short off = (short)IOFFSET(instruction);
@@ -1001,7 +1003,7 @@ static void tpl_store_fp(int level, mips_instruction* instruction,
   }
 }
 
-static void tpl_branch_2reg(int level, mips_instruction* instruction,
+static void tpl_branch_2reg(int level, const mips_instruction* instruction,
                             const char* op_label, const char* op_symbol,
                             bool taken) {
   int rs = RS(instruction), rt = RT(instruction);
@@ -1025,7 +1027,7 @@ static void tpl_branch_2reg(int level, mips_instruction* instruction,
   }
 }
 
-static void tpl_branch_1reg(int level, mips_instruction* instruction,
+static void tpl_branch_1reg(int level, const mips_instruction* instruction,
                             const char* op_label, const char* op_symbol,
                             bool taken) {
   int rs = RS(instruction);
@@ -1290,7 +1292,7 @@ static void render_j_layout(uint32_t enc, const char* mnemonic) {
                op, mnemonic);
 }
 
-static void explain_bit_layout(mips_instruction* instruction) {
+static void explain_bit_layout(const mips_instruction* instruction) {
   if (instruction == nullptr) return;
   uint32_t enc = (uint32_t)inst_encode(instruction);
   /* nop (sll $0,$0,0) really does encode to 0x00000000. Skip the diagram
@@ -1602,7 +1604,7 @@ static void render_regimm_decode_step(uint32_t enc, int step,
   }
 }
 
-static void explain_decoding_steps(mips_instruction* instruction) {
+static void explain_decoding_steps(const mips_instruction* instruction) {
   if (instruction == nullptr) return;
   uint32_t enc = (uint32_t)inst_encode(instruction);
   if (enc == 0) return; /* true nop — skip */
@@ -1646,7 +1648,7 @@ static void explain_decoding_steps(mips_instruction* instruction) {
    It captures everything the post-execute narration will need to read —
    nothing is printed here, so by the time the (spim) prompt comes back,
    every visible line describes something that has already happened. */
-void explain_before(mips_instruction* instruction, mem_addr addr) {
+void explain_before(const mips_instruction* instruction, mem_addr addr) {
   if (explain_level == 0) return;
 
   /* Once per session, before the first instruction executes: show the
@@ -1960,7 +1962,7 @@ static void lookup_classification(int op, inst_category* cat,
   }
 }
 
-static void emit_category_preamble(mips_instruction* instruction) {
+static void emit_category_preamble(const mips_instruction* instruction) {
   inst_category cat;
   inst_modifier mods[3];
   int n_mods;
@@ -1986,7 +1988,7 @@ static void emit_category_preamble(mips_instruction* instruction) {
    per-opcode "What it did / Inputs / Wrote / Try it yourself" content.
    Called from explain_after only. Reads inputs from snap_R[], outputs
    from live gpr[]. */
-static void render_dispatch(int level, mips_instruction* instruction) {
+static void render_dispatch(int level, const mips_instruction* instruction) {
   switch (OPCODE(instruction)) {
     /* Arithmetic, R-type */
     case TOK_ADD_OPCODE:
@@ -2418,7 +2420,7 @@ static void render_dispatch(int level, mips_instruction* instruction) {
    advance) in run_spim. This is where the narration actually emits —
    by the time the user sees it, everything described has already
    happened, so we can use past tense throughout. */
-void explain_after(mips_instruction* instruction) {
+void explain_after(const mips_instruction* instruction) {
   if (explain_level == 0) return;
   int level = explain_level;
 

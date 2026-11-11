@@ -156,7 +156,7 @@ void emit_r_shift(int op, int rd, int rt, int shamt) {
 }
 
 /* emit_i: caller keeps ownership of imm (the AST takes its own copy). */
-void emit_i(int op, int rt, int rs, imm_expr* imm) {
+void emit_i(int op, int rt, int rs, const imm_expr* imm) {
   ast_append(ast_make_inst_i(op, rt, rs, dup_imm(imm)));
 }
 
@@ -167,7 +167,7 @@ void emit_i_free(int op, int rt, int rs, imm_expr* imm) {
   free(imm);
 }
 
-void emit_j(int op, imm_expr* target) {
+void emit_j(int op, const imm_expr* target) {
   /* The AST takes its own copy; caller (parse_j) frees the original. */
   ast_append(ast_make_inst_j(op, dup_imm(target)));
 }
@@ -291,7 +291,7 @@ static void data_fp_finalize(void) {
   data_fp_count = 0;
 }
 
-static void emit_data_string(char* s, int len, bool null_term_in) {
+static void emit_data_string(const char* s, int len, bool null_term_in) {
   ast_append(ast_make_data_string(s, len, null_term_in));
 }
 
