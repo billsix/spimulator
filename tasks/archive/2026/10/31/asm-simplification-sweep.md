@@ -1,178 +1,76 @@
-# Assembly simplification sweep for novices (umbrella)
+# Simplified the MIPS assembly demos for novices (umbrella)
 
-**Status:** done + archived 2026-10-31 — the full sweep is COMPLETE. Pilot (step 1) + all 9
-rollout topics (steps 2-10) done: every non-exempt hand-written `.asm` demo converted to the
-stack-visible style, each byte-identical to its pre-change output, 47/47 annotated demos pass
-`tools/check_asm_canonical.py --all`, and all golden-tested demos stay green. The durable style
-lives in `tasks/reference/mips-asm-teaching-style.md`. One judgment call for the maintainer to
-confirm: the `$sp`-operand-stack exempt set was expanded 2 -> 4 (rpn-2-ops/rpn-3-float added;
-see step 9). Done on the maintainer's go-ahead "roll out the asm sweep topic by topic" +
-"continue with lang, then algorithms and transforms" (William Emerison Six <billsix@gmail.com>).
-**Priority:** 6
-**Difficulty:** 7
+**Completed:** 2026-10-31
+**Durable style:** `tasks/reference/mips-asm-teaching-style.md`
 
-## BLUF
+Every non-exempt hand-written MIPS `.asm` teaching demo was rewritten so a novice sees C values
+living on the stack rather than scattered across registers. Each C local got a canonical home on
+the stack with scratch registers used only as working copies, and each routine gained a columnar
+SYMBOL TABLE plus an ascii-art stack-frame snapshot with traced values. The work was a pilot
+(step 1) followed by nine per-topic rollout steps, on the maintainer's go-aheads "roll out the
+asm sweep topic by topic" and "continue with lang, then algorithms and transforms" (William
+Emerison Six <billsix@gmail.com>). Every converted demo was byte-identical to its pre-change
+output, 47/47 annotated demos passed `tools/check_asm_canonical.py --all`, and all golden-tested
+demos stayed green.
 
-Rewrite the hand-written MIPS `.asm` teaching demos so a novice sees **C values living on
-the stack**, not scattered across registers. Two coupled changes to every (non-exempt)
-demo: (1) give each C local a **canonical home on the stack** and use scratch registers
-only as working copies — "as few registers as possible" — and (2) carry a **columnar
-SYMBOL TABLE per routine** plus an **ascii-art stack-frame snapshot with traced values**,
-so a student can read the C-to-asm relationship and "forget as much as possible about what
-C values are stored in which registers." This is a step-task initiative: a pilot defines
-the exact style + a reference doc for the maintainer's sign-off, then a per-topic rollout
-across ~80 files. "Done" (umbrella) = every non-exempt demo converted, each still passing
-its stdout golden, plus a gate that catches stale traced values.
+## The request
 
-## Context — what the maintainer asked for
+From William Emerison Six <billsix@gmail.com>, 2026-10-31: make the assembly simpler for a novice,
+with "as few registers used as possible, I know it is less performant," so the stack frames show
+"all over the place, so that the students can see the relationship of the c to the assembly, and can
+forget as much as possible about what C values are stored in which registers, because they'll mainly
+see the values on the stack."
 
-Verbatim intent (William Emerison Six <billsix@gmail.com>, 2026-10-31): sweep all the
-assembly files to make them simpler for a novice — "as few registers used as possible, I
-know it is less performant," because that supports the second part: the assembly doesn't
-show the stack frames nearly as much as wanted. The maintainer wants that "all over the
-place, so that the students can see the relationship of the c to the assembly, and can
-forget as much as possible about what C values are stored in which registers, because
-they'll mainly see the values on the stack."
+## Design decisions (2026-10-31)
 
-### Design decisions reached in discussion (2026-10-31)
-
-- **Shape B (chosen over Shape A).** Every C local gets a stack home; scratch registers
-  hold only working copies loaded in to operate and stored back. (Shape A — keep
-  register-only demos as-is and show stack art only where a frame already exists — was
-  rejected: the maintainer wants the stack-value view everywhere.)
-- **This deliberately REVERSES the 2026-05-17 "register-only where locals fit in
-  temporaries" decision**, corpus-wide. That decision (recorded in
-  `tasks/archive/2026/05/23/PLAN-asm-comments.md`: "Most of those frames were ceremony")
-  made simple demos register-only on purpose. We are overturning it knowingly; the pilot's
-  reference doc must state the new default and why it changed.
-- **Columnar SYMBOL TABLE, one table per routine**, six columns in this order (location
-  grouped right after the name, per the maintainer 2026-10-31):
-  `C variable | memory addr | register | C type | bytes | role / notes`.
-  A stack-homed value fills BOTH `memory addr` (its `-N($fp)` home) and `register` (its
-  current scratch copy) — that is how "a stack position that is also in a register" reads in
-  the table. A register-only value (`argc` at entry) has `—` in `memory addr`; a `.data`
-  value has `—` in `register`. These table/diagram comment blocks are exempt from the
-  80-column rule (they are tables, like `-fverbose-asm` output); instruction lines stay ≤80.
-- **Traced values.** The ascii-art frame snapshot shows concrete runtime values from ONE
-  canonical input per demo (e.g. `factorial 5` → `result = 60` at loop pass 4), with the
-  slot value and its register shadow both shown. Static layout alone was rejected — the
-  maintainer wants the values.
-  - **Consequence (the maintainability catch):** a hand-traced value in a comment can go
-    stale, and the stdout goldens CANNOT catch it (they diff stdout, not comments). So the
-    rollout MUST include a `tools/` checker that re-derives each snapshot's values from a
-    real spim run and fails the gate on a mismatch. Non-optional.
-  - Keep snapshots to a FEW key points per demo (e.g. loop top, after a `jal`), not every
-    instruction, to limit the rot surface.
-- **Exempt the deliberate-lesson files** (the maintainer's call) — these teach the
-  register / idiomatic / bug lesson on purpose and must NOT be converted to Shape B. The
-  pilot's reference doc names them as intentional counter-examples:
-  - `extras/subrountines/subrountines-1.asm` (longhand stack) vs `-2.asm` (idiomatic
-    register calling convention) — the register-vs-stack contrast IS the demo.
-  - `recursion/get-char-from-user/get-char-from-user-1.asm` vs `-2.asm` — deliberate
+- **Shape B over Shape A.** Every C local gets a stack home and registers hold only working copies
+  loaded to operate and stored back. Shape A (keep register-only demos and show stack art only where
+  a frame already existed) was rejected because the maintainer wanted the stack view everywhere.
+- **This reversed the 2026-05-17 "register-only where locals fit in temporaries" decision**
+  corpus-wide, knowingly. That decision is recorded in
+  `tasks/archive/2026/05/23/PLAN-asm-comments.md` ("Most of those frames were ceremony"); the style
+  doc states the new default and why.
+- **Columnar SYMBOL TABLE, one per routine**, extending that doc's L2 layer, with six columns in
+  this order: `C variable | memory addr | register | C type | bytes | role / notes`. A stack-homed
+  value fills both `memory addr` (its `-N($fp)` home) and `register` (its current scratch copy); a
+  register-only value (`argc` at entry) has `—` in `memory addr`; a `.data` value has `—` in
+  `register`. Table and diagram comment blocks are exempt from the 80-column rule; instruction lines
+  stay within 80. The earlier disciplines were kept: ABI register names (`$fp`, not `$s8`) and
+  preserved intentional bugs.
+- **Traced values.** Each frame snapshot shows concrete runtime values from one canonical input per
+  demo (e.g. `factorial 5` → `result = 60` at loop pass 4), slot value and register shadow both
+  shown, at only a few key points per demo to limit rot. Static layout alone was rejected. Because
+  stdout goldens cannot catch a stale value in a comment, a checker that re-derives snapshot values
+  from a real spim run was required; it became `tools/check_asm_canonical.py`.
+- **Deliberate-lesson files were exempt** (the maintainer's call), named in the style doc as
+  intentional counter-examples:
+  - `examples/src/extras/subrountines/subrountines-1.asm` vs `-2.asm`: the longhand-stack vs
+    register calling convention contrast is the demo.
+  - `examples/src/recursion/get-char-from-user/get-char-from-user-1.asm` vs `-2.asm`: a deliberate
     bug/fix pair.
-  - `algorithms/rpn/rpn.asm` + `algorithms/rpn/rpn-1-stack.asm` — operand stack IS `$sp`
-    on purpose.
-  - `intro/exit/exit.asm` — the `set $v0 before jr $ra` exit lesson.
-  - (Confirm the full exempt set during the pilot; these are the known ones.)
+  - `examples/src/intro/exit/exit.asm`: the "set `$v0` before `jr $ra`" exit lesson.
+  - The `$sp` operand-stack rpn files. This set started as `rpn.asm` and `rpn-1-stack.asm` and was
+    expanded to four in step 9 (adding `rpn-2-ops.asm` and `rpn-3-float.asm`), flagged for the
+    maintainer to confirm.
 
-### Prior art to read before touching any file
+The safety net was `examples/tests/run-demo.sh`, which runs both the C binary and the asm under
+spim and diffs stdout against pinned goldens; since a register-to-stack move does not change
+stdout, a green golden showed a faithful rewrite. Demos without goldens were gated by before/after
+output equivalence.
 
-- `tasks/archive/2026/05/23/PLAN-asm-comments.md` — the 4-layer comment system (L1 C-source
-  block, L2 routine contract + SYMBOL TABLE, L3 block C-statement comments, L4
-  per-instruction mechanics; L5 was tried and removed) and the register-only decision this
-  sweep reverses. The new columnar SYMBOL TABLE is an extension of L2, not a reinvention.
-  Preserve its disciplines: ABI register names (`$fp` not `$s8`, `$zero`/`$0` conventions),
-  preserve intentional bugs.
-- `tasks/reference/example-c-teaching-style.md` — the C-side style (declare locals at top,
-  flat control flow) the demos are written in; it already notes locals "line up with the
-  frame slot," consistent with Shape B.
-- `examples/TEACHING-ASSEMBLER-INTERNALS.md` (student-facing) and
-  `examples/READING-ORDER.md` — update if the sweep changes what they describe.
+## Steps
 
-### Safety net
+| Step | Topic | Converted | Exempt / not converted | Record |
+|---|---|---|---|---|
+| 1 | pilot | `increment-ints-1`, `factorial`, `gcd`, `wc`; wrote the style doc and checker; maintainer signed off on the style and the transient-temporary boundary | | `tasks/archive/2026/10/31/asm-simplification-sweep-step-1-pilot-and-style-doc.md` |
+| 2 | `examples/src/intro/` | `print1through10` (loop counter to the stack), `clear`, `helloworld`, `yes` (SYMBOL TABLE only) | `exit.asm` | `tasks/archive/2026/10/31/asm-simplification-sweep-step-2-intro.md` |
+| 3 | `examples/src/arguments/` | `echo`, `factor`, `seq`, `tee` (`int fds[8]` onto the stack, `static buf` in `.data`); added `examples/src/arguments/tee/tee.input` | | `tasks/archive/2026/10/31/asm-simplification-sweep-step-3-arguments.md` |
+| 4 | `examples/src/recursion/` | `fibonacci`, `hanoi`, `queens` (regularized to `$fp`); queens gated by equivalence (trailing-space output) | `get-char-from-user-1`/`-2` | `tasks/archive/2026/10/31/asm-simplification-sweep-step-4-recursion.md` |
+| 5 | `examples/src/extras/` | `commaAndPeriodCounter`, `print-out-ascii-1` (equivalence-gated, 256-line output), `testStringsForEquality-1` (uninitialized-return bug preserved) | `subrountines-1`/`-2` | `tasks/archive/2026/10/31/asm-simplification-sweep-step-5-extras.md` |
+| 6 | `examples/src/fileio/` | all 9 (touch, nologin, cat, cp, comm, the four cksum files); buffers and CRC table in `.data`; checker green on 7 | | `tasks/archive/2026/10/31/asm-simplification-sweep-step-6-fileio.md` |
+| 7 | `examples/src/lib/` | the 7 `*-demo` drivers; golden-tested, no `#CANONICAL` (the single-file checker cannot load the library) | the 4 library files, left register-based (maintainer: drivers only) | `tasks/archive/2026/10/31/asm-simplification-sweep-step-7-lib.md` |
+| 8 | `examples/src/lang/` | all 10 calc demos; parser state stays global/heap, each parse routine homes its running local at `-N($fp)` | | `tasks/archive/2026/10/31/asm-simplification-sweep-step-8-lang.md` |
+| 9 | `examples/src/algorithms/` | 9 (binary-search, bubble-sort ×3, fizzbuzz, pascals-triangle, sieve, rpn-eval, rpn-eval-test) | the 4 `$sp`-stack rpn rungs | `tasks/archive/2026/10/31/asm-simplification-sweep-step-9-algorithms.md` |
+| 10 | `examples/src/transforms/` | all 14 non-pilot demos (base64, cut, expand, head ×2, nl, od, rev, rot13, strings, tac, tail, tr, uniq) | | `tasks/archive/2026/10/31/asm-simplification-sweep-step-10-transforms.md` |
 
-The sweep CHANGES INSTRUCTIONS (unlike the 2026-05 comment-only pass), so behavior must be
-preserved. `examples/tests/run-demo.sh` runs BOTH the C binary and the asm-under-spim and
-diffs stdout against pinned goldens — that is the per-file behavior gate. A register→stack
-move does not change stdout, so a green golden after conversion proves the rewrite is
-faithful. The traced-value checker (above) is the SECOND gate the goldens don't provide.
-
-## Steps (the index — each its own step-task; file rollout steps after the pilot)
-
-- [x] **Step 1 — pilot + style reference doc**
-  (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-1-pilot-and-style-doc.md`).
-  DONE 2026-10-31: converted `increment-ints-1`, `factorial`, `gcd`, `wc`; authored
-  `tasks/reference/mips-asm-teaching-style.md`; built `tools/check_asm_canonical.py`.
-  Maintainer signed off on the style and the transient-temporary boundary.
-- **Step 2+ — per-topic rollout** (STARTED 2026-10-31 on the maintainer's go-ahead
-  "roll out the asm sweep topic by topic" — a large, multi-session, instruction-changing
-  effort). One step-task per topic folder, created and executed when its turn comes (not
-  pre-stubbed, to avoid over-scaffolding). Progress (archived step-task per topic):
-  - [x] **Step 2 — `intro/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-2-intro.md`).
-    Converted `print1through10` (loop counter → stack), `clear`, `helloworld`, `yes`
-    (no locals → SYMBOL TABLE only). All byte-identical; checker green.
-  - [x] **Step 3 — `arguments/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-3-arguments.md`).
-    Converted `echo`, `factor`, `seq`, `tee` (the capstone — `int fds[8]` array onto the
-    stack; `static buf` stays in .data). All byte-identical (tee files md5-identical);
-    checker green. Added `arguments/tee/tee.input` for tee's stdout-only anchor.
-  - [x] **Step 4 — `recursion/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-4-recursion.md`).
-    Converted `fibonacci`, `hanoi`, `queens` (already frame-based; regularized to the $fp
-    convention, moved register-held locals onto the stack). All byte-identical; fib/hanoi
-    checker-green, queens gated by before/after equivalence (trailing-space output).
-  - [x] **Step 5 — `extras/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-5-extras.md`).
-    Converted `commaAndPeriodCounter`, `print-out-ascii-1`, `testStringsForEquality-1`
-    (intentional uninitialized-return bug PRESERVED). All byte-identical; comma/testStrings
-    checker-green, print-out-ascii gated by equivalence (256-line output).
-  - [x] **Step 6 — `fileio/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-6-fileio.md`).
-    Converted all 9 (touch, nologin, cat, cp, comm, cksum-1-stdin, cksum, cksum-core,
-    cksum-core-test). Static buffers + CRC table stay in .data; scalars move to the stack.
-    All byte-identical; checker green on 7; the 3 cksum goldens unaffected.
-  - [x] **Step 7 — `lib/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-7-lib.md`).
-    DRIVERS ONLY (maintainer's call): converted the 7 `*-demo` drivers (ctype, str, atoi, abs,
-    bsearch, exit, atexit); left the 4 library files register-based + untouched. All
-    byte-identical (incl. exit statuses); golden-tested (no #CANONICAL — drivers need the
-    library loaded, which the single-file checker can't do).
-  - [x] **Step 8 — `lang/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-8-lang.md`).
-    Converted all 10 calc demos (integer rungs 1-5, FPU rung 6, calc-sdt, calc-tree, calc-eval,
-    calc-eval-test). Parser state is global/heap (stays .data); each parse routine homes its
-    running local (int or 8-aligned double) at -N($fp). All byte-identical; checker green on all 10.
-  - [x] **Step 9 — `algorithms/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-9-algorithms.md`).
-    Converted 9 (binary-search, bubble-sort ×3, fizzbuzz, pascals-triangle, sieve, rpn-eval,
-    rpn-eval-test). EXEMPT SET EXPANDED 2→4: all four $sp-operand-stack rpn rungs (rpn,
-    rpn-1-stack, rpn-2-ops, rpn-3-float) left register-based — flagged for the maintainer.
-    All byte-identical; checker green; exempt rpn files untouched.
-  - [x] **Step 10 — `transforms/`** (archived: `tasks/archive/2026/10/31/asm-simplification-sweep-step-10-transforms.md`).
-    Converted all 14 non-pilot demos (base64, cut, expand, head×2, nl, od, rev, rot13, strings,
-    tac, tail, tr, uniq). Scalars to the stack; buffers/tables stay .data/heap. All
-    byte-identical; checker green. **SWEEP COMPLETE.**
-
-  Each: convert its non-exempt demos to the style
-  in `tasks/reference/mips-asm-teaching-style.md`, verify each with before/after output
-  equivalence (+ goldens where they exist, + `tools/check_asm_canonical.py`), gate green.
-  Proposed order (easy-wins / smallest first), with `.asm` counts (total; remaining after
-  the pilot and the exempt deliberate-lesson files):
-
-  | # | topic | total | remaining to convert | exempt (deliberate-lesson) |
-  |---|-------|-------|----------------------|----------------------------|
-  | 2 | `intro/` ✅   |  6 | 4 done | `exit/exit.asm`; (pilot did `increment-ints-1`) |
-  | 3 | `arguments/` ✅ |  6 | 4 done | — (pilot did `factorial`, `gcd`) |
-  | 4 | `recursion/` ✅ |  5 | 3 done | `get-char-from-user/-1`,`-2` |
-  | 5 | `extras/` ✅  |  5 | 3 done | `subrountines/-1`,`-2` |
-  | 6 | `fileio/` ✅  |  9 | 9 done | — (none exempt) |
-  | 7 | `lib/` ✅     | 11 | 7 done | 4 library files (shared leaf helpers) — NOT converted (maintainer: drivers only) |
-  | 8 | `lang/` ✅    | 10 | 10 done | — (the calc family) |
-  | 9 | `algorithms/` ✅ | 13 | 9 done | 4 exempt: `rpn.asm`,`rpn-1-stack`,`rpn-2-ops`,`rpn-3-float` (all $sp operand stack — set EXPANDED 2→4) |
-  | 10| `transforms/` ✅ | 15 | 14 done | — (pilot did `wc`) |
-
-  Total ~80 files; ~72 to convert after the pilot and the known exempt set. Confirm the full
-  exempt set per step. Ordering is Priority + a "Depends on: Step 1 (style)" note, not
-  `blocked` (within our control).
-
-Don't over-scaffold: each rollout step-task is written when it is started, citing the pinned
-style doc rather than guessing.
-
-## Open questions
-
-None blocking the pilot — all design decisions above are settled. The pilot itself will
-surface the precise exempt set and the snapshot-placement rule, which it records in
-`mips-asm-teaching-style.md`.
+Each rollout step-task was written when its turn came rather than pre-stubbed.

@@ -1,64 +1,31 @@
-# Trim spimulator's CLAUDE.md (9,311 B ≈ 2.3K tok, loaded every session)
+# Trimmed spimulator's CLAUDE.md
 
-**Status:** Done — trimmed 2026-09-13 (archived 2026-09-14)
-**Priority:** 5
-**Difficulty:** 3
+**Completed:** 2026-09-13 (archived 2026-09-14)
 
-**Result:** CLAUDE.md 9,311 B → 5,385 B (−3,926 B, ~42%). Deleted the rotting
-in-flight/archived Tasks snapshot (replaced with a pointer to `tasks/` +
-`tasks/README.md`); moved the parser flex+bison/PARSE_DIRECT history to
-`tasks/reference/parser-ast-emit.md` (the flex+bison Phase 5 fact was appended
-there, as it was not yet captured); shrank the Tests sanitizer rationale to a
-one-line pointer to `tasks/archive/2026/06/16/ubsan-sweep.md`. No new reference
-doc needed.
+`CLAUDE.md` was 9,311 B (about 2.3K tokens), the largest of the three C/toolchain repos, and it
+is loaded into the AI's context every session. About a third was a hand-maintained snapshot of
+the open/archived task set that duplicated `tasks/` and `tasks/README.md` and went stale
+constantly; another part was build/parser/sanitizer rationale that already lived in reference and
+archive docs. It had no `@`-imports. The method and per-turn token figures came from
+runCrushInContainer's `tasks/reference/crush-context-assembly.md`.
 
-## BLUF
-spimulator's `CLAUDE.md` is 9,311 B — the largest of the three C/toolchain repos —
-and it is spliced into the AI's context on every session/turn. Roughly a third of it
-is a hand-maintained snapshot of the open/archived task set that duplicates `tasks/`
-and `tasks/README.md` and rots constantly; another chunk is build/parser/sanitizer
-*rationale* that already lives in archive and reference docs. Delete the task
-snapshot, trim the history down to one-line pointers, and the file should drop to
-roughly 5–5.5 KB with no operational loss.
+## What was done
 
-## Context
-- Why: `CLAUDE.md` loads every session; detail belongs in `tasks/reference/`. Method
-  and per-turn token numbers: runCrushInContainer
-  `tasks/reference/crush-context-assembly.md`.
-- Current size: 9,311 B ≈ 2.3K tok. `@`-imports: **none** (no bare `@path` lines).
-- Convention: `CLAUDE.md` lean + operational; durable detail in `tasks/reference/`.
-- Existing `tasks/reference/` docs (destinations already exist for most rationale):
-  - `parser-ast-emit.md` — parser/AST/emit design (covers the Status parser history).
-  - `mips-fpu-and-float-demos.md` — FPU + AST-via-sbrk notes.
-  - `inherited-idiosyncrasies.md` — inherited-code oddities.
-  - Archive doc `tasks/archive/2026/06/16/ubsan-sweep.md` — sanitizer/UB rationale
-    (already cited in CLAUDE.md; the deep sanitizer prose can shrink to this pointer).
+`CLAUDE.md` went from 9,311 B to 5,385 B (−3,926 B, about 42%), close to the projected 5.3 KB, with
+no loss of operational guidance.
 
-## Stay vs move (section-by-section)
-| section (heading) | ~bytes | Verdict | Destination |
-|---|---|---|---|
-| Title + "A fork of SPIM…" intro (L1–7) | ~430 | STAY | CLAUDE.md |
-| `## Status` (L9–21) | ~620 | TRIM | keep 2–3 current-state bullets; drop the "flex+bison removed Phase 5" / "PARSE_DIRECT removed 2026-08-03" history — already in `tasks/reference/parser-ast-emit.md` |
-| `## Layout` (L23–43) | ~1,300 | STAY | CLAUDE.md (brief, operational) |
-| `## Build / container workflow` (L45–60) | ~950 | STAY | CLAUDE.md |
-| `## Tests` (L62–77) | ~1,050 | TRIM | keep the gate + `RUN_SANITIZERS=0` opt-out; move the ASan-default-options / "UBSan diagnostic under-reports, trap is the reliable gate" rationale to a one-line pointer to `tasks/archive/2026/06/16/ubsan-sweep.md` (already cited) |
-| `## Conventions` (L79–89) | ~750 | STAY | CLAUDE.md (invariant: opcodes.h single-source, `BUILD_TREE_SITTER=1` gate rule, teaching-output-is-first-class) |
-| `## Tasks (in-flight)` (L91–167) | ~3,000 | MOVE/DELETE | delete the whole snapshot + the archived-task listings; replace with a 2-line pointer to `tasks/` and `tasks/README.md` (§Ordering & dependencies), which are the live record. This is the single biggest win. |
+| Section | Verdict | What happened |
+|---|---|---|
+| Title + intro | kept | |
+| `## Status` | trimmed | Kept the current-state bullets; moved the flex+bison and PARSE_DIRECT removal history to `tasks/reference/parser-ast-emit.md`, appending the flex+bison Phase 5 fact, which that doc lacked. |
+| `## Layout` | kept | |
+| `## Build / container workflow` | kept | |
+| `## Tests` | trimmed | Kept the sanitizer gate and the `RUN_SANITIZERS=0` opt-out; replaced the ASan-options and trap-vs-diagnostic UBSan rationale with a one-line pointer to `tasks/archive/2026/06/16/ubsan-sweep.md`. |
+| `## Conventions` | kept | |
+| `## Tasks (in-flight)` (~3 KB) | deleted | Replaced the snapshot and archived-task listings with a pointer to `tasks/` and `tasks/README.md` (§Ordering & dependencies), the live record. |
 
-## Projected result
-- Removing the ~3.0 KB Tasks snapshot and trimming ~0.6 KB of Status/Tests history
-  brings the file to roughly **5.3 KB ≈ 1.3K tok** — a ~45% cut with zero loss of
-  operational guidance (every deleted fact already lives in `tasks/`,
-  `tasks/README.md`, or an existing reference/archive doc).
-- No new reference doc is required: the destinations already exist. The Tasks
-  snapshot is pure duplication of `tasks/` and needs deletion, not relocation.
+No new reference doc was needed; every removed fact already had a home.
 
-## Open questions
-1. Keep a *one-line* pointer to the two big-swing task docs (`timing-model.md`,
-   `software-alu.md`) in the trimmed Status, or leave discovery entirely to `tasks/`?
-   Recommendation: leave it to `tasks/` — that is what the directory is for.
-
-## Related
-- runCrushInContainer `tasks/reference/crush-context-assembly.md` — measurement + method.
-- `tasks/reference/parser-ast-emit.md`, `tasks/archive/2026/06/16/ubsan-sweep.md` —
-  where the trimmed rationale already lives.
+The open question of keeping a one-line pointer to the two large task docs (`timing-model.md`,
+`software-alu.md`) in the trimmed Status was settled by the recommendation: no pointer was added,
+and discovery was left to `tasks/`.

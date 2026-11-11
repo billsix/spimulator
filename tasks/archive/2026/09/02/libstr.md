@@ -1,26 +1,22 @@
-# Plan: libstr — string and memory primitives
+# Added libstr, the string and memory teaching library
 
-**Priority:** 5
-**Difficulty:** 5
+**Completed:** 2026-09-02 (William Emerison Six <billsix@gmail.com>; one commit on
+branch `overnight-2026-09-02-examples`)
 
-## Goal
-
-Port a focused set of `<string.h>` functions from musl as a
-teaching library at `examples/src/lib/libstr/`.  The MIPS
-asm side trades musl's optimization tricks (alignment-aware
-word-at-a-time loops, SIMD, Two-Way string matching) for naive
-implementations that read on one screen and illustrate the
-underlying idea.
+Ten `<string.h>` functions were ported from musl as a teaching library at
+`examples/src/lib/libstr/`. The MIPS side trades musl's optimizations (alignment-aware
+word-at-a-time loops, SIMD, Two-Way string matching) for naive implementations that fit on one
+screen. It is library 2 of three in the curriculum (libctype → libstr → libstdlib) and sits beside
+libctype, whose alphabetic data makes the compare demos feel complete.
 
 ## Functions
 
-Picked for "useful + teaches a distinct idea + survives
-spim's syscall surface."  No malloc-needing functions
-(per the no-malloc/free constraint).
+Chosen as useful, teaching a distinct idea, and within spim's syscall surface; nothing that
+needs malloc.
 
 | Function | C signature | Pedagogical hook |
 |---|---|---|
-| `strlen`   | `size_t strlen(const char *s)`                | byte loop with NUL sentinel (consolidates existing `count-chars.c`) |
+| `strlen`   | `size_t strlen(const char *s)`                | byte loop with NUL sentinel |
 | `strcmp`   | `int strcmp(const char *a, const char *b)`    | parallel byte loop, three-way exit |
 | `strncmp`  | `int strncmp(const char *a, const char *b, size_t n)` | as strcmp + bounded counter |
 | `strcpy`   | `char *strcpy(char *dst, const char *src)`    | byte copy until NUL |
@@ -31,201 +27,48 @@ spim's syscall surface."  No malloc-needing functions
 | `memset`   | `void *memset(void *s, int c, size_t n)`      | byte fill by count |
 | `memmove`  | `void *memmove(void *dst, const void *src, size_t n)` | overlap-aware copy direction |
 
-10 functions.  Deliberately **not** included:
-- `strdup` — needs malloc.
-- `strstr` — musl uses Two-Way (~150 lines); naive doable but
-  bigger than the rest.  Defer to a follow-up if wanted.
-- `strspn`, `strcspn`, `strpbrk` — less common in the
-  curriculum so far.  Defer.
-- `strtok_r` — stateful API; pedagogically interesting but
-  separate concern.  Defer.
+The teaching rationale: the sentinel byte loop is the foundational MIPS pattern, and strlen, strcmp,
+strcpy and strchr side by side show it as variations on one shape. `memcpy` vs `memmove` is a real
+bug source, and the overlap-direction check teaches signed comparison with `slt`. musl's
+`return (unsigned char)*a - (unsigned char)*b;` is worth contrasting with the `-1/0/1` chain
+students usually write.
 
-## Calling-convention contract
+Every asm function is a leaf: inputs in `$a0..$a3`, result in `$v0`, `$t*` clobbered, `$s*` and
+`$ra` preserved, no `jal`, no `.data`, and each ends with `jr $ra`.
 
-| Slot | Use |
-|---|---|
-| `$a0..$a3` | inputs, by C-call order |
-| `$v0` | return value (pointer or int) |
-| `$s*` | preserved (callee-save) |
-| `$t*` | clobbered freely |
-| `$ra` | preserved by the library; leaf in every function |
+## What was delivered
 
-All functions are leaves — no `jal` inside.  No `$ra` save
-needed.  No `.data`.  Some are tail-callable but spim doesn't
-care about tail-call optimization, so just `jr $ra` at the end.
+- `examples/src/lib/libstr/`: `libstr.h`, `libstr.c` (naive C mirroring the asm), `libstr.asm` and
+  `LICENSE-musl`. The planned `libstr.md` (contract and idiom catalogue) was not written; the
+  contract lives in the source comments.
+- `examples/src/lib/libstr-demo/`: `str-demo.c`, `str-demo.asm` and `str-demo.expected`, with 24
+  hardcoded subcases (equal/unequal/prefix and bounded compares, copy and NUL-padded bounded
+  copy, forward/reverse and bounded search, sized memcpy, memset fill/clear, and memmove
+  forward-overlap, backward-overlap and non-overlap), one `name=PASS` line each. It runs as
+  `spimulator -f src/lib/libstr/libstr.asm -f src/lib/libstr-demo/str-demo.asm` from
+  `examples/`; the multi-`-f` load was verified on 2026-07-07 (`tasks/multi-file-load.md`) and
+  is pinned by `tests/tt.multifile.s`.
+- Wiring: `libstr_lib`/`libstr_inc` and the `str-demo` entry in `examples/src/meson.build`,
+  `str-demo` in `lib_demo_tests`, a `str-demo)` case in `examples/tests/run-demo.sh`, and a Part
+  9 (teaching libraries) entry plus concept-index rows in `examples/READING-ORDER.md`. The
+  examples Makefile was not updated at the time; that gap broke `make image` later and was fixed
+  in `tasks/archive/2026/10/28/fix-examples-listing-std-flag.md`.
 
-## Consolidation with existing helpers
+## Results
 
-`examples/src/count-chars.c` already implements `strlen`
-(under the name `count_chars`).  The libstr port should
-**absorb** it:
+`meson compile` was clean. The golden was generated from the compiled C binary as oracle, and the
+asm under spim reproduced it byte for byte (`meson test str-demo` OK, direct diff empty). The full
+suite passed 34/34 (up from 33), and clang-format `--dry-run --Werror` was clean on the new
+`.c`/`.h` files. One benign `-Wstringop-truncation` warning remains on the deliberate
+`strncpy(buf,"hello",3)` subcase, which is the gotcha the demo teaches; `edu_args` has no `-Werror`.
 
-- Rename `count_chars` → `strlen` in the new library.
-- Delete `examples/src/count-chars.c` and update its 1-2 demo
-  consumers to call `strlen` from libstr instead.
-- The MIPS asm side of strlen is already familiar pattern
-  from existing demos (cksum, wc, etc.) — codify it.
+## Not done
 
-No other existing helpers overlap with this libstr scope.
-
-## Why this helps a novice
-
-- **The byte loop with sentinel is THE foundational MIPS
-  pattern** — strlen, strcmp, strcpy, strchr all use it.
-  Seeing them side-by-side as variations on one shape
-  reinforces the pattern.
-- **`memcpy` vs `memmove` is a real bug source.**  The
-  overlap-direction check teaches signed comparison via `slt`
-  in a meaningful context: get it wrong and the overlapping
-  case scrambles bytes.
-- **`memset` chains naturally to bump-allocator zero-fill** —
-  even though we're skipping malloc, demos that grab a
-  buffer via `sbrk` and zero it via `memset` reinforce the
-  "library composes" idea.
-- **Three-way exit in strcmp.**  Most students reach for
-  `if (a < b) return -1; else if (a > b) return 1; else
-  return 0;` — musl's `return *a - *b;` (after unsigned cast)
-  is shorter and worth contrasting in the C source comment.
-
-## Structure
-
-```
-examples/src/lib/libstr/
-    libstr.h            # C declarations
-    libstr.c            # C implementations (naive, mirroring asm)
-    libstr.asm          # MIPS implementations
-    libstr.md           # contract, function table, idiom catalogue
-```
-
-Single `.c` and single `.asm` file per library.  10 functions
-× ~10-25 asm lines each ≈ 150-200 lines per file.  Larger
-than libctype; still readable in one sitting.
-
-## Worked example — `strcmp`
-
-C side (musl-style, ASCII-only):
-
-```c
-int strcmp(const char *a, const char *b) {
-    while (*a && *a == *b) { a++; b++; }
-    return (unsigned char)*a - (unsigned char)*b;
-}
-```
-
-MIPS side (naive, no alignment tricks):
-
-```asm
-        .text
-        .globl  strcmp
-strcmp:
-        lbu     $t0, 0($a0)         # *a
-        lbu     $t1, 0($b)          # *b
-        bne     $t0, $t1, .L_done   # differ — exit with the byte diff
-        beq     $t0, $zero, .L_done # both zero — strings equal
-        addiu   $a0, $a0, 1
-        addiu   $a1, $a1, 1
-        j       strcmp              # tail call (loop)
-.L_done:
-        subu    $v0, $t0, $t1
-        jr      $ra
-```
-
-Roughly 8 instructions.  The `j strcmp` tail-call shows that
-without function-call mechanics, looping and recursing are the
-same operation.
-
-## Test/demo
-
-`str-demo.{c,asm}` at `examples/src/lib/libstr-demo/`:
-
-- Hardcoded inputs covering: equal/unequal/prefix string
-  pairs, single-byte chars to search for, memcpy with various
-  sizes, memmove forward and backward overlaps.
-- Prints `name=PASS` or `name=FAIL expected=X got=Y` for each
-  subcase.  Total ~20 subcases.
-- Output diffs deterministically against a golden file.
-
-Invocation (multi-`-f` verified working 2026-07-07 — see
-[`multi-file-load.md`](multi-file-load.md); `tests/tt.multifile.s` pins it):
-
-```sh
-spimulator -f src/lib/libstr/libstr.asm \
-           -f src/lib/libstr-demo/str-demo.asm
-```
-
-## Build integration
-
-Add to `src/meson.build`:
-
-- `libstr_lib_obj` — compile `libstr.c` once.
-- `str_demo_c` — links against `libstr_lib_obj`.
-- `str_demo_asm` — meson `test()` running spim on the .asm,
-  diffing against `str-demo.expected`.
-
-## What's NOT in scope
-
-- `strdup`, `strndup` — malloc.
-- `strstr`, `strspn`, `strcspn`, `strpbrk`, `strtok` /
-  `strtok_r` — defer to follow-up.
-- Wide-char `wcs*` and `wmem*` — locale.
-- musl's word-at-a-time / alignment-aware optimizations.
-  The pedagogical version is the naive byte loop.
-- A `strerror` that maps errno — spim has no errno surface.
-
-## Ordering
-
-Library #2 of three (libctype → **libstr** → libstdlib).
-
-Depends on: libctype not strictly required, but `strcmp` /
-`strncmp` demos that touch alphabetic data feel more
-complete alongside libctype.  Order them together.
-
-Required by: libstdlib's `atoi` chains into `strlen` for
-some implementations (not musl's, but a teaching version
-might).
-
-## Status
-
-**DONE (library + demo + golden + wiring) — 2026-09-02** (William Emerison Six
-<billsix@gmail.com>).  The count-chars.c consolidation is **deferred** (see
-below).
-
-Delivered:
-
-- `examples/src/lib/libstr/` — `libstr.h`, `libstr.c` (naive C), `libstr.asm`
-  (naive MIPS, every function a leaf: `$a0..$a3` in, `$v0` out, `$t*` clobber,
-  no `.data`, no `jal`), and `LICENSE-musl`.  All 10 functions: strlen, strcmp,
-  strncmp, strcpy, strncpy, strchr, memchr, memcpy, memset, memmove.
-- `examples/src/lib/libstr-demo/` — `str-demo.c`, `str-demo.asm`, and
-  `str-demo.expected` (24 hardcoded subcases: equal/unequal/prefix compares,
-  bounded compares, copy + NUL-padded bounded copy, forward/reverse byte search,
-  bounded memory search, sized memcpy, memset fill/clear, and memmove
-  forward-overlap + backward-overlap + non-overlap).  One `name=PASS` line per
-  subcase.
-- Wiring: `libstr_lib`/`libstr_inc` + the `str-demo` `lib_demos` entry in
-  `examples/src/meson.build`; `str-demo` in the `lib_demo_tests` array; a
-  `str-demo)` case in `examples/tests/run-demo.sh`; a Part 9 (teaching
-  libraries) entry + concept-index rows in `examples/READING-ORDER.md`.
-
-Verification (all green): `meson compile` clean; the golden was **generated from
-the compiled C binary** (the oracle) and the asm under spim reproduces it
-**byte-for-byte** (`meson test str-demo` OK, and a direct `diff` of the spim
-stdout vs the golden is empty); full suite **34/34** (was 33); clang-format
-`--dry-run --Werror` clean on all three new `.c`/`.h` files.  One benign
-compiler warning remains — `-Wstringop-truncation` on the deliberate
-`strncpy(buf,"hello",3)` truncation subcase, which is exactly the strncpy gotcha
-the demo teaches; not fatal (no `-Werror` in `edu_args`).
-
-### Deferred — count-chars.c → strlen consolidation
-
-The plan (above, "Consolidation with existing helpers") called for renaming
-`examples/src/count-chars.c`'s `count_chars` → `strlen` and deleting the file.
-**Deferred and flagged as risky**: `count_chars` is part of `io_lib` and is
-called by `examples/src/print-string.c`, which backs `print_string` used by
-**every** demo.  Renaming/removing it is not a local change — it touches the
-shared IO layer, so it belongs with the demos' de-duplication sweep tracked in
-[`multi-file-load.md`](multi-file-load.md), not with the libstr port.  Also
-still deferred from the original plan: `strstr`/`memmem` (Two-Way), `strspn`/
-`strcspn`/`strpbrk`, `strtok_r` — see "What's NOT in scope" above.
-
-Implemented via one commit on branch `overnight-2026-09-02-examples`.
+- The planned `examples/src/count-chars.c` → `strlen` consolidation (rename `count_chars`, delete
+  the file, repoint its consumers) was deferred as risky. `count_chars` is part of `io_lib` and
+  called by `examples/src/print-string.c`, which backs `print_string` in every demo, so it belongs
+  with the demos' de-duplication sweep tracked in `tasks/multi-file-load.md`.
+- Left out of scope: `strdup`/`strndup` (malloc); `strstr`/`memmem` (Two-Way, about 150 lines in
+  musl); `strspn`, `strcspn`, `strpbrk`; `strtok`/`strtok_r` (stateful API); wide-char
+  `wcs*`/`wmem*` (locale); musl's word-at-a-time optimizations; and `strerror`, since spim has no
+  errno surface.
