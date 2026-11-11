@@ -66,11 +66,18 @@ table built on them: the C engine's, each port's, and the tree-sitter
 grammar's keyword lists. The generated files are committed; never edit one by
 hand.
 
+* [HOST] Have an image (`make image`) from before the edit: `make generate`
+  runs on it.
 * [HOST] Edit `include/opcodes.tsv`. Keep the rows in alphabetical order.
-* [HOST] `make generate`: regenerate every table, in the container.
+* [HOST] `make generate`: regenerate every table, in the existing image.
 * [HOST] Commit the data file together with the files `make generate` rewrote.
 * [HOST] `make image`: build and test. The build fails, with a diff, if a
   committed generated file is out of date.
+
+> Between the edit and `make generate`, `make image`, `make shell` and
+> `make format` fail: the image build checks the tables. Without an image,
+> run `python3 tools/gen_opcodes.py` on the host instead; it needs
+> `clang-format` (the image's major version, or the C output's layout differs).
 
 > A new instruction also needs its execution in the C engine and in each
 > port; the port test suites fail until each port has it.

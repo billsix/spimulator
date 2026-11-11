@@ -79,8 +79,11 @@ How each output is produced:
   each stale file. `.clang-format` and `tree-sitter/scripts/keyword-lists.js` are copied before this
   stage for that reason.
 - **The meson test** `generated_opcode_tables`, in the regression suite, runs the same check.
-- **The developer command.** `make generate` runs the tool in the container and rewrites the files
-  in the bind-mounted tree. The steps are in `README.md`, "Changing the opcode table".
+- **The developer command.** `make generate` runs the tool on the existing image and rewrites the
+  files in the bind-mounted tree. It deliberately doesn't depend on `make image`: after a `.tsv` edit
+  the image build's check fails, so rebuilding first would stop the generator from ever running. The
+  host fallback is `python3 tools/gen_opcodes.py`, which needs a `clang-format` of the image's major
+  version. The steps are in `README.md`, "Changing the opcode table".
 - **Rejected alternatives** (`tasks/archive/2026/11/11/opcodes-x-macro-redesign.md`, Decisions):
   - a checksum manifest: a hand-edited committed file would pass it;
   - git hooks: the image build is the gate.

@@ -80,7 +80,8 @@ is for quick iteration only.
 - `make help` *(default)* — list the documented targets.
 - `make image` — check the generated files, build + test spim at image-build time; build the
   examples' native artifacts; optionally build the tree-sitter grammar / Emacs integration.
-- `make generate` — regenerate every opcode table from `include/opcodes.tsv` in the container;
+- `make generate` — regenerate every opcode table from `include/opcodes.tsv`, on the existing image (not
+  `generate: image`: the image build rejects stale tables, so it fails until you regenerate);
   commit the result with the data-file change (`README.md`, "Changing the opcode table").
 - `make shell` *(runs `format` first)* — dev shell.
 - `make format` — clang-format; `lint.sh` runs `clang-tidy`. Both run on shell exit.
