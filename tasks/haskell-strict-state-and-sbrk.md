@@ -1,43 +1,32 @@
 # Make the Haskell port's register writes strict, and its sbrk non-quadratic
 
-**Status:** proposed — needs go-ahead
-**Priority:** 3
-**Difficulty:** 3
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
+**Branch:** `review-2026-11-11-batch`
 **Source:** tasks/review/2026/11/11/repo-review.md §4.4.1, §4.4.2 F4
 
-## BLUF
+## Outcome
 
-The Haskell port leaks memory. HI/LO are lazy `IORef`s, so a `madd`/`msub` loop that never reads them
-builds an ever-longer thunk chain. Its sbrk also copies the whole data segment on every call. Done
-means:
-- a 3,000,000-iteration `madd` loop runs in roughly constant memory;
-- 20,000 `sbrk(16)` calls take well under a second;
-- the port suites are green.
+- **The leak.** `set` in `port/haskell/src/State.hs` evaluates the value before writing
+  (`writeIORef r $! v`). HI/LO, like all long-lived state, are written through it. Before, a
+  `madd`/`msub` loop that never read HI/LO built an ever-longer chain of unevaluated updates.
+  This is the Haskell standard's "strict where state accumulates" rule. (`modify` was already
+  `modifyIORef'`.)
+- **Quadratic sbrk.** `expandData` (`port/haskell/src/Memory.hs`) grows the data segment's array to
+  at least double its capacity, never past the limit, and copies only when the capacity runs out.
+  Before, it copied the whole segment one element at a time on every call.
+- **Segment ends.** Because the array can now be longer than the segment, `byteSegment` and
+  `memReference` return a `SegmentRef`: the array, the offset, and the segment's logical last offset.
+  `readCString` and the read_string, read and write syscalls (`Syscall.hs`) bound their copies by
+  that offset instead of the array's bounds, so behavior at the end of a segment is unchanged. Bytes
+  past `dataTop` are unreachable, so they stay zero.
 
-## Context
+## Verification
 
-- **The leak.** `port/haskell/src/State.hs:46` `set = writeIORef`, used by `Run.hs:252-262`
-  (`setHiLo`, `multiplyAdd`). Measured 2026-11-11: a 3M-iteration `madd $t1, $t2` loop peaked at
-  488 MB RSS in Haskell (sampled, so a lower bound; the reviewer saw 910 MB) and at 4 MB in C.
-  - The program: `li $t0, 3000000; li $t1, 3; li $t2, 5; loop: madd $t1, $t2; addiu $t0, $t0, -1;
-    bnez $t0, loop; li $v0, 10; syscall`.
-  - Measure with `/proc/<pid>/status` `VmHWM`, since `/usr/bin/time` isn't installed.
-  - The Haskell standard's "strict where state accumulates" rule names exactly this case
-    (the haskell-coding-standard.md reference doc from github.com/billsix/runClaudeInContainer).
-- **The quadratic sbrk.** `Memory.hs:104-109` `growBytes` allocates a new array and copies the
-  segment one boxed element at a time, on every sbrk. 20,000 `sbrk(16)` calls take 0.04 s in C and
-  8.9 s in Haskell. Programs that malloc through `examples/lib` hit this.
+| Program | C | Haskell before | Haskell after |
+|---|---|---|---|
+| 3,000,000 × `madd $t1, $t2` | 4 MB peak | 488 MB peak (sampled) | 12 MB peak, 0.54 s |
+| 20,000 × `sbrk(16)` | 0.04–0.06 s | 8.9 s | 0.06 s |
 
-## Plan
-
-1. Make `set` strict (`set r v = writeIORef r $! v`), which covers every long-lived IORef, and check
-   the other state helpers for the same pattern (`modify`).
-2. Grow the data segment geometrically and keep a separate logical top, or copy with a bulk
-   primitive.
-3. Measure both programs before and after, and record the numbers here.
-4. Gate: the `port-haskell` suite (with `haskell-annotations`) and `make image`.
-
-## Open questions
-
-None.
+Peak RSS was read from `/proc/<pid>/status` `VmHWM`. The `port-haskell` suite passes, 74/74,
+including `haskell-annotations`. `hlint`'s count for the three files is unchanged (2).
