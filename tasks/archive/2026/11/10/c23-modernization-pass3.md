@@ -73,6 +73,6 @@ arguments, an explicit `(unsigned)` for `long l->addr` printed with `%08x`).
 
 ## Decisions
 
-- The C-standard items of `tasks/codebase-cleanup-plan.md` move into this task; its non-C23 refactors stay there (William Emerison Six <billsix@gmail.com>, 2026-11-10).
+- The C-standard items of `tasks/archive/2026/11/11/codebase-cleanup-plan.md` move into this task; its non-C23 refactors stay there (William Emerison Six <billsix@gmail.com>, 2026-11-10).
 - The `volatile` fix in `top_level` was included here, not deferred to a bug task: it is the hazard
   the setjmp opt-out rule exists for, and it changes no output.

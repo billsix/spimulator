@@ -3,7 +3,7 @@
 
    The parser produces a tree of these nodes rather than calling the
    action helpers directly.  `emit_ast` in parser.c walks the tree in
-   source order and calls the action helpers (r_type_inst, store_word,
+   source order and calls the action helpers (r_type, store_word,
    record_label, ...) that commit each node's effect to the simulator's
    memory and symbol table.
 

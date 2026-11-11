@@ -2,7 +2,7 @@
 
 Three jobs, as in the C file:
 
-* the assembler's back end: ``r_type_inst``, ``i_type_inst``, ... build an
+* the assembler's back end: ``r_type``, ``i_type``, ... build an
   :class:`Instruction` and store it at the next text address.  An immediate
   that does not fit in 16 bits is synthesized with ``lui $at`` + ``ori``,
   exactly as the C engine does (so the addresses of everything after it
@@ -83,7 +83,7 @@ _SIGNED_IMMEDIATE_OPCODES: frozenset[int] = frozenset({
     Tok.TLTIU_OPCODE, Tok.TNEI_OPCODE,
 })  # fmt: skip
 
-# The condition bits each FP compare stores (r_cond_type_inst).
+# The condition bits each FP compare stores (r_cond_type).
 _COMPARE_CONDITIONS: dict[int, int] = {}
 for _double_form, _single_form, _cond in (
     (Tok.C_EQ_D_OPCODE, Tok.C_EQ_S_OPCODE, COND_EQ),
@@ -337,12 +337,12 @@ def _needs_full_word(opcode: int, value: int, expr: ImmExpr) -> bool:
     return machine.u32(value) & 0xFFFF0000 != 0
 
 
-def i_type_inst(opcode: int, rt: int, rs: int, expr: ImmExpr) -> None:
+def i_type(opcode: int, rt: int, rs: int, expr: ImmExpr) -> None:
     """Store an I-type instruction; a large immediate takes more than one.
 
     On the extended machine an immediate that does not fit 16 bits (or a
     still-undefined symbol whose full value is needed) is built in $at
-    first: see :func:`_i_type_inst_full_word`.
+    first: see :func:`_i_type_full_word`.
     """
     inst: Instruction = Instruction(opcode)
     inst.set_rs(rs)
@@ -351,7 +351,7 @@ def i_type_inst(opcode: int, rt: int, rs: int, expr: ImmExpr) -> None:
     if expr.symbol is None or expr.symbol.addr != 0:
         value: int = eval_imm_expr(expr)
         if not options.bare_machine and _needs_full_word(opcode, value, expr):
-            _i_type_inst_full_word(opcode, rt, rs, expr, True, value)
+            _i_type_full_word(opcode, rt, rs, expr, True, value)
             return
         symbol_table.resolve_a_label(expr.symbol, inst)
     elif options.bare_machine or expr.bits != 0:
@@ -359,7 +359,7 @@ def i_type_inst(opcode: int, rt: int, rs: int, expr: ImmExpr) -> None:
         symbol_table.record_inst_uses_symbol(inst, expr.symbol)
     else:
         # The whole value is needed and unknown: assume it is large.
-        _i_type_inst_full_word(opcode, rt, rs, expr, False, 0)
+        _i_type_full_word(opcode, rt, rs, expr, False, 0)
         return
     _store_instruction(inst)
 
@@ -373,14 +373,14 @@ def _gp_offset(expr: ImmExpr, rs: int) -> int | None:
     return None
 
 
-def _i_type_inst_full_word(
+def _i_type_full_word(
     opcode: int, rt: int, rs: int, expr: ImmExpr, value_known: bool, value: int
 ) -> None:
     """Build an immediate that may not fit 16 bits from separate instructions."""
     gp_offset: int | None = _gp_offset(expr, rs)
     if opcode_is_load_store(opcode):
         if gp_offset is not None:
-            i_type_inst(opcode, rt, regs.REG_GP, make_imm_expr(gp_offset, None, False))
+            i_type(opcode, rt, regs.REG_GP, make_imm_expr(gp_offset, None, False))
         elif value_known:
             high: int = (value >> 16) & 0xFFFF
             low: int = value & 0xFFFF
@@ -389,45 +389,45 @@ def _i_type_inst_full_word(
             ):
                 if low & 0x8000:
                     high += 1  # the load sign-extends the low half
-                i_type_inst(Tok.LUI_OPCODE, 1, 0, const_imm_expr(high))
+                i_type(Tok.LUI_OPCODE, 1, 0, const_imm_expr(high))
                 if rs != 0:
-                    r_type_inst(Tok.ADDU_OPCODE, 1, 1, rs)
-                i_type_inst(opcode, rt, 1, _lower_bits_of_expr(const_imm_expr(low)))
+                    r_type(Tok.ADDU_OPCODE, 1, 1, rs)
+                i_type(opcode, rt, 1, _lower_bits_of_expr(const_imm_expr(low)))
             else:
                 # Sign-extending the low half already gives the high half.
-                i_type_inst(opcode, rt, rs, const_imm_expr(low))
+                i_type(opcode, rt, rs, const_imm_expr(low))
         else:
-            i_type_inst(Tok.LUI_OPCODE, 1, 0, _upper_bits_of_expr(expr))
+            i_type(Tok.LUI_OPCODE, 1, 0, _upper_bits_of_expr(expr))
             if rs != 0:
-                r_type_inst(Tok.ADDU_OPCODE, 1, 1, rs)
-            i_type_inst(opcode, rt, 1, _lower_bits_of_expr(expr))
+                r_type(Tok.ADDU_OPCODE, 1, 1, rs)
+            i_type(opcode, rt, 1, _lower_bits_of_expr(expr))
     elif opcode_is_branch(opcode):
         # This only allows branches +/- 32K, which is not correct!
-        i_type_inst(opcode, rt, rs, _lower_bits_of_expr(expr))
+        i_type(opcode, rt, rs, _lower_bits_of_expr(expr))
     elif gp_offset is not None:
         computed: int = Tok.ADDIU_OPCODE if opcode == Tok.LUI_OPCODE else opcode
-        i_type_inst(computed, rt, regs.REG_GP, make_imm_expr(gp_offset, None, False))
+        i_type(computed, rt, regs.REG_GP, make_imm_expr(gp_offset, None, False))
     elif rs == 0 and opcode in frozenset(
         {Tok.ORI_OPCODE, Tok.ADDI_OPCODE, Tok.ADDIU_OPCODE, Tok.LUI_OPCODE}
     ):
         _produce_immediate(expr, rt, value_known, value)
     else:
         _produce_immediate(expr, 1, value_known, value)
-        r_type_inst(pseudo_op.imm_op_to_op(opcode), rt, rs, 1)
+        r_type(pseudo_op.imm_op_to_op(opcode), rt, rs, 1)
 
 
 def _produce_immediate(expr: ImmExpr, rt: int, value_known: bool, value: int) -> None:
     """Load expr's 32-bit value into rt with lui and/or ori."""
     if value_known and value & 0xFFFF == 0:
-        i_type_inst(Tok.LUI_OPCODE, rt, 0, _upper_bits_of_expr(expr))
+        i_type(Tok.LUI_OPCODE, rt, 0, _upper_bits_of_expr(expr))
     elif value_known and machine.u32(value) & 0xFFFF0000 == 0:
-        i_type_inst(Tok.ORI_OPCODE, rt, 0, _lower_bits_of_expr(expr))
+        i_type(Tok.ORI_OPCODE, rt, 0, _lower_bits_of_expr(expr))
     else:
-        i_type_inst(Tok.LUI_OPCODE, 1, 0, _upper_bits_of_expr(expr))
-        i_type_inst(Tok.ORI_OPCODE, rt, 1, _lower_bits_of_expr(expr))
+        i_type(Tok.LUI_OPCODE, 1, 0, _upper_bits_of_expr(expr))
+        i_type(Tok.ORI_OPCODE, rt, 1, _lower_bits_of_expr(expr))
 
 
-def j_type_inst(opcode: int, target: ImmExpr) -> None:
+def j_type(opcode: int, target: ImmExpr) -> None:
     """Store a J-type instruction (the target is not PC-relative)."""
     inst: Instruction = Instruction(opcode)
     target.offset = 0
@@ -440,7 +440,7 @@ def j_type_inst(opcode: int, target: ImmExpr) -> None:
     _store_instruction(inst)
 
 
-def _make_r_type_inst(opcode: int, rd: int, rs: int, rt: int) -> Instruction:
+def _make_r_type(opcode: int, rd: int, rs: int, rt: int) -> Instruction:
     """An R-type instruction with these fields."""
     inst: Instruction = Instruction(opcode)
     inst.set_rs(rs)
@@ -449,34 +449,34 @@ def _make_r_type_inst(opcode: int, rd: int, rs: int, rt: int) -> Instruction:
     return inst
 
 
-def r_type_inst(opcode: int, rd: int, rs: int, rt: int) -> None:
+def r_type(opcode: int, rd: int, rs: int, rt: int) -> None:
     """Store an R-type instruction."""
-    _store_instruction(_make_r_type_inst(opcode, rd, rs, rt))
+    _store_instruction(_make_r_type(opcode, rd, rs, rt))
 
 
-def r_co_type_inst(opcode: int, fd: int, fs: int, ft: int) -> None:
+def r_co_type(opcode: int, fd: int, fs: int, ft: int) -> None:
     """Store a coprocessor R-type instruction (FS in rd, FD in shamt)."""
-    inst: Instruction = _make_r_type_inst(opcode, fs, 0, ft)
+    inst: Instruction = _make_r_type(opcode, fs, 0, ft)
     inst.set_shamt(fd)
     _store_instruction(inst)
 
 
-def r_sh_type_inst(opcode: int, rd: int, rt: int, shamt: int) -> None:
+def r_sh_type(opcode: int, rd: int, rt: int, shamt: int) -> None:
     """Store a shift (the amount is masked to 5 bits)."""
-    inst: Instruction = _make_r_type_inst(opcode, rd, 0, rt)
+    inst: Instruction = _make_r_type(opcode, rd, 0, rt)
     inst.set_shamt(shamt & 0x1F)
     _store_instruction(inst)
 
 
-def r_cond_type_inst(opcode: int, fs: int, ft: int, cc: int) -> None:
+def r_cond_type(opcode: int, fs: int, ft: int, cc: int) -> None:
     """Store an FP compare, with its condition bits in the rs byte."""
-    inst: Instruction = _make_r_type_inst(opcode, fs, 0, ft)
+    inst: Instruction = _make_r_type(opcode, fs, 0, ft)
     inst.set_shamt(cc << 2)
     if opcode not in _COMPARE_CONDITIONS:
         # Never reached: only FP_CMP_FS_FT_INST rows reach here, and the table holds all 32
         # of them (16 conditions, .s and .d).
         raise console.fatal_error(
-            f"internal error: r_cond_type_inst: not an FP compare: {opcode}\n"
+            f"internal error: r_cond_type: not an FP compare: {opcode}\n"
         )
     else:
         inst.set_rs(_COMPARE_CONDITIONS[opcode])
@@ -492,7 +492,7 @@ def _breakpoint_instruction() -> Instruction:
     """The one ``break 1`` instruction every breakpoint shares."""
     global _break_inst
     if _break_inst is None:
-        _break_inst = _make_r_type_inst(Tok.BREAK_OPCODE, 1, 0, 0)
+        _break_inst = _make_r_type(Tok.BREAK_OPCODE, 1, 0, 0)
     return _break_inst
 
 

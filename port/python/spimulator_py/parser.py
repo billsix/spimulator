@@ -1424,21 +1424,21 @@ def _emit_one(node: Node) -> None:
                     0, symbol_table.record_label(node.name or "", addr, False)
                 )
         case Kind.INST_R:
-            instruction.r_type_inst(node.op, node.rd, node.rs, node.rt)
+            instruction.r_type(node.op, node.rd, node.rs, node.rt)
         case Kind.INST_R_SHIFT:
-            instruction.r_sh_type_inst(node.op, node.rd, node.rt, node.shamt)
+            instruction.r_sh_type(node.op, node.rd, node.rt, node.shamt)
         case Kind.INST_I:
             if node.imm is None:
                 raise AssertionError("_emit_one: node.imm is None")
-            instruction.i_type_inst(node.op, node.rt, node.rs, node.imm.copy())
+            instruction.i_type(node.op, node.rt, node.rs, node.imm.copy())
         case Kind.INST_J:
             if node.imm is None:
                 raise AssertionError("_emit_one: node.imm is None")
-            instruction.j_type_inst(node.op, node.imm.copy())
+            instruction.j_type(node.op, node.imm.copy())
         case Kind.INST_FP_R:
-            instruction.r_co_type_inst(node.op, node.fd, node.fs, node.ft)
+            instruction.r_co_type(node.op, node.fd, node.fs, node.ft)
         case Kind.INST_FP_COMPARE:
-            instruction.r_cond_type_inst(node.op, node.fs, node.ft, node.cc)
+            instruction.r_cond_type(node.op, node.fs, node.ft, node.cc)
         case Kind.PSEUDO:
             for child in node.children:
                 _emit_one(child)

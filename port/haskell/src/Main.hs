@@ -316,7 +316,12 @@ spimMain s argv listingRef = do
                   orStatus 1
                 Nothing -> do
                   start :: Word32 <- findSymbolAddress s "__start"
-                  _ <- runProgram s start maxBound False False `catch` \RunErrorJump -> pure (False, False)
+                  _ <- runProgram s start maxBound False False `catch` \RunErrorJump -> do
+                    -- run_error printed why the run stopped; exit 1 unless the
+                    -- program already set its own status.
+                    rv :: Int32 <- get (spimReturnValue s)
+                    when (rv == 0) $ set (spimReturnValue s) 1
+                    pure (False, False)
                   pure ()
               first :: Int <- get (firstBadException s)
               rv :: Int32 <- get (spimReturnValue s)

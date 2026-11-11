@@ -108,8 +108,8 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
     text_seg = (mips_instruction**)xmalloc(BYTES_TO_INST((size_t)text_size));
   else {
     free_instructions(text_seg, (int)((text_top - TEXT_BOT) / BYTES_PER_WORD));
-    text_seg =
-        (mips_instruction**)realloc(text_seg, BYTES_TO_INST((size_t)text_size));
+    text_seg = (mips_instruction**)xrealloc(text_seg,
+                                            BYTES_TO_INST((size_t)text_size));
   }
   memset(text_seg, 0, BYTES_TO_INST((size_t)text_size));
   text_top = TEXT_BOT + (mem_addr)text_size;
@@ -118,7 +118,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   if (data_seg == nullptr)
     data_seg = (mem_word*)xmalloc((size_t)data_size);
   else
-    data_seg = (mem_word*)realloc(data_seg, (size_t)data_size);
+    data_seg = (mem_word*)xrealloc(data_seg, (size_t)data_size);
   memset(data_seg, 0, (size_t)data_size);
   data_seg_b = (int8_t*)data_seg;
   data_seg_h = (short*)data_seg;
@@ -129,7 +129,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   if (stack_seg == nullptr)
     stack_seg = (mem_word*)xmalloc((size_t)stack_size);
   else
-    stack_seg = (mem_word*)realloc(stack_seg, (size_t)stack_size);
+    stack_seg = (mem_word*)xrealloc(stack_seg, (size_t)stack_size);
   memset(stack_seg, 0, (size_t)stack_size);
   stack_seg_b = (int8_t*)stack_seg;
   stack_seg_h = (short*)stack_seg;
@@ -142,7 +142,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   else {
     free_instructions(k_text_seg,
                       (int)((k_text_top - K_TEXT_BOT) / BYTES_PER_WORD));
-    k_text_seg = (mips_instruction**)realloc(
+    k_text_seg = (mips_instruction**)xrealloc(
         k_text_seg, BYTES_TO_INST((size_t)k_text_size));
   }
   memset(k_text_seg, 0, BYTES_TO_INST((size_t)k_text_size));
@@ -152,7 +152,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   if (k_data_seg == nullptr)
     k_data_seg = (mem_word*)xmalloc((size_t)k_data_size);
   else
-    k_data_seg = (mem_word*)realloc(k_data_seg, (size_t)k_data_size);
+    k_data_seg = (mem_word*)xrealloc(k_data_seg, (size_t)k_data_size);
   memset(k_data_seg, 0, (size_t)k_data_size);
   k_data_seg_b = (int8_t*)k_data_seg;
   k_data_seg_h = (short*)k_data_seg;

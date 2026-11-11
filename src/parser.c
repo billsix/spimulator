@@ -51,7 +51,7 @@ static bool auto_align; /* defined as static further down */
 
 /* The parser builds an abstract syntax tree during the parse, then
    emit_ast walks it in source order calling the action helpers
-   (r_type_inst, store_word, ...) that commit each statement's effect to
+   (r_type, store_word, ...) that commit each statement's effect to
    the simulator.  This is the sole parse strategy: the older inline
    "syntax-directed translation" path (PARSE_DIRECT), which fired the
    action helpers directly during the parse instead of building a tree,
@@ -941,8 +941,8 @@ static void parse_b1(int op) {
 }
 
 /* J_TYPE_INST: <op> LABEL  OR  <op> SRC1 (j/jal/jr/jalr), and RD_RS_INST's
-   jalr and jalr.hb.  With a label argument we emit j_type_inst with the
-   right absolute-jump opcode; with a register argument we emit r_type_inst
+   jalr and jalr.hb.  With a label argument we emit j_type with the
+   right absolute-jump opcode; with a register argument we emit r_type
    with the indirect-jump opcode.  jalr.hb keeps its own opcode (jalr with the
    hazard-barrier bit) and takes registers only.  cop2 shares J_TYPE_INST
    but spim has no coprocessor 2, so it is an error. */
@@ -1904,7 +1904,7 @@ static void parse_asm_code(void) {
               } else {
                 emit_i_free(TOK_ORI_OPCODE, 1, 0, imm);
                 div_inst(op, r1, r2, 1, 1);
-                /* don't free imm again — i_type_inst_free already freed */
+                /* don't free imm again — i_type_free already freed */
                 break;
               }
               free(imm);
@@ -1931,7 +1931,7 @@ static void parse_asm_code(void) {
     }
     case RD_RT_RS_INST: {
       /* BINARYIR_OPS: sllv, srav, srlv (variable-register shift).
-         DEST SRC1 SRC2 — note the r_type_inst call below has rs/rt
+         DEST SRC1 SRC2 — note the r_type call below has rs/rt
          swapped (rt=SRC2, rs=SRC1).  Also accepts immediate form
          which uses op_to_imm_op for the shamt encoding. */
       const int rd = parse_register();
@@ -2313,7 +2313,7 @@ int parse_file(void) {
 /* ------- emit_ast — AST walker ------------------------------
 
    Walks the file's children in source order, calling the action
-   helpers (r_type_inst, store_word, record_label, ...) that commit
+   helpers (r_type, store_word, record_label, ...) that commit
    each node's effect to the simulator's memory and symbol table.
 
    This is the only driver for the action helpers: the parse phase
@@ -2391,7 +2391,7 @@ static void emit_one(const ast_node* node) {
     emit_node(node);
     expansion_end();
   } else if (node->kind == AST_INST_I) {
-    /* The one kind i_type_inst may expand (a label or wide immediate). */
+    /* The one kind i_type may expand (a label or wide immediate). */
     expansion_begin(op_token_name(node->u.inst_i.op), false);
     emit_node(node);
     expansion_end();
@@ -2533,36 +2533,36 @@ static void emit_node(const ast_node* node) {
       return;
 
     /* Instructions — pass copies of imm_expr so the AST keeps its
-       own.  The action helpers (i_type_inst, j_type_inst) already
+       own.  The action helpers (i_type, j_type) already
        copy what they store, so a single dup is enough for either
        to drop on the floor / store internally. */
     case AST_INST_R:
-      r_type_inst(node->u.inst_r.op, node->u.inst_r.rd, node->u.inst_r.rs,
-                  node->u.inst_r.rt);
+      r_type(node->u.inst_r.op, node->u.inst_r.rd, node->u.inst_r.rs,
+             node->u.inst_r.rt);
       return;
     case AST_INST_R_SHIFT:
-      r_sh_type_inst(node->u.inst_r_shift.op, node->u.inst_r_shift.rd,
-                     node->u.inst_r_shift.rt, node->u.inst_r_shift.shamt);
+      r_sh_type(node->u.inst_r_shift.op, node->u.inst_r_shift.rd,
+                node->u.inst_r_shift.rt, node->u.inst_r_shift.shamt);
       return;
     case AST_INST_I: {
       imm_expr* const copy = dup_imm(node->u.inst_i.imm);
-      i_type_inst_free(node->u.inst_i.op, node->u.inst_i.rt, node->u.inst_i.rs,
-                       copy);
+      i_type_free(node->u.inst_i.op, node->u.inst_i.rt, node->u.inst_i.rs,
+                  copy);
       return;
     }
     case AST_INST_J: {
       imm_expr* const copy = dup_imm(node->u.inst_j.target);
-      j_type_inst(node->u.inst_j.op, copy);
+      j_type(node->u.inst_j.op, copy);
       free(copy);
       return;
     }
     case AST_INST_FP_R:
-      r_co_type_inst(node->u.inst_fp_r.op, node->u.inst_fp_r.fd,
-                     node->u.inst_fp_r.fs, node->u.inst_fp_r.ft);
+      r_co_type(node->u.inst_fp_r.op, node->u.inst_fp_r.fd,
+                node->u.inst_fp_r.fs, node->u.inst_fp_r.ft);
       return;
     case AST_INST_FP_COMPARE:
-      r_cond_type_inst(node->u.inst_fp_compare.op, node->u.inst_fp_compare.fs,
-                       node->u.inst_fp_compare.ft, node->u.inst_fp_compare.cc);
+      r_cond_type(node->u.inst_fp_compare.op, node->u.inst_fp_compare.fs,
+                  node->u.inst_fp_compare.ft, node->u.inst_fp_compare.cc);
       return;
 
     case AST_PSEUDO:

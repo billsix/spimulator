@@ -1780,12 +1780,12 @@ impl Machine {
                 let id: LabelId = self.record_label(name, *value as u32, true);
                 self.symbols.label_mut(id).constant = true;
             }
-            AstKind::InstR { op, rd, rs, rt } => self.r_type_inst(*op, *rd, *rs, *rt),
-            AstKind::InstRShift { op, rd, rt, shamt } => self.r_sh_type_inst(*op, *rd, *rt, *shamt),
-            AstKind::InstI { op, rt, rs, imm } => self.i_type_inst(*op, *rt, *rs, imm),
-            AstKind::InstJ { op, target } => self.j_type_inst(*op, target),
-            AstKind::InstFpR { op, fd, fs, ft } => self.r_co_type_inst(*op, *fd, *fs, *ft),
-            AstKind::InstFpCompare { op, fs, ft, cc } => self.r_cond_type_inst(*op, *fs, *ft, *cc),
+            AstKind::InstR { op, rd, rs, rt } => self.r_type(*op, *rd, *rs, *rt),
+            AstKind::InstRShift { op, rd, rt, shamt } => self.r_sh_type(*op, *rd, *rt, *shamt),
+            AstKind::InstI { op, rt, rs, imm } => self.i_type(*op, *rt, *rs, imm),
+            AstKind::InstJ { op, target } => self.j_type(*op, target),
+            AstKind::InstFpR { op, fd, fs, ft } => self.r_co_type(*op, *fd, *fs, *ft),
+            AstKind::InstFpCompare { op, fs, ft, cc } => self.r_cond_type(*op, *fs, *ft, *cc),
             AstKind::Pseudo { children, .. } => self.emit_chain(children),
         }
     }

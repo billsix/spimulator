@@ -17,7 +17,7 @@ The parser is **parse-to-tree, then emit**:
    their real instructions as **child nodes** of an `AST_PSEUDO` wrapper.
    Nothing is written to simulator memory during parse.
 2. **Emit.** `emit_ast(current_file)` walks the tree in source order;
-   `emit_one` calls the action helpers (`r_type_inst`, `store_word`,
+   `emit_one` calls the action helpers (`r_type`, `store_word`,
    `record_label`, `user_kernel_text_segment`, …) that commit each node's
    effect to memory and the symbol table.
 
