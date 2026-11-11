@@ -1,6 +1,6 @@
 # The paired-single compares (`c.cond.ps`) assemble to the wrong encoding and cannot run
 
-**Status:** proposed — needs go-ahead
+**Status:** in progress (branch `dispatch-follow-ups`)
 **Priority:** 6
 **Difficulty:** 3
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
@@ -34,9 +34,12 @@ type: 357`. Done means one of two outcomes, the maintainer's choice:
 - Any change to `opcodes.tsv` must be gated with `BUILD_TREE_SITTER=1` (`CLAUDE.md`), and regenerated
   with `make generate`.
 
-## Open questions
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
-1. **Fix them or remove them?** (a) Correct the 16 encodings to format 0x16, add the `COND` cases,
-   and implement paired-single compare execution, which needs paired-single register semantics;
-   or (b) drop the rows. Recommend (b) unless the curriculum uses paired-single. Nothing in
-   `examples/` or `tests/` does today.
+1. **Remove the 16 `c.cond.ps` rows** (option (b)). Nothing in `examples/` or `tests/` uses
+   paired-single, the engine can't execute them, and their encodings are wrong. `make generate`
+   regenerates every table: the C engine's, the ports' and tree-sitter's. The image gate runs with
+   `BUILD_TREE_SITTER=1`. After the change, a `c.eq.ps` line is an unknown instruction, as any
+   unsupported mnemonic is.
+2. `r_cond_type_inst`'s `default` then covers only impossible values. It becomes fatal, like the
+   task's other exhaustive switches.

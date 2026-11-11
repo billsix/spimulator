@@ -1,6 +1,6 @@
 # Name the token enum, so switches on a token are checked by the compiler
 
-**Status:** proposed — needs go-ahead
+**Status:** declined (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 **Priority:** 7
 **Difficulty:** 5
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
@@ -31,9 +31,9 @@ generator emits a named type, the switches the task chooses take it, the build i
 - **The ports** have their own token types already (Python `Tok`, the Rust and Haskell generated
   modules). This is a C-only change.
 
-## Open questions
+## Decision (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
-1. **Is the check worth the churn?** (a) Name the type and convert only the switches that cover a
-   closed subset, or (b) leave it, since the fatal `default`s already catch a bad value at run time.
-   Recommend (b) unless a subset switch turns out to have missed members again. (It did once:
-   `r_cond_type_inst` and the paired-single compares, `tasks/paired-single-compare-encoding.md`.)
+**Declined** (option (b)). The fatal `default`s already catch a bad token at run time. Naming the
+type would make every opcode switch list about 500 members or opt out of `-Wswitch-enum`. The
+one case where a subset switch missed members, the paired-single compares, is fixed by removing
+those rows (`tasks/paired-single-compare-encoding.md`).

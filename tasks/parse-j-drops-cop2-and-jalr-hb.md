@@ -1,6 +1,6 @@
 # `cop2` and `jalr.hb` assemble to nothing, silently
 
-**Status:** proposed — needs go-ahead
+**Status:** in progress (branch `dispatch-follow-ups`)
 **Priority:** 4
 **Difficulty:** 3
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
@@ -32,8 +32,12 @@ engine and all three ports, with regression tests.
   engines, or the port suites fail.
 - Any change to `opcodes.tsv` must be gated with `BUILD_TREE_SITTER=1` (`CLAUDE.md`).
 
-## Open questions
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
-1. **`cop2`:** (a) give it its own operand shape (a 25-bit immediate) and assemble it, or (b) reject
-   it with an error, since spim has no coprocessor 2? Recommend (b): a teaching simulator should
-   say it doesn't support an instruction, not drop it.
+1. **`cop2` is rejected with an error** (option (b)): spim has no coprocessor 2. A teaching
+   simulator should say it doesn't support an instruction, not drop it. The error names the
+   instruction and the reason.
+2. **`jalr.hb` assembles** to the encoding GNU `as` gives: `jalr` with the hazard-barrier bit
+   (bit 10) set, in both the one-register and two-register forms.
+3. All four engines change together: C, then the Python, Haskell and Rust ports. Each case gets a
+   regression test, in the C suite and therefore in every port suite.
