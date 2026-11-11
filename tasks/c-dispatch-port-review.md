@@ -1,74 +1,59 @@
 # Review the C dispatch changes for anything the Python, Haskell and Rust ports should follow
 
-**Status:** proposed — needs go-ahead
-**Priority:** 6
-**Difficulty:** 3
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
-**Follows:** `tasks/archive/2026/11/11/c-switch-and-else-if-chains.md` (branch
-`c-switch-and-else-if-chains`)
+**Completed:** 2026-11-11
+**Branch:** `dispatch-follow-ups`
+**Follows:** `tasks/archive/2026/11/11/c-switch-and-else-if-chains.md`
 
-## BLUF
+## Outcome
 
-The `c-switch-and-else-if-chains` branch rewrote the C engine's dispatch code. Every `switch` got a
-`default`, every chain an `else`, guard runs became chains or switches, and the core now builds
-with `-Wswitch-enum`. None of this changed behavior: the port suites pass unchanged. This task
-checks each change against the three ports, to see whether a port should follow it for its own
-sake or to keep reading side by side with C. Done means a per-port list of changes made (each a
-commit, with the port suites green) and changes not needed (each with a reason).
+The C engine's dispatch work changed no behavior, so the port suites never required anything. This
+review checked each C change against the three ports and made the structural changes that carry
+over. Each item below says what changed, or why nothing needed to.
 
-## Context
+**1. Fatal defaults on exhaustive switches.**
+- The teaching mode isn't ported, so the `explain.c` sites (the decode-step renderers,
+  `subst_field_regs`) have no counterpart.
+- **Python:** the matches over a whole enum already ended in `case _: raise AssertionError(kind)`.
+  The three that match every member are now `assert_never(kind)`: two in `ast_nodes.py`, and
+  `_listing_observer`. `ty` 0.0.91 then checks them statically, the Python counterpart of C's
+  `-Wswitch-enum`. Deleting a case from a scratch copy makes `ty` fail with
+  `type-assertion-failure`.
+- **Rust and Haskell:** they match on the AST and event enums exhaustively, so their compilers
+  check this already. The byte-lane cases are computed shifts there, not switches.
+- `parse_j`'s and `r_cond_type_inst`'s fallthroughs were already made fatal in all four engines
+  (`tasks/archive/2026/11/11/parse-j-drops-cop2-and-jalr-hb.md`,
+  `tasks/archive/2026/11/11/paired-single-compare-encoding.md`).
 
-- **The C engine is the standard** (`CLAUDE.md`, "port/"). Every port must match its stdout, stderr
-  and exit status, so a behavior change would already have failed the port suites. This review is
-  about structure and invariants, not output.
-- **What already lines up:**
-  - The Python port got `match` statements with `case _` and `if`/`elif`/`else` chains first
-    (`tasks/archive/2026/11/11/python-port-match-statements.md`), and the C work copied its rules.
-  - Rust's `match` is exhaustive by the compiler.
-  - Haskell checks incomplete patterns under `-Wall -Werror`, and its guards end in `otherwise` by
-    the Haskell standard (the haskell-coding-standard.md reference doc from
-    github.com/billsix/runClaudeInContainer).
+**2. Legitimate defaults.** `explain_before`, `explain_after` and `lookup_classification` are teaching
+mode, so not ported. `parse_j` and `r_cond_type_inst` are covered in item 1.
 
-## What to check, per C change (commits on the branch, oldest first)
+**3. One-value chains and guard runs.**
+- **Python:** done before the C work (`tasks/archive/2026/11/11/python-port-match-statements.md`),
+  which the C work copied.
+- **Rust:** not needed. The Rust standard leaves early returns idiomatic and puts total dispatch on
+  exhaustive `match`; its one-value dispatches already are `match`es.
+- **Haskell:** not applicable. An `if` always has an `else`, and `IO` has no early return, so a
+  "run of early-exit `if`s" can't be written.
 
-1. **The fatal defaults** (commit "c: every switch has a default; -Wswitch-enum keeps the
-   exhaustiveness check"). Where C's cases cover every value (the `ast_kind` switches, the
-   decode-step renderers, `subst_field_regs`, `do_parse_pseudo`'s inner switch, `run_spim`'s four
-   byte-lane switches, `seg_name`, `listing_observer`), the `default` calls `fatal_error` with an
-   "internal error: <function>: ..." message.
-   - **Python:** each counterpart's `case _` should raise with a message naming the function and
-     the value, not pass silently.
-   - **Rust:** the counterpart should be an exhaustive `match` on an enum, or end in
-     `unreachable!("…")` with the same message.
-   - **Haskell:** an exhaustive `case`, or an `error` call naming the function.
-2. **The legitimate defaults:** `explain_before`, `explain_after`, `lookup_classification`,
-   `r_cond_type_inst`, and `parse_j`'s three switches. Check that each port's counterpart is also a
-   documented no-op, and that it doesn't raise where C does nothing.
-3. **The one-value chains that became switches**, and **the guard runs that became chains**
-   (commits "one-value dispatch chains are switch statements" and "runs of early-exit ifs …").
-   - The functions: `explain_bit_layout`, `explain_decoding_steps`, `inst_decode`, `parse_j`,
-     `parse_asm_code`'s `RS_RT_INST` dispatch, the print and args REPL commands, `parse_factor`,
-     `parse_address`, `parse_abs_addr`, `parse_imm32`, `parse_r3`, `parse_line`, `scan_one_token`,
-     `scan_register`, `decode_string`, `check_keyword`, `fill_line_buf`, `ast_file_append`,
-     `ast_pseudo_append`, `spim_completion`, and `main`'s load-file chain.
-   - **Python:** mostly done already. Confirm with `tasks/adhoc/` worklogs or a grep.
-   - **Rust and Haskell:** find the same runs of early returns and decide per site.
-4. **The explicit `else` branches** (commit "every if/else-if chain ends in an else"), including the
-   `BRANCH_INST` macro's not-taken case and `store_instruction`'s fatal `else`. Check each port's
-   counterpart for an open-ended chain.
-5. **`-Wswitch-enum`'s equivalent.** Python: a type checker's exhaustiveness check on `match` over
-   an enum (`assert_never`), if `ty` supports it. Rust and Haskell have it already. Record what each
-   port's gate checks.
-6. **Not this task:** the two bugs found during the C work were fixed in all four engines in
-   their own tasks: `tasks/archive/2026/11/11/parse-j-drops-cop2-and-jalr-hb.md` (`cop2`,
-   `jalr.hb`, `jr.hb`) and `tasks/archive/2026/11/11/paired-single-compare-encoding.md` (the
-   `c.cond.ps` rows). That work also changed `r_cond_type_inst` and `parse_j` in the ports to
-   match C's fatal defaults, so items 1 and 2 already hold for those two functions.
+**4. Explicit `else` branches.**
+- `store_instruction`'s impossible "neither segment active" case is now a fatal internal error in
+  all three ports, with C's message.
+- **Python:** the seven chains that mirror C's open-ended ones now end in a commented
+  `else: pass` naming the remaining outcome: `_format_imm_expr`, `check_memory_mapped_io` (×2),
+  `mult_inst`, `_branch`, `_append`, `_parse_address`'s offset, and `parse_line`'s EOF. Two C sites
+  have no Python chain of that shape: the FCR write in `ctc1` is a single combined `if`, and
+  `_resolve_a_label_sub` is structured differently.
+- **Rust:** not done. An empty `else {}` runs into clippy's `needless_else` lint, and the Rust
+  standard's tool for total dispatch is `match`.
+- **Haskell:** not applicable; `if` requires an `else`.
 
-## How
+**5. `-Wswitch-enum`'s equivalent, per port gate.** Python: `ty` with `assert_never` (item 1). Rust:
+`match` exhaustiveness is a compile error. Haskell: `-Wall -Werror` includes
+`-Wincomplete-patterns`.
 
-- `python3 tools/c_dispatch_check.py BUILDDIR src --out DIR` writes every C site to `DIR`, which is
-  the checklist's source. Each port's counterpart has the same function name, or a leading `_` in
-  Python. The task's one-shot `crossref_python.py` mapped C functions to Python ones. It was removed
-  when the task was archived; `git log --all -- tasks/adhoc/c-switch-and-else-if-chains/` finds it.
-- Gate: `make image`; the port suites are `port-python`, `port-haskell`, `port-rust`.
+## Verification
+
+- port-python, port-haskell (with its annotation check), port-rust and the regression suite:
+  258/258.
+- ruff, `ty`, `cargo fmt`, clippy and `hlint` are clean, with `hlint`'s count unchanged.
