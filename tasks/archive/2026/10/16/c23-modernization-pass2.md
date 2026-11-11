@@ -78,7 +78,7 @@ per-instruction review and UBSan coordination, not a blind sweep — filed as
 
 gcc 16 core build clean under `-Werror`, `meson test` **36/36**; clang 22 core build clean under
 `-Werror`; the UBSan-trap and ASan gates (clang, `spimulator` target, regression suite) **25/25** —
-matching the pre-work baseline (`594e06b`). Verified standalone with the Dockerfile's own gate recipe.
+matching the pre-work baseline (`870e8f8`). Verified standalone with the Dockerfile's own gate recipe.
 
 ## Cross-links
 
