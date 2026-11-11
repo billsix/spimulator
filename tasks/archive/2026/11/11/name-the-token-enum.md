@@ -17,4 +17,5 @@ Declined. The fatal `default`s that task added already catch a bad token at run 
 core built under `-Wswitch-enum`, a switch on a named token type would have to list all ~500
 tokens or opt out at the site. That is churn without a matching gain. The one subset switch that
 had missed members, `r_cond_type_inst` and the paired-single compares, is handled by removing those
-rows (`tasks/paired-single-compare-encoding.md`). Revisit if a subset switch misses members again.
+rows (`tasks/archive/2026/11/11/paired-single-compare-encoding.md`). Revisit if a subset switch
+misses members again.

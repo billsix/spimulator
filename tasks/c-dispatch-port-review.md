@@ -61,7 +61,9 @@ commit, with the port suites green) and changes not needed (each with a reason).
    port's gate checks.
 6. **Not this task:** the two bugs found during the C work were fixed in all four engines in
    their own tasks: `tasks/archive/2026/11/11/parse-j-drops-cop2-and-jalr-hb.md` (`cop2`,
-   `jalr.hb`, `jr.hb`) and `tasks/paired-single-compare-encoding.md` (the `c.cond.ps` rows).
+   `jalr.hb`, `jr.hb`) and `tasks/archive/2026/11/11/paired-single-compare-encoding.md` (the
+   `c.cond.ps` rows). That work also changed `r_cond_type_inst` and `parse_j` in the ports to
+   match C's fatal defaults, so items 1 and 2 already hold for those two functions.
 
 ## How
 
