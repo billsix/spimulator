@@ -258,8 +258,10 @@ impl Instruction {
             } else {
                 a_opcode |= word & 0x3f;
             }
-        } else if a_opcode == 0x4800_0000 || a_opcode == 0x4c00_0000 {
-            a_opcode |= word & 0x03e0_0000; // COP2, COP1X
+        } else if a_opcode == 0x4800_0000 {
+            a_opcode |= word & 0x03e0_0000; // COP2: the rs field
+        } else if a_opcode == 0x4c00_0000 {
+            a_opcode |= word & 0x3f; // COP1X: the funct field
         }
 
         let field = |shift: u32| -> i32 { ((word >> shift) & 0x1f) as i32 };

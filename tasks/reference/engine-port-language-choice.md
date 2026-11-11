@@ -217,10 +217,10 @@ each had a direct answer.
 - **The C struct's unions matter.** `mips_instruction` overlays the register bytes, the 16-bit
   immediate and the 26-bit target, and the engine relies on it (FD lives in the shamt byte). The
   port keeps one `Word32` with byte accessors.
-- **Six encodings sit on two opcode rows each.** The C engine once let glibc's `qsort` + `bsearch`
-  pick the row; the decode column of `include/opcodes.tsv` now names it (a `*`), and every port's
-  generated decode table has one row per encoding (`tasks/reference/opcode-table-generator.md`, "The
-  decode column"). Disassembling 0x4600000f gives `prefx`, not `floor.w.s`, in every engine.
+- **Every encoding has one opcode row.** The C engine once let glibc's `qsort` + `bsearch` pick
+  between six duplicated rows; the rows now carry their real encodings, and every port's generated
+  decode table has one row per encoding (`tasks/reference/opcode-table-generator.md`, "The decode
+  column"). Disassembling 0x4600000f gives `floor.w.s` in every engine.
 - **Reading numbers matters as much as printing them.** `atof` is in the assembler (FP literals) and
   in read_float/read_double; an exact `Rational` conversion rounded once matches glibc on 60,035
   strings, once NaN is glibc's positive quiet NaN (GHC's `0/0` is negative) and keeps a `nan(n)`
@@ -255,8 +255,8 @@ Traps beyond the table above, each one a byte-level difference until handled:
   `SIG_DFL` and do not catch `BrokenPipeError`.
 - **Python raises where x86 computes**: `x / 0.0`, `math.sqrt(-1)`, `int(nan)`, `math.ceil(inf)`,
   `struct.pack('<f', 1e300)` (OverflowError, where C's `(float)` gives infinity).
-- **Duplicate encodings are settled by data, not by a search**: six encodings belong to two
-  mnemonics each, and the generated decode table names the one the disassembler prints.
+- **Encodings are decoded by table lookup, not by a search**: the generated decode table has one
+  row per encoding.
 - **Bytes, not text**: source lines, MIPS strings and file names may hold any byte; a `str`
   holding one character per byte (Latin-1) round-trips them.
 - **C's undefined behavior has to be reproduced, crash included**, where a test can see it: the

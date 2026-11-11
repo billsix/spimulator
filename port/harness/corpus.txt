@@ -41,3 +41,4 @@ big_sbrk       | -                 | -exception_file EF -f tt.big_sbrk.s
 big_stack      | -                 | -exception_file EF -sstack 1073741824 -lstack 2000000000 -f tt.big_stack.s
 close_stdout   | -                 | -exception_file EF -f tt.close_stdout.s
 delay_chain    | -                 | -exception_file EF -delayed_branches -f tt.delay_chain.s
+cop1x_decode   | -                 | -exception_file EF -f tt.cop1x_decode.s

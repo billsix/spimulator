@@ -191,6 +191,20 @@ case "$NAME" in
     expect_exit 2 "$rc"
     grep -q 'cop2 is not supported: spim has no coprocessor 2' "$out" || fail "missing the cop2 error"
     ;;
+  cop1x_decode)
+    # COP1 words whose low bits match a COP1X row decode to the COP1
+    # instruction (GNU as's encodings): trunc.w.s and floor.w.s run on -2.75,
+    # and the stored words disassemble as round.l.s/trunc.l.s/trunc.w.s/floor.w.s.
+    "$SPIM" -exception_file "$EF" -f tt.cop1x_decode.s >"$out" 2>&1; rc=$?
+    expect_exit 0 "$rc"
+    [ "$(grep -v '^Loaded: ' "$out" | tr '\n' ' ')" = "-2 -3 " ] || fail "trunc.w.s/floor.w.s of -2.75 are not -2 and -3"
+    printf 'load "tt.cop1x_decode.s"\nrun\ndisasm\nexit\n' | "$SPIM" -exception_file "$EF" >"$out" 2>&1; rc=$?
+    expect_exit 0 "$rc"
+    grep -q '0x46001008  round.l.s \$f0, \$f2' "$out" || fail "0x46001008 is not round.l.s"
+    grep -q '0x46001009  trunc.l.s \$f0, \$f2' "$out" || fail "0x46001009 is not trunc.l.s"
+    grep -q '0x4600100d  trunc.w.s \$f0, \$f2' "$out" || fail "0x4600100d is not trunc.w.s"
+    grep -q '0x4600100f  floor.w.s \$f0, \$f2' "$out" || fail "0x4600100f is not floor.w.s"
+    ;;
   imm_range)
     # An out-of-range immediate is reported on the instruction's own line (7),
     # not the next one, and the program still assembles and runs.

@@ -149,7 +149,8 @@ instDecode val =
       | t == 0x44000000 =
           -- COP1: bc1f/bc1t keep bit 16, the rest the function field
           t .|. (v .&. 0x03e00000) .|. (if v .&. 0xff000000 == 0x45000000 then v .&. 0x00010000 else v .&. 0x3f)
-      | t == 0x48000000 || t == 0x4c000000 = t .|. (v .&. 0x03e00000) -- COPz
+      | t == 0x48000000 = t .|. (v .&. 0x03e00000) -- COP2: the rs field
+      | t == 0x4c000000 = t .|. (v .&. 0x3f) -- COP1X: the funct field
       | otherwise = t
     base :: Int -> Instruction
     base op = (emptyInstruction op) {inEncoding = val}

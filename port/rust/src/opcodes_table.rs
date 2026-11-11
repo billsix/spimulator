@@ -208,9 +208,9 @@ pub const OPCODE_ROWS: [OpcodeRow; 365] = [
     OpcodeRow { name: "lwr", token: 457, op_type: OpType::RtAddrInst, encoding: -1744830464 },
     OpcodeRow { name: "lwxc1", token: 458, op_type: OpType::FpFdFsFtInst, encoding: 1275068416 },
     OpcodeRow { name: "madd", token: 459, op_type: OpType::RsRtInst, encoding: 1879048192 },
-    OpcodeRow { name: "madd.d", token: 460, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068417 },
-    OpcodeRow { name: "madd.ps", token: 461, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068422 },
-    OpcodeRow { name: "madd.s", token: 462, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068416 },
+    OpcodeRow { name: "madd.d", token: 460, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068449 },
+    OpcodeRow { name: "madd.ps", token: 461, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068454 },
+    OpcodeRow { name: "madd.s", token: 462, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068448 },
     OpcodeRow { name: "maddu", token: 463, op_type: OpType::RsRtInst, encoding: 1879048193 },
     OpcodeRow { name: "mfc0", token: 464, op_type: OpType::RtCopregInst, encoding: 1073741824 },
     OpcodeRow { name: "mfc1", token: 465, op_type: OpType::FpRtCopregInst, encoding: 1140850688 },
@@ -241,9 +241,9 @@ pub const OPCODE_ROWS: [OpcodeRow; 365] = [
     OpcodeRow { name: "movz.ps", token: 490, op_type: OpType::FpMovcTypeInst, encoding: 1186988050 },
     OpcodeRow { name: "movz.s", token: 491, op_type: OpType::FpMovcTypeInst, encoding: 1174405138 },
     OpcodeRow { name: "msub", token: 492, op_type: OpType::RsRtInst, encoding: 1879048196 },
-    OpcodeRow { name: "msub.d", token: 493, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068449 },
-    OpcodeRow { name: "msub.ps", token: 494, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068454 },
-    OpcodeRow { name: "msub.s", token: 495, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068448 },
+    OpcodeRow { name: "msub.d", token: 493, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068457 },
+    OpcodeRow { name: "msub.ps", token: 494, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068462 },
+    OpcodeRow { name: "msub.s", token: 495, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068456 },
     OpcodeRow { name: "msubu", token: 496, op_type: OpType::RsRtInst, encoding: 1879048197 },
     OpcodeRow { name: "mtc0", token: 497, op_type: OpType::RtCopregInst, encoding: 1082130432 },
     OpcodeRow { name: "mtc1", token: 498, op_type: OpType::FpRtCopregInst, encoding: 1149239296 },
@@ -280,7 +280,7 @@ pub const OPCODE_ROWS: [OpcodeRow; 365] = [
     OpcodeRow { name: "pll.ps", token: 529, op_type: OpType::FpFdFsFtInst, encoding: 1186988076 },
     OpcodeRow { name: "plu.ps", token: 530, op_type: OpType::FpFdFsFtInst, encoding: 1186988077 },
     OpcodeRow { name: "pref", token: 531, op_type: OpType::RtRsImmInst, encoding: -872415232 },
-    OpcodeRow { name: "prefx", token: 532, op_type: OpType::RsRtInst, encoding: 1174405135 },
+    OpcodeRow { name: "prefx", token: 532, op_type: OpType::RsRtInst, encoding: 1275068431 },
     OpcodeRow { name: "pul.ps", token: 533, op_type: OpType::FpFdFsFtInst, encoding: 1186988078 },
     OpcodeRow { name: "puu.ps", token: 534, op_type: OpType::FpFdFsFtInst, encoding: 1186988079 },
     OpcodeRow { name: "rdhwr", token: 535, op_type: OpType::RdRsRtInst, encoding: 2080374843 },
@@ -308,7 +308,7 @@ pub const OPCODE_ROWS: [OpcodeRow; 365] = [
     OpcodeRow { name: "sdbbp", token: 557, op_type: OpType::NoargTypeInst, encoding: 1879048255 },
     OpcodeRow { name: "sdc1", token: 558, op_type: OpType::FpFtAddrInst, encoding: -201326592 },
     OpcodeRow { name: "sdc2", token: 559, op_type: OpType::RtAddrInst, encoding: -134217728 },
-    OpcodeRow { name: "sdxc1", token: 560, op_type: OpType::FpFdFsFtInst, encoding: 1174405129 },
+    OpcodeRow { name: "sdxc1", token: 560, op_type: OpType::FpFdFsFtInst, encoding: 1275068425 },
     OpcodeRow { name: "seb", token: 561, op_type: OpType::RtCopregInst, encoding: 2080375840 },
     OpcodeRow { name: "seh", token: 562, op_type: OpType::RtCopregInst, encoding: 2080376352 },
     OpcodeRow { name: "seq", token: 563, op_type: OpType::PseudoOp, encoding: -1 },
@@ -338,13 +338,13 @@ pub const OPCODE_ROWS: [OpcodeRow; 365] = [
     OpcodeRow { name: "sub.ps", token: 587, op_type: OpType::FpFdFsFtInst, encoding: 1180696577 },
     OpcodeRow { name: "sub.s", token: 588, op_type: OpType::FpFdFsFtInst, encoding: 1174405121 },
     OpcodeRow { name: "subu", token: 589, op_type: OpType::RdRsRtInst, encoding: 35 },
-    OpcodeRow { name: "suxc1", token: 590, op_type: OpType::FpFdFsFtInst, encoding: 1174405133 },
+    OpcodeRow { name: "suxc1", token: 590, op_type: OpType::FpFdFsFtInst, encoding: 1275068429 },
     OpcodeRow { name: "sw", token: 591, op_type: OpType::RtAddrInst, encoding: -1409286144 },
     OpcodeRow { name: "swc1", token: 592, op_type: OpType::FpFtAddrInst, encoding: -469762048 },
     OpcodeRow { name: "swc2", token: 593, op_type: OpType::RtAddrInst, encoding: -402653184 },
     OpcodeRow { name: "swl", token: 594, op_type: OpType::RtAddrInst, encoding: -1476395008 },
     OpcodeRow { name: "swr", token: 595, op_type: OpType::RtAddrInst, encoding: -1207959552 },
-    OpcodeRow { name: "swxc1", token: 596, op_type: OpType::FpFdFsFtInst, encoding: 1174405128 },
+    OpcodeRow { name: "swxc1", token: 596, op_type: OpType::FpFdFsFtInst, encoding: 1275068424 },
     OpcodeRow { name: "sync", token: 597, op_type: OpType::NoargTypeInst, encoding: 15 },
     OpcodeRow { name: "synci", token: 598, op_type: OpType::RtRsImmInst, encoding: 68419584 },
     OpcodeRow { name: "syscall", token: 599, op_type: OpType::NoargTypeInst, encoding: 12 },
@@ -749,7 +749,7 @@ pub const TOK_XORI_OPCODE: i32 = 628;
 /// Where several rows share an encoding, the entry is the row
 /// `include/opcodes.tsv`'s decode column marks.
 #[rustfmt::skip]
-pub const DECODE_TABLE: [(i32, i32); 270] = [
+pub const DECODE_TABLE: [(i32, i32); 276] = [
     (-2147483648, 439), // lb
     (-2080374784, 445), // lh
     (-2013265920, 456), // lwl
@@ -882,14 +882,14 @@ pub const DECODE_TABLE: [(i32, i32); 270] = [
     (1174405125, 308), // abs.s
     (1174405126, 474), // mov.s
     (1174405127, 516), // neg.s
-    (1174405128, 596), // swxc1
-    (1174405129, 560), // sdxc1
+    (1174405128, 547), // round.l.s
+    (1174405129, 617), // trunc.l.s
     (1174405130, 390), // ceil.l.s
     (1174405131, 426), // floor.l.s
     (1174405132, 549), // round.w.s
     (1174405133, 619), // trunc.w.s
     (1174405134, 392), // ceil.w.s
-    (1174405135, 532), // prefx
+    (1174405135, 428), // floor.w.s
     (1174405137, 479), // movf.s
     (1174405138, 491), // movz.s
     (1174405139, 483), // movn.s
@@ -988,14 +988,20 @@ pub const DECODE_TABLE: [(i32, i32); 270] = [
     (1224867840, 326), // bc2fl
     (1224933376, 328), // bc2tl
     (1241513984, 398), // cop2
-    (1275068416, 462), // madd.s
+    (1275068416, 458), // lwxc1
     (1275068417, 444), // ldxc1
     (1275068421, 452), // luxc1
-    (1275068422, 461), // madd.ps
+    (1275068424, 596), // swxc1
+    (1275068425, 560), // sdxc1
+    (1275068429, 590), // suxc1
+    (1275068431, 532), // prefx
     (1275068446, 316), // alnv.ps
-    (1275068448, 495), // msub.s
-    (1275068449, 493), // msub.d
-    (1275068454, 494), // msub.ps
+    (1275068448, 462), // madd.s
+    (1275068449, 460), // madd.d
+    (1275068454, 461), // madd.ps
+    (1275068456, 495), // msub.s
+    (1275068457, 493), // msub.d
+    (1275068462, 494), // msub.ps
     (1275068464, 520), // nmadd.s
     (1275068465, 518), // nmadd.d
     (1275068470, 519), // nmadd.ps

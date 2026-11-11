@@ -1202,9 +1202,11 @@ mips_instruction* inst_decode(int32_t val) {
       else
         a_opcode |= (val & 0x3f);
       break;
-    case 0x48000000: /* COPz */
-    case 0x4c000000:
+    case 0x48000000: /* COP2: the rs field */
       a_opcode |= (val & 0x03e00000);
+      break;
+    case 0x4c000000: /* COP1X: the funct field */
+      a_opcode |= (val & 0x3f);
       break;
     default:
       /* Any other primary opcode is the whole key: nothing to add. */

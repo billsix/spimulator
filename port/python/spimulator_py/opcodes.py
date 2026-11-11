@@ -105,6 +105,6 @@ def token_for_encoding(a_opcode: int) -> int | None:
 
     Example:
         >>> name_of(token_for_encoding(0x4600000f) or 0)
-        'prefx'
+        'floor.w.s'
     """
     return _BY_ENCODING.get(a_opcode)

@@ -616,8 +616,10 @@ def inst_decode(word: int) -> Instruction:
         case 0x44000000:  # COP1
             a |= val & 0x03E00000
             a |= (val & 0x00010000) if val & 0xFF000000 == 0x45000000 else (val & 0x3F)
-        case 0x48000000 | 0x4C000000:  # COP2, COP1X
+        case 0x48000000:  # COP2: the rs field
             a |= val & 0x03E00000
+        case 0x4C000000:  # COP1X: the funct field
+            a |= val & 0x3F
         case _:
             pass  # any other value: nothing to do, as before
     token: int | None = opcodes.token_for_encoding(machine.s32(a))

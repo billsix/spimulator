@@ -43,16 +43,21 @@ in a preprocessing stage and fails, with a diff, if anything committed differs. 
 
 ## The decode column
 
-Seven encodings are shared: `-1` (every directive and pseudo-instruction) and six pairs of real
-instructions with the same fixed bits, such as `floor.w.s`/`prefx` and `lwxc1`/`madd.s`.
+Only one encoding is shared today: `-1`, by every directive and pseudo-instruction, with the `*` on
+`remu`. Every real instruction has its own encoding, checked against GNU `as`
+(`mips64-linux-gnu-as -mabi=32 -mips32r2 -mfp64 -EB`, then `mips64-linux-gnu-objdump -d`). The COP1X
+rows (major opcode 0x13, `0x4c…`) are keyed by their funct field, and so is the decode
+(`inst_decode`'s `case 0x4c000000` in `src/instruction.c`, and each port's counterpart).
 
-The old C engine sorted all 381 rows by encoding with `qsort` at startup and decoded with `bsearch`.
-Which row of a pair it found depended on glibc's sort and on where the search's halving landed.
+History: upstream's table gave the xc1/prefx rows COP1 encodings and madd/msub the wrong funct, so six
+encodings had two rows each, and the old C engine let glibc's `qsort` + `bsearch` pick between them.
+The `*` marks first preserved those picks (a one-shot `check_decode.c`, in git under
+`tasks/adhoc/opcodes-x-macro-redesign/` before the archive of
+`tasks/archive/2026/11/11/opcodes-x-macro-redesign.md`, proved it). The rows were then corrected
+(`tasks/archive/2026/11/11/duplicate-cop1x-encodings.md`), which removed the pairs.
 
-Now each decode table has one row per encoding, already sorted. The `*` marks preserve exactly the
-old answers. A one-shot program, `check_decode.c` (in git under `tasks/adhoc/opcodes-x-macro-redesign/`
-before the archive commit of `tasks/archive/2026/11/11/opcodes-x-macro-redesign.md`), reran the old
-algorithm against every encoding and found no difference. To change which row an encoding decodes to, move the `*`.
+If two rows ever share an encoding again, the generator requires exactly one `*` among them: the row
+a binary word decodes to.
 
 ## What it writes (`OUTPUTS` in `tools/gen_opcodes.py`)
 
