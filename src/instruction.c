@@ -62,15 +62,6 @@ static mem_addr next_text_pc;
 
 static mem_addr next_k_text_pc;
 
-/* Set by align_text (.align) and the text_begins_at_point pair; its value is
-   not currently read anywhere, so [[maybe_unused]] silences clang's
-   -Wunused-but-set-global (new in the LLVM 23 / Fedora 45 toolchain) under
-   -Werror.  Whether .align 0 should actually consult this to disable
-   auto-alignment is a latent question noted in
-   tasks/archive/2026/11/05/upgrade-to-fedora-45.md. */
-[[maybe_unused]] static bool enable_text_auto_alignment =
-    true; /* => align literal to natural bound */
-
 #define INST_PC (in_kernel ? next_k_text_pc : next_text_pc)
 
 /* Set ADDRESS at which the next instruction is stored. */
@@ -78,23 +69,23 @@ static mem_addr next_k_text_pc;
 void text_begins_at_point(mem_addr addr) {
   next_text_pc = addr;
   in_kernel = false;
-  enable_text_auto_alignment = true;
 }
 
 void k_text_begins_at_point(mem_addr addr) {
   next_k_text_pc = addr;
   in_kernel = false;
-  enable_text_auto_alignment = true;
 }
 
 /* Arrange that the next instruction is stored on a memory boundary with its
-   low ALIGNMENT bits equal to 0.  If argument is 0, disable automatic
-   alignment.*/
+   low ALIGNMENT bits equal to 0.  An ALIGNMENT of 0 does nothing in text:
+   .align 0 turns off the automatic alignment of .half, .word, .float and
+   .double, which applies only in the data segments (set_data_alignment), and
+   instructions are always word-aligned. */
 
 void align_text(int alignment) {
-  if (alignment == 0)
-    enable_text_auto_alignment = false;
-  else if (in_kernel) {
+  if (alignment == 0) {
+    /* Nothing to turn off in text (see above). */
+  } else if (in_kernel) {
     next_k_text_pc =
         (next_k_text_pc + (1u << alignment) - 1) & (0xffffffff << alignment);
     fix_current_label_address(next_k_text_pc);
