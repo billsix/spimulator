@@ -26,6 +26,7 @@ import pathlib
 import subprocess
 import sys
 import tempfile
+from collections.abc import Iterator
 
 from compare_engines import REPO, compare_text, resolve_engine
 
@@ -155,7 +156,7 @@ def main() -> int:
     ]
     counts: dict[str, int] = {"PASS": 0, "WARN": 0, "FAIL": 0}
     with concurrent.futures.ThreadPoolExecutor(max_workers=options.jobs) as pool:
-        results = pool.map(
+        results: Iterator[tuple[str, str, list[str]]] = pool.map(
             lambda case: compare_case(
                 reference, engine, case[0], case[1], options.timeout
             ),

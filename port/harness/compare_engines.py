@@ -196,13 +196,15 @@ def resolve_engine(path: str) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser: argparse.ArgumentParser = argparse.ArgumentParser(
+        description=__doc__.split("\n")[0]
+    )
     parser.add_argument("--reference", required=True, help="the C spimulator")
     parser.add_argument("--engine", required=True, help="the port's executable")
     parser.add_argument("--exception-file", default=str(REPO / "src" / "exceptions.s"))
     parser.add_argument("--timeout", type=float, default=600.0)
     parser.add_argument("cases", nargs="*", help="case names (default: all)")
-    options = parser.parse_args()
+    options: argparse.Namespace = parser.parse_args()
     # The cases run from tests/, so an engine given by a relative path is
     # resolved against the directory the harness was started from.
     reference: str = resolve_engine(options.reference)
