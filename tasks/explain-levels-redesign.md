@@ -4,7 +4,7 @@
 **Priority:** 4
 **Difficulty:** 8
 **Created:** 2026-11-05 (William Emerison Six <billsix@gmail.com>)
-**Depends on:** `tasks/explain-mode-correctness-bugs.md` (fix the bugs first)
+**Depends on:** `tasks/archive/2026/11/11/explain-mode-correctness-bugs.md` (fix the bugs first)
 
 ## BLUF
 

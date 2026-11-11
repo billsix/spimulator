@@ -2,7 +2,7 @@
 
 **Status:** draft design, written 2026-11-05 for the maintainer's review. It describes the *target* teaching
 mode; the code does not follow it yet. `tasks/explain-levels-redesign.md` brings the code into line, and
-`tasks/explain-mode-correctness-bugs.md` fixes the outright bugs first. Once the redesign is done, this doc
+`tasks/archive/2026/11/11/explain-mode-correctness-bugs.md` fixes the outright bugs first. Once the redesign is done, this doc
 describes the shipped behaviour and the "Status" line goes.
 
 Modelled on hanoi's two UX reference docs (github.com/billsix/towersofhanoi

@@ -25,7 +25,7 @@ Fixed on the way:
 - the old `spim` name, xspim/qtspim, and the dead SourceForge contact are gone.
 
 The teaching-mode level descriptions are kept, as they match the code.
-`tasks/explain-mode-correctness-bugs.md` will update them with its fixes. `CLAUDE.md`, the
+`tasks/archive/2026/11/11/explain-mode-correctness-bugs.md` will update them with its fixes. `CLAUDE.md`, the
 `meson.build` comment and two open tasks cite the new name.
 
 ## Not done (follow-up)

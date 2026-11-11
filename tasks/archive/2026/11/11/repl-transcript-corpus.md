@@ -21,7 +21,7 @@
   expected (`print_all_regs` after `print_all_regs hex`) had already been fixed in C by
   `tasks/archive/2026/11/11/c-undefined-behavior-fixes-then-ports.md`; the `print_all_regs_twice`
   session pins it. The `step_exception` session then caught the REPL `step` change in
-  `tasks/explain-mode-correctness-bugs.md` before the ports had it, as intended.
+  `tasks/archive/2026/11/11/explain-mode-correctness-bugs.md` before the ports had it, as intended.
 - The one-shot REPL differs `tasks/adhoc/engine-port-haskell/repl.py` and
   `tasks/adhoc/engine-port-python/diff_repl.sh` were removed. Their sessions are in the corpus, and
   the scripts remain in git history.

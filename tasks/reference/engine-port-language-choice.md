@@ -100,7 +100,7 @@ engine finishes each in seconds. Interactive teaching use (`-explain`, `step`) i
 | `syscall.c` (~220) | syscalls 1–17 | `open` passes **host** flag values through (§5.6): a port must map them the way the C does on Linux |
 | `exceptions.s` | trap handler (MIPS asm, `#embed`ed) | reuse the same file unchanged; the AST-parity dumps depend on its addresses |
 | `spim.c` + `spim-utils.c` + `display-utils.c` (~2.5K) | CLI, REPL, register display | `setjmp`/`longjmp` (Ctrl-C, `run_error`) become exceptions — cleaner in every candidate language; libedit becomes Python `readline`/`cmd`, Rust `rustyline` |
-| `explain.c` (~2.6K) | teaching narration | port last; its known bugs (`tasks/explain-mode-correctness-bugs.md`, audit §3.6) should be fixed in C first so the oracle is right |
+| `explain.c` (~2.6K) | teaching narration | port last; its known bugs (`tasks/archive/2026/11/11/explain-mode-correctness-bugs.md`, audit §3.6) should be fixed in C first so the oracle is right |
 
 ## Differential test plan
 

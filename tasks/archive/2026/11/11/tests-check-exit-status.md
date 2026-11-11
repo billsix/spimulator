@@ -23,7 +23,7 @@ fails.
 - **`tests/tt.explain.s` exits 132 under `-explain=1` and `-explain=2`, and 0 without `-explain`.**
   The teaching mode's memory peeks raise an exception the program never does: explain-mode bug 1,
   the 2026-11-10 review's §3.6. The explain golden had been pinning that run. The test pins 132,
-  with a comment, until `tasks/explain-mode-correctness-bugs.md` fixes it; then it becomes 0.
+  with a comment, until `tasks/archive/2026/11/11/explain-mode-correctness-bugs.md` fixes it; then it becomes 0.
 - **`examples/src/intro/yes/yes.asm`** prints `y` forever, so `harness-holes`' new rule (a C-side
   timeout fails) failed its run and listing modes. They are now skipped by name, with the reason,
   in `port/harness/compare_all_programs.py`.

@@ -107,7 +107,7 @@ fail on the engine from before the fixes, built from `HEAD` in a scratch directo
   before. Its output is the same as `core_full`'s.
 - **`explain_parity` deleted.** It compared `-dump` output, and `-dump` never runs the program, so
   the test could not fail. A real one (the program's output must not change with `-explain`) belongs
-  with `tasks/explain-mode-correctness-bugs.md`, which now says so. `-explain=1` on `tt.core.s` is
+  with `tasks/archive/2026/11/11/explain-mode-correctness-bugs.md`, which now says so. `-explain=1` on `tt.core.s` is
   too verbose for that (about 45 million stderr lines in a minute), so it needs a small program.
 
 **Also noticed:** assembling the shipped exception handler prints `Target of jump differs in
