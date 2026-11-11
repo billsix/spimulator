@@ -39,6 +39,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f cat.asm cat.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f cat.asm cat.input
  */
 /* clang-format on */
 

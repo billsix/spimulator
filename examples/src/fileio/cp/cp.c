@@ -26,6 +26,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f cp.asm cp.c cp-copy.c
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f cp.asm cp.c cp-copy.c
  */
 /* clang-format on */
 

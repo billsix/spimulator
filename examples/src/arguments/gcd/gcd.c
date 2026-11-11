@@ -48,6 +48,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f gcd.asm 48 18
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f gcd.asm 48 18
  */
 /* clang-format on */
 

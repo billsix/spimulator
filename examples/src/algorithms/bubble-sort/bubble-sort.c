@@ -52,6 +52,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f bubble-sort.asm < bubble-sort.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f bubble-sort.asm < bubble-sort.input
  */
 /* clang-format on */
 

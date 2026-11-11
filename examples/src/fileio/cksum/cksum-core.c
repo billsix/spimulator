@@ -50,6 +50,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f cksum-core.asm < cksum.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f cksum-core.asm < cksum.input
  */
 /* clang-format on */
 

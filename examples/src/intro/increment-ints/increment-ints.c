@@ -32,6 +32,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f increment-ints-1.asm
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f increment-ints-1.asm
  */
 /* clang-format on */
 

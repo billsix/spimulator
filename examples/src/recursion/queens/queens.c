@@ -47,6 +47,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f queens.asm 6
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f queens.asm 6
  */
 /* clang-format on */
 

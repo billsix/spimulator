@@ -38,6 +38,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f nologin.asm
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f nologin.asm
  */
 /* clang-format on */
 

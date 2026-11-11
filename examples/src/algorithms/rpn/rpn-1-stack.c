@@ -42,6 +42,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f rpn-1-stack.asm < rpn-1-stack.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f rpn-1-stack.asm < rpn-1-stack.input
  */
 /* clang-format on */
 

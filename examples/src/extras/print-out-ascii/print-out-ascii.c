@@ -33,6 +33,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f print-out-ascii-1.asm
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f print-out-ascii-1.asm
  */
 /* clang-format on */
 

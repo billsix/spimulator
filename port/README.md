@@ -7,7 +7,7 @@ warning. Rules, ordering and decisions: `tasks/engine-ports.md`.
 
 | Port | Directory | Command | Task |
 |---|---|---|---|
-| Python | `port/python/` | `spimulator-python` | `tasks/engine-port-python.md` |
+| Python | `port/python/` | `spimulator-python` | `tasks/archive/2026/11/10/engine-port-python.md` |
 | GHC Haskell | `port/haskell/` | `spimulator-haskell` | `tasks/engine-port-haskell.md` |
 | Rust | `port/rust/` | `spimulator-rust` | `tasks/engine-port-rust.md` |
 

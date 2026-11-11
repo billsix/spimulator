@@ -47,6 +47,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f bubble-sort-core-test.asm
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f bubble-sort-core-test.asm
  */
 /* clang-format on */
 

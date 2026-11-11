@@ -31,6 +31,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f commaAndPeriodCounter.asm < commaAndPeriodCounter.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f commaAndPeriodCounter.asm < commaAndPeriodCounter.input
  */
 /* clang-format on */
 

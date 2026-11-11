@@ -65,6 +65,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f fibonacci.asm 10
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f fibonacci.asm 10
  */
 /* clang-format on */
 

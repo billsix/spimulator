@@ -90,7 +90,7 @@ static void ast_append(ast_node* node) {
   }
 }
 
-void emit_ast(const ast_node* file);
+void emit_ast(const ast_node* file, const ast_node* after);
 
 void parser_set_print_ast(bool on, FILE* out) {
   print_ast_after_parse = on;
@@ -2125,7 +2125,24 @@ void parser_init(FILE* in, char* file_name) {
   current_file = ast_make_file(file_name);
 }
 
+/* The last top-level node of FILE's tree, or nullptr if it has none. */
+static const ast_node* last_child(const ast_node* file) {
+  if (file == nullptr) return nullptr;
+  const ast_node* last = nullptr;
+  for (const ast_node* n = file->u.file.child; n != nullptr; n = n->next)
+    last = n;
+  return last;
+}
+
 int parse_file(void) {
+  /* Emit only what this call parses, starting in the segment that was
+     current when it began.  The REPL's `.` command parses one line onto
+     the tree of the file loaded last, whose nodes were emitted already;
+     and the parse itself moves data_dir/text_dir as it meets .data and
+     .text, which emit_ast must replay from the start. */
+  const ast_node* emitted = last_child(current_file);
+  bool start_data_dir = data_dir;
+  bool start_text_dir = text_dir;
   while (scanner_peek() != TOK_EOF) {
     parse_error_occurred = false;
     scanner_start_line();
@@ -2157,7 +2174,9 @@ int parse_file(void) {
      the user asked to just inspect the tree (-print-ast /
      -show-expansion / -print-ast-json). */
   if (!print_ast_only_ && current_file != nullptr) {
-    emit_ast(current_file);
+    data_dir = start_data_dir;
+    text_dir = start_text_dir;
+    emit_ast(current_file, emitted);
   }
 
   return parse_errors_seen;
@@ -2180,9 +2199,12 @@ int parse_file(void) {
 
 static void emit_one(const ast_node* node);
 
-void emit_ast(const ast_node* file) {
+/* Emit FILE's top-level nodes that come after AFTER (all of them when AFTER is
+   nullptr). */
+void emit_ast(const ast_node* file, const ast_node* after) {
   if (file == nullptr || file->kind != AST_FILE) return;
-  for (const ast_node* n = file->u.file.child; n != nullptr; n = n->next) {
+  const ast_node* first = after == nullptr ? file->u.file.child : after->next;
+  for (const ast_node* n = first; n != nullptr; n = n->next) {
     emit_one(n);
     /* Match parse_line's "clear labels after a non-label
        directive or instruction" rule. */

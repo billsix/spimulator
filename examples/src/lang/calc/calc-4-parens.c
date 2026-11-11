@@ -44,6 +44,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f calc-4-parens.asm < calc-4-parens.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f calc-4-parens.asm < calc-4-parens.input
  */
 /* clang-format on */
 

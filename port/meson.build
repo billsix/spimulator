@@ -6,15 +6,19 @@
 #     <name>-<test>         every regression test (tests/run-test.sh) except
 #                           the teaching mode, which the ports do not have yet
 #     <name>-demo-<demo>    every examples demo (examples/tests/run-demo.sh)
-#     <name>-documented     every example's documented BUILD AND RUN commands
-#                           (tools/check_example_commands.py)
+#     <name>-documented     every example's documented BUILD AND RUN commands,
+#                           its spimulator-<name> lines run through the port
+#                           (tools/check_example_commands.py --port)
 #     <name>-compare        port/harness/compare_engines.py: stdout, stderr
 #                           and exit status against the C engine, case by case
+#     <name>-all-programs   port/harness/compare_all_programs.py: every .s/.asm
+#                           in the repo, assembled six ways and run, against C
 #
 # A port is listed here when its task's harness milestone is done, so the image
 # build (which runs `meson test`) gates it from then on.  Each entry is
 # [name, executable relative to the source root].
 ports = [
+  ['python', 'port/python/spimulator-python'],
 ]
 
 # Not run against ports, with the reason:
@@ -42,11 +46,19 @@ foreach port : ports
 
   test(port_name + '-documented', python3,
        args: [meson.project_source_root() / 'tools' / 'check_example_commands.py',
-              '--spimulator', port_exe],
+              '--spimulator', spimulator_exe.full_path(),
+              '--port', port_name + '=' + port_exe],
+       depends: spimulator_exe,
        suite: port_suite, timeout: 1800)
 
   test(port_name + '-compare', python3,
        args: [meson.current_source_dir() / 'harness' / 'compare_engines.py',
+              '--reference', spimulator_exe.full_path(),
+              '--engine', port_exe],
+       depends: spimulator_exe,
+       suite: port_suite, timeout: 3600)
+  test(port_name + '-all-programs', python3,
+       args: [meson.current_source_dir() / 'harness' / 'compare_all_programs.py',
               '--reference', spimulator_exe.full_path(),
               '--engine', port_exe],
        depends: spimulator_exe,

@@ -12,25 +12,35 @@ tasks/reference/example-c-teaching-style.md) of this shape:
      *
      *   the paired MIPS assembly, in spimulator:
      *     $ spimulator -f echo.asm hello world
+     *
+     *   the same assembly, in the Python port:
+     *     $ spimulator-python -f echo.asm hello world
      */
 
 A demo whose assembly comes in numbered versions (NAME-1.asm, NAME-2.asm)
-lists one spimulator line per version.  The checker copies examples/src/ to a
-scratch directory (the commands write binaries and, for tee/cp/touch, output
-files), then for each demo runs the `$ ` lines with bash from the demo's
-directory.  A demo passes when the compile exits 0 and every spimulator run
-prints the same stdout, and exits with the same status, as the native run
-(except the versions listed in DIFFERS_ON_PURPOSE, which need only run).  stderr is not compared: spimulator
-reports its own load messages there.
+lists one spimulator line per version.  The lines after them run the same
+assembly through each finished port of the engine (port/README.md), one
+`spimulator-NAME` line per spimulator line.  The checker copies
+examples/src/ to a scratch directory (the commands write binaries and, for
+tee/cp/touch, output files), then for each demo runs the `$ ` lines with bash
+from the demo's directory.  A demo passes when the compile exits 0 and every
+simulator run prints the same stdout, and exits with the same status, as the
+native run (except the versions listed in DIFFERS_ON_PURPOSE, which need only
+run).  stderr is not compared: spimulator reports its own load messages
+there.  A `spimulator-NAME` line is checked only when --port NAME=PATH says
+which executable it runs; without that option such lines are skipped, and
+the summary says how many.
 
 Usage:
-    tools/check_example_commands.py [--spimulator PATH] [--jobs N] [FILE.c ...]
+    tools/check_example_commands.py [--spimulator PATH] [--port NAME=PATH ...]
+                                    [--jobs N] [FILE.c ...]
 
 With no files, every teaching .c is checked, and one without a block is a
 failure (the IO helpers at the top of examples/src, the three library
 sources and the template carry none).
 --spimulator names the binary to run as `spimulator` (default: the one on
-PATH), so the documented line stays verbatim.
+PATH), so the documented line stays verbatim; --port python=PATH likewise
+names the one to run as `spimulator-python` (repeatable, one per port).
 
 Exit status: 0 if every demo passes, 1 otherwise.
 """
@@ -108,12 +118,22 @@ def run(
     )
 
 
-def check(demo: pathlib.Path, scratch: pathlib.Path, env: dict[str, str]) -> str | None:
-    """Return None if DEMO's documented commands agree, else a failure message."""
+def simulator_of(cmd: str) -> str:
+    """The simulator a documented line runs: `spimulator` or `spimulator-NAME`."""
+    return next(w for w in cmd.split() if w.startswith("spimulator"))
+
+
+def check(
+    demo: pathlib.Path, scratch: pathlib.Path, env: dict[str, str], ports: set[str]
+) -> tuple[str | None, int]:
+    """(None or a failure message, number of port lines skipped) for DEMO.
+
+    A `spimulator-NAME` line runs only when NAME is in ports.
+    """
     rel: pathlib.Path = demo.relative_to(SRC)
     lines: list[str] = commands(demo.read_text())
     if len(lines) < 3:
-        return f"{rel}: expected at least 3 '$ ' lines, found {len(lines)}"
+        return f"{rel}: expected at least 3 '$ ' lines, found {len(lines)}", 0
     build, native, *simulated_runs = lines
     cwd: pathlib.Path = scratch / rel.parent
     built: subprocess.CompletedProcess[bytes] = run(build, cwd, env)
@@ -121,9 +141,14 @@ def check(demo: pathlib.Path, scratch: pathlib.Path, env: dict[str, str]) -> str
         return (
             f"{rel}: build failed ({built.returncode}): {build}\n"
             f"{built.stderr.decode(errors='replace')}"
-        )
+        ), 0
     ran: subprocess.CompletedProcess[bytes] = run(native, cwd, env)
+    skipped: int = 0
     for simulated in simulated_runs:
+        port: str = simulator_of(simulated).removeprefix("spimulator").removeprefix("-")
+        if port and port not in ports:
+            skipped += 1
+            continue
         sim: subprocess.CompletedProcess[bytes] = run(simulated, cwd, env)
         asm: str = next(
             w for w in simulated.split() if w.endswith(".asm") and "/" not in w
@@ -132,14 +157,14 @@ def check(demo: pathlib.Path, scratch: pathlib.Path, env: dict[str, str]) -> str
             continue
         if (ran.stdout, ran.returncode) != (sim.stdout, sim.returncode):
             return (
-                f"{rel}: native and spimulator runs differ\n"
+                f"{rel}: native and {simulator_of(simulated)} runs differ\n"
                 f"  native (exit {ran.returncode}): {native}\n"
                 f"{ran.stdout.decode(errors='replace')}"
-                f"  spimulator (exit {sim.returncode}): {simulated}\n"
+                f"  {simulator_of(simulated)} (exit {sim.returncode}): {simulated}\n"
                 f"{sim.stdout.decode(errors='replace')}"
                 f"{sim.stderr.decode(errors='replace')}"
-            )
-    return None
+            ), skipped
+    return None, skipped
 
 
 def main() -> int:
@@ -147,6 +172,13 @@ def main() -> int:
         description=__doc__.splitlines()[0]
     )
     parser.add_argument("--spimulator", help="binary to run as `spimulator`")
+    parser.add_argument(
+        "--port",
+        action="append",
+        default=[],
+        metavar="NAME=PATH",
+        help="binary to run as `spimulator-NAME` (repeatable)",
+    )
     parser.add_argument("--jobs", type=int, default=os.cpu_count() or 1)
     parser.add_argument("files", nargs="*", type=pathlib.Path)
     args: argparse.Namespace = parser.parse_args()
@@ -160,24 +192,34 @@ def main() -> int:
         if MARK not in d.read_text()
     ]
     demos = [d for d in demos if MARK in d.read_text()]
+    ports: dict[str, str] = dict(p.split("=", 1) for p in args.port)
     with tempfile.TemporaryDirectory() as tmp:
         scratch: pathlib.Path = pathlib.Path(tmp) / "src"
         shutil.copytree(SRC, scratch)
         env: dict[str, str] = dict(os.environ)
+        programs: dict[str, str] = {f"spimulator-{n}": p for n, p in ports.items()}
         if args.spimulator:
+            programs["spimulator"] = args.spimulator
+        if programs:
             bindir: pathlib.Path = pathlib.Path(tmp) / "bin"
             bindir.mkdir()
-            (bindir / "spimulator").symlink_to(pathlib.Path(args.spimulator).resolve())
+            for name, path in programs.items():
+                (bindir / name).symlink_to(pathlib.Path(path).resolve())
             env["PATH"] = f"{bindir}{os.pathsep}{env.get('PATH', '')}"
         with concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:
-            failures: list[str] = [
-                m for m in pool.map(lambda d: check(d, scratch, env), demos) if m
-            ]
-    failures = missing + failures
+            results: list[tuple[str | None, int]] = list(
+                pool.map(lambda d: check(d, scratch, env, set(ports)), demos)
+            )
+    failures: list[str] = missing + [m for m, _ in results if m]
+    skipped: int = sum(n for _, n in results)
     for message in failures:
         print(message, file=sys.stderr)
     total: int = len(demos) + len(missing)
     print(f"{total - len(failures)}/{total} demos: documented commands agree")
+    if skipped:
+        print(
+            f"note: {skipped} port lines skipped (no --port NAME=PATH for their port)"
+        )
     return 1 if failures else 0
 
 

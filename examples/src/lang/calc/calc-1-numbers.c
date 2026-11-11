@@ -45,6 +45,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f calc-1-numbers.asm < calc-1-numbers.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f calc-1-numbers.asm < calc-1-numbers.input
  */
 /* clang-format on */
 

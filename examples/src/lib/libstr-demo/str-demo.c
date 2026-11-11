@@ -27,6 +27,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f ../libstr/libstr.asm -f str-demo.asm
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f ../libstr/libstr.asm -f str-demo.asm
  */
 /* clang-format on */
 

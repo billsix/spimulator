@@ -43,6 +43,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f strings.asm < strings.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f strings.asm < strings.input
  */
 /* clang-format on */
 

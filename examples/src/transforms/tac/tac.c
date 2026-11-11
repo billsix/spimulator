@@ -31,6 +31,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f tac.asm tac.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f tac.asm tac.input
  */
 /* clang-format on */
 

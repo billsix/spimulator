@@ -64,6 +64,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f binary-search.asm 5
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f binary-search.asm 5
  */
 /* clang-format on */
 

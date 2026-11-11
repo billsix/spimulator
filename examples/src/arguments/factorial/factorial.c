@@ -48,6 +48,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f factorial.asm 10
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f factorial.asm 10
  */
 /* clang-format on */
 

@@ -27,7 +27,7 @@ through the C engine and every port. Done for the umbrella:
 1. [x] `tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md` (done) — fix the C engine's wrong-value bugs, close the test
    gaps, drop `,` as an FP decimal separator. The standard must be right and fully pinned before
    anything is compared with it.
-2. [ ] `tasks/engine-port-python.md` — the Python port. It also builds the shared harness (its Plan
+2. [x] `tasks/archive/2026/11/10/engine-port-python.md` (done) — the Python port. It also builds the shared harness (its Plan
    step 2), generic over any number of engines.
 3. [ ] `tasks/engine-port-haskell.md` — the GHC Haskell port.
 4. [ ] `tasks/engine-port-rust.md` — the Rust port.
@@ -112,3 +112,17 @@ milestones.
   port.
 - Each port is written by a separate agent with a written brief. The coordinator reviews its
   commits, merges, registers the port, runs the gate (`make image`), and writes the done-record.
+- **The Python port finished first** (commits `e054044`..`4946387`; registered in `port/meson.build`).
+  The gate `make image` with it registered passed: 128 meson tests (64 of them the `port-python`
+  suite), and the regression suite under UBSan and ASan.
+- **The Haskell port finished second** and was merged (`eff193a`), but not registered yet (below).
+- **The ports found nine more C engine bugs between them** (logged in each port's task, "C engine
+  bugs found"). Six were fixed in C (`a0eefb8`, each with a test that fails before the fix), because
+  the C engine is the standard and two ports had already chosen different behavior where C crashed.
+  Every port is then brought in line with the fixed C. Options weighed: (a) leave C alone and make
+  the ports copy its crashes (what the Python port did: exit 139 to match a SIGSEGV), or (b) fix C
+  first. (b), because a port should not be written to reproduce a null-pointer crash, and the
+  fixes were small.
+- **Two pieces of the Python port's work were promoted for every port:** its whole-tree comparison
+  (`port/harness/compare_all_programs.py`, registered as `<name>-all-programs`) and its example-header
+  codemod (`tools/add_port_lines.py NAME LABEL`).

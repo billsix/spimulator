@@ -42,6 +42,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f seq.asm 1 5
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f seq.asm 1 5
  */
 /* clang-format on */
 

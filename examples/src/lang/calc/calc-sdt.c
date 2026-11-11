@@ -58,6 +58,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f calc-sdt.asm < calc-sdt.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f calc-sdt.asm < calc-sdt.input
  */
 /* clang-format on */
 

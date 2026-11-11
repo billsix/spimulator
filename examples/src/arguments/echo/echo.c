@@ -45,6 +45,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f echo.asm hello world
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f echo.asm hello world
  */
 /* clang-format on */
 

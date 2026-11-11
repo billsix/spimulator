@@ -65,6 +65,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f rot13.asm < rot13.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f rot13.asm < rot13.input
  */
 /* clang-format on */
 

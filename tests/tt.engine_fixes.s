@@ -132,6 +132,16 @@ movn_site:
 far_target:
         bne $t0, $zero, fail
 
+        # --- a byte or half load from an empty code word reads 0 -----------
+        # (the C engine dereferenced a null slot; found by the ports)
+        li $a0, 9
+        la $t1, code_end
+        addiu $t1, $t1, 64               # past the last instruction
+        lb $t2, 0($t1)
+        bne $t2, $zero, fail
+        lh $t2, 2($t1)
+        bne $t2, $zero, fail
+
         # --- done -----------------------------------------------------------
         la $a0, pass_msg
         li $v0, 4
@@ -153,3 +163,4 @@ fail:
         li $v0, 17
         li $a0, 1
         syscall
+code_end:

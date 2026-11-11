@@ -22,6 +22,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f ../libctype/libctype.asm -f ctype-demo.asm
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f ../libctype/libctype.asm -f ctype-demo.asm
  */
 /* clang-format on */
 

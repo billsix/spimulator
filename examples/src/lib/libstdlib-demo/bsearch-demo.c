@@ -18,6 +18,9 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f ../libctype/libctype.asm -f ../libstdlib/libstdlib.asm -f bsearch-demo.asm
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f ../libctype/libctype.asm -f ../libstdlib/libstdlib.asm -f bsearch-demo.asm
  */
 /* clang-format on */
 
