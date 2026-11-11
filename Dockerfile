@@ -1,30 +1,5 @@
 FROM registry.fedoraproject.org/fedora:45
 
-ARG USE_EMACS=0
-
-# Build the editor-integration tree-sitter grammar?  Adds Node.js +
-# tree-sitter-cli (~90 MB) to the image but doesn't change spim itself.
-# Off by default since most spim users don't need it.
-ARG BUILD_TREE_SITTER=0
-
-# Install the toolchain to build the PGU book (the MIPS-on-spim port
-# under pgu/) into HTML/PDF/EPUB?  Adds Sphinx + furo + a full TeX
-# Live (~hundreds of MB), so it is a build-time opt-out.  The book
-# itself is built at runtime by the `docs`/`html`/`pdf`/`epub`
-# Makefile targets, which mount the repo and run sphinx-build inside
-# this image — nothing is built during `docker build`.
-ARG BUILD_DOCS=1
-
-# Run the sanitizer gate at image-build time?  Builds spim a second/third
-# time under UndefinedBehaviorSanitizer (trap mode) and AddressSanitizer and
-# runs the regression suite under each, FAILING the image if any UB or memory
-# error fires (the same way the plain `meson test` step gates the build).
-# Catches integer-UB / memory-safety regressions before they ship.  Off by
-# default for a bare `podman build` (a second/third instrumented compile of
-# src/ costs build time); `make image` turns it on.  See
-# tasks/archive/2026/06/16/ubsan-sweep.md for the primer + rationale.
-ARG RUN_SANITIZERS=0
-
 # Build + install locations.  Override at build time with
 # `--build-arg SPIM_BUILD_DIR=...` or `--build-arg SPIM_PREFIX=...`.
 # `ENV` (not `ARG`) so subsequent RUN layers see them via $VAR
@@ -57,15 +32,29 @@ COPY entrypoint/05-install-ports.sh /usr/local/bin
 
 
 
+# Each ARG is declared just before the first layer that reads it: a build-arg's
+# value is part of every later layer's cache key, so declaring it earlier would
+# re-run every slow layer below when it changes.
+ARG USE_EMACS=0
+# Base packages, then (USE_EMACS) Emacs; see entrypoint/01-install-base.sh and
+# 02-install-emacs.sh.  Chained with && so a failed install fails this layer.
 RUN --mount=type=cache,target=/var/cache/libdnf5 \
     --mount=type=cache,target=/var/lib/dnf \
     echo "keepcache=True" >> /etc/dnf/dnf.conf && \
     sed -i -e "s@tsflags=nodocs@#tsflags=nodocs@g" /etc/dnf/dnf.conf && \
     /usr/local/bin/01-install-base.sh && \
-    echo 'set debuginfod enabled off' > /root/.gdbinit ; \
+    echo 'set debuginfod enabled off' > /root/.gdbinit && \
     if [ "$USE_EMACS" = "1" ]; then \
       /usr/local/bin/02-install-emacs.sh ; \
-    fi ;
+    fi
+
+# Install the toolchain to build the PGU book (the MIPS-on-spim port
+# under pgu/) into HTML/PDF/EPUB?  Adds Sphinx + furo + a full TeX
+# Live (~hundreds of MB), so it is a build-time opt-out.  The book
+# itself is built at runtime by the `docs`/`html`/`pdf`/`epub`
+# Makefile targets, which mount the repo and run sphinx-build inside
+# this image — nothing is built during `docker build`.
+ARG BUILD_DOCS=1
 
 # PGU book toolchain (gated by BUILD_DOCS).  Mirrors the deps in
 # pgu/Dockerfile: Sphinx + the furo theme for HTML/EPUB, latexmk +
@@ -139,6 +128,16 @@ RUN cd ${SPIM_SRC_DIR} && \
 #     the build.
 RUN meson test -C ${SPIM_BUILD_DIR} --print-errorlogs
 
+# Run the sanitizer gate at image-build time?  Builds spim a second/third
+# time under UndefinedBehaviorSanitizer (trap mode) and AddressSanitizer and
+# runs the regression suite under each, FAILING the image if any UB or memory
+# error fires (the same way the plain `meson test` step gates the build).
+# Catches integer-UB / memory-safety regressions before they ship.  Off by
+# default for a bare `podman build` (a second/third instrumented compile of
+# src/ costs build time); `make image` turns it on.  See
+# tasks/archive/2026/06/16/ubsan-sweep.md for the primer + rationale.
+ARG RUN_SANITIZERS=0
+
 # Sanitizer gate (opt-in via RUN_SANITIZERS=1; `make image` sets it).  Build
 # spim — and ONLY spim (the `spimulator` target; the -nostdlib example demos
 # must not be sanitized) — under UBSan-trap and ASan, and run the regression
@@ -172,13 +171,18 @@ RUN if [ "$RUN_SANITIZERS" = "1" ]; then \
 # /pgu-style flow.  This is the *native* path; the MIPS binaries
 # that run under spim + their golden tests are owned by the meson
 # build above.  CC=clang to match the rest of the image.
-# See examples/tasks/PLAN-asm-listings-makefile.md.
+# See tasks/archive/2026/05/24/PLAN-asm-listings-makefile.md.
 #
 # `debug` additionally builds bin-debug/<demo> with -g (frame pointer
 # kept, DWARF emitted) so a student can `gdb bin-debug/<demo>`, break
 # on my_main and step the C.  The container already ships gdb/lldb/
-# valgrind.  See tasks/examples-makefile-debug-build.md.
+# valgrind.  See tasks/archive/2026/10/31/examples-makefile-debug-build.md.
 RUN make -C ${SPIM_SRC_DIR}/examples/src CC=clang all debug
+
+# Build the editor-integration tree-sitter grammar?  Adds Node.js +
+# tree-sitter-cli (~90 MB) to the image but doesn't change spim itself.
+# Off by default since most spim users don't need it.
+ARG BUILD_TREE_SITTER=0
 
 # Optional: build and test the editor-integration tree-sitter grammar.
 # Gated by --build-arg BUILD_TREE_SITTER=1 because Node + tree-sitter-cli
