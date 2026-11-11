@@ -1,10 +1,10 @@
-//! The opcode table and the lookups built on it (`include/opcodes.h`,
-//! `include/tokens.h`, and the tables of `scanner.c` and `instruction.c`).
+//! The opcode table and the lookups built on it (`include/tokens.h`, and
+//! the tables of `scanner.c` and `instruction.c`).
 //!
-//! `include/opcodes.h` is the single list of every mnemonic.  The C engine
-//! includes it several times to build several tables; the port generates
-//! one Rust array from it (`opcodes_table.rs`, written by
-//! `tools/gen_opcodes.sh`) and answers every question from that array.
+//! `include/opcodes.tsv` is the single list of every mnemonic.
+//! `tools/gen_opcodes.py` generates the C engine's tables from it, and this
+//! port's (`opcodes_table.rs` and `opcode_types.rs`); the port answers every
+//! question from those arrays.
 
 use std::cmp::Ordering;
 

@@ -34,8 +34,8 @@
    where a typedef would be a syntax error.  opcodes.h itself is pure
    X-macro content. */
 typedef enum op_type : uint8_t {
-  ASM_DIR = 0,
-  PSEUDO_OP = 1,
+  ASM_DIR = 0,   /* .data, .word (directives)  */
+  PSEUDO_OP = 1, /* li, la, bge (pseudo-ops)   */
 
   BRANCH_COPROC_COND_INST = 10, /* bc1t/bc1f label            */
   BRANCH_RS_LABEL_INST = 11,    /* bgez rs, label             */

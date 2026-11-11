@@ -8,8 +8,8 @@
 #   comment  an example, kept as a C comment
 #
 # An empty line starts a new group, kept as a blank line in the C output.
-ASM_DIR	0	
-PSEUDO_OP	1	
+ASM_DIR	0	.data, .word (directives)
+PSEUDO_OP	1	li, la, bge (pseudo-ops)
 
 BRANCH_COPROC_COND_INST	10	bc1t/bc1f label
 BRANCH_RS_LABEL_INST	11	bgez rs, label
