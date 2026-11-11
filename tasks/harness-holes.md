@@ -1,40 +1,36 @@
 # Close the harness holes: double timeouts, empty selections, missing pgu, stale Rust binary
 
-**Status:** proposed — needs go-ahead
-**Priority:** 4
-**Difficulty:** 3
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
+**Branch:** `review-2026-11-11-batch`
 **Source:** tasks/review/2026/11/11/repo-review.md §5.4, §5.5, §5.6 F9
 
-## BLUF
+## Outcome
 
-Four ways the port comparison can pass without comparing anything. Done means each one fails, or is
-fixed, and is covered by a self-test of the harness.
-
-## Context
-
-- **Both engines time out → pass.** `port/harness/compare_engines.py:103-104` and
-  `compare_all_programs.py:100-105` return the same placeholder for each side.
-  `compare_engines.py --reference hang --engine hang --timeout 0.2 core le` prints "2 passed", exit 0.
-- **An empty selection → pass.** A case name that matches nothing runs zero cases and exits 0.
-- **pgu is skipped in the image.** `compare_all_programs.py:53` globs `pgu/**/*.s` (62 files, 7 modes
-  each), but the Dockerfile copies no `pgu/`, so inside `make image` those cases don't exist. The
-  script's docstring says pgu is covered.
-- **The Rust launcher never rebuilds.** `port/rust/spimulator-rust:13` builds only when the binary is
-  missing; `port/haskell/spimulator-haskell` checks source timestamps. In a dev shell, an edit to
-  `port/rust/src`, or a regenerated `port/rust/src/opcodes_table.rs`, leaves the suites testing the old binary.
-  The image is safe because `.dockerignore` drops `target/`.
-
-## Plan
-
-1. A C-side timeout is a FAIL. A selection of zero cases is a FAIL.
-2. `COPY pgu/` into the image, or just its `.s` files and what they include. Make
-   `port/harness/compare_all_programs.py` assert a minimum number of sources (the tracked count) so a missing tree
-   can't pass.
-3. Make the Rust launcher run `cargo build --release --offline --quiet` every time; it is a no-op when
-   up to date.
-4. Gate: `make image`; check that each hole now fails, using a scratch "hang" engine.
+- **A hung reference fails.** In `port/harness/compare_engines.py` and `compare_all_programs.py`, a
+  case where the C engine times out is a FAIL. Before, both engines timing out compared equal and
+  passed (`--reference hang --engine hang --timeout 0.2 core le` printed "2 passed").
+- **An empty selection fails.** A case name that isn't in the corpus, or a filter that matches
+  nothing, exits 1 instead of running zero cases and passing.
+- **pgu is compared, in the image too.** The comparison's `pgu/**/*.s` pattern matched only the
+  upstream x86 sources, so the 11 MIPS PGU programs (`pgu/src/*.asm`) were never compared anywhere.
+  It now also globs `pgu/**/*.asm`. The image copies just those sources (`pgu/src/*.asm` and the
+  upstream `.s` files); before, it copied no `pgu/`, so every pgu case was silently missing in
+  `make image`. Each tracked-source pattern must match at least one file, or the run stops naming
+  it. `examples/**/*.s`, the native listings the examples build writes, stays optional.
+- **The Rust launcher rebuilds a stale binary.** `port/rust/spimulator-rust` rebuilds when a source
+  file or `Cargo.toml` is newer than the binary, as the Haskell launcher does. Before, it built only
+  when the binary was missing.
 
 ## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
-1. The image copies only the pgu `.s` sources and what they include, not the whole book.
+1. The image copies only the pgu `.s`/`.asm` sources, not the book.
+
+## Verification
+
+- A scratch engine that sleeps: `compare_engines.py --reference hang --engine hang --timeout 0.2`
+  now reports both cases FAIL ("the C engine timed out").
+- `compare_engines.py … nosuchcase` and `compare_all_programs.py … zzznomatch` exit 1.
+- The 77 new PGU cases (11 programs, 7 modes) pass in all three ports.
+- After touching `port/rust/src/lib.rs`, the launcher rebuilt the binary; an up-to-date call took
+  10 ms.
