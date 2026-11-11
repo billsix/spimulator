@@ -51,6 +51,15 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f rpn-eval.asm < rpn.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f rpn-eval.asm < rpn.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f rpn-eval.asm < rpn.input
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f rpn-eval.asm < rpn.input
  */
 /* clang-format on */
 

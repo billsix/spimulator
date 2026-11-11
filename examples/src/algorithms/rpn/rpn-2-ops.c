@@ -42,6 +42,15 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f rpn-2-ops.asm < rpn-2-ops.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f rpn-2-ops.asm < rpn-2-ops.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f rpn-2-ops.asm < rpn-2-ops.input
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f rpn-2-ops.asm < rpn-2-ops.input
  */
 /* clang-format on */
 

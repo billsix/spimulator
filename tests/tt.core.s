@@ -89,7 +89,12 @@ timer_:	.asciiz "Testing timer\n"
 	mtc0 $0 $9	# Clear count register
 timer1_:
 	mfc0 $9 $9
-	bne $9 10 timer1_# Count up to 10
+	# Count up to 10.  Wait while Count < 10, not while Count != 10: Count
+	# follows real time (one tick per 10 ms), so a simulator descheduled for
+	# more than a tick between two reads of it can go from 9 to 11, and a
+	# != 10 test then loops until Count wraps (seen under heavy load,
+	# 2026-11-10).
+	bltu $9 10 timer1_
 
 
 #

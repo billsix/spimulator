@@ -1,0 +1,24 @@
+[package]
+name = "spimulator-rust"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+description = "The spimulator MIPS simulator engine, ported from C to Rust"
+license = "BSD-3-Clause"
+publish = false
+
+[lib]
+name = "spimulator"
+path = "src/lib.rs"
+
+[[bin]]
+name = "spimulator-rust"
+path = "src/main.rs"
+
+# Standard library only: the image builds offline (`cargo build --offline`).
+[dependencies]
+
+[profile.release]
+# run_error unwinds to the top level (the C engine longjmps there), so
+# keep the default unwinding panics.
+panic = "unwind"

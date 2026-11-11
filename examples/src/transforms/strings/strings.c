@@ -43,6 +43,15 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f strings.asm < strings.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f strings.asm < strings.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f strings.asm < strings.input
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f strings.asm < strings.input
  */
 /* clang-format on */
 

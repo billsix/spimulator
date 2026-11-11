@@ -11,7 +11,10 @@ On top of upstream SPIM, this fork adds:
 - an **examples curriculum** of paired C + MIPS-assembly demos (`examples/`);
 - a MIPS port of the *Programming from the Ground Up* book (`pgu/`);
 - a **tree-sitter** grammar for editor integration (`tree-sitter/`), with
-  clang-tidy / clang-format configured.
+  clang-tidy / clang-format configured;
+- the engine **ported to Python, GHC Haskell and Rust** (`port/`), each tested to
+  behave the same as the C engine: `spimulator-python`, `spimulator-haskell` and
+  `spimulator-rust` take the same flags (`port/README.md`).
 
 ### Building from source
 
@@ -48,8 +51,8 @@ spimulator is built with [Meson](https://mesonbuild.com/) and
 #### Container (any host)
 
 * `podman build -t spimulator .` (or `docker build`).
-* The included `Dockerfile` builds spim on Fedora 44, runs the regression and
-  examples test suites, and fails the build on any test failure.
+* The included `Dockerfile` builds spim on Fedora 44, runs the regression,
+  examples and port test suites, and fails the build on any test failure.
 * The `Makefile` wraps this: `make shell` for a dev container, and
   `make docs` / `html` / `pdf` / `epub` to build the **pgu** book (needs the image
   built with `BUILD_DOCS=1`).

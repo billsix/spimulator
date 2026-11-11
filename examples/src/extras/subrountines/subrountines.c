@@ -33,6 +33,18 @@
  *     $ spimulator -f subrountines-1.asm
  *     $ spimulator -f subrountines-2.asm
  *
+ *   the same assembly versions, in the Python port:
+ *     $ spimulator-python -f subrountines-1.asm
+ *     $ spimulator-python -f subrountines-2.asm
+ *
+ *   the same assembly versions, in the GHC Haskell port:
+ *     $ spimulator-haskell -f subrountines-1.asm
+ *     $ spimulator-haskell -f subrountines-2.asm
+ *
+ *   the same assembly versions, in the Rust port:
+ *     $ spimulator-rust -f subrountines-1.asm
+ *     $ spimulator-rust -f subrountines-2.asm
+ *
  *   subrountines-1.asm never sets $v0 before main returns, so its exit
  *   status is whatever was left there; the printed output matches.
  */

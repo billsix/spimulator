@@ -38,6 +38,15 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f yes.asm | head -3
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f yes.asm | head -3
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f yes.asm | head -3
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f yes.asm | head -3
  */
 /* clang-format on */
 

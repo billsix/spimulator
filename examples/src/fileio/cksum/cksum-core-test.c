@@ -46,6 +46,15 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f cksum-core-test.asm
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f cksum-core-test.asm
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f cksum-core-test.asm
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f cksum-core-test.asm
  */
 /* clang-format on */
 

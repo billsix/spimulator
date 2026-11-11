@@ -47,6 +47,15 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f calc-eval-test.asm
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f calc-eval-test.asm
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f calc-eval-test.asm
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f calc-eval-test.asm
  */
 /* clang-format on */
 

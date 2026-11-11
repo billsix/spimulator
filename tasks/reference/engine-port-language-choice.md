@@ -29,7 +29,7 @@ REPL's redo state) fights the borrow checker more than it helps.
 `0.300000000000000040` where C prints `...044` (measured), so `print_double` needs a hand-written
 formatter. Haskell's purity also makes the stateful machine the least direct transcription. The
 maintainer chose to port to Haskell and Rust **as well**, as further implementations
-(`tasks/engine-ports.md`; `tasks/engine-port-rust.md`),
+(`tasks/reference/engine-ports-design.md`; `tasks/archive/2026/11/10/engine-port-rust.md`),
 and its formatter problem is solved (below, "Haskell's float formatting"). Go and C# are
 workable (both format correctly, both have fixed-width ints) but offer nothing over Python for
 readability or over Rust for checked widths.
@@ -175,7 +175,7 @@ at run time: untyped constant arithmetic is exact); GHC's `Text.Printf` `%.18g` 
 **Formatting does not gate a port.** The maintainer's rule (William Emerison Six
 <billsix@gmail.com>, 2026-11-10): a port must match the C engine functionally. A float printed with
 different digits, when the values are the same or very close, is reported as a warning, not a
-failure. The tolerance and how the harness detects it: `tasks/engine-ports.md`. Matching glibc
+failure. The tolerance and how the harness detects it: `tasks/reference/engine-ports-design.md`. Matching glibc
 exactly is still the goal where it is cheap, and it is cheap in all three languages measured.
 `bash tasks/adhoc/engine-ports-float-format/run.sh` checks each one against glibc `printf` on 158,029
 doubles, in all five formats the C engine prints (`%.8f`, `%.18g`, `%.17g`, `%g`, `%#-13.6g`):
@@ -196,7 +196,99 @@ GHC's `Text.Printf` and `Numeric.showFFloat` format from the shortest round-trip
 exponent, ties-to-even rounding, the `%g` fixed/exponential rule, `#`, width, `inf`/`nan` by the sign
 bit. `tasks/adhoc/engine-ports-float-format/CFormat.hs` implements all five formats the C engine uses
 (`%.8f`, `%.18g`, `%.17g`, `%g`, `%#-13.6g`). It is byte-identical to glibc on 158,029 values
-(`bash tasks/adhoc/engine-ports-float-format/run.sh`). Detail: `tasks/engine-port-haskell.md`.
+(`bash tasks/adhoc/engine-ports-float-format/run.sh`). Detail: `tasks/archive/2026/11/10/engine-port-haskell.md`.
+The port's copy is `port/haskell/src/CFormat.hs`, checked by `port/haskell/tests/check-format.sh`.
+
+### What the Haskell port taught (2026-11-10)
+
+Measured while writing `port/haskell/` (`tasks/archive/2026/11/10/engine-port-haskell.md`, Log). Every check in the
+corpus matched the C engine on the port's first full run; the risks the study named were real, but
+each had a direct answer.
+
+- **State threading was not the obstacle the study expected.** One record of `IORef`s and
+  `IOUArray`s (`port/haskell/src/State.hs`), passed as the first argument, transcribes the C globals
+  one to one. The pure parts stay pure: encoding, decoding, the opcode tables, the AST printers, the
+  float formatter. The scanner and parser cannot be pure without changing behavior: the C scanner
+  classifies a word (keyword, constant, identifier) when it is scanned, through a 3-token
+  look-ahead, against a symbol table the parse changes.
+- **The C struct's unions matter.** `mips_instruction` overlays the register bytes, the 16-bit
+  immediate and the 26-bit target, and the engine relies on it (FD lives in the shamt byte). The
+  port keeps one `Word32` with byte accessors.
+- **The C library's searches are part of the output.** Six encodings sit on two opcode rows each;
+  `bsearch` over a `qsort`ed table picks one. Reproducing glibc's stable merge sort and its exact
+  `bsearch` loop reproduces the choice (disassembling 0x4600000f gives `prefx`, not `floor.w.s`).
+  The other ports need the same.
+- **Reading numbers matters as much as printing them.** `atof` is in the assembler (FP literals) and
+  in read_float/read_double; an exact `Rational` conversion rounded once matches glibc on 60,035
+  strings, once NaN is glibc's positive quiet NaN (GHC's `0/0` is negative) and keeps a `nan(n)`
+  payload (`port/haskell/tests/check-strtod.sh`).
+- **The environment is on the simulated stack.** The engine copies `environ` onto the stack, so any
+  wrapper (a launcher script, an interpreter that sets variables) moves `$sp`. The Haskell launcher
+  re-execs with the exact environment it received (`/proc/$$/environ`, `env -i`). Python run in
+  an empty environment adds `LC_CTYPE=C.UTF-8` to `os.environ` (PEP 538 locale coercion; measured:
+  `env -i python3 -c 'import os; print(dict(os.environ))'`, also with `-I`), a trap for a Python
+  engine or launcher that copies `os.environ` onto the stack.
+- **Input must not be buffered.** The C engine reads fd 0 one byte at a time, and a program run from
+  the REPL reads the lines after `run`; a buffered reader (a GHC `Handle`) would swallow them. The
+  port calls the C library's `read` through the FFI.
+- **cabal cannot build offline without a package index**, even when every dependency ships with
+  GHC; plain `ghc --make` can (about 15 s for the port from scratch).
+- **Speed is no problem**: the port runs `tests/time.s` (10 million loop iterations) in 1.8 s, against
+  11.7 s for the debug C build, which calls `getitimer` on every instruction.
+
+## What the Python port found (2026-11-10)
+
+The port (`port/python/`, `tasks/archive/2026/11/10/engine-port-python.md`) reached zero differences on the corpus.
+Traps beyond the table above, each one a byte-level difference until handled:
+
+- **Speed is fine if each instruction is decoded once.** Compiling an instruction on first
+  execution into a closure with its fields bound (`run._compile`) makes `tt.core.s` run in 0.2 s
+  and every test and demo in under 1.5 s under CPython 3.15; a re-decoding `match` per step would
+  be several times slower.
+- **Python edits its own environment at start-up** (PEP 538 adds `LC_CTYPE=C.UTF-8` under the C
+  locale). The engine copies the environment onto the MIPS stack, so `$sp` and any program that
+  reads uninitialised stack moved; read `/proc/self/environ` instead of `os.environ`.
+- **Python ignores SIGPIPE.** `spimulator ... | head` must end when `head` does; restore
+  `SIG_DFL` and do not catch `BrokenPipeError`.
+- **Python raises where x86 computes**: `x / 0.0`, `math.sqrt(-1)`, `int(nan)`, `math.ceil(inf)`,
+  `struct.pack('<f', 1e300)` (OverflowError, where C's `(float)` gives infinity).
+- **glibc's `qsort` + `bsearch` decide duplicate keys**: six encodings belong to two mnemonics
+  each, and the disassembler's pick depends on the stable sort and the exact halving loop.
+- **Bytes, not text**: source lines, MIPS strings and file names may hold any byte; a `str`
+  holding one character per byte (Latin-1) round-trips them.
+- **C's undefined behavior has to be reproduced, crash included**, where a test can see it: the
+  port exits 139 where the C engine dies of SIGSEGV (`tasks/archive/2026/11/10/engine-port-python.md`, "C engine bugs
+  found").
+- **Module-level globals and import cycles**: the C files include each other's headers freely;
+  Python modules that import each other must only use each other's attributes at call time, and
+  the package `__init__` imports the entry module first so any module can be imported alone.
+
+## What the Rust port found (2026-11-10)
+
+The port (`port/rust/`, `tasks/archive/2026/11/10/engine-port-rust.md`) reached zero differences on the corpus, the
+regression suite, the demos, the documented commands and a wider sweep, with the standard library
+only. What the study predicted held: the widths are in the types (`wrapping_add` for `addu`,
+`checked_add` for `add`, `checked_div` where C guards `i32::MIN / -1`), and f32 is IEEE single as in
+C. Beyond the table above:
+
+- **The borrow checker was not the obstacle the study expected.** One `Machine` struct holds every C
+  global, passed as `&mut self`; methods on it live in the module of the C file they come from. The
+  one shared-mutable structure is the instruction: a forward reference patches the instruction in the
+  text segment in place, and the breakpoint instruction is one object compared by address, so
+  instructions are `Rc<RefCell<Instruction>>` (`Rc::ptr_eq` for the breakpoint test).
+- **`longjmp` maps to an unwind.** `run_error` is a panic with a private payload, caught where C calls
+  `setjmp`; a panic hook keeps it silent. Threading a `Result` through every memory access would have
+  bent the executor away from `run.c`.
+- **Rust also ignores SIGPIPE at start-up**, like Python: restore `SIG_DFL` or `... | head` never ends.
+  And Rust installs its own SIGSEGV handler, so dying of the C engine's crash signal needs `SIG_DFL`
+  first, then `raise`.
+- **`std::io::stdin` buffers**, so input goes through the C library's `read(2)` (`extern "C"`, no
+  crate); a launcher written in bash adds `PWD` and `SHLVL` to the environment the engine copies onto
+  the stack, so it re-execs with `/proc/$$/environ`.
+- **Speed is no problem**: `tt.core.s` runs in 0.11 s (0.10 s for the debug C build); the timer polls
+  `Instant::now()` per instruction where C calls `getitimer`.
+- **Float text came out identical** with the promoted `cformat.rs` (58,028 doubles against glibc in
+  `cargo test`); no case of the corpus warned.
 
 ## Cross-links
 
@@ -204,4 +296,4 @@ bit. `tasks/adhoc/engine-ports-float-format/CFormat.hs` implements all five form
   oracle to trust.
 - `tasks/reference/simulator-integer-types.md` — the C engine's integer types.
 - `tasks/reference/inherited-idiosyncrasies.md` — upstream quirks.
-- `tasks/engine-port-python.md` — the follow-on port task (proposed).
+- `tasks/archive/2026/11/10/engine-port-python.md` — the Python port's task and log.

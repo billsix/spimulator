@@ -1,0 +1,29 @@
+# The programs whose assembled bytes the ast_parity_all test pins, one per
+# line: the file, then the flags it is assembled with.  `default` means
+# `-exception_file <exceptions.s>`.  Read by tests/parity-capture.sh, which
+# both tests/run-test.sh (ast_parity_all) and tests/gen-parity-golden.sh use,
+# so the test and the golden it compares with cannot list different programs.
+#
+# Every listed program must assemble and write a dump; one that does not
+# fails the test.  Left out on purpose:
+#   tt.parse_error.s  its parse fails by design, so there is nothing to pin.
+tt.alu.bare.s           -bare -noexception
+tt.argv.s               default
+tt.bare.s               -delayed_branches -delayed_loads -noexception
+tt.be.s                 default
+tt.core.s               default
+tt.dir.s                default
+tt.divide_by_zero.s     default
+tt.explain.s            default
+tt.fpu.bare.s           -bare -noexception
+tt.io.s                 default
+tt.le.s                 default
+tt.listing.s            default
+tt.missing_main.s       default
+tt.octal_escape.s       default
+tt.pseudo.s             default
+tt.read_char_eof.s      default
+tt.read_int_eof.s       default
+tt.return_value.s       default
+tt.stderr_split.s       default
+tt.unaligned.s          default

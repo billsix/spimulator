@@ -36,6 +36,15 @@
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f testStringsForEquality-1.asm
  *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f testStringsForEquality-1.asm
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f testStringsForEquality-1.asm
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f testStringsForEquality-1.asm
+ *
  *   testStringsForEquality-1.asm prints only the comparison results,
  *   without the C version's labels.
  */

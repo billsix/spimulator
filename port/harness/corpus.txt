@@ -1,0 +1,39 @@
+# The cases compare_engines.py runs through the C engine (the standard) and a
+# port, comparing stdout, stderr and exit status.  One case per line:
+#
+#   NAME | STDIN | ARGS
+#
+# NAME   a label for the report.
+# STDIN  `-` for no input, `file:PATH` for a file (relative to tests/), or
+#        `text:...` for literal text (`\n` is a newline).
+# ARGS   the engine's arguments, run from tests/.  `EF` is replaced by the
+#        exception file.  A case whose ARGS contain `-dump` also compares the
+#        text.asm and data.asm files the engine writes.
+#
+# Not here, on purpose: the teaching mode (-explain), which the ports do not
+# implement yet (tasks/engine-ports.md); interactive REPL sessions, which the
+# regression suite's args_cmd and disasm tests cover per engine.
+core           | file:tt.in        | -exception_file EF -f tt.core.s
+core_builtin   | file:tt.in        | -f tt.core.s
+core_dump      | -                 | -exception_file EF -dump -f tt.core.s
+bare           | -                 | -delayed_branches -delayed_loads -noexception -f tt.bare.s
+alu_bare       | -                 | -bare -noexception -f tt.alu.bare.s
+fpu_bare       | -                 | -bare -noexception -f tt.fpu.bare.s
+le             | -                 | -exception_file EF -f tt.le.s
+dir            | -                 | -exception_file EF -f tt.dir.s
+octal_escape   | -                 | -exception_file EF -f tt.octal_escape.s
+argv           | -                 | -exception_file EF -f tt.argv.s alpha beta gamma
+multifile      | -                 | -exception_file EF -f tt.multifile.s -f tt.multifile.helper.s
+multifile_rev  | -                 | -exception_file EF -f tt.multifile.helper.s -f tt.multifile.s
+read_int_eof   | text:5\n7\n       | -exception_file EF -f tt.read_int_eof.s
+read_int_space | text:43 3 12\n-5 8\n | -exception_file EF -f tt.read_int_space_sep.s
+read_char_eof  | text:abc          | -exception_file EF -f tt.read_char_eof.s
+return_value   | -                 | -exception_file EF -f tt.return_value.s
+unaligned      | -                 | -exception_file EF -f tt.unaligned.s
+missing_main   | -                 | -exception_file EF -f tt.missing_main.s
+parse_error    | -                 | -exception_file EF -f tt.parse_error.s
+parse_err_list | -                 | -exception_file EF -f tt.parse_error_data_list.s
+stderr_split   | -                 | -exception_file EF -f tt.stderr_split.s
+divide_by_zero | -                 | -exception_file EF -f tt.divide_by_zero.s
+pseudo         | -                 | -exception_file EF -f tt.pseudo.s
+engine_fixes   | -                 | -exception_file EF -f tt.engine_fixes.s

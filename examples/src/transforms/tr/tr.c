@@ -37,6 +37,15 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f tr.asm < tr.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f tr.asm < tr.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f tr.asm < tr.input
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f tr.asm < tr.input
  */
 /* clang-format on */
 

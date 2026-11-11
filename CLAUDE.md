@@ -50,6 +50,13 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
 - `tree-sitter/` — editor grammar; `grammar.js` keyword lists are derived from
   `opcodes.h` via `scripts/extract-keywords.py`, so they stay in sync.
 - `tests/` — regression suite (`run-test.sh`, `tt.*.s` / `tt.*.in`).
+- `port/` — the engine ported to Python (`port/python/`), GHC Haskell (`port/haskell/`) and Rust
+  (`port/rust/`), each a `spimulator-<language>` command with the C engine's flags. **The C engine is
+  the standard**: every port must give the same stdout, stderr and exit status (a float printed with
+  different digits is only a warning). `port/meson.build` runs the C engine's own suites against each
+  port, plus `port/harness/` (case-by-case and whole-tree comparisons with C). The teaching mode is not
+  ported yet. Rules and decisions: `port/README.md`, `tasks/reference/engine-ports-design.md`. **A C
+  behavior change must be followed in every port**, or the port suites fail.
 - `Documentation/spim.1`, `meson.build`, `meson_options.txt`, `.clang-format`,
   `.clang-tidy`.
 
@@ -72,8 +79,10 @@ Container (Fedora-44 + podman family template) — build args `USE_EMACS`,
 
 ## Tests
 
-Two meson suites: **regression** (assembler, syscalls, exceptions,
-teaching-mode goldens, AST parity; `tests/run-test.sh`) and **examples** (each demo
+Meson suites: **regression** (assembler, syscalls, exceptions,
+teaching-mode goldens, AST parity; `tests/run-test.sh`), **port-python**, **port-haskell**,
+**port-rust** (those suites again against each port, plus the comparisons; `port/meson.build`),
+and **examples** (each demo
 runs both the C binary and the spim asm, diffing stdout + exit status against
 pinned goldens; `examples/tests/run-demo.sh`; plus `documented-commands`, which runs every demo's
 BUILD AND RUN header commands verbatim, `tools/check_example_commands.py`).

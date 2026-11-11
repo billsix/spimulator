@@ -1,0 +1,43 @@
+cabal-version:      3.0
+name:               spimulator-haskell
+version:            0.1.0
+synopsis:           The spimulator MIPS simulator engine, ported to GHC Haskell
+description:
+  A port of the spimulator engine (a fork of James Larus's SPIM) that
+  behaves the same as the C engine: same output and exit status for the
+  same arguments and input.  Uses only libraries that ship with GHC.
+  The build the repository uses is build.sh (plain ghc --make); this file
+  is for editors and for cabal users who have a package index.
+license:            BSD-3-Clause
+build-type:         Simple
+
+executable spimulator-haskell
+  main-is:          Main.hs
+  hs-source-dirs:   src
+  other-modules:
+    Assemble
+    AsmCommon
+    Ast
+    CFormat
+    DataSegment
+    DisplayUtils
+    InstFormat
+    Instruction
+    Memory
+    OpcodeTables
+    OpcodeTypes
+    Opcodes
+    Output
+    Parser
+    Registers
+    Run
+    Scanner
+    SpimUtils
+    State
+    SymbolTable
+    Syscall
+    Types
+  build-depends:
+    base, array, bytestring, directory, filepath, haskeline, mtl
+  default-language: Haskell2010
+  ghc-options:      -O1 -Wall -Werror -rtsopts=ignoreAll

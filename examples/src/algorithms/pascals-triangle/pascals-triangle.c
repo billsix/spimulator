@@ -45,6 +45,15 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f pascals-triangle.asm 5
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f pascals-triangle.asm 5
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f pascals-triangle.asm 5
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f pascals-triangle.asm 5
  */
 /* clang-format on */
 

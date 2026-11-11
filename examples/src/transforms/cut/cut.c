@@ -25,6 +25,15 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f cut.asm -c 2-4 cut.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f cut.asm -c 2-4 cut.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f cut.asm -c 2-4 cut.input
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f cut.asm -c 2-4 cut.input
  */
 /* clang-format on */
 

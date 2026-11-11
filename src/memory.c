@@ -233,10 +233,9 @@ void expand_k_data(int addl_bytes) {
   k_data_seg_h = (short*)k_data_seg;
   k_data_top += (mem_addr)delta;
 
-  /* Zero new memory */
-  for (p = k_data_seg_b + old_size / BYTES_PER_WORD;
-       p < k_data_seg_b + new_size / BYTES_PER_WORD;)
-    *p++ = 0;
+  /* Zero new memory.  p is a byte pointer, so the sizes are byte offsets
+     (as in expand_data). */
+  for (p = k_data_seg_b + old_size; p < k_data_seg_b + new_size;) *p++ = 0;
 }
 
 /* Access memory */
@@ -358,6 +357,13 @@ static void bad_text_write(mem_addr addr, mips_instruction* instruction) {
   mem_write_word(addr, ENCODING(instruction));
 }
 
+/* The encoding of the user-text word holding ADDR, or 0 for a word no
+   instruction was stored in (as a word load of it reads). */
+static mem_word text_word_at(mem_addr addr) {
+  mips_instruction* instruction = text_seg[(addr - TEXT_BOT) >> 2];
+  return instruction == nullptr ? 0 : ENCODING(instruction);
+}
+
 static mem_word bad_mem_read(mem_addr addr, int mask) {
   mem_word tmp;
 
@@ -366,7 +372,7 @@ static mem_word bad_mem_read(mem_addr addr, int mask) {
   else if (addr >= TEXT_BOT && addr < text_top)
     switch (mask) {
       case 0x0:
-        tmp = ENCODING(text_seg[(addr - TEXT_BOT) >> 2]);
+        tmp = text_word_at(addr);
 #ifdef SPIM_BIGENDIAN
         tmp = (unsigned)tmp >> (8 * (3 - (addr & 0x3)));
 #else
@@ -375,7 +381,7 @@ static mem_word bad_mem_read(mem_addr addr, int mask) {
         return (0xff & tmp);
 
       case 0x1:
-        tmp = ENCODING(text_seg[(addr - TEXT_BOT) >> 2]);
+        tmp = text_word_at(addr);
 #ifdef SPIM_BIGENDIAN
         tmp = (unsigned)tmp >> (8 * (2 - (addr & 0x2)));
 #else
@@ -424,22 +430,26 @@ static void bad_mem_write(mem_addr addr, mem_word value, int mask) {
         case 0x0:
           tmp = ENCODING(text_seg[(addr - TEXT_BOT) >> 2]);
 #ifdef SPIM_BIGENDIAN
-          tmp = ((tmp & ~(0xff << (8 * (3 - (addr & 0x3))))) |
-                 (value & 0xff) << (8 * (3 - (addr & 0x3))));
+          tmp =
+              (mem_word)(((uint32_t)tmp &
+                          ~(0xffu << (8 * (3 - (addr & 0x3))))) |
+                         ((uint32_t)value & 0xffu) << (8 * (3 - (addr & 0x3))));
 #else
-          tmp = ((tmp & ~(0xff << (8 * (addr & 0x3)))) |
-                 (value & 0xff) << (8 * (addr & 0x3)));
+          tmp = (mem_word)(((uint32_t)tmp & ~(0xffu << (8 * (addr & 0x3)))) |
+                           ((uint32_t)value & 0xffu) << (8 * (addr & 0x3)));
 #endif
           break;
 
         case 0x1:
           tmp = ENCODING(text_seg[(addr - TEXT_BOT) >> 2]);
 #ifdef SPIM_BIGENDIAN
-          tmp = ((tmp & ~(0xffff << (8 * (2 - (addr & 0x2))))) |
-                 (value & 0xffff) << (8 * (2 - (addr & 0x2))));
+          tmp = (mem_word)(((uint32_t)tmp &
+                            ~(0xffffu << (8 * (2 - (addr & 0x2))))) |
+                           ((uint32_t)value & 0xffffu)
+                               << (8 * (2 - (addr & 0x2))));
 #else
-          tmp = ((tmp & ~(0xffff << (8 * (addr & 0x2)))) |
-                 (value & 0xffff) << (8 * (addr & 0x2)));
+          tmp = (mem_word)(((uint32_t)tmp & ~(0xffffu << (8 * (addr & 0x2)))) |
+                           ((uint32_t)value & 0xffffu) << (8 * (addr & 0x2)));
 #endif
           break;
 

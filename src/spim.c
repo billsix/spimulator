@@ -254,6 +254,14 @@ static char** spim_completion(const char* text, int start,
 static void console_to_program(void);
 static void console_to_spim(void);
 [[noreturn]] static void control_c_seen(int arg);
+/* True, after reporting it, if flag argv[i] -- one that takes a value -- is the
+   last argument, so there is no value to read. */
+static bool flag_value_missing(int i, int argc, char** argv) {
+  if (i + 1 < argc) return false;
+  fprintf(stderr, "spimulator: %s requires a value\n", argv[i]);
+  return true;
+}
+
 static void flush_to_newline(void);
 static int get_opt_int(void);
 static bool parse_spim_command(bool redo);
@@ -274,6 +282,11 @@ static void dump_text_seg(bool kernel_also);
 
 /* Not local, but not export so all files don't need setjmp.h */
 static jmp_buf spim_top_level_env; /* For ^C */
+/* True once a setjmp has filled spim_top_level_env.  Before that (while the
+   -f files load in batch mode) there is no top level to return to, so
+   run_error and ^C end the run instead of longjmp-ing through an unset
+   jmp_buf. */
+static bool top_level_env_ready = false;
 
 bool bare_machine = false;       /* => simulate bare machine */
 bool delayed_branches = false;   /* => simulate delayed branches */
@@ -427,8 +440,12 @@ int main(int argc, char** argv) {
     } else if (streq(argv[i], "-noexception") || streq(argv[i], "-ne")) {
       load_exception_handler = false;
     } else if (streq(argv[i], "-exception_file") || streq(argv[i], "-ef")) {
-      exception_file_name = argv[++i];
-      load_exception_handler = true;
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else {
+        exception_file_name = argv[++i];
+        load_exception_handler = true;
+      }
     } else if (streq(argv[i], "-mapped_io") || streq(argv[i], "-mio")) {
       mapped_io = true;
     } else if (streq(argv[i], "-nomapped_io") || streq(argv[i], "-nmio")) {
@@ -469,24 +486,52 @@ int main(int argc, char** argv) {
     } else if (streq(argv[i], "-notrap") || streq(argv[i], "-nt")) {
       load_exception_handler = false;
     } else if (streq(argv[i], "-trap_file") || streq(argv[i], "-tf")) {
-      exception_file_name = argv[++i];
-      load_exception_handler = true;
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else {
+        exception_file_name = argv[++i];
+        load_exception_handler = true;
+      }
     } else if (streq(argv[i], "-stext") || streq(argv[i], "-st")) {
-      initial_text_size = atoi(argv[++i]);
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else
+        initial_text_size = atoi(argv[++i]);
     } else if (streq(argv[i], "-sdata") || streq(argv[i], "-sd")) {
-      initial_data_size = atoi(argv[++i]);
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else
+        initial_data_size = atoi(argv[++i]);
     } else if (streq(argv[i], "-ldata") || streq(argv[i], "-ld")) {
-      initial_data_limit = (mem_addr)atoi(argv[++i]);
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else
+        initial_data_limit = (mem_addr)atoi(argv[++i]);
     } else if (streq(argv[i], "-sstack") || streq(argv[i], "-ss")) {
-      initial_stack_size = atoi(argv[++i]);
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else
+        initial_stack_size = atoi(argv[++i]);
     } else if (streq(argv[i], "-lstack") || streq(argv[i], "-ls")) {
-      initial_stack_limit = (mem_addr)atoi(argv[++i]);
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else
+        initial_stack_limit = (mem_addr)atoi(argv[++i]);
     } else if (streq(argv[i], "-sktext") || streq(argv[i], "-skt")) {
-      initial_k_text_size = atoi(argv[++i]);
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else
+        initial_k_text_size = atoi(argv[++i]);
     } else if (streq(argv[i], "-skdata") || streq(argv[i], "-skd")) {
-      initial_k_data_size = atoi(argv[++i]);
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else
+        initial_k_data_size = atoi(argv[++i]);
     } else if (streq(argv[i], "-lkdata") || streq(argv[i], "-lkd")) {
-      initial_k_data_limit = (mem_addr)atoi(argv[++i]);
+      if (flag_value_missing(i, argc, argv))
+        print_usage_msg = 1;
+      else
+        initial_k_data_limit = (mem_addr)atoi(argv[++i]);
     } else if (((streq(argv[i], "-file") || streq(argv[i], "-f")) &&
                 (i + 1 < argc))
                /* Assume this argument is a program's file name and everything
@@ -669,6 +714,7 @@ int main(int argc, char** argv) {
       bool continuable;
       console_to_program();
       initialize_run_stack(program_argc, program_argv);
+      top_level_env_ready = true;
       if (!setjmp(spim_top_level_env)) {
         char* undefs = undefined_symbol_string();
         if (undefs != nullptr) {
@@ -751,6 +797,7 @@ int main(int argc, char** argv) {
 
   while (true) {
 #ifdef HAVE_LIBEDIT
+    top_level_env_ready = true;
     if (setjmp(spim_top_level_env)) {
       /* Returned via control_c_seen longjmp. Unwind any in-flight
          scanner state so the flex buffer stack doesn't grow each Ctrl-C. */
@@ -824,6 +871,7 @@ int main(int argc, char** argv) {
     repl_line = nullptr;
 #else
     if (!redo) write_output(message_out, "(spim) ");
+    top_level_env_ready = true;
     if (!setjmp(spim_top_level_env))
       redo = parse_spim_command(redo);
     else
@@ -837,6 +885,7 @@ int main(int argc, char** argv) {
 [[noreturn]] static void control_c_seen([[maybe_unused]] int arg) {
   console_to_spim();
   write_output(message_out, "\nExecution interrupted\n");
+  if (!top_level_env_ready) exit(1);
   longjmp(spim_top_level_env, 1);
 }
 
@@ -1031,7 +1080,9 @@ static bool parse_spim_command(bool redo) {
       int token = (redo ? prev_token : read_token());
       if (token == TOK_ID && streq((char*)scan_value.p, "hex")) hex_flag = true;
       print_all_regs(hex_flag);
-      if (!redo) flush_to_newline();
+      /* With no operand the token read was the newline itself; flushing
+         would read on into the next line. */
+      if (!redo && token != TOK_NL) flush_to_newline();
       prev_cmd = NOP_CMD;
       return (0);
     }
@@ -1182,13 +1233,15 @@ static bool parse_spim_command(bool redo) {
       int token = (redo ? prev_token : read_token());
       static mem_addr addr;
 
-      if (!redo) flush_to_newline();
+      if (!redo && token != TOK_NL) flush_to_newline();
       if (token == TOK_INT)
         addr = redo ? addr + 4 : (mem_addr)scan_value.i;
       else if (token == TOK_ID)
         addr = redo ? addr + 4 : find_symbol_address((char*)scan_value.p);
-      else
+      else {
         error("Must supply an address for breakpoint\n");
+        return (0);
+      }
       if (cmd == SET_BKPT_CMD)
         add_breakpoint(addr);
       else
@@ -1502,6 +1555,7 @@ void fatal_error(const char* fmt, ...) {
 
   vfprintf(stderr, fmt, args);
   va_end(args);
+  if (!top_level_env_ready) exit(1);
   longjmp(spim_top_level_env, 1);
 }
 

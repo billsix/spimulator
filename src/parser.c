@@ -90,7 +90,7 @@ static void ast_append(ast_node* node) {
   }
 }
 
-void emit_ast(const ast_node* file);
+void emit_ast(const ast_node* file, const ast_node* after);
 
 void parser_set_print_ast(bool on, FILE* out) {
   print_ast_after_parse = on;
@@ -536,10 +536,17 @@ static int parse_term(void) {
   while (scanner_peek() == '*' || scanner_peek() == '/') {
     int op = scanner_advance();
     int r = parse_factor();
+    /* The assembler's constant arithmetic wraps at 32 bits, as the machine's
+       does; C's signed overflow (and INT_MIN / -1) would be undefined
+       behavior.  Division by zero gives 0. */
     if (op == '*')
-      v *= r;
+      v = (int)((unsigned)v * (unsigned)r);
+    else if (r == 0)
+      v = 0;
+    else if (r == -1)
+      v = (int)(0u - (unsigned)v);
     else
-      v = (r == 0) ? 0 : v / r;
+      v = v / r;
   }
   return v;
 }
@@ -551,9 +558,9 @@ static int parse_expr(void) {
     int op = scanner_advance();
     int r = parse_term();
     if (op == '+')
-      v += r;
+      v = (int)((unsigned)v + (unsigned)r);
     else
-      v -= r;
+      v = (int)((unsigned)v - (unsigned)r);
   }
   return v;
 }
@@ -1036,7 +1043,14 @@ static void parse_dir_space(void) {
    accumulator; data_int_finalize builds the AST node. */
 static void parse_expr_list(void) {
   while (true) {
+    int errors_before = parse_errors_seen;
     int v = parse_expression();
+    if (parse_errors_seen != errors_before) {
+      /* parse_expression reports a token it cannot use without consuming
+         it; skip the rest of the line instead of asking again forever. */
+      sync_to_nl();
+      break;
+    }
     data_int_push(v);
     /* commas are skipped by the scanner; same with whitespace */
     if (scanner_peek() == TOK_NL || scanner_peek() == TOK_EOF) break;
@@ -2118,7 +2132,24 @@ void parser_init(FILE* in, char* file_name) {
   current_file = ast_make_file(file_name);
 }
 
+/* The last top-level node of FILE's tree, or nullptr if it has none. */
+static const ast_node* last_child(const ast_node* file) {
+  if (file == nullptr) return nullptr;
+  const ast_node* last = nullptr;
+  for (const ast_node* n = file->u.file.child; n != nullptr; n = n->next)
+    last = n;
+  return last;
+}
+
 int parse_file(void) {
+  /* Emit only what this call parses, starting in the segment that was
+     current when it began.  The REPL's `.` command parses one line onto
+     the tree of the file loaded last, whose nodes were emitted already;
+     and the parse itself moves data_dir/text_dir as it meets .data and
+     .text, which emit_ast must replay from the start. */
+  const ast_node* emitted = last_child(current_file);
+  bool start_data_dir = data_dir;
+  bool start_text_dir = text_dir;
   while (scanner_peek() != TOK_EOF) {
     parse_error_occurred = false;
     scanner_start_line();
@@ -2150,7 +2181,9 @@ int parse_file(void) {
      the user asked to just inspect the tree (-print-ast /
      -show-expansion / -print-ast-json). */
   if (!print_ast_only_ && current_file != nullptr) {
-    emit_ast(current_file);
+    data_dir = start_data_dir;
+    text_dir = start_text_dir;
+    emit_ast(current_file, emitted);
   }
 
   return parse_errors_seen;
@@ -2173,9 +2206,12 @@ int parse_file(void) {
 
 static void emit_one(const ast_node* node);
 
-void emit_ast(const ast_node* file) {
+/* Emit FILE's top-level nodes that come after AFTER (all of them when AFTER is
+   nullptr). */
+void emit_ast(const ast_node* file, const ast_node* after) {
   if (file == nullptr || file->kind != AST_FILE) return;
-  for (const ast_node* n = file->u.file.child; n != nullptr; n = n->next) {
+  const ast_node* first = after == nullptr ? file->u.file.child : after->next;
+  for (const ast_node* n = first; n != nullptr; n = n->next) {
     emit_one(n);
     /* Match parse_line's "clear labels after a non-label
        directive or instruction" rule. */
@@ -2198,7 +2234,8 @@ void emit_ast(const ast_node* file) {
    and record the use at the (now-correct) data PC; the existing
    resolve_label_uses mechanism patches it when the label is later
    defined. */
-static void emit_data_int_node(const ast_node* node, void (*store)(int)) {
+static void emit_data_int_node(const ast_node* node, void (*store)(int),
+                               int width) {
   for (int i = 0; i < node->u.data_int.count; i++) {
     imm_expr* e = node->u.data_int.exprs[i];
     if (e == nullptr) {
@@ -2206,7 +2243,7 @@ static void emit_data_int_node(const ast_node* node, void (*store)(int)) {
       continue;
     }
     if (e->symbol != nullptr && !SYMBOL_IS_DEFINED(e->symbol)) {
-      record_data_uses_symbol(current_data_pc(), e->symbol);
+      record_data_uses_symbol(current_data_pc(), e->symbol, e->offset, width);
       store(e->offset);
     } else {
       store(eval_imm_expr(e));
@@ -2311,17 +2348,17 @@ static void emit_one(const ast_node* node) {
 
     /* Data. */
     case AST_DATA_BYTE:
-      emit_data_int_node(node, store_byte);
+      emit_data_int_node(node, store_byte, 1);
       return;
     case AST_DATA_HALF:
       align_labels_to(1);
       if (data_dir) set_data_alignment(1);
-      emit_data_int_node(node, store_half);
+      emit_data_int_node(node, store_half, 2);
       return;
     case AST_DATA_WORD:
       align_labels_to(2);
       if (data_dir) set_data_alignment(2);
-      emit_data_int_node(node, store_word);
+      emit_data_int_node(node, store_word, 4);
       return;
     case AST_DATA_FLOAT:
       align_labels_to(2);

@@ -1,41 +1,15 @@
-# Several implementations of the spimulator engine, with the C engine as the standard
+# The engine ports: the rules every port follows
 
-**Status:** ready — the ordering and the shared rules are decided; no step started
-**Priority:** 6
-**Difficulty:** 8
-**Created:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)
+The spimulator engine has implementations in C (`src/`), Python (`port/python/`), GHC Haskell
+(`port/haskell/`) and Rust (`port/rust/`). This doc records the rules they share and why. The day's
+history (who did what, in what order, and the C bugs the ports found) is in
+`tasks/archive/2026/11/10/engine-ports.md`. Each port's own decisions are in its done-record,
+`tasks/archive/2026/11/10/engine-port-{python,haskell,rust}.md`. Per-language lessons are in
+`tasks/reference/engine-port-language-choice.md`. Decided by the maintainer (William Emerison Six
+<billsix@gmail.com>) and the agent on 2026-11-10.
 
-## BLUF
+## The rules
 
-The maintainer wants several implementations of the engine side by side in this repo. **The C
-engine is the standard** for now. Every other implementation is required to behave equivalently, meaning
-the same output and the same exit status as the C engine on every case in the shared corpus. How a floating-point number is turned into text does not gate a port (Cross-step
-decisions). Three ports are planned, Python, GHC Haskell and Rust. One differential harness runs every case
-through the C engine and every port. Done for the umbrella:
-- every port reports zero functional differences on the whole corpus in the meson gate;
-- every example's header shows how to run its `.asm` through each port.
-
-## Context
-
-- `tasks/reference/engine-port-language-choice.md` — the language study: per-language traps, the
-  measured formatting results, and the Haskell `%.18g` solution.
-- `tasks/review/2026/11/10/repo-review.md` §5 (behavior inventory: what every port must match), §6
-  (oracle quality), §7 (which oracle to trust).
-
-## Steps (in order)
-
-1. [ ] `tasks/engine-port-prereq-c-fixes.md` — fix the C engine's wrong-value bugs, close the test
-   gaps, drop `,` as an FP decimal separator. The standard must be right and fully pinned before
-   anything is compared with it.
-2. [ ] `tasks/engine-port-python.md` — the Python port. It also builds the shared harness (its Plan
-   step 2), generic over any number of engines.
-3. [ ] `tasks/engine-port-haskell.md` — the GHC Haskell port.
-4. [ ] `tasks/engine-port-rust.md` — the Rust port.
-
-Steps 3 and 4 can start once the harness exists, in either order, alongside the Python port's later
-milestones.
-
-## Cross-step decisions
 
 - **The C engine is the standard** (William Emerison Six <billsix@gmail.com>, 2026-11-10). A
   difference between a port and C is a bug in the port, unless it exposes a bug in C. Then the C bug
@@ -85,6 +59,30 @@ milestones.
   native run, as it does for `spimulator`, so the documented commands stay tested. Its docstring,
   `tasks/reference/example-c-teaching-style.md` and the example template get the new line too. This
   is the last step of each port's task.
+- **The teaching mode is not ported yet** (William Emerison Six <billsix@gmail.com>, 2026-11-10). Each port stops after the CLI/REPL milestone;
+  `-explain` waits for `tasks/explain-mode-correctness-bugs.md` and `tasks/explain-levels-redesign.md`
+  in C, because porting it now would port output that is about to change. A port given `-explain`
+  says it is not supported, and the harness excludes the explain cases by name, with that reason.
 - **Order of milestones, the same for every port:** machine arithmetic → assembler (gate: AST-parity
   bytes) → executor + syscalls (gate: regression + examples) → CLI/REPL → teaching mode
   (`-explain`, after `tasks/explain-mode-correctness-bugs.md` lands in C).
+
+
+## How a port is tested
+
+`port/meson.build` lists the ports (`ports`). For each port it registers, in the suite
+`port-<name>`:
+- every regression test except the teaching mode;
+- every examples demo;
+- the documented example commands (`tools/check_example_commands.py --port`);
+- `port/harness/compare_engines.py`: 23 cases from `port/harness/corpus.txt`;
+- `port/harness/compare_all_programs.py`: every `.s`/`.asm` in the repo, assembled six ways and run,
+  about 1,200 cases, four skipped by name.
+
+The image build runs them all. A behavior change in C fails every port's suite until the port
+follows it. A new port is an entry in `ports`, plus `tools/add_port_lines.py NAME LABEL` for the
+example headers.
+
+## What is not ported yet
+
+The teaching mode (`-explain`): `tasks/engine-ports-teaching-mode.md`, blocked on the C redesign.

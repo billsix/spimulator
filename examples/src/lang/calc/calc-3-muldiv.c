@@ -44,6 +44,15 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f calc-3-muldiv.asm < calc-3-muldiv.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f calc-3-muldiv.asm < calc-3-muldiv.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f calc-3-muldiv.asm < calc-3-muldiv.input
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f calc-3-muldiv.asm < calc-3-muldiv.input
  */
 /* clang-format on */
 

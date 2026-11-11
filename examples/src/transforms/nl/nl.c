@@ -26,6 +26,15 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ printf 'one\ntwo\n' | spimulator -f nl.asm
+ *
+ *   the same assembly, in the Python port:
+ *     $ printf 'one\ntwo\n' | spimulator-python -f nl.asm
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ printf 'one\ntwo\n' | spimulator-haskell -f nl.asm
+ *
+ *   the same assembly, in the Rust port:
+ *     $ printf 'one\ntwo\n' | spimulator-rust -f nl.asm
  */
 /* clang-format on */
 

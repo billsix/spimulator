@@ -47,6 +47,15 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f queens.asm 6
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f queens.asm 6
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f queens.asm 6
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f queens.asm 6
  */
 /* clang-format on */
 

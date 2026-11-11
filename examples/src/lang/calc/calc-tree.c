@@ -67,6 +67,15 @@
  *
  *   the paired MIPS assembly, in spimulator:
  *     $ spimulator -f calc-tree.asm < calc-sdt.input
+ *
+ *   the same assembly, in the Python port:
+ *     $ spimulator-python -f calc-tree.asm < calc-sdt.input
+ *
+ *   the same assembly, in the GHC Haskell port:
+ *     $ spimulator-haskell -f calc-tree.asm < calc-sdt.input
+ *
+ *   the same assembly, in the Rust port:
+ *     $ spimulator-rust -f calc-tree.asm < calc-sdt.input
  */
 /* clang-format on */
 

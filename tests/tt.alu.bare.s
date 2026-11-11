@@ -32,6 +32,21 @@
 # Adapted by Anne Rogers <amr@blueline.Princeton.EDU> from tt.le.s.
 # Run -bare -notrap.
 
+# Changed in spimulator from upstream (upstream's version: git show 30efcf3),
+# so the file assembles under MIPS32 rules:
+# - Immediates are written in range.  Upstream's assembler silently kept the
+#   low 16 bits of an out-of-range constant (0xff98 in `addi`, which the CPU
+#   sign-extends to -104; -1 in `ori`/`xori`/`lui`, which became 0xffff).
+#   spimulator reports a constant that does not fit, so the test now spells
+#   the value the instruction always received.
+# - The coprocessor-2 and coprocessor-3 tests (ctc/cfc, mtc/mfc, lwc/swc) and
+#   the lwc0/swc0 test are removed.  spimulator has no coprocessor 2 (its
+#   instructions raise Coprocessor Unusable, src/run.c), MIPS32 has no
+#   coprocessor 3, and MIPS32's lwc0/swc0 opcodes are ll/sc.  A comment
+#   marks each removal.
+#   Only text-segment code was removed, so the hard-coded data addresses
+#   (lui/ori 0x1000xxxx) still point at the same strings.
+
 # IMPORTANT!!!
 # This file only works on little-endian machines.
 #
@@ -410,19 +425,19 @@ lbd1_:	.word 0x76543210, 0xfedcba98
 	bne $t1 $4 fail
 	lb $t1 4($t0)
 	lui $4 0xffff
-	addi $4 $0 0xff98
+	addi $4 $0 -104
 	bne $t1 $4 fail
 	lb $t1 5($t0)
 	lui $4 0xffff
-	addi $4 $0 0xffba
+	addi $4 $0 -70
 	bne $t1 $4 fail
 	lb $t1 6($t0)
 	lui $4 0xffff
-	addi $4 $0 0xffdc
+	addi $4 $0 -36
 	bne $t1 $4 fail
 	lb $t1 7($t0)
 	lui $4 0xffff
-	addi $4 $0 0xfffe
+	addi $4 $0 -2
 	bne $t1 $4 fail
 
 #	li $v0 4	# syscall 4 (print_str)
@@ -584,7 +599,7 @@ lui_:	.asciiz "Testing LUI\n"
 	lui $2 1
 	andi $2 $2 0xffff
 	bne $2 $0 fail
-	lui $2 -1
+	lui $2 0xffff
 	srl $2 $2 16
 	addiu $2 $2 1
 	andi $2 $2 0xffff
@@ -814,7 +829,7 @@ ori_:	.asciiz "Testing ORI\n"
 	ori $4 $2 1
 	addi $5 $0 1
 	bne $4 $5 fail
-	ori $4 $3 -1
+	ori $4 $3 0xffff
 	lui $5 0xffff
 	ori $5 $5 0xffff
 	bne $4 $5 fail
@@ -1435,13 +1450,13 @@ xori_:	.asciiz "Testing XORI\n"
 	syscall
 
 	addi $2 $0 1
-	ori $3 $0 -1
+	ori $3 $0 0xffff
 
 	xori $4 $0 0
 	bne $4 $0 fail
-	xori $4 $3 -1
+	xori $4 $3 0xffff
 	bne $4 $0 fail
-	xori $4 $2 -1
+	xori $4 $2 0xffff
 #	lui $5 0xffff
 	ori $5 $0 0xfffe
 	bne $4 $5 fail
@@ -1589,20 +1604,9 @@ ccp_:	.asciiz "Testing move to/from coprocessor control z\n"
 #	cfc1 $4 $3
 #	addu $0 $0 $0                #Nop
 #	bne $2 $4 fail
-#	li $2 0x7f7f
-	addi $2 $0 0x7f7f
-	ctc2 $2 $3
-	addu $0 $0 $0                #Nop
-	cfc2 $4 $3
-	addu $0 $0 $0                #Nop
-	bne $2 $4 fail
-#	li $2 0x7f7f
-	addi $2 $0 0x7f7f
-	ctc3 $2 $3
-	addu $0 $0 $0                #Nop
-	cfc3 $4 $3
-	addu $0 $0 $0                #Nop
-	bne $2 $4 fail
+#	(spimulator) ctc2/cfc2 and ctc3/cfc3 tests removed: spimulator has no
+#	coprocessor 2 (its instructions raise Coprocessor Unusable), and MIPS32
+#	has no coprocessor 3.
 	addu $0 $0 $0            # Nop
 
 
@@ -1640,20 +1644,9 @@ mcp_:	.asciiz "Testing move to/from coprocessor z\n"
 #	bne $2 $6 fail
 #	bne $3 $7 fail
 
-#	li $2 0x7f7f
-	addi $2 $0 0x7f7f
-	mtc2 $2 $3
-	addu $0 $0 $0            # Nop
-	mfc2 $4 $3
-	addu $0 $0 $0            # Nop
-	bne $2 $4 fail
-#	li $2 0x7f7f
-	addi $2 $0 0x7f7f
-	mtc3 $2 $3
-	addu $0 $0 $0            # Nop
-	mfc3 $4 $3
-	addu $0 $0 $0            # Nop
-	bne $2 $4 fail
+#	(spimulator) mtc2/mfc2 and mtc3/mfc3 tests removed: spimulator has no
+#	coprocessor 2 (its instructions raise Coprocessor Unusable), and MIPS32
+#	has no coprocessor 3.
 	addu $0 $0 $0            # Nop
 
 
@@ -1705,24 +1698,7 @@ lswcd_:	.byte 0, 0, 0, 0
 	ori $a0 $a0 0x37c
 	syscall
 
-#	li $3, 0x7f7f7f7f
-	lui $3 0x7f7f
-	ori $3 $3 0x7f7f
-#	la $2 lswcd_
-	lui $2, 0x1000
-	ori $2 $2 0x3a4
-	mtc0 $3, $0
-	addu $0 $0 $0           #Nop
-	swc0 $0 0($2)
-	lw $4 0($2)
-	addu $0 $0 $0           #Nop
-	bne $4 $3 fail
-	lwc0 $1 0($2)
-	addu $0 $0 $0           #Nop
-	mfc0 $5, $1
-	addu $0 $0 $0           #Nop
-	bne $5 $3 fail
-	addu $0 $0 $0           #Nop
+#	(spimulator) lwc0/swc0 test removed: in MIPS32 those opcodes are ll/sc.
 
 #	li $3, 0x7f7f7f7f
 #	lui $3 0x7f7f
@@ -1742,44 +1718,9 @@ lswcd_:	.byte 0, 0, 0, 0
 #	addu $0 $0 $0           #Nop
 #	bne $5 $3 fail
 
-#	li $3, 0x7f7f7f7f
-	lui $3 0x7f7f
-	ori $3 $3 0x7f7f
-#	la $2 lswcd_
-	lui $2, 0x1000
-	ori $2 $2 0x3a4
-	mtc2 $3, $0
-	addu $0 $0 $0           #Nop
-	swc2 $0 0($2)
-	lw $4 0($2)
-	addu $0 $0 $0           #Nop
-	bne $4 $3 fail
-	lwc2 $1 0($2)
-	addu $0 $0 $0           #Nop
-	mfc2 $5, $1
-	addu $0 $0 $0           #Nop
-	bne $5 $3 fail
-	addu $0 $0 $0           #Nop
-
-#	li $3, 0x7f7f7f7f
-	lui $3 0x7f7f
-	ori $3 $3 0x7f7f
-#	la $2 lswcd_
-	lui $2, 0x1000
-	ori $2 $2 0x3a4
-	mtc3 $3, $0
-	addu $0 $0 $0           #Nop
-	swc3 $0 0($2)
-	lw $4 0($2)
-	addu $0 $0 $0           #Nop
-	bne $4 $3 fail
-	addu $0 $0 $0           #Nop
-	lwc3 $1 0($2)
-	addu $0 $0 $0           #Nop
-	mfc3 $5, $1
-	addu $0 $0 $0           #Nop
-	bne $5 $3 fail
-	addu $0 $0 $0           #Nop
+#	(spimulator) lwc2/swc2 and lwc3/swc3 tests removed: spimulator has no
+#	coprocessor 2 (its instructions raise Coprocessor Unusable), and MIPS32
+#	has no coprocessor 3.
 
 
 # Done !!!

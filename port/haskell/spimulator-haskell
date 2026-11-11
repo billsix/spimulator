@@ -1,0 +1,39 @@
+#!/bin/bash
+# spimulator-haskell: the Haskell port of the spimulator engine.
+#
+# Takes the same arguments as spimulator.  Builds the binary first when it
+# is missing or older than a source file (port/haskell/build.sh), then runs
+# it.
+#
+# The program sees exactly the environment this script was started with:
+# the engine copies the environment onto the simulated stack, so a variable
+# bash adds on its way (PWD, SHLVL, _) would move every stack address.  The
+# original environment is read back from /proc/$$/environ and passed on
+# with `env -i`.
+here=$(dirname "$(/usr/bin/readlink -f "${BASH_SOURCE[0]}")")
+bin="$here/build/spimulator-haskell"
+# For the build only (ghc runs gcc); the program gets the original
+# environment below.
+export PATH=/usr/bin:/bin
+
+stale() {
+  [ ! -x "$bin" ] || [ -n "$(find "$here/src" -name '*.hs' -newer "$bin" -print -quit 2>/dev/null)" ]
+}
+
+# Build quietly: the compiler's progress must not show up in the program's
+# stderr.  On failure, show the log.
+if stale; then
+  mkdir -p "$here/build"
+  (
+    flock 9
+    if stale; then
+      "$here/build.sh" > "$here/build/build.log" 2>&1 || { cat "$here/build/build.log" >&2; exit 1; }
+    fi
+  ) 9> "$here/build/.lock" || exit 1
+fi
+
+if [ -r /proc/$$/environ ]; then
+  mapfile -d '' original_env < /proc/$$/environ
+  exec /usr/bin/env -i -- "${original_env[@]}" "$bin" "$@"
+fi
+exec "$bin" "$@"

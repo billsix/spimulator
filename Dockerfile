@@ -52,6 +52,7 @@ COPY entrypoint/01-install-base.sh /usr/local/bin
 COPY entrypoint/02-install-emacs.sh /usr/local/bin
 COPY entrypoint/03-install-docs.sh /usr/local/bin
 COPY entrypoint/04-install-tree-sitter.sh /usr/local/bin
+COPY entrypoint/05-install-ports.sh /usr/local/bin
 
 
 
@@ -76,6 +77,12 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
       /usr/local/bin/03-install-docs.sh ; \
     fi ;
 
+# The engine ports' toolchains (Python, GHC, Rust): always installed, because
+# the ports are part of the test gate; see entrypoint/05-install-ports.sh.
+RUN --mount=type=cache,target=/var/cache/libdnf5 \
+    --mount=type=cache,target=/var/lib/dnf \
+    /usr/local/bin/05-install-ports.sh
+
 COPY helloworld.s meson.build meson_options.txt ${SPIM_SRC_DIR}/
 COPY src/             ${SPIM_SRC_DIR}/src
 COPY include/         ${SPIM_SRC_DIR}/include
@@ -89,6 +96,9 @@ COPY examples/        ${SPIM_SRC_DIR}/examples
 # Repo tools the test suite runs: the examples suite's documented-commands
 # test is tools/check_example_commands.py.
 COPY tools/           ${SPIM_SRC_DIR}/tools
+# The engine ports and their comparison harness (port/meson.build registers
+# their tests in the same meson test run).
+COPY port/            ${SPIM_SRC_DIR}/port
 
 # Build from source.  --prefix sets the install root explicitly; meson's
 # default on Unix is also /usr/local, but spelling it out keeps the
