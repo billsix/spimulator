@@ -29,36 +29,9 @@ from . import (
 )
 from . import registers as regs
 from .inst import AddrExpr, ImmExpr, Instruction
-from .opcodes import KIND
-
-TOK: dict[str, int] = opcodes.TOKEN
+from .opcode_table import OpType, Tok
 
 # Operand-shape tags (opcode-types.h), named once for the switches below.
-BRANCH_COPROC_COND_INST: int = KIND["BRANCH_COPROC_COND_INST"]
-BRANCH_RS_LABEL_INST: int = KIND["BRANCH_RS_LABEL_INST"]
-RS_IMM_INST: int = KIND["RS_IMM_INST"]
-RT_IMM_INST: int = KIND["RT_IMM_INST"]
-RT_RS_IMM_INST: int = KIND["RT_RS_IMM_INST"]
-BRANCH_RS_RT_LABEL_INST: int = KIND["BRANCH_RS_RT_LABEL_INST"]
-RT_ADDR_INST: int = KIND["RT_ADDR_INST"]
-RS_INST: int = KIND["RS_INST"]
-RD_INST: int = KIND["RD_INST"]
-RS_RT_INST: int = KIND["RS_RT_INST"]
-RD_RS_INST: int = KIND["RD_RS_INST"]
-RT_COPREG_INST: int = KIND["RT_COPREG_INST"]
-RD_RT_SHAMT_INST: int = KIND["RD_RT_SHAMT_INST"]
-RD_RS_RT_INST: int = KIND["RD_RS_RT_INST"]
-RD_RT_RS_INST: int = KIND["RD_RT_RS_INST"]
-FP_FT_ADDR_INST: int = KIND["FP_FT_ADDR_INST"]
-FP_FD_FS_INST: int = KIND["FP_FD_FS_INST"]
-FP_RT_COPREG_INST: int = KIND["FP_RT_COPREG_INST"]
-FP_CMP_FS_FT_INST: int = KIND["FP_CMP_FS_FT_INST"]
-FP_FD_FS_FT_INST: int = KIND["FP_FD_FS_FT_INST"]
-FP_FD_FR_FS_FT_INST: int = KIND["FP_FD_FR_FS_FT_INST"]
-FP_MOVC_TYPE_INST: int = KIND["FP_MOVC_TYPE_INST"]
-MOVC_TYPE_INST: int = KIND["MOVC_TYPE_INST"]
-J_TYPE_INST: int = KIND["J_TYPE_INST"]
-NOARG_TYPE_INST: int = KIND["NOARG_TYPE_INST"]
 
 IMM_MIN: int = -0x8000
 IMM_MAX: int = 0x7FFF
@@ -71,49 +44,44 @@ COND_LT: int = 0x4
 COND_IN: int = 0x8
 
 
-def _tokens(*names: str) -> frozenset[int]:
-    """The set of tokens with these C names (without ``TOK_``)."""
-    return frozenset(TOK[name] for name in names)
+BRANCH_OPCODES: frozenset[int] = frozenset({
+    Tok.BC1F_OPCODE, Tok.BC1FL_OPCODE, Tok.BC1T_OPCODE, Tok.BC1TL_OPCODE,
+    Tok.BC2F_OPCODE, Tok.BC2FL_OPCODE, Tok.BC2T_OPCODE, Tok.BC2TL_OPCODE,
+    Tok.BEQ_OPCODE, Tok.BEQL_OPCODE, Tok.BEQZ_PSEUDO_OP, Tok.BGE_PSEUDO_OP,
+    Tok.BGEU_PSEUDO_OP, Tok.BGEZ_OPCODE, Tok.BGEZAL_OPCODE, Tok.BGEZALL_OPCODE,
+    Tok.BGEZL_OPCODE, Tok.BGT_PSEUDO_OP, Tok.BGTU_PSEUDO_OP, Tok.BGTZ_OPCODE,
+    Tok.BGTZL_OPCODE, Tok.BLE_PSEUDO_OP, Tok.BLEU_PSEUDO_OP, Tok.BLEZ_OPCODE,
+    Tok.BLEZL_OPCODE, Tok.BLT_PSEUDO_OP, Tok.BLTU_PSEUDO_OP, Tok.BLTZ_OPCODE,
+    Tok.BLTZAL_OPCODE, Tok.BLTZALL_OPCODE, Tok.BLTZL_OPCODE, Tok.BNE_OPCODE,
+    Tok.BNEL_OPCODE, Tok.BNEZ_PSEUDO_OP,
+})  # fmt: skip
 
+NULLIFIED_BRANCH_OPCODES: frozenset[int] = frozenset({
+    Tok.BC1FL_OPCODE, Tok.BC1TL_OPCODE, Tok.BC2FL_OPCODE, Tok.BC2TL_OPCODE,
+    Tok.BEQL_OPCODE, Tok.BGEZALL_OPCODE, Tok.BGEZL_OPCODE, Tok.BGTZL_OPCODE,
+    Tok.BLEZL_OPCODE, Tok.BLTZALL_OPCODE, Tok.BLTZL_OPCODE, Tok.BNEL_OPCODE,
+})  # fmt: skip
 
-BRANCH_OPCODES: frozenset[int] = _tokens(
-    "BC1F_OPCODE", "BC1FL_OPCODE", "BC1T_OPCODE", "BC1TL_OPCODE",
-    "BC2F_OPCODE", "BC2FL_OPCODE", "BC2T_OPCODE", "BC2TL_OPCODE",
-    "BEQ_OPCODE", "BEQL_OPCODE", "BEQZ_PSEUDO_OP", "BGE_PSEUDO_OP",
-    "BGEU_PSEUDO_OP", "BGEZ_OPCODE", "BGEZAL_OPCODE", "BGEZALL_OPCODE",
-    "BGEZL_OPCODE", "BGT_PSEUDO_OP", "BGTU_PSEUDO_OP", "BGTZ_OPCODE",
-    "BGTZL_OPCODE", "BLE_PSEUDO_OP", "BLEU_PSEUDO_OP", "BLEZ_OPCODE",
-    "BLEZL_OPCODE", "BLT_PSEUDO_OP", "BLTU_PSEUDO_OP", "BLTZ_OPCODE",
-    "BLTZAL_OPCODE", "BLTZALL_OPCODE", "BLTZL_OPCODE", "BNE_OPCODE",
-    "BNEL_OPCODE", "BNEZ_PSEUDO_OP",
-)  # fmt: skip
-
-NULLIFIED_BRANCH_OPCODES: frozenset[int] = _tokens(
-    "BC1FL_OPCODE", "BC1TL_OPCODE", "BC2FL_OPCODE", "BC2TL_OPCODE",
-    "BEQL_OPCODE", "BGEZALL_OPCODE", "BGEZL_OPCODE", "BGTZL_OPCODE",
-    "BLEZL_OPCODE", "BLTZALL_OPCODE", "BLTZL_OPCODE", "BNEL_OPCODE",
-)  # fmt: skip
-
-TRUE_BRANCH_OPCODES: frozenset[int] = _tokens(
-    "BC1T_OPCODE", "BC1TL_OPCODE", "BC2T_OPCODE", "BC2TL_OPCODE"
+TRUE_BRANCH_OPCODES: frozenset[int] = frozenset(
+    {Tok.BC1T_OPCODE, Tok.BC1TL_OPCODE, Tok.BC2T_OPCODE, Tok.BC2TL_OPCODE}
 )
 
-JUMP_OPCODES: frozenset[int] = _tokens("J_OPCODE", "JAL_OPCODE")
+JUMP_OPCODES: frozenset[int] = frozenset({Tok.J_OPCODE, Tok.JAL_OPCODE})
 
-LOAD_STORE_OPCODES: frozenset[int] = _tokens(
-    "LB_OPCODE", "LBU_OPCODE", "LH_OPCODE", "LHU_OPCODE", "LL_OPCODE",
-    "LDC1_OPCODE", "LDC2_OPCODE", "LW_OPCODE", "LWC1_OPCODE", "LWC2_OPCODE",
-    "LWL_OPCODE", "LWR_OPCODE", "SB_OPCODE", "SC_OPCODE", "SH_OPCODE",
-    "SDC1_OPCODE", "SDC2_OPCODE", "SW_OPCODE", "SWC1_OPCODE", "SWC2_OPCODE",
-    "SWL_OPCODE", "SWR_OPCODE",
-)  # fmt: skip
+LOAD_STORE_OPCODES: frozenset[int] = frozenset({
+    Tok.LB_OPCODE, Tok.LBU_OPCODE, Tok.LH_OPCODE, Tok.LHU_OPCODE, Tok.LL_OPCODE,
+    Tok.LDC1_OPCODE, Tok.LDC2_OPCODE, Tok.LW_OPCODE, Tok.LWC1_OPCODE, Tok.LWC2_OPCODE,
+    Tok.LWL_OPCODE, Tok.LWR_OPCODE, Tok.SB_OPCODE, Tok.SC_OPCODE, Tok.SH_OPCODE,
+    Tok.SDC1_OPCODE, Tok.SDC2_OPCODE, Tok.SW_OPCODE, Tok.SWC1_OPCODE, Tok.SWC2_OPCODE,
+    Tok.SWL_OPCODE, Tok.SWR_OPCODE,
+})  # fmt: skip
 
 # Immediates these instructions sign-extend; every other I-type zero-extends.
-_SIGNED_IMMEDIATE_OPCODES: frozenset[int] = _tokens(
-    "ADDI_OPCODE", "ADDIU_OPCODE", "SLTI_OPCODE", "SLTIU_OPCODE",
-    "TEQI_OPCODE", "TGEI_OPCODE", "TGEIU_OPCODE", "TLTI_OPCODE",
-    "TLTIU_OPCODE", "TNEI_OPCODE",
-)  # fmt: skip
+_SIGNED_IMMEDIATE_OPCODES: frozenset[int] = frozenset({
+    Tok.ADDI_OPCODE, Tok.ADDIU_OPCODE, Tok.SLTI_OPCODE, Tok.SLTIU_OPCODE,
+    Tok.TEQI_OPCODE, Tok.TGEI_OPCODE, Tok.TGEIU_OPCODE, Tok.TLTI_OPCODE,
+    Tok.TLTIU_OPCODE, Tok.TNEI_OPCODE,
+})  # fmt: skip
 
 # The condition bits each FP compare stores (r_cond_type_inst).
 _COMPARE_CONDITIONS: dict[int, int] = {}
@@ -136,10 +104,10 @@ for _suffix, _cond in (
     ("UN", COND_UN),
 ):
     for _fmt in ("D", "S"):
-        _COMPARE_CONDITIONS[TOK[f"C_{_suffix}_{_fmt}_OPCODE"]] = _cond
+        _COMPARE_CONDITIONS[Tok[f"C_{_suffix}_{_fmt}_OPCODE"]] = _cond
 
-_FP_MOVE_ON_GPR: frozenset[int] = _tokens(
-    "MOVN_S_OPCODE", "MOVN_D_OPCODE", "MOVZ_S_OPCODE", "MOVZ_D_OPCODE"
+_FP_MOVE_ON_GPR: frozenset[int] = frozenset(
+    {Tok.MOVN_S_OPCODE, Tok.MOVN_D_OPCODE, Tok.MOVZ_S_OPCODE, Tok.MOVZ_D_OPCODE}
 )
 
 
@@ -415,26 +383,26 @@ def _i_type_inst_full_word(
             ):
                 if low & 0x8000:
                     high += 1  # the load sign-extends the low half
-                i_type_inst(TOK["LUI_OPCODE"], 1, 0, const_imm_expr(high))
+                i_type_inst(Tok.LUI_OPCODE, 1, 0, const_imm_expr(high))
                 if rs != 0:
-                    r_type_inst(TOK["ADDU_OPCODE"], 1, 1, rs)
+                    r_type_inst(Tok.ADDU_OPCODE, 1, 1, rs)
                 i_type_inst(opcode, rt, 1, _lower_bits_of_expr(const_imm_expr(low)))
             else:
                 # Sign-extending the low half already gives the high half.
                 i_type_inst(opcode, rt, rs, const_imm_expr(low))
         else:
-            i_type_inst(TOK["LUI_OPCODE"], 1, 0, _upper_bits_of_expr(expr))
+            i_type_inst(Tok.LUI_OPCODE, 1, 0, _upper_bits_of_expr(expr))
             if rs != 0:
-                r_type_inst(TOK["ADDU_OPCODE"], 1, 1, rs)
+                r_type_inst(Tok.ADDU_OPCODE, 1, 1, rs)
             i_type_inst(opcode, rt, 1, _lower_bits_of_expr(expr))
     elif opcode_is_branch(opcode):
         # This only allows branches +/- 32K, which is not correct!
         i_type_inst(opcode, rt, rs, _lower_bits_of_expr(expr))
     elif gp_offset is not None:
-        computed: int = TOK["ADDIU_OPCODE"] if opcode == TOK["LUI_OPCODE"] else opcode
+        computed: int = Tok.ADDIU_OPCODE if opcode == Tok.LUI_OPCODE else opcode
         i_type_inst(computed, rt, regs.REG_GP, make_imm_expr(gp_offset, None, False))
-    elif rs == 0 and opcode in _tokens(
-        "ORI_OPCODE", "ADDI_OPCODE", "ADDIU_OPCODE", "LUI_OPCODE"
+    elif rs == 0 and opcode in frozenset(
+        {Tok.ORI_OPCODE, Tok.ADDI_OPCODE, Tok.ADDIU_OPCODE, Tok.LUI_OPCODE}
     ):
         _produce_immediate(expr, rt, value_known, value)
     else:
@@ -445,12 +413,12 @@ def _i_type_inst_full_word(
 def _produce_immediate(expr: ImmExpr, rt: int, value_known: bool, value: int) -> None:
     """Load expr's 32-bit value into rt with lui and/or ori."""
     if value_known and value & 0xFFFF == 0:
-        i_type_inst(TOK["LUI_OPCODE"], rt, 0, _upper_bits_of_expr(expr))
+        i_type_inst(Tok.LUI_OPCODE, rt, 0, _upper_bits_of_expr(expr))
     elif value_known and machine.u32(value) & 0xFFFF0000 == 0:
-        i_type_inst(TOK["ORI_OPCODE"], rt, 0, _lower_bits_of_expr(expr))
+        i_type_inst(Tok.ORI_OPCODE, rt, 0, _lower_bits_of_expr(expr))
     else:
-        i_type_inst(TOK["LUI_OPCODE"], 1, 0, _upper_bits_of_expr(expr))
-        i_type_inst(TOK["ORI_OPCODE"], rt, 1, _lower_bits_of_expr(expr))
+        i_type_inst(Tok.LUI_OPCODE, 1, 0, _upper_bits_of_expr(expr))
+        i_type_inst(Tok.ORI_OPCODE, rt, 1, _lower_bits_of_expr(expr))
 
 
 def j_type_inst(opcode: int, target: ImmExpr) -> None:
@@ -512,7 +480,7 @@ def _breakpoint_instruction() -> Instruction:
     """The one ``break 1`` instruction every breakpoint shares."""
     global _break_inst
     if _break_inst is None:
-        _break_inst = _make_r_type_inst(TOK["BREAK_OPCODE"], 1, 0, 0)
+        _break_inst = _make_r_type_inst(Tok.BREAK_OPCODE, 1, 0, 0)
     return _break_inst
 
 
@@ -551,41 +519,47 @@ def inst_encode(inst: Instruction | None) -> int:
     kind: int = row.kind
     imm: int = inst.imm & 0xFFFF
     word: int
-    if kind == BRANCH_COPROC_COND_INST:
+    if kind == OpType.BRANCH_COPROC_COND_INST:
         word = a | _regs((inst.rt >> 2) << 2, 16) | imm
-    elif kind in (BRANCH_RS_LABEL_INST, RS_IMM_INST):
+    elif kind in (OpType.BRANCH_RS_LABEL_INST, OpType.RS_IMM_INST):
         word = a | _regs(inst.rs, 21) | imm
     elif (
-        kind in (RT_IMM_INST, RT_RS_IMM_INST, BRANCH_RS_RT_LABEL_INST, RT_ADDR_INST)
-        or kind == FP_FT_ADDR_INST
+        kind
+        in (
+            OpType.RT_IMM_INST,
+            OpType.RT_RS_IMM_INST,
+            OpType.BRANCH_RS_RT_LABEL_INST,
+            OpType.RT_ADDR_INST,
+        )
+        or kind == OpType.FP_FT_ADDR_INST
     ):
         word = a | _regs(inst.rs, 21) | _regs(inst.rt, 16) | imm
-    elif kind == RS_INST:
+    elif kind == OpType.RS_INST:
         word = a | _regs(inst.rs, 21)
-    elif kind == RD_INST:
+    elif kind == OpType.RD_INST:
         word = a | _regs(inst.rd, 11)
-    elif kind in (RT_COPREG_INST, FP_RT_COPREG_INST):
+    elif kind in (OpType.RT_COPREG_INST, OpType.FP_RT_COPREG_INST):
         word = a | _regs(inst.rt, 16) | _regs(inst.rd, 11)
-    elif kind == RS_RT_INST:
+    elif kind == OpType.RS_RT_INST:
         word = a | _regs(inst.rs, 21) | _regs(inst.rt, 16)
-    elif kind == RD_RS_INST:
+    elif kind == OpType.RD_RS_INST:
         word = a | _regs(inst.rs, 21) | _regs(inst.rd, 11)
-    elif kind == RD_RT_SHAMT_INST:
+    elif kind == OpType.RD_RT_SHAMT_INST:
         word = a | _regs(inst.rt, 16) | _regs(inst.rd, 11) | _regs(inst.shamt, 6)
-    elif kind in (RD_RS_RT_INST, RD_RT_RS_INST, MOVC_TYPE_INST):
+    elif kind in (OpType.RD_RS_RT_INST, OpType.RD_RT_RS_INST, OpType.MOVC_TYPE_INST):
         word = a | _regs(inst.rs, 21) | _regs(inst.rt, 16) | _regs(inst.rd, 11)
-    elif kind == FP_FD_FS_INST:
+    elif kind == OpType.FP_FD_FS_INST:
         word = a | _regs(inst.rd, 11) | _regs(inst.shamt, 6)
-    elif kind == FP_CMP_FS_FT_INST:
+    elif kind == OpType.FP_CMP_FS_FT_INST:
         word = (
             a | _regs(inst.rt, 16) | _regs(inst.rd, 11) | _regs(inst.shamt, 6) | inst.rs
         )
-    elif kind in (FP_FD_FS_FT_INST, FP_MOVC_TYPE_INST):
+    elif kind in (OpType.FP_FD_FS_FT_INST, OpType.FP_MOVC_TYPE_INST):
         # For movf/movt the rt byte is cc<<2; their tf bit is in a already.
         word = a | _regs(inst.rt, 16) | _regs(inst.rd, 11) | _regs(inst.shamt, 6)
-    elif kind == J_TYPE_INST:
+    elif kind == OpType.J_TYPE_INST:
         word = machine.u32(a) | inst.target
-    elif kind == NOARG_TYPE_INST:
+    elif kind == OpType.NOARG_TYPE_INST:
         word = a
     else:
         raise console.fatal_error("Unknown instruction type in inst_encoding\n")
@@ -638,35 +612,35 @@ def inst_decode(word: int) -> Instruction:
     sh: int = (val >> 6) & 0x1F
     imm: int = val & 0xFFFF
     kind: int | None = kind_of(token)
-    if kind in (BRANCH_COPROC_COND_INST, RT_IMM_INST, RT_RS_IMM_INST,
-                BRANCH_RS_RT_LABEL_INST, RT_ADDR_INST, FP_FT_ADDR_INST):  # fmt: skip
+    if kind in (OpType.BRANCH_COPROC_COND_INST, OpType.RT_IMM_INST, OpType.RT_RS_IMM_INST,
+                OpType.BRANCH_RS_RT_LABEL_INST, OpType.RT_ADDR_INST, OpType.FP_FT_ADDR_INST):  # fmt: skip
         return _mk_inst(val, token, rs, rt, imm & 0xFF, imm >> 8)
-    if kind in (BRANCH_RS_LABEL_INST, RS_IMM_INST):
+    if kind in (OpType.BRANCH_RS_LABEL_INST, OpType.RS_IMM_INST):
         return _mk_inst(val, token, rs, 0, imm & 0xFF, imm >> 8)
-    if kind == RS_INST:
+    if kind == OpType.RS_INST:
         return _mk_inst(val, token, rs)
-    if kind == RD_INST:
+    if kind == OpType.RD_INST:
         return _mk_inst(val, token, rd=rd)
-    if kind in (RT_COPREG_INST, FP_RT_COPREG_INST):
+    if kind in (OpType.RT_COPREG_INST, OpType.FP_RT_COPREG_INST):
         return _mk_inst(val, token, rt=rt, rd=rd)
-    if kind == RS_RT_INST:
+    if kind == OpType.RS_RT_INST:
         return _mk_inst(val, token, rs, rt)
-    if kind == RD_RS_INST:
+    if kind == OpType.RD_RS_INST:
         return _mk_inst(val, token, rs, rd=rd)
-    if kind == RD_RT_SHAMT_INST:
+    if kind == OpType.RD_RT_SHAMT_INST:
         return _mk_inst(val, token, 0, rt, rd, sh)
-    if kind in (RD_RS_RT_INST, RD_RT_RS_INST, MOVC_TYPE_INST):
+    if kind in (OpType.RD_RS_RT_INST, OpType.RD_RT_RS_INST, OpType.MOVC_TYPE_INST):
         return _mk_inst(val, token, rs, rt, rd)
-    if kind == FP_FD_FS_INST:
+    if kind == OpType.FP_FD_FS_INST:
         return _mk_inst(val, token, 0, 0, rd, sh)
-    if kind == FP_CMP_FS_FT_INST:
+    if kind == OpType.FP_CMP_FS_FT_INST:
         return _mk_inst(val, token, val & 0xF, rt, rd, sh)
-    if kind in (FP_FD_FS_FT_INST, FP_MOVC_TYPE_INST):
+    if kind in (OpType.FP_FD_FS_FT_INST, OpType.FP_MOVC_TYPE_INST):
         return _mk_inst(val, token, 0, rt, rd, sh)
-    if kind == J_TYPE_INST:
+    if kind == OpType.J_TYPE_INST:
         target: int = val & 0x3FFFFFF
         return _mk_inst(val, token, target, target >> 8, target >> 16, target >> 24)
-    if kind == NOARG_TYPE_INST:
+    if kind == OpType.NOARG_TYPE_INST:
         return _mk_inst(val, token)
     return _mk_inst(val, 0)
 
@@ -701,57 +675,57 @@ def _format_imm_expr(expr: ImmExpr, base_reg: int) -> str:
 def _operands(inst: Instruction, kind: int) -> str:
     """The operand text of inst for its operand shape (format_an_inst)."""
     branch_offset: int = machine.s32(machine.s16(inst.imm) << 2)
-    if kind == BRANCH_COPROC_COND_INST:
+    if kind == OpType.BRANCH_COPROC_COND_INST:
         return f"{inst.rt >> 2} {branch_offset}"
-    if kind == BRANCH_RS_LABEL_INST:
+    if kind == OpType.BRANCH_RS_LABEL_INST:
         return f" ${_reg(inst.rs)} {branch_offset}"
-    if kind == RS_IMM_INST:
+    if kind == OpType.RS_IMM_INST:
         return f" ${_reg(inst.rs)}, {inst.imm}"
-    if kind == RT_IMM_INST:
+    if kind == OpType.RT_IMM_INST:
         return f" ${_reg(inst.rt)}, {inst.imm}"
-    if kind == RT_RS_IMM_INST:
+    if kind == OpType.RT_RS_IMM_INST:
         return f" ${_reg(inst.rt)}, ${_reg(inst.rs)}, {inst.imm}"
-    if kind == BRANCH_RS_RT_LABEL_INST:
+    if kind == OpType.BRANCH_RS_RT_LABEL_INST:
         return f" ${_reg(inst.rs)}, ${_reg(inst.rt)}, {branch_offset}"
-    if kind == RT_ADDR_INST:
+    if kind == OpType.RT_ADDR_INST:
         return f" ${_reg(inst.rt)}, {inst.imm}(${_reg(inst.rs)})"
-    if kind == RS_INST:
+    if kind == OpType.RS_INST:
         return f" ${_reg(inst.rs)}"
-    if kind == RD_INST:
+    if kind == OpType.RD_INST:
         return f" ${_reg(inst.rd)}"
-    if kind == RT_COPREG_INST:
+    if kind == OpType.RT_COPREG_INST:
         return f" ${_reg(inst.rt)}, ${_reg(inst.rd)}"
-    if kind == RS_RT_INST:
+    if kind == OpType.RS_RT_INST:
         return f" ${_reg(inst.rs)}, ${_reg(inst.rt)}"
-    if kind == RD_RS_INST:
+    if kind == OpType.RD_RS_INST:
         return f" ${_reg(inst.rd)}, ${_reg(inst.rs)}"
-    if kind == RD_RT_SHAMT_INST:
+    if kind == OpType.RD_RT_SHAMT_INST:
         return f" ${_reg(inst.rd)}, ${_reg(inst.rt)}, {inst.shamt}"
-    if kind == RD_RS_RT_INST:
+    if kind == OpType.RD_RS_RT_INST:
         return f" ${_reg(inst.rd)}, ${_reg(inst.rs)}, ${_reg(inst.rt)}"
-    if kind == RD_RT_RS_INST:
+    if kind == OpType.RD_RT_RS_INST:
         return f" ${_reg(inst.rd)}, ${_reg(inst.rt)}, ${_reg(inst.rs)}"
-    if kind == FP_FT_ADDR_INST:
+    if kind == OpType.FP_FT_ADDR_INST:
         return f" $f{inst.rt}, {inst.imm}(${_reg(inst.rs)})"
-    if kind == FP_FD_FS_INST:
+    if kind == OpType.FP_FD_FS_INST:
         return f" $f{inst.shamt}, $f{inst.rd}"
-    if kind == FP_RT_COPREG_INST:
+    if kind == OpType.FP_RT_COPREG_INST:
         return f" ${_reg(inst.rt)}, $f{inst.rd}"
-    if kind == FP_CMP_FS_FT_INST:
+    if kind == OpType.FP_CMP_FS_FT_INST:
         if inst.shamt == 0:
             return f" $f{inst.rd}, $f{inst.rt}"
         return f" {inst.shamt >> 2}, $f{inst.rd}, $f{inst.rt}"
-    if kind == FP_FD_FS_FT_INST:
+    if kind == OpType.FP_FD_FS_FT_INST:
         return f" $f{inst.shamt}, $f{inst.rd}, $f{inst.rt}"
-    if kind == MOVC_TYPE_INST:
+    if kind == OpType.MOVC_TYPE_INST:
         return f" ${_reg(inst.rd)}, ${_reg(inst.rs)}, {inst.rt >> 2}"
-    if kind == FP_MOVC_TYPE_INST:
+    if kind == OpType.FP_MOVC_TYPE_INST:
         if inst.opcode in _FP_MOVE_ON_GPR:
             return f" $f{inst.shamt}, $f{inst.rd}, ${_reg(inst.rt)}"
         return f" $f{inst.shamt}, $f{inst.rd}, {inst.rt >> 2}"
-    if kind == J_TYPE_INST:
+    if kind == OpType.J_TYPE_INST:
         return f" 0x{(inst.target << 2) & 0xFFFFFFFF:08x}"
-    if kind == NOARG_TYPE_INST:
+    if kind == OpType.NOARG_TYPE_INST:
         return ""
     raise console.fatal_error("Unknown instruction type in print_inst\n")
 
@@ -775,7 +749,7 @@ def format_an_inst(inst: Instruction | None, addr: int) -> str:
         return line + f"<unknown instruction {machine.s16(inst.opcode)}>\n"
     line += f"0x{machine.u32(inst.encoding):08x}  {row.name}"
     if (
-        row.kind == RD_RT_SHAMT_INST
+        row.kind == OpType.RD_RT_SHAMT_INST
         and inst.rd == 0
         and inst.rt == 0
         and inst.shamt == 0

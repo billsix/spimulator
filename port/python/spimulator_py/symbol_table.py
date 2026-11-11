@@ -245,7 +245,7 @@ def _compensate_lui(inst: Instruction, pc: int) -> None:
     assert inst.expr is not None
     prev: Instruction | None = memory.read_inst(machine.u32(pc - 4))
     prev_prev: Instruction | None = memory.read_inst(machine.u32(pc - 8))
-    lui: int = instruction.TOK["LUI_OPCODE"]
+    lui: int = instruction.Tok.LUI_OPCODE
     if (
         prev is not None
         and prev.opcode == lui

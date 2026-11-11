@@ -30,8 +30,8 @@ from . import (
 )
 from .ast_nodes import Kind, Node
 from .inst import AddrExpr, ImmExpr
+from .opcode_table import OpType, Tok
 from .opcodes import (
-    KIND,
     TOK_EOF,
     TOK_FP,
     TOK_FP_REG,
@@ -41,8 +41,6 @@ from .opcodes import (
     TOK_REG,
     TOK_STR,
 )
-
-TOK: dict[str, int] = opcodes.TOKEN
 
 data_dir: bool = False
 """The current segment is a data segment."""
@@ -429,33 +427,28 @@ def _parse_address() -> AddrExpr:
 
 # --- instructions -----------------------------------------------------------------
 
-_HAS_IMMEDIATE_FORM: frozenset[int] = frozenset(
-    TOK[name]
-    for name in (
-        "ADD_OPCODE", "ADDU_OPCODE", "AND_OPCODE", "OR_OPCODE", "XOR_OPCODE",
-        "SLT_OPCODE", "SLTU_OPCODE",
-    )
-)  # fmt: skip
+_HAS_IMMEDIATE_FORM: frozenset[int] = frozenset((
+        Tok.ADD_OPCODE, Tok.ADDU_OPCODE, Tok.AND_OPCODE, Tok.OR_OPCODE, Tok.XOR_OPCODE,
+        Tok.SLT_OPCODE, Tok.SLTU_OPCODE,
+    ))  # fmt: skip
 
 
 def _parse_r3(op: int) -> None:
     """``op rd, rs, rt``, and the immediate forms some of them accept."""
     rd: int = _parse_register()
-    if op in (TOK["CLO_OPCODE"], TOK["CLZ_OPCODE"]):
+    if op in (Tok.CLO_OPCODE, Tok.CLZ_OPCODE):
         emit_r(op, rd, _parse_register(), rd)  # rt must equal rd
         return
-    if op == TOK["MUL_OPCODE"]:
+    if op == Tok.MUL_OPCODE:
         rs: int = _parse_register()
         if scanner.peek() == TOK_REG:
             emit_r(op, rd, rs, _parse_register())
         else:
-            emit_i(TOK["ORI_OPCODE"], 1, 0, _parse_imm32())
+            emit_i(Tok.ORI_OPCODE, 1, 0, _parse_imm32())
             emit_r(op, rd, rs, 1)
         return
-    if op in (TOK["SUB_OPCODE"], TOK["SUBU_OPCODE"]):
-        add: int = (
-            TOK["ADDI_OPCODE"] if op == TOK["SUB_OPCODE"] else TOK["ADDIU_OPCODE"]
-        )
+    if op in (Tok.SUB_OPCODE, Tok.SUBU_OPCODE):
+        add: int = Tok.ADDI_OPCODE if op == Tok.SUB_OPCODE else Tok.ADDIU_OPCODE
         if scanner.peek() != TOK_REG:
             negated: int = -instruction.eval_imm_expr(_parse_imm32())
             emit_i(add, rd, rd, instruction.make_imm_expr(negated, None, False))
@@ -483,8 +476,8 @@ def _parse_r3(op: int) -> None:
 
 def _parse_r2sh(op: int) -> None:
     """``op rd, rt, shamt``; ``ssnop`` is ``sll $0, $0, 1``."""
-    if op == TOK["SSNOP_OPCODE"]:
-        emit_r_shift(TOK["SLL_OPCODE"], 0, 0, 1)
+    if op == Tok.SSNOP_OPCODE:
+        emit_r_shift(Tok.SLL_OPCODE, 0, 0, 1)
         return
     rd: int = _parse_register()
     rt: int = _parse_register()
@@ -499,7 +492,7 @@ def _parse_i2(op: int) -> None:
     """``op rt, rs, imm16``, or ``op rt, imm16`` with rs = rt."""
     rt: int = _parse_register()
     rs: int = _parse_register() if scanner.peek() == TOK_REG else rt
-    unsigned: bool = op in (TOK["ANDI_OPCODE"], TOK["ORI_OPCODE"], TOK["XORI_OPCODE"])
+    unsigned: bool = op in (Tok.ANDI_OPCODE, Tok.ORI_OPCODE, Tok.XORI_OPCODE)
     emit_i(op, rt, rs, _parse_uimm16() if unsigned else _parse_imm16())
 
 
@@ -515,33 +508,33 @@ def _parse_b2(op: int) -> None:
     if instruction.is_zero_imm(imm):
         emit_i(op, src1, 0, target)
     else:
-        emit_i(TOK["ORI_OPCODE"], 1, 0, imm)
+        emit_i(Tok.ORI_OPCODE, 1, 0, imm)
         emit_i(op, src1, 1, target)
 
 
 def _parse_j(op: int) -> None:
     """``j``/``jal``/``jr``/``jalr`` with a label or register(s)."""
-    is_plain_jump: bool = op in (TOK["J_OPCODE"], TOK["JR_OPCODE"])
-    is_link: bool = op in (TOK["JAL_OPCODE"], TOK["JALR_OPCODE"])
+    is_plain_jump: bool = op in (Tok.J_OPCODE, Tok.JR_OPCODE)
+    is_link: bool = op in (Tok.JAL_OPCODE, Tok.JALR_OPCODE)
     if scanner.peek() == TOK_REG:
         r1: int = _parse_register()
         if scanner.peek() == TOK_REG:
             r2: int = _parse_register()
             if is_plain_jump:
-                emit_r(TOK["JR_OPCODE"], 0, r2, 0)
+                emit_r(Tok.JR_OPCODE, 0, r2, 0)
             elif is_link:
-                emit_r(TOK["JALR_OPCODE"], r1, r2, 0)
+                emit_r(Tok.JALR_OPCODE, r1, r2, 0)
             return
         if is_plain_jump:
-            emit_r(TOK["JR_OPCODE"], 0, r1, 0)
+            emit_r(Tok.JR_OPCODE, 0, r1, 0)
         elif is_link:
-            emit_r(TOK["JALR_OPCODE"], 31, r1, 0)
+            emit_r(Tok.JALR_OPCODE, 31, r1, 0)
         return
     target: ImmExpr = _parse_label()
     if is_plain_jump:
-        emit_j(TOK["J_OPCODE"], target)
+        emit_j(Tok.J_OPCODE, target)
     elif is_link:
-        emit_j(TOK["JAL_OPCODE"], target)
+        emit_j(Tok.JAL_OPCODE, target)
 
 
 def _parse_noarg(op: int) -> None:
@@ -549,7 +542,7 @@ def _parse_noarg(op: int) -> None:
     if scanner.peek() == TOK_INT:
         scanner.advance()
         number: int = _int_value()
-        if op == TOK["BREAK_OPCODE"] and number == 1:
+        if op == Tok.BREAK_OPCODE and number == 1:
             _parse_error_at("Breakpoint 1 is reserved for debugger")
         emit_r(op, number, 0, 0)
     else:
@@ -562,14 +555,11 @@ def _parse_rs_rt(op: int) -> None:
     if scanner.peek() not in (TOK_REG, TOK_INT, TOK_ID):
         _parse_error_at("Expected operand for div/mult")
         return
-    trap_ops: tuple[int, ...] = tuple(
-        TOK[n]
-        for n in ("TEQ_OPCODE", "TGE_OPCODE", "TGEU_OPCODE", "TLT_OPCODE",
-                  "TLTU_OPCODE", "TNE_OPCODE")
-    )  # fmt: skip
+    trap_ops: tuple[int, ...] = (Tok.TEQ_OPCODE, Tok.TGE_OPCODE, Tok.TGEU_OPCODE, Tok.TLT_OPCODE,
+                  Tok.TLTU_OPCODE, Tok.TNE_OPCODE)  # fmt: skip
     if op in trap_ops:
         emit_r(op, 0, r1, _parse_register())
-    elif op in (TOK["DIV_OPCODE"], TOK["DIVU_OPCODE"]):
+    elif op in (Tok.DIV_OPCODE, Tok.DIVU_OPCODE):
         r2: int = _parse_register()
         if scanner.peek() in (TOK_NL, TOK_EOF):
             emit_r(op, 0, r1, r2)
@@ -580,7 +570,7 @@ def _parse_rs_rt(op: int) -> None:
             if instruction.is_zero_imm(imm):
                 _parse_error_at("Divide by zero")
             else:
-                emit_i(TOK["ORI_OPCODE"], 1, 0, imm)
+                emit_i(Tok.ORI_OPCODE, 1, 0, imm)
                 pseudo_op.div_inst(op, r1, r2, 1, True)
     else:
         emit_r(op, 0, r1, _parse_register())
@@ -595,47 +585,47 @@ def _parse_asm_code() -> None:
     """One instruction, dispatched on its operand shape."""
     op: int = scanner.advance()
     kind: int | None = instruction.kind_of(op)
-    if kind == KIND["NOARG_TYPE_INST"]:
+    if kind == OpType.NOARG_TYPE_INST:
         _parse_noarg(op)
-    elif kind == KIND["RD_RS_RT_INST"]:
+    elif kind == OpType.RD_RS_RT_INST:
         _parse_r3(op)
-    elif kind == KIND["RD_RT_SHAMT_INST"]:
+    elif kind == OpType.RD_RT_SHAMT_INST:
         _parse_r2sh(op)
-    elif kind == KIND["RS_INST"]:
+    elif kind == OpType.RS_INST:
         emit_r(op, 0, _parse_register(), 0)
-    elif kind == KIND["RT_RS_IMM_INST"]:
+    elif kind == OpType.RT_RS_IMM_INST:
         _parse_i2(op)
-    elif kind == KIND["RT_IMM_INST"]:
+    elif kind == OpType.RT_IMM_INST:
         rt: int = _parse_register()
         emit_i(op, rt, 0, _parse_uimm16())
-    elif kind in (KIND["RT_ADDR_INST"], KIND["FP_FT_ADDR_INST"]):
+    elif kind in (OpType.RT_ADDR_INST, OpType.FP_FT_ADDR_INST):
         reg: int = (
-            _parse_register() if kind == KIND["RT_ADDR_INST"] else _parse_fp_register()
+            _parse_register() if kind == OpType.RT_ADDR_INST else _parse_fp_register()
         )
         address: AddrExpr = _parse_address()
         emit_i(op, reg, address.reg_no, address.imm)
-    elif kind == KIND["BRANCH_RS_RT_LABEL_INST"]:
+    elif kind == OpType.BRANCH_RS_RT_LABEL_INST:
         _parse_b2(op)
-    elif kind == KIND["BRANCH_RS_LABEL_INST"]:
+    elif kind == OpType.BRANCH_RS_LABEL_INST:
         rs: int = _parse_register()
         emit_i(op, 0, rs, _parse_label())
-    elif kind in (KIND["J_TYPE_INST"], KIND["RD_RS_INST"]):
+    elif kind in (OpType.J_TYPE_INST, OpType.RD_RS_INST):
         _parse_j(op)
     elif kind == opcodes.PSEUDO_OP:
         _parse_pseudo(op)
-    elif kind in (KIND["RT_COPREG_INST"], KIND["FP_RT_COPREG_INST"]):
+    elif kind in (OpType.RT_COPREG_INST, OpType.FP_RT_COPREG_INST):
         reg = _parse_register()
         emit_fp_r(op, 0, _parse_copreg_operand(), reg)
-    elif kind == KIND["RS_RT_INST"]:
+    elif kind == OpType.RS_RT_INST:
         _parse_rs_rt(op)
-    elif kind == KIND["RD_INST"]:
+    elif kind == OpType.RD_INST:
         emit_r(op, _parse_register(), 0, 0)
-    elif kind == KIND["RD_RT_RS_INST"]:
+    elif kind == OpType.RD_RT_RS_INST:
         _parse_variable_shift(op)
-    elif kind == KIND["RS_IMM_INST"]:
+    elif kind == OpType.RS_IMM_INST:
         rs = _parse_register()
         emit_i(op, 0, rs, _parse_imm16())
-    elif kind == KIND["BRANCH_COPROC_COND_INST"]:
+    elif kind == OpType.BRANCH_COPROC_COND_INST:
         nd: int = 1 if instruction.opcode_is_nullified_branch(op) else 0
         tf: int = 1 if instruction.opcode_is_true_branch(op) else 0
         cc: int = 0
@@ -644,7 +634,7 @@ def _parse_asm_code() -> None:
             cc = _int_value()
         target: ImmExpr = _parse_label()
         emit_i(op, (cc << 2) | (nd << 1) | tf, 0, target)
-    elif kind == KIND["MOVC_TYPE_INST"]:
+    elif kind == OpType.MOVC_TYPE_INST:
         rd: int = _parse_register()
         rs = _parse_register()
         cc = 0
@@ -652,21 +642,21 @@ def _parse_asm_code() -> None:
             scanner.advance()
             cc = _int_value()
         emit_r(op, rd, rs, (cc & 7) << 2)
-    elif kind == KIND["FP_FD_FS_INST"]:
+    elif kind == OpType.FP_FD_FS_INST:
         fd: int = _parse_fp_register()
         emit_fp_r(op, fd, _parse_fp_register(), 0)
-    elif kind == KIND["FP_FD_FS_FT_INST"]:
+    elif kind == OpType.FP_FD_FS_FT_INST:
         fd = _parse_fp_register()
         fs: int = _parse_fp_register()
         emit_fp_r(op, fd, fs, _parse_fp_register())
-    elif kind == KIND["FP_CMP_FS_FT_INST"]:
+    elif kind == OpType.FP_CMP_FS_FT_INST:
         cc = 0
         if scanner.peek() == TOK_INT:
             scanner.advance()
             cc = _int_value()
         fs = _parse_fp_register()
         emit_fp_compare(op, fs, _parse_fp_register(), cc)
-    elif kind == KIND["FP_MOVC_TYPE_INST"]:
+    elif kind == OpType.FP_MOVC_TYPE_INST:
         fd = _parse_fp_register()
         fs = _parse_fp_register()
         if scanner.peek() == TOK_REG:
@@ -710,40 +700,39 @@ def _parse_pseudo(op: int) -> None:
 
 def _expand_pseudo(op: int) -> None:  # noqa: C901 - one case per pseudo-op, as in C
     """Parse a pseudo-instruction's operands and emit its expansion."""
-    t: dict[str, int] = TOK
-    if op == t["LI_PSEUDO_OP"]:
+    if op == Tok.LI_PSEUDO_OP:
         rt: int = _parse_register()
-        emit_i(t["ORI_OPCODE"], rt, 0, _parse_imm32())
-    elif op in (t["MOVE_PSEUDO_OP"], t["NEG_PSEUDO_OP"], t["NEGU_PSEUDO_OP"]):
+        emit_i(Tok.ORI_OPCODE, rt, 0, _parse_imm32())
+    elif op in (Tok.MOVE_PSEUDO_OP, Tok.NEG_PSEUDO_OP, Tok.NEGU_PSEUDO_OP):
         real: int = {
-            t["MOVE_PSEUDO_OP"]: t["ADDU_OPCODE"],
-            t["NEG_PSEUDO_OP"]: t["SUB_OPCODE"],
-            t["NEGU_PSEUDO_OP"]: t["SUBU_OPCODE"],
+            Tok.MOVE_PSEUDO_OP: Tok.ADDU_OPCODE,
+            Tok.NEG_PSEUDO_OP: Tok.SUB_OPCODE,
+            Tok.NEGU_PSEUDO_OP: Tok.SUBU_OPCODE,
         }[op]
         rd: int = _parse_register()
         emit_r(real, rd, 0, _parse_register())
-    elif op == t["NOT_PSEUDO_OP"]:
+    elif op == Tok.NOT_PSEUDO_OP:
         rd = _parse_register()
-        emit_r(t["NOR_OPCODE"], rd, _parse_register(), 0)
-    elif op in (t["ROR_PSEUDO_OP"], t["ROL_PSEUDO_OP"]):
+        emit_r(Tok.NOR_OPCODE, rd, _parse_register(), 0)
+    elif op in (Tok.ROR_PSEUDO_OP, Tok.ROL_PSEUDO_OP):
         _expand_rotate(op)
     elif op in (
-        t["SLE_PSEUDO_OP"], t["SLEU_PSEUDO_OP"], t["SGT_PSEUDO_OP"],
-        t["SGTU_PSEUDO_OP"], t["SGE_PSEUDO_OP"], t["SGEU_PSEUDO_OP"],
-        t["SEQ_PSEUDO_OP"], t["SNE_PSEUDO_OP"],
+        Tok.SLE_PSEUDO_OP, Tok.SLEU_PSEUDO_OP, Tok.SGT_PSEUDO_OP,
+        Tok.SGTU_PSEUDO_OP, Tok.SGE_PSEUDO_OP, Tok.SGEU_PSEUDO_OP,
+        Tok.SEQ_PSEUDO_OP, Tok.SNE_PSEUDO_OP,
     ):  # fmt: skip
         _expand_set(op)
-    elif op == t["ABS_PSEUDO_OP"]:
+    elif op == Tok.ABS_PSEUDO_OP:
         rd = _parse_register()
         rs: int = _parse_register()
         if rd != rs:
-            emit_r(t["ADDU_OPCODE"], rd, 0, rs)
-        emit_i(t["BGEZ_OPCODE"], 0, rs, pseudo_op.branch_offset(3))
+            emit_r(Tok.ADDU_OPCODE, rd, 0, rs)
+        emit_i(Tok.BGEZ_OPCODE, 0, rs, pseudo_op.branch_offset(3))
         pseudo_op.nop_inst()
-        emit_r(t["SUB_OPCODE"], rd, 0, rs)
-    elif op == t["NOP_PSEUDO_OP"]:
+        emit_r(Tok.SUB_OPCODE, rd, 0, rs)
+    elif op == Tok.NOP_PSEUDO_OP:
         pseudo_op.nop_inst()
-    elif op in (t["REM_PSEUDO_OP"], t["REMU_PSEUDO_OP"]):
+    elif op in (Tok.REM_PSEUDO_OP, Tok.REMU_PSEUDO_OP):
         rd = _parse_register()
         rs = _parse_register()
         if scanner.peek() == TOK_REG:
@@ -753,9 +742,9 @@ def _expand_pseudo(op: int) -> None:  # noqa: C901 - one case per pseudo-op, as 
             if instruction.is_zero_imm(imm):
                 _parse_error_at("Divide by zero")
             else:
-                emit_i(t["ORI_OPCODE"], 1, 0, imm)
+                emit_i(Tok.ORI_OPCODE, 1, 0, imm)
                 pseudo_op.div_inst(op, rd, rs, 1, True)
-    elif op in (t["MULO_PSEUDO_OP"], t["MULOU_PSEUDO_OP"]):
+    elif op in (Tok.MULO_PSEUDO_OP, Tok.MULOU_PSEUDO_OP):
         rd = _parse_register()
         rs = _parse_register()
         if scanner.peek() == TOK_REG:
@@ -763,87 +752,87 @@ def _expand_pseudo(op: int) -> None:  # noqa: C901 - one case per pseudo-op, as 
         else:
             imm = _parse_imm32()
             if instruction.is_zero_imm(imm):
-                emit_i(t["ORI_OPCODE"], rd, 0, imm)  # n * 0 is 0
+                emit_i(Tok.ORI_OPCODE, rd, 0, imm)  # n * 0 is 0
             else:
-                emit_i(t["ORI_OPCODE"], 1, 0, imm)
+                emit_i(Tok.ORI_OPCODE, 1, 0, imm)
                 pseudo_op.mult_inst(op, rd, rs, 1)
-    elif op in (t["MFC1_D_PSEUDO_OP"], t["MTC1_D_PSEUDO_OP"]):
-        real = t["MFC1_OPCODE"] if op == t["MFC1_D_PSEUDO_OP"] else t["MTC1_OPCODE"]
+    elif op in (Tok.MFC1_D_PSEUDO_OP, Tok.MTC1_D_PSEUDO_OP):
+        real = Tok.MFC1_OPCODE if op == Tok.MFC1_D_PSEUDO_OP else Tok.MTC1_OPCODE
         reg: int = _parse_register()
         copreg: int = _parse_copreg_operand()
         emit_fp_r(real, 0, copreg, reg)
         emit_fp_r(real, 0, copreg + 1, reg + 1)
-    elif op in (t["LI_D_PSEUDO_OP"], t["LI_S_PSEUDO_OP"]):
+    elif op in (Tok.LI_D_PSEUDO_OP, Tok.LI_S_PSEUDO_OP):
         _expand_li_fp(op)
-    elif op in (t["L_D_PSEUDO_OP"], t["L_S_PSEUDO_OP"], t["S_D_PSEUDO_OP"],
-                t["S_S_PSEUDO_OP"]):  # fmt: skip
+    elif op in (Tok.L_D_PSEUDO_OP, Tok.L_S_PSEUDO_OP, Tok.S_D_PSEUDO_OP,
+                Tok.S_S_PSEUDO_OP):  # fmt: skip
         real = {
-            t["L_D_PSEUDO_OP"]: t["LDC1_OPCODE"],
-            t["L_S_PSEUDO_OP"]: t["LWC1_OPCODE"],
-            t["S_D_PSEUDO_OP"]: t["SDC1_OPCODE"],
-            t["S_S_PSEUDO_OP"]: t["SWC1_OPCODE"],
+            Tok.L_D_PSEUDO_OP: Tok.LDC1_OPCODE,
+            Tok.L_S_PSEUDO_OP: Tok.LWC1_OPCODE,
+            Tok.S_D_PSEUDO_OP: Tok.SDC1_OPCODE,
+            Tok.S_S_PSEUDO_OP: Tok.SWC1_OPCODE,
         }[op]
         fr: int = _parse_fp_register()
         address: AddrExpr = _parse_address()
         emit_i(real, fr, address.reg_no, address.imm)
-    elif op in (t["LD_PSEUDO_OP"], t["SD_PSEUDO_OP"]):
-        real = t["LW_OPCODE"] if op == t["LD_PSEUDO_OP"] else t["SW_OPCODE"]
+    elif op in (Tok.LD_PSEUDO_OP, Tok.SD_PSEUDO_OP):
+        real = Tok.LW_OPCODE if op == Tok.LD_PSEUDO_OP else Tok.SW_OPCODE
         rt = _parse_register()
         address = _parse_address()
         emit_i(real, rt, address.reg_no, address.imm)
         emit_i(
             real, rt + 1, address.reg_no, instruction.incr_expr_offset(address.imm, 4)
         )
-    elif op in (t["ULW_PSEUDO_OP"], t["USW_PSEUDO_OP"]):
-        left: int = t["LWL_OPCODE"] if op == t["ULW_PSEUDO_OP"] else t["SWL_OPCODE"]
-        right: int = t["LWR_OPCODE"] if op == t["ULW_PSEUDO_OP"] else t["SWR_OPCODE"]
+    elif op in (Tok.ULW_PSEUDO_OP, Tok.USW_PSEUDO_OP):
+        left: int = Tok.LWL_OPCODE if op == Tok.ULW_PSEUDO_OP else Tok.SWL_OPCODE
+        right: int = Tok.LWR_OPCODE if op == Tok.ULW_PSEUDO_OP else Tok.SWR_OPCODE
         rt = _parse_register()
         address = _parse_address()
         emit_i(left, rt, address.reg_no, instruction.incr_expr_offset(address.imm, 3))
         emit_i(right, rt, address.reg_no, address.imm)
-    elif op in (t["ULH_PSEUDO_OP"], t["ULHU_PSEUDO_OP"]):
-        high_load: int = t["LB_OPCODE"] if op == t["ULH_PSEUDO_OP"] else t["LBU_OPCODE"]
+    elif op in (Tok.ULH_PSEUDO_OP, Tok.ULHU_PSEUDO_OP):
+        high_load: int = Tok.LB_OPCODE if op == Tok.ULH_PSEUDO_OP else Tok.LBU_OPCODE
         rt = _parse_register()
         address = _parse_address()
         emit_i(
             high_load, rt, address.reg_no, instruction.incr_expr_offset(address.imm, 1)
         )
-        emit_i(t["LBU_OPCODE"], 1, address.reg_no, address.imm)
-        emit_r_shift(t["SLL_OPCODE"], rt, rt, 8)
-        emit_r(t["OR_OPCODE"], rt, rt, 1)
-    elif op == t["USH_PSEUDO_OP"]:
+        emit_i(Tok.LBU_OPCODE, 1, address.reg_no, address.imm)
+        emit_r_shift(Tok.SLL_OPCODE, rt, rt, 8)
+        emit_r(Tok.OR_OPCODE, rt, rt, 1)
+    elif op == Tok.USH_PSEUDO_OP:
         rt = _parse_register()
         address = _parse_address()
-        emit_i(t["SB_OPCODE"], rt, address.reg_no, address.imm)
-        emit_r_shift(t["SLL_OPCODE"], 1, rt, 24)
-        emit_r_shift(t["SRL_OPCODE"], rt, rt, 8)
-        emit_r(t["OR_OPCODE"], rt, rt, 1)
+        emit_i(Tok.SB_OPCODE, rt, address.reg_no, address.imm)
+        emit_r_shift(Tok.SLL_OPCODE, 1, rt, 24)
+        emit_r_shift(Tok.SRL_OPCODE, rt, rt, 8)
+        emit_r(Tok.OR_OPCODE, rt, rt, 1)
         emit_i(
-            t["SB_OPCODE"],
+            Tok.SB_OPCODE,
             rt,
             address.reg_no,
             instruction.incr_expr_offset(address.imm, 1),
         )
-        emit_r_shift(t["SRL_OPCODE"], 1, rt, 24)
-        emit_r_shift(t["SLL_OPCODE"], rt, rt, 8)
-        emit_r(t["OR_OPCODE"], rt, rt, 1)
-    elif op == t["LA_PSEUDO_OP"]:
+        emit_r_shift(Tok.SRL_OPCODE, 1, rt, 24)
+        emit_r_shift(Tok.SLL_OPCODE, rt, rt, 8)
+        emit_r(Tok.OR_OPCODE, rt, rt, 1)
+    elif op == Tok.LA_PSEUDO_OP:
         rt = _parse_register()
         address = _parse_address()
         if address.reg_no:
-            emit_i(t["ADDI_OPCODE"], rt, address.reg_no, address.imm)
+            emit_i(Tok.ADDI_OPCODE, rt, address.reg_no, address.imm)
         else:
-            emit_i(t["ORI_OPCODE"], rt, 0, address.imm)
-    elif op in (t["BEQZ_PSEUDO_OP"], t["BNEZ_PSEUDO_OP"]):
+            emit_i(Tok.ORI_OPCODE, rt, 0, address.imm)
+    elif op in (Tok.BEQZ_PSEUDO_OP, Tok.BNEZ_PSEUDO_OP):
         rs = _parse_register()
-        real = t["BEQ_OPCODE"] if op == t["BEQZ_PSEUDO_OP"] else t["BNE_OPCODE"]
+        real = Tok.BEQ_OPCODE if op == Tok.BEQZ_PSEUDO_OP else Tok.BNE_OPCODE
         emit_i(real, 0, rs, _parse_label())
-    elif op in (t["B_PSEUDO_OP"], t["BAL_PSEUDO_OP"]):
-        real = t["BGEZAL_OPCODE"] if op == t["BAL_PSEUDO_OP"] else t["BGEZ_OPCODE"]
+    elif op in (Tok.B_PSEUDO_OP, Tok.BAL_PSEUDO_OP):
+        real = Tok.BGEZAL_OPCODE if op == Tok.BAL_PSEUDO_OP else Tok.BGEZ_OPCODE
         emit_i(real, 0, 0, _parse_label())
-    elif op in (t["BGT_PSEUDO_OP"], t["BGTU_PSEUDO_OP"], t["BGE_PSEUDO_OP"],
-                t["BGEU_PSEUDO_OP"], t["BLT_PSEUDO_OP"], t["BLTU_PSEUDO_OP"],
-                t["BLE_PSEUDO_OP"], t["BLEU_PSEUDO_OP"]):  # fmt: skip
+    elif op in (Tok.BGT_PSEUDO_OP, Tok.BGTU_PSEUDO_OP, Tok.BGE_PSEUDO_OP,
+                Tok.BGEU_PSEUDO_OP, Tok.BLT_PSEUDO_OP, Tok.BLTU_PSEUDO_OP,
+                Tok.BLE_PSEUDO_OP, Tok.BLEU_PSEUDO_OP):  # fmt: skip
         _expand_compare_branch(op)
     else:
         _parse_error_at("Pseudo-op not yet supported")
@@ -852,34 +841,32 @@ def _expand_pseudo(op: int) -> None:  # noqa: C901 - one case per pseudo-op, as 
 
 def _expand_rotate(op: int) -> None:
     """``ror``/``rol`` by a register or by a constant."""
-    t: dict[str, int] = TOK
-    is_right: bool = op == t["ROR_PSEUDO_OP"]
+    is_right: bool = op == Tok.ROR_PSEUDO_OP
     rd: int = _parse_register()
     rs: int = _parse_register()
     if scanner.peek() == TOK_REG:
         rt: int = _parse_register()
-        emit_r(t["SUBU_OPCODE"], 1, 0, rt)
+        emit_r(Tok.SUBU_OPCODE, 1, 0, rt)
         if is_right:
-            emit_r(t["SLLV_OPCODE"], 1, 1, rs)
-            emit_r(t["SRLV_OPCODE"], rd, rt, rs)
+            emit_r(Tok.SLLV_OPCODE, 1, 1, rs)
+            emit_r(Tok.SRLV_OPCODE, rd, rt, rs)
         else:
-            emit_r(t["SRLV_OPCODE"], 1, 1, rs)
-            emit_r(t["SLLV_OPCODE"], rd, rt, rs)
-        emit_r(t["OR_OPCODE"], rd, rd, 1)
+            emit_r(Tok.SRLV_OPCODE, 1, 1, rs)
+            emit_r(Tok.SLLV_OPCODE, rd, rt, rs)
+        emit_r(Tok.OR_OPCODE, rd, rd, 1)
         return
     imm: ImmExpr = _parse_imm32()
     distance: int = instruction.eval_imm_expr(imm)
     pseudo_op.check_imm_range(imm, 0, 31)
-    first: int = t["SLL_OPCODE"] if is_right else t["SRL_OPCODE"]
-    second: int = t["SRL_OPCODE"] if is_right else t["SLL_OPCODE"]
+    first: int = Tok.SLL_OPCODE if is_right else Tok.SRL_OPCODE
+    second: int = Tok.SRL_OPCODE if is_right else Tok.SLL_OPCODE
     emit_r_shift(first, 1, rs, -distance)
     emit_r_shift(second, rd, rs, distance)
-    emit_r(t["OR_OPCODE"], rd, rd, 1)
+    emit_r(Tok.OR_OPCODE, rd, rd, 1)
 
 
 def _expand_set(op: int) -> None:
     """``sle sleu sgt sgtu sge sgeu seq sne rd, rs, (rt | imm)``."""
-    t: dict[str, int] = TOK
     rd: int = _parse_register()
     rs: int = _parse_register()
     rt: int
@@ -890,13 +877,13 @@ def _expand_set(op: int) -> None:
         if instruction.is_zero_imm(imm):
             rt = 0
         else:
-            emit_i(t["ORI_OPCODE"], 1, 0, imm)
+            emit_i(Tok.ORI_OPCODE, 1, 0, imm)
             rt = 1
-    if op in (t["SLE_PSEUDO_OP"], t["SLEU_PSEUDO_OP"]):
+    if op in (Tok.SLE_PSEUDO_OP, Tok.SLEU_PSEUDO_OP):
         pseudo_op.set_le_inst(op, rd, rs, rt)
-    elif op in (t["SGT_PSEUDO_OP"], t["SGTU_PSEUDO_OP"]):
+    elif op in (Tok.SGT_PSEUDO_OP, Tok.SGTU_PSEUDO_OP):
         pseudo_op.set_gt_inst(op, rd, rs, rt)
-    elif op in (t["SGE_PSEUDO_OP"], t["SGEU_PSEUDO_OP"]):
+    elif op in (Tok.SGE_PSEUDO_OP, Tok.SGEU_PSEUDO_OP):
         pseudo_op.set_ge_inst(op, rd, rs, rt)
     else:
         pseudo_op.set_eq_inst(op, rd, rs, rt)
@@ -904,7 +891,6 @@ def _expand_set(op: int) -> None:
 
 def _expand_li_fp(op: int) -> None:
     """``li.d``/``li.s fd, FLOAT``: build the bits in $at, move with mtc1."""
-    t: dict[str, int] = TOK
     fd: int = _parse_fp_register()
     if scanner.peek() != TOK_FP:
         _parse_error_at("Expected FP literal")
@@ -912,36 +898,35 @@ def _expand_li_fp(op: int) -> None:
     scanner.advance()
     value: int | float | str = scanner.scan_value
     assert isinstance(value, float)
-    if op == t["LI_D_PSEUDO_OP"]:
+    if op == Tok.LI_D_PSEUDO_OP:
         low: int
         high: int
         low, high = machine.double_words(value)
-        emit_i(t["ORI_OPCODE"], 1, 0, instruction.const_imm_expr(low))
-        emit_fp_r(t["MTC1_OPCODE"], 0, fd, 1)
-        emit_i(t["ORI_OPCODE"], 1, 0, instruction.const_imm_expr(high))
-        emit_fp_r(t["MTC1_OPCODE"], 0, fd + 1, 1)
+        emit_i(Tok.ORI_OPCODE, 1, 0, instruction.const_imm_expr(low))
+        emit_fp_r(Tok.MTC1_OPCODE, 0, fd, 1)
+        emit_i(Tok.ORI_OPCODE, 1, 0, instruction.const_imm_expr(high))
+        emit_fp_r(Tok.MTC1_OPCODE, 0, fd + 1, 1)
     else:
         bits: int = machine.float_bits(value)
-        emit_i(t["ORI_OPCODE"], 1, 0, instruction.const_imm_expr(bits))
-        emit_fp_r(t["MTC1_OPCODE"], 0, fd, 1)
+        emit_i(Tok.ORI_OPCODE, 1, 0, instruction.const_imm_expr(bits))
+        emit_fp_r(Tok.MTC1_OPCODE, 0, fd, 1)
 
 
 def _expand_compare_branch(op: int) -> None:
     """``bgt bgtu bge bgeu blt bltu ble bleu rs, (rt | imm), label``."""
-    t: dict[str, int] = TOK
     rs: int = _parse_register()
     signed: bool = op in (
-        t["BGT_PSEUDO_OP"], t["BGE_PSEUDO_OP"], t["BLT_PSEUDO_OP"], t["BLE_PSEUDO_OP"]
+        Tok.BGT_PSEUDO_OP, Tok.BGE_PSEUDO_OP, Tok.BLT_PSEUDO_OP, Tok.BLE_PSEUDO_OP
     )  # fmt: skip
-    slt: int = t["SLT_OPCODE"] if signed else t["SLTU_OPCODE"]
-    slti: int = t["SLTI_OPCODE"] if signed else t["SLTIU_OPCODE"]
-    greater: bool = op in (t["BGT_PSEUDO_OP"], t["BGTU_PSEUDO_OP"], t["BLE_PSEUDO_OP"],
-                           t["BLEU_PSEUDO_OP"])  # fmt: skip
+    slt: int = Tok.SLT_OPCODE if signed else Tok.SLTU_OPCODE
+    slti: int = Tok.SLTI_OPCODE if signed else Tok.SLTIU_OPCODE
+    greater: bool = op in (Tok.BGT_PSEUDO_OP, Tok.BGTU_PSEUDO_OP, Tok.BLE_PSEUDO_OP,
+                           Tok.BLEU_PSEUDO_OP)  # fmt: skip
     # bgt/ble branch on $at != 0 / == 0 after slt $at, rt, rs; bge/blt after
     # slt $at, rs, rt.
-    on_set: bool = op in (t["BGT_PSEUDO_OP"], t["BGTU_PSEUDO_OP"], t["BLT_PSEUDO_OP"],
-                          t["BLTU_PSEUDO_OP"])  # fmt: skip
-    branch: int = t["BNE_OPCODE"] if on_set else t["BEQ_OPCODE"]
+    on_set: bool = op in (Tok.BGT_PSEUDO_OP, Tok.BGTU_PSEUDO_OP, Tok.BLT_PSEUDO_OP,
+                          Tok.BLTU_PSEUDO_OP)  # fmt: skip
+    branch: int = Tok.BNE_OPCODE if on_set else Tok.BEQ_OPCODE
     if scanner.peek() == TOK_REG:
         rt: int = _parse_register()
         target: ImmExpr = _parse_label()
@@ -953,28 +938,28 @@ def _expand_compare_branch(op: int) -> None:
         return
     imm: ImmExpr = _parse_imm32()
     target = _parse_label()
-    if op in (t["BGE_PSEUDO_OP"], t["BGEU_PSEUDO_OP"], t["BLT_PSEUDO_OP"],
-              t["BLTU_PSEUDO_OP"]):  # fmt: skip
+    if op in (Tok.BGE_PSEUDO_OP, Tok.BGEU_PSEUDO_OP, Tok.BLT_PSEUDO_OP,
+              Tok.BLTU_PSEUDO_OP):  # fmt: skip
         emit_i(slti, 1, rs, imm)
         emit_i(branch, 0, 1, target)
-    elif op in (t["BGT_PSEUDO_OP"], t["BLE_PSEUDO_OP"]):
-        emit_i(t["SLTI_OPCODE"], 1, rs, instruction.incr_expr_offset(imm, 1))
+    elif op in (Tok.BGT_PSEUDO_OP, Tok.BLE_PSEUDO_OP):
+        emit_i(Tok.SLTI_OPCODE, 1, rs, instruction.incr_expr_offset(imm, 1))
         emit_i(
-            t["BEQ_OPCODE"] if op == t["BGT_PSEUDO_OP"] else t["BNE_OPCODE"],
+            Tok.BEQ_OPCODE if op == Tok.BGT_PSEUDO_OP else Tok.BNE_OPCODE,
             0,
             1,
             target,
         )
-    elif op == t["BGTU_PSEUDO_OP"]:
-        emit_i(t["ORI_OPCODE"], 1, 0, imm)
-        emit_i(t["BEQ_OPCODE"], rs, 1, pseudo_op.branch_offset(3))
-        emit_r(t["SLTU_OPCODE"], 1, rs, 1)
-        emit_i(t["BEQ_OPCODE"], 0, 1, target)
+    elif op == Tok.BGTU_PSEUDO_OP:
+        emit_i(Tok.ORI_OPCODE, 1, 0, imm)
+        emit_i(Tok.BEQ_OPCODE, rs, 1, pseudo_op.branch_offset(3))
+        emit_r(Tok.SLTU_OPCODE, 1, rs, 1)
+        emit_i(Tok.BEQ_OPCODE, 0, 1, target)
     else:  # bleu
-        emit_i(t["ORI_OPCODE"], 1, 0, imm)
-        emit_i(t["BEQ_OPCODE"], rs, 1, target)
-        emit_r(t["SLTU_OPCODE"], 1, rs, 1)
-        emit_i(t["BNE_OPCODE"], 0, 1, target)
+        emit_i(Tok.ORI_OPCODE, 1, 0, imm)
+        emit_i(Tok.BEQ_OPCODE, rs, 1, target)
+        emit_r(Tok.SLTU_OPCODE, 1, rs, 1)
+        emit_i(Tok.BNE_OPCODE, 0, 1, target)
 
 
 # --- directives -------------------------------------------------------------------
@@ -1075,66 +1060,62 @@ def _parse_string_list() -> None:
             break
 
 
-_IGNORED_DIRECTIVES: frozenset[int] = frozenset(
-    TOK[name]
-    for name in (
-        "FILE_DIRECTIVE", "LOC_DIRECTIVE", "FRAME_DIRECTIVE", "MASK_DIRECTIVE",
-        "FMASK_DIRECTIVE", "ENT_DIRECTIVE", "END_DIRECTIVE", "LABEL_DIRECTIVE",
-        "LIVEREG_DIRECTIVE", "OPTIONS_DIRECTIVE", "BGNB_DIRECTIVE", "ENDB_DIRECTIVE",
-        "ENDR_DIRECTIVE", "ASM0_DIRECTIVE", "ALIAS_DIRECTIVE", "SET_DIRECTIVE",
-    )
-)  # fmt: skip
+_IGNORED_DIRECTIVES: frozenset[int] = frozenset((
+        Tok.FILE_DIRECTIVE, Tok.LOC_DIRECTIVE, Tok.FRAME_DIRECTIVE, Tok.MASK_DIRECTIVE,
+        Tok.FMASK_DIRECTIVE, Tok.ENT_DIRECTIVE, Tok.END_DIRECTIVE, Tok.LABEL_DIRECTIVE,
+        Tok.LIVEREG_DIRECTIVE, Tok.OPTIONS_DIRECTIVE, Tok.BGNB_DIRECTIVE, Tok.ENDB_DIRECTIVE,
+        Tok.ENDR_DIRECTIVE, Tok.ASM0_DIRECTIVE, Tok.ALIAS_DIRECTIVE, Tok.SET_DIRECTIVE,
+    ))  # fmt: skip
 
 
 def _parse_directive(token: int) -> None:
     """One assembler directive."""
     global _null_term, _auto_align
-    t: dict[str, int] = TOK
-    if token == t["DATA_DIRECTIVE"]:
+    if token == Tok.DATA_DIRECTIVE:
         _parse_segment(Kind.DIR_DATA)
-    elif token == t["K_DATA_DIRECTIVE"]:
+    elif token == Tok.K_DATA_DIRECTIVE:
         _parse_segment(Kind.DIR_KDATA)
-    elif token == t["TEXT_DIRECTIVE"]:
+    elif token == Tok.TEXT_DIRECTIVE:
         _parse_segment(Kind.DIR_TEXT)
-    elif token == t["K_TEXT_DIRECTIVE"]:
+    elif token == Tok.K_TEXT_DIRECTIVE:
         _parse_segment(Kind.DIR_KTEXT)
-    elif token == t["GLOBAL_DIRECTIVE"]:
+    elif token == Tok.GLOBAL_DIRECTIVE:
         scanner.force_identifier()
         if scanner.peek() != TOK_ID:
             _parse_error_at("Expected identifier after .globl")
             return
         scanner.advance()
         _append(ast_nodes.make(Kind.DIR_GLOBL, name=_str_value()))
-    elif token == t["WORD_DIRECTIVE"]:
+    elif token == Tok.WORD_DIRECTIVE:
         _parse_aligned_list(Kind.DATA_WORD, 2)
-    elif token == t["HALF_DIRECTIVE"]:
+    elif token == Tok.HALF_DIRECTIVE:
         _parse_aligned_list(Kind.DATA_HALF, 1)
-    elif token == t["BYTE_DIRECTIVE"]:
+    elif token == Tok.BYTE_DIRECTIVE:
         _data_int_begin(Kind.DATA_BYTE)
         _parse_expr_list()
-    elif token in (t["ASCII_DIRECTIVE"], t["ASCIIZ_DIRECTIVE"]):
-        _null_term = token == t["ASCIIZ_DIRECTIVE"]
+    elif token in (Tok.ASCII_DIRECTIVE, Tok.ASCIIZ_DIRECTIVE):
+        _null_term = token == Tok.ASCIIZ_DIRECTIVE
         _parse_string_list()
-    elif token == t["FLOAT_DIRECTIVE"]:
+    elif token == Tok.FLOAT_DIRECTIVE:
         _parse_aligned_list(Kind.DATA_FLOAT, 2)
-    elif token == t["DOUBLE_DIRECTIVE"]:
+    elif token == Tok.DOUBLE_DIRECTIVE:
         _parse_aligned_list(Kind.DATA_DOUBLE, 3)
-    elif token == t["SPACE_DIRECTIVE"]:
+    elif token == Tok.SPACE_DIRECTIVE:
         size: int = _parse_expression()
         if text_dir:
             _parse_error_at("Can't put data in text segment")
             return
         _append(ast_nodes.make(Kind.DIR_SPACE, number=size))
-    elif token == t["ALIGN_DIRECTIVE"]:
+    elif token == Tok.ALIGN_DIRECTIVE:
         power: int = _parse_expression()
         if power == 0:
             _auto_align = False
         _append(ast_nodes.make(Kind.DIR_ALIGN, number=power))
-    elif token == t["COMM_DIRECTIVE"]:
+    elif token == Tok.COMM_DIRECTIVE:
         _parse_named_size(Kind.DIR_COMM)
-    elif token == t["EXTERN_DIRECTIVE"]:
+    elif token == Tok.EXTERN_DIRECTIVE:
         _parse_named_size(Kind.DIR_EXTERN)
-    elif token == t["ERR_DIRECTIVE"]:
+    elif token == Tok.ERR_DIRECTIVE:
         _parse_error_at(".err directive")
     elif token in _IGNORED_DIRECTIVES:
         _sync_to_nl()
