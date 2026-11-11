@@ -99,6 +99,17 @@ not spim's intentional exit-time leaks) + the integer-UB primer:
 
 ## Conventions
 
+- **Generated sources are committed, never edited by hand.** A file a tool generates from another
+  file in this repo is checked in next to its source. Upstream SPIM did the same with its flex/bison
+  output until `ebe63b4` (2025-11-07) moved that step into the build. Committing it means the build
+  and the image need no generator toolchain, and a change to the source shows its effect in the
+  diff. After changing the source, run the generator and commit both together.
+  - The generated files, all from `include/opcodes.h`:
+    - `port/haskell/src/Opcodes.hs`, from `port/haskell/tools/GenOpcodes.hs`;
+    - `port/rust/src/opcodes_table.rs`, from `port/rust/tools/gen_opcodes.sh`;
+    - `tree-sitter/scripts/keywords.json` and `keyword-lists.js`, from `extract-keywords.py` and
+      `build-keyword-lists.py`.
+  - Nothing yet checks that they are current: `tasks/opcodes-x-macro-redesign.md`.
 - C23; clang-format + clang-tidy; core `-Werror` (gcc + clang clean). `src/`+`include/` follow the
   shared standard `github.com/billsix/runClaudeInContainer:tasks/reference/c-coding-standard.md` (modernized through
   `tasks/archive/2026/11/10/c23-modernization-pass3.md` and the `const` pass
