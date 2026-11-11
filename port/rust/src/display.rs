@@ -22,7 +22,7 @@ impl Machine {
         bprint!(out, "HI      = {:08x}  ", regs.hi as u32);
         bprint!(out, " LO      = {:08x}\n", regs.lo as u32);
         out.extend_from_slice(b"\t\t\t\t General Registers\n");
-        let gpr = |out: &mut Vec<u8>, n: usize| {
+        let gpr = |out: &mut Vec<u8>, n: usize| -> () {
             if gpr_hex {
                 bprint!(
                     out,

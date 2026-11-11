@@ -595,7 +595,13 @@ impl Machine {
                     TOK_TGE_OPCODE | TOK_TGEI_OPCODE => a >= b,
                     TOK_TLT_OPCODE | TOK_TLTI_OPCODE => a < b,
                     TOK_TGEU_OPCODE | TOK_TGEIU_OPCODE => a as u32 >= b as u32,
-                    _ => (a as u32) < b as u32,
+                    TOK_TLTU_OPCODE | TOK_TLTIU_OPCODE => (a as u32) < b as u32,
+                    // Never reached: the enclosing arm admits only the twelve
+                    // trap opcodes, and each of those has an arm above.
+                    _ => fatal_error(&format!(
+                        "internal error: run_spim: trap opcode {}\n",
+                        inst.opcode
+                    )),
                 };
                 if trap {
                     self.raise_exception(ExcCode::Tr);

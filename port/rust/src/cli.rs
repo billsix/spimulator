@@ -7,10 +7,11 @@
 
 use std::io::Write;
 
-use crate::machine::Machine;
 use crate::machine::{catch_run_error, error, error_bytes, install_panic_hook};
+use crate::machine::{Machine, Options};
 use crate::memory::{DATA_BOT, K_TEXT_BOT, TEXT_BOT};
 use crate::opcodes::{TOK_EOF, TOK_FP_REG, TOK_ID, TOK_INT, TOK_NL, TOK_REG, TOK_STR};
+use crate::registers::Registers;
 use crate::spim_utils::{os_path, ExceptionHandler};
 
 /// The usage message printed after an unknown flag.
@@ -557,7 +558,7 @@ impl Engine {
     fn print_reg_from_string(&self, name: &[u8]) -> bool {
         let lower: Vec<u8> = name.iter().take(100).map(u8::to_ascii_lowercase).collect();
         let name: &[u8] = lower.strip_prefix(b"$").unwrap_or(&lower);
-        let regs = &self.machine.regs;
+        let regs: &Registers = &self.machine.regs;
         let (label, value): (&str, i32) = match name {
             b"pc" => ("PC", regs.pc as i32),
             b"hi" => ("HI", regs.hi),
@@ -878,7 +879,7 @@ pub fn main() -> i32 {
         let arg: &[u8] = &args[i];
         let is: &dyn Fn(&str, &str) -> bool =
             &|long: &str, short: &str| arg == long.as_bytes() || arg == short.as_bytes();
-        let options = &mut engine.machine.options;
+        let options: &mut Options = &mut engine.machine.options;
         if is("-asm", "-a") {
             options.bare_machine = false;
             options.delayed_branches = false;

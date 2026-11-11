@@ -16,13 +16,13 @@ use std::rc::Rc;
 
 use crate::ast::{AstKind, AstNode};
 use crate::instruction::{opcode_is_nullified_branch, opcode_is_true_branch, ImmExpr};
-use crate::machine::{error, error_bytes, Machine};
+use crate::machine::{error_bytes, Machine};
 use crate::opcode_types::OpType;
 use crate::opcodes::*;
 use crate::pseudo_op::{branch_offset, op_to_imm_op};
 use crate::registers::REG_GP;
 use crate::scanner::ScanContext;
-use crate::symbol_table::LabelId;
+use crate::symbol_table::{Label, LabelId};
 
 /// An address operand, `offset(register)` with an optional label
 /// (`addr_expr`).
@@ -180,7 +180,7 @@ impl Machine {
     fn make_addr_expr(&mut self, offset: i32, symbol: Option<&str>, reg: i32) -> AddrExpr {
         if let (0, Some(name)) = (reg, symbol) {
             let id: LabelId = self.symbols.lookup(name);
-            let label = self.symbols.label(id);
+            let label: &Label = self.symbols.label(id);
             if label.gp {
                 let value: i64 = i64::from(offset) + label.addr - i64::from(self.mem.gp_midpoint);
                 return AddrExpr {
@@ -1781,11 +1781,5 @@ impl Machine {
             AstKind::InstFpCompare { op, fs, ft, cc } => self.r_cond_type_inst(*op, *fs, *ft, *cc),
             AstKind::Pseudo { children, .. } => self.emit_chain(children),
         }
-    }
-
-    /// `print_symbols`-style debugging aid: report a parse-time problem
-    /// the C engine reports with a plain message.
-    pub fn report(&self, message: &str) {
-        error(message);
     }
 }

@@ -305,7 +305,7 @@ impl AstNode {
             "{{\"kind\":\"{kind_name}\",\"source_line\":{}",
             self.source_line
         );
-        let mnemonic = |out: &mut Vec<u8>, op: i32| {
+        let mnemonic = |out: &mut Vec<u8>, op: i32| -> () {
             bprint!(out, ",\"op\":{op},\"mnemonic\":");
             json_string(out, token_name(op).as_bytes());
         };

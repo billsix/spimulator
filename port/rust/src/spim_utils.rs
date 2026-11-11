@@ -1,7 +1,8 @@
 //! Setting the machine up, loading files, the program's stack, running,
 //! and breakpoints (`spim-utils.c`).
 
-use crate::machine::{error, fatal_error, Breakpoint, Machine};
+use crate::instruction::InstRef;
+use crate::machine::{error, fatal_error, Breakpoint, Machine, Options};
 use crate::memory::{Memory, DATA_BOT, K_DATA_BOT, K_TEXT_BOT, STACK_TOP, TEXT_BOT};
 use crate::registers::*;
 use crate::run::ExcCode;
@@ -29,7 +30,7 @@ impl Machine {
     /// Set up (or reset) the whole machine: memory, registers, symbols,
     /// and the exception handler (`initialize_world`).
     pub fn initialize_world(&mut self, handler: Option<&ExceptionHandler>, print_message: bool) {
-        let options = &self.options;
+        let options: &Options = &self.options;
         self.mem = Memory::new(
             options.initial_text_size,
             options.initial_data_size,
@@ -242,7 +243,7 @@ impl Machine {
 
     /// Set a breakpoint at `addr` (`add_breakpoint`).
     pub fn add_breakpoint(&mut self, addr: u32) {
-        let instruction = self.set_breakpoint(addr);
+        let instruction: Option<InstRef> = self.set_breakpoint(addr);
         if instruction.is_some() {
             self.breakpoints.insert(0, Breakpoint { addr, instruction });
         } else if self.exception_occurred {

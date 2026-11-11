@@ -18,7 +18,7 @@ use crate::machine::{error_bytes, fatal_error};
 use crate::opcode_types::OpType;
 use crate::opcodes::{c_bsearch, keyword_row, TOK_EOF, TOK_FP, TOK_FP_REG, TOK_ID, TOK_INT};
 use crate::opcodes::{TOK_NL, TOK_REG, TOK_STR};
-use crate::symbol_table::SymbolTable;
+use crate::symbol_table::{Label, SymbolTable};
 
 /// The size of the line buffer (`LINE_BUF_MAX`).
 const LINE_BUF_MAX: usize = 4096;
@@ -559,7 +559,7 @@ impl Scanner {
     fn identifier_or_constant(&self, id: Vec<u8>, context: &ScanContext<'_>) -> Token {
         let name: String = String::from_utf8_lossy(&id).into_owned();
         if let Some(label) = context.symbols.find(&name) {
-            let label = context.symbols.label(label);
+            let label: &Label = context.symbols.label(label);
             if label.constant {
                 return Token {
                     kind: TOK_INT,

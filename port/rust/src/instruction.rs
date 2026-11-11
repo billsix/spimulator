@@ -9,7 +9,7 @@
 //! segment and the symbol table, so it is an [`InstRef`]:
 //! `Rc<RefCell<Instruction>>`, Rust's spelling of a shared, mutable object.
 
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
 use crate::arith::sign_extend_16;
@@ -17,7 +17,7 @@ use crate::machine::{error, Machine};
 use crate::opcode_types::OpType;
 use crate::opcodes::*;
 use crate::registers::{REG_GP, REG_NAMES};
-use crate::symbol_table::LabelId;
+use crate::symbol_table::{Label, LabelId};
 
 /// Append `format!` output to a byte buffer.
 macro_rules! bprint {
@@ -607,7 +607,7 @@ impl Machine {
                 self.scanner.source_line().map(Rc::from)
             };
             let encoding: i32 = {
-                let mut inst = instruction.borrow_mut();
+                let mut inst: RefMut<'_, Instruction> = instruction.borrow_mut();
                 inst.source = source;
                 if inst.encoding == 0 {
                     inst.encoding = inst.encode();
@@ -721,7 +721,7 @@ impl Machine {
     /// fits in 16 bits and no base register is used.
     fn gp_relative_offset(&self, expr: &ImmExpr, rs: i32) -> Option<i32> {
         let id: LabelId = expr.symbol?;
-        let label = self.symbols.label(id);
+        let label: &Label = self.symbols.label(id);
         if !label.gp || rs != 0 {
             return None;
         }
@@ -834,7 +834,7 @@ impl Machine {
     /// now that its label is known (`resolve_a_label_sub`).
     pub fn resolve_a_label_sub(&mut self, instruction: &InstRef, pc: u32) {
         let (opcode, mut expr): (i32, ImmExpr) = {
-            let inst = instruction.borrow();
+            let inst: Ref<'_, Instruction> = instruction.borrow();
             (inst.opcode, inst.expr.unwrap_or_default())
         };
         if expr.pc_relative {
@@ -887,7 +887,7 @@ impl Machine {
             error("Immediate value is too large for field: ");
             self.print_inst(pc);
         }
-        let mut inst = instruction.borrow_mut();
+        let mut inst: RefMut<'_, Instruction> = instruction.borrow_mut();
         if opcode_is_jump(opcode) {
             inst.set_target(value as u32);
         } else {
@@ -905,7 +905,7 @@ impl Machine {
         let before_previous: Option<InstRef> = self.mem_read_inst(pc.wrapping_sub(8));
         let is_matching_lui = |candidate: &Option<InstRef>| -> bool {
             candidate.as_ref().is_some_and(|inst: &InstRef| {
-                let inst = inst.borrow();
+                let inst: Ref<'_, Instruction> = inst.borrow();
                 inst.opcode == TOK_LUI_OPCODE
                     && inst.expr.map(|e: ImmExpr| e.symbol) == Some(expr.symbol)
                     && inst.imm() == 0
@@ -919,7 +919,7 @@ impl Machine {
             None
         };
         if let Some(lui) = target {
-            let mut lui = lui.borrow_mut();
+            let mut lui: RefMut<'_, Instruction> = lui.borrow_mut();
             if let Some(lui_expr) = lui.expr.as_mut() {
                 lui_expr.offset = lui_expr.offset.wrapping_add(0x10000);
             }
