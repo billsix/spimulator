@@ -97,6 +97,9 @@ and **examples** (each demo
 runs both the C binary and the spim asm, diffing stdout + exit status against
 pinned goldens; `examples/tests/run-demo.sh`; plus `documented-commands`, which runs every demo's
 BUILD AND RUN header commands verbatim, `tools/check_example_commands.py`).
+Running them from a standalone builddir needs every target built (`meson compile -C builddir`,
+not just the `spimulator` target): the examples' and the ports' demo tests compare against the
+demos' native C binaries, and fail when those are missing.
 
 **Sanitizer gate** (`RUN_SANITIZERS=1`, the `make image` default; `make image
 RUN_SANITIZERS=0` to skip): the image build also compiles **spim only** (the
