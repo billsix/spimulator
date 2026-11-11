@@ -88,6 +88,19 @@ static int32_t data_size_limit, stack_size_limit, k_data_size_limit;
 void make_memory(int text_size, int data_size, int data_limit, int stack_size,
                  int stack_limit, int k_text_size, int k_data_size,
                  int k_data_limit) {
+  /* A text segment that can hold no instruction, or a kernel text segment
+     that stops short of the exception vector, would make every exception
+     jump to an address outside its segment, and the run would loop. */
+  /* dispatch-check: ok -- two independent checks of two flags, not one value */
+  if (text_size < BYTES_PER_WORD)
+    fatal_error(
+        "-stext %d: the text segment needs at least one word (4 bytes)\n",
+        text_size);
+  if (k_text_size < (int)(EXCEPTION_ADDR - K_TEXT_BOT) + BYTES_PER_WORD)
+    fatal_error(
+        "-sktext %d: the kernel text segment must hold the exception handler "
+        "at 0x80000180 (at least 388 bytes)\n",
+        k_text_size);
   if (data_size <= 65536) data_size = 65536;
   data_size = ROUND_UP(data_size, BYTES_PER_WORD); /* Keep word aligned */
 

@@ -21,7 +21,6 @@
 #include "pseudo-op.h"
 #include "ast.h"
 
-
 /* ------- runtime-visible globals --------------------------- */
 
 bool data_dir = false; /* => item in data segment */
@@ -433,7 +432,9 @@ static void parse_error_on_line(const char* msg, int line) {
         input_file_name ? input_file_name : "(stdin)");
 }
 
-static void parse_error_at(const char* msg) { parse_error_on_line(msg, line_no); }
+static void parse_error_at(const char* msg) {
+  parse_error_on_line(msg, line_no);
+}
 
 /* Skip tokens up to (but NOT past) the next newline.  parse_line's
    tail consumes that newline; consuming it here would leave the
@@ -1452,7 +1453,8 @@ static void do_parse_pseudo(int op) {
           scanner_peek() == TOK_FP_REG ? parse_fp_register() : parse_register();
       if (reg == 31 || copreg == 31) {
         /* the pair's second register would be 32, past the register file */
-        parse_error_on_line("Register pair starts at the last register (31)", line);
+        parse_error_on_line("Register pair starts at the last register (31)",
+                            line);
         break;
       }
       emit_fp_r(TOK_MFC1_OPCODE, 0, copreg, reg);
@@ -1468,7 +1470,8 @@ static void do_parse_pseudo(int op) {
           scanner_peek() == TOK_FP_REG ? parse_fp_register() : parse_register();
       if (reg == 31 || copreg == 31) {
         /* the pair's second register would be 32, past the register file */
-        parse_error_on_line("Register pair starts at the last register (31)", line);
+        parse_error_on_line("Register pair starts at the last register (31)",
+                            line);
         break;
       }
       emit_fp_r(TOK_MTC1_OPCODE, 0, copreg, reg);
@@ -1555,7 +1558,8 @@ static void do_parse_pseudo(int op) {
       addr_expr* const addr = parse_address();
       if (rt == 31) {
         /* the pair's second register would be 32, past the register file */
-        parse_error_on_line("Register pair starts at the last register (31)", line);
+        parse_error_on_line("Register pair starts at the last register (31)",
+                            line);
         free(addr_expr_imm(addr));
         free(addr);
         break;
@@ -1574,7 +1578,8 @@ static void do_parse_pseudo(int op) {
       addr_expr* const addr = parse_address();
       if (rt == 31) {
         /* the pair's second register would be 32, past the register file */
-        parse_error_on_line("Register pair starts at the last register (31)", line);
+        parse_error_on_line("Register pair starts at the last register (31)",
+                            line);
         free(addr_expr_imm(addr));
         free(addr);
         break;

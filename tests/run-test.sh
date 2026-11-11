@@ -255,6 +255,19 @@ case "$NAME" in
       *) fail "the data .word list does not end in its last word: ...${last: -30}" ;;
     esac
     ;;
+  small_text_segments)
+    # A kernel text segment that stops short of the exception vector, or an
+    # empty text segment, is a startup error.  Each used to loop forever on
+    # "Invalid address ... for instruction".
+    timeout 10 "$SPIM" -sktext 0 -exception_file "$EF" -f tt.le.s >"$out" 2>&1; rc=$?
+    expect_exit 255 "$rc"
+    grep -q '^-sktext 0: the kernel text segment must hold the exception handler at 0x80000180 (at least 388 bytes)$' "$out" \
+      || fail "missing the -sktext error"
+    timeout 10 "$SPIM" -stext 0 -exception_file "$EF" -f tt.le.s >"$out" 2>&1; rc=$?
+    expect_exit 255 "$rc"
+    grep -q '^-stext 0: the text segment needs at least one word (4 bytes)$' "$out" \
+      || fail "missing the -stext error"
+    ;;
   imm_range)
     # An out-of-range immediate is reported on the instruction's own line (7),
     # not the next one, and the program still assembles and runs.

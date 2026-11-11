@@ -74,6 +74,16 @@ makeMemory :: Spim -> IO ()
 makeMemory s = do
   (textSize, dataSize0, dataLimit, stackSize0, stackLimit, kTextSize, kDataSize0, kDataLimit) :: (Int, Int, Int, Int, Int, Int, Int, Int) <-
     get (initialSizes s)
+  -- A text segment that can hold no instruction, or a kernel text segment
+  -- that stops short of the exception vector, would make every exception
+  -- jump outside its segment, and the run would loop.
+  when (textSize < 4) $
+    fatalError ("-stext " ++ show textSize ++ ": the text segment needs at least one word (4 bytes)\n")
+  when (kTextSize < 0x180 + 4) $
+    fatalError
+      ( "-sktext " ++ show kTextSize
+          ++ ": the kernel text segment must hold the exception handler at 0x80000180 (at least 388 bytes)\n"
+      )
   let dataSize' :: Int
       dataSize' = if dataSize0 <= 65536 then 65536 else roundUp dataSize0 4
       stackSize :: Int

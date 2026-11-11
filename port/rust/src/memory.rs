@@ -145,6 +145,20 @@ impl Memory {
         k_data_size: i32,
         k_data_limit: i32,
     ) -> Memory {
+        // A text segment that can hold no instruction, or a kernel text
+        // segment that stops short of the exception vector, would make every
+        // exception jump outside its segment, and the run would loop.
+        if text_size < 4 {
+            fatal_error(&format!(
+                "-stext {text_size}: the text segment needs at least one word (4 bytes)\n"
+            ));
+        }
+        if k_text_size < 0x180 + 4 {
+            fatal_error(&format!(
+                "-sktext {k_text_size}: the kernel text segment must hold the exception \
+                 handler at 0x80000180 (at least 388 bytes)\n"
+            ));
+        }
         // The data segment holds at least the 64K small-data area.
         let data_size: i32 = round_up_4(data_size.max(65536));
         let stack_size: i32 = round_up_4(stack_size);

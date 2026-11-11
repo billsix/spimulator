@@ -64,6 +64,18 @@ def make_memory(
     global k_text_seg, k_text_top, k_data_seg, k_data_top
     global _data_size_limit, _stack_size_limit, _k_data_size_limit
     global text_modified, data_modified
+    # A text segment that can hold no instruction, or a kernel text segment
+    # that stops short of the exception vector, would make every exception
+    # jump outside its segment, and the run would loop.
+    if text_size < 4:
+        raise console.fatal_error(
+            f"-stext {text_size}: the text segment needs at least one word (4 bytes)\n"
+        )
+    if k_text_size < 0x180 + 4:
+        raise console.fatal_error(
+            f"-sktext {k_text_size}: the kernel text segment must hold the exception"
+            " handler at 0x80000180 (at least 388 bytes)\n"
+        )
     data_size = _round_up(max(data_size, 65536), 4)
     text_seg = [None] * ((text_size + 3) // 4)
     text_top = layout.TEXT_BOT + text_size

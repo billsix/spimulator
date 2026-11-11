@@ -44,3 +44,5 @@ delay_chain    | -                 | -exception_file EF -delayed_branches -f tt.
 cop1x_decode   | -                 | -exception_file EF -f tt.cop1x_decode.s
 range_checks   | -                 | -exception_file EF -f tt.range_checks.s
 register_pair  | -                 | -exception_file EF -f tt.register_pair.s
+small_ktext    | -                 | -sktext 0 -exception_file EF -f tt.le.s
+small_text     | -                 | -stext 0 -exception_file EF -f tt.le.s
