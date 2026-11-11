@@ -51,7 +51,8 @@ Most open tasks are independent. The ones that aren't:
 fail until each port matches.
 
 **Independent, any order:** `timing-model` and `software-alu` (share cycle vocabulary if both land;
-`timing-model` is much cheaper), `ast-column-tracking`, `string-equality-audit` (waits on the
+`timing-model` is much cheaper), `ast-line-numbers-after-newline` (do it before `ast-column-tracking`,
+which builds on the same per-node position), `ast-column-tracking`, `string-equality-audit` (waits on the
 maintainer), `paired-single-instructions-unsupported` (on hold), `big-endian-conversion-hardening`
 (blocked).
 

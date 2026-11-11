@@ -84,23 +84,23 @@ Then run each surface in turn.
 spimulator -noexception -print-ast -f hello.asm
 ```
 
-Output (excerpted, indentation collapsed):
+Output:
 
 ```
 [line 1] FILE source=hello.asm
-  [line 1] DIR_TEXT
+  [line 2] DIR_TEXT
   [line 2] DIR_GLOBL name=main
   [line 3] LABEL_DEF name=main (placement)
   [line 4] PSEUDO mnemonic=li
-    [line 5] INST_I op=544 rt=2 rs=0 imm=4
+    [line 4] INST_I op=ori rt=2 rs=0 imm=4
   [line 5] PSEUDO mnemonic=la
-    [line 6] INST_I op=544 rt=4 rs=0 imm=msg
-  [line 6] INST_R op=615 rd=0 rs=0 rt=0
+    [line 5] INST_I op=ori rt=4 rs=0 imm=msg
+  [line 7] INST_R op=syscall rd=0 rs=0 rt=0
   [line 7] PSEUDO mnemonic=li
-    [line 8] INST_I op=544 rt=2 rs=0 imm=17
-  [line 8] INST_I op=313 rt=4 rs=0 imm=0
-  [line 9] INST_R op=615 rd=0 rs=0 rt=0
-  [line 11] DIR_DATA
+    [line 7] INST_I op=ori rt=2 rs=0 imm=17
+  [line 9] INST_I op=addi rt=4 rs=0 imm=0
+  [line 10] INST_R op=syscall rd=0 rs=0 rt=0
+  [line 12] DIR_DATA
   [line 12] LABEL_DEF name=msg (placement)
   [line 12] DATA_STRING len=13 null_term=yes value="hello, world\n"
 ```
@@ -111,7 +111,9 @@ Notice that:
 - Each `li`, `la` source line has become a `PSEUDO` node — the
   parser knows you wrote a pseudo-op and what real instruction
   it's rewriting into.
-- `syscall` is `INST_R` (op=615) with all-zero register fields.
+- `syscall` is `INST_R` (`op=syscall`) with all-zero register fields.
+- The two `syscall` lines and the `addi` show the line after their own: a known bug
+  (`tasks/ast-line-numbers-after-newline.md`).
 - `.asciiz "hello, world\n"` became one `DATA_STRING` node with
   length=13 and `null_term=yes` (the trailing `\0`).
 
@@ -128,11 +130,11 @@ Output:
 
 ```
 [line 4] PSEUDO mnemonic=li
-  [line 5] INST_I op=544 mnemonic=ori rt=2 rs=0 imm=4
+  [line 4] INST_I op=ori rt=2 rs=0 imm=4
 [line 5] PSEUDO mnemonic=la
-  [line 6] INST_I op=544 mnemonic=ori rt=4 rs=0 imm=msg
+  [line 5] INST_I op=ori rt=4 rs=0 imm=msg
 [line 7] PSEUDO mnemonic=li
-  [line 8] INST_I op=544 mnemonic=ori rt=2 rs=0 imm=17
+  [line 7] INST_I op=ori rt=2 rs=0 imm=17
 ```
 
 Strips away everything that isn't a pseudo-op wrapper, so you can
@@ -216,8 +218,8 @@ Much longer per-instruction; runtime focus.
 
 ## Suggested reading order for the internals
 
-1. Work through `src/intro/` and at least one demo from
-   `src/algorithms/` to get comfortable writing MIPS.
+1. Work through `examples/src/intro/` and at least one demo from
+   `examples/src/algorithms/` to get comfortable writing MIPS.
 2. Re-run any of those programs with `-explain=2` to see runtime
    narration.
 3. Try `-show-expansion` on something with `la` and `li` to see
@@ -234,7 +236,7 @@ trace exactly how each layer turns it into runnable bytes.
 Three deeper layers exist but aren't directly inspectable from
 these flags:
 
-- **The MIPS instruction encoder inside `inst.c`** — when a 32-bit
+- **The MIPS instruction encoder inside `src/instruction.c`** — when a 32-bit
   immediate doesn't fit a 16-bit field, the encoder splits it into
   `lui + ori` (or `addu + ori`).  The split happens during the
   emit pass and shows up in `-listing` as separate text events,
@@ -256,7 +258,7 @@ For students who want to look at the source:
 - The emit pass that walks the AST and calls action helpers is
   also in `src/parser.c` (`emit_ast` near the bottom).
 - The event-log layer that produces `-listing` is in
-  `include/asm_event.h` and `src/asm_event.c`.
+  `include/assembler-event.h` and `src/assembler-event.c`.
 - The runtime narration that produces `-explain` is in
   `src/explain.c`.
 

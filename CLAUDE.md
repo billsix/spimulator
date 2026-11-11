@@ -58,7 +58,7 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
   (`port/rust/`), each a `spimulator-<language>` command with the C engine's flags. **The C engine is
   the standard**: every port must give the same stdout, stderr and exit status (a float printed with
   different digits is only a warning). `port/meson.build` runs the C engine's own suites against each
-  port, plus `port/harness/` (case-by-case and whole-tree comparisons with C). The teaching mode is not
+  port, plus `port/harness/` (case-by-case, whole-tree and REPL-transcript comparisons with C). The teaching mode is not
   ported yet. Rules and decisions: `port/README.md`, `tasks/reference/engine-ports-design.md`. **A C
   behavior change must be followed in every port**, or the port suites fail. The Haskell port follows the shared
   Haskell coding standard: every do-bind and `let`/`where` binding typed, checked by
