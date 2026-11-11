@@ -15,12 +15,18 @@ clang-tidy's ``misc-const-correctness`` checks C++ only and reports nothing on a
 - ``param-cascade``: as ``param-pointee``, but passed to a call; it can be const
   only once the callee's parameter is, so each needs a look by hand.
 
+Written for the const pass
+(tasks/archive/2026/11/11/c23-const-correctness-pass.md), which records what
+the compiler rejected and the deliberate opt-outs. Known false positives: a
+local inside a macro expansion whose ``typeof`` holds ``*`` (``max()``'s
+``_spim_a_``) is read as a pointer.
+
 Function-scope statics, arrays, and the setjmp functions (``main``,
 ``top_level``) are skipped. The counts are an upper bound: the compiler decides.
 
 Usage::
 
-    const_candidates.py BUILDDIR [FILE ...]
+    tools/const_candidates.py BUILDDIR [FILE ...]
 
 BUILDDIR holds ``compile_commands.json``. The candidates go to stdout, one per
 line, and the totals per category to stderr.
@@ -35,7 +41,7 @@ import sys
 from collections.abc import Iterator, Mapping
 from typing import Any
 
-REPO: pathlib.Path = pathlib.Path(__file__).resolve().parents[3]
+REPO: pathlib.Path = pathlib.Path(__file__).resolve().parents[1]
 SETJMP_FUNCTIONS: frozenset[str] = frozenset({"main", "top_level"})
 CATEGORIES: tuple[str, ...] = (
     "local-scalar",
