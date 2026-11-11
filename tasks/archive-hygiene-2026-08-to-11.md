@@ -46,7 +46,7 @@ every path resolves, the superseded and "since done" notes are in place, and the
   `engine-port-python/` (3; its `tasks/adhoc/engine-port-python/add_port_lines.py` is a stale copy of `tools/add_port_lines.py`)
   and `engine-port-rust/` (3). The REPL ones feed `tasks/repl-transcript-corpus.md`. Remove them
   after that task, or keep them until then. `engine-ports-float-format/` and
-  `integer-conversion-hardening/` are handled by `tasks/port-float-comparison-and-formatter-gates.md`.
+  `integer-conversion-hardening/` are handled by `tasks/archive/2026/11/11/port-float-comparison-and-formatter-gates.md`.
 - Conventions: the task-doc-conventions.md reference doc ("done-record rewrite") from
   github.com/billsix/runClaudeInContainer.
 

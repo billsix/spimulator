@@ -26,7 +26,7 @@ A batch of doc claims that don't match the tree. Done means each one below says 
   - :120 says "25 tests";
   - its double counts disagree (158,029 vs 58,028).
 
-  The float-gate claims are fixed by `tasks/port-float-comparison-and-formatter-gates.md`.
+  The float-gate claims are fixed by `tasks/archive/2026/11/11/port-float-comparison-and-formatter-gates.md`.
 - **`tasks/reference/engine-ports-design.md`** (§1.3): :51 should say `entrypoint/05-install-ports.sh`;
   :82 says 23 harness cases, and `port/harness/corpus.txt` has 24.
 - **`tasks/reference/opcode-table-generator.md`** (§1.3): :53 and :145 cite the deleted
