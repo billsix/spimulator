@@ -1,36 +1,40 @@
 # Rewrite Documentation/spim.1 from the flag parser, and install it as spimulator.1
 
-**Status:** proposed — needs go-ahead
-**Priority:** 7
-**Difficulty:** 3
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
+**Branch:** `review-2026-11-11-batch`
 **Source:** tasks/review/2026/11/11/repo-review.md §2.2 F17
 
-## BLUF
+## Outcome
 
-The man page documents a `-execute` flag that doesn't exist, omits six real flags, and installs as
-`Documentation/spim.1` for a binary called `spimulator`, so `man spimulator` finds nothing. It is unchanged since
-before the 2026-11-10 review (its F9). Done means `Documentation/spimulator.1` (renamed) lists exactly
-the flags `src/spim.c` accepts, with the right program name, installed by meson.
+`Documentation/spim.1` is now `Documentation/spimulator.1`, and `meson.build` installs it under that
+name (`share/man/man1/spimulator.1`). It was installed as `spim.1` for a binary called `spimulator`,
+so `man spimulator` found nothing.
 
-## Context
+It is rewritten from `src/spim.c`'s argument parser:
+- every option, with its short form, grouped: the machine, the exception handler, messages, teaching
+  mode, memory-mapped IO, memory sizes, loading and running, and what the assembler builds;
+- new sections: the exit status (the program's, 128 plus the exception code, 2, 1, 255), the ports,
+  and the default exception handler.
 
-- Flags in `src/spim.c` but not the man page: `-exception_file`, `-trap_file`, `-pseudo`, `-dump`,
-  `-full_dump`, `-assemble`.
-- In the man page but not `src/spim.c`: `-execute`.
-- Its SYNTAX names `spim` (`Documentation/spim.1:5-8`); `meson.build:128` installs it.
-- `tasks/explain-mode-correctness-bugs.md` (side findings) also wants the man page's explain-level text
-  to match the code. Do both in one pass, or after that task.
-- `src/README` and the usage text: the 2026-11-10 review's F9 also listed them.
+Fixed on the way:
+- `-execute`, which doesn't exist, is gone;
+- `-exception_file`/`-ef`, `-trap`/`-notrap`/`-trap_file`, `-pseudo`/`-nopseudo`, `-assemble`,
+  `-dump` and `-full_dump` are documented;
+- `-quiet` and `-noquiet` were described the wrong way round;
+- the old `spim` name, xspim/qtspim, and the dead SourceForge contact are gone.
 
-## Plan
+The teaching-mode level descriptions are kept, as they match the code.
+`tasks/explain-mode-correctness-bugs.md` will update them with its fixes. `CLAUDE.md`, the
+`meson.build` comment and two open tasks cite the new name.
 
-1. Generate the flag list from `src/spim.c`'s argument parser (a grep of `streq(argv[i], …)`), and
-   write each entry from the code.
-2. Rename the file to `spimulator.1`, update `meson.build`'s `install_man`, and add the ports' commands
-   to SEE ALSO.
-3. Check `man -l Documentation/spimulator.1` renders, and that `meson install` places it.
+## Not done (follow-up)
 
-## Open questions
+The engine's usage text (`src/spim.c`, printed for a bad argument) has the same gaps: it says
+`Usage: spim`, and leaves out the size, trap and pseudo flags. The three ports print the same text,
+and the harness compares it, so fixing it is a four-engine change. No task was filed.
 
-None.
+## Verification
+
+`man -l Documentation/spimulator.1` renders. `meson install --destdir` places
+`share/man/man1/spimulator.1`. Each documented flag was checked against `src/spim.c`.
