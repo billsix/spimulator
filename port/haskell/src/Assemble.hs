@@ -56,7 +56,7 @@ userKernelTextSegment s = set (textInKernel s)
 
 textPcRef :: Spim -> IO (IORef Word32)
 textPcRef s = do
-  k <- get (textInKernel s)
+  k :: Bool <- get (textInKernel s)
   pure (if k then nextKTextPc s else nextTextPc s)
 
 -- | @.align n@ in the text segment (C: @align_text@).
@@ -64,9 +64,10 @@ alignText :: Spim -> Int -> IO ()
 alignText s n
   | n == 0 = pure ()
   | otherwise = do
-      ref <- textPcRef s
-      pc <- get ref
-      let pc' = (pc + (1 `shiftL` n) - 1) .&. (0xffffffff `shiftL` n)
+      ref :: IORef Word32 <- textPcRef s
+      pc :: Word32 <- get ref
+      let pc' :: Word32
+          pc' = (pc + (1 `shiftL` n) - 1) .&. (0xffffffff `shiftL` n)
       set ref pc'
       fixCurrentLabelAddress s pc'
 
@@ -75,50 +76,50 @@ setTextPc s addr = textPcRef s >>= (`set` addr)
 
 incrementTextPc :: Spim -> IO ()
 incrementTextPc s = do
-  k <- get (textInKernel s)
+  k :: Bool <- get (textInKernel s)
   if k
     then do
       modify (nextKTextPc s) (+ 4)
-      pc <- get (nextKTextPc s)
-      top <- get (kTextTop s)
+      pc :: Word32 <- get (nextKTextPc s)
+      top :: Word32 <- get (kTextTop s)
       when (top <= pc) $ runError "Can't expand kernel text segment\n"
     else do
       modify (nextTextPc s) (+ 4)
-      pc <- get (nextTextPc s)
-      top <- get (textTop s)
+      pc :: Word32 <- get (nextTextPc s)
+      top :: Word32 <- get (textTop s)
       when (top <= pc) $ runError "Can't expand text segment\n"
 
 -- | Put an instruction at the next location (C: @store_instruction@).  In
 -- the data segment it is stored as its encoding.
 storeInstruction :: Spim -> InstRef -> IO ()
 storeInstruction s ref = do
-  inData <- get (dataDir s)
-  inText <- get (textDir s)
+  inData :: Bool <- get (dataDir s)
+  inText :: Bool <- get (textDir s)
   if inData
     then get ref >>= instEncodeIO >>= storeWord s
     else when inText $ do
-      at <- currentTextPc s
+      at :: Word32 <- currentTextPc s
       set (exceptionOccurred s) False
       memWriteInst s at (Just ref)
-      exc <- get (exceptionOccurred s)
+      exc :: Bool <- get (exceptionOccurred s)
       if exc
         then cError (printf "Invalid address (0x%08x) for instruction\n" at)
         else incrementTextPc s
-      override <- get (emitSource s)
-      src <- maybe (sourceLine s) pure override
+      override :: Maybe (Maybe String) <- get (emitSource s)
+      src :: Maybe String <- maybe (sourceLine s) pure override
       modify ref (\i -> i {inSource = src})
-      i <- get ref
+      i :: Instruction <- get ref
       when (inEncoding i == 0) $ do
-        enc <- instEncodeIO i
+        enc :: Int32 <- instEncodeIO i
         set ref i {inEncoding = enc}
-      enc <- inEncoding <$> get ref
+      enc :: Int32 <- inEncoding <$> get ref
       fire s (EvTextInst at (fromIntegral enc))
 
 -- | An immediate expression (C: @make_imm_expr@).  Naming a label puts it
 -- in the symbol table.
 makeImmExpr :: Spim -> Int32 -> Maybe String -> Bool -> IO ImmExpr
 makeImmExpr s offset sym pcRel = do
-  l <- traverse (lookupLabel s) sym
+  l :: Maybe Label <- traverse (lookupLabel s) sym
   pure (ImmExpr offset l 0 pcRel)
 
 -- | A constant (C: @const_imm_expr@).
@@ -141,19 +142,19 @@ isZeroImm e = ieOffset e == 0 && null (ieSymbol e)
 -- global in the $gp area becomes an offset from $gp.
 makeAddrExpr :: Spim -> Int32 -> Maybe String -> Int -> IO (Int, ImmExpr)
 makeAddrExpr s offs sym regNo = do
-  gpLabel <- case sym of
+  gpLabel :: Maybe Label <- case sym of
     Just name | regNo == 0 -> do
-      l <- lookupLabel s name
-      gp <- get (lblGp l)
+      l :: Label <- lookupLabel s name
+      gp :: Bool <- get (lblGp l)
       pure (if gp then Just l else Nothing)
     _ -> pure Nothing
   case gpLabel of
     Just l -> do
-      addr <- get (lblAddr l)
-      mid <- get (gpMidpoint s)
+      addr :: Word32 <- get (lblAddr l)
+      mid :: Word32 <- get (gpMidpoint s)
       pure (28, constImmExpr (offs + fromIntegral addr - fromIntegral mid))
     Nothing -> do
-      e <- makeImmExpr s offs sym False
+      e :: ImmExpr <- makeImmExpr s offs sym False
       pure (regNo, e)
 
 -- | Is this a signed-immediate instruction?
@@ -167,14 +168,17 @@ signedImmOp op =
 -- become several instructions when the value does not fit in 16 bits.
 iTypeInst :: Spim -> Int -> Int -> Int -> ImmExpr -> IO ()
 iTypeInst s op rt rs expr = do
-  ref <- newIORef ((setRt rt (setRs rs (emptyInstruction op))) {inExpr = Just expr})
-  known <- maybe (pure True) symbolIsDefined (ieSymbol expr)
-  bare <- get (optBare s)
+  ref :: InstRef <- newIORef ((setRt rt (setRs rs (emptyInstruction op))) {inExpr = Just expr})
+  known :: Bool <- maybe (pure True) symbolIsDefined (ieSymbol expr)
+  bare :: Bool <- get (optBare s)
   if known
     then do
-      value <- evalImmExpr s expr
-      let v = fromIntegral value :: Word32
+      value :: Int32 <- evalImmExpr s expr
+      let v :: Word32
+          v = fromIntegral value :: Word32
+          signedCheck :: Bool
           signedCheck = signedImmOp op || (opcodeIsLoadStore op && ieBits expr == 0)
+          tooBig :: Bool
           tooBig =
             if signedCheck
               then (v .&. 0xffff8000) /= 0 && (v .&. 0xffff8000) /= 0xffff8000
@@ -193,17 +197,20 @@ iTypeInst s op rt rs expr = do
 -- @$at@ with @lui@ / @ori@ first (C: @i_type_inst_full_word@).
 iTypeInstFullWord :: Spim -> Int -> Int -> Int -> ImmExpr -> Bool -> Int32 -> IO ()
 iTypeInstFullWord s op rt rs expr known value = do
-  gpOffset <- smallGpOffset
+  gpOffset :: Maybe Int32 <- smallGpOffset
   if opcodeIsLoadStore op
     then case gpOffset of
       Just offset -> iTypeInst s op rt 28 (constImmExpr offset)
       Nothing
         | known -> do
-            let high0 = (value `shiftR` 16) .&. 0xffff
+            let high0 :: Int32
+                high0 = (value `shiftR` 16) .&. 0xffff
+                low :: Int32
                 low = value .&. 0xffff
             if not (high0 == 0 && low .&. 0x8000 == 0) && not (high0 == 0xffff && low .&. 0x8000 /= 0)
               then do
-                let high = if low .&. 0x8000 /= 0 then high0 + 1 else high0
+                let high :: Int32
+                    high = if low .&. 0x8000 /= 0 then high0 + 1 else high0
                 iTypeInst s (tok TOK_LUI_OPCODE) 1 0 (constImmExpr high)
                 when (rs /= 0) $ rTypeInst s (tok TOK_ADDU_OPCODE) 1 1 rs
                 iTypeInst s op rt 1 (lowerBits (constImmExpr low))
@@ -223,16 +230,18 @@ iTypeInstFullWord s op rt rs expr known value = do
                 produceImmediate s expr rt known value
             | otherwise -> do
                 produceImmediate s expr 1 known value
-                op' <- immOpToOp op
+                op' :: Int <- immOpToOp op
                 rTypeInst s op' rt rs 1
   where
     -- A label in the $gp area, used without a base register, can be
     -- reached with a 16-bit offset from $gp.
+    smallGpOffset :: IO (Maybe Int32)
     smallGpOffset = case ieSymbol expr of
       Just l | rs == 0 -> do
-        gp <- get (lblGp l)
-        addr <- get (lblAddr l)
-        let offset = fromIntegral addr + ieOffset expr :: Int32
+        gp :: Bool <- get (lblGp l)
+        addr :: Word32 <- get (lblAddr l)
+        let offset :: Int32
+            offset = fromIntegral addr + ieOffset expr :: Int32
         pure (if gp && offset >= -0x8000 && offset <= 0x7fff then Just offset else Nothing)
       _ -> pure Nothing
 
@@ -248,9 +257,10 @@ produceImmediate s expr rt known value
 -- | A jump to a label (C: @j_type_inst@).
 jTypeInst :: Spim -> Int -> ImmExpr -> IO ()
 jTypeInst s op target0 = do
-  let target = target0 {ieOffset = 0, iePcRelative = False}
-  ref <- newIORef ((emptyInstruction op) {inExpr = Just target})
-  known <- maybe (pure True) symbolIsDefined (ieSymbol target)
+  let target :: ImmExpr
+      target = target0 {ieOffset = 0, iePcRelative = False}
+  ref :: InstRef <- newIORef ((emptyInstruction op) {inExpr = Just target})
+  known :: Bool <- maybe (pure True) symbolIsDefined (ieSymbol target)
   case ieSymbol target of
     Just l | not known -> recordInstUsesSymbol s ref l
     _ -> resolveALabel s (ieSymbol target) ref
@@ -275,8 +285,17 @@ rShTypeInst s op rd rt shamt = newIORef (setShamt (shamt .&. 0x1f) (makeR op rd 
 -- code (times four) in shamt (C: @r_cond_type_inst@).
 rCondTypeInst :: Spim -> Int -> Int -> Int -> Int -> IO ()
 rCondTypeInst s op fs ft cc = do
-  let un = 1; eq = 2; lt = 4; inv = 8 :: Int
+  let un :: Int
+      un = 1
+      eq :: Int
+      eq = 2
+      lt :: Int
+      lt = 4
+      inv :: Int
+      inv = 8
+      both :: Int -> Opcode -> Bool
       both a b = a == tok b
+      cond :: Int
       cond
         | any (both op) [TOK_C_EQ_D_OPCODE, TOK_C_EQ_S_OPCODE] = eq
         | any (both op) [TOK_C_LE_D_OPCODE, TOK_C_LE_S_OPCODE] = inv .|. lt .|. eq
@@ -301,6 +320,7 @@ rCondTypeInst s op fs ft cc = do
 immOpToOp :: Int -> IO Int
 immOpToOp op = maybe (fatalError "Can't convert immediate op to op\n") (pure . tok) (lookup op table)
   where
+    table :: [(Int, Opcode)]
     table =
       [ (tok TOK_ADDI_OPCODE, TOK_ADD_OPCODE), (tok TOK_ADDIU_OPCODE, TOK_ADDU_OPCODE)
       , (tok TOK_ANDI_OPCODE, TOK_AND_OPCODE), (tok TOK_ORI_OPCODE, TOK_OR_OPCODE)
@@ -314,6 +334,7 @@ immOpToOp op = maybe (fatalError "Can't convert immediate op to op\n") (pure . t
 opToImmOp :: Opcode -> IO Opcode
 opToImmOp op = maybe (fatalError "Can't convert op to immediate op\n") pure (lookup op table)
   where
+    table :: [(Opcode, Opcode)]
     table =
       [ (TOK_ADD_OPCODE, TOK_ADDI_OPCODE), (TOK_ADDU_OPCODE, TOK_ADDIU_OPCODE)
       , (TOK_AND_OPCODE, TOK_ANDI_OPCODE), (TOK_OR_OPCODE, TOK_ORI_OPCODE)

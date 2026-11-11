@@ -26,13 +26,13 @@ import Types
 -- | Where the next instruction goes (C: @current_text_pc@).
 currentTextPc :: Spim -> IO Word32
 currentTextPc s = do
-  k <- get (textInKernel s)
+  k :: Bool <- get (textInKernel s)
   get (if k then nextKTextPc s else nextTextPc s)
 
 -- | Where the next datum goes (C: @current_data_pc@).
 currentDataPc :: Spim -> IO Word32
 currentDataPc s = do
-  k <- get (dataInKernel s)
+  k :: Bool <- get (dataInKernel s)
   get (if k then nextKDataPc s else nextDataPc s)
 
 -- | The scanner's line number (C: @line_no@).
@@ -45,14 +45,14 @@ setLineNo s n = modify (scanner s) (\st -> st {ssLineNo = n})
 -- | The line being parsed, for an error message (C: @erroneous_line@).
 erroneousLine :: Spim -> IO String
 erroneousLine s = do
-  st <- get (scanner s)
+  st :: ScanState <- get (scanner s)
   pure ("\t  " ++ ssSnapshot st ++ "\n")
 
 -- | The line being parsed as "NNN: text", if a token of it has been read
 -- (C: @source_line@).
 sourceLine :: Spim -> IO (Maybe String)
 sourceLine s = do
-  st <- get (scanner s)
+  st :: ScanState <- get (scanner s)
   pure $
     if ssSnapshotSaved st
       then Just (show (ssSnapshotLineNo st) ++ ": " ++ ssSnapshot st)
@@ -61,9 +61,9 @@ sourceLine s = do
 -- | A warning with the line it is about (C: @parse_warn@).
 parseWarn :: Spim -> String -> IO ()
 parseWarn s msg = do
-  n <- lineNo s
-  file <- get (inputFileName s)
-  line <- erroneousLine s
+  n :: Int <- lineNo s
+  file :: Maybe String <- get (inputFileName s)
+  line :: String <- erroneousLine s
   cError ("spim: (parser) " ++ msg ++ " on line " ++ show n ++ " of file " ++ maybe "(input)" id file ++ "\n" ++ line)
 
 -- | An error found while assembling (C: @parse_error@, pseudo-op.c).
@@ -76,7 +76,7 @@ parseError s msg = do
 -- | Report an event to the @-listing@ observer, if there is one.
 fire :: Spim -> AsmEvent -> IO ()
 fire s ev = do
-  obs <- get (asmObserver s)
+  obs :: Maybe (AsmEvent -> Int -> IO ()) <- get (asmObserver s)
   case obs of
     Nothing -> pure ()
     Just f -> lineNo s >>= f ev
@@ -85,5 +85,5 @@ fire s ev = do
 -- moved the location counter past them (C: @fix_current_label_address@).
 fixCurrentLabelAddress :: Spim -> Word32 -> IO ()
 fixCurrentLabelAddress s addr = do
-  ls <- get (thisLineLabels s)
+  ls :: [Label] <- get (thisLineLabels s)
   mapM_ (\l -> set (lblAddr l) addr) ls

@@ -25,12 +25,15 @@ import Data.Char (digitToInt, isAlphaNum, isDigit, isHexDigit, toLower)
 import Data.Ratio (denominator, numerator, (%))
 import GHC.Float (castDoubleToWord64, castWord64ToDouble)
 import Data.Bits (testBit, (.&.), (.|.))
+import Data.Word (Word64)
 
 -- | Round a non-negative rational to the nearest integer, ties to even
 -- (glibc's default rounding mode, applied to the exact value).
 roundHalfEven :: Rational -> Integer
 roundHalfEven r =
-  let (q, f) = properFraction r :: (Integer, Rational)
+  let q :: Integer
+      f :: Rational
+      (q, f) = properFraction r :: (Integer, Rational)
    in case compare f (1 / 2) of
         LT -> q
         GT -> q + 1
@@ -40,6 +43,7 @@ roundHalfEven r =
 decimalExponent :: Rational -> Int
 decimalExponent r = go (length (show (numerator r)) - length (show (denominator r)))
   where
+    go :: Int -> Int
     go x
       | 10 ^^ x > r = go (x - 1)
       | 10 ^^ (x + 1) <= r = go (x + 1)
@@ -66,15 +70,20 @@ sign x = if x < 0 || isNegativeZero x then "-" else ""
 
 -- | The digits of n, left-padded with zeros to at least w characters.
 padded :: Int -> Integer -> String
-padded w n = let s = show n in replicate (w - length s) '0' ++ s
+padded w n = let s :: String
+                 s = show n in replicate (w - length s) '0' ++ s
 
 -- | C's @%.<p>f@.
 formatF :: Int -> Double -> String
 formatF p x = case special x of
   Just s -> s
   Nothing ->
-    let n = roundHalfEven (abs (toRational x) * 10 ^ p)
+    let n :: Integer
+        n = roundHalfEven (abs (toRational x) * 10 ^ p)
+        s :: String
         s = padded (p + 1) n
+        whole :: String
+        frac :: String
         (whole, frac) = splitAt (length s - p) s
      in sign x ++ whole ++ (if p == 0 then "" else '.' : frac)
 
@@ -88,28 +97,43 @@ formatGAlt :: Bool -> Int -> Double -> String
 formatGAlt alt p0 x = case special x of
   Just s -> s
   Nothing ->
-    let p = max 1 p0
+    let p :: Int
+        p = max 1 p0
+        r :: Rational
         r = abs (toRational x)
+        e :: Int
+        n :: Integer
         (e, n)
           | r == 0 = (0, 0)
           | otherwise =
-              let e0 = decimalExponent r
+              let e0 :: Int
+                  e0 = decimalExponent r
+                  n0 :: Integer
                   n0 = roundHalfEven (r / 10 ^^ (e0 - p + 1))
                in if n0 >= 10 ^ p then (e0 + 1, n0 `quot` 10) else (e0, n0)
+        withPoint :: String -> Int -> String
         withPoint s k =
-          let (a, b) = splitAt k s
+          let a :: String
+              b :: String
+              (a, b) = splitAt k s
            in if null b && not alt then a else a ++ "." ++ b
+        strip :: String -> String
         strip = if alt then id else stripZeros
      in sign x
           ++ if e < -4 || e >= p
             then
-              let ds = padded p n
+              let ds :: String
+                  ds = padded p n
+                  mant :: String
                   mant = strip (withPoint ds 1)
+                  ex :: Int
                   ex = abs e
                in mant ++ "e" ++ (if e < 0 then "-" else "+")
                     ++ (if ex < 10 then "0" else "") ++ show ex
             else
-              let decimals = p - 1 - e
+              let decimals :: Int
+                  decimals = p - 1 - e
+                  ds :: String
                   ds = padded (decimals + 1) n
                in strip (withPoint ds (length ds - decimals))
 
@@ -123,12 +147,17 @@ leftIn w s = s ++ replicate (w - length s) ' '
 -- The conversion is exact, then rounded once (as glibc does).
 cStrtod :: String -> Double
 cStrtod text =
-  let s = dropWhile (`elem` " \t\n\v\f\r") text
+  let s :: String
+      s = dropWhile (`elem` " \t\n\v\f\r") text
+      neg :: Bool
+      body :: String
       (neg, body) = case s of
         ('-' : r) -> (True, r)
         ('+' : r) -> (False, r)
         _ -> (False, s)
+      apply :: Num a => a -> a
       apply v = if neg then negate v else v
+      lower :: String
       lower = map toLower body
    in case () of
         _
@@ -137,6 +166,7 @@ cStrtod text =
           | take 2 lower == "0x" && hexStarts (drop 2 body) -> apply (hexValue (drop 2 body))
           | otherwise -> maybe 0 apply (decimalValue body)
   where
+    hexStarts :: String -> Bool
     hexStarts r = case r of
       (c : _) | isHexDigit c -> True
       ('.' : c : _) | isHexDigit c -> True
@@ -147,9 +177,11 @@ cStrtod text =
 nanWithPayload :: String -> Double
 nanWithPayload rest = castWord64ToDouble (0x7ff8000000000000 .|. (payload .&. 0x7ffffffffffff))
   where
+    payload :: Word64
     payload = case rest of
       ('(' : r) | (inside, ')' : _) <- span (\c -> isAlphaNum c || c == '_') r -> number inside
       _ -> 0
+    number :: (Num b, Read b) => String -> b
     number t = case map toLower t of
       ('0' : 'x' : h) | not (null h), all isHexDigit h -> foldl (\a c -> a * 16 + fromIntegral (digitToInt c)) 0 h
       ('0' : o) | all (`elem` "01234567") o -> foldl (\a c -> a * 8 + fromIntegral (digitToInt c)) 0 o
@@ -159,23 +191,33 @@ nanWithPayload rest = castWord64ToDouble (0x7ff8000000000000 .|. (payload .&. 0x
 -- | The value of a decimal number at the start of the text, if there is one.
 decimalValue :: String -> Maybe Double
 decimalValue s =
-  let (intDigits, r1) = span isDigit s
+  let intDigits :: String
+      r1 :: String
+      (intDigits, r1) = span isDigit s
+      fracDigits :: String
+      r2 :: String
       (fracDigits, r2) = case r1 of
         ('.' : r) -> span isDigit r
         _ -> ("", r1)
+      expo :: Int
       expo = case r2 of
         (e : r) | e `elem` "eE" -> exponentPart r
         _ -> 0
+      digits :: String
       digits = intDigits ++ fracDigits
    in if null digits
         then Nothing
         else Just (fromDecimal (read digits) (expo - length fracDigits))
   where
+    exponentPart :: String -> Int
     exponentPart r =
-      let (eneg, r') = case r of
+      let eneg :: Bool
+          r' :: String
+          (eneg, r') = case r of
             ('-' : t) -> (True, t)
             ('+' : t) -> (False, t)
             _ -> (False, r)
+          ds :: String
           ds = takeWhile isDigit r'
        in if null ds then 0 else (if eneg then negate else id) (read (take 9 ds) :: Int)
 
@@ -192,14 +234,21 @@ fromDecimal m e
 -- the text: hex digits, an optional fraction, an optional binary exponent.
 hexValue :: String -> Double
 hexValue s =
-  let (intDigits, r1) = span isHexDigit s
+  let intDigits :: String
+      r1 :: String
+      (intDigits, r1) = span isHexDigit s
+      fracDigits :: String
+      r2 :: String
       (fracDigits, r2) = case r1 of
         ('.' : r) -> span isHexDigit r
         _ -> ("", r1)
+      expo :: Int
       expo = case r2 of
         (p : r) | p `elem` "pP" -> binaryExponent r
         _ -> 0
+      m :: Integer
       m = foldl (\acc c -> acc * 16 + toInteger (digitToInt c)) 0 (intDigits ++ fracDigits)
+      e :: Int
       e = expo - 4 * length fracDigits
    in if m == 0 then 0
       else if e > 1100 then 1 / 0
@@ -207,10 +256,14 @@ hexValue s =
       else if e >= 0 then fromRational (fromInteger (m * 2 ^ e))
       else fromRational (m % (2 ^ negate e))
   where
+    binaryExponent :: String -> Int
     binaryExponent r =
-      let (eneg, r') = case r of
+      let eneg :: Bool
+          r' :: String
+          (eneg, r') = case r of
             ('-' : t) -> (True, t)
             ('+' : t) -> (False, t)
             _ -> (False, r)
+          ds :: String
           ds = takeWhile isDigit r'
        in if null ds then 0 else (if eneg then negate else id) (read (take 9 ds) :: Int)

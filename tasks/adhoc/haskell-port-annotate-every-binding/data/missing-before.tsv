@@ -1,0 +1,1235 @@
+do	src/AsmCommon.hs	29	3	29	4	k	Bool
+do	src/AsmCommon.hs	35	3	35	4	k	Bool
+do	src/AsmCommon.hs	48	3	48	5	st	ScanState
+do	src/AsmCommon.hs	55	3	55	5	st	ScanState
+do	src/AsmCommon.hs	64	3	64	4	n	Int
+do	src/AsmCommon.hs	65	3	65	7	file	Maybe String
+do	src/AsmCommon.hs	66	3	66	7	line	String
+do	src/AsmCommon.hs	79	3	79	6	obs	Maybe (AsmEvent -> Int -> IO ())
+do	src/AsmCommon.hs	88	3	88	5	ls	[Label]
+do	src/Assemble.hs	59	3	59	4	k	Bool
+do	src/Assemble.hs	67	7	67	10	ref	IORef Word32
+do	src/Assemble.hs	68	7	68	9	pc	Word32
+local	src/Assemble.hs	69	11	69	14	pc'	Word32
+do	src/Assemble.hs	78	3	78	4	k	Bool
+do	src/Assemble.hs	82	7	82	9	pc	Word32
+do	src/Assemble.hs	83	7	83	10	top	Word32
+do	src/Assemble.hs	87	7	87	9	pc	Word32
+do	src/Assemble.hs	88	7	88	10	top	Word32
+do	src/Assemble.hs	95	3	95	9	inData	Bool
+do	src/Assemble.hs	96	3	96	9	inText	Bool
+do	src/Assemble.hs	100	7	100	9	at	Word32
+do	src/Assemble.hs	103	7	103	10	exc	Bool
+do	src/Assemble.hs	107	7	107	15	override	Maybe (Maybe String)
+do	src/Assemble.hs	108	7	108	10	src	Maybe String
+do	src/Assemble.hs	110	7	110	8	i	Instruction
+do	src/Assemble.hs	112	9	112	12	enc	Int32
+do	src/Assemble.hs	114	7	114	10	enc	Int32
+do	src/Assemble.hs	121	3	121	4	l	Maybe Label
+do	src/Assemble.hs	144	3	144	10	gpLabel	Maybe Label
+do	src/Assemble.hs	146	7	146	8	l	Label
+do	src/Assemble.hs	147	7	147	9	gp	Bool
+do	src/Assemble.hs	152	7	152	11	addr	Word32
+do	src/Assemble.hs	153	7	153	10	mid	Word32
+do	src/Assemble.hs	156	7	156	8	e	ImmExpr
+do	src/Assemble.hs	170	3	170	6	ref	InstRef
+do	src/Assemble.hs	171	3	171	8	known	Bool
+do	src/Assemble.hs	172	3	172	7	bare	Bool
+do	src/Assemble.hs	175	7	175	12	value	Int32
+local	src/Assemble.hs	176	11	176	12	v	Word32
+local	src/Assemble.hs	177	11	177	22	signedCheck	Bool
+local	src/Assemble.hs	178	11	178	17	tooBig	Bool
+do	src/Assemble.hs	196	3	196	11	gpOffset	Maybe Int32
+local	src/Assemble.hs	202	17	202	22	high0	Int32
+local	src/Assemble.hs	203	17	203	20	low	Int32
+local	src/Assemble.hs	206	21	206	25	high	Int32
+do	src/Assemble.hs	226	17	226	20	op'	Int
+local	src/Assemble.hs	231	5	231	18	smallGpOffset	IO (Maybe Int32)
+do	src/Assemble.hs	233	9	233	11	gp	Bool
+do	src/Assemble.hs	234	9	234	13	addr	Word32
+local	src/Assemble.hs	235	13	235	19	offset	Int32
+local	src/Assemble.hs	251	7	251	13	target	ImmExpr
+do	src/Assemble.hs	252	3	252	6	ref	InstRef
+do	src/Assemble.hs	253	3	253	8	known	Bool
+local	src/Assemble.hs	278	7	278	9	un	Int
+local	src/Assemble.hs	278	15	278	17	eq	Int
+local	src/Assemble.hs	278	23	278	25	lt	Int
+local	src/Assemble.hs	278	31	278	34	inv	Int
+local	src/Assemble.hs	279	7	279	11	both	Int -> Opcode -> Bool
+local	src/Assemble.hs	280	7	280	11	cond	Int
+local	src/Assemble.hs	304	5	304	10	table	[(Int, Opcode)]
+local	src/Assemble.hs	317	5	317	10	table	[(Opcode, Opcode)]
+local	src/Ast.hs	73	5	73	13	children	[Node] -> String
+local	src/Ast.hs	74	5	74	9	body	String
+local	src/Ast.hs	102	5	102	12	intList	String -> [ImmExpr] -> String
+local	src/Ast.hs	105	5	105	11	fpList	String -> [Double] -> String
+local	src/Ast.hs	108	5	108	8	seg	String -> Maybe t -> String
+local	src/Ast.hs	110	5	110	11	escape	Char -> String
+pattern	src/Ast.hs	138	5	169	117	kindName fields	String;;String
+local	src/Ast.hs	170	5	170	12	opField	Int -> String
+local	src/Ast.hs	171	5	171	10	chain	[Node] -> String
+local	src/Ast.hs	172	5	172	14	intValues	[ImmExpr] -> String
+local	src/Ast.hs	173	5	173	13	fpValues	[Double] -> String
+local	src/Ast.hs	174	5	174	10	start	Maybe t -> String
+local	src/Ast.hs	176	5	176	13	jsonBool	Bool -> String
+local	src/Ast.hs	188	5	188	8	esc	Char -> String
+pattern	src/CFormat.hs	33	7	33	55	q f	Integer;;Rational
+local	src/CFormat.hs	43	5	43	7	go	t -> t
+local	src/CFormat.hs	69	18	69	19	s	String
+local	src/CFormat.hs	76	9	76	10	n	Integer
+local	src/CFormat.hs	77	9	77	10	s	String
+pattern	src/CFormat.hs	78	9	78	49	whole frac	String;;String
+local	src/CFormat.hs	91	9	91	10	p	Int
+local	src/CFormat.hs	92	9	92	10	r	Rational
+pattern	src/CFormat.hs	93	9	98	76	e n	Int;;Integer
+local	src/CFormat.hs	96	19	96	21	e0	Int
+local	src/CFormat.hs	97	19	97	21	n0	Integer
+local	src/CFormat.hs	99	9	99	18	withPoint	String -> Int -> String
+pattern	src/CFormat.hs	100	15	100	35	a b	String;;String
+local	src/CFormat.hs	102	9	102	14	strip	String -> String
+local	src/CFormat.hs	106	19	106	21	ds	String
+local	src/CFormat.hs	107	19	107	23	mant	String
+local	src/CFormat.hs	108	19	108	21	ex	Int
+local	src/CFormat.hs	112	19	112	27	decimals	Int
+local	src/CFormat.hs	113	19	113	21	ds	String
+local	src/CFormat.hs	126	7	126	8	s	String
+pattern	src/CFormat.hs	127	7	130	24	neg body	Bool;;String
+local	src/CFormat.hs	131	7	131	12	apply	a -> a
+local	src/CFormat.hs	132	7	132	12	lower	String
+local	src/CFormat.hs	140	5	140	14	hexStarts	String -> Bool
+local	src/CFormat.hs	150	5	150	12	payload	Word64
+local	src/CFormat.hs	153	5	153	11	number	String -> b
+pattern	src/CFormat.hs	162	7	162	39	intDigits r1	String;;String
+pattern	src/CFormat.hs	163	7	165	22	fracDigits r2	String;;String
+local	src/CFormat.hs	166	7	166	11	expo	Int
+local	src/CFormat.hs	169	7	169	13	digits	String
+local	src/CFormat.hs	174	5	174	17	exponentPart	String -> Int
+pattern	src/CFormat.hs	175	11	178	28	eneg r'	Bool;;String
+local	src/CFormat.hs	179	11	179	13	ds	String
+pattern	src/CFormat.hs	195	7	195	42	intDigits r1	String;;String
+pattern	src/CFormat.hs	196	7	198	22	fracDigits r2	String;;String
+local	src/CFormat.hs	199	7	199	11	expo	Int
+local	src/CFormat.hs	202	7	202	8	m	Integer
+local	src/CFormat.hs	203	7	203	8	e	Int
+local	src/CFormat.hs	210	5	210	19	binaryExponent	String -> Int
+pattern	src/CFormat.hs	211	11	214	28	eneg r'	Bool;;String
+local	src/CFormat.hs	215	11	215	13	ds	String
+do	src/DataSegment.hs	50	3	50	7	bare	Bool
+local	src/DataSegment.hs	55	11	55	14	mid	Word32
+do	src/DataSegment.hs	73	7	73	8	k	Bool
+local	src/DataSegment.hs	74	11	74	14	ref	IORef Word32
+do	src/DataSegment.hs	75	7	75	9	pc	Word32
+local	src/DataSegment.hs	76	11	76	14	pc'	Word32
+do	src/DataSegment.hs	83	3	83	5	on	Bool
+do	src/DataSegment.hs	91	3	91	4	k	Bool
+do	src/DataSegment.hs	98	3	98	4	k	Bool
+local	src/DataSegment.hs	99	7	99	17	roundUp64k	Int -> Int
+do	src/DataSegment.hs	103	7	103	9	pc	Word32
+do	src/DataSegment.hs	104	7	104	10	top	Word32
+do	src/DataSegment.hs	108	7	108	9	pc	Word32
+do	src/DataSegment.hs	109	7	109	10	top	Word32
+do	src/DataSegment.hs	117	3	117	4	r	a
+do	src/DataSegment.hs	127	3	127	5	at	Word32
+do	src/DataSegment.hs	131	3	131	8	outer	Bool
+do	src/DataSegment.hs	137	3	137	5	at	Word32
+do	src/DataSegment.hs	140	3	140	8	outer	Bool
+do	src/DataSegment.hs	146	3	146	5	at	Word32
+do	src/DataSegment.hs	147	3	147	8	outer	Bool
+do	src/DataSegment.hs	161	3	161	5	at	Word32
+do	src/DataSegment.hs	162	3	162	8	outer	Bool
+do	src/DataSegment.hs	176	3	176	5	at	Word32
+do	src/DataSegment.hs	177	3	177	8	outer	Bool
+local	src/DataSegment.hs	178	7	178	11	bits	Word64
+local	src/DataSegment.hs	179	7	179	9	w0	Int32
+local	src/DataSegment.hs	180	7	180	9	w1	Int32
+local	src/DataSegment.hs	194	7	194	11	bits	Int32
+do	src/DataSegment.hs	195	3	195	5	at	Word32
+do	src/DisplayUtils.hs	31	3	31	5	pc	Word32
+do	src/DisplayUtils.hs	32	3	32	6	epc	Int32
+do	src/DisplayUtils.hs	33	3	33	8	cause	Int32
+do	src/DisplayUtils.hs	34	3	34	6	bad	Int32
+do	src/DisplayUtils.hs	35	3	35	9	status	Int32
+do	src/DisplayUtils.hs	36	3	36	5	hi	Int32
+do	src/DisplayUtils.hs	37	3	37	5	lo	Int32
+do	src/DisplayUtils.hs	38	3	38	7	regs	[Int32]
+do	src/DisplayUtils.hs	39	3	39	6	fir	Int32
+do	src/DisplayUtils.hs	40	3	40	7	fcsr	Int32
+do	src/DisplayUtils.hs	41	3	41	10	doubles	[Double]
+do	src/DisplayUtils.hs	42	3	42	9	words'	[Word32]
+do	src/DisplayUtils.hs	43	3	43	10	singles	[Float]
+local	src/DisplayUtils.hs	44	7	44	9	gr	Int -> t
+local	src/DisplayUtils.hs	48	7	48	13	grFill	String
+local	src/DisplayUtils.hs	49	7	49	17	generalRow	Int -> String
+local	src/DisplayUtils.hs	52	7	52	17	doubleCell	Int -> t
+local	src/DisplayUtils.hs	56	7	56	16	doubleRow	Int -> String
+local	src/DisplayUtils.hs	57	7	57	17	singleCell	Int -> t
+local	src/DisplayUtils.hs	61	7	61	16	singleRow	Int -> String
+local	src/DisplayUtils.hs	83	5	83	9	line	Word32 -> IO String
+do	src/DisplayUtils.hs	84	7	84	11	inst	Maybe InstRef
+local	src/DisplayUtils.hs	93	7	93	12	start	Word32
+do	src/DisplayUtils.hs	94	3	94	14	first i0	(String, Word32)
+do	src/DisplayUtils.hs	95	3	95	7	rest	String
+local	src/DisplayUtils.hs	98	5	98	9	loop	Word32 -> IO String
+do	src/DisplayUtils.hs	101	11	101	12	j	Int
+local	src/DisplayUtils.hs	104	19	104	23	next	Word32
+local	src/DisplayUtils.hs	105	19	105	23	text	String
+do	src/DisplayUtils.hs	106	15	106	28	partial i'	(String, Word32)
+do	src/DisplayUtils.hs	107	15	107	19	more	String
+do	src/DisplayUtils.hs	110	15	110	26	cells i'	(String, Word32)
+do	src/DisplayUtils.hs	111	15	111	19	more	String
+do	src/DisplayUtils.hs	117	11	117	12	v	Int32
+local	src/DisplayUtils.hs	120	5	120	19	wordsToLineEnd	Word32 -> Bool -> IO (String, Word32)
+do	src/DisplayUtils.hs	123	11	123	12	v	Int32
+do	src/DisplayUtils.hs	124	11	124	21	more i'	(String, Word32)
+local	src/DisplayUtils.hs	133	11	133	16	addrs	[Word32]
+do	src/DisplayUtils.hs	134	7	134	12	cells	[String]
+do	src/DisplayUtils.hs	140	3	140	7	dtop	Word32
+do	src/DisplayUtils.hs	141	3	141	5	sp	Word32
+do	src/DisplayUtils.hs	142	3	142	8	kdtop	Word32
+do	src/DisplayUtils.hs	143	3	143	4	d	String
+do	src/DisplayUtils.hs	144	3	144	5	st	String
+do	src/DisplayUtils.hs	145	3	145	4	k	String
+do	src/DisplayUtils.hs	151	3	151	7	ttop	Word32
+do	src/DisplayUtils.hs	152	3	152	7	text	String
+do	src/InstFormat.hs	40	3	40	11	existing	Maybe InstRef
+do	src/InstFormat.hs	44	7	44	8	b	InstRef
+do	src/InstFormat.hs	52	3	52	4	b	InstRef
+do	src/InstFormat.hs	53	3	53	7	inst	Maybe InstRef
+do	src/InstFormat.hs	60	3	60	4	b	InstRef
+do	src/InstFormat.hs	62	3	62	6	old	Maybe InstRef
+do	src/InstFormat.hs	67	7	67	10	exc	Bool
+do	src/InstFormat.hs	73	3	73	6	old	Maybe InstRef
+do	src/InstFormat.hs	77	7	77	10	exc	Bool
+do	src/InstFormat.hs	86	3	86	5	bs	[(Word32, InstRef)]
+pattern	src/InstFormat.hs	87	7	87	47	here others	[(Word32, InstRef)];;[(Word32, InstRef)]
+local	src/InstFormat.hs	88	7	88	12	split	(Word32, b) -> ([(Word32, b)], [(Word32, b)]) -> ([(Word32, b)], [(Word32, b)])
+do	src/InstFormat.hs	99	3	99	5	bs	[(Word32, InstRef)]
+do	src/InstFormat.hs	112	3	112	5	bp	Bool
+do	src/InstFormat.hs	116	7	116	12	inner	Maybe InstRef
+do	src/InstFormat.hs	117	7	117	11	line	String
+do	src/InstFormat.hs	123	9	123	10	i	Instruction
+local	src/InstFormat.hs	124	13	124	18	start	String
+do	src/InstFormat.hs	128	13	128	21	operands	Maybe (String, String)
+local	src/InstFormat.hs	129	17	129	22	named	String
+local	src/InstFormat.hs	130	17	130	21	body	String
+local	src/InstFormat.hs	134	17	134	25	symbolic	String
+local	src/InstFormat.hs	138	17	138	21	text	String
+local	src/InstFormat.hs	139	17	139	27	withSource	String
+local	src/InstFormat.hs	182	5	182	7	ok	b -> f (Maybe (String, b))
+local	src/InstFormat.hs	191	5	191	8	off	Int32
+local	src/InstFormat.hs	192	5	192	11	negOff	Int32
+local	src/InstFormat.hs	193	5	193	15	offsetText	String
+local	src/InstFormat.hs	198	5	198	13	baseText	String
+do	src/InstFormat.hs	207	3	207	7	inst	Maybe InstRef
+do	src/InstFormat.hs	208	3	208	6	exc	Bool
+local	src/InstFormat.hs	222	7	222	11	addr	Word32
+do	src/InstFormat.hs	223	3	223	7	ttop	Word32
+do	src/InstFormat.hs	224	3	224	7	dtop	Word32
+do	src/InstFormat.hs	225	3	225	7	sbot	Word32
+do	src/InstFormat.hs	226	3	226	8	kttop	Word32
+do	src/InstFormat.hs	227	3	227	8	kdtop	Word32
+local	src/InstFormat.hs	228	7	228	15	showWord	String -> IO ()
+do	src/InstFormat.hs	229	9	229	10	v	Int32
+local	src/Instruction.hs	53	9	53	10	a	Int32
+local	src/Instruction.hs	54	9	54	11	rs	Int
+local	src/Instruction.hs	55	9	55	11	rt	Int
+local	src/Instruction.hs	56	9	56	11	rd	Int
+local	src/Instruction.hs	104	11	104	13	op	Int
+local	src/Instruction.hs	133	5	133	8	top	Word32
+local	src/Instruction.hs	134	5	134	6	v	Word32
+local	src/Instruction.hs	137	5	137	10	group	Word32 -> Word32
+local	src/Instruction.hs	146	5	146	9	base	Int -> Instruction
+local	src/Instruction.hs	147	5	147	12	invalid	Instruction
+local	src/Instruction.hs	148	5	148	8	mkR	Int -> Int -> Int -> Int -> Int -> Instruction
+local	src/Instruction.hs	149	5	149	10	mkCoR	Int -> Int -> Int -> Int -> Instruction
+local	src/Instruction.hs	150	5	150	8	mkI	Int -> Int -> Int -> Instruction
+local	src/Instruction.hs	157	5	157	13	branches	[Opcode]
+local	src/Instruction.hs	190	5	190	15	loadStores	[Opcode]
+do	src/Main.hs	64	3	64	4	s	Spim
+do	src/Main.hs	65	3	65	7	args	[String]
+do	src/Main.hs	66	3	66	13	listingRef	IORef Listing
+local	src/Main.hs	67	7	67	19	closeListing	IO ()
+do	src/Main.hs	68	9	68	10	l	Listing
+do	src/Main.hs	79	3	79	6	exe	String
+do	src/Main.hs	80	3	80	8	found	Maybe String
+do	src/Main.hs	83	7	83	11	text	String
+local	src/Main.hs	87	5	87	11	search	String -> t -> IO (Maybe String)
+local	src/Main.hs	89	11	89	20	candidate	String
+do	src/Main.hs	90	7	90	9	ok	Bool
+local	src/Main.hs	94	15	94	17	up	String
+do	src/Main.hs	153	3	153	13	envHandler	Maybe String
+local	src/Main.hs	154	7	154	12	opts0	Options
+local	src/Main.hs	155	7	155	8	n	Int
+local	src/Main.hs	156	7	156	10	arg	Int -> Maybe String
+local	src/Main.hs	157	7	157	11	setB	(Spim -> IORef a) -> a -> IO ()
+local	src/Main.hs	158	7	158	10	int	Int -> Int
+local	src/Main.hs	159	7	159	12	sizes	((Int, Int, Int, Int, Int, Int, Int, Int) -> (Int, Int, Int, Int, Int, Int, Int, Int)) -> IO ()
+local	src/Main.hs	164	17	164	18	a	String
+local	src/Main.hs	165	17	165	21	next	Options -> IO (Options, Loading)
+local	src/Main.hs	168	17	168	26	withValue	IO (Options, Loading) -> IO (Options, Loading)
+local	src/Main.hs	173	17	173	19	is	t String -> Bool
+local	src/Main.hs	203	25	203	33	explicit	Bool
+local	src/Main.hs	207	29	207	34	fileI	Int
+do	src/Main.hs	209	27	209	28	h	ExceptionFiles
+do	src/Main.hs	210	27	210	32	quiet	Bool
+local	src/Main.hs	212	29	212	32	ld1	Loading
+do	src/Main.hs	213	25	213	27	ok	Bool
+local	src/Main.hs	217	33	217	36	ld2	Loading
+do	src/Main.hs	231	25	231	31	opened	Maybe Listing
+do	src/Main.hs	248	3	248	11	o ld0	(Options, Loading)
+local	src/Main.hs	249	7	249	9	ld	Loading
+do	src/Main.hs	251	3	251	6	ret	Int32
+local	src/Main.hs	252	7	252	15	orStatus	Int -> IO a
+do	src/Main.hs	258	11	258	12	h	ExceptionFiles
+do	src/Main.hs	259	11	259	16	quiet	Bool
+do	src/Main.hs	264	7	264	11	errs	Int
+do	src/Main.hs	266	7	266	11	only	Bool
+do	src/Main.hs	270	11	270	14	bad	Bool
+do	src/Main.hs	280	15	280	21	undefs	Maybe String
+do	src/Main.hs	288	19	288	24	start	Word32
+do	src/Main.hs	291	15	291	20	first	Int
+do	src/Main.hs	292	15	292	17	rv	Int32
+local	src/Main.hs	295	5	295	10	head'	[String] -> String
+local	src/Main.hs	297	5	297	16	openListing	String -> IO Handle
+do	src/Main.hs	298	7	298	8	h	Handle
+local	src/Main.hs	305	7	305	8	t	String
+pattern	src/Main.hs	306	7	309	20	sign digits	Int;;String
+do	src/Main.hs	315	3	315	7	text	String
+do	src/Main.hs	319	7	319	10	dis	String
+do	src/Main.hs	339	3	339	7	text	String
+do	src/Main.hs	343	9	343	12	top	Word32
+do	src/Main.hs	350	3	350	7	ttop	Word32
+do	src/Main.hs	351	3	351	7	user	String
+do	src/Main.hs	352	3	352	7	text	String
+do	src/Main.hs	355	9	355	14	kttop	Word32
+do	src/Main.hs	356	9	356	15	kernel	String
+do	src/Main.hs	365	3	365	6	err	Bool
+do	src/Main.hs	370	7	370	12	start	Word32
+do	src/Main.hs	371	7	371	10	end	Word32
+local	src/Main.hs	372	11	372	18	addrsTo	a -> a -> [a]
+do	src/Main.hs	373	7	373	12	codes	[Int32]
+local	src/Main.hs	375	11	375	15	list	a -> a -> [a] -> String
+local	src/Main.hs	376	11	376	19	textPart	String
+do	src/Main.hs	378	7	378	11	bare	Bool
+local	src/Main.hs	379	11	379	17	dstart	Word32
+do	src/Main.hs	380	7	380	11	dend	Word32
+do	src/Main.hs	381	7	381	15	dataPart	String
+do	src/Main.hs	384	13	384	15	ws	[Int32]
+do	src/Main.hs	418	3	418	7	repl	Repl
+do	src/Main.hs	419	3	419	6	tty	Bool
+do	src/Main.hs	422	7	422	11	home	Maybe String
+local	src/Main.hs	423	11	423	19	settings	Settings IO
+local	src/Main.hs	427	5	427	14	plainLoop	Repl -> Bool -> IO b
+do	src/Main.hs	428	7	428	11	line	Maybe String
+do	src/Main.hs	432	11	432	16	redo'	Bool
+local	src/Main.hs	434	5	434	12	ttyLoop	Repl -> Bool -> InputT m b
+do	src/Main.hs	435	7	435	11	line	Maybe String
+do	src/Main.hs	439	11	439	16	redo'	Bool
+local	src/Main.hs	441	5	441	15	oneCommand	Repl -> Bool -> String -> IO Bool
+do	src/Main.hs	443	7	443	8	r	Bool
+local	src/Main.hs	447	5	447	13	readLine	IO (Maybe String)
+local	src/Main.hs	448	11	448	13	go	String -> IO (Maybe String)
+do	src/Main.hs	449	13	449	14	b	Maybe Word8
+do	src/Main.hs	459	3	459	4	t	Token
+do	src/Main.hs	464	3	464	4	t	Token
+do	src/Main.hs	469	3	469	4	v	TokValue
+do	src/Main.hs	474	3	474	4	v	TokValue
+do	src/Main.hs	480	3	480	4	t	Token
+do	src/Main.hs	493	3	493	4	t	Token
+do	src/Main.hs	497	7	497	8	w	String
+do	src/Main.hs	528	3	528	6	cmd	Command
+local	src/Main.hs	529	7	529	11	done	Command -> IO Bool
+local	src/Main.hs	530	7	530	18	tokenOrPrev	IO Token
+local	src/Main.hs	531	7	531	11	argv	IO [String]
+local	src/Main.hs	532	7	532	19	breakMessage	Bool -> IO ()
+do	src/Main.hs	536	7	536	8	t	Token
+do	src/Main.hs	540	11	540	15	name	String
+do	src/Main.hs	546	7	546	9	a0	Word32
+do	src/Main.hs	547	7	547	11	addr	Word32
+do	src/Main.hs	551	9	551	15	undefs	Maybe String
+do	src/Main.hs	556	9	556	17	hit	(Bool, Bool)
+do	src/Main.hs	560	7	560	9	pc	Word32
+do	src/Main.hs	564	7	564	9	n0	Int
+local	src/Main.hs	565	11	565	12	n	Int
+do	src/Main.hs	567	7	567	9	pc	Word32
+do	src/Main.hs	568	7	568	11	addr	Word32
+do	src/Main.hs	572	7	572	8	t	Token
+do	src/Main.hs	573	7	573	15	consumed	Bool
+do	src/Main.hs	575	11	575	14	loc	Int32
+do	src/Main.hs	577	11	577	12	v	Int32
+do	src/Main.hs	581	11	581	14	loc	Int32
+local	src/Main.hs	583	15	583	16	r	Int
+do	src/Main.hs	585	11	585	12	f	Float
+do	src/Main.hs	590	15	590	18	loc	Int32
+do	src/Main.hs	595	15	595	21	intVal	Int32
+do	src/Main.hs	596	15	596	18	nxt	Token
+do	src/Main.hs	599	19	599	25	regTok	Token
+do	src/Main.hs	600	19	600	22	reg	Int
+do	src/Main.hs	601	19	601	24	close	Token
+do	src/Main.hs	605	23	605	27	base	Int32
+local	src/Main.hs	606	27	606	30	loc	Int32
+do	src/Main.hs	615	11	615	15	name	String
+do	src/Main.hs	616	11	616	16	isReg	Bool
+do	src/Main.hs	618	13	618	16	loc	Int32
+do	src/Main.hs	631	7	631	8	t	Token
+do	src/Main.hs	632	7	632	8	w	String
+do	src/Main.hs	633	7	633	11	text	String
+do	src/Main.hs	640	7	640	8	h	ExceptionFiles
+do	src/Main.hs	641	7	641	12	quiet	Bool
+do	src/Main.hs	650	7	650	10	old	[String]
+local	src/Main.hs	651	11	651	16	argv0	String
+local	src/Main.hs	652	11	652	18	collect	[String] -> IO [String]
+do	src/Main.hs	653	13	653	14	t	Token
+do	src/Main.hs	660	7	660	11	rest	[String]
+do	src/Main.hs	669	11	669	12	t	Token
+do	src/Main.hs	671	11	671	14	old	Word32
+do	src/Main.hs	672	11	672	15	addr	Maybe Word32
+do	src/Main.hs	687	11	687	12	t	Token
+do	src/Main.hs	688	11	688	19	fileName	Maybe String
+local	src/Main.hs	702	15	702	19	skip	IO ()
+local	src/Main.hs	707	5	707	13	dumpCode	Command -> String -> IO ()
+do	src/Main.hs	708	7	708	13	opened	Either IOError Handle
+do	src/Main.hs	711	11	711	18	e	Errno
+do	src/Main.hs	712	11	712	14	msg	String
+do	src/Main.hs	717	11	717	16	start	Word32
+do	src/Main.hs	718	11	718	14	end	Word32
+local	src/Main.hs	719	15	719	20	addrs	[Word32]
+do	src/Main.hs	721	13	721	17	code	Int32
+local	src/Main.hs	722	17	722	18	w	Word32
+local	src/Main.hs	723	17	723	22	bytes	[Word32]
+local	src/Main.hs	732	7	732	11	name	String
+local	src/Main.hs	733	7	733	11	bare	String
+local	src/Main.hs	734	7	734	12	show'	String -> Int32 -> IO Bool
+do	src/Memory.hs	74	3	74	94	textSize dataSize0 dataLimit stackSize0 stackLimit kTextSize kDataSize0 kDataLimit	(Int, Int, Int, Int, Int, Int, Int, Int)
+local	src/Memory.hs	76	7	76	16	dataSize'	Int
+local	src/Memory.hs	77	7	77	16	stackSize	Int
+local	src/Memory.hs	78	7	78	16	kDataSize	Int
+local	src/Memory.hs	79	7	79	16	instSlots	a -> a
+do	src/Memory.hs	80	3	80	4	t	IOArray Int (Maybe InstRef)
+do	src/Memory.hs	83	3	83	4	d	IOUArray Int Word8
+do	src/Memory.hs	87	3	87	5	st	IOUArray Int Word8
+do	src/Memory.hs	91	3	91	5	kt	IOArray Int (Maybe InstRef)
+do	src/Memory.hs	94	3	94	5	kd	IOUArray Int Word8
+do	src/Memory.hs	102	3	102	10	hi	(Int, Int)
+do	src/Memory.hs	103	3	103	6	new	IOUArray Int Word8
+do	src/Memory.hs	111	3	111	6	top	Word32
+do	src/Memory.hs	112	3	112	8	limit	Int
+local	src/Memory.hs	113	7	113	12	delta	Int
+local	src/Memory.hs	114	7	114	14	oldSize	Int
+local	src/Memory.hs	115	7	115	14	newSize	Int
+do	src/Memory.hs	119	3	119	6	seg	IOUArray Int Word8
+do	src/Memory.hs	120	3	120	6	new	IOUArray Int Word8
+do	src/Memory.hs	127	3	127	6	bot	Word32
+do	src/Memory.hs	128	3	128	8	limit	Int
+local	src/Memory.hs	129	7	129	12	delta	Int
+local	src/Memory.hs	130	7	130	14	oldSize	Int
+local	src/Memory.hs	131	7	131	14	newSize	Int
+do	src/Memory.hs	137	3	137	6	old	IOUArray Int Word8
+do	src/Memory.hs	138	3	138	6	new	IOUArray Int Word8
+local	src/Memory.hs	139	7	139	12	shift	Int
+do	src/Memory.hs	147	3	147	6	top	Word32
+do	src/Memory.hs	148	3	148	8	limit	Int
+local	src/Memory.hs	149	7	149	12	delta	Int
+local	src/Memory.hs	150	7	150	14	oldSize	Int
+local	src/Memory.hs	151	7	151	14	newSize	Int
+do	src/Memory.hs	157	3	157	6	seg	IOUArray Int Word8
+do	src/Memory.hs	158	3	158	6	new	IOUArray Int Word8
+do	src/Memory.hs	165	3	165	7	dtop	Word32
+do	src/Memory.hs	166	3	166	7	sbot	Word32
+do	src/Memory.hs	167	3	167	8	kdtop	Word32
+do	src/Memory.hs	184	3	184	7	ttop	Word32
+do	src/Memory.hs	185	3	185	8	kttop	Word32
+do	src/Memory.hs	186	3	186	6	seg	Maybe (IOUArray Int Word8, Int)
+do	src/Memory.hs	197	3	197	6	ref	Maybe (IOUArray Int Word8, Int)
+do	src/Memory.hs	201	7	201	14	hi	(Int, Int)
+local	src/Memory.hs	202	11	202	13	go	Int -> String -> f String
+do	src/Memory.hs	205	17	205	18	b	Word8
+do	src/Memory.hs	213	3	213	7	ttop	Word32
+do	src/Memory.hs	214	3	214	8	kttop	Word32
+do	src/Memory.hs	228	3	228	7	ttop	Word32
+do	src/Memory.hs	229	3	229	8	kttop	Word32
+do	src/Memory.hs	238	11	238	14	enc	Int32
+do	src/Memory.hs	244	13	244	14	b	Word8
+do	src/Memory.hs	245	13	245	17	rest	Word32
+do	src/Memory.hs	255	3	255	6	seg	Maybe (IOUArray Int Word8, Int)
+do	src/Memory.hs	263	3	263	6	seg	Maybe (IOUArray Int Word8, Int)
+do	src/Memory.hs	271	3	271	6	seg	Maybe (IOUArray Int Word8, Int)
+do	src/Memory.hs	282	3	282	6	seg	Maybe (IOUArray Int Word8, Int)
+do	src/Memory.hs	289	3	289	6	seg	Maybe (IOUArray Int Word8, Int)
+do	src/Memory.hs	296	3	296	6	seg	Maybe (IOUArray Int Word8, Int)
+do	src/Memory.hs	305	3	305	7	dtop	Word32
+do	src/Memory.hs	306	3	306	7	sbot	Word32
+do	src/Memory.hs	314	3	314	7	ttop	Word32
+do	src/Memory.hs	315	3	315	7	grow	Bool
+do	src/Memory.hs	321	11	321	15	slot	Maybe InstRef
+do	src/Memory.hs	322	11	322	14	enc	Word32
+do	src/Memory.hs	330	15	330	19	sbot	Word32
+local	src/Memory.hs	338	5	338	12	raiseAt	Int -> IO ()
+do	src/Memory.hs	344	3	344	7	ttop	Word32
+do	src/Memory.hs	345	3	345	7	grow	Bool
+do	src/Memory.hs	351	11	351	14	arr	IOArray Int (Maybe InstRef)
+local	src/Memory.hs	352	15	352	18	idx	Int
+do	src/Memory.hs	353	11	353	15	slot	Maybe InstRef
+do	src/Memory.hs	354	11	354	14	new	Int32
+do	src/Memory.hs	357	15	357	18	old	Word32
+local	src/Memory.hs	358	19	358	20	v	Word32
+local	src/Memory.hs	359	19	359	21	sh	Word32 -> a
+do	src/Memory.hs	364	11	364	14	ref	InstRef
+do	src/Memory.hs	369	15	369	19	sbot	Word32
+do	src/Memory.hs	371	15	371	20	sbot'	Word32
+do	src/Memory.hs	374	19	374	22	seg	IOUArray Int Word8
+local	src/Memory.hs	375	23	375	26	off	Int
+local	src/Memory.hs	386	5	386	12	raiseAt	Int -> IO ()
+do	src/Memory.hs	405	3	405	4	c	Int32
+do	src/Memory.hs	408	3	408	4	c	Int32
+do	src/Memory.hs	414	3	414	6	mio	Bool
+do	src/Memory.hs	421	7	421	8	n	CInt
+do	src/Memory.hs	431	3	431	5	rt	Int
+do	src/Memory.hs	435	7	435	12	avail	Bool
+do	src/Memory.hs	437	9	437	10	b	Maybe Word8
+local	src/Memory.hs	438	13	438	14	c	Int
+do	src/Memory.hs	445	9	445	11	rc	Word32
+do	src/Memory.hs	447	3	447	5	tt	Int
+do	src/Memory.hs	451	7	451	9	tc	Word32
+local	src/Memory.hs	456	5	456	18	runErrorQuiet	IO a
+do	src/Memory.hs	464	11	464	13	tc	Word32
+do	src/Memory.hs	470	7	470	9	tc	Word32
+local	src/Memory.hs	472	13	472	14	c	Int
+do	src/Memory.hs	482	11	482	13	rc	Word32
+local	src/Memory.hs	490	5	490	6	v	Word32
+local	src/Memory.hs	508	5	508	7	go	a -> String -> String
+pattern	src/OpcodeTables.hs	43	5	43	26	lo hi	Int;;Int
+local	src/OpcodeTables.hs	44	5	44	7	go	Int -> Int -> Maybe e
+local	src/OpcodeTables.hs	47	15	47	18	idx	Int
+local	src/OpcodeTables.hs	48	15	48	16	e	e
+do	src/OpcodeTables.hs	65	84	65	85	r	OpRow
+do	src/OpcodeTables.hs	70	88	70	89	r	OpRow
+do	src/OpcodeTables.hs	76	90	76	91	r	OpRow
+do	src/OpcodeTables.hs	82	77	82	78	r	OpRow
+local	src/Output.hs	103	7	103	10	low	Int
+do	src/Output.hs	110	3	110	4	n	CInt
+do	src/Parser.hs	61	3	61	4	n	Int
+do	src/Parser.hs	62	3	62	7	file	Maybe String
+do	src/Parser.hs	73	3	73	4	v	TokValue
+do	src/Parser.hs	81	3	81	4	v	TokValue
+do	src/Parser.hs	88	3	88	4	v	TokValue
+do	src/Parser.hs	99	3	99	4	t	Token
+do	src/Parser.hs	105	3	105	4	p	Token
+do	src/Parser.hs	116	3	116	4	n	Int
+do	src/Parser.hs	117	3	117	6	src	Maybe String
+do	src/Parser.hs	139	3	139	4	t	Token
+do	src/Parser.hs	146	3	146	4	t	Token
+do	src/Parser.hs	154	3	154	4	t	Token
+do	src/Parser.hs	159	7	159	8	v	Int32
+do	src/Parser.hs	160	7	160	9	t2	Token
+do	src/Parser.hs	164	11	164	13	t3	Token
+do	src/Parser.hs	170	11	170	12	w	Int32
+do	src/Parser.hs	180	3	180	4	t	Token
+do	src/Parser.hs	185	7	185	8	v	Int32
+do	src/Parser.hs	190	7	190	11	name	String
+do	src/Parser.hs	191	7	191	8	l	Label
+do	src/Parser.hs	192	7	192	11	addr	Word32
+do	src/Parser.hs	195	11	195	18	pending	Maybe Label
+local	src/Parser.hs	206	5	206	9	loop	Int32 -> IO Int32
+do	src/Parser.hs	207	7	207	8	t	Token
+local	src/Parser.hs	212	5	212	9	cDiv	a -> a -> a
+local	src/Parser.hs	221	5	221	9	loop	Int32 -> IO Int32
+do	src/Parser.hs	222	7	222	8	t	Token
+do	src/Parser.hs	241	3	241	4	t	Token
+do	src/Parser.hs	245	7	245	10	sym	String
+do	src/Parser.hs	246	7	246	9	t2	Token
+do	src/Parser.hs	253	7	253	8	v	Int32
+do	src/Parser.hs	257	7	257	9	t2	Token
+do	src/Parser.hs	262	11	262	13	sh	Int32
+do	src/Parser.hs	269	3	269	8	known	Bool
+do	src/Parser.hs	271	5	271	6	v	Int32
+do	src/Parser.hs	276	3	276	8	known	Bool
+do	src/Parser.hs	278	5	278	6	v	Word32
+do	src/Parser.hs	283	3	283	4	n	Int
+do	src/Parser.hs	288	3	288	4	e	ImmExpr
+do	src/Parser.hs	292	3	292	4	e	ImmExpr
+do	src/Parser.hs	300	3	300	4	t	Token
+do	src/Parser.hs	305	7	305	10	sym	String
+do	src/Parser.hs	306	7	306	9	pc	Word32
+do	src/Parser.hs	314	3	314	4	t	Token
+do	src/Parser.hs	318	7	318	8	r	Int
+do	src/Parser.hs	322	7	322	10	imm	Int32
+do	src/Parser.hs	323	7	323	9	t2	Token
+do	src/Parser.hs	324	7	324	9	t3	Token
+do	src/Parser.hs	330	11	330	14	sym	String
+do	src/Parser.hs	336	15	336	16	r	Int
+do	src/Parser.hs	342	7	342	10	sym	String
+do	src/Parser.hs	343	7	343	9	t2	Token
+do	src/Parser.hs	344	7	344	10	off	Int32
+do	src/Parser.hs	348	7	348	9	t3	Token
+do	src/Parser.hs	349	7	349	8	r	Int
+do	src/Parser.hs	353	13	353	14	r	Int
+do	src/Parser.hs	369	3	369	5	rd	Int
+do	src/Parser.hs	373	11	373	13	rs	Int
+do	src/Parser.hs	376	11	376	13	rs	Int
+do	src/Parser.hs	377	11	377	12	t	Token
+do	src/Parser.hs	381	15	381	18	imm	ImmExpr
+local	src/Parser.hs	385	15	385	20	immOp	Opcode
+do	src/Parser.hs	386	11	386	12	t	Token
+do	src/Parser.hs	389	15	389	18	imm	ImmExpr
+do	src/Parser.hs	390	15	390	16	v	Int32
+do	src/Parser.hs	393	15	393	17	rs	Int
+do	src/Parser.hs	394	15	394	17	t2	Token
+do	src/Parser.hs	398	19	398	22	imm	ImmExpr
+do	src/Parser.hs	399	19	399	20	v	Int32
+do	src/Parser.hs	402	11	402	16	immOp	Opcode
+do	src/Parser.hs	403	11	403	12	t	Token
+do	src/Parser.hs	407	15	407	17	rs	Int
+do	src/Parser.hs	408	15	408	17	t2	Token
+do	src/Parser.hs	413	11	413	13	rs	Int
+do	src/Parser.hs	414	11	414	13	rt	Int
+do	src/Parser.hs	422	7	422	9	rd	Int
+do	src/Parser.hs	423	7	423	9	rt	Int
+do	src/Parser.hs	424	7	424	8	t	Token
+do	src/Parser.hs	429	11	429	13	sh	Int32
+do	src/Parser.hs	435	3	435	5	rt	Int
+do	src/Parser.hs	436	3	436	4	t	Token
+do	src/Parser.hs	437	3	437	5	rs	Int
+do	src/Parser.hs	438	3	438	6	imm	ImmExpr
+do	src/Parser.hs	444	3	444	5	rt	Int
+do	src/Parser.hs	445	3	445	11	r imm	(Int, ImmExpr)
+do	src/Parser.hs	451	3	451	7	src1	Int
+do	src/Parser.hs	452	3	452	4	t	Token
+do	src/Parser.hs	455	7	455	11	src2	Int
+do	src/Parser.hs	456	7	456	13	target	ImmExpr
+do	src/Parser.hs	459	7	459	10	imm	ImmExpr
+do	src/Parser.hs	460	7	460	13	target	ImmExpr
+do	src/Parser.hs	470	3	470	4	t	Token
+local	src/Parser.hs	471	7	471	16	plainJump	Bool
+local	src/Parser.hs	472	7	472	15	linkJump	Bool
+do	src/Parser.hs	475	7	475	9	r1	Int
+do	src/Parser.hs	476	7	476	9	t2	Token
+do	src/Parser.hs	479	11	479	13	r2	Int
+do	src/Parser.hs	486	7	486	13	target	ImmExpr
+do	src/Parser.hs	493	3	493	4	t	Token
+do	src/Parser.hs	497	7	497	8	n	Int
+pattern	src/Parser.hs	560	7	560	73	ifEq ifNeq	Int32;;Int32
+do	src/Parser.hs	571	3	571	8	start	Node
+do	src/Parser.hs	572	3	572	8	outer	[Node]
+do	src/Parser.hs	575	3	575	7	kids	[Node]
+do	src/Parser.hs	583	5	583	7	rt	Int
+do	src/Parser.hs	590	5	590	7	rd	Int
+do	src/Parser.hs	591	5	591	7	rs	Int
+do	src/Parser.hs	592	5	592	6	t	Token
+do	src/Parser.hs	595	9	595	11	rt	Int
+do	src/Parser.hs	602	9	602	12	imm	ImmExpr
+do	src/Parser.hs	603	9	603	13	dist	Int
+do	src/Parser.hs	610	5	610	7	rd	Int
+do	src/Parser.hs	611	5	611	7	rs	Int
+do	src/Parser.hs	612	5	612	6	t	Token
+do	src/Parser.hs	613	5	613	7	rt	Int
+do	src/Parser.hs	617	11	617	14	imm	ImmExpr
+do	src/Parser.hs	630	5	630	7	rd	Int
+do	src/Parser.hs	631	5	631	7	rs	Int
+do	src/Parser.hs	638	5	638	7	rd	Int
+do	src/Parser.hs	639	5	639	7	rs	Int
+do	src/Parser.hs	640	5	640	6	t	Token
+do	src/Parser.hs	644	9	644	12	imm	ImmExpr
+do	src/Parser.hs	649	5	649	7	rd	Int
+do	src/Parser.hs	650	5	650	7	rs	Int
+do	src/Parser.hs	651	5	651	6	t	Token
+do	src/Parser.hs	655	9	655	12	imm	ImmExpr
+local	src/Parser.hs	660	9	660	13	real	Opcode
+do	src/Parser.hs	661	5	661	6	r	Int
+do	src/Parser.hs	662	5	662	11	copreg	Int
+do	src/Parser.hs	666	5	666	7	fd	Int
+do	src/Parser.hs	667	5	667	6	t	Token
+do	src/Parser.hs	672	9	672	13	bits	Word64
+do	src/Parser.hs	678	5	678	7	fd	Int
+do	src/Parser.hs	679	5	679	6	t	Token
+do	src/Parser.hs	684	9	684	13	bits	Word32
+local	src/Parser.hs	692	9	692	13	real	Opcode
+do	src/Parser.hs	693	5	693	7	rt	Int
+do	src/Parser.hs	694	5	694	13	r imm	(Int, ImmExpr)
+do	src/Parser.hs	698	5	698	7	rt	Int
+do	src/Parser.hs	699	5	699	13	r imm	(Int, ImmExpr)
+do	src/Parser.hs	703	5	703	7	rt	Int
+do	src/Parser.hs	704	5	704	13	r imm	(Int, ImmExpr)
+do	src/Parser.hs	710	5	710	7	rt	Int
+do	src/Parser.hs	711	5	711	13	r imm	(Int, ImmExpr)
+do	src/Parser.hs	715	5	715	7	rt	Int
+do	src/Parser.hs	716	5	716	13	r imm	(Int, ImmExpr)
+do	src/Parser.hs	726	5	726	7	rt	Int
+do	src/Parser.hs	727	5	727	13	r imm	(Int, ImmExpr)
+do	src/Parser.hs	730	5	730	7	rs	Int
+do	src/Parser.hs	731	5	731	11	target	ImmExpr
+do	src/Parser.hs	734	5	734	11	target	ImmExpr
+do	src/Parser.hs	737	5	737	7	rs	Int
+do	src/Parser.hs	738	5	738	6	t	Token
+do	src/Parser.hs	741	9	741	11	rt	Int
+do	src/Parser.hs	742	9	742	15	target	ImmExpr
+do	src/Parser.hs	746	9	746	12	imm	ImmExpr
+do	src/Parser.hs	747	9	747	15	target	ImmExpr
+do	src/Parser.hs	764	5	764	7	rs	Int
+do	src/Parser.hs	765	5	765	6	t	Token
+do	src/Parser.hs	768	9	768	11	rt	Int
+do	src/Parser.hs	769	9	769	15	target	ImmExpr
+do	src/Parser.hs	773	9	773	12	imm	ImmExpr
+do	src/Parser.hs	774	9	774	15	target	ImmExpr
+local	src/Parser.hs	786	5	786	12	twoRegs	(Int -> Int -> IO b) -> IO b
+do	src/Parser.hs	787	7	787	9	rd	Int
+do	src/Parser.hs	788	7	788	9	rs	Int
+local	src/Parser.hs	790	5	790	14	fpAddress	Opcode -> IO ()
+do	src/Parser.hs	791	7	791	9	fr	Int
+do	src/Parser.hs	792	7	792	15	r imm	(Int, ImmExpr)
+local	src/Parser.hs	795	5	795	18	branchCompare	Opcode -> Opcode -> Opcode -> IO ()
+do	src/Parser.hs	796	7	796	9	rs	Int
+do	src/Parser.hs	797	7	797	8	t	Token
+do	src/Parser.hs	800	11	800	13	rt	Int
+do	src/Parser.hs	801	11	801	17	target	ImmExpr
+do	src/Parser.hs	805	11	805	14	imm	ImmExpr
+do	src/Parser.hs	806	11	806	17	target	ImmExpr
+do	src/Parser.hs	813	3	813	4	t	Token
+do	src/Parser.hs	819	3	819	4	t	Token
+local	src/Parser.hs	824	5	824	16	unsupported	IO ()
+local	src/Parser.hs	825	5	825	12	parseOp	Opcode -> OpType -> IO ()
+do	src/Parser.hs	832	9	832	11	rt	Int
+do	src/Parser.hs	837	9	837	11	rs	Int
+do	src/Parser.hs	844	9	844	11	r1	Int
+do	src/Parser.hs	845	9	845	10	t	Token
+do	src/Parser.hs	854	21	854	23	r2	Int
+do	src/Parser.hs	855	21	855	23	t2	Token
+do	src/Parser.hs	862	29	862	32	imm	ImmExpr
+do	src/Parser.hs	869	9	869	11	rd	Int
+do	src/Parser.hs	870	9	870	11	rs	Int
+do	src/Parser.hs	871	9	871	10	t	Token
+do	src/Parser.hs	879	17	879	19	sh	Int
+do	src/Parser.hs	880	17	880	22	immOp	Opcode
+do	src/Parser.hs	883	9	883	11	rs	Int
+local	src/Parser.hs	886	13	886	15	nd	Int
+local	src/Parser.hs	887	13	887	15	tf	Int
+do	src/Parser.hs	888	9	888	10	t	Token
+do	src/Parser.hs	889	9	889	11	cc	Int
+do	src/Parser.hs	890	9	890	15	target	ImmExpr
+do	src/Parser.hs	893	9	893	11	rd	Int
+do	src/Parser.hs	894	9	894	11	rs	Int
+do	src/Parser.hs	895	9	895	10	t	Token
+do	src/Parser.hs	896	9	896	11	cc	Int
+do	src/Parser.hs	899	9	899	11	fd	Int
+do	src/Parser.hs	900	9	900	11	fs	Int
+do	src/Parser.hs	903	9	903	11	fd	Int
+do	src/Parser.hs	904	9	904	11	fs	Int
+do	src/Parser.hs	905	9	905	11	ft	Int
+do	src/Parser.hs	908	9	908	10	t	Token
+do	src/Parser.hs	909	9	909	11	cc	Int
+do	src/Parser.hs	910	9	910	11	fs	Int
+do	src/Parser.hs	911	9	911	11	ft	Int
+do	src/Parser.hs	914	9	914	11	fd	Int
+do	src/Parser.hs	915	9	915	11	fs	Int
+do	src/Parser.hs	916	9	916	10	t	Token
+do	src/Parser.hs	921	13	921	15	cc	Int
+do	src/Parser.hs	925	9	925	11	fr	Int
+do	src/Parser.hs	926	9	926	17	r imm	(Int, ImmExpr)
+local	src/Parser.hs	930	5	930	11	copreg	Opcode -> IO ()
+do	src/Parser.hs	931	7	931	8	r	Int
+do	src/Parser.hs	932	7	932	8	c	Int
+do	src/Parser.hs	941	3	941	4	t	Token
+do	src/Parser.hs	942	3	942	7	addr	Maybe Word32
+do	src/Parser.hs	952	3	952	4	t	Token
+do	src/Parser.hs	961	3	961	9	inData	Bool
+do	src/Parser.hs	962	3	962	7	auto	Bool
+do	src/Parser.hs	963	3	963	5	ls	[Label]
+do	src/Parser.hs	965	5	965	8	cur	Word32
+do	src/Parser.hs	972	3	972	9	inData	Bool
+do	src/Parser.hs	979	3	979	7	line	Int
+do	src/Parser.hs	980	3	980	9	values	[ImmExpr]
+do	src/Parser.hs	982	5	982	9	node	Node
+local	src/Parser.hs	985	5	985	9	loop	[ImmExpr] -> IO [ImmExpr]
+do	src/Parser.hs	986	7	986	13	before	Int
+do	src/Parser.hs	987	7	987	8	v	Int32
+do	src/Parser.hs	988	7	988	12	after	Int
+do	src/Parser.hs	992	11	992	18	pending	Maybe Label
+do	src/Parser.hs	993	11	993	12	e	ImmExpr
+do	src/Parser.hs	995	11	995	12	t	Token
+do	src/Parser.hs	1001	3	1001	7	line	Int
+do	src/Parser.hs	1002	3	1002	4	r	Maybe [Double]
+do	src/Parser.hs	1005	7	1005	11	node	Node
+local	src/Parser.hs	1009	5	1009	9	loop	[Double] -> IO (Maybe [Double])
+do	src/Parser.hs	1010	7	1010	8	t	Token
+do	src/Parser.hs	1015	11	1015	12	v	Double
+do	src/Parser.hs	1016	11	1016	13	t2	Token
+do	src/Parser.hs	1023	3	1023	4	t	Token
+do	src/Parser.hs	1028	7	1028	10	str	String
+do	src/Parser.hs	1029	7	1029	13	inText	Bool
+do	src/Parser.hs	1030	7	1030	10	nul	Bool
+do	src/Parser.hs	1034	7	1034	9	t2	Token
+do	src/Parser.hs	1053	5	1053	6	v	Int32
+do	src/Parser.hs	1054	5	1054	11	inText	Bool
+do	src/Parser.hs	1057	5	1057	6	v	Int32
+local	src/Parser.hs	1067	5	1067	14	namedSize	(String -> Int -> NodeKind) -> IO ()
+do	src/Parser.hs	1068	7	1068	11	name	Maybe String
+do	src/Parser.hs	1072	11	1072	15	size	Int32
+local	src/Parser.hs	1074	5	1074	12	ignored	[Opcode]
+do	src/Parser.hs	1085	3	1085	7	name	String
+do	src/Parser.hs	1086	3	1086	6	sep	Token
+do	src/Parser.hs	1090	7	1090	8	v	Int32
+do	src/Parser.hs	1100	3	1100	5	t0	Token
+do	src/Parser.hs	1105	7	1105	9	t1	Token
+do	src/Parser.hs	1107	7	1107	8	t	Token
+local	src/Parser.hs	1118	5	1118	11	finish	IO ()
+do	src/Parser.hs	1119	7	1119	10	err	Bool
+do	src/Parser.hs	1120	7	1120	8	t	Token
+do	src/Parser.hs	1132	3	1132	5	ls	[Label]
+do	src/Parser.hs	1148	3	1148	10	emitted	Int
+do	src/Parser.hs	1149	3	1149	12	startData	Bool
+do	src/Parser.hs	1150	3	1150	12	startText	Bool
+local	src/Parser.hs	1151	7	1151	11	loop	IO ()
+do	src/Parser.hs	1152	9	1152	10	t	Token
+do	src/Parser.hs	1160	3	1160	7	kids	[Node]
+do	src/Parser.hs	1161	3	1161	7	file	Maybe String
+local	src/Parser.hs	1162	7	1162	11	root	Node
+do	src/Parser.hs	1163	3	1163	7	pAst	Bool
+do	src/Parser.hs	1165	3	1165	7	pExp	Bool
+do	src/Parser.hs	1169	3	1169	8	pJson	Bool
+do	src/Parser.hs	1171	3	1171	7	only	Bool
+do	src/Parser.hs	1208	7	1208	13	inText	Bool
+do	src/Parser.hs	1226	7	1226	13	inText	Bool
+do	src/Parser.hs	1229	7	1229	13	inText	Bool
+do	src/Parser.hs	1230	7	1230	11	addr	Word32
+do	src/Parser.hs	1231	7	1231	8	l	Label
+do	src/Parser.hs	1234	7	1234	8	l	Label
+local	src/Parser.hs	1244	5	1244	12	segText	Bool -> t Word32 -> IO ()
+local	src/Parser.hs	1249	5	1249	12	segData	Bool -> t Word32 -> IO ()
+local	src/Parser.hs	1256	5	1256	16	alignIfData	Int -> IO ()
+do	src/Parser.hs	1257	7	1257	13	inData	Bool
+local	src/Parser.hs	1259	5	1259	16	defineIfNew	String -> IO ()
+do	src/Parser.hs	1260	7	1260	8	l	Label
+do	src/Parser.hs	1261	7	1261	11	addr	Word32
+local	src/Parser.hs	1265	5	1265	13	emitData	t ImmExpr -> (Int32 -> IO b) -> Int -> IO ()
+do	src/Parser.hs	1266	7	1266	14	defined	Bool
+do	src/Parser.hs	1269	11	1269	13	pc	Word32
+do	src/Registers.hs	144	3	144	8	cause	Int32
+do	src/Registers.hs	165	3	165	5	lo	Word32
+do	src/Registers.hs	166	3	166	5	hi	Word32
+local	src/Registers.hs	179	11	179	12	w	Word64
+do	src/Registers.hs	192	3	192	7	fcsr	Int32
+do	src/Registers.hs	197	3	197	7	fcsr	Word32
+do	src/Registers.hs	204	3	204	9	status	Word32
+local	src/Registers.hs	205	7	205	14	enabled	Bool
+do	src/Registers.hs	209	7	209	12	first	Int
+do	src/Registers.hs	213	7	213	9	pc	Word32
+do	src/Registers.hs	214	7	214	13	inSlot	Bool
+do	src/Registers.hs	220	15	220	20	cause	Int32
+do	src/Registers.hs	224	7	224	12	cause	Word32
+do	src/Registers.hs	226	7	226	9	st	Word32
+do	src/Run.hs	46	3	46	7	bare	Bool
+do	src/Run.hs	47	3	47	6	mio	Bool
+local	src/Run.hs	48	7	48	12	chunk	Int
+local	src/Run.hs	52	5	52	10	outer	Int -> Int -> IO Bool
+do	src/Run.hs	55	11	55	15	bare	Bool
+do	src/Run.hs	56	11	56	14	mio	Bool
+do	src/Run.hs	60	11	60	12	r	Maybe Bool
+local	src/Run.hs	64	5	64	19	checkInterrupt	IO ()
+do	src/Run.hs	65	7	65	13	status	Word32
+do	src/Run.hs	66	7	66	12	cause	Word32
+do	src/Run.hs	73	7	73	9	fb	Bool
+do	src/Run.hs	77	11	77	12	r	Next
+do	src/Run.hs	88	3	88	5	pc	Word32
+do	src/Run.hs	89	3	89	8	minst	Maybe InstRef
+do	src/Run.hs	90	3	90	6	exc	Bool
+do	src/Run.hs	99	9	99	10	i	Instruction
+do	src/Run.hs	100	9	100	24	undefinedSymbol	Bool
+do	src/Run.hs	104	11	104	15	text	String
+do	src/Run.hs	107	9	107	10	r	Next
+do	src/Run.hs	113	13	113	17	exc'	Bool
+do	src/Run.hs	122	3	122	6	now	Integer
+do	src/Run.hs	123	3	123	11	deadline	Integer
+do	src/Run.hs	128	3	128	6	now	Integer
+do	src/Run.hs	129	3	129	11	deadline	Integer
+do	src/Run.hs	131	5	131	10	count	Int32
+do	src/Run.hs	133	5	133	13	compare'	Int32
+do	src/Run.hs	135	7	135	8	c	Int32
+do	src/Run.hs	150	3	150	10	delayed	Bool
+do	src/Run.hs	152	5	152	7	d2	Maybe (LoadDest, Int32)
+do	src/Run.hs	160	3	160	10	delayed	Bool
+local	src/Run.hs	179	5	179	12	unknown	IO a
+local	src/Run.hs	180	5	180	7	ok	IO Next
+local	src/Run.hs	181	5	181	7	rs	Int
+local	src/Run.hs	182	5	182	7	rt	Int
+local	src/Run.hs	183	5	183	7	rd	Int
+local	src/Run.hs	184	5	184	7	fs	Int
+local	src/Run.hs	185	5	185	7	ft	Int
+local	src/Run.hs	186	5	186	7	fd	Int
+local	src/Run.hs	187	5	187	8	imm	Int16
+local	src/Run.hs	188	5	188	9	immS	Int32
+local	src/Run.hs	189	5	189	9	immU	Word32
+local	src/Run.hs	190	5	190	6	r	Int -> IO Int32
+local	src/Run.hs	191	5	191	7	ru	Int -> IO Word32
+local	src/Run.hs	192	5	192	6	w	Int -> Int32 -> IO ()
+local	src/Run.hs	193	5	193	10	raise	Int -> IO ()
+local	src/Run.hs	194	5	194	12	raiseOk	Int -> IO Next
+local	src/Run.hs	195	5	195	12	address	IO Word32
+local	src/Run.hs	197	5	197	9	jump	Word32 -> IO Next
+do	src/Run.hs	198	7	198	14	delayed	Bool
+do	src/Run.hs	201	9	201	11	pc	Word32
+local	src/Run.hs	208	5	208	11	branch	Bool -> Bool -> IO Next
+do	src/Run.hs	209	7	209	9	pc	Word32
+do	src/Run.hs	212	11	212	18	delayed	Bool
+local	src/Run.hs	217	5	217	9	link	Int -> IO ()
+do	src/Run.hs	218	7	218	9	pc	Word32
+do	src/Run.hs	219	7	219	14	delayed	Bool
+local	src/Run.hs	221	5	221	12	signBit	Word32 -> Bool
+local	src/Run.hs	224	5	224	9	hiLo	IO Word64
+do	src/Run.hs	225	7	225	9	hi	Int32
+do	src/Run.hs	226	7	226	9	lo	Int32
+local	src/Run.hs	228	5	228	18	signedProduct	a -> a -> Word64
+local	src/Run.hs	229	5	229	20	unsignedProduct	a -> a -> Word64
+local	src/Run.hs	230	5	230	11	trapIf	Bool -> IO Next
+local	src/Run.hs	231	5	231	11	single	Int -> IO Float
+local	src/Run.hs	232	5	232	11	double	Int -> IO Double
+local	src/Run.hs	233	5	233	9	setS	Int -> Float -> IO ()
+local	src/Run.hs	234	5	234	9	setD	Int -> Double -> IO ()
+local	src/Run.hs	235	5	235	9	setW	Int -> Int32 -> IO ()
+local	src/Run.hs	236	5	236	11	unaryS	(Float -> Float) -> IO ()
+local	src/Run.hs	237	5	237	11	unaryD	(Double -> Double) -> IO ()
+local	src/Run.hs	238	5	238	12	binaryS	(Float -> Float -> Float) -> IO ()
+do	src/Run.hs	238	20	238	21	a	Float
+do	src/Run.hs	238	36	238	37	b	Float
+local	src/Run.hs	239	5	239	12	binaryD	(Double -> Double -> Double) -> IO ()
+do	src/Run.hs	239	20	239	21	a	Double
+do	src/Run.hs	239	36	239	37	b	Double
+local	src/Run.hs	243	11	243	15	cond	Int
+local	src/Run.hs	244	11	244	13	cc	Int
+local	src/Run.hs	245	11	245	17	result	a -> a -> a -> a
+local	src/Run.hs	246	11	246	12	b	Bool -> Int
+local	src/Run.hs	253	5	253	9	exec	Opcode -> IO Next
+do	src/Run.hs	255	9	255	10	a	Int32
+do	src/Run.hs	256	9	256	10	b	Int32
+local	src/Run.hs	257	13	257	17	sum'	Int32
+do	src/Run.hs	260	9	260	10	a	Int32
+local	src/Run.hs	261	13	261	17	sum'	Int32
+do	src/Run.hs	264	29	264	30	a	Int32
+do	src/Run.hs	264	40	264	41	b	Int32
+do	src/Run.hs	265	28	265	29	a	Int32
+do	src/Run.hs	265	39	265	40	b	Int32
+do	src/Run.hs	271	28	271	29	a	Int32
+do	src/Run.hs	271	39	271	40	b	Int32
+do	src/Run.hs	272	29	272	30	a	Int32
+do	src/Run.hs	272	40	272	41	b	Int32
+do	src/Run.hs	285	28	285	29	a	Int32
+do	src/Run.hs	285	39	285	40	b	Int32
+do	src/Run.hs	286	29	286	30	a	Int32
+do	src/Run.hs	286	40	286	41	b	Int32
+do	src/Run.hs	299	9	299	10	a	Int32
+do	src/Run.hs	300	9	300	10	b	Int32
+do	src/Run.hs	306	9	306	10	a	Word32
+do	src/Run.hs	307	9	307	10	b	Word32
+do	src/Run.hs	313	9	313	11	st	Int32
+do	src/Run.hs	316	26	316	28	pc	Word32
+do	src/Run.hs	319	9	319	11	pc	Word32
+do	src/Run.hs	322	9	322	15	target	Word32
+do	src/Run.hs	336	9	336	13	addr	Word32
+do	src/Run.hs	337	9	337	15	regVal	Word32
+do	src/Run.hs	338	9	338	13	word	Word32
+do	src/Run.hs	339	9	339	12	exc	Bool
+local	src/Run.hs	340	13	340	19	merged	Word32
+do	src/Run.hs	348	9	348	13	addr	Word32
+do	src/Run.hs	349	9	349	15	regVal	Word32
+do	src/Run.hs	350	9	350	13	word	Word32
+do	src/Run.hs	351	9	351	12	exc	Bool
+local	src/Run.hs	352	13	352	19	merged	Word32
+do	src/Run.hs	365	29	365	30	c	Int32
+do	src/Run.hs	366	29	366	30	c	Int32
+local	src/Run.hs	371	13	371	19	masked	Word32 -> IO ()
+do	src/Run.hs	377	17	377	19	st	Int32
+local	src/Run.hs	378	21	378	24	st'	Word32
+do	src/Run.hs	389	9	389	10	a	Int32
+do	src/Run.hs	390	9	390	10	b	Int32
+do	src/Run.hs	394	29	394	30	a	Int32
+do	src/Run.hs	394	40	394	41	b	Int32
+do	src/Run.hs	395	30	395	31	a	Int32
+do	src/Run.hs	395	41	395	42	b	Int32
+do	src/Run.hs	396	28	396	29	a	Int32
+do	src/Run.hs	396	39	396	40	b	Int32
+do	src/Run.hs	397	27	397	28	a	Int32
+do	src/Run.hs	397	38	397	39	b	Int32
+do	src/Run.hs	401	27	401	28	a	Word32
+do	src/Run.hs	402	27	402	28	a	Word32
+do	src/Run.hs	404	27	404	28	a	Word32
+do	src/Run.hs	407	28	407	29	a	Int32
+do	src/Run.hs	407	39	407	40	b	Int32
+do	src/Run.hs	410	29	410	30	a	Word32
+do	src/Run.hs	410	41	410	42	b	Word32
+do	src/Run.hs	416	9	416	10	a	Int32
+do	src/Run.hs	417	9	417	10	b	Int32
+local	src/Run.hs	418	13	418	17	diff	Int32
+do	src/Run.hs	420	29	420	30	a	Int32
+do	src/Run.hs	420	40	420	41	b	Int32
+do	src/Run.hs	421	27	421	28	a	Word32
+do	src/Run.hs	424	9	424	13	addr	Word32
+do	src/Run.hs	425	9	425	15	regVal	Word32
+local	src/Run.hs	426	13	426	20	aligned	Word32
+do	src/Run.hs	427	9	427	12	dat	Word32
+local	src/Run.hs	428	13	428	16	new	Word32
+do	src/Run.hs	436	9	436	13	addr	Word32
+do	src/Run.hs	437	9	437	15	regVal	Word32
+local	src/Run.hs	438	13	438	20	aligned	Word32
+do	src/Run.hs	439	9	439	12	dat	Word32
+local	src/Run.hs	440	13	440	16	new	Word32
+do	src/Run.hs	449	9	449	13	more	Bool
+do	src/Run.hs	451	28	451	29	a	Int32
+do	src/Run.hs	451	39	451	40	b	Int32
+do	src/Run.hs	453	28	453	29	a	Int32
+do	src/Run.hs	453	39	453	40	b	Int32
+do	src/Run.hs	456	29	456	30	a	Word32
+do	src/Run.hs	456	41	456	42	b	Word32
+do	src/Run.hs	461	28	461	29	a	Int32
+do	src/Run.hs	461	39	461	40	b	Int32
+do	src/Run.hs	464	29	464	30	a	Word32
+do	src/Run.hs	464	41	464	42	b	Word32
+do	src/Run.hs	465	28	465	29	a	Int32
+do	src/Run.hs	465	39	465	40	b	Int32
+do	src/Run.hs	467	28	467	29	a	Int32
+do	src/Run.hs	467	39	467	40	b	Int32
+do	src/Run.hs	479	13	479	14	a	Float
+do	src/Run.hs	480	13	480	14	b	Float
+do	src/Run.hs	483	13	483	14	a	Double
+do	src/Run.hs	484	13	484	14	b	Double
+do	src/Run.hs	488	9	488	10	v	Int32
+do	src/Run.hs	504	9	504	13	addr	Word32
+do	src/Run.hs	513	29	513	30	c	Int
+do	src/Run.hs	514	31	514	32	c	Int
+do	src/Run.hs	515	31	515	32	c	Int
+do	src/Run.hs	516	31	516	32	c	Int32
+do	src/Run.hs	517	31	517	32	c	Int32
+do	src/Run.hs	518	29	518	30	c	Int
+do	src/Run.hs	519	31	519	32	c	Int
+do	src/Run.hs	520	31	520	32	c	Int
+do	src/Run.hs	521	31	521	32	c	Int32
+do	src/Run.hs	522	31	522	32	c	Int32
+do	src/Run.hs	531	9	531	10	v	Double
+do	src/Run.hs	532	9	532	13	addr	Word32
+local	src/Run.hs	534	13	534	17	bits	Word64
+do	src/Run.hs	543	9	543	13	bits	Word32
+do	src/Run.hs	544	9	544	10	a	Word32
+local	src/Run.hs	550	5	550	13	shiftReg	IO Int
+do	src/Run.hs	553	7	553	8	n	Int
+do	src/Run.hs	554	7	554	8	v	Int32
+local	src/Run.hs	557	5	557	16	multiplyAdd	(Int32 -> Int32 -> t) -> (Word64 -> t -> Word64) -> IO Next
+do	src/Run.hs	558	7	558	10	old	Word64
+do	src/Run.hs	559	7	559	8	a	Int32
+do	src/Run.hs	560	7	560	8	b	Int32
+local	src/Run.hs	563	5	563	13	fpBranch	IO Next
+do	src/Run.hs	564	7	564	8	c	Int
+local	src/Run.hs	566	5	566	12	readCtl	Int -> IO Int32
+local	src/Run.hs	567	5	567	13	writeCtl	Int -> Int32 -> IO ()
+local	src/Run.hs	573	21	573	22	t	Double
+local	src/Run.hs	576	21	576	22	t	Double
+do	src/Scanner.hs	67	3	67	5	st	ScanState
+do	src/Scanner.hs	74	3	74	8	stack	[ScanState]
+do	src/Scanner.hs	82	3	82	5	st	ScanState
+do	src/Scanner.hs	83	3	83	11	r st'	(a, ScanState)
+do	src/Scanner.hs	90	3	90	7	toks	[ScanItem]
+do	src/Scanner.hs	92	5	92	9	item	ScanItem
+do	src/Scanner.hs	119	3	119	15	t v	ScanItem
+do	src/Scanner.hs	121	5	121	9	toks	[ScanItem]
+do	src/Scanner.hs	144	3	144	5	st	ScanState
+do	src/Scanner.hs	158	3	158	5	st	ScanState
+pattern	src/Scanner.hs	165	15	165	57	chunk rest	String;;String
+local	src/Scanner.hs	166	15	166	19	line	String
+pattern	src/Scanner.hs	174	25	174	52	a b	String;;String
+do	src/Scanner.hs	179	3	179	5	st	ScanState
+local	src/Scanner.hs	181	9	181	13	line	String
+local	src/Scanner.hs	182	9	182	16	trimmed	String
+do	src/Scanner.hs	188	3	188	10	forceId	Bool
+do	src/Scanner.hs	190	3	190	8	found	Bool
+local	src/Scanner.hs	195	5	195	16	skipToToken	Scan Bool
+do	src/Scanner.hs	197	7	197	16	endOfLine	Bool
+do	src/Scanner.hs	201	11	201	14	eof	Bool
+do	src/Scanner.hs	206	15	206	17	st	ScanState
+local	src/Scanner.hs	210	5	210	15	skipBlanks	Scan ()
+do	src/Scanner.hs	211	7	211	8	c	Char
+do	src/Scanner.hs	212	7	212	16	endOfLine	Bool
+local	src/Scanner.hs	219	5	219	16	skipComment	Scan ()
+do	src/Scanner.hs	220	7	220	8	c	Char
+local	src/Scanner.hs	222	5	222	13	haveChar	Bool -> Scan ScanItem
+do	src/Scanner.hs	223	7	223	8	c	Char
+do	src/Scanner.hs	232	11	232	13	c2	Char
+local	src/Scanner.hs	252	5	252	11	number	Int -> Scan ScanItem
+do	src/Scanner.hs	253	7	253	12	fpLen	Int
+pattern	src/Scanner.hs	260	7	260	37	whole r1	String;;String
+pattern	src/Scanner.hs	263	15	263	42	frac r3	String;;String
+local	src/Scanner.hs	267	23	267	27	base	Int
+pattern	src/Scanner.hs	270	31	272	45	sgn r5	Int;;String
+do	src/Scanner.hs	279	3	279	5	st	ScanState
+pattern	src/Scanner.hs	280	7	280	44	lit rest	String;;String
+local	src/Scanner.hs	282	7	282	12	value	Double
+do	src/Scanner.hs	288	3	288	4	c	Char
+do	src/Scanner.hs	289	3	289	5	c2	Char
+do	src/Scanner.hs	290	3	290	8	value	Word32
+local	src/Scanner.hs	299	9	299	11	go	Word32 -> StateT ScanState IO Word32
+do	src/Scanner.hs	300	11	300	12	d	Char
+do	src/Scanner.hs	307	3	307	5	st	ScanState
+pattern	src/Scanner.hs	308	7	308	79	word rest	String;;String
+local	src/Scanner.hs	309	7	309	12	ident	String
+do	src/Scanner.hs	311	3	311	10	keyword	Maybe Token
+do	src/Scanner.hs	319	3	319	7	bare	Bool
+do	src/Scanner.hs	320	3	320	9	pseudo	Bool
+local	src/Scanner.hs	321	7	321	18	allowPseudo	Bool
+do	src/Scanner.hs	331	3	331	5	ml	Maybe Label
+do	src/Scanner.hs	332	3	332	10	isConst	Bool
+do	src/Scanner.hs	335	7	335	11	addr	Word32
+do	src/Scanner.hs	366	3	366	5	st	ScanState
+pattern	src/Scanner.hs	367	7	367	91	word rest	String;;String
+local	src/Scanner.hs	368	7	368	11	name	String
+local	src/Scanner.hs	370	7	370	8	n	Int
+do	src/Scanner.hs	382	3	382	7	body	String
+do	src/Scanner.hs	383	3	383	4	c	Char
+do	src/Scanner.hs	385	3	385	10	decoded	String
+local	src/Scanner.hs	388	5	388	12	collect	StateT ScanState IO String
+do	src/Scanner.hs	389	7	389	8	c	Char
+do	src/Scanner.hs	390	7	390	9	c2	Char
+do	src/Scanner.hs	396	15	396	16	a	Char
+do	src/Scanner.hs	397	15	397	16	b	Char
+do	src/Scanner.hs	400	15	400	16	a	Char
+do	src/Scanner.hs	424	9	424	11	b1	Int
+do	src/Scanner.hs	425	9	425	11	b2	Int
+local	src/Scanner.hs	426	13	426	14	b	Int
+do	src/Scanner.hs	439	3	439	4	c	Char
+do	src/Scanner.hs	440	3	440	4	v	Int
+do	src/Scanner.hs	444	3	444	4	q	Char
+local	src/Scanner.hs	448	5	448	15	escapeChar	StateT ScanState IO Int
+do	src/Scanner.hs	449	7	449	12	first	Char
+do	src/Scanner.hs	462	15	462	17	hi	Char
+do	src/Scanner.hs	463	15	463	17	lo	Char
+local	src/Scanner.hs	464	19	464	22	msg	String
+do	src/Scanner.hs	465	15	465	16	h	Int
+do	src/Scanner.hs	466	15	466	16	l	Int
+do	src/SpimUtils.hs	58	7	58	14	oldBare	Bool
+do	src/SpimUtils.hs	59	7	59	16	oldPseudo	Bool
+do	src/SpimUtils.hs	68	13	68	19	okRead	Bool
+local	src/SpimUtils.hs	81	5	81	12	splitOn	Char -> String -> [String]
+do	src/SpimUtils.hs	115	3	115	6	err	Bool
+do	src/SpimUtils.hs	123	3	123	8	isDir	Bool
+do	src/SpimUtils.hs	124	3	124	11	contents	Either IOException ByteString
+do	src/SpimUtils.hs	140	3	140	6	env	[String]
+do	src/SpimUtils.hs	142	3	142	11	envAddrs	[Word32]
+do	src/SpimUtils.hs	143	3	143	11	argAddrs	[Word32]
+do	src/SpimUtils.hs	144	3	144	5	sp	Word32
+local	src/SpimUtils.hs	145	7	145	14	aligned	Word32
+do	src/SpimUtils.hs	152	3	152	6	sp'	Word32
+do	src/SpimUtils.hs	158	3	158	7	envp	Ptr CString
+do	src/SpimUtils.hs	165	5	165	7	sp	Int32
+do	src/SpimUtils.hs	173	3	173	5	sp	Int32
+do	src/SpimUtils.hs	183	3	183	10	atBreak	Bool
+do	src/SpimUtils.hs	184	3	184	14	pc steps	(Word32, Int)
+do	src/SpimUtils.hs	187	9	187	12	cur	Word32
+local	src/SpimUtils.hs	188	13	188	17	addr	Word32
+do	src/SpimUtils.hs	193	9	193	13	cur'	Word32
+do	src/SpimUtils.hs	197	3	197	14	continuable	Bool
+do	src/SpimUtils.hs	198	3	198	6	exc	Bool
+do	src/SpimUtils.hs	199	3	199	7	code	Int
+do	src/SpimUtils.hs	202	7	202	9	st	Int32
+local	src/State.hs	208	7	208	8	b	a -> IO (IORef a)
+do	src/State.hs	209	3	209	12	emptyText	IOArray Int (Maybe InstRef)
+do	src/State.hs	210	3	210	13	emptyText2	IOArray Int (Maybe InstRef)
+do	src/State.hs	211	3	211	12	emptyData	IOUArray Int Word8
+do	src/State.hs	212	3	212	13	emptyData2	IOUArray Int Word8
+do	src/State.hs	213	3	213	13	emptyData3	IOUArray Int Word8
+local	src/SymbolTable.hs	52	5	52	6	h	Word32
+local	src/SymbolTable.hs	53	5	53	9	step	a -> Char -> a
+local	src/SymbolTable.hs	54	5	54	15	signedChar	Char -> b
+local	src/SymbolTable.hs	54	24	54	25	b	Int
+do	src/SymbolTable.hs	66	3	66	9	bucket	[Label]
+do	src/SymbolTable.hs	75	3	75	8	found	Maybe Label
+do	src/SymbolTable.hs	79	7	79	8	n	Int
+do	src/SymbolTable.hs	81	7	81	8	l	Label
+local	src/SymbolTable.hs	82	11	82	12	h	Int
+do	src/SymbolTable.hs	83	7	83	13	bucket	[Label]
+do	src/SymbolTable.hs	93	3	93	4	l	Label
+do	src/SymbolTable.hs	94	3	94	5	gp	Bool
+do	src/SymbolTable.hs	95	3	95	6	old	Word32
+do	src/SymbolTable.hs	100	7	100	13	global	Bool
+do	src/SymbolTable.hs	109	3	109	4	l	Label
+do	src/SymbolTable.hs	118	3	118	9	inData	Bool
+do	src/SymbolTable.hs	119	3	119	12	ref at	(InstRef, Word32)
+do	src/SymbolTable.hs	122	9	122	13	copy	InstRef
+do	src/SymbolTable.hs	139	3	139	7	uses	[LabelUse]
+do	src/SymbolTable.hs	140	3	140	7	addr	Word32
+do	src/SymbolTable.hs	141	3	141	7	sbot	Word32
+do	src/SymbolTable.hs	143	5	143	7	at	Word32
+local	src/SymbolTable.hs	145	13	145	18	value	Int32
+do	src/SymbolTable.hs	152	11	152	14	enc	Int32
+do	src/SymbolTable.hs	162	3	162	9	inData	Bool
+do	src/SymbolTable.hs	163	3	163	5	pc	Word32
+do	src/SymbolTable.hs	174	3	174	5	i0	Instruction
+local	src/SymbolTable.hs	181	7	181	8	e	ImmExpr
+do	src/SymbolTable.hs	183	3	183	10	defined	Bool
+local	src/SymbolTable.hs	187	11	187	13	op	Int
+do	src/SymbolTable.hs	188	7	188	25	value fieldMask	(Int32, Int32)
+do	src/SymbolTable.hs	191	13	191	23	byteOffset	Int32
+do	src/SymbolTable.hs	192	13	192	20	delayed	Bool
+local	src/SymbolTable.hs	193	17	193	27	wordOffset	Int32
+do	src/SymbolTable.hs	200	17	200	18	v	Int32
+do	src/SymbolTable.hs	205	17	205	18	v	Int32
+local	src/SymbolTable.hs	208	11	208	15	high	Int32
+do	src/SymbolTable.hs	212	7	212	9	i1	Instruction
+local	src/SymbolTable.hs	213	11	213	13	i2	Instruction
+do	src/SymbolTable.hs	214	7	214	10	enc	Int32
+do	src/SymbolTable.hs	222	3	222	7	prev	Maybe InstRef
+do	src/SymbolTable.hs	223	3	223	11	prevPrev	Maybe InstRef
+do	src/SymbolTable.hs	224	3	224	9	okPrev	Bool
+do	src/SymbolTable.hs	228	7	228	17	okPrevPrev	Bool
+local	src/SymbolTable.hs	231	5	231	15	isPlainLui	Maybe InstRef -> IO Bool
+do	src/SymbolTable.hs	233	7	233	8	i	Instruction
+local	src/SymbolTable.hs	237	5	237	9	bump	Maybe InstRef -> IO ()
+do	src/SymbolTable.hs	243	3	243	8	value	Int32
+do	src/SymbolTable.hs	246	7	246	11	addr	Word32
+do	src/SymbolTable.hs	261	3	261	9	locals	[Label]
+local	src/SymbolTable.hs	263	9	263	10	h	Int
+do	src/SymbolTable.hs	264	5	264	11	bucket	[Label]
+do	src/SymbolTable.hs	268	9	268	13	addr	Word32
+do	src/SymbolTable.hs	269	9	269	16	isConst	Bool
+do	src/SymbolTable.hs	287	3	287	5	ls	[Label]
+do	src/SymbolTable.hs	289	5	289	6	g	Bool
+do	src/SymbolTable.hs	290	5	290	6	a	Word32
+do	src/SymbolTable.hs	297	3	297	5	ls	[Label]
+do	src/SymbolTable.hs	298	3	298	8	names	[String]
+do	src/SymbolTable.hs	298	41	298	42	a	Word32
+local	src/Syscall.hs	35	5	35	7	go	t -> IO String
+do	src/Syscall.hs	38	11	38	12	b	Maybe Word8
+do	src/Syscall.hs	50	3	50	5	c0	Maybe Word8
+do	src/Syscall.hs	51	3	51	13	sign c1	(Int, Maybe Word8)
+local	src/Syscall.hs	57	5	57	14	skipSpace	IO (Maybe Word8)
+do	src/Syscall.hs	58	7	58	8	b	Maybe Word8
+do	src/Syscall.hs	71	3	71	5	v0	Int32
+do	src/Syscall.hs	72	3	72	5	a0	Int32
+do	src/Syscall.hs	73	3	73	5	a1	Int32
+do	src/Syscall.hs	74	3	74	5	a2	Int32
+do	src/Syscall.hs	78	7	78	8	f	Float
+do	src/Syscall.hs	82	7	82	8	d	Double
+do	src/Syscall.hs	87	7	87	8	r	Maybe Int
+do	src/Syscall.hs	92	7	92	10	str	String
+do	src/Syscall.hs	96	7	96	10	str	String
+do	src/Syscall.hs	100	7	100	10	ref	Maybe (IOUArray Int Word8, Int)
+do	src/Syscall.hs	101	7	101	10	str	String
+do	src/Syscall.hs	105	11	105	18	hi	(Int, Int)
+local	src/Syscall.hs	106	15	106	20	bytes	[(Int, Word8)]
+do	src/Syscall.hs	111	7	111	10	top	Word32
+do	src/Syscall.hs	118	7	118	10	str	String
+do	src/Syscall.hs	122	7	122	11	path	String
+do	src/Syscall.hs	123	7	123	9	fd	CInt
+do	src/Syscall.hs	128	7	128	10	ref	Maybe (IOUArray Int Word8, Int)
+do	src/Syscall.hs	129	7	129	8	n	Int32
+do	src/Syscall.hs	134	7	134	10	ref	Maybe (IOUArray Int Word8, Int)
+do	src/Syscall.hs	135	7	135	8	n	Int32
+do	src/Syscall.hs	139	7	139	8	r	CInt
+local	src/Syscall.hs	145	5	145	13	continue	IO Bool
+local	src/Syscall.hs	147	5	147	13	transfer	Maybe (a Int a, Int) -> Int -> (Ptr b -> t -> IO a) -> IO Int32
+do	src/Syscall.hs	150	9	150	16	hi	(Int, Int)
+local	src/Syscall.hs	151	13	151	17	room	Int
+do	src/Syscall.hs	153	11	153	12	n	a
+local	src/Syscall.hs	157	5	157	16	transferOut	Maybe (a Int Word8, Int) -> Int -> (Ptr b -> t -> IO a) -> IO Int32
+do	src/Syscall.hs	160	9	160	16	hi	(Int, Int)
+local	src/Syscall.hs	161	13	161	17	room	Int
+do	src/Syscall.hs	164	11	164	12	n	a
+do	src/Syscall.hs	171	3	171	8	quiet	Bool
+do	src/Syscall.hs	172	3	172	7	code	Int
+do	src/Syscall.hs	173	3	173	6	epc	Int32
+do	src/Syscall.hs	174	3	174	6	bad	Int32
+local	src/Syscall.hs	175	7	175	10	say	String -> IO ()

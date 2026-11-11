@@ -205,12 +205,13 @@ data Spim = Spim
 -- | A fresh machine, before @initialize_world@.
 newSpim :: IO Spim
 newSpim = do
-  let b = newIORef
-  emptyText <- newArray (0, 0) Nothing
-  emptyText2 <- newArray (0, 0) Nothing
-  emptyData <- newArray (0, 0) 0
-  emptyData2 <- newArray (0, 0) 0
-  emptyData3 <- newArray (0, 0) 0
+  let b :: a -> IO (IORef a)
+      b = newIORef
+  emptyText :: IOArray Int (Maybe InstRef) <- newArray (0, 0) Nothing
+  emptyText2 :: IOArray Int (Maybe InstRef) <- newArray (0, 0) Nothing
+  emptyData :: IOUArray Int Word8 <- newArray (0, 0) 0
+  emptyData2 :: IOUArray Int Word8 <- newArray (0, 0) 0
+  emptyData3 :: IOUArray Int Word8 <- newArray (0, 0) 0
   Spim
     <$> b False <*> b True <*> b False <*> b False <*> b False <*> b False
     <*> b 0 <*> b False

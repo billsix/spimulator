@@ -100,12 +100,13 @@ fatalError msg = writeErr msg >> exitSpim 255
 exitSpim :: Int -> IO a
 exitSpim code = do
   hFlush stdout
-  let low = code `mod` 256
+  let low :: Int
+      low = code `mod` 256
   exitWith (if low == 0 then ExitSuccess else ExitFailure low)
 
 -- | One byte from standard input, or Nothing at end of file (C: @read(0,
 -- &c, 1)@).
 readByte :: IO (Maybe Word8)
 readByte = alloca $ \p -> do
-  n <- c_read 0 p 1
+  n :: CInt <- c_read 0 p 1
   if n <= 0 then pure Nothing else Just <$> peek p

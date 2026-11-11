@@ -19,7 +19,8 @@ import Memory
 import Output (writeErr)
 import Registers
 import State
-import Text.Printf (printf)
+import Text.Printf (printf, PrintfType)
+import Types (InstRef)
 
 hex :: Int32 -> Word32
 hex = fromIntegral
@@ -28,36 +29,43 @@ hex = fromIntegral
 -- shows every register in hexadecimal.
 formatRegisters :: Spim -> Bool -> IO String
 formatRegisters s hexFlag = do
-  pc <- get (regPC s)
-  epc <- getCp0 s cp0Epc
-  cause <- getCp0 s cp0Cause
-  bad <- getCp0 s cp0BadVAddr
-  status <- getCp0 s cp0Status
-  hi <- get (regHI s)
-  lo <- get (regLO s)
-  regs <- mapM (getGpr s) [0 .. 31]
-  fir <- getFcr s 0
-  fcsr <- getFcr s 31
-  doubles <- mapM (\k -> doubleWords s (2 * k)) [0 .. 15]
-  words' <- mapM (fprWord s) [0 .. 31]
-  singles <- mapM (fprSingle s) [0 .. 31]
-  let gr n =
+  pc :: Word32 <- get (regPC s)
+  epc :: Int32 <- getCp0 s cp0Epc
+  cause :: Int32 <- getCp0 s cp0Cause
+  bad :: Int32 <- getCp0 s cp0BadVAddr
+  status :: Int32 <- getCp0 s cp0Status
+  hi :: Int32 <- get (regHI s)
+  lo :: Int32 <- get (regLO s)
+  regs :: [Int32] <- mapM (getGpr s) [0 .. 31]
+  fir :: Int32 <- getFcr s 0
+  fcsr :: Int32 <- getFcr s 31
+  doubles :: [Double] <- mapM (\k -> doubleWords s (2 * k)) [0 .. 15]
+  words' :: [Word32] <- mapM (fprWord s) [0 .. 31]
+  singles :: [Float] <- mapM (fprSingle s) [0 .. 31]
+  let gr :: PrintfType t => Int -> t
+      gr n =
         if hexFlag
           then printf "R%-2d (%2s) = %08x" n (regNames !! n) (hex (regs !! n))
           else printf "R%-2d (%2s) = %-10d" n (regNames !! n) (regs !! n)
+      grFill :: String
       grFill = if hexFlag then "  " else " "
+      generalRow :: Int -> String
       generalRow k = concatMap (\c -> gr (k + 8 * c) ++ (if c < 3 then grFill else "\n")) [0 .. 3 :: Int]
       fpVal :: Double -> String
       fpVal d = leftIn 13 (formatGAlt True 6 d)
+      doubleCell :: PrintfType t => Int -> t
       doubleCell k =
         if hexFlag
           then printf "FP%-2d=%08x,%08x" (2 * k) (words' !! (2 * k)) (words' !! (2 * k + 1))
           else printf "FP%-2d = %s" (2 * k) (fpVal (doubles !! k))
+      doubleRow :: Int -> String
       doubleRow k = concatMap (\c -> doubleCell (k + 4 * c) ++ (if c < 3 then " " else "\n")) [0 .. 3 :: Int]
+      singleCell :: PrintfType t => Int -> t
       singleCell k =
         if hexFlag
           then printf "FP%-2d=%08x" k (words' !! k)
           else printf "FP%-2d = %s" k (fpVal (float2Double (singles !! k)))
+      singleRow :: Int -> String
       singleRow k = concatMap (\c -> singleCell (k + 8 * c) ++ (if c < 3 then " " else "\n")) [0 .. 3 :: Int]
   pure $
     printf " PC      = %08x   " pc
@@ -80,8 +88,9 @@ formatRegisters s hexFlag = do
 formatInsts :: Spim -> Word32 -> Word32 -> IO String
 formatInsts s from to = concat <$> forM (takeWhile (< to) [from, from + 4 ..]) line
   where
+    line :: Word32 -> IO String
     line a = do
-      inst <- memReadInst s a
+      inst :: Maybe InstRef <- memReadInst s a
       case inst of
         Nothing -> pure ""
         Just _ -> formatAnInst s inst a
@@ -90,38 +99,43 @@ formatInsts s from to = concat <$> forM (takeWhile (< to) [from, from + 4 ..]) l
 -- or more zero words (C: @format_mem@).
 formatMem :: Spim -> Word32 -> Word32 -> IO String
 formatMem s from to = do
-  let start = (from + 3) .&. complement 3
-  (first, i0) <- partialLine s start
-  rest <- loop i0
+  let start :: Word32
+      start = (from + 3) .&. complement 3
+  (first, i0) :: (String, Word32) <- partialLine s start
+  rest :: String <- loop i0
   pure (first ++ rest)
   where
+    loop :: Word32 -> IO String
     loop i
       | i >= to = pure ""
       | otherwise = do
-          j <- zeroRun i 0
+          j :: Int <- zeroRun i 0
           if j >= 4
             then do
-              let next = i + fromIntegral j * 4
+              let next :: Word32
+                  next = i + fromIntegral j * 4
+                  text :: String
                   text = printf "[0x%08x]...[0x%08x]\t0x00000000\n" i next
-              (partial, i') <- partialLine s next
-              more <- loop i'
+              (partial, i') :: (String, Word32) <- partialLine s next
+              more :: String <- loop i'
               pure (text ++ partial ++ more)
             else do
-              (cells, i') <- wordsToLineEnd i True
-              more <- loop i'
+              (cells, i') :: (String, Word32) <- wordsToLineEnd i True
+              more :: String <- loop i'
               pure (printf "[0x%08x]\t\t      " i ++ cells ++ "\n" ++ more)
     zeroRun :: Word32 -> Int -> IO Int
     zeroRun i j
       | i + fromIntegral j * 4 >= to = pure j
       | otherwise = do
-          v <- memReadWord s (i + fromIntegral j * 4)
+          v :: Int32 <- memReadWord s (i + fromIntegral j * 4)
           if v /= 0 then pure j else zeroRun i (j + 1)
     -- do { print a word } while (not at a 16-byte boundary)
+    wordsToLineEnd :: Word32 -> Bool -> IO (String, Word32)
     wordsToLineEnd i firstOne
       | not firstOne && i `rem` 16 == 0 = pure ("", i)
       | otherwise = do
-          v <- memReadWord s i
-          (more, i') <- wordsToLineEnd (i + 4) False
+          v :: Int32 <- memReadWord s i
+          (more, i') :: (String, Word32) <- wordsToLineEnd (i + 4) False
           pure (printf "  0x%08x" (hex v) ++ more, i')
 
 -- | The words up to the next 16-byte boundary, if not on one
@@ -130,26 +144,27 @@ partialLine :: Spim -> Word32 -> IO (String, Word32)
 partialLine s addr
   | addr `rem` 16 == 0 = pure ("", addr)
   | otherwise = do
-      let addrs = takeWhile (\a -> a `rem` 16 /= 0) [addr, addr + 4 ..]
-      cells <- mapM (\a -> printf "  0x%08x" . hex <$> memReadWord s a) addrs
+      let addrs :: [Word32]
+          addrs = takeWhile (\a -> a `rem` 16 /= 0) [addr, addr + 4 ..]
+      cells :: [String] <- mapM (\a -> printf "  0x%08x" . hex <$> memReadWord s a) addrs
       pure (printf "[0x%08x]\t\t      " addr ++ concat cells ++ "\n", last addrs + 4)
 
 -- | The data, stack and kernel data segments (C: @format_data_segs@).
 formatDataSegs :: Spim -> IO String
 formatDataSegs s = do
-  dtop <- get (dataTop s)
-  sp <- fromIntegral <$> getGpr s 29 :: IO Word32
-  kdtop <- get (kDataTop s)
-  d <- formatMem s dataBot dtop
-  st <- formatMem s (sp .&. complement 3) stackTop
-  k <- formatMem s kDataBot kdtop
+  dtop :: Word32 <- get (dataTop s)
+  sp :: Word32 <- fromIntegral <$> getGpr s 29 :: IO Word32
+  kdtop :: Word32 <- get (kDataTop s)
+  d :: String <- formatMem s dataBot dtop
+  st :: String <- formatMem s (sp .&. complement 3) stackTop
+  k :: String <- formatMem s kDataBot kdtop
   pure ("\tDATA\n" ++ d ++ "\n\tSTACK\n" ++ st ++ "\n\tKERNEL DATA\n" ++ k)
 
 -- | The REPL's @disasm@ (C: @print_text_listing@).
 printTextListing :: Spim -> IO ()
 printTextListing s = do
-  ttop <- get (textTop s)
-  text <- formatInsts s textBot ttop
+  ttop :: Word32 <- get (textTop s)
+  text :: String <- formatInsts s textBot ttop
   if null text
     then writeErr "No program loaded.\n"
     else writeErr ("\n\tUSER TEXT SEGMENT\n" ++ text ++ "\n")

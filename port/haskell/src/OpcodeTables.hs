@@ -37,14 +37,19 @@ data NameValVal a = NameValVal
 
 -- | glibc's @bsearch@: halve the range [l, u) until the middle element
 -- compares equal.  The comparison is "key versus element".
-bsearchBy :: (e -> Ordering) -> Array Int e -> Maybe e
+bsearchBy :: forall e. (e -> Ordering) -> Array Int e -> Maybe e
 bsearchBy cmp arr = go lo (hi + 1)
   where
+    lo :: Int
+    hi :: Int
     (lo, hi) = bounds arr
+    go :: Int -> Int -> Maybe e
     go l u
       | l >= u = Nothing
       | otherwise =
-          let idx = (l + u) `quot` 2
+          let idx :: Int
+              idx = (l + u) `quot` 2
+              e :: e
               e = arr ! idx
            in case cmp e of
                 LT -> go l idx
@@ -62,24 +67,24 @@ sortedOnValue1 = toArray . sortBy (comparing nvvValue1)
 -- | token -> (mnemonic, operand type)  (C: @name_tbl@).
 nameTable :: Array Int (NameValVal OpType)
 nameTable =
-  sortedOnValue1 [NameValVal (rowName r) (opcodeToken (rowOpcode r)) (rowType r) | r <- opcodeRows]
+  sortedOnValue1 [NameValVal (rowName r) (opcodeToken (rowOpcode r)) (rowType r) | r :: OpRow <- opcodeRows]
 
 -- | token -> binary opcode  (C: @i_opcode_tbl@).
 iOpcodeTable :: Array Int (NameValVal Int32)
 iOpcodeTable =
-  sortedOnValue1 [NameValVal (rowName r) (opcodeToken (rowOpcode r)) (rowEncoding r) | r <- opcodeRows]
+  sortedOnValue1 [NameValVal (rowName r) (opcodeToken (rowOpcode r)) (rowEncoding r) | r :: OpRow <- opcodeRows]
 
 -- | binary opcode -> token  (C: @a_opcode_tbl@).
 aOpcodeTable :: Array Int (NameValVal Int)
 aOpcodeTable =
   toArray
-    [NameValVal (rowName r) (fromIntegral (rowEncoding r)) (opcodeToken (rowOpcode r)) | r <- opcodeDecodeRows]
+    [NameValVal (rowName r) (fromIntegral (rowEncoding r)) (opcodeToken (rowOpcode r)) | r :: OpRow <- opcodeDecodeRows]
 
 -- | mnemonic -> (token, operand type), in file order, which the C
 -- scanner searches by name (C: @keyword_tbl@).
 keywordTable :: Array Int (NameValVal OpType)
 keywordTable =
-  toArray [NameValVal (rowName r) (opcodeToken (rowOpcode r)) (rowType r) | r <- opcodeRows]
+  toArray [NameValVal (rowName r) (opcodeToken (rowOpcode r)) (rowType r) | r :: OpRow <- opcodeRows]
 
 -- | C's @map_int_to_name_val_val@.
 lookupByValue :: Array Int (NameValVal a) -> Int -> Maybe (NameValVal a)

@@ -50,9 +50,13 @@ instEncode :: Instruction -> Maybe Int32
 instEncode i = case lookupByValue iOpcodeTable (inOpcode i) of
   Nothing -> Just 0
   Just entry ->
-    let a = nvvValue2 entry
+    let a :: Int32
+        a = nvvValue2 entry
+        rs :: Int
         rs = instRs i
+        rt :: Int
         rt = instRt i
+        rd :: Int
         rd = instRd i
      in case opcodeTypeOfToken (inOpcode i) of
           Just BRANCH_COPROC_COND_INST -> Just (a .|. regs ((rt `shiftR` 2) `shiftL` 2) 16 .|. low16 i)
@@ -101,7 +105,8 @@ instDecode val =
   case lookupByValue aOpcodeTable (fromIntegral aOpcode) of
     Nothing -> invalid
     Just entry ->
-      let op = nvvValue2 entry
+      let op :: Int
+          op = nvvValue2 entry
        in case opcodeTypeOfToken op of
             Just BRANCH_COPROC_COND_INST -> mkI op (binRs val) (binRt val)
             Just BRANCH_RS_LABEL_INST -> mkI op (binRs val) 0
@@ -130,10 +135,13 @@ instDecode val =
             Just NOARG_TYPE_INST -> mkR op 0 0 0 0
             _ -> invalid
   where
+    top :: Word32
     top = fromIntegral val .&. 0xfc000000 :: Word32
+    v :: Word32
     v = fromIntegral val :: Word32
     aOpcode :: Int32
     aOpcode = fromIntegral (group top)
+    group :: Word32 -> Word32
     group t
       | t == 0 || t == 0x70000000 = t .|. (v .&. 0x3f) -- SPECIAL, SPECIAL2
       | t == 0x04000000 = t .|. (v .&. 0x001f0000) -- REGIMM
@@ -143,10 +151,15 @@ instDecode val =
           t .|. (v .&. 0x03e00000) .|. (if v .&. 0xff000000 == 0x45000000 then v .&. 0x00010000 else v .&. 0x3f)
       | t == 0x48000000 || t == 0x4c000000 = t .|. (v .&. 0x03e00000) -- COPz
       | otherwise = t
+    base :: Int -> Instruction
     base op = (emptyInstruction op) {inEncoding = val}
+    invalid :: Instruction
     invalid = base 0
+    mkR :: Int -> Int -> Int -> Int -> Int -> Instruction
     mkR op rs rt rd sh = setShamt sh (setRd rd (setRt rt (setRs rs (base op))))
+    mkCoR :: Int -> Int -> Int -> Int -> Instruction
     mkCoR op fs ft fd = setShamt fd (setRt ft (setRd fs (base op)))
+    mkI :: Int -> Int -> Int -> Instruction
     mkI op rs rt = setImm (val .&. 0xffff) (setRt rt (setRs rs (base op)))
 
 -- | A conditional branch, including the branch pseudo-instructions
@@ -154,6 +167,7 @@ instDecode val =
 opcodeIsBranch :: Int -> Bool
 opcodeIsBranch t = maybe False (`elem` branches) (opcodeOfToken t)
   where
+    branches :: [Opcode]
     branches =
       [ TOK_BC1F_OPCODE, TOK_BC1FL_OPCODE, TOK_BC1T_OPCODE, TOK_BC1TL_OPCODE
       , TOK_BC2F_OPCODE, TOK_BC2FL_OPCODE, TOK_BC2T_OPCODE, TOK_BC2TL_OPCODE
@@ -187,6 +201,7 @@ opcodeIsJump t = t == tok TOK_J_OPCODE || t == tok TOK_JAL_OPCODE
 opcodeIsLoadStore :: Int -> Bool
 opcodeIsLoadStore t = maybe False (`elem` loadStores) (opcodeOfToken t)
   where
+    loadStores :: [Opcode]
     loadStores =
       [ TOK_LB_OPCODE, TOK_LBU_OPCODE, TOK_LH_OPCODE, TOK_LHU_OPCODE, TOK_LL_OPCODE
       , TOK_LDC1_OPCODE, TOK_LDC2_OPCODE, TOK_LW_OPCODE, TOK_LWC1_OPCODE, TOK_LWC2_OPCODE

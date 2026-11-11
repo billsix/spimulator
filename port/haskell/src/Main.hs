@@ -15,7 +15,7 @@ import Data.Char (chr, ord, toLower)
 import Data.Int (Int32)
 import Data.IORef (IORef, newIORef)
 import Data.List (isPrefixOf)
-import Data.Word (Word32)
+import Data.Word (Word32, Word8)
 import qualified Data.ByteString.Char8 as B
 import AsmCommon (currentTextPc)
 import Assemble (userKernelTextSegment)
@@ -61,11 +61,12 @@ data Options = Options
 main :: IO ()
 main = do
   setupHandles
-  s <- newSpim
-  args <- getArgs
-  listingRef <- newIORef NoListing
-  let closeListing = do
-        l <- readIORef listingRef
+  s :: Spim <- newSpim
+  args :: [String] <- getArgs
+  listingRef :: IORef Listing <- newIORef NoListing
+  let closeListing :: IO ()
+      closeListing = do
+        l :: Listing <- readIORef listingRef
         case l of
           ListingTo h -> hClose h
           _ -> pure ()
@@ -76,22 +77,25 @@ main = do
 -- name is shown as the C engine shows its built-in copy.
 defaultHandler :: IO ExceptionFiles
 defaultHandler = do
-  exe <- getExecutablePath
-  found <- search (takeDirectory exe) (12 :: Int)
+  exe :: String <- getExecutablePath
+  found :: Maybe String <- search (takeDirectory exe) (12 :: Int)
   case found of
     Just path -> do
-      text <- B.unpack <$> B.readFile path
+      text :: String <- B.unpack <$> B.readFile path
       pure (DefaultHandler text "<embedded exceptions.s>")
     Nothing -> fatalError "Cannot parse embedded exception handler\n"
   where
+    search :: String -> Int -> IO (Maybe String)
     search _ 0 = pure Nothing
     search dir n = do
-      let candidate = dir </> "src" </> "exceptions.s"
-      ok <- doesFileExist candidate
+      let candidate :: String
+          candidate = dir </> "src" </> "exceptions.s"
+      ok :: Bool <- doesFileExist candidate
       if ok
         then pure (Just candidate)
         else
-          let up = takeDirectory dir
+          let up :: String
+              up = takeDirectory dir
            in if up == dir then pure Nothing else search up (n - 1)
 
 -- | The handler to load, from the options.
@@ -150,26 +154,36 @@ data Loading = Loading
 -- (C: @main@).
 spimMain :: Spim -> [String] -> IORef Listing -> IO ()
 spimMain s argv listingRef = do
-  envHandler <- lookupEnv "SPIM_EXCEPTION_HANDLER"
-  let opts0 = Options envHandler True False False False
+  envHandler :: Maybe String <- lookupEnv "SPIM_EXCEPTION_HANDLER"
+  let opts0 :: Options
+      opts0 = Options envHandler True False False False
+      n :: Int
       n = length argv
+      arg :: Int -> Maybe String
       arg k = if k < n then Just (argv !! k) else Nothing
+      setB :: (Spim -> IORef a) -> a -> IO ()
       setB ref v = set (ref s) v
+      int :: Int -> Int
       int k = maybe 0 atoi (arg k)
+      sizes :: ((Int, Int, Int, Int, Int, Int, Int, Int) -> (Int, Int, Int, Int, Int, Int, Int, Int)) -> IO ()
       sizes f = modify (initialSizes s) f
       loop :: Int -> Options -> Loading -> IO (Options, Loading)
       loop i o ld
         | i >= n = pure (o, ld)
         | otherwise = do
-            let a = argv !! i
+            let a :: String
+                a = argv !! i
+                next :: Options -> IO (Options, Loading)
                 next o' = loop (i + 1) o' ld
                 -- A flag that takes a value, given last: say so, and show
                 -- the usage (C: flag_value_missing).
+                withValue :: IO (Options, Loading) -> IO (Options, Loading)
                 withValue act
                   | i + 1 < n = act
                   | otherwise = do
                       cError ("spimulator: " ++ a ++ " requires a value\n")
                       loop (i + 1) o ld {badUsage = True}
+                is :: [String] -> Bool
                 is xs = a `elem` xs
             case () of
               _
@@ -200,21 +214,25 @@ spimMain s argv listingRef = do
                 | is ["-skdata", "-skd"] -> withValue $ sizes (\(t, b, c, d, e, f, _, h) -> (t, b, c, d, e, f, int (i + 1), h)) >> loop (i + 2) o ld
                 | is ["-lkdata", "-lkd"] -> withValue $ sizes (\(t, b, c, d, e, f, g, _) -> (t, b, c, d, e, f, g, int (i + 1))) >> loop (i + 2) o ld
                 | (is ["-file", "-f"] && i + 1 < n) || take 1 a /= "-" -> do
-                    let explicit = take 1 a == "-"
+                    let explicit :: Bool
+                        explicit = take 1 a == "-"
                     if not explicit && loaded ld
                       then pure (o, ld)
                       else do
-                        let fileI = if explicit then i + 1 else i
+                        let fileI :: Int
+                            fileI = if explicit then i + 1 else i
                         unless (worldReady ld) $ do
-                          h <- handlerFor o
-                          quiet <- get (optQuiet s)
+                          h :: ExceptionFiles <- handlerFor o
+                          quiet :: Bool <- get (optQuiet s)
                           initializeWorld s h (not quiet)
-                        let ld1 = ld {worldReady = True, attempted = True}
-                        ok <- readAssemblyFile s (argv !! fileI)
+                        let ld1 :: Loading
+                            ld1 = ld {worldReady = True, attempted = True}
+                        ok :: Bool <- readAssemblyFile s (argv !! fileI)
                         if not ok
                           then pure (o, ld1)
                           else do
-                            let ld2 = ld1 {loaded = True, lastFile = fileI}
+                            let ld2 :: Loading
+                                ld2 = ld1 {loaded = True, lastFile = fileI}
                             if explicit
                               then loop (fileI + 1) o ld2
                               else pure (o, ld2 {programArgs = drop fileI argv})
@@ -228,7 +246,7 @@ spimMain s argv listingRef = do
                         cError "\n-listing requires a filename argument\n"
                         loop (i + 1) o ld {badUsage = True}
                       Just path -> do
-                        opened <-
+                        opened :: Maybe Listing <-
                           if path == "-"
                             then pure (Just ListingStderr)
                             else (Just . ListingTo <$> openListing path) `catch` \e -> const (pure Nothing) (e :: IOError)
@@ -245,29 +263,31 @@ spimMain s argv listingRef = do
                 | otherwise -> do
                     cError ("\nUnknown argument: " ++ a ++ " (ignored)\n")
                     loop (i + 1) o ld {badUsage = True}
-  (o, ld0) <- loop 0 opts0 (Loading False False False (-1) [] False)
-  let ld = if loaded ld0 && null (programArgs ld0) then ld0 {programArgs = drop (lastFile ld0) argv} else ld0
+  (o, ld0) :: (Options, Loading) <- loop 0 opts0 (Loading False False False (-1) [] False)
+  let ld :: Loading
+      ld = if loaded ld0 && null (programArgs ld0) then ld0 {programArgs = drop (lastFile ld0) argv} else ld0
   when (badUsage ld) $ cError usage
-  ret <- get (spimReturnValue s)
-  let orStatus k = exitSpim (if ret /= 0 then fromIntegral ret else k)
+  ret :: Int32 <- get (spimReturnValue s)
+  let orStatus :: Int -> IO a
+      orStatus k = exitSpim (if ret /= 0 then fromIntegral ret else k)
   if not (loaded ld)
     then
       if attempted ld
         then orStatus 2
         else do
-          h <- handlerFor o
-          quiet <- get (optQuiet s)
+          h :: ExceptionFiles <- handlerFor o
+          quiet :: Bool <- get (optQuiet s)
           initializeWorld s h (not quiet)
           initializeRunStack s (programArgs ld)
           topLevel s o (programArgs ld)
     else do
-      errs <- get (parseErrorsSeen s)
+      errs :: Int <- get (parseErrorsSeen s)
       when (errs > 0) $ orStatus 2
-      only <- get (printAstOnly s)
+      only :: Bool <- get (printAstOnly s)
       when only $ exitSpim 0
       if assembleOnly o
         then do
-          bad <- writeAssembledCode s (head' (programArgs ld))
+          bad :: Bool <- writeAssembledCode s (head' (programArgs ld))
           exitSpim (if bad then 1 else 0)
         else
           if dumpUser o || dumpAll o
@@ -277,7 +297,7 @@ spimMain s argv listingRef = do
               get (spimReturnValue s) >>= exitSpim . fromIntegral
             else do
               initializeRunStack s (programArgs ld)
-              undefs <- undefinedSymbolString s
+              undefs :: Maybe String <- undefinedSymbolString s
               case undefs of
                 Just names -> do
                   writeErr "The following symbols are undefined:\n"
@@ -285,24 +305,29 @@ spimMain s argv listingRef = do
                   writeErr "\n"
                   orStatus 1
                 Nothing -> do
-                  start <- findSymbolAddress s "__start"
+                  start :: Word32 <- findSymbolAddress s "__start"
                   _ <- runProgram s start maxBound False False `catch` \RunErrorJump -> pure (False, False)
                   pure ()
-              first <- get (firstBadException s)
-              rv <- get (spimReturnValue s)
+              first :: Int <- get (firstBadException s)
+              rv :: Int32 <- get (spimReturnValue s)
               exitSpim (if first /= -1 && rv == 0 then 128 + first else fromIntegral rv)
   where
+    head' :: [String] -> String
     head' (x : _) = x
     head' [] = ""
+    openListing :: String -> IO Handle
     openListing path = do
-      h <- openFile path WriteMode
+      h :: Handle <- openFile path WriteMode
       hSetBinaryMode h True
       pure h
 
 -- | C's @atoi@.
 atoi :: String -> Int
 atoi str =
-  let t = dropWhile (`elem` " \t\n\v\f\r") str
+  let t :: String
+      t = dropWhile (`elem` " \t\n\v\f\r") str
+      sign :: Int
+      digits :: String
       (sign, digits) = case t of
         ('-' : r) -> (-1, r)
         ('+' : r) -> (1, r)
@@ -312,11 +337,11 @@ atoi str =
 -- | Write each assembler event to the listing (C: @listing_observer@).
 listingObserver :: Spim -> Listing -> AsmEvent -> Int -> IO ()
 listingObserver s listing ev line = do
-  text <- case ev of
+  text :: String <- case ev of
     EvLabelDef addr name global ->
       pure (printf "line %4d  label  %-24s defined at 0x%08x%s\n" line name addr (if global then "  (global)" else "" :: String))
     EvTextInst addr enc -> do
-      dis <- instToString s addr
+      dis :: String <- instToString s addr
       pure (printf "line %4d  text   0x%08x  %-32s  0x%08x\n" line addr dis enc)
     EvDataByte addr v -> pure (printf "line %4d  data   0x%08x  byte    0x%02x\n" line addr (v .&. 0xff))
     EvDataHalf addr v -> pure (printf "line %4d  data   0x%08x  half    0x%04x\n" line addr (v .&. 0xffff))
@@ -336,24 +361,24 @@ listingObserver s listing ev line = do
 -- into data.asm (C: @dump_data_seg@).
 dumpDataSeg :: Spim -> Bool -> IO ()
 dumpDataSeg s kernelAlso = do
-  text <-
+  text :: String <-
     if kernelAlso
       then formatDataSegs s
       else do
-        top <- get (dataTop s)
+        top :: Word32 <- get (dataTop s)
         ("\tDATA\n" ++) <$> formatMem s dataBot top
   B.writeFile "data.asm" (B.pack text)
 
 -- | The text segments into text.asm (C: @dump_text_seg@).
 dumpTextSeg :: Spim -> Bool -> IO ()
 dumpTextSeg s kernelAlso = do
-  ttop <- get (textTop s)
-  user <- formatInsts s textBot ttop
-  text <-
+  ttop :: Word32 <- get (textTop s)
+  user :: String <- formatInsts s textBot ttop
+  text :: String <-
     if kernelAlso
       then do
-        kttop <- get (kTextTop s)
-        kernel <- formatInsts s kTextBot kttop
+        kttop :: Word32 <- get (kTextTop s)
+        kernel :: String <- formatInsts s kTextBot kttop
         pure (user ++ "\n\tKERNEL\n" ++ kernel)
       else pure ("\n\tUSER TEXT SEGMENT\n" ++ user)
   B.writeFile "text.asm" (B.pack text)
@@ -362,26 +387,30 @@ dumpTextSeg s kernelAlso = do
 -- (C: @write_assembled_code@).  True means it failed.
 writeAssembledCode :: Spim -> String -> IO Bool
 writeAssembledCode s name = do
-  err <- get (parseErrorOccurred s)
+  err :: Bool <- get (parseErrorOccurred s)
   if err
     then pure True
     else do
       userKernelTextSegment s False
-      start <- findSymbolAddress s "__eoth"
-      end <- currentTextPc s
-      let addrsTo a b = takeWhile (< b) [a, a + 4 ..]
-      codes <- mapM (\a -> memReadInst s a >>= maybe (pure 0) (\r -> get r >>= instEncodeIO)) (addrsTo start end)
+      start :: Word32 <- findSymbolAddress s "__eoth"
+      end :: Word32 <- currentTextPc s
+      let addrsTo :: Word32 -> Word32 -> [Word32]
+          addrsTo a b = takeWhile (< b) [a, a + 4 ..]
+      codes :: [Int32] <- mapM (\a -> memReadInst s a >>= maybe (pure 0) (\r -> get r >>= instEncodeIO)) (addrsTo start end)
       -- C prints ", " after every word but the one at end - 4.
-      let list from to xs = concat (zipWith (\a c -> printf "0x%x" (fromIntegral c :: Word32) ++ (if a /= to - 4 then ", " else "")) (addrsTo from to) xs)
+      let list :: Word32 -> Word32 -> [Int32] -> String
+          list from to xs = concat (zipWith (\a c -> printf "0x%x" (fromIntegral c :: Word32) ++ (if a /= to - 4 then ", " else "")) (addrsTo from to) xs)
+          textPart :: String
           textPart = printf ".text # 0x%x .. 0x%x\n.word " start end ++ list start end codes ++ "\n"
       userKernelDataSegment s False
-      bare <- get (optBare s)
-      let dstart = if bare then 0 else dataBot
-      dend <- get (nextDataPc s)
-      dataPart <-
+      bare :: Bool <- get (optBare s)
+      let dstart :: Word32
+          dstart = if bare then 0 else dataBot
+      dend :: Word32 <- get (nextDataPc s)
+      dataPart :: String <-
         if dend > dstart
           then do
-            ws <- mapM (memReadWord s) (addrsTo dstart dend)
+            ws :: [Int32] <- mapM (memReadWord s) (addrsTo dstart dend)
             pure (printf ".data # 0x%x .. 0x%x\n.word " dstart dend ++ list dstart dend ws ++ "\n")
           else pure ""
       B.writeFile (name ++ ".out") (B.pack (textPart ++ dataPart))
@@ -415,38 +444,44 @@ topLevel :: Spim -> Options -> [String] -> IO ()
 topLevel s o argv = do
   scannerInit s ""
   set (inputFileName s) (Just "<standard input>")
-  repl <- Repl <$> newIORef NopCmd <*> newIORef TokNL <*> newIORef 0 <*> newIORef 0 <*> newIORef 0 <*> newIORef 0 <*> newIORef argv
-  tty <- hIsTerminalDevice stdin
+  repl :: Repl <- Repl <$> newIORef NopCmd <*> newIORef TokNL <*> newIORef 0 <*> newIORef 0 <*> newIORef 0 <*> newIORef 0 <*> newIORef argv
+  tty :: Bool <- hIsTerminalDevice stdin
   if tty
     then do
-      home <- lookupEnv "HOME"
-      let settings = (H.defaultSettings :: H.Settings IO) {H.historyFile = fmap (</> ".spimulator-haskell_history") home}
+      home :: Maybe String <- lookupEnv "HOME"
+      let settings :: H.Settings IO
+          settings = (H.defaultSettings :: H.Settings IO) {H.historyFile = fmap (</> ".spimulator-haskell_history") home}
       H.runInputT settings (ttyLoop repl False)
     else plainLoop repl False
   where
+    plainLoop :: Repl -> Bool -> IO b
     plainLoop repl redo = do
-      line <- if redo then pure (Just "") else readLine
+      line :: Maybe String <- if redo then pure (Just "") else readLine
       case line of
         Nothing -> writeErr "\n" >> exitSpim 0
         Just text -> do
-          redo' <- oneCommand repl redo text
+          redo' :: Bool <- oneCommand repl redo text
           plainLoop repl redo'
+    ttyLoop :: Repl -> Bool -> H.InputT IO b
     ttyLoop repl redo = do
-      line <- if redo then pure (Just "") else H.getInputLine "(spim) "
+      line :: Maybe String <- if redo then pure (Just "") else H.getInputLine "(spim) "
       case line of
         Nothing -> liftIO (writeErr "\n" >> exitSpim 0)
         Just text -> do
-          redo' <- liftIO (oneCommand repl redo (map (chr . (`mod` 256) . ord) text))
+          redo' :: Bool <- liftIO (oneCommand repl redo (map (chr . (`mod` 256) . ord) text))
           ttyLoop repl redo'
+    oneCommand :: Repl -> Bool -> String -> IO Bool
     oneCommand repl redo text = do
       unless redo $ scannerPushSource s (text ++ "\n")
-      r <- parseSpimCommand s o repl redo `catch` \RunErrorJump -> pure False
+      r :: Bool <- parseSpimCommand s o repl redo `catch` \RunErrorJump -> pure False
       unless redo $ scannerPopSource s
       hFlush stderr
       pure r
+    readLine :: IO (Maybe String)
     readLine = do
-      let go acc = do
-            b <- readByte
+      let go :: String -> IO (Maybe String)
+          go acc = do
+            b :: Maybe Word8 <- readByte
             case b of
               Nothing -> pure (if null acc then Nothing else Just (reverse acc))
               Just 10 -> pure (Just (reverse acc))
@@ -456,28 +491,28 @@ topLevel s o argv = do
 -- | Take a token; the end of the input ends spim (C: @read_token@).
 readToken :: Spim -> IO Token
 readToken s = do
-  t <- scannerAdvance s
+  t :: Token <- scannerAdvance s
   if t == TokEOF then exitSpim 0 else pure t
 
 flushToNewline :: Spim -> IO ()
 flushToNewline s = do
-  t <- readToken s
+  t :: Token <- readToken s
   unless (t == TokNL) $ flushToNewline s
 
 valInt :: Spim -> IO Int32
 valInt s = do
-  v <- get (scanValue s)
+  v :: TokValue <- get (scanValue s)
   pure (case v of VInt i -> i; _ -> 0)
 
 valStr :: Spim -> IO String
 valStr s = do
-  v <- get (scanValue s)
+  v :: TokValue <- get (scanValue s)
   pure (case v of VStr t -> t; _ -> "")
 
 -- | An optional integer argument, 0 if none (C: @get_opt_int@).
 getOptInt :: Spim -> IO Int32
 getOptInt s = do
-  t <- readToken s
+  t :: Token <- readToken s
   case t of
     TokInt -> flushToNewline s >> valInt s
     TokNL -> pure 0
@@ -490,11 +525,11 @@ strPrefix typed cmd n = typed `isPrefixOf` cmd && length typed >= n
 -- | Which command a line starts with (C: @read_assembly_command@).
 readAssemblyCommand :: Spim -> IO Command
 readAssemblyCommand s = do
-  t <- readToken s
+  t :: Token <- readToken s
   case t of
     TokNL -> pure RedoCmd
     TokId -> do
-      w <- valStr s
+      w :: String <- valStr s
       pure $ case () of
         _
           | strPrefix w "exit" 2 -> ExitCmd
@@ -525,85 +560,92 @@ readAssemblyCommand s = do
 -- (C: @parse_spim_command@).
 parseSpimCommand :: Spim -> Options -> Repl -> Bool -> IO Bool
 parseSpimCommand s o repl redo = do
-  cmd <- if redo then get (prevCmd repl) else readAssemblyCommand s
-  let done c = set (prevCmd repl) c >> pure False
+  cmd :: Command <- if redo then get (prevCmd repl) else readAssemblyCommand s
+  let done :: Command -> IO Bool
+      done c = set (prevCmd repl) c >> pure False
+      tokenOrPrev :: IO Token
       tokenOrPrev = if redo then get (prevToken repl) else readToken s
+      argv :: IO [String]
       argv = get (argvRef repl)
+      breakMessage :: Bool -> IO ()
       breakMessage hit = when hit $ get (regPC s) >>= \pc -> writeErr (printf "Breakpoint encountered at 0x%08x\n" pc)
   case cmd of
     ExitCmd -> exitSpim 0
     ReadCmd -> do
-      t <- tokenOrPrev
+      t :: Token <- tokenOrPrev
       unless redo $ flushToNewline s
       if t == TokStr
         then do
-          name <- valStr s
+          name :: String <- valStr s
           _ <- readAssemblyFile s name
           scannerPopSource s
         else cError "Must supply a filename to read\n"
       done ReadCmd
     RunCmd -> do
-      a0 <- if redo then get (runAddr repl) else fromIntegral <$> getOptInt s
-      addr <- if a0 == 0 then findSymbolAddress s "__start" else pure a0
+      a0 :: Word32 <- if redo then get (runAddr repl) else fromIntegral <$> getOptInt s
+      addr :: Word32 <- if a0 == 0 then findSymbolAddress s "__start" else pure a0
       set (runAddr repl) addr
       argv >>= initializeRunStack s
       when (addr /= 0) $ do
-        undefs <- undefinedSymbolString s
+        undefs :: Maybe String <- undefinedSymbolString s
         forM_ undefs $ \names -> do
           writeErr "The following symbols are undefined:\n"
           writeErr names
           writeErr "\n"
-        (hit, _) <- runProgram s addr maxBound False False
+        (hit, _) :: (Bool, Bool) <- runProgram s addr maxBound False False
         breakMessage hit
       done RunCmd
     ContinueCmd -> do
-      pc <- get (regPC s)
+      pc :: Word32 <- get (regPC s)
       when (pc /= 0) $ runProgram s pc maxBound False True >>= breakMessage . fst
       done ContinueCmd
     StepCmd -> do
-      n0 <- if redo then get (stepCount repl) else fromIntegral <$> getOptInt s
-      let n = if n0 == 0 then 1 else n0
+      n0 :: Int <- if redo then get (stepCount repl) else fromIntegral <$> getOptInt s
+      let n :: Int
+          n = if n0 == 0 then 1 else n0
       set (stepCount repl) n
-      pc <- get (regPC s)
-      addr <- if pc == 0 then findSymbolAddress s "__start" else pure pc
+      pc :: Word32 <- get (regPC s)
+      addr :: Word32 <- if pc == 0 then findSymbolAddress s "__start" else pure pc
       when (addr /= 0) $ runProgram s addr n True True >>= breakMessage . fst
       done StepCmd
     PrintCmd -> do
-      t <- tokenOrPrev
-      consumed <- case t of
+      t :: Token <- tokenOrPrev
+      consumed :: Bool <- case t of
         TokReg -> do
-          loc <- if redo then (+ 1) <$> get (printLoc repl) else valInt s
+          loc :: Int32 <- if redo then (+ 1) <$> get (printLoc repl) else valInt s
           set (printLoc repl) loc
-          v <- getGpr s (fromIntegral loc `mod` 32)
+          v :: Int32 <- getGpr s (fromIntegral loc `mod` 32)
           writeErr (printf "Reg %d = 0x%08x (%d)\n" loc (fromIntegral v :: Word32) v)
           pure False
         TokFpReg -> do
-          loc <- if redo then (+ 2) <$> get (printLoc repl) else valInt s
+          loc :: Int32 <- if redo then (+ 2) <$> get (printLoc repl) else valInt s
           set (printLoc repl) loc
-          let r = fromIntegral loc `mod` 32
+          let r :: Int
+              r = fromIntegral loc `mod` 32
           when (even loc) $ doubleWords s (r - r `mod` 2) >>= \d -> writeErr (printf "FP reg %d = %s (double)\n" loc (formatG 6 d))
-          f <- fprSingle s r
+          f :: Float <- fprSingle s r
           writeErr (printf "FP reg %d = %s (single)\n" loc (formatG 6 (float2Double f)))
           pure False
         TokInt
           | redo -> do
-              loc <- (+ 4) <$> get (printLoc repl)
+              loc :: Int32 <- (+ 4) <$> get (printLoc repl)
               set (printLoc repl) loc
               printMem s (fromIntegral loc)
               pure False
           | otherwise -> do
-              intVal <- valInt s
-              nxt <- readToken s
+              intVal :: Int32 <- valInt s
+              nxt :: Token <- readToken s
               if nxt == TokChar '('
                 then do
-                  regTok <- readToken s
-                  reg <- if regTok == TokReg then fromIntegral <$> valInt s else pure (-1 :: Int)
-                  close <- if regTok == TokReg then readToken s else pure TokEOF
+                  regTok :: Token <- readToken s
+                  reg :: Int <- if regTok == TokReg then fromIntegral <$> valInt s else pure (-1 :: Int)
+                  close :: Token <- if regTok == TokReg then readToken s else pure TokEOF
                   if reg < 0 || close /= TokChar ')'
                     then cError "expected $reg) after '(' in print N($reg) form\n"
                     else do
-                      base <- getGpr s reg
-                      let loc = base + intVal
+                      base :: Int32 <- getGpr s reg
+                      let loc :: Int32
+                          loc = base + intVal
                       set (printLoc repl) loc
                       printMem s (fromIntegral loc)
                   pure (regTok == TokNL || close == TokNL)
@@ -612,10 +654,10 @@ parseSpimCommand s o repl redo = do
                   printMem s (fromIntegral intVal)
                   pure (nxt == TokNL)
         TokId -> do
-          name <- valStr s
-          isReg <- printRegFromString s name
+          name :: String <- valStr s
+          isReg :: Bool <- printRegFromString s name
           unless isReg $ do
-            loc <- if redo then (+ 4) <$> get (printLoc repl) else fromIntegral <$> findSymbolAddress s name
+            loc :: Int32 <- if redo then (+ 4) <$> get (printLoc repl) else fromIntegral <$> findSymbolAddress s name
             set (printLoc repl) loc
             if loc /= 0 then printMem s (fromIntegral loc) else cError ("Unknown label: " ++ name ++ "\n")
           pure False
@@ -628,17 +670,17 @@ parseSpimCommand s o repl redo = do
       unless redo $ flushToNewline s
       done NopCmd
     PrintAllRegsCmd -> do
-      t <- tokenOrPrev
-      w <- valStr s
-      text <- formatRegisters s (t == TokId && w == "hex")
+      t :: Token <- tokenOrPrev
+      w :: String <- valStr s
+      text :: String <- formatRegisters s (t == TokId && w == "hex")
       writeErr (text ++ "\n")
       -- With no operand the token read was the newline itself.
       unless (redo || t == TokNL) $ flushToNewline s
       done NopCmd
     ReinitializeCmd -> do
       flushToNewline s
-      h <- handlerFor o
-      quiet <- get (optQuiet s)
+      h :: ExceptionFiles <- handlerFor o
+      quiet :: Bool <- get (optQuiet s)
       initializeWorld s h (not quiet)
       argv >>= initializeRunStack s
       writeStartupMessage
@@ -647,17 +689,19 @@ parseSpimCommand s o repl redo = do
     RedoCmd -> pure True
     NopCmd -> done NopCmd
     ArgsCmd -> do
-      old <- argv
-      let argv0 = case old of (a : _) -> a; [] -> "<repl>"
+      old :: [String] <- argv
+      let argv0 :: String
+          argv0 = case old of (a : _) -> a; [] -> "<repl>"
+          collect :: [String] -> IO [String]
           collect acc = do
-            t <- readToken s
+            t :: Token <- readToken s
             case t of
               TokNL -> pure (reverse acc)
               TokStr -> valStr s >>= \v -> collect (v : acc)
               TokId -> valStr s >>= \v -> collect (v : acc)
               TokInt -> valInt s >>= \v -> collect (show v : acc)
               _ -> collect acc
-      rest <- collect []
+      rest :: [String] <- collect []
       set (argvRef repl) (argv0 : rest)
       done ArgsCmd
     HelpCmd -> do
@@ -666,10 +710,10 @@ parseSpimCommand s o repl redo = do
       done HelpCmd
     _
       | cmd == SetBkptCmd || cmd == DeleteBkptCmd -> do
-          t <- tokenOrPrev
+          t :: Token <- tokenOrPrev
           unless (redo || t == TokNL) $ flushToNewline s
-          old <- get (bkptAddr repl)
-          addr <- case t of
+          old :: Word32 <- get (bkptAddr repl)
+          addr :: Maybe Word32 <- case t of
             TokInt -> Just <$> if redo then pure (old + 4) else fromIntegral <$> valInt s
             TokId -> Just <$> if redo then pure (old + 4) else valStr s >>= findSymbolAddress s
             _ -> cError "Must supply an address for breakpoint\n" >> pure Nothing
@@ -684,8 +728,8 @@ parseSpimCommand s o repl redo = do
           listBreakpoints s
           done ListBkptCmd
       | cmd == DumpCmd || cmd == DumpNativeCmd -> do
-          t <- tokenOrPrev
-          fileName <- case t of
+          t :: Token <- tokenOrPrev
+          fileName :: Maybe String <- case t of
             TokStr -> Just <$> valStr s
             TokNL -> pure (Just "spim.dump")
             _ -> pure Nothing
@@ -699,27 +743,32 @@ parseSpimCommand s o repl redo = do
           unless redo $ flushToNewline s
           done NopCmd
       | otherwise -> do
-          let skip = readToken s >>= \t -> unless (t == TokNL) skip
+          let skip :: IO ()
+              skip = readToken s >>= \t -> unless (t == TokNL) skip
           skip
           cError "Unknown spim command\n"
           pure False
   where
+    dumpCode :: Command -> String -> IO ()
     dumpCode cmd f = do
-      opened <- (Right <$> openFile f WriteMode) `catch` \e -> pure (Left (e :: IOError))
+      opened :: Either IOError Handle <- (Right <$> openFile f WriteMode) `catch` \e -> pure (Left (e :: IOError))
       case opened of
         Left _ -> do
-          Errno e <- getErrno
-          msg <- c_strerror e >>= peekCAString
+          (Errno e :: Errno) <- getErrno
+          msg :: String <- c_strerror e >>= peekCAString
           writeErr (f ++ ": " ++ msg ++ "\n")
         Right h -> do
           hSetBinaryMode h True
           userKernelTextSegment s False
-          start <- findSymbolAddress s "__eoth"
-          end <- currentTextPc s
-          let addrs = takeWhile (< end) [start, start + 4 ..]
+          start :: Word32 <- findSymbolAddress s "__eoth"
+          end :: Word32 <- currentTextPc s
+          let addrs :: [Word32]
+              addrs = takeWhile (< end) [start, start + 4 ..]
           forM_ addrs $ \a -> do
-            code <- memReadInst s a >>= maybe (pure 0) (\r -> get r >>= instEncodeIO)
-            let w = fromIntegral code :: Word32
+            code :: Int32 <- memReadInst s a >>= maybe (pure 0) (\r -> get r >>= instEncodeIO)
+            let w :: Word32
+                w = fromIntegral code :: Word32
+                bytes :: [Word32]
                 bytes = if cmd == DumpCmd then [w `shiftR` 24, w `shiftR` 16, w `shiftR` 8, w] else [w, w `shiftR` 8, w `shiftR` 16, w `shiftR` 24]
             B.hPut h (B.pack (map (chr . fromIntegral . (.&. 0xff)) bytes))
           hClose h
@@ -729,8 +778,11 @@ parseSpimCommand s o repl redo = do
 -- (C: @print_reg_from_string@).  False if the name is none of them.
 printRegFromString :: Spim -> String -> IO Bool
 printRegFromString s name0 = do
-  let name = map toLower (take 100 name0)
+  let name :: String
+      name = map toLower (take 100 name0)
+      bare :: String
       bare = if take 1 name == "$" then drop 1 name else name
+      show' :: String -> Int32 -> IO Bool
       show' label v = writeErr (printf "%s = 0x%08x (%d)\n" (label :: String) (fromIntegral v :: Word32) (v :: Int32)) >> pure True
   case bare of
     "pc" -> get (regPC s) >>= show' "PC" . fromIntegral
