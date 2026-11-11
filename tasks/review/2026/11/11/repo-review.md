@@ -633,103 +633,103 @@ expect. So each item below was re-checked against the tree by the C reader.
 
 ## Suggested follow-ups
 
-**Required**
-- [F1] Make the documented opcode-change workflow work. `make generate` must not need an image
-  that `--check` fails to build; document the host fallback (§2.1).
-- [F2] Make the harness's float comparison numeric (a few ULP), and gate the ports' float
-  formatters: register `check-format.sh`/`check-strtod.sh`, run `cargo test --offline`, and add a
-  Python formatter oracle (§5.1, §5.2, §1.2).
-- [F3] Fix the cross-port crashes on valid programs, each with a `corpus.txt` case:
-  - large sbrk in all three ports (C's fatal message);
-  - closing fd 1 in Python and Haskell;
-  - Python's delay-slot recursion;
-  - Rust's `+ 1` and `steps -= 1` overflows, plus a debug-build or `overflow-checks` gate
+- **Required:**
+  - [F1] Make the documented opcode-change workflow work. `make generate` must not need an image
+    that `--check` fails to build; document the host fallback (§2.1).
+  - [F2] Make the harness's float comparison numeric (a few ULP), and gate the ports' float
+    formatters: register `check-format.sh`/`check-strtod.sh`, run `cargo test --offline`, and add a
+    Python formatter oracle (§5.1, §5.2, §1.2).
+  - [F3] Fix the cross-port crashes on valid programs, each with a `corpus.txt` case:
+    large sbrk in all three ports (C's fatal message);
+    closing fd 1 in Python and Haskell;
+    Python's delay-slot recursion;
+    Rust's `+ 1` and `steps -= 1` overflows, plus a debug-build or `overflow-checks` gate
 
-  (§4.2, §4.5.1, §4.5.2, §6.3).
-- [F4] Make the Haskell register writes strict, so the HI/LO thunk leak goes away. Also make `sbrk`
-  non-quadratic (§4.4.1, §4.4.2).
-- [F5] Make `parse_j` pass `tools/c_dispatch_check.py` again, and wire the checker into meson so it
-  stays green (§4.1.1, §2.3).
+    (§4.2, §4.5.1, §4.5.2, §6.3).
+  - [F4] Make the Haskell register writes strict, so the HI/LO thunk leak goes away. Also make `sbrk`
+    non-quadratic (§4.4.1, §4.4.2).
+  - [F5] Make `parse_j` pass `tools/c_dispatch_check.py` again, and wire the checker into meson so it
+    stays green (§4.1.1, §2.3).
 
-**Recommended**
-- [F6] Add a lint gate per port: ruff, `ty`, `check_local_annotations` and the doctests for Python;
-  clippy, `cargo fmt` and `cargo test` for Rust; `hlint` (advisory) for Haskell (§5.3).
-- [F7] Build a REPL transcript corpus for the harness, promoted from the one-shot REPL differs, so
-  every REPL command is compared on every engine (§6.1, §10.2).
-- [F8] Check the exit status in every sentinel and demo test (§6.2).
-- [F9] Close the harness holes: a C-side timeout fails, a selection of zero cases fails, `pgu/` is
-  copied into the image (or a minimum count is asserted), and the Rust launcher always runs
-  `cargo build` (§5.4, §5.5, §5.6).
-- [F10] Teach the teaching mode `jr.hb`/`jalr.hb`, and fix `explain_before`'s comment (or snapshot
-  the other stores) (§4.1.2, §4.1.4, §3.26).
-- [F11] Resolve the duplicate encodings: give the xc1/prefx rows their COP1X encodings, OR funct in
-  the COP1X decode, and drop the stars, with `BUILD_TREE_SITTER=1` (§4.1.3; baseline F8).
-- [F12] Fix the C bugs the ports exposed, then follow in every port:
-  - `ss_clear` truncation in `print_all_regs`;
-  - `-skt 0` looping;
-  - the `ld`/`sd`/`mfc1.d` register-31 pair forms;
-  - `.align` range;
-  - the `-assemble` trailing separator;
-  - out-of-range `$fN`
+- **Recommended:**
+  - [F6] Add a lint gate per port: ruff, `ty`, `check_local_annotations` and the doctests for Python;
+    clippy, `cargo fmt` and `cargo test` for Rust; `hlint` (advisory) for Haskell (§5.3).
+  - [F7] Build a REPL transcript corpus for the harness, promoted from the one-shot REPL differs, so
+    every REPL command is compared on every engine (§6.1, §10.2).
+  - [F8] Check the exit status in every sentinel and demo test (§6.2).
+  - [F9] Close the harness holes: a C-side timeout fails, a selection of zero cases fails, `pgu/` is
+    copied into the image (or a minimum count is asserted), and the Rust launcher always runs
+    `cargo build` (§5.4, §5.5, §5.6).
+  - [F10] Teach the teaching mode `jr.hb`/`jalr.hb`, and fix `explain_before`'s comment (or snapshot
+    the other stores) (§4.1.2, §4.1.4, §3.26).
+  - [F11] Resolve the duplicate encodings: give the xc1/prefx rows their COP1X encodings, OR funct in
+    the COP1X decode, and drop the stars, with `BUILD_TREE_SITTER=1` (§4.1.3; baseline F8).
+  - [F12] Fix the C bugs the ports exposed, then follow in every port:
+    `ss_clear` truncation in `print_all_regs`;
+    `-skt 0` looping;
+    the `ld`/`sd`/`mfc1.d` register-31 pair forms;
+    `.align` range;
+    the `-assemble` trailing separator;
+    out-of-range `$fN`
 
-  (§4.1.7, §4.3.1, §4.3.2, §4.5.6).
-- [F13] Do the done-record rewrites for the 13 archived docs, repoint the dangling archive paths,
-  add the missing superseded and "since done" notes, and `git rm` the one-shot `engine-port-*`
-  ad-hoc scripts (§10.1, §10.2, §10.3, §10.4).
-- [F14] Fix the Dockerfile's masked base-install status, and move each `ARG` to just before its
-  first use (§8.1, §8.3).
-- [F15] Rework the backlog:
-  - trim or archive `codebase-cleanup-plan`;
-  - rewrite or retire `minimal-nested-image`;
-  - add ports steps (and re-rate) to the five behavior-changing tasks;
-  - turn `engine-ports-teaching-mode` into `Depends on`;
-  - rewrite `tasks/README.md`'s ordering section from the table above, and drop its ChangeLog step
+    (§4.1.7, §4.3.1, §4.3.2, §4.5.6).
+  - [F13] Do the done-record rewrites for the 13 archived docs, repoint the dangling archive paths,
+    add the missing superseded and "since done" notes, and `git rm` the one-shot `engine-port-*`
+    ad-hoc scripts (§10.1, §10.2, §10.3, §10.4).
+  - [F14] Fix the Dockerfile's masked base-install status, and move each `ARG` to just before its
+    first use (§8.1, §8.3).
+  - [F15] Rework the backlog:
+    trim or archive `codebase-cleanup-plan`;
+    rewrite or retire `minimal-nested-image`;
+    add ports steps (and re-rate) to the five behavior-changing tasks;
+    turn `engine-ports-teaching-mode` into `Depends on`;
+    rewrite `tasks/README.md`'s ordering section from the table above, and drop its ChangeLog step
 
-  (§9, §1.1).
-- [F16] File a task for the `.align 0` / `enable_text_auto_alignment` decision (§10.5; baseline
-  §3.25).
+    (§9, §1.1).
+  - [F16] File a task for the `.align 0` / `enable_text_auto_alignment` decision (§10.5; baseline
+    §3.25).
 
-**Optional**
-- [F17] Rewrite `Documentation/spim.1` from the flag parser, and install it as `spimulator.1`
-  (§2.2; baseline F9).
-- [F18] Fix the docs:
-  - the gate wording (clang-gated; the checkers are manual until F5/F6);
-  - `engine-port-language-choice.md`'s stale claims;
-  - `engine-ports-design.md`'s numbers and paths;
-  - the deleted `check_decode.c` citation;
-  - the README's Windows claim, copyright SHA and example path;
-  - `port/README.md`'s missing tests;
-  - the stale Dockerfile comment paths
+- **Optional:**
+  - [F17] Rewrite `Documentation/spim.1` from the flag parser, and install it as `spimulator.1`
+    (§2.2; baseline F9).
+  - [F18] Fix the docs:
+    the gate wording (clang-gated; the checkers are manual until F5/F6);
+    `engine-port-language-choice.md`'s stale claims;
+    `engine-ports-design.md`'s numbers and paths;
+    the deleted `check_decode.c` citation;
+    the README's Windows claim, copyright SHA and example path;
+    `port/README.md`'s missing tests;
+    the stale Dockerfile comment paths
 
-  (§1.2, §1.3, §1.4, §2.3, §2.4, §2.5, §8.2).
-- [F19] Python cleanups:
-  - the guard-only `match`es;
-  - the "as before" comments;
-  - the open-ended chains `_emit_one` and the three `else`-less chains;
-  - enum members over mnemonic slicing;
-  - the dead `force_break`/`Kind.ERROR`/`noqa`s;
-  - `assert` used as a type guard
+    (§1.2, §1.3, §1.4, §2.3, §2.4, §2.5, §8.2).
+  - [F19] Python cleanups:
+    the guard-only `match`es;
+    the "as before" comments;
+    the open-ended chains `_emit_one` and the three `else`-less chains;
+    enum members over mnemonic slicing;
+    the dead `force_break`/`Kind.ERROR`/`noqa`s;
+    `assert` used as a type guard
 
-  (§4.3.3–§4.3.8).
-- [F20] Haskell cleanups: concrete local types, the partial-function forms, the FP-compare hot path,
-  the `BindingTypes` list-comprehension exemption, and a non-empty `hie` guard (§4.4.3–§4.4.6).
-- [F21] Rust cleanups: the unannotated bindings, naming the TLTU/TLTIU arm, and the dead public
-  functions (§4.5.3–§4.5.5).
-- [F22] Tool fixes:
-  - `c_dispatch_check.py`'s `','` count, in the canonical copy;
-  - `const_candidates.py`'s `:?:` lines and path resolution;
-  - `check_asm_canonical.py`'s vacuous pass;
-  - `cformat_vs_c.rs`'s skip-on-compile-failure;
-  - `gen_opcodes.py`'s duplicate-value check and literal escaping;
-  - `run-test.sh:352`'s pipe
+    (§4.3.3–§4.3.8).
+  - [F20] Haskell cleanups: concrete local types, the partial-function forms, the FP-compare hot path,
+    the `BindingTypes` list-comprehension exemption, and a non-empty `hie` guard (§4.4.3–§4.4.6).
+  - [F21] Rust cleanups: the unannotated bindings, naming the TLTU/TLTIU arm, and the dead public
+    functions (§4.5.3–§4.5.5).
+  - [F22] Tool fixes:
+    `c_dispatch_check.py`'s `','` count, in the canonical copy;
+    `const_candidates.py`'s `:?:` lines and path resolution;
+    `check_asm_canonical.py`'s vacuous pass;
+    `cformat_vs_c.rs`'s skip-on-compile-failure;
+    `gen_opcodes.py`'s duplicate-value check and literal escaping;
+    `run-test.sh:352`'s pipe
 
-  (§5.7–§5.10).
-- [F23] Convention cleanups:
-  - the bare "Bill" stamps and non-root-relative links;
-  - the history sections in the reference docs;
-  - the missing BLUF/Context/Status lines
+    (§5.7–§5.10).
+  - [F23] Convention cleanups:
+    the bare "Bill" stamps and non-root-relative links;
+    the history sections in the reference docs;
+    the missing BLUF/Context/Status lines
 
-  (§1.4, §1.5, §9.4, §10.6).
+    (§1.4, §1.5, §9.4, §10.6).
 
 ## Open questions for the maintainer
 
@@ -743,3 +743,17 @@ expect. So each item below was re-checked against the tree by the C reader.
    be promoted to `tools/`, now that reference docs cite them as live checks? Recommendation:
    promote the float-format checks, as part of F2, and `git rm` the integer-conversion scan, since
    the `-Wconversion` gate replaced it (§10.2).
+
+---
+
+*Note, 2026-11-11 (same day): the maintainer, William Emerison Six <billsix@gmail.com>, answered
+the three open questions, each as recommended. (1) C is fixed first for the undefined-behavior
+cases, and the ports then follow (F12). (2) The harness compares floats numerically, within a few
+ULP, and the printed-digit rule goes (F2). (3) `tasks/adhoc/engine-ports-float-format/` is promoted
+to `tools/` as part of F2, and `tasks/adhoc/integer-conversion-hardening/` is removed. No finding
+was changed.*
+
+*Note, 2026-11-11 (same day): the "Suggested follow-ups" list was reformatted, with each tier as a
+`- **Tier:**` bullet, its follow-ups indented under it, and no nested sub-bullets, so
+`review_status.py` reads one follow-up per ID. The reviewer's own formatting error; no finding or
+follow-up text was changed.*

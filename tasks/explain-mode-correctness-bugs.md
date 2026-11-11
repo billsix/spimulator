@@ -4,6 +4,7 @@
 **Priority:** 2
 **Difficulty:** 4
 **Created:** 2026-11-05 (William Emerison Six <billsix@gmail.com>)
+**Source:** tasks/review/2026/11/11/repo-review.md §4.1.2, §4.1.4 F10 (added 2026-11-11)
 **Next:** `tasks/explain-levels-redesign.md` (fix these first, so the redesign's goldens start from correct output)
 
 ## BLUF
@@ -103,3 +104,20 @@ program's stdout and exit status must be the same with and without `-explain`, w
 hidden-exception bugs above. Use a small program: `-explain=1` on `tests/tt.core.s` writes about 45
 million stderr lines in a minute and does not finish. Record:
 `tasks/archive/2026/11/10/engine-port-prereq-c-fixes.md`, "Log".
+
+## Added from the 2026-11-11 review (F10)
+
+Two more teaching-mode defects, from `tasks/review/2026/11/11/repo-review.md` §4.1.2 and §4.1.4.
+Fix them with the bugs above.
+
+- **`jr.hb` and `jalr.hb` get no explanation.** `src/explain.c` `lookup_classification` and
+  `render_dispatch` have no case for `TOK_JR_HB_OPCODE` or `TOK_JALR_HB_OPCODE`. Under `-explain=2`,
+  `jr.hb $t0` prints "(no detailed explanation for this opcode yet — see the disassembly above)",
+  while `jr` gets a category and an explanation. Both became executable on 2026-11-11
+  (`tasks/archive/2026/11/11/parse-j-drops-cop2-and-jalr-hb.md`). Add the `.hb` tokens beside
+  `TOK_JR_OPCODE`/`TOK_JALR_OPCODE` in both switches, and add a line for them in
+  `tests/tt.explain.s` so the golden pins it.
+- **`explain_before`'s `default` comment is false.** It says "Any other opcode stores nothing", but
+  swl, swr, sc, swc1 and sdc1 store too. Only sw/sh/sb snapshot memory, so those stores never print
+  "memory at" or "Wrote to memory" (the 2026-11-10 review's §3.26). Snapshot them too, or, if that
+  is out of scope, make the comment say "not snapshotted".
