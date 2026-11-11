@@ -158,6 +158,22 @@ case "$NAME" in
     "$SPIM" -exception_file "$EF" -f tt.parse_error.s >"$out" 2>&1; rc=$?
     expect_exit 2 "$rc"
     ;;
+  hazard_barrier)
+    # jr.hb and jalr.hb run as jr and jalr, and keep their own encodings
+    # (bit 10, the hazard barrier, set), matching GNU as.
+    "$SPIM" -exception_file "$EF" -f tt.hazard_barrier.s >"$out" 2>&1
+    expect_sentinel
+    printf 'load "tt.hazard_barrier.s"\ndisasm\nexit\n' | "$SPIM" -exception_file "$EF" >"$out" 2>&1
+    grep -q '0x0100fc09  jalr.hb' "$out" || fail "jalr.hb \$t0 is not 0x0100fc09"
+    grep -q '0x01008c09  jalr.hb' "$out" || fail "jalr.hb \$s1, \$t0 is not 0x01008c09"
+    grep -q '0x03e00408  jr.hb' "$out" || fail "jr.hb \$ra is not 0x03e00408"
+    ;;
+  cop2_rejected)
+    # cop2 is an error (spim has no coprocessor 2): exit 2, with the reason.
+    "$SPIM" -exception_file "$EF" -f tt.cop2.s >"$out" 2>&1; rc=$?
+    expect_exit 2 "$rc"
+    grep -q 'cop2 is not supported: spim has no coprocessor 2' "$out" || fail "missing the cop2 error"
+    ;;
   parse_error_data_list)
     # A float in a .word list: one parse error, exit 2 -- not an endless
     # repeat of the error (the timeout catches a regression to the loop).
