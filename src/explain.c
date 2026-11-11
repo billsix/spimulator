@@ -1333,7 +1333,7 @@ static constexpr char UK26[] = "            ?             ";
 /* SPECIAL-group: opcode == 0x00, funct selects the actual op. Table
    filled out for the integer ops spimulator's existing templates
    cover; entries not listed return nullptr (rendered as "?"). */
-static const char* special_funct_to_name[64] = {
+static const char* const special_funct_to_name[64] = {
     [0x00] = "sll",  [0x02] = "srl",   [0x03] = "sra",     [0x04] = "sllv",
     [0x06] = "srlv", [0x07] = "srav",  [0x08] = "jr",      [0x09] = "jalr",
     [0x0a] = "movz", [0x0b] = "movn",  [0x0c] = "syscall", [0x0d] = "break",
@@ -1345,7 +1345,7 @@ static const char* special_funct_to_name[64] = {
 };
 
 /* REGIMM-group: opcode == 0x01, rt selects the actual op. */
-static const char* regimm_rt_to_name[32] = {
+static const char* const regimm_rt_to_name[32] = {
     [0x00] = "bltz",
     [0x01] = "bgez",
     [0x10] = "bltzal",
