@@ -12,7 +12,7 @@ means each item below is either done or explicitly declined. Every item is small
 
 ## Context
 
-- Trimmed 2026-11-11 (`tasks/backlog-rework-after-ports.md`, the maintainer's decision 2): the
+- Trimmed 2026-11-11 (`tasks/archive/2026/11/11/backlog-rework-after-ports.md`, the maintainer's decision 2): the
   original plan's done items were removed. Done, each checked by a grep that day: A1–A6, A8–A10
   (dead code, include guards, the README build claim, `README.rtf`, the duplicate `extern`s, the
   ChangeLog note, `bldInstall/`), B1, B2 (`str_copy`), C3 (the SPDX headers and `LICENSE`), C4
