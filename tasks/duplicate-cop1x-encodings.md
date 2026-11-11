@@ -36,7 +36,7 @@ picks one on purpose. For three of them it picks the wrong one: 0x46000008/09/0f
 1. Look up each of the 12 instructions with GNU `as`; fix the rows; drop the duplicate stars.
 2. Fix the COP1X decode in `src/instruction.c` and in each port's counterpart.
 3. Add a regression test that stores each word into text and disassembles or executes it.
-4. `python3 tools/gen_opcodes.py` (or `make generate`, once `tasks/opcode-generate-workflow.md` is
+4. `python3 tools/gen_opcodes.py` (or `make generate`, once `tasks/archive/2026/11/11/opcode-generate-workflow.md` is
    done), then `make image` with `BUILD_TREE_SITTER=1`.
 
 ## Open questions
