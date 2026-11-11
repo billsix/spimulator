@@ -1,6 +1,6 @@
 # Codebase cleanup: the open items
 
-**Status:** proposed — needs go-ahead (per item; each is independent)
+**Status:** in progress (go-ahead 2026-11-11)
 **Priority:** 7
 **Difficulty:** 3
 
@@ -64,7 +64,8 @@ and `port/harness/corpus.txt`.
 1. Per item: make the change, then gate with both local builds and `meson test` (regression,
    examples, port-python, port-haskell, port-rust), then `make image`.
 
-## Open questions
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
-1. B3: drop the `_inst` suffix (the plan's recommendation), or leave the names?
-2. C1: split `include/spim.h`, or decline it?
+1. B3: drop the `_inst` suffix (the plan's recommendation).
+2. C1: declined; the header split is the lowest-value item and not worth the churn.
+3. A7 and E3 have no open question and are done with the rest.
