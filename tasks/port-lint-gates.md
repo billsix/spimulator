@@ -1,43 +1,35 @@
 # Gate each port's lint, type-check and unit tests
 
-**Status:** proposed — needs go-ahead
-**Priority:** 4
-**Difficulty:** 4
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
+**Branch:** `review-2026-11-11-batch`
 **Source:** tasks/review/2026/11/11/repo-review.md §5.3 F6
 
-## BLUF
+## Outcome
 
-No gate runs the ports' tier-(a) tools: ruff, `ty`, `check_local_annotations` and the doctests for
-Python; clippy, `cargo fmt` and `cargo test` for Rust; `hlint` for Haskell. They all pass when run by
-hand today, but only because whoever edits the ports runs them. Done means a meson test per port that
-`make image` runs, so a lint or type error fails the image.
+Each port has a lint script, `port/<port>/lint.sh`, which a meson test in its suite runs. Every step
+runs, and the script fails if any failed (the gate-script rule).
+- `port-python-lint` (`port/python/lint.sh`): `ruff check`, `ruff format --check`, `ty` (run from
+  `port/python/` so it reads the port's `pyproject.toml`), `tools/check_local_annotations.py`, and the
+  doctests through `port/python/run_doctests.py` (36 today).
+  - The annotation checker is the SHARED, VENDORED copy of github.com/billsix/runClaudeInContainer
+    `tasks/reference/check_local_annotations.py`; edit the canonical and re-copy it.
+  - The doctest runner exists because the modules use relative imports, so `python -m doctest FILE`
+    can't load them.
+- `port-rust-lint` (`port/rust/lint.sh`): `cargo fmt --check` and `cargo clippy --all-targets -- -D
+  warnings`. `cargo test` is `rust-cargo-test`, from `port-float-comparison-and-formatter-gates`.
+- `port-haskell-hlint` (`port/haskell/lint.sh`): `hlint`, advisory. It prints its hints (51 today)
+  and always passes. The compiler tier is already a gate: `-Wall -Werror`.
 
-## Context
-
-- `grep -rn "ruff\|ty check\|clippy\|cargo fmt\|cargo test\|hlint" Makefile Dockerfile meson.build
-  port/meson.build entrypoint/*.sh` finds nothing.
-- Haskell builds with `-Wall -Werror` (`port/haskell/build.sh:17`), so its compiler tier is gated
-  already.
-- The standards: the python-, rust- and haskell-coding-standard.md reference docs from
-  github.com/billsix/runClaudeInContainer. Their tier (a) is what these tools enforce.
-- Python: `port/python/pyproject.toml` configures ruff and `ty`. Run `ty` from `port/python/`; run
-  from the repo root, it ignores the port's config. `check_local_annotations.py` is a SHARED,
-  VENDORED tool: vendor it into `tools/` (canonical: runClaudeInContainer
-  `tasks/reference/check_local_annotations.py`). `ruff --select RUF100` finds 10 unused `noqa`
-  comments (see `tasks/python-port-cleanups.md`).
-- The image must have each tool offline: ruff and `ty` (dnf or the venv), clippy and rustfmt
-  (`rust-clippy`, `rustfmt`), and `hlint`. Check `entrypoint/05-install-ports.sh`.
-
-## Plan
-
-1. Install the missing tools in `entrypoint/05-install-ports.sh`.
-2. Add meson tests `port-python-lint` (ruff check, ruff format --check, `ty`, the annotation check,
-   `python -m doctest` or pytest `--doctest-modules` if adopted), `port-rust-lint` (`cargo fmt
-   --check`, `cargo clippy --offline --all-targets -- -D warnings`, `cargo test --offline`) and
-   `port-haskell-lint` (`hlint`; see question 1).
-3. Gate: `make image`. Introduce one lint error per port to confirm each test fails, then revert.
+`entrypoint/05-install-ports.sh` installs `ruff`, `ty`, `hlint`, `clippy` and `rustfmt`, all Fedora
+packages. `port/README.md` lists everything each port suite runs.
 
 ## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
-1. `hlint` runs advisory (option (b)): it is run and its hints shown, but it never fails the gate.
+1. `hlint` is advisory: run, never failing.
+
+## Verification
+
+- All three lint tests pass in meson.
+- An unused import in a Python module makes `port/python/lint.sh` exit 1, and a misformatted Rust
+  function makes `port/rust/lint.sh` exit 1. Both probes were reverted.
