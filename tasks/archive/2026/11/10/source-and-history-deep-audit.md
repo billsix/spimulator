@@ -24,7 +24,7 @@ correctness bugs (§3) and 8 test-gate findings (§6), with follow-ups F1–F12 
   SPIM 9.1.24; the maintainer era). About 1.29M subagent tokens in total.
 - The main thread re-ran the checks behind every HIGH finding and every dead-code or
   byte-identity claim (marked MAIN-VERIFIED in the record), and reconciled against
-  `tasks/codebase-cleanup-plan.md`, `tasks/reference/inherited-idiosyncrasies.md` and the pass-1/pass-2
+  `tasks/archive/2026/11/11/codebase-cleanup-plan.md`, `tasks/reference/inherited-idiosyncrasies.md` and the pass-1/pass-2
   archive docs.
 
 ## Findings that changed the plan

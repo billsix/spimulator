@@ -87,7 +87,7 @@ The design, the decode column, and how a new language plugs in are in
    - the reference doc;
    - `CLAUDE.md` (layout, conventions, the `BUILD_TREE_SITTER=1` rule now naming `opcodes.tsv`);
    - `port/README.md` and the ports design doc;
-   - stale `opcodes.h` mentions in reference and open-task docs. `tasks/codebase-cleanup-plan.md`
+   - stale `opcodes.h` mentions in reference and open-task docs. `tasks/archive/2026/11/11/codebase-cleanup-plan.md`
      G2 ("don't replace with a Python script") is marked superseded.
 
 ## Verification

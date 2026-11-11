@@ -6,7 +6,7 @@
 
 ## Summary
 
-- **`tasks/codebase-cleanup-plan.md`** was trimmed to its open items (decision 2, option (a)). Each
+- **`tasks/archive/2026/11/11/codebase-cleanup-plan.md`** was trimmed to its open items (decision 2, option (a)). Each
   item was checked with a grep first: A1–A6, A8–A10, B1, B2, C3, C4, C5, E1, E2 and E4 were done. C2
   was dropped, because `eval_imm_expr` is called from four files and belongs in the header. A7 was
   reworded: the `label_names_cache` realloc is checked now, but a bare `owned_strs = realloc(` in

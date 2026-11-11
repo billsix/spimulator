@@ -39,5 +39,5 @@ since done and archived as `tasks/archive/2026/11/10/engine-port-python.md`.
 - Run it the same night, after the C23 pass passes its gate: investigation only (reference doc + throwaway spikes), no port code (William Emerison Six <billsix@gmail.com>, 2026-11-10).
 - The spikes covered the top three candidates (Python, Rust, Java); Go, C# and Haskell got formatting
   probes only, since their integer types settle the width question by construction.
-- `tasks/codebase-cleanup-plan.md` Tier G2 mentions a "Go-port survey"; it is not in the tree or the
+- `tasks/archive/2026/11/11/codebase-cleanup-plan.md` Tier G2 mentions a "Go-port survey"; it is not in the tree or the
   history (`git log --all -i --grep=survey` finds nothing relevant), so nothing was reused from it.
