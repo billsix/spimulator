@@ -105,7 +105,9 @@ listBreakpoints s = do
     else forM_ bs $ \(a, _) -> writeErr (printf "Breakpoint at 0x%08x\n" a)
 
 reg :: Int -> String
-reg n = regNames !! (n `mod` 32)
+reg n = case drop (n `mod` 32) regNames of
+  name : _ -> name
+  [] -> show n -- not reached: regNames names all 32 registers
 
 -- | One line of disassembly (C: @format_an_inst@): address, encoding,
 -- mnemonic and operands, the symbolic operand in brackets, and the source

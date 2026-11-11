@@ -186,7 +186,9 @@ maybeSnapshotLine = do
     let line :: String
         line = ssLine st
         trimmed :: String
-        trimmed = if not (null line) && last line == '\n' then init line else line
+        trimmed = case reverse line of
+          '\n' : rest -> reverse rest
+          _ -> line
     put st {ssSnapshot = trimmed, ssSnapshotLineNo = ssLineNo st, ssSnapshotSaved = True}
 
 -- | Scan one token (C: @scan_one_token@).

@@ -67,24 +67,24 @@ sortedOnValue1 = toArray . sortBy (comparing nvvValue1)
 -- | token -> (mnemonic, operand type)  (C: @name_tbl@).
 nameTable :: Array Int (NameValVal OpType)
 nameTable =
-  sortedOnValue1 [NameValVal (rowName r) (opcodeToken (rowOpcode r)) (rowType r) | r :: OpRow <- opcodeRows]
+  sortedOnValue1 [NameValVal (rowName r) (opcodeToken (rowOpcode r)) (rowType r) | r <- opcodeRows]
 
 -- | token -> binary opcode  (C: @i_opcode_tbl@).
 iOpcodeTable :: Array Int (NameValVal Int32)
 iOpcodeTable =
-  sortedOnValue1 [NameValVal (rowName r) (opcodeToken (rowOpcode r)) (rowEncoding r) | r :: OpRow <- opcodeRows]
+  sortedOnValue1 [NameValVal (rowName r) (opcodeToken (rowOpcode r)) (rowEncoding r) | r <- opcodeRows]
 
 -- | binary opcode -> token  (C: @a_opcode_tbl@).
 aOpcodeTable :: Array Int (NameValVal Int)
 aOpcodeTable =
   toArray
-    [NameValVal (rowName r) (fromIntegral (rowEncoding r)) (opcodeToken (rowOpcode r)) | r :: OpRow <- opcodeDecodeRows]
+    [NameValVal (rowName r) (fromIntegral (rowEncoding r)) (opcodeToken (rowOpcode r)) | r <- opcodeDecodeRows]
 
 -- | mnemonic -> (token, operand type), in file order, which the C
 -- scanner searches by name (C: @keyword_tbl@).
 keywordTable :: Array Int (NameValVal OpType)
 keywordTable =
-  toArray [NameValVal (rowName r) (opcodeToken (rowOpcode r)) (rowType r) | r :: OpRow <- opcodeRows]
+  toArray [NameValVal (rowName r) (opcodeToken (rowOpcode r)) (rowType r) | r <- opcodeRows]
 
 -- | C's @map_int_to_name_val_val@.
 lookupByValue :: Array Int (NameValVal a) -> Int -> Maybe (NameValVal a)
