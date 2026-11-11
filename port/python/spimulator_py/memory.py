@@ -419,52 +419,57 @@ def check_memory_mapped_io() -> None:
 def _write_memory_mapped_io(addr: int, value: int) -> None:
     """A store to a console register."""
     global _recv_control, _trans_control, _trans_buffer, _trans_buffer_full_timer
-    if addr == layout.TRANS_CTRL_ADDR:
-        if value & layout.TRANS_INT_ENABLE:
-            _trans_control |= layout.TRANS_INT_ENABLE
-            if _trans_control & layout.TRANS_READY:
-                _raise_interrupt(layout.TRANS_INT_LEVEL)
-        else:
-            _trans_control &= ~layout.TRANS_INT_ENABLE
-            _clear_interrupt(layout.TRANS_INT_LEVEL)
-    elif addr == layout.TRANS_BUFFER_ADDR:
-        if _trans_control & layout.TRANS_READY:  # ignored while busy
-            _trans_buffer = value & 0xFF
-            console.put_console_char(_trans_buffer)
-            _trans_control &= ~layout.TRANS_READY
-            _trans_buffer_full_timer = layout.TRANS_LATENCY
-            _clear_interrupt(layout.TRANS_INT_LEVEL)
-    elif addr == layout.RECV_CTRL_ADDR:
-        if value & layout.RECV_INT_ENABLE:
-            _recv_control |= layout.RECV_INT_ENABLE
-            if _recv_control & layout.RECV_READY:
-                _raise_interrupt(layout.RECV_INT_LEVEL)
-        else:
-            _recv_control &= ~layout.RECV_INT_ENABLE
-            _clear_interrupt(layout.RECV_INT_LEVEL)
-    elif addr == layout.RECV_BUFFER_ADDR:
-        pass  # the program cannot change the receiver buffer
-    else:
-        raise console.run_error(
-            f"Write to unused memory-mapped IO address (0x{addr:x})\n"
-        )
+    match addr:
+        case layout.TRANS_CTRL_ADDR:
+            if value & layout.TRANS_INT_ENABLE:
+                _trans_control |= layout.TRANS_INT_ENABLE
+                if _trans_control & layout.TRANS_READY:
+                    _raise_interrupt(layout.TRANS_INT_LEVEL)
+            else:
+                _trans_control &= ~layout.TRANS_INT_ENABLE
+                _clear_interrupt(layout.TRANS_INT_LEVEL)
+        case layout.TRANS_BUFFER_ADDR:
+            if _trans_control & layout.TRANS_READY:  # ignored while busy
+                _trans_buffer = value & 0xFF
+                console.put_console_char(_trans_buffer)
+                _trans_control &= ~layout.TRANS_READY
+                _trans_buffer_full_timer = layout.TRANS_LATENCY
+                _clear_interrupt(layout.TRANS_INT_LEVEL)
+        case layout.RECV_CTRL_ADDR:
+            if value & layout.RECV_INT_ENABLE:
+                _recv_control |= layout.RECV_INT_ENABLE
+                if _recv_control & layout.RECV_READY:
+                    _raise_interrupt(layout.RECV_INT_LEVEL)
+            else:
+                _recv_control &= ~layout.RECV_INT_ENABLE
+                _clear_interrupt(layout.RECV_INT_LEVEL)
+        case layout.RECV_BUFFER_ADDR:
+            pass  # the program cannot change the receiver buffer
+        case _:
+            raise console.run_error(
+                f"Write to unused memory-mapped IO address (0x{addr:x})\n"
+            )
 
 
 def _read_memory_mapped_io(addr: int) -> int:
     """A load from a console register."""
     global _recv_control, _recv_buffer_full_timer
-    if addr == layout.TRANS_CTRL_ADDR:
-        return _trans_control
-    if addr == layout.TRANS_BUFFER_ADDR:
-        return _trans_buffer & 0xFF
-    if addr == layout.RECV_CTRL_ADDR:
-        return _recv_control
-    if addr == layout.RECV_BUFFER_ADDR:
-        _recv_control &= ~layout.RECV_READY
-        _recv_buffer_full_timer = 0
-        _clear_interrupt(layout.RECV_INT_LEVEL)
-        return _recv_buffer & 0xFF
-    raise console.run_error(f"Read from unused memory-mapped IO address (0x{addr:x})\n")
+    match addr:
+        case layout.TRANS_CTRL_ADDR:
+            return _trans_control
+        case layout.TRANS_BUFFER_ADDR:
+            return _trans_buffer & 0xFF
+        case layout.RECV_CTRL_ADDR:
+            return _recv_control
+        case layout.RECV_BUFFER_ADDR:
+            _recv_control &= ~layout.RECV_READY
+            _recv_buffer_full_timer = 0
+            _clear_interrupt(layout.RECV_INT_LEVEL)
+            return _recv_buffer & 0xFF
+        case _:
+            raise console.run_error(
+                f"Read from unused memory-mapped IO address (0x{addr:x})\n"
+            )
 
 
 def print_mem(addr: int) -> None:

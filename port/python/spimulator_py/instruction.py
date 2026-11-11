@@ -519,50 +519,52 @@ def inst_encode(inst: Instruction | None) -> int:
     kind: int = row.kind
     imm: int = inst.imm & 0xFFFF
     word: int
-    if kind == OpType.BRANCH_COPROC_COND_INST:
-        word = a | _regs((inst.rt >> 2) << 2, 16) | imm
-    elif kind in (OpType.BRANCH_RS_LABEL_INST, OpType.RS_IMM_INST):
-        word = a | _regs(inst.rs, 21) | imm
-    elif (
-        kind
-        in (
-            OpType.RT_IMM_INST,
-            OpType.RT_RS_IMM_INST,
-            OpType.BRANCH_RS_RT_LABEL_INST,
-            OpType.RT_ADDR_INST,
-        )
-        or kind == OpType.FP_FT_ADDR_INST
-    ):
-        word = a | _regs(inst.rs, 21) | _regs(inst.rt, 16) | imm
-    elif kind == OpType.RS_INST:
-        word = a | _regs(inst.rs, 21)
-    elif kind == OpType.RD_INST:
-        word = a | _regs(inst.rd, 11)
-    elif kind in (OpType.RT_COPREG_INST, OpType.FP_RT_COPREG_INST):
-        word = a | _regs(inst.rt, 16) | _regs(inst.rd, 11)
-    elif kind == OpType.RS_RT_INST:
-        word = a | _regs(inst.rs, 21) | _regs(inst.rt, 16)
-    elif kind == OpType.RD_RS_INST:
-        word = a | _regs(inst.rs, 21) | _regs(inst.rd, 11)
-    elif kind == OpType.RD_RT_SHAMT_INST:
-        word = a | _regs(inst.rt, 16) | _regs(inst.rd, 11) | _regs(inst.shamt, 6)
-    elif kind in (OpType.RD_RS_RT_INST, OpType.RD_RT_RS_INST, OpType.MOVC_TYPE_INST):
-        word = a | _regs(inst.rs, 21) | _regs(inst.rt, 16) | _regs(inst.rd, 11)
-    elif kind == OpType.FP_FD_FS_INST:
-        word = a | _regs(inst.rd, 11) | _regs(inst.shamt, 6)
-    elif kind == OpType.FP_CMP_FS_FT_INST:
-        word = (
-            a | _regs(inst.rt, 16) | _regs(inst.rd, 11) | _regs(inst.shamt, 6) | inst.rs
-        )
-    elif kind in (OpType.FP_FD_FS_FT_INST, OpType.FP_MOVC_TYPE_INST):
-        # For movf/movt the rt byte is cc<<2; their tf bit is in a already.
-        word = a | _regs(inst.rt, 16) | _regs(inst.rd, 11) | _regs(inst.shamt, 6)
-    elif kind == OpType.J_TYPE_INST:
-        word = machine.u32(a) | inst.target
-    elif kind == OpType.NOARG_TYPE_INST:
-        word = a
-    else:
-        raise console.fatal_error("Unknown instruction type in inst_encoding\n")
+    match kind:
+        case OpType.BRANCH_COPROC_COND_INST:
+            word = a | _regs((inst.rt >> 2) << 2, 16) | imm
+        case OpType.BRANCH_RS_LABEL_INST | OpType.RS_IMM_INST:
+            word = a | _regs(inst.rs, 21) | imm
+        case (
+            OpType.RT_IMM_INST
+            | OpType.RT_RS_IMM_INST
+            | OpType.BRANCH_RS_RT_LABEL_INST
+            | OpType.RT_ADDR_INST
+            | OpType.FP_FT_ADDR_INST
+        ):
+            word = a | _regs(inst.rs, 21) | _regs(inst.rt, 16) | imm
+        case OpType.RS_INST:
+            word = a | _regs(inst.rs, 21)
+        case OpType.RD_INST:
+            word = a | _regs(inst.rd, 11)
+        case OpType.RT_COPREG_INST | OpType.FP_RT_COPREG_INST:
+            word = a | _regs(inst.rt, 16) | _regs(inst.rd, 11)
+        case OpType.RS_RT_INST:
+            word = a | _regs(inst.rs, 21) | _regs(inst.rt, 16)
+        case OpType.RD_RS_INST:
+            word = a | _regs(inst.rs, 21) | _regs(inst.rd, 11)
+        case OpType.RD_RT_SHAMT_INST:
+            word = a | _regs(inst.rt, 16) | _regs(inst.rd, 11) | _regs(inst.shamt, 6)
+        case OpType.RD_RS_RT_INST | OpType.RD_RT_RS_INST | OpType.MOVC_TYPE_INST:
+            word = a | _regs(inst.rs, 21) | _regs(inst.rt, 16) | _regs(inst.rd, 11)
+        case OpType.FP_FD_FS_INST:
+            word = a | _regs(inst.rd, 11) | _regs(inst.shamt, 6)
+        case OpType.FP_CMP_FS_FT_INST:
+            word = (
+                a
+                | _regs(inst.rt, 16)
+                | _regs(inst.rd, 11)
+                | _regs(inst.shamt, 6)
+                | inst.rs
+            )
+        case OpType.FP_FD_FS_FT_INST | OpType.FP_MOVC_TYPE_INST:
+            # For movf/movt the rt byte is cc<<2; their tf bit is in a already.
+            word = a | _regs(inst.rt, 16) | _regs(inst.rd, 11) | _regs(inst.shamt, 6)
+        case OpType.J_TYPE_INST:
+            word = machine.u32(a) | inst.target
+        case OpType.NOARG_TYPE_INST:
+            word = a
+        case _:
+            raise console.fatal_error("Unknown instruction type in inst_encoding\n")
     return machine.s32(word)
 
 
@@ -592,17 +594,20 @@ def inst_decode(word: int) -> Instruction:
     """
     val: int = machine.u32(word)
     a: int = val & 0xFC000000
-    if a in (0, 0x70000000):  # SPECIAL, SPECIAL2: the function field
-        a |= val & 0x3F
-    elif a == 0x04000000:  # REGIMM: the rt field
-        a |= val & 0x001F0000
-    elif a == 0x40000000:  # COP0
-        a |= (val & 0x03E00000) | (val & 0x1F)
-    elif a == 0x44000000:  # COP1
-        a |= val & 0x03E00000
-        a |= (val & 0x00010000) if val & 0xFF000000 == 0x45000000 else (val & 0x3F)
-    elif a in (0x48000000, 0x4C000000):  # COP2, COP1X
-        a |= val & 0x03E00000
+    match a:
+        case 0 | 0x70000000:  # SPECIAL, SPECIAL2: the function field
+            a |= val & 0x3F
+        case 0x04000000:  # REGIMM: the rt field
+            a |= val & 0x001F0000
+        case 0x40000000:  # COP0
+            a |= (val & 0x03E00000) | (val & 0x1F)
+        case 0x44000000:  # COP1
+            a |= val & 0x03E00000
+            a |= (val & 0x00010000) if val & 0xFF000000 == 0x45000000 else (val & 0x3F)
+        case 0x48000000 | 0x4C000000:  # COP2, COP1X
+            a |= val & 0x03E00000
+        case _:
+            pass  # any other value: nothing to do, as before
     token: int | None = opcodes.token_for_encoding(machine.s32(a))
     if token is None:
         return _mk_inst(val, 0)
@@ -612,37 +617,38 @@ def inst_decode(word: int) -> Instruction:
     sh: int = (val >> 6) & 0x1F
     imm: int = val & 0xFFFF
     kind: int | None = kind_of(token)
-    if kind in (OpType.BRANCH_COPROC_COND_INST, OpType.RT_IMM_INST, OpType.RT_RS_IMM_INST,
-                OpType.BRANCH_RS_RT_LABEL_INST, OpType.RT_ADDR_INST, OpType.FP_FT_ADDR_INST):  # fmt: skip
-        return _mk_inst(val, token, rs, rt, imm & 0xFF, imm >> 8)
-    if kind in (OpType.BRANCH_RS_LABEL_INST, OpType.RS_IMM_INST):
-        return _mk_inst(val, token, rs, 0, imm & 0xFF, imm >> 8)
-    if kind == OpType.RS_INST:
-        return _mk_inst(val, token, rs)
-    if kind == OpType.RD_INST:
-        return _mk_inst(val, token, rd=rd)
-    if kind in (OpType.RT_COPREG_INST, OpType.FP_RT_COPREG_INST):
-        return _mk_inst(val, token, rt=rt, rd=rd)
-    if kind == OpType.RS_RT_INST:
-        return _mk_inst(val, token, rs, rt)
-    if kind == OpType.RD_RS_INST:
-        return _mk_inst(val, token, rs, rd=rd)
-    if kind == OpType.RD_RT_SHAMT_INST:
-        return _mk_inst(val, token, 0, rt, rd, sh)
-    if kind in (OpType.RD_RS_RT_INST, OpType.RD_RT_RS_INST, OpType.MOVC_TYPE_INST):
-        return _mk_inst(val, token, rs, rt, rd)
-    if kind == OpType.FP_FD_FS_INST:
-        return _mk_inst(val, token, 0, 0, rd, sh)
-    if kind == OpType.FP_CMP_FS_FT_INST:
-        return _mk_inst(val, token, val & 0xF, rt, rd, sh)
-    if kind in (OpType.FP_FD_FS_FT_INST, OpType.FP_MOVC_TYPE_INST):
-        return _mk_inst(val, token, 0, rt, rd, sh)
-    if kind == OpType.J_TYPE_INST:
-        target: int = val & 0x3FFFFFF
-        return _mk_inst(val, token, target, target >> 8, target >> 16, target >> 24)
-    if kind == OpType.NOARG_TYPE_INST:
-        return _mk_inst(val, token)
-    return _mk_inst(val, 0)
+    match kind:
+        case OpType.BRANCH_COPROC_COND_INST | OpType.RT_IMM_INST | OpType.RT_RS_IMM_INST | OpType.BRANCH_RS_RT_LABEL_INST | OpType.RT_ADDR_INST | OpType.FP_FT_ADDR_INST:  # fmt: skip
+            return _mk_inst(val, token, rs, rt, imm & 0xFF, imm >> 8)
+        case OpType.BRANCH_RS_LABEL_INST | OpType.RS_IMM_INST:
+            return _mk_inst(val, token, rs, 0, imm & 0xFF, imm >> 8)
+        case OpType.RS_INST:
+            return _mk_inst(val, token, rs)
+        case OpType.RD_INST:
+            return _mk_inst(val, token, rd=rd)
+        case OpType.RT_COPREG_INST | OpType.FP_RT_COPREG_INST:
+            return _mk_inst(val, token, rt=rt, rd=rd)
+        case OpType.RS_RT_INST:
+            return _mk_inst(val, token, rs, rt)
+        case OpType.RD_RS_INST:
+            return _mk_inst(val, token, rs, rd=rd)
+        case OpType.RD_RT_SHAMT_INST:
+            return _mk_inst(val, token, 0, rt, rd, sh)
+        case OpType.RD_RS_RT_INST | OpType.RD_RT_RS_INST | OpType.MOVC_TYPE_INST:
+            return _mk_inst(val, token, rs, rt, rd)
+        case OpType.FP_FD_FS_INST:
+            return _mk_inst(val, token, 0, 0, rd, sh)
+        case OpType.FP_CMP_FS_FT_INST:
+            return _mk_inst(val, token, val & 0xF, rt, rd, sh)
+        case OpType.FP_FD_FS_FT_INST | OpType.FP_MOVC_TYPE_INST:
+            return _mk_inst(val, token, 0, rt, rd, sh)
+        case OpType.J_TYPE_INST:
+            target: int = val & 0x3FFFFFF
+            return _mk_inst(val, token, target, target >> 8, target >> 16, target >> 24)
+        case OpType.NOARG_TYPE_INST:
+            return _mk_inst(val, token)
+        case _:
+            return _mk_inst(val, 0)
 
 
 # --- disassembly ------------------------------------------------------------
@@ -675,59 +681,61 @@ def _format_imm_expr(expr: ImmExpr, base_reg: int) -> str:
 def _operands(inst: Instruction, kind: int) -> str:
     """The operand text of inst for its operand shape (format_an_inst)."""
     branch_offset: int = machine.s32(machine.s16(inst.imm) << 2)
-    if kind == OpType.BRANCH_COPROC_COND_INST:
-        return f"{inst.rt >> 2} {branch_offset}"
-    if kind == OpType.BRANCH_RS_LABEL_INST:
-        return f" ${_reg(inst.rs)} {branch_offset}"
-    if kind == OpType.RS_IMM_INST:
-        return f" ${_reg(inst.rs)}, {inst.imm}"
-    if kind == OpType.RT_IMM_INST:
-        return f" ${_reg(inst.rt)}, {inst.imm}"
-    if kind == OpType.RT_RS_IMM_INST:
-        return f" ${_reg(inst.rt)}, ${_reg(inst.rs)}, {inst.imm}"
-    if kind == OpType.BRANCH_RS_RT_LABEL_INST:
-        return f" ${_reg(inst.rs)}, ${_reg(inst.rt)}, {branch_offset}"
-    if kind == OpType.RT_ADDR_INST:
-        return f" ${_reg(inst.rt)}, {inst.imm}(${_reg(inst.rs)})"
-    if kind == OpType.RS_INST:
-        return f" ${_reg(inst.rs)}"
-    if kind == OpType.RD_INST:
-        return f" ${_reg(inst.rd)}"
-    if kind == OpType.RT_COPREG_INST:
-        return f" ${_reg(inst.rt)}, ${_reg(inst.rd)}"
-    if kind == OpType.RS_RT_INST:
-        return f" ${_reg(inst.rs)}, ${_reg(inst.rt)}"
-    if kind == OpType.RD_RS_INST:
-        return f" ${_reg(inst.rd)}, ${_reg(inst.rs)}"
-    if kind == OpType.RD_RT_SHAMT_INST:
-        return f" ${_reg(inst.rd)}, ${_reg(inst.rt)}, {inst.shamt}"
-    if kind == OpType.RD_RS_RT_INST:
-        return f" ${_reg(inst.rd)}, ${_reg(inst.rs)}, ${_reg(inst.rt)}"
-    if kind == OpType.RD_RT_RS_INST:
-        return f" ${_reg(inst.rd)}, ${_reg(inst.rt)}, ${_reg(inst.rs)}"
-    if kind == OpType.FP_FT_ADDR_INST:
-        return f" $f{inst.rt}, {inst.imm}(${_reg(inst.rs)})"
-    if kind == OpType.FP_FD_FS_INST:
-        return f" $f{inst.shamt}, $f{inst.rd}"
-    if kind == OpType.FP_RT_COPREG_INST:
-        return f" ${_reg(inst.rt)}, $f{inst.rd}"
-    if kind == OpType.FP_CMP_FS_FT_INST:
-        if inst.shamt == 0:
-            return f" $f{inst.rd}, $f{inst.rt}"
-        return f" {inst.shamt >> 2}, $f{inst.rd}, $f{inst.rt}"
-    if kind == OpType.FP_FD_FS_FT_INST:
-        return f" $f{inst.shamt}, $f{inst.rd}, $f{inst.rt}"
-    if kind == OpType.MOVC_TYPE_INST:
-        return f" ${_reg(inst.rd)}, ${_reg(inst.rs)}, {inst.rt >> 2}"
-    if kind == OpType.FP_MOVC_TYPE_INST:
-        if inst.opcode in _FP_MOVE_ON_GPR:
-            return f" $f{inst.shamt}, $f{inst.rd}, ${_reg(inst.rt)}"
-        return f" $f{inst.shamt}, $f{inst.rd}, {inst.rt >> 2}"
-    if kind == OpType.J_TYPE_INST:
-        return f" 0x{(inst.target << 2) & 0xFFFFFFFF:08x}"
-    if kind == OpType.NOARG_TYPE_INST:
-        return ""
-    raise console.fatal_error("Unknown instruction type in print_inst\n")
+    match kind:
+        case OpType.BRANCH_COPROC_COND_INST:
+            return f"{inst.rt >> 2} {branch_offset}"
+        case OpType.BRANCH_RS_LABEL_INST:
+            return f" ${_reg(inst.rs)} {branch_offset}"
+        case OpType.RS_IMM_INST:
+            return f" ${_reg(inst.rs)}, {inst.imm}"
+        case OpType.RT_IMM_INST:
+            return f" ${_reg(inst.rt)}, {inst.imm}"
+        case OpType.RT_RS_IMM_INST:
+            return f" ${_reg(inst.rt)}, ${_reg(inst.rs)}, {inst.imm}"
+        case OpType.BRANCH_RS_RT_LABEL_INST:
+            return f" ${_reg(inst.rs)}, ${_reg(inst.rt)}, {branch_offset}"
+        case OpType.RT_ADDR_INST:
+            return f" ${_reg(inst.rt)}, {inst.imm}(${_reg(inst.rs)})"
+        case OpType.RS_INST:
+            return f" ${_reg(inst.rs)}"
+        case OpType.RD_INST:
+            return f" ${_reg(inst.rd)}"
+        case OpType.RT_COPREG_INST:
+            return f" ${_reg(inst.rt)}, ${_reg(inst.rd)}"
+        case OpType.RS_RT_INST:
+            return f" ${_reg(inst.rs)}, ${_reg(inst.rt)}"
+        case OpType.RD_RS_INST:
+            return f" ${_reg(inst.rd)}, ${_reg(inst.rs)}"
+        case OpType.RD_RT_SHAMT_INST:
+            return f" ${_reg(inst.rd)}, ${_reg(inst.rt)}, {inst.shamt}"
+        case OpType.RD_RS_RT_INST:
+            return f" ${_reg(inst.rd)}, ${_reg(inst.rs)}, ${_reg(inst.rt)}"
+        case OpType.RD_RT_RS_INST:
+            return f" ${_reg(inst.rd)}, ${_reg(inst.rt)}, ${_reg(inst.rs)}"
+        case OpType.FP_FT_ADDR_INST:
+            return f" $f{inst.rt}, {inst.imm}(${_reg(inst.rs)})"
+        case OpType.FP_FD_FS_INST:
+            return f" $f{inst.shamt}, $f{inst.rd}"
+        case OpType.FP_RT_COPREG_INST:
+            return f" ${_reg(inst.rt)}, $f{inst.rd}"
+        case OpType.FP_CMP_FS_FT_INST:
+            if inst.shamt == 0:
+                return f" $f{inst.rd}, $f{inst.rt}"
+            return f" {inst.shamt >> 2}, $f{inst.rd}, $f{inst.rt}"
+        case OpType.FP_FD_FS_FT_INST:
+            return f" $f{inst.shamt}, $f{inst.rd}, $f{inst.rt}"
+        case OpType.MOVC_TYPE_INST:
+            return f" ${_reg(inst.rd)}, ${_reg(inst.rs)}, {inst.rt >> 2}"
+        case OpType.FP_MOVC_TYPE_INST:
+            if inst.opcode in _FP_MOVE_ON_GPR:
+                return f" $f{inst.shamt}, $f{inst.rd}, ${_reg(inst.rt)}"
+            return f" $f{inst.shamt}, $f{inst.rd}, {inst.rt >> 2}"
+        case OpType.J_TYPE_INST:
+            return f" 0x{(inst.target << 2) & 0xFFFFFFFF:08x}"
+        case OpType.NOARG_TYPE_INST:
+            return ""
+        case _:
+            raise console.fatal_error("Unknown instruction type in print_inst\n")
 
 
 def format_an_inst(inst: Instruction | None, addr: int) -> str:

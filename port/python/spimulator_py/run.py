@@ -936,18 +936,21 @@ def _mtc0(inst: Instruction) -> Step:
     def step() -> None:
         cp0: list[int] = cpu.cpr[0]
         cp0[number] = gpr[rt]
-        if number == regs.CP0_COMPARE:
-            cp0[regs.CP0_CAUSE] = _wrap(cp0[regs.CP0_CAUSE] & ~regs.CAUSE_IP7)
-        elif number == regs.CP0_STATUS:
-            cp0[number] = _wrap(
-                (cp0[number] & regs.STATUS_MASK)
-                | (regs.STATUS_CU & 0x30000000)
-                | regs.STATUS_UM
-            )
-        elif number == regs.CP0_CAUSE:
-            cp0[number] = _wrap(cp0[number] & regs.CAUSE_MASK)
-        elif number == regs.CP0_CONFIG:
-            cp0[number] = _wrap(cp0[number] & regs.CONFIG_MASK)
+        match number:
+            case regs.CP0_COMPARE:
+                cp0[regs.CP0_CAUSE] = _wrap(cp0[regs.CP0_CAUSE] & ~regs.CAUSE_IP7)
+            case regs.CP0_STATUS:
+                cp0[number] = _wrap(
+                    (cp0[number] & regs.STATUS_MASK)
+                    | (regs.STATUS_CU & 0x30000000)
+                    | regs.STATUS_UM
+                )
+            case regs.CP0_CAUSE:
+                cp0[number] = _wrap(cp0[number] & regs.CAUSE_MASK)
+            case regs.CP0_CONFIG:
+                cp0[number] = _wrap(cp0[number] & regs.CONFIG_MASK)
+            case _:
+                pass  # any other value: nothing to do, as before
 
     return step
 
@@ -1067,25 +1070,23 @@ def _fp_convert(inst: Instruction) -> Step:
     """cvt between single, double and word."""
     fd, fs = inst.shamt, inst.rd
     opcode: int = inst.opcode
-    if opcode == Tok.CVT_D_S_OPCODE:
+    match opcode:
+        case Tok.CVT_D_S_OPCODE:
 
-        def step() -> None:
-            regs.set_fpr_d(fd, regs.fpr_s(fs))
+            def step() -> None:
+                regs.set_fpr_d(fd, regs.fpr_s(fs))
+        case Tok.CVT_D_W_OPCODE:
 
-    elif opcode == Tok.CVT_D_W_OPCODE:
+            def step() -> None:
+                regs.set_fpr_d(fd, float(fpr[fs]))
+        case Tok.CVT_S_D_OPCODE:
 
-        def step() -> None:
-            regs.set_fpr_d(fd, float(fpr[fs]))
+            def step() -> None:
+                regs.set_fpr_s(fd, regs.fpr_d(fs))
+        case _:
 
-    elif opcode == Tok.CVT_S_D_OPCODE:
-
-        def step() -> None:
-            regs.set_fpr_s(fd, regs.fpr_d(fs))
-
-    else:
-
-        def step() -> None:
-            regs.set_fpr_s(fd, float(fpr[fs]))
+            def step() -> None:
+                regs.set_fpr_s(fd, float(fpr[fs]))
 
     return step
 
