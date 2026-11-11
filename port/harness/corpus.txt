@@ -17,6 +17,7 @@ core           | file:tt.in        | -exception_file EF -f tt.core.s
 core_builtin   | file:tt.in        | -f tt.core.s
 core_dump      | -                 | -exception_file EF -dump -f tt.core.s
 bare           | -                 | -delayed_branches -delayed_loads -noexception -f tt.bare.s
+alu_bare       | -                 | -bare -noexception -f tt.alu.bare.s
 fpu_bare       | -                 | -bare -noexception -f tt.fpu.bare.s
 le             | -                 | -exception_file EF -f tt.le.s
 dir            | -                 | -exception_file EF -f tt.dir.s

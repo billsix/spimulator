@@ -132,7 +132,8 @@ exception_file = meson.current_source_dir() / 'src' / 'exceptions.s'
 
 regression_tests = [
   # Standard "Passed all tests" sentinel
-  'bare', 'core', 'le', 'dir', 'octal_escape', 'argv', 'multifile', 'fpu_bare',
+  'bare', 'core', 'le', 'dir', 'octal_escape', 'argv', 'multifile', 'alu_bare',
+  'fpu_bare',
   'read_int_eof', 'read_int_space_sep',
   # Custom criteria
   'read_char_eof', 'args_cmd', 'disasm',
