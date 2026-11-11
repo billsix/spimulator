@@ -2,7 +2,7 @@
 
 **Status:** proposed — needs go-ahead
 **Priority:** 2
-**Difficulty:** 4
+**Difficulty:** 5
 **Created:** 2026-11-05 (William Emerison Six <billsix@gmail.com>)
 **Source:** tasks/review/2026/11/11/repo-review.md §4.1.2, §4.1.4 F10 (added 2026-11-11)
 **Next:** `tasks/explain-levels-redesign.md` (fix these first, so the redesign's goldens start from correct output)
@@ -88,7 +88,10 @@ currently locks in bug 3).
    narration and the exit status are identical.
 2. Fix the bugs one at a time, in priority order: 1, 2, 9, 3–5, 6–8, then the side findings.
 3. Regenerate `tests/tt.explain.expected` and read the diff by hand (it should differ only where a bug was).
-4. Gates: `meson test` with `line_editing` enabled and disabled; a nested `make image` (the image runs the
+4. **Ports** (added 2026-11-11): the REPL `step` fix and `-show-expansion` change output the ports
+   produce too; follow each in the Python, Haskell and Rust ports (`CLAUDE.md`: "A C behavior change must be followed in every port"; the port suites (`port-python`, `port-haskell`, `port-rust`) fail until each port matches). The teaching
+   narration itself is not ported yet (`tasks/engine-ports-teaching-mode.md`).
+5. Gates: `meson test` with `line_editing` enabled and disabled; a nested `make image` (the image runs the
    suite plus the UBSan and ASan gates).
 
 ## Open questions

@@ -1,7 +1,7 @@
 # AST column tracking
 
 **Priority:** 6
-**Difficulty:** 5
+**Difficulty:** 6
 
 **Ordering (2026-07-07):** do [`parser-leak-cleanup.md`](parser-leak-cleanup.md)
 first — its recommended fix deletes the PARSE_DIRECT codepath, and this task
@@ -183,6 +183,10 @@ in the action helpers or emit pass.
   values matching the expected source-text offsets.
 - New test: `-print-ast-json` output parses as valid JSON and
   contains numeric `col_begin` / `col_end` fields on each node.
+
+- **Ports** (added 2026-11-11): `-print-ast` / `-print-ast-json` output is compared by the port
+  suites, so the Python, Haskell and Rust ports emit the same column fields in the same commit
+  (`CLAUDE.md`: "A C behavior change must be followed in every port"; the port suites (`port-python`, `port-haskell`, `port-rust`) fail until each port matches).
 
 ## 7. Open question
 

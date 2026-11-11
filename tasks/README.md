@@ -15,81 +15,52 @@ record of what's done.
 
 ## Finding what to work on next
 
-Everything at the top level of `tasks/` (not under `archive/`) is open work. Read
-the file's intro and its `Status` line; common markers:
+Everything at the top level of `tasks/` (not under `archive/`) is open work. Each task's header has a
+`**Status:**` line, plus `**Priority:**` (1 = do first) and `**Difficulty:**` (1 = easiest), both on
+a rough geometric 1-10 scale. Pick by lowest Priority, then lowest Difficulty. The statuses in use:
 
-| Marker | Meaning |
+| Status | Meaning |
 |---|---|
-| `Status: Not started` | Not started; pick from here. |
-| `Status: STAGED YYYY-MM-DD` | Changes staged but not committed (intermediate). |
-| `Status: Partial` | Started; some sub-items still open. |
+| `proposed — needs go-ahead` | Written and ready; waits for the maintainer's go-ahead (and answers to any Open questions). |
+| `proposed — investigate first …` | The first step is research; the plan comes after. |
+| `blocked` | Waits on something outside this repo; `**Blocked on:**` and `**Recheck:**` say what and how to test it. |
+| `audit COMPLETE …` | The work is done and waits on a decision from the maintainer. |
 
-Quick survey: `ls tasks/*.md`. Some may be reference docs rather than open work;
-read the intro to tell. Anything under `tasks/archive/` is done (or superseded) —
-read only for historical context.
+A task that waits on another task in this repo is not `blocked`: it carries `**Depends on:**` and a
+higher Priority number.
 
-## Ordering & dependencies (reviewed 2026-07-07)
+Quick survey: `grep -m1 -H '^\*\*Status' tasks/*.md`. Anything under `tasks/archive/` is done (or
+superseded); read it only for history.
 
-Most open tasks are independent; these are the ones that aren't, plus a
-sensible grouping.  (Statuses verified against the code on the date above —
-several docs' internal claims were refreshed the same day.)
+## Ordering & dependencies (reviewed 2026-11-11)
+
+Most open tasks are independent. The ones that aren't:
 
 **Chains (do left before right):**
 
-- `parser-leak-cleanup` → `ast-column-tracking` — the leak fix deletes the
-  PARSE_DIRECT codepath; write the column plumbing once, after.
-- `libstr` → `multi-file-load`'s de-dup sweep → new `unix-tools` demos draw
-  from the shared library.  (The multi-file *loading mechanism* already
-  works — `tests/tt.multifile.s` — so nothing blocks libstr.)
-- Naming: `opcode-types-descriptive-names` + `codebase-cleanup-plan` Tier
-  B2/B3 as **one** mechanical-rename sweep → then `c23-modernization-pass2`
-  (don't modernize code about to be renamed).
-- Example hygiene, suggested order: `string-equality-audit` (suspected real
-  bug) → `code-idiosyncrasies-audit` (reads everything).  The embedded-C
-  removal (`c-asm-comment-parity`) landed 2026-07-07 and is archived.
-- `mini-c-compiler` (capstone) comes after the library chain — its output
-  links against the shared asm library, and its acceptance harness is the
-  demo goldens.
-- `explain-mode-correctness-bugs` → `explain-levels-redesign` (added
-  2026-11-05) — fix the teaching-mode bugs first so the redesign's goldens
-  start from correct output; the target design is
-  `reference/teaching-mode-learner-model.md`.
-- `examples-c-debug-build-via-meson` (added 2026-11-05) drops the native `.s`
-  listings, which contradicts `examples-build-matrix` below; that task's fate
-  is open question 1 in the debug-build task.
+- `explain-mode-correctness-bugs` → `explain-levels-redesign` → `engine-ports-teaching-mode`. Fix
+  the teaching-mode bugs first so the redesign's goldens start from correct output (target design:
+  `tasks/reference/teaching-mode-learner-model.md`); the ports get the teaching mode last.
+- `c-undefined-behavior-fixes-then-ports`: C first, then each port, in that one task.
+- `repl-transcript-corpus` before removing the last one-shot REPL scripts under `tasks/adhoc/`.
+- `examples-c-debug-build-via-meson` decides the fate of `examples-build-matrix`,
+  `container-cross-env` and `pgu-build-matrix` (its open questions 1-3).
+- `mini-c-compiler` (capstone) after the shared asm library work in `multi-file-load`; its
+  acceptance harness is the demo goldens.
 
-**Explicitly NOT dependencies (verified):**
+**Every C behavior change follows in every port** (`CLAUDE.md`): `ast-column-tracking`,
+`explain-mode-correctness-bugs`, `explain-levels-redesign`, `timing-model` and `software-alu` each
+have a ports step. The port suites fail until each port matches.
 
-- `examples-build-matrix` / `pgu-build-matrix` no longer wait on anything —
-  the multiarch shim landed (`crt0.h`, archived 2026-07-07) and the listing
-  matrices need only clang, which the image has.  `container-cross-env`
-  (lld + qemu-user-static) is required only for the *runtime* verification
-  track, not the matrices; coordinate the MIPS-endianness choice across all
-  three whenever they land.
-- `timing-model` and `software-alu` are independent of everything and each
-  other; if both land they must share cycle vocabulary.  `timing-model` is
-  much cheaper — do it first if the H&P performance lesson is the goal.
-- `engine-ports` (umbrella; the C engine is the standard, every port must
-  behave equivalently): `engine-port-prereq-c-fixes` → `engine-port-python`
-  (builds the shared harness) → `engine-port-haskell` and `engine-port-rust`
-  (once the harness exists, either order). The prerequisite fixes the F5 bugs, closes the F7 test gaps and
-  drops `,` as an FP decimal separator (`tasks/review/2026/11/10/repo-review.md`),
-  so the standard is correct and fully pinned; `explain-mode-correctness-bugs`
-  should land before any port's explain-mode milestone.
-
-**Independent quick wins, any time:** all of the original list landed and
-archived 2026-07-07 (container-build-cleanup, container-aslr-lldb,
-fix-stale-doc-links, stdin-space-separated-ints, program-listing-at-start,
-string-stream-to-memstream, examples-install-location, plus
-opcode-types-descriptive-names and the stdlib-modernization pass).
-Current smallest open items: `unix-tools`' remaining `strings` + hash
-demos, and `rpn-calculator`.
+**Independent, any order:** `timing-model` and `software-alu` (share cycle vocabulary if both land;
+`timing-model` is much cheaper), `duplicate-cop1x-encodings`, `codebase-cleanup-plan`'s items, the
+three `*-port-cleanups` tasks, `usage-text-matches-flags`, `doc-convention-cleanups`,
+`review-tool-fixes-2026-11-11`.
 
 ## Logging completed work
 
 When a task lands:
 
-1. Update the doc's `Status` line to note it's done.
-2. Move the file into `tasks/archive/<YYYY>/<MM>/<DD>/` (date = the day it landed).
-3. Add a `ChangeLog` entry for any user-visible behavior change (GNU-style:
-   date+author header, then tab-indented topic blocks).
+1. Rewrite the doc into a past-tense done-record (drop the Plan, Open questions and Status line).
+2. Move it with `git mv` into `tasks/archive/<YYYY>/<MM>/<DD>/` (date = the day it landed), in its
+   own commit after the work, and repoint any links to its old path.

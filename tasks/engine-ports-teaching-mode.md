@@ -1,8 +1,7 @@
 # Port the teaching mode (`-explain`) to the Python, Haskell and Rust engines
 
-**Status:** blocked
-**Blocked on:** the C teaching mode's correctness fixes and redesign: `tasks/explain-mode-correctness-bugs.md` and `tasks/explain-levels-redesign.md`.
-**Recheck:** both tasks are archived (`ls tasks/explain-mode-correctness-bugs.md tasks/explain-levels-redesign.md` fails).
+**Status:** proposed — needs go-ahead
+**Depends on:** the C teaching mode's correctness fixes and redesign: `tasks/explain-mode-correctness-bugs.md` and `tasks/explain-levels-redesign.md`.
 **Priority:** 8
 **Difficulty:** 7
 **Created:** 2026-11-10 (William Emerison Six <billsix@gmail.com>)

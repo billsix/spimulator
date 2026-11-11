@@ -184,6 +184,12 @@ Total without FP: ~3 weeks. With FP: ~5–6 weeks. These are
 "continuous focused work" estimates; real calendar time is
 typically 2–3× given test/debug cycles.
 
+## Ports (added 2026-11-11)
+
+The software ALU must give the same results as the hardware one, so the ports need no change for
+the arithmetic. Anything it makes visible (the optional bit-level state for explain mode, a new
+flag) is output, and follows in every port (`CLAUDE.md`: "A C behavior change must be followed in every port"; the port suites (`port-python`, `port-haskell`, `port-rust`) fail until each port matches).
+
 ## First concrete step
 
 If this gets picked up: start with `alu_add` alone. Write the

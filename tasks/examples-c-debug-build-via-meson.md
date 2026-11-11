@@ -1,6 +1,6 @@
 # Build the C examples once, with meson, as normal debug binaries on PATH; drop the native listings
 
-**Status:** proposed — decisions made, ready to implement on a go-ahead
+**Status:** proposed — needs go-ahead (three open questions below)
 **Priority:** 4
 **Difficulty:** 3
 **Created:** 2026-11-05 (William Emerison Six <billsix@gmail.com>)
