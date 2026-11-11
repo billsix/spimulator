@@ -1,42 +1,31 @@
-# Doc convention cleanups: stamps, links, history sections, missing BLUFs
+# Fixed doc-convention drift in open tasks and reference docs
 
-**Status:** proposed — needs go-ahead
-**Priority:** 8
-**Difficulty:** 2
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
 **Source:** tasks/review/2026/11/11/repo-review.md §1.4, §1.5, §9.4, §10.6 F23
 
-## BLUF
+## Summary
 
-Convention fixes in open tasks and reference docs. Done means no bare first-name stamps, every link
-repo-root-relative, the reference docs stating present truth (history in git), and each open task with
-a Status line, a BLUF and Context.
-
-## Context
-
-- **Bare "Bill" stamps:** `tasks/string-equality-audit.md`, `tasks/mini-c-compiler.md`,
-  `tasks/container-cross-env.md`, `tasks/multi-file-load.md`, `tasks/timing-model.md`, `tasks/pgu-build-matrix.md`, and
-  `entrypoint/format.sh`. Use `William Emerison Six <billsix@gmail.com>`.
-- **Non-root-relative links:** `tasks/ast-column-tracking.md:6`, `multi-file-load.md:39,62`,
-  `mini-c-compiler.md:236`, `tasks/reference/mips-asm-teaching-style.md:27`,
-  `tasks/reference/inherited-idiosyncrasies.md:44,59,64`.
-- **History in reference docs:** the "History" sections of `tasks/reference/opcode-table-generator.md`
-  and `tasks/reference/parser-ast-emit.md`. `tasks/reference/inherited-idiosyncrasies.md` is all FIXED items; it reads
-  as a done-record, so move it to the archive, or trim it to what is still true. `CLAUDE.md:160` says
-  "rollout is COMPLETE".
-- **No Status line:** `ast-column-tracking`, `codebase-cleanup-plan`, `container-cross-env`,
-  `examples-build-matrix`, `pgu-build-matrix`, `software-alu`. **No BLUF:** `mini-c-compiler`,
-  `multi-file-load`, `string-equality-audit`, `timing-model`.
-- Also: `tasks/reference/incremental-example-decomposition.md:115` cites gacalc's
-  `algebra-teaching-order.md` with no URL (github.com/billsix/geometricalgebra).
-- Conventions: the task-doc-conventions.md and reference-doc-conventions.md reference docs from
-  github.com/billsix/runClaudeInContainer.
-
-## Plan
-
-1. Fix each item. Keep the "History" facts that still explain present design in a "Why" paragraph;
-   drop the narrative.
-2. No code changes.
+- **Stamps:** the bare "Bill" stamps in `string-equality-audit`, `mini-c-compiler`,
+  `container-cross-env`, `multi-file-load`, `timing-model`, `pgu-build-matrix` and
+  `entrypoint/format.sh` became `William Emerison Six <billsix@gmail.com>`; prose mentions became
+  "the maintainer". `entrypoint/format.sh` kept its executable bit.
+- **Links:** `ast-column-tracking`, `multi-file-load`, `mini-c-compiler` and
+  `tasks/reference/inherited-idiosyncrasies.md` now cite repo-root-relative paths, pointing at the
+  archived tasks (`mips-asm-teaching-style.md` was fixed earlier in this batch).
+- **Present tense:** the "History" sections of `tasks/reference/opcode-table-generator.md` and
+  `tasks/reference/parser-ast-emit.md` became short "Why" paragraphs that keep the design reasons.
+  `tasks/reference/inherited-idiosyncrasies.md` was trimmed to the items still open (decision 1).
+  `CLAUDE.md` no longer says the asm rollout "is COMPLETE"; it states the rule.
+- **Task headers:** `ast-column-tracking`, `container-cross-env`, `examples-build-matrix`,
+  `pgu-build-matrix` and `software-alu` got a Status line; those five plus `mini-c-compiler`,
+  `multi-file-load`, `string-equality-audit` and `timing-model` got a BLUF and Context.
+  `codebase-cleanup-plan` was rewritten earlier in this batch. In `ast-column-tracking`, the stale
+  "Ordering"/"UNBLOCKED" paragraphs became its Context. The three build-matrix tasks carry a
+  `Depends on:` line naming `tasks/examples-c-debug-build-via-meson.md`.
+- `tasks/reference/incremental-example-decomposition.md` cites gacalc's teaching-order doc as
+  `tasks/reference/algebra-teaching-order.md` in github.com/billsix/geometricalgebra (checked from
+  its `github` remote).
 
 ## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-11)
 
