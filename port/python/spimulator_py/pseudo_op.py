@@ -139,6 +139,8 @@ def mult_inst(op: int, rd: int, rs: int, rt: int) -> None:
         parser.emit_i(Tok.BEQ_OPCODE, rd, 1, branch_offset(3))
         nop_inst()
         trap_inst()
+    else:
+        pass  # any other op, or a result into $zero: no overflow check
     if rd != 0:
         parser.emit_r(Tok.MFLO_OPCODE, rd, 0, 0)
 

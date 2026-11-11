@@ -613,6 +613,9 @@ impl Machine {
                 inst.encoding
             };
             self.listing_text_inst(at, encoding as u32);
+        } else {
+            // Never reached: the parser always sets data_dir and text_dir as a pair, one true.
+            crate::machine::fatal_error("internal error: store_instruction: neither the data nor the text segment is active\n");
         }
     }
 

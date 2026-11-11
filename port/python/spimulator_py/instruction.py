@@ -248,6 +248,11 @@ def _store_instruction(inst: Instruction) -> None:
         if inst.encoding == 0:
             inst.set_encoding(inst_encode(inst))
         assembler_event.text_inst(at, machine.u32(inst.encoding))
+    else:
+        # Never reached: the parser always sets data_dir and text_dir as a pair, one true.
+        raise console.fatal_error(
+            "internal error: store_instruction: neither the data nor the text segment is active\n"
+        )
 
 
 # --- the assembler's instruction builders ------------------------------------
@@ -675,6 +680,8 @@ def _format_imm_expr(expr: ImmExpr, base_reg: int) -> str:
         text += f"-{-expr.offset} (-0x{machine.u32(-expr.offset):08x})"
     elif expr.offset > 10:
         text += f"+{expr.offset} (0x{machine.u32(expr.offset):08x})"
+    else:
+        pass  # an offset from -10 to 10 is not printed
     if (
         base_reg != -1
         and expr.symbol is not None

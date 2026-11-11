@@ -28,7 +28,7 @@ module Assemble
   ) where
 
 import AsmCommon
-import Control.Monad (when)
+import Control.Monad (unless, when)
 import Data.Bits (shiftL, shiftR, (.&.), (.|.))
 import Data.Int (Int32)
 import Data.IORef (IORef, newIORef)
@@ -95,6 +95,9 @@ storeInstruction :: Spim -> InstRef -> IO ()
 storeInstruction s ref = do
   inData :: Bool <- get (dataDir s)
   inText :: Bool <- get (textDir s)
+  -- Never reached: the parser always sets dataDir and textDir as a pair, one true.
+  unless (inData || inText) $
+    fatalError "internal error: store_instruction: neither the data nor the text segment is active\n"
   if inData
     then get ref >>= instEncodeIO >>= storeWord s
     else when inText $ do

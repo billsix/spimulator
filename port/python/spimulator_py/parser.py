@@ -80,6 +80,8 @@ def _append(node: Node) -> None:
         _current_pseudo.children.append(node)
     elif _current_file is not None:
         _current_file.children.append(node)
+    else:
+        pass  # no tree is being built (parser_init has not run): the node is dropped
 
 
 # --- the emit_* helpers the pseudo-op expansions call ---------------------------
@@ -422,6 +424,8 @@ def _parse_address() -> AddrExpr:
             elif scanner.peek() == ord("-"):
                 scanner.advance()
                 offset = -_parse_abs_addr()
+            else:
+                pass  # no offset: offset stays 0
             reg = 0
             if scanner.peek() == ord("("):
                 scanner.advance()
@@ -1220,6 +1224,8 @@ def _parse_line() -> None:
             elif scanner.peek() != TOK_EOF:
                 _parse_error_at("Extra tokens after instruction")
                 _sync_to_nl()
+            else:
+                pass  # at TOK_EOF: there is no newline to consume
 
 
 def parser_init(source: BinaryIO | None, file_name: str | None) -> None:

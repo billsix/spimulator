@@ -238,6 +238,8 @@ def _branch(taken: bool, offset: int, nullify: bool) -> None:
         _jump(target)
     elif nullify:
         cpu.pc = (cpu.pc + 4) & M32
+    else:
+        pass  # not taken and not nullified: the delay slot runs as the next instruction
 
 
 def _load(registers: list[int], number: int, value: int) -> None:
