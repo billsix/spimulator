@@ -113,52 +113,36 @@ data Opcode
   | TOK_BNEZ_PSEUDO_OP
   | TOK_BREAK_OPCODE
   | TOK_C_EQ_D_OPCODE
-  | TOK_C_EQ_PS_OPCODE
   | TOK_C_EQ_S_OPCODE
   | TOK_C_F_D_OPCODE
-  | TOK_C_F_PS_OPCODE
   | TOK_C_F_S_OPCODE
   | TOK_C_LE_D_OPCODE
-  | TOK_C_LE_PS_OPCODE
   | TOK_C_LE_S_OPCODE
   | TOK_C_LT_D_OPCODE
-  | TOK_C_LT_PS_OPCODE
   | TOK_C_LT_S_OPCODE
   | TOK_C_NGE_D_OPCODE
-  | TOK_C_NGE_PS_OPCODE
   | TOK_C_NGE_S_OPCODE
   | TOK_C_NGL_D_OPCODE
-  | TOK_C_NGL_PS_OPCODE
   | TOK_C_NGL_S_OPCODE
   | TOK_C_NGLE_D_OPCODE
-  | TOK_C_NGLE_PS_OPCODE
   | TOK_C_NGLE_S_OPCODE
   | TOK_C_NGT_D_OPCODE
-  | TOK_C_NGT_PS_OPCODE
   | TOK_C_NGT_S_OPCODE
   | TOK_C_OLE_D_OPCODE
-  | TOK_C_OLE_PS_OPCODE
   | TOK_C_OLE_S_OPCODE
   | TOK_C_OLT_D_OPCODE
-  | TOK_C_OLT_PS_OPCODE
   | TOK_C_OLT_S_OPCODE
   | TOK_C_SEQ_D_OPCODE
-  | TOK_C_SEQ_PS_OPCODE
   | TOK_C_SEQ_S_OPCODE
   | TOK_C_SF_D_OPCODE
-  | TOK_C_SF_PS_OPCODE
   | TOK_C_SF_S_OPCODE
   | TOK_C_UEQ_D_OPCODE
-  | TOK_C_UEQ_PS_OPCODE
   | TOK_C_UEQ_S_OPCODE
   | TOK_C_ULE_D_OPCODE
-  | TOK_C_ULE_PS_OPCODE
   | TOK_C_ULE_S_OPCODE
   | TOK_C_ULT_D_OPCODE
-  | TOK_C_ULT_PS_OPCODE
   | TOK_C_ULT_S_OPCODE
   | TOK_C_UN_D_OPCODE
-  | TOK_C_UN_PS_OPCODE
   | TOK_C_UN_S_OPCODE
   | TOK_CACHE_OPCODE
   | TOK_CEIL_L_D_OPCODE
@@ -516,52 +500,36 @@ opcodeRows =
   , OpRow "bnez" TOK_BNEZ_PSEUDO_OP PSEUDO_OP (-1)
   , OpRow "break" TOK_BREAK_OPCODE NOARG_TYPE_INST (fromIntegral (0x0000000d :: Integer))
   , OpRow "c.eq.d" TOK_C_EQ_D_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46200032 :: Integer))
-  , OpRow "c.eq.ps" TOK_C_EQ_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600032 :: Integer))
   , OpRow "c.eq.s" TOK_C_EQ_S_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46000032 :: Integer))
   , OpRow "c.f.d" TOK_C_F_D_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46200030 :: Integer))
-  , OpRow "c.f.ps" TOK_C_F_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600030 :: Integer))
   , OpRow "c.f.s" TOK_C_F_S_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46000030 :: Integer))
   , OpRow "c.le.d" TOK_C_LE_D_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4620003e :: Integer))
-  , OpRow "c.le.ps" TOK_C_LE_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4660003e :: Integer))
   , OpRow "c.le.s" TOK_C_LE_S_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4600003e :: Integer))
   , OpRow "c.lt.d" TOK_C_LT_D_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4620003c :: Integer))
-  , OpRow "c.lt.ps" TOK_C_LT_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4660003c :: Integer))
   , OpRow "c.lt.s" TOK_C_LT_S_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4600003c :: Integer))
   , OpRow "c.nge.d" TOK_C_NGE_D_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4620003d :: Integer))
-  , OpRow "c.nge.ps" TOK_C_NGE_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4660003d :: Integer))
   , OpRow "c.nge.s" TOK_C_NGE_S_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4600003d :: Integer))
   , OpRow "c.ngl.d" TOK_C_NGL_D_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4620003b :: Integer))
-  , OpRow "c.ngl.ps" TOK_C_NGL_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4660003b :: Integer))
   , OpRow "c.ngl.s" TOK_C_NGL_S_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4600003b :: Integer))
   , OpRow "c.ngle.d" TOK_C_NGLE_D_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46200039 :: Integer))
-  , OpRow "c.ngle.ps" TOK_C_NGLE_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600039 :: Integer))
   , OpRow "c.ngle.s" TOK_C_NGLE_S_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46000039 :: Integer))
   , OpRow "c.ngt.d" TOK_C_NGT_D_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4620003f :: Integer))
-  , OpRow "c.ngt.ps" TOK_C_NGT_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4660003f :: Integer))
   , OpRow "c.ngt.s" TOK_C_NGT_S_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4600003f :: Integer))
   , OpRow "c.ole.d" TOK_C_OLE_D_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46200036 :: Integer))
-  , OpRow "c.ole.ps" TOK_C_OLE_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600036 :: Integer))
   , OpRow "c.ole.s" TOK_C_OLE_S_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46000036 :: Integer))
   , OpRow "c.olt.d" TOK_C_OLT_D_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46200034 :: Integer))
-  , OpRow "c.olt.ps" TOK_C_OLT_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600034 :: Integer))
   , OpRow "c.olt.s" TOK_C_OLT_S_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46000034 :: Integer))
   , OpRow "c.seq.d" TOK_C_SEQ_D_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4620003a :: Integer))
-  , OpRow "c.seq.ps" TOK_C_SEQ_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4660003a :: Integer))
   , OpRow "c.seq.s" TOK_C_SEQ_S_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4600003a :: Integer))
   , OpRow "c.sf.d" TOK_C_SF_D_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46200038 :: Integer))
-  , OpRow "c.sf.ps" TOK_C_SF_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600038 :: Integer))
   , OpRow "c.sf.s" TOK_C_SF_S_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46000038 :: Integer))
   , OpRow "c.ueq.d" TOK_C_UEQ_D_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46200033 :: Integer))
-  , OpRow "c.ueq.ps" TOK_C_UEQ_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600033 :: Integer))
   , OpRow "c.ueq.s" TOK_C_UEQ_S_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46000033 :: Integer))
   , OpRow "c.ule.d" TOK_C_ULE_D_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46200037 :: Integer))
-  , OpRow "c.ule.ps" TOK_C_ULE_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600037 :: Integer))
   , OpRow "c.ule.s" TOK_C_ULE_S_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46000037 :: Integer))
   , OpRow "c.ult.d" TOK_C_ULT_D_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46200035 :: Integer))
-  , OpRow "c.ult.ps" TOK_C_ULT_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600035 :: Integer))
   , OpRow "c.ult.s" TOK_C_ULT_S_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46000035 :: Integer))
   , OpRow "c.un.d" TOK_C_UN_D_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46200031 :: Integer))
-  , OpRow "c.un.ps" TOK_C_UN_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600031 :: Integer))
   , OpRow "c.un.s" TOK_C_UN_S_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46000031 :: Integer))
   , OpRow "cache" TOK_CACHE_OPCODE RT_RS_IMM_INST (fromIntegral (0xbc000000 :: Integer))
   , OpRow "ceil.l.d" TOK_CEIL_L_D_OPCODE FP_FD_FS_INST (fromIntegral (0x4620000a :: Integer))
@@ -1022,22 +990,6 @@ opcodeDecodeRows =
   , OpRow "add.ps" TOK_ADD_PS_OPCODE FP_FD_FS_FT_INST (fromIntegral (0x46600000 :: Integer))
   , OpRow "sub.ps" TOK_SUB_PS_OPCODE FP_FD_FS_FT_INST (fromIntegral (0x46600001 :: Integer))
   , OpRow "abs.ps" TOK_ABS_PS_OPCODE FP_FD_FS_INST (fromIntegral (0x46600005 :: Integer))
-  , OpRow "c.f.ps" TOK_C_F_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600030 :: Integer))
-  , OpRow "c.un.ps" TOK_C_UN_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600031 :: Integer))
-  , OpRow "c.eq.ps" TOK_C_EQ_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600032 :: Integer))
-  , OpRow "c.ueq.ps" TOK_C_UEQ_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600033 :: Integer))
-  , OpRow "c.olt.ps" TOK_C_OLT_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600034 :: Integer))
-  , OpRow "c.ult.ps" TOK_C_ULT_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600035 :: Integer))
-  , OpRow "c.ole.ps" TOK_C_OLE_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600036 :: Integer))
-  , OpRow "c.ule.ps" TOK_C_ULE_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600037 :: Integer))
-  , OpRow "c.sf.ps" TOK_C_SF_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600038 :: Integer))
-  , OpRow "c.ngle.ps" TOK_C_NGLE_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x46600039 :: Integer))
-  , OpRow "c.seq.ps" TOK_C_SEQ_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4660003a :: Integer))
-  , OpRow "c.ngl.ps" TOK_C_NGL_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4660003b :: Integer))
-  , OpRow "c.lt.ps" TOK_C_LT_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4660003c :: Integer))
-  , OpRow "c.nge.ps" TOK_C_NGE_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4660003d :: Integer))
-  , OpRow "c.le.ps" TOK_C_LE_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4660003e :: Integer))
-  , OpRow "c.ngt.ps" TOK_C_NGT_PS_OPCODE FP_CMP_FS_FT_INST (fromIntegral (0x4660003f :: Integer))
   , OpRow "cvt.s.w" TOK_CVT_S_W_OPCODE FP_FD_FS_INST (fromIntegral (0x46800020 :: Integer))
   , OpRow "cvt.s.l" TOK_CVT_S_L_OPCODE FP_FD_FS_INST (fromIntegral (0x46b00020 :: Integer))
   , OpRow "cvt.d.l" TOK_CVT_D_L_OPCODE FP_FD_FS_INST (fromIntegral (0x46b00021 :: Integer))

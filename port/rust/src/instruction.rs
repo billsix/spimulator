@@ -785,28 +785,30 @@ impl Machine {
         const IN: i32 = 0x8;
         let mut instruction: Instruction = Instruction::r_type(opcode, fs, 0, ft);
         instruction.set_shamt(cc << 2);
-        let cond: Option<i32> = match opcode {
-            TOK_C_EQ_D_OPCODE | TOK_C_EQ_S_OPCODE => Some(EQ),
-            TOK_C_LE_D_OPCODE | TOK_C_LE_S_OPCODE => Some(IN | LT | EQ),
-            TOK_C_LT_D_OPCODE | TOK_C_LT_S_OPCODE => Some(IN | LT),
-            TOK_C_NGE_D_OPCODE | TOK_C_NGE_S_OPCODE => Some(IN | LT | UN),
-            TOK_C_NGLE_D_OPCODE | TOK_C_NGLE_S_OPCODE => Some(IN | UN),
-            TOK_C_NGL_D_OPCODE | TOK_C_NGL_S_OPCODE => Some(IN | EQ | UN),
-            TOK_C_NGT_D_OPCODE | TOK_C_NGT_S_OPCODE => Some(IN | LT | EQ | UN),
-            TOK_C_OLT_D_OPCODE | TOK_C_OLT_S_OPCODE => Some(LT),
-            TOK_C_OLE_D_OPCODE | TOK_C_OLE_S_OPCODE => Some(LT | EQ),
-            TOK_C_SEQ_D_OPCODE | TOK_C_SEQ_S_OPCODE => Some(IN | EQ),
-            TOK_C_SF_D_OPCODE | TOK_C_SF_S_OPCODE => Some(IN),
-            TOK_C_F_D_OPCODE | TOK_C_F_S_OPCODE => Some(0),
-            TOK_C_UEQ_D_OPCODE | TOK_C_UEQ_S_OPCODE => Some(EQ | UN),
-            TOK_C_ULT_D_OPCODE | TOK_C_ULT_S_OPCODE => Some(LT | UN),
-            TOK_C_ULE_D_OPCODE | TOK_C_ULE_S_OPCODE => Some(LT | EQ | UN),
-            TOK_C_UN_D_OPCODE | TOK_C_UN_S_OPCODE => Some(UN),
-            _ => None,
+        let cond: i32 = match opcode {
+            TOK_C_EQ_D_OPCODE | TOK_C_EQ_S_OPCODE => EQ,
+            TOK_C_LE_D_OPCODE | TOK_C_LE_S_OPCODE => IN | LT | EQ,
+            TOK_C_LT_D_OPCODE | TOK_C_LT_S_OPCODE => IN | LT,
+            TOK_C_NGE_D_OPCODE | TOK_C_NGE_S_OPCODE => IN | LT | UN,
+            TOK_C_NGLE_D_OPCODE | TOK_C_NGLE_S_OPCODE => IN | UN,
+            TOK_C_NGL_D_OPCODE | TOK_C_NGL_S_OPCODE => IN | EQ | UN,
+            TOK_C_NGT_D_OPCODE | TOK_C_NGT_S_OPCODE => IN | LT | EQ | UN,
+            TOK_C_OLT_D_OPCODE | TOK_C_OLT_S_OPCODE => LT,
+            TOK_C_OLE_D_OPCODE | TOK_C_OLE_S_OPCODE => LT | EQ,
+            TOK_C_SEQ_D_OPCODE | TOK_C_SEQ_S_OPCODE => IN | EQ,
+            TOK_C_SF_D_OPCODE | TOK_C_SF_S_OPCODE => IN,
+            TOK_C_F_D_OPCODE | TOK_C_F_S_OPCODE => 0,
+            TOK_C_UEQ_D_OPCODE | TOK_C_UEQ_S_OPCODE => EQ | UN,
+            TOK_C_ULT_D_OPCODE | TOK_C_ULT_S_OPCODE => LT | UN,
+            TOK_C_ULE_D_OPCODE | TOK_C_ULE_S_OPCODE => LT | EQ | UN,
+            TOK_C_UN_D_OPCODE | TOK_C_UN_S_OPCODE => UN,
+            // Never reached: only FP_CMP_FS_FT_INST rows reach here, and the arms above
+            // are all 32 of them (16 conditions, .s and .d).
+            _ => crate::machine::fatal_error(&format!(
+                "internal error: r_cond_type_inst: not an FP compare: {opcode}\n"
+            )),
         };
-        if let Some(bits) = cond {
-            instruction.set_rs(bits);
-        }
+        instruction.set_rs(cond);
         self.store_instruction(instruction.into_ref());
     }
 

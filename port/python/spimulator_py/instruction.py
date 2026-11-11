@@ -467,7 +467,13 @@ def r_cond_type_inst(opcode: int, fs: int, ft: int, cc: int) -> None:
     """Store an FP compare, with its condition bits in the rs byte."""
     inst: Instruction = _make_r_type_inst(opcode, fs, 0, ft)
     inst.set_shamt(cc << 2)
-    if opcode in _COMPARE_CONDITIONS:
+    if opcode not in _COMPARE_CONDITIONS:
+        # Never reached: only FP_CMP_FS_FT_INST rows reach here, and the table holds all 32
+        # of them (16 conditions, .s and .d).
+        raise console.fatal_error(
+            f"internal error: r_cond_type_inst: not an FP compare: {opcode}\n"
+        )
+    else:
         inst.set_rs(_COMPARE_CONDITIONS[opcode])
     _store_instruction(inst)
 
