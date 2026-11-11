@@ -32,7 +32,7 @@
 - **One-shot scripts:** six were removed with `git rm`: `engine-port-python/{add_port_lines.py,diff_engines.py}`,
   `engine-port-haskell/differential.py` and `engine-port-rust/{diff_more.py,run-demos.sh,run-regression.sh}`.
   The two REPL ones (`tasks/adhoc/engine-port-python/diff_repl.sh`,
-  `tasks/adhoc/engine-port-haskell/repl.py`) stay until `tasks/repl-transcript-corpus.md` replaces them.
+  `tasks/adhoc/engine-port-haskell/repl.py`) stay until `tasks/archive/2026/11/11/repl-transcript-corpus.md` replaces them.
 - **Path check:** every backticked path the rewritten docs cite exists, or is described as deleted,
   external or a build output. Archived records that cite the removed one-shot scripts keep those
   paths as history.
