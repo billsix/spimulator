@@ -58,7 +58,9 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
   different digits is only a warning). `port/meson.build` runs the C engine's own suites against each
   port, plus `port/harness/` (case-by-case and whole-tree comparisons with C). The teaching mode is not
   ported yet. Rules and decisions: `port/README.md`, `tasks/reference/engine-ports-design.md`. **A C
-  behavior change must be followed in every port**, or the port suites fail.
+  behavior change must be followed in every port**, or the port suites fail. The Haskell port follows the shared
+  Haskell coding standard: every do-bind and `let`/`where` binding typed, checked by
+  `port/haskell/tests/check-annotations.sh` (meson `haskell-annotations`).
 - `Documentation/spim.1`, `meson.build`, `meson_options.txt`, `.clang-format`,
   `.clang-tidy`.
 

@@ -18,6 +18,10 @@ Rules and status: `tasks/reference/engine-ports-design.md`, `tasks/archive/2026/
     port/haskell/tests/check-format.sh
     port/haskell/tests/check-strtod.sh
 
+    # [CONTAINER] every do-bind and let/where binding has a written type (meson: haskell-annotations);
+    # it lists any that does not, with the type GHC inferred
+    port/haskell/tests/check-annotations.sh
+
     # [HOST] regenerate src/Opcodes.hs and src/OpcodeTypes.hs (with every other
     # language's tables) after include/opcodes.tsv changes; commit the result
     make generate
@@ -58,6 +62,10 @@ binary's directory.
 
 ## Conventions
 
+- **The shared Haskell coding standard applies:** the `haskell-coding-standard.md` reference doc of
+  github.com/billsix/runClaudeInContainer. In particular, every do-bind and `let`/`where` binding
+  has a written type; lambda, case-alternative, argument-pattern and pattern-guard variables are
+  exempt. `tests/check-annotations.sh` enforces it.
 - **Compatibility first, then readability.** Each function names the C function it ports, and
   follows it statement by statement where the order shows in the output (error messages, the
   order things are printed, which of two equal table rows a search finds).
