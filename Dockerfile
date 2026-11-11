@@ -82,6 +82,12 @@ COPY Documentation/   ${SPIM_SRC_DIR}/Documentation
 # (the `meson test` step runs the 'examples' suite alongside
 # spim's 'regression' suite).
 COPY examples/        ${SPIM_SRC_DIR}/examples
+# The pgu programs the port comparison (port/harness/compare_all_programs.py)
+# runs: the MIPS port's .asm and the upstream x86 .s (which exercise the
+# assemblers' error paths).  Only the sources; the book is built at run time.
+COPY pgu/src/*.asm    ${SPIM_SRC_DIR}/pgu/src/
+COPY pgu/upstreamSource/*.s ${SPIM_SRC_DIR}/pgu/upstreamSource/
+COPY pgu/upstreamSource/translations/zh/*.s ${SPIM_SRC_DIR}/pgu/upstreamSource/translations/zh/
 # Repo tools the test suite runs: the examples suite's documented-commands
 # test is tools/check_example_commands.py.
 COPY tools/           ${SPIM_SRC_DIR}/tools

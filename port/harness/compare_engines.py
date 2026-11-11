@@ -41,6 +41,9 @@ TESTS: pathlib.Path = REPO / "tests"
 NUMBER: re.Pattern[str] = re.compile(
     r"[-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?|[-+]?(?:inf|nan)"
 )
+# The exit status recorded for a run that hit the timeout.
+TIMED_OUT: int = -1
+
 # How many units in the last place two printed floats may differ by.
 ULP_TOLERANCE: int = 4
 
@@ -102,7 +105,7 @@ def run(engine: str, case: Case, exception_file: str, timeout: float) -> Run:
                 timeout=timeout,
             )
         except subprocess.TimeoutExpired:
-            return Run("", f"<timed out after {timeout} s>", -1, {})
+            return Run("", f"<timed out after {timeout} s>", TIMED_OUT, {})
         dumps: dict[str, str] = {
             name: (cwd / name).read_text(errors="replace")
             for name in ("text.asm", "data.asm")
@@ -215,14 +218,29 @@ def main() -> int:
     # resolved against the directory the harness was started from.
     reference: str = resolve_engine(options.reference)
     engine: str = resolve_engine(options.engine)
+    corpus: list[Case] = load_corpus()
+    unknown: list[str] = sorted(set(options.cases) - {c.name for c in corpus})
     cases: list[Case] = [
-        c for c in load_corpus() if not options.cases or c.name in options.cases
+        c for c in corpus if not options.cases or c.name in options.cases
     ]
+    if unknown or not cases:
+        # A selection that runs nothing must not pass.
+        print(f"no such case: {', '.join(unknown)}" if unknown else "no cases selected")
+        return 1
     counts: dict[str, int] = {"PASS": 0, "WARN": 0, "FAIL": 0}
     for case in cases:
         want: Run = run(reference, case, options.exception_file, options.timeout)
         got: Run = run(engine, case, options.exception_file, options.timeout)
-        verdict, notes = compare(want, got)
+        verdict: str
+        notes: list[str]
+        if want.status == TIMED_OUT:
+            # Both engines timing out would compare equal; a hung reference proves nothing.
+            verdict, notes = (
+                "FAIL",
+                [f"the C engine timed out after {options.timeout} s"],
+            )
+        else:
+            verdict, notes = compare(want, got)
         counts[verdict] += 1
         print(f"{verdict} {case.name}")
         for note in notes[:10]:

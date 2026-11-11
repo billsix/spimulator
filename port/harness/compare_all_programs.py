@@ -51,13 +51,26 @@ def sources() -> list[pathlib.Path]:
         "examples/**/*.asm",
         "examples/**/*.s",
         "pgu/**/*.s",
+        "pgu/**/*.asm",
     )
-    return sorted(
-        p
+    found: dict[str, list[pathlib.Path]] = {
+        pattern: [p for p in REPO.glob(pattern) if "builddir" not in p.parts]
         for pattern in patterns
-        for p in REPO.glob(pattern)
-        if "builddir" not in p.parts
+    }
+    # A tracked-source pattern that matches nothing means a tree was not copied
+    # (the image build copies only some of the repo): fail rather than compare
+    # less.  examples/**/*.s are the native listings the examples build writes,
+    # so they exist only after it.
+    required: tuple[str, ...] = (
+        "tests/*.s",
+        "examples/**/*.asm",
+        "pgu/**/*.s",
+        "pgu/**/*.asm",
     )
+    empty: list[str] = [p for p in required if not found[p]]
+    if empty:
+        raise SystemExit(f"compare_all_programs: no files match {', '.join(empty)}")
+    return sorted(p for paths in found.values() for p in paths)
 
 
 def cases() -> list[tuple[str, list[str]]]:
@@ -124,6 +137,9 @@ def compare_case(
     """(label, PASS | WARN | FAIL, notes) for one command line."""
     want: dict[str, str] = execute(reference, args, timeout)
     got: dict[str, str] = execute(engine, args, timeout)
+    if want["status"] == "-1" and want["stderr"].startswith("<timed out"):
+        # Both engines timing out would compare equal; a hung reference proves nothing.
+        return label, "FAIL", [f"the C engine timed out after {timeout} s"]
     verdicts: list[str] = []
     notes: list[str] = []
     for part in sorted(set(want) | set(got)):
@@ -154,6 +170,9 @@ def main() -> int:
     selected: list[tuple[str, list[str]]] = [
         c for c in cases() if options.filter in c[0] and c[0] not in SKIPPED
     ]
+    if not selected:
+        print(f"no case matches {options.filter!r}")
+        return 1
     counts: dict[str, int] = {"PASS": 0, "WARN": 0, "FAIL": 0}
     with concurrent.futures.ThreadPoolExecutor(max_workers=options.jobs) as pool:
         results: Iterator[tuple[str, str, list[str]]] = pool.map(
