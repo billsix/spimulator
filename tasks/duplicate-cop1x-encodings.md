@@ -1,44 +1,45 @@
-# Give the xc1/prefx rows their real COP1X encodings
+# Gave the xc1/prefx and madd/msub rows their real COP1X encodings
 
-**Status:** proposed — needs go-ahead
-**Priority:** 5
-**Difficulty:** 4
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
 **Source:** tasks/review/2026/11/11/repo-review.md §4.1.3 F11
 
-## BLUF
+## Summary
 
-Six encodings in `include/opcodes.tsv` belong to two rows each. The table's decode column (`*`) now
-picks one on purpose. For three of them it picks the wrong one: 0x46000008/09/0f decode to
-`swxc1`/`sdxc1`/`prefx`, while the real COP1 instructions at those encodings are
-`round.l.s`/`trunc.l.s`/`floor.w.s`. The xc1/prefx instructions are COP1X (major opcode 0x13,
-`0x4c…`), so their rows are wrong. Done means:
-- each row has its MIPS32 encoding, checked against GNU `as`;
-- the COP1X decode ORs in funct;
-- no duplicates remain and the stars are gone;
-- all four engines and tree-sitter are regenerated.
+`include/opcodes.tsv` had six encodings shared by two rows each, inherited from upstream SPIM's
+table. GNU `as` (`mips64-linux-gnu-as -mabi=32 -mips32r2 -mfp64 -EB`, then `objdump -d`) gave the
+real words for all 24 COP1/COP1X instructions involved:
 
-## Context
+- `swxc1`/`sdxc1`/`suxc1`/`prefx` are COP1X with funct 0x08/0x09/0x0d/0x0f (`0x4c00000…`); the
+  table had given them the COP1 words of `round.l.s`/`trunc.l.s`/`trunc.w.s`/`floor.w.s`.
+- The oracle also showed that `madd.s`/`.d`/`.ps` are funct 0x20/0x21/0x26 and `msub.*`
+  0x28/0x29/0x2e. The table had madd at 0x00/0x01/0x06, which collided with `lwxc1`/`ldxc1`, and
+  msub at madd's values. Those rows were fixed too.
+- `lwxc1`, `ldxc1`, `luxc1`, `nmadd.*`, `nmsub.*` and the four COP1 conversions were already right.
 
-- The baseline review's §3.9 and F8 (`tasks/review/2026/11/10/repo-review.md`) listed the six:
-  swxc1/round.l.s 0x46000008, sdxc1/trunc.l.s 0x46000009, suxc1/trunc.w.s 0x4600000d,
-  prefx/floor.w.s 0x4600000f, lwxc1/madd.s 0x4c000000, ldxc1/madd.d 0x4c000001.
-  `cut -f4 include/opcodes.tsv | sort | uniq -d` still lists six.
-- Symptom: store a `floor.w.s $f0,$f2` word into text and execute it. It prints "Unknown instruction
-  type: 532", a fatal error.
-- `src/instruction.c` `inst_decode`, `case 0x4c000000`, ORs in only bits 21-25, not funct.
-- Oracle: `mips64-linux-gnu-as -mabi=32 -mips32r2 -mfp64 -EB`, then `mips64-linux-gnu-objdump -d`
-  (`binutils-mips64-linux-gnu`).
-- Method: `tasks/reference/opcode-table-generator.md`. Gate with `BUILD_TREE_SITTER=1` (`CLAUDE.md`).
+`inst_decode` keyed every `0x4c…` word by its rs field, so all COP1X words collapsed together. Now
+it keys COP1X by funct. The change is in `src/instruction.c` and the same branch in each port
+(`port/python/spimulator_py/instruction.py`, `port/haskell/src/Instruction.hs`,
+`port/rust/src/instruction.rs`). No encoding is shared any more, so the six `*` marks are gone.
+`tools/gen_opcodes.py` regenerated every table; the tree-sitter keyword lists didn't change.
 
-## Plan
+The Python doctest in `port/python/spimulator_py/opcodes.py` pinned the old answer (`prefx` for
+0x4600000f) and now expects `floor.w.s`.
+`tasks/reference/opcode-table-generator.md` ("The decode column") and
+`tasks/reference/engine-port-language-choice.md` were updated to match.
 
-1. Look up each of the 12 instructions with GNU `as`; fix the rows; drop the duplicate stars.
-2. Fix the COP1X decode in `src/instruction.c` and in each port's counterpart.
-3. Add a regression test that stores each word into text and disassembles or executes it.
-4. `python3 tools/gen_opcodes.py` (or `make generate`, once `tasks/archive/2026/11/11/opcode-generate-workflow.md` is
-   done), then `make image` with `BUILD_TREE_SITTER=1`.
+## Test
 
-## Open questions
+`tests/tt.cop1x_decode.s` (regression case `cop1x_decode`, also in `port/harness/corpus.txt`)
+stores the four COP1 words over nops in text. It runs `trunc.w.s` and `floor.w.s` on -2.75, which
+must print -2 and -3, and then disassembles all four words with the REPL. On an unfixed engine it
+stops with "Unknown instruction type: 548". With the fix it passed on the gcc and clang builds, and
+the whole local suite passed (310/310: regression, examples and the three port suites).
 
-None.
+## Left as found
+
+The COP1X instructions themselves are still not usable: the parser rejects `madd.s` etc. ("not yet
+supported"), the xc1/prefx rows have operand types that don't match their `index(base)` syntax, and
+none of them has an execute case or a disassembly shape (`FP_FD_FR_FS_FT_INST` has no decode case).
+That was true before this change and is unchanged by it; supporting them would be a feature, in
+every engine, and no task tracks it.
