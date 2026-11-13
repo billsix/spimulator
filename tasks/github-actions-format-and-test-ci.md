@@ -42,7 +42,7 @@ all the logic lives in the Makefile, so the same command runs on a laptop. Done 
 - **What breaks on a GitHub runner** (found by reading the Makefile on 2026-11-13; confirm each on
   the first CI run):
   1. `format` runs `podman run … -it`. On a runner there is no TTY, so Docker fails with "the input
-     device is not a TTY". `tasks/remove-tty-flag-from-batch-make-targets.md` removes `-it` from
+     device is not a TTY". `tasks/archive/2026/11/13/remove-tty-flag-from-batch-make-targets.md` removed `-it` from
      `format` and the other batch targets. Do it first; then `check-format: format` works on a
      runner as is.
   2. `FILES_TO_MOUNT` uses a relative host path, `-v .:/spimulator/:Z`. Recent Docker accepts
