@@ -39,7 +39,8 @@ lines may have moved.
 
 - **Anything that reads the keyboard needs a TTY:** an interactive shell, a REPL or TUI, a debugger,
   or a password prompt (for example `twine upload`).
-- **Long-running GUI and server targets keep it too.** Without `-t`, Ctrl-C reaches only the
+- **Long-running GUI and server targets keep it too** (the maintainer's decision, William
+  Emerison Six <billsix@gmail.com>, 2026-11-13). Without `-t`, Ctrl-C reaches only the
   container's PID 1, which ignores SIGINT unless it installs a handler, so the window or server does
   not stop. With `-t`, Ctrl-C goes to the app through the pty.
 - **A batch target that finishes on its own needs neither**, so `-it` only makes it fail without a
