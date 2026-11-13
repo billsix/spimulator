@@ -18,12 +18,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-/* PURPOSE: Rung 1 of the bubble-sort ladder (tasks/incremental-example-versions.md).
- * Bubble sort a FIXED in-program array and print it — just the algorithm (the
- * nested-loop in-place swap), with no input.  The finished bubble-sort (rung 2)
- * adds the separate idea of reading the integers from stdin (syscall 5 with the
- * $a3 EOF flag — the demo's "first to use that syscall").  Splitting them lets a
- * reader meet the sort on territory they already walk, before the new syscall.
+/* PURPOSE: Rung 1 of the bubble-sort ladder
+ * (tasks/incremental-example-versions.md). Bubble sort a FIXED in-program array
+ * and print it — just the algorithm (the nested-loop in-place swap), with no
+ * input.  The finished bubble-sort (rung 2) adds the separate idea of reading
+ * the integers from stdin (syscall 5 with the $a3 EOF flag — the demo's "first
+ * to use that syscall").  Splitting them lets a reader meet the sort on
+ * territory they already walk, before the new syscall.
  *
  *     $ spimulator -f bubble-sort-1-fixed.asm
  *     1

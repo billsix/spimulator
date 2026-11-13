@@ -18,12 +18,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-/* PURPOSE: Rung 6 of the calculator ladder (tasks/calc-incremental-versions.md).
- * Introduces the FPU: numbers become DOUBLES with an optional '.'-fraction, and
- * every operator becomes a floating-point operation — so '/' now yields decimals
- * (10/4 == 2.5), where rung 3's integer '/' truncated.  This is the one
- * representation-change rung.  Still no spaces, no error handling — those make
- * the final rung, calc-sdt, which this becomes once they are added.
+/* PURPOSE: Rung 6 of the calculator ladder
+ * (tasks/calc-incremental-versions.md). Introduces the FPU: numbers become
+ * DOUBLES with an optional '.'-fraction, and every operator becomes a
+ * floating-point operation — so '/' now yields decimals (10/4 == 2.5), where
+ * rung 3's integer '/' truncated.  This is the one representation-change rung.
+ * Still no spaces, no error handling — those make the final rung, calc-sdt,
+ * which this becomes once they are added.
  *
  *     $ printf '10/4\n' | spimulator -f calc-6-float.asm
  *     2.500000

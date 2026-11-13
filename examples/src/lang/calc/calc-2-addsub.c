@@ -18,9 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-/* PURPOSE: Rung 2 of the calculator ladder (tasks/calc-incremental-versions.md).
- * Adds binary '+' and '-', evaluated left-to-right, to rung 1's number reader.
- * Still integers, no spaces, no sign, no error handling.
+/* PURPOSE: Rung 2 of the calculator ladder
+ * (tasks/calc-incremental-versions.md). Adds binary '+' and '-', evaluated
+ * left-to-right, to rung 1's number reader. Still integers, no spaces, no sign,
+ * no error handling.
  *
  *     $ printf '2+3-1\n' | spimulator -f calc-2-addsub.asm
  *     4
@@ -60,7 +61,8 @@ static int cur; /* current lookahead character (-1 at EOF) */
 
 static void advance(void) { cur = read_char(); }
 
-/* Accumulate a run of decimal digits into an int (well-formed input assumed). */
+/* Accumulate a run of decimal digits into an int (well-formed input assumed).
+ */
 static int parse_number(void) {
   int value = 0;
   while (cur >= '0' && cur <= '9') {

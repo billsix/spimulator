@@ -18,9 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-/* PURPOSE: Rung 4 of the calculator ladder (tasks/calc-incremental-versions.md).
- * Adds parentheses for grouping (CCSS 5.OA.A.1).  Still integers, no spaces, no
- * sign, no error handling (well-formed input assumed).
+/* PURPOSE: Rung 4 of the calculator ladder
+ * (tasks/calc-incremental-versions.md). Adds parentheses for grouping
+ * (CCSS 5.OA.A.1).  Still integers, no spaces, no sign, no error handling
+ * (well-formed input assumed).
  *
  *     $ printf '(2+3)*4\n' | spimulator -f calc-4-parens.asm
  *     20
@@ -63,7 +64,8 @@ static int cur; /* current lookahead character (-1 at EOF) */
 
 static void advance(void) { cur = read_char(); }
 
-/* Accumulate a run of decimal digits into an int (well-formed input assumed). */
+/* Accumulate a run of decimal digits into an int (well-formed input assumed).
+ */
 static int parse_number(void) {
   int value = 0;
   while (cur >= '0' && cur <= '9') {

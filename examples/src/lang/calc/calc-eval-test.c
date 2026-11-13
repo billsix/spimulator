@@ -20,8 +20,8 @@
 
 /* PURPOSE: Unit tests for the I/O-separated calculator core
  * (tasks/examples-separate-io-from-algorithm.md).  Because calc-eval's parser
- * depends on a CHARACTER ARRAY, not on I/O, it can be tested directly: this demo
- * runs `eval()` on a battery of HARDCODED expression strings and prints
+ * depends on a CHARACTER ARRAY, not on I/O, it can be tested directly: this
+ * demo runs `eval()` on a battery of HARDCODED expression strings and prints
  * "<expr> => <result>" for each.  No stdin is read at all — that is the whole
  * point of separating the algorithm from the I/O.
  *

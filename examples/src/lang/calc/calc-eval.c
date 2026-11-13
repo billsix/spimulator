@@ -18,9 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-/* PURPOSE: The I/O-separated calculator (tasks/examples-separate-io-from-algorithm.md).
- * The SAME language and output as calc-sdt, but the algorithm is separated from
- * the I/O: the core is a PURE function
+/* PURPOSE: The I/O-separated calculator
+ * (tasks/examples-separate-io-from-algorithm.md). The SAME language and output
+ * as calc-sdt, but the algorithm is separated from the I/O: the core is a PURE
+ * function
  *
  *     double eval(const char* expr);   // sets a had_error flag; does no I/O
  *
@@ -67,8 +68,10 @@
 #include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 #include "io.h"
 
-#define FRAC_DIGITS 6 /* fractional digits printed for a non-integral result */
-#define LINE_MAX 256  /* longest input line eval() is handed */
+#define FRAC_DIGITS                                                         \
+  6                  /* fractional digits printed for a non-integral result \
+                      */
+#define LINE_MAX 256 /* longest input line eval() is handed */
 
 static const char* cursor; /* read position within the expression buffer */
 static int cur;            /* lookahead character (-1 at end of the buffer) */
@@ -215,7 +218,8 @@ double eval(const char* expr) {
   return value;
 }
 
-/* True if the line is empty or only blanks (produces no output, like calc-sdt). */
+/* True if the line is empty or only blanks (produces no output, like calc-sdt).
+ */
 static int blank_line(const char* line) {
   for (const char* p = line; *p != '\0'; p++) {
     if (*p != ' ' && *p != '\t' && *p != '\r') {

@@ -18,11 +18,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-/* PURPOSE: Rung 1 of the calculator ladder (tasks/calc-incremental-versions.md).
- * The smallest honest first step toward the calc-sdt calculator: read one
- * whole non-negative INTEGER per line of stdin and print it back, one per
- * line.  No operators, no spaces, no sign, no error handling yet — just
- * tokenize a number and print it.
+/* PURPOSE: Rung 1 of the calculator ladder
+ * (tasks/calc-incremental-versions.md). The smallest honest first step toward
+ * the calc-sdt calculator: read one whole non-negative INTEGER per line of
+ * stdin and print it back, one per line.  No operators, no spaces, no sign, no
+ * error handling yet — just tokenize a number and print it.
  *
  *     $ printf '42\n100\n' | spimulator -f calc-1-numbers.asm
  *     42

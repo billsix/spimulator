@@ -24,7 +24,8 @@
  * adds argv handling: the `-n N` flag and a FILE argument.  Splitting them lets
  * a reader meet the line-counting byte loop before the command-line parsing.
  *
- *     $ printf 'a\nb\nc\n...' | spimulator -f head-1-count.asm   (first 10 lines)
+ *     $ printf 'a\nb\nc\n...' | spimulator -f head-1-count.asm   (first 10
+ * lines)
  *
  * The lesson: a stream-state filter — read bytes, echo them, count newlines,
  * stop at the limit.  Mirrored in head-1-count.asm (read_char / print_char).

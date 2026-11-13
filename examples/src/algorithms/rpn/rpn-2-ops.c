@@ -27,10 +27,10 @@
  *     14
  *
  * The one new idea: the stack-machine STEP — pop two, apply, push one.  RPN has
- * no precedence, so all four operators are the same shape; they act immediately,
- * left-to-right, as they are read.  (Contrast calc, where '*'/'/' needed a
- * precedence layer.)  The paired rpn-2-ops.asm pops/pushes words on the $sp
- * stack.
+ * no precedence, so all four operators are the same shape; they act
+ * immediately, left-to-right, as they are read.  (Contrast calc, where '*'/'/'
+ * needed a precedence layer.)  The paired rpn-2-ops.asm pops/pushes words on
+ * the $sp stack.
  */
 
 /* clang-format off */

@@ -19,12 +19,12 @@
 // SOFTWARE.
 
 /* PURPOSE: Rung 3 of the RPN ladder (tasks/rpn-incremental-versions.md).
- * Introduces the FPU: stack values become DOUBLES with an optional '.'-fraction,
- * and every operator is a floating-point op — so '/' now yields decimals
- * (1 3 / == 0.333333), where rung 2's integer '/' truncated.  This is the one
- * representation-change rung.  Still no error handling — under/overflow, bad
- * input and empty make the final rung, rpn, which this becomes once they are
- * added.
+ * Introduces the FPU: stack values become DOUBLES with an optional
+ * '.'-fraction, and every operator is a floating-point op — so '/' now yields
+ * decimals (1 3 / == 0.333333), where rung 2's integer '/' truncated.  This is
+ * the one representation-change rung.  Still no error handling —
+ * under/overflow, bad input and empty make the final rung, rpn, which this
+ * becomes once they are added.
  *
  *     $ printf '3 4 + 2 * 1 3 / -\n' | spimulator -f rpn-3-float.asm
  *     13.666666
@@ -60,8 +60,10 @@
 #include "crt0.h" /* provides _start; calls my_main(argc, argv) */
 #include "io.h"
 
-#define STACK_MAX 64   /* maximum evaluation-stack depth */
-#define FRAC_DIGITS 6  /* fractional digits printed for a non-integral result */
+#define STACK_MAX 64 /* maximum evaluation-stack depth */
+#define FRAC_DIGITS                                        \
+  6 /* fractional digits printed for a non-integral result \
+     */
 
 /* Print `value` deterministically — identical to rpn/calc's printer. */
 static void print_double(double value) {

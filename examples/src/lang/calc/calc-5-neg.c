@@ -18,9 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-/* PURPOSE: Rung 5 of the calculator ladder (tasks/calc-incremental-versions.md).
- * Adds unary minus / negative numbers (CCSS 6.NS.C / 7.NS.A — taught after the
- * whole-number arithmetic above).  Still integers, no spaces, no error handling.
+/* PURPOSE: Rung 5 of the calculator ladder
+ * (tasks/calc-incremental-versions.md). Adds unary minus / negative numbers
+ * (CCSS 6.NS.C / 7.NS.A — taught after the whole-number arithmetic above).
+ * Still integers, no spaces, no error handling.
  *
  *     $ printf '3*-2\n' | spimulator -f calc-5-neg.asm
  *     -6
@@ -62,7 +63,8 @@ static int cur; /* current lookahead character (-1 at EOF) */
 
 static void advance(void) { cur = read_char(); }
 
-/* Accumulate a run of decimal digits into an int (well-formed input assumed). */
+/* Accumulate a run of decimal digits into an int (well-formed input assumed).
+ */
 static int parse_number(void) {
   int value = 0;
   while (cur >= '0' && cur <= '9') {
