@@ -7,31 +7,32 @@
 -- or three instructions using the assembler's register @$at@ ($1), and an
 -- immediate naming a label not yet defined is recorded and patched later.
 module Assemble
-  ( textBeginsAtPoint
-  , kTextBeginsAtPoint
-  , alignText
-  , setTextPc
-  , userKernelTextSegment
-  , iType
-  , jType
-  , rType
-  , rCoType
-  , rShType
-  , rCondType
-  , makeImmExpr
-  , constImmExpr
-  , incrExprOffset
-  , makeAddrExpr
-  , isZeroImm
-  , immOpToOp
-  , opToImmOp
-  ) where
+  ( textBeginsAtPoint,
+    kTextBeginsAtPoint,
+    alignText,
+    setTextPc,
+    userKernelTextSegment,
+    iType,
+    jType,
+    rType,
+    rCoType,
+    rShType,
+    rCondType,
+    makeImmExpr,
+    constImmExpr,
+    incrExprOffset,
+    makeAddrExpr,
+    isZeroImm,
+    immOpToOp,
+    opToImmOp,
+  )
+where
 
 import AsmCommon
 import Control.Monad (unless, when)
 import Data.Bits (shiftL, shiftR, (.&.), (.|.))
-import Data.Int (Int32)
 import Data.IORef (IORef, newIORef)
+import Data.Int (Int32)
 import Data.Word (Word32)
 import DataSegment (storeWord)
 import Instruction
@@ -163,9 +164,20 @@ makeAddrExpr s offs sym regNo = do
 -- | Is this a signed-immediate instruction?
 signedImmOp :: Int -> Bool
 signedImmOp op =
-  op `elem` map tok [ TOK_ADDI_OPCODE, TOK_ADDIU_OPCODE, TOK_SLTI_OPCODE, TOK_SLTIU_OPCODE
-                    , TOK_TEQI_OPCODE, TOK_TGEI_OPCODE, TOK_TGEIU_OPCODE, TOK_TLTI_OPCODE
-                    , TOK_TLTIU_OPCODE, TOK_TNEI_OPCODE ]
+  op
+    `elem` map
+      tok
+      [ TOK_ADDI_OPCODE,
+        TOK_ADDIU_OPCODE,
+        TOK_SLTI_OPCODE,
+        TOK_SLTIU_OPCODE,
+        TOK_TEQI_OPCODE,
+        TOK_TGEI_OPCODE,
+        TOK_TGEIU_OPCODE,
+        TOK_TLTI_OPCODE,
+        TOK_TLTIU_OPCODE,
+        TOK_TNEI_OPCODE
+      ]
 
 -- | An immediate instruction @op rt, rs, expr@ (C: @i_type@).  It may
 -- become several instructions when the value does not fit in 16 bits.
@@ -332,12 +344,18 @@ immOpToOp op = maybe (fatalError "Can't convert immediate op to op\n") (pure . t
   where
     table :: [(Int, Opcode)]
     table =
-      [ (tok TOK_ADDI_OPCODE, TOK_ADD_OPCODE), (tok TOK_ADDIU_OPCODE, TOK_ADDU_OPCODE)
-      , (tok TOK_ANDI_OPCODE, TOK_AND_OPCODE), (tok TOK_ORI_OPCODE, TOK_OR_OPCODE)
-      , (tok TOK_XORI_OPCODE, TOK_XOR_OPCODE), (tok TOK_SLTI_OPCODE, TOK_SLT_OPCODE)
-      , (tok TOK_SLTIU_OPCODE, TOK_SLTU_OPCODE), (tok TOK_J_OPCODE, TOK_JR_OPCODE)
-      , (tok TOK_LUI_OPCODE, TOK_ADDU_OPCODE), (tok TOK_SLL_OPCODE, TOK_SLLV_OPCODE)
-      , (tok TOK_SRA_OPCODE, TOK_SRAV_OPCODE), (tok TOK_SRL_OPCODE, TOK_SRLV_OPCODE)
+      [ (tok TOK_ADDI_OPCODE, TOK_ADD_OPCODE),
+        (tok TOK_ADDIU_OPCODE, TOK_ADDU_OPCODE),
+        (tok TOK_ANDI_OPCODE, TOK_AND_OPCODE),
+        (tok TOK_ORI_OPCODE, TOK_OR_OPCODE),
+        (tok TOK_XORI_OPCODE, TOK_XOR_OPCODE),
+        (tok TOK_SLTI_OPCODE, TOK_SLT_OPCODE),
+        (tok TOK_SLTIU_OPCODE, TOK_SLTU_OPCODE),
+        (tok TOK_J_OPCODE, TOK_JR_OPCODE),
+        (tok TOK_LUI_OPCODE, TOK_ADDU_OPCODE),
+        (tok TOK_SLL_OPCODE, TOK_SLLV_OPCODE),
+        (tok TOK_SRA_OPCODE, TOK_SRAV_OPCODE),
+        (tok TOK_SRL_OPCODE, TOK_SRLV_OPCODE)
       ]
 
 -- | The immediate form of a register instruction (C: @op_to_imm_op@).
@@ -346,9 +364,14 @@ opToImmOp op = maybe (fatalError "Can't convert op to immediate op\n") pure (loo
   where
     table :: [(Opcode, Opcode)]
     table =
-      [ (TOK_ADD_OPCODE, TOK_ADDI_OPCODE), (TOK_ADDU_OPCODE, TOK_ADDIU_OPCODE)
-      , (TOK_AND_OPCODE, TOK_ANDI_OPCODE), (TOK_OR_OPCODE, TOK_ORI_OPCODE)
-      , (TOK_XOR_OPCODE, TOK_XORI_OPCODE), (TOK_SLT_OPCODE, TOK_SLTI_OPCODE)
-      , (TOK_SLTU_OPCODE, TOK_SLTIU_OPCODE), (TOK_SLLV_OPCODE, TOK_SLL_OPCODE)
-      , (TOK_SRAV_OPCODE, TOK_SRA_OPCODE), (TOK_SRLV_OPCODE, TOK_SRL_OPCODE)
+      [ (TOK_ADD_OPCODE, TOK_ADDI_OPCODE),
+        (TOK_ADDU_OPCODE, TOK_ADDIU_OPCODE),
+        (TOK_AND_OPCODE, TOK_ANDI_OPCODE),
+        (TOK_OR_OPCODE, TOK_ORI_OPCODE),
+        (TOK_XOR_OPCODE, TOK_XORI_OPCODE),
+        (TOK_SLT_OPCODE, TOK_SLTI_OPCODE),
+        (TOK_SLTU_OPCODE, TOK_SLTIU_OPCODE),
+        (TOK_SLLV_OPCODE, TOK_SLL_OPCODE),
+        (TOK_SRAV_OPCODE, TOK_SRA_OPCODE),
+        (TOK_SRLV_OPCODE, TOK_SRL_OPCODE)
       ]

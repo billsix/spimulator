@@ -8,18 +8,19 @@
 -- the generated 'opcodeDecodeRows' holds the one row each encoding decodes
 -- to, already sorted (include/opcodes.tsv's decode column).
 module OpcodeTables
-  ( NameValVal (..)
-  , bsearchBy
-  , nameTable
-  , iOpcodeTable
-  , aOpcodeTable
-  , keywordTable
-  , lookupByValue
-  , opTokenName
-  , opcodeTypeOfToken
-  , opcodeOfToken
-  , findOpType
-  ) where
+  ( NameValVal (..),
+    bsearchBy,
+    nameTable,
+    iOpcodeTable,
+    aOpcodeTable,
+    keywordTable,
+    lookupByValue,
+    opTokenName,
+    opcodeTypeOfToken,
+    opcodeOfToken,
+    findOpType,
+  )
+where
 
 import Data.Array (Array, bounds, listArray, (!))
 import Data.Int (Int32)
@@ -30,9 +31,9 @@ import Opcodes
 
 -- | C's @name_val_val@: a string and two integers.
 data NameValVal a = NameValVal
-  { nvvName :: String
-  , nvvValue1 :: Int
-  , nvvValue2 :: a
+  { nvvName :: String,
+    nvvValue1 :: Int,
+    nvvValue2 :: a
   }
 
 -- | glibc's @bsearch@: halve the range [l, u) until the middle element

@@ -12,20 +12,21 @@
 -- time, with the C library's @read@, exactly as the C engine does; that
 -- way no input is held in a buffer where a later reader could not see it.
 module Output
-  ( SpimJump (..)
-  , writeOut
-  , writeErr
-  , cError
-  , runError
-  , fatalError
-  , exitSpim
-  , readByte
-  , setupHandles
-  , cRead
-  , cWrite
-  , cOpen
-  , cClose
-  ) where
+  ( SpimJump (..),
+    writeOut,
+    writeErr,
+    cError,
+    runError,
+    fatalError,
+    exitSpim,
+    readByte,
+    setupHandles,
+    cRead,
+    cWrite,
+    cOpen,
+    cClose,
+  )
+where
 
 import Control.Exception (Exception, throwIO)
 import qualified Data.ByteString.Char8 as B
@@ -36,12 +37,15 @@ import Foreign.Marshal.Alloc (alloca)
 import Foreign.Ptr (Ptr, castPtr)
 import Foreign.Storable (peek)
 import System.Exit (ExitCode (..), exitWith)
-import System.IO (BufferMode (..), Handle, hFlush, hSetBinaryMode, hSetBuffering, stderr, stdout, stdin)
+import System.IO (BufferMode (..), Handle, hFlush, hSetBinaryMode, hSetBuffering, stderr, stdin, stdout)
 import System.Posix.Signals (Handler (Default), installHandler, sigPIPE)
 
 foreign import ccall safe "read" c_read :: CInt -> Ptr Word8 -> CSize -> IO CInt
+
 foreign import ccall safe "write" c_write :: CInt -> Ptr Word8 -> CSize -> IO CInt
+
 foreign import ccall safe "open" c_open :: CString -> CInt -> CInt -> IO CInt
+
 foreign import ccall safe "close" c_close :: CInt -> IO CInt
 
 -- | The C library's @read@, @write@, @open@ and @close@, for the

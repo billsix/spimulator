@@ -11,13 +11,14 @@
 -- it (its "delay slot"); with @-delayed_loads@ a loaded value arrives one
 -- instruction late.  Both are modelled the way the C engine models them.
 module Run
-  ( runSpim
-  ) where
+  ( runSpim,
+  )
+where
 
 import Control.Monad (when)
 import Data.Array.IO (readArray, writeArray)
-import Data.Bits (complement, countLeadingZeros, shiftL, shiftR, testBit, (.&.), (.|.), xor)
-import Data.Int (Int32, Int64, Int16, Int16)
+import Data.Bits (complement, countLeadingZeros, shiftL, shiftR, testBit, xor, (.&.), (.|.))
+import Data.Int (Int16, Int32, Int64)
 import qualified Data.Set as Set
 import Data.Word (Word32, Word64)
 import GHC.Clock (getMonotonicTimeNSec)
@@ -35,8 +36,10 @@ import Types
 
 -- | What an instruction tells the loop to do next.
 data Next
-  = Continue -- ^ advance the PC and carry on
-  | Return Bool -- ^ leave 'runSpim' now with this answer
+  = -- | advance the PC and carry on
+    Continue
+  | -- | leave 'runSpim' now with this answer
+    Return Bool
 
 -- | Run the program from an address for a number of steps; print each
 -- instruction first if display is on.  True means the program can be
@@ -640,12 +643,16 @@ execute s display i = case opcodeOfToken (inOpcode i) of
 cCeil, cFloor :: Double -> Double
 cCeil x
   | isNaN x || isInfinite x || abs x >= 4503599627370496 = x
-  | otherwise = let t :: Double
-                    t = fromIntegral (truncate x :: Int64) in if t < x then t + 1 else t
+  | otherwise =
+      let t :: Double
+          t = fromIntegral (truncate x :: Int64)
+       in if t < x then t + 1 else t
 cFloor x
   | isNaN x || isInfinite x || abs x >= 4503599627370496 = x
-  | otherwise = let t :: Double
-                    t = fromIntegral (truncate x :: Int64) in if t > x then t - 1 else t
+  | otherwise =
+      let t :: Double
+          t = fromIntegral (truncate x :: Int64)
+       in if t > x then t - 1 else t
 
 readCtlReg :: Spim -> Int -> IO Int32
 readCtlReg s n = readArray (cpControl s) n
@@ -662,13 +669,39 @@ fcsrMask = 0xfe800000
 singleCompares, doubleCompares :: Set.Set Opcode
 singleCompares =
   Set.fromList
-  [ TOK_C_F_S_OPCODE, TOK_C_UN_S_OPCODE, TOK_C_EQ_S_OPCODE, TOK_C_UEQ_S_OPCODE, TOK_C_OLT_S_OPCODE
-  , TOK_C_OLE_S_OPCODE, TOK_C_ULT_S_OPCODE, TOK_C_ULE_S_OPCODE, TOK_C_SF_S_OPCODE, TOK_C_NGLE_S_OPCODE
-  , TOK_C_SEQ_S_OPCODE, TOK_C_NGL_S_OPCODE, TOK_C_LT_S_OPCODE, TOK_C_NGE_S_OPCODE, TOK_C_LE_S_OPCODE
-  , TOK_C_NGT_S_OPCODE ]
+    [ TOK_C_F_S_OPCODE,
+      TOK_C_UN_S_OPCODE,
+      TOK_C_EQ_S_OPCODE,
+      TOK_C_UEQ_S_OPCODE,
+      TOK_C_OLT_S_OPCODE,
+      TOK_C_OLE_S_OPCODE,
+      TOK_C_ULT_S_OPCODE,
+      TOK_C_ULE_S_OPCODE,
+      TOK_C_SF_S_OPCODE,
+      TOK_C_NGLE_S_OPCODE,
+      TOK_C_SEQ_S_OPCODE,
+      TOK_C_NGL_S_OPCODE,
+      TOK_C_LT_S_OPCODE,
+      TOK_C_NGE_S_OPCODE,
+      TOK_C_LE_S_OPCODE,
+      TOK_C_NGT_S_OPCODE
+    ]
 doubleCompares =
   Set.fromList
-  [ TOK_C_F_D_OPCODE, TOK_C_UN_D_OPCODE, TOK_C_EQ_D_OPCODE, TOK_C_UEQ_D_OPCODE, TOK_C_OLT_D_OPCODE
-  , TOK_C_OLE_D_OPCODE, TOK_C_ULT_D_OPCODE, TOK_C_ULE_D_OPCODE, TOK_C_SF_D_OPCODE, TOK_C_NGLE_D_OPCODE
-  , TOK_C_SEQ_D_OPCODE, TOK_C_NGL_D_OPCODE, TOK_C_LT_D_OPCODE, TOK_C_NGE_D_OPCODE, TOK_C_LE_D_OPCODE
-  , TOK_C_NGT_D_OPCODE ]
+    [ TOK_C_F_D_OPCODE,
+      TOK_C_UN_D_OPCODE,
+      TOK_C_EQ_D_OPCODE,
+      TOK_C_UEQ_D_OPCODE,
+      TOK_C_OLT_D_OPCODE,
+      TOK_C_OLE_D_OPCODE,
+      TOK_C_ULT_D_OPCODE,
+      TOK_C_ULE_D_OPCODE,
+      TOK_C_SF_D_OPCODE,
+      TOK_C_NGLE_D_OPCODE,
+      TOK_C_SEQ_D_OPCODE,
+      TOK_C_NGL_D_OPCODE,
+      TOK_C_LT_D_OPCODE,
+      TOK_C_NGE_D_OPCODE,
+      TOK_C_LE_D_OPCODE,
+      TOK_C_NGT_D_OPCODE
+    ]

@@ -14,18 +14,19 @@
 -- Tested byte-identical to glibc on 158,029 values
 -- (port/haskell/tests/check-format.sh, the meson test haskell-float-format).
 module CFormat
-  ( formatF
-  , formatG
-  , formatGAlt
-  , leftIn
-  , cStrtod
-  ) where
+  ( formatF,
+    formatG,
+    formatGAlt,
+    leftIn,
+    cStrtod,
+  )
+where
 
+import Data.Bits (testBit, (.&.), (.|.))
 import Data.Char (digitToInt, isAlphaNum, isDigit, isHexDigit, toLower)
 import Data.Ratio (denominator, numerator, (%))
-import GHC.Float (castDoubleToWord64, castWord64ToDouble)
-import Data.Bits (testBit, (.&.), (.|.))
 import Data.Word (Word64)
+import GHC.Float (castDoubleToWord64, castWord64ToDouble)
 
 -- | Round a non-negative rational to the nearest integer, ties to even
 -- (glibc's default rounding mode, applied to the exact value).
@@ -70,8 +71,10 @@ sign x = if x < 0 || isNegativeZero x then "-" else ""
 
 -- | The digits of n, left-padded with zeros to at least w characters.
 padded :: Int -> Integer -> String
-padded w n = let s :: String
-                 s = show n in replicate (w - length s) '0' ++ s
+padded w n =
+  let s :: String
+      s = show n
+   in replicate (w - length s) '0' ++ s
 
 -- | C's @%.<p>f@.
 formatF :: Int -> Double -> String
@@ -128,8 +131,11 @@ formatGAlt alt p0 x = case special x of
                   mant = strip (withPoint ds 1)
                   ex :: Int
                   ex = abs e
-               in mant ++ "e" ++ (if e < 0 then "-" else "+")
-                    ++ (if ex < 10 then "0" else "") ++ show ex
+               in mant
+                    ++ "e"
+                    ++ (if e < 0 then "-" else "+")
+                    ++ (if ex < 10 then "0" else "")
+                    ++ show ex
             else
               let decimals :: Int
                   decimals = p - 1 - e
@@ -250,11 +256,18 @@ hexValue s =
       m = foldl (\acc c -> acc * 16 + toInteger (digitToInt c)) 0 (intDigits ++ fracDigits)
       e :: Int
       e = expo - 4 * length fracDigits
-   in if m == 0 then 0
-      else if e > 1100 then 1 / 0
-      else if e < -1200 then 0
-      else if e >= 0 then fromRational (fromInteger (m * 2 ^ e))
-      else fromRational (m % (2 ^ negate e))
+   in if m == 0
+        then 0
+        else
+          if e > 1100
+            then 1 / 0
+            else
+              if e < -1200
+                then 0
+                else
+                  if e >= 0
+                    then fromRational (fromInteger (m * 2 ^ e))
+                    else fromRational (m % (2 ^ negate e))
   where
     binaryExponent :: String -> Int
     binaryExponent r =

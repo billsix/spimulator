@@ -8,45 +8,51 @@
 -- parts that change are 'IORef's, and everything else is plain immutable
 -- data.
 module Types
-  ( Instruction (..)
-  , InstRef
-  , emptyInstruction
-  , ImmExpr (..)
-  , Label (..)
-  , LabelUse (..)
+  ( Instruction (..),
+    InstRef,
+    emptyInstruction,
+    ImmExpr (..),
+    Label (..),
+    LabelUse (..),
+
     -- * The instruction's overlapping fields
-  , instRs
-  , instRt
-  , instRd
-  , instShamt
-  , instImm
-  , instTarget
-  , setRs
-  , setRt
-  , setRd
-  , setShamt
-  , setImm
-  , setTarget
-  , instFs
-  , instFt
-  , instFd
-  , instBase
-  , instCond
-  , branchOffset
-  ) where
+    instRs,
+    instRt,
+    instRd,
+    instShamt,
+    instImm,
+    instTarget,
+    setRs,
+    setRt,
+    setRd,
+    setShamt,
+    setImm,
+    setTarget,
+    instFs,
+    instFt,
+    instFd,
+    instBase,
+    instCond,
+    branchOffset,
+  )
+where
 
 import Data.Bits (complement, shiftL, shiftR, (.&.), (.|.))
-import Data.Int (Int16, Int32)
 import Data.IORef (IORef)
+import Data.Int (Int16, Int32)
 import Data.Word (Word32, Word8)
 
 -- | An immediate expression: @symbol + offset@, either part optional
 -- (C: @imm_expr@).
 data ImmExpr = ImmExpr
-  { ieOffset :: Int32 -- ^ offset from the symbol
-  , ieSymbol :: Maybe Label -- ^ the label, if any
-  , ieBits :: Int16 -- ^ > 0: use bits 31..16; < 0: bits 15..0; 0: all
-  , iePcRelative :: Bool -- ^ an offset from the instruction's own address
+  { -- | offset from the symbol
+    ieOffset :: Int32,
+    -- | the label, if any
+    ieSymbol :: Maybe Label,
+    -- | > 0: use bits 31..16; < 0: bits 15..0; 0: all
+    ieBits :: Int16,
+    -- | an offset from the instruction's own address
+    iePcRelative :: Bool
   }
 
 -- | One assembled instruction (C: @mips_instruction@).
@@ -64,11 +70,16 @@ data ImmExpr = ImmExpr
 -- instruction keeps FD in the shamt byte), so 'inFields' is that one 32-bit
 -- word and the accessors below read and write its bytes.
 data Instruction = Instruction
-  { inOpcode :: Int -- ^ the C token number of the opcode (0: invalid)
-  , inFields :: Word32 -- ^ the overlapping register/immediate/target fields
-  , inEncoding :: Int32 -- ^ the 32-bit binary encoding
-  , inExpr :: Maybe ImmExpr -- ^ the symbolic immediate, if any
-  , inSource :: Maybe String -- ^ the source line it came from, for listings
+  { -- | the C token number of the opcode (0: invalid)
+    inOpcode :: Int,
+    -- | the overlapping register/immediate/target fields
+    inFields :: Word32,
+    -- | the 32-bit binary encoding
+    inEncoding :: Int32,
+    -- | the symbolic immediate, if any
+    inExpr :: Maybe ImmExpr,
+    -- | the source line it came from, for listings
+    inSource :: Maybe String
   }
 
 -- | A shared, changeable instruction: the text segment holds these, and a
@@ -130,13 +141,18 @@ branchOffset i = fromIntegral (instImm i) * 4
 -- | A label in the symbol table (C: @label@).  The changeable parts are
 -- references; 'lblId' gives each label an identity, like the C pointer.
 data Label = Label
-  { lblId :: Int
-  , lblName :: String
-  , lblAddr :: IORef Word32 -- ^ its address (or constant value); 0 if undefined
-  , lblGlobal :: IORef Bool -- ^ declared @.globl@
-  , lblGp :: IORef Bool -- ^ lives in the small data area off @$gp@
-  , lblConst :: IORef Bool -- ^ a constant (@name = value@)
-  , lblUses :: IORef [LabelUse] -- ^ uses waiting for the label to be defined
+  { lblId :: Int,
+    lblName :: String,
+    -- | its address (or constant value); 0 if undefined
+    lblAddr :: IORef Word32,
+    -- | declared @.globl@
+    lblGlobal :: IORef Bool,
+    -- | lives in the small data area off @$gp@
+    lblGp :: IORef Bool,
+    -- | a constant (@name = value@)
+    lblConst :: IORef Bool,
+    -- | uses waiting for the label to be defined
+    lblUses :: IORef [LabelUse]
   }
 
 instance Eq Label where

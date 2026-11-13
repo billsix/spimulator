@@ -6,22 +6,23 @@
 -- instruction and keeps the original aside; the disassembler shows the
 -- original, marked with @*@.
 module InstFormat
-  ( formatAnInst
-  , instToString
-  , printInst
-  , formatImmExpr
-  , instIsBreakpoint
-  , addBreakpoint
-  , deleteBreakpoint
-  , deleteAllBreakpoints
-  , listBreakpoints
-  , printMem
-  , breakInstruction
-  ) where
+  ( formatAnInst,
+    instToString,
+    printInst,
+    formatImmExpr,
+    instIsBreakpoint,
+    addBreakpoint,
+    deleteBreakpoint,
+    deleteAllBreakpoints,
+    listBreakpoints,
+    printMem,
+    breakInstruction,
+  )
+where
 
 import Control.Monad (forM_, when)
-import Data.Int (Int32)
 import Data.IORef (newIORef)
+import Data.Int (Int32)
 import Data.Word (Word32)
 import Instruction (opcodeIsLoadStore, tok)
 import Memory
@@ -141,8 +142,9 @@ formatAnInst s minst addr = do
                   Just (_, ops) -> named ++ ops
                 symbolic :: String
                 symbolic = case inExpr i of
-                  Just e | Just _ <- ieSymbol e ->
-                    " [" ++ formatImmExpr e (if opcodeIsLoadStore (inOpcode i) then instBase i else -1) ++ "]"
+                  Just e
+                    | Just _ <- ieSymbol e ->
+                        " [" ++ formatImmExpr e (if opcodeIsLoadStore (inOpcode i) then instBase i else -1) ++ "]"
                   _ -> ""
                 text :: String
                 text = body ++ symbolic
@@ -190,7 +192,7 @@ formatOperands i ty = case ty of
   NOARG_TYPE_INST -> pure Nothing
   _ -> fatalError "Unknown instruction type in print_inst\n"
   where
-    ok :: Applicative f => b -> f (Maybe (String, b))
+    ok :: (Applicative f) => b -> f (Maybe (String, b))
     ok text = pure (Just ("", text))
 
 -- | A symbolic immediate, as the disassembler shows it in brackets
