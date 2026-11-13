@@ -55,7 +55,10 @@ spimulator is built with [Meson](https://mesonbuild.com/) and
   examples and port test suites, and fails the build on any test failure.
 * The `Makefile` wraps this: `make shell` for a dev container, and
   `make docs` / `html` / `pdf` / `epub` to build the **pgu** book (needs the image
-  built with `BUILD_DOCS=1`).
+  built with `BUILD_DOCS=1`, which `make image` passes unless `MINIMAL_IMAGE=1`).
+* [HOST] `make format`: format the C engine and the three ports.
+* CI (`.github/workflows/checks.yml`) runs `make check-format MINIMAL_IMAGE=1` and
+  `make image MINIMAL_IMAGE=1` on every push; run either locally to reproduce it.
 
 #### Changing the opcode table
 

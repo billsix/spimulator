@@ -3,19 +3,20 @@
 -- | Setting up the machine, loading files, and running the program
 -- (C: src/spim-utils.c).
 module SpimUtils
-  ( ExceptionFiles (..)
-  , initializeWorld
-  , readAssemblyFile
-  , initializeRunStack
-  , runProgram
-  , writeStartupMessage
-  ) where
+  ( ExceptionFiles (..),
+    initializeWorld,
+    readAssemblyFile,
+    initializeRunStack,
+    runProgram,
+    writeStartupMessage,
+  )
+where
 
 import Assemble (kTextBeginsAtPoint, textBeginsAtPoint)
 import Control.Exception (IOException, try)
 import Control.Monad (forM, forM_, unless, when)
-import qualified Data.ByteString.Char8 as B
 import Data.Bits (complement, (.&.), (.|.))
+import qualified Data.ByteString.Char8 as B
 import Data.Char (ord)
 import Data.Int (Int32)
 import Data.Word (Word32)

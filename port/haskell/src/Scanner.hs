@@ -13,16 +13,17 @@
 -- scanner's record, and IO is for printing errors and asking the symbol
 -- table about constants.
 module Scanner
-  ( scannerInit
-  , scannerStartLine
-  , scannerForceIdentifier
-  , scannerPeek
-  , scannerPeek2
-  , scannerAdvance
-  , scannerPushSource
-  , scannerPopSource
-  , registerNameToNumber
-  ) where
+  ( scannerInit,
+    scannerStartLine,
+    scannerForceIdentifier,
+    scannerPeek,
+    scannerPeek2,
+    scannerAdvance,
+    scannerPushSource,
+    scannerPopSource,
+    registerNameToNumber,
+  )
+where
 
 import CFormat (cStrtod)
 import Control.Monad (when)
@@ -174,9 +175,11 @@ fillLineBuf = do
     takeLine _ [] = ([], [])
     takeLine n (c : r)
       | c == '\n' = ([c], r)
-      | otherwise = let a :: String
-                        b :: String
-                        (a, b) = takeLine (n - 1) r in (c : a, b)
+      | otherwise =
+          let a :: String
+              b :: String
+              (a, b) = takeLine (n - 1) r
+           in (c : a, b)
 
 -- | Remember the current line for error messages, at its first token.
 maybeSnapshotLine :: Scan ()
@@ -275,24 +278,26 @@ fpLiteralLength text =
       r1 :: String
       (whole, r1) = span cDigit text
    in case r1 of
-        ('.' : r2) | not (null whole) ->
-          let frac :: String
-              r3 :: String
-              (frac, r3) = span cDigit r2
-           in if null frac
-                then 0
-                else
-                  let base :: Int
-                      base = length whole + 1 + length frac
-                   in case r3 of
-                        (e : r4) | e == 'e' || e == 'E' ->
-                          let sgn :: Int
-                              r5 :: String
-                              (sgn, r5) = case r4 of
-                                (p : r) | p == '+' || p == '-' -> (1, r)
-                                _ -> (0, r4)
-                           in base + 1 + sgn + length (takeWhile cDigit r5)
-                        _ -> base
+        ('.' : r2)
+          | not (null whole) ->
+              let frac :: String
+                  r3 :: String
+                  (frac, r3) = span cDigit r2
+               in if null frac
+                    then 0
+                    else
+                      let base :: Int
+                          base = length whole + 1 + length frac
+                       in case r3 of
+                            (e : r4)
+                              | e == 'e' || e == 'E' ->
+                                  let sgn :: Int
+                                      r5 :: String
+                                      (sgn, r5) = case r4 of
+                                        (p : r) | p == '+' || p == '-' -> (1, r)
+                                        _ -> (0, r4)
+                                   in base + 1 + sgn + length (takeWhile cDigit r5)
+                            _ -> base
         _ -> 0
 
 scanFp :: Int -> Int -> Scan ScanItem
@@ -368,11 +373,41 @@ constOrId s ident = do
 -- | Register names (C: @register_tbl@), sorted for the binary search.
 registerTable :: [(String, Int)]
 registerTable =
-  [ ("a0", 4), ("a1", 5), ("a2", 6), ("a3", 7), ("at", 1), ("fp", 30), ("gp", 28), ("k0", 26)
-  , ("k1", 27), ("kt0", 26), ("kt1", 27), ("ra", 31), ("s0", 16), ("s1", 17), ("s2", 18), ("s3", 19)
-  , ("s4", 20), ("s5", 21), ("s6", 22), ("s7", 23), ("s8", 30), ("sp", 29), ("t0", 8), ("t1", 9)
-  , ("t2", 10), ("t3", 11), ("t4", 12), ("t5", 13), ("t6", 14), ("t7", 15), ("t8", 24), ("t9", 25)
-  , ("v0", 2), ("v1", 3), ("zero", 0)
+  [ ("a0", 4),
+    ("a1", 5),
+    ("a2", 6),
+    ("a3", 7),
+    ("at", 1),
+    ("fp", 30),
+    ("gp", 28),
+    ("k0", 26),
+    ("k1", 27),
+    ("kt0", 26),
+    ("kt1", 27),
+    ("ra", 31),
+    ("s0", 16),
+    ("s1", 17),
+    ("s2", 18),
+    ("s3", 19),
+    ("s4", 20),
+    ("s5", 21),
+    ("s6", 22),
+    ("s7", 23),
+    ("s8", 30),
+    ("sp", 29),
+    ("t0", 8),
+    ("t1", 9),
+    ("t2", 10),
+    ("t3", 11),
+    ("t4", 12),
+    ("t5", 13),
+    ("t6", 14),
+    ("t7", 15),
+    ("t8", 24),
+    ("t9", 25),
+    ("v0", 2),
+    ("v1", 3),
+    ("zero", 0)
   ]
 
 -- | A register name to its number: @3@, @f12@, @sp@; -1 if it is none
@@ -383,7 +418,7 @@ registerNameToNumber name = case name of
   [c1, c2] | cDigit c1 && cDigit c2 -> atoi name
   ('f' : c2 : _)
     | cDigit c2 ->
-        -- $f0..$f31 only; the digits are read unbounded, as C's strtol (then
+        -- \$f0..$f31 only; the digits are read unbounded, as C's strtol (then
         -- the range test) does, so a long number is not a register.
         let fpReg :: Integer
             fpReg = read (takeWhile cDigit (drop 1 name))

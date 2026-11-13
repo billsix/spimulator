@@ -18,12 +18,13 @@
 -- the error text and the line it names are part of the output being
 -- matched.
 module Parser
-  ( parserInit
-  , parseFile
-  ) where
+  ( parserInit,
+    parseFile,
+  )
+where
 
-import Assemble
 import AsmCommon
+import Assemble
 import Ast
 import Control.Monad (forM_, unless, when)
 import Data.Bits (shiftL, shiftR, (.&.), (.|.))
@@ -215,7 +216,7 @@ parseTerm s = parseFactor s >>= loop
         TokChar '*' -> advance s >> parseFactor s >>= \r -> loop (v * r)
         TokChar '/' -> advance s >> parseFactor s >>= \r -> loop (cDiv v r)
         _ -> pure v
-    cDiv :: Integral a => a -> a -> a
+    cDiv :: (Integral a) => a -> a -> a
     cDiv v r
       | r == 0 = 0
       | r == -1 = negate v
@@ -810,12 +811,18 @@ doParsePseudo s op = case op of
             emitI s TOK_BEQ_OPCODE rs 1 (branchOffsetExpr 3)
             emitR s TOK_SLTU_OPCODE 1 rs 1
             emitI s TOK_BEQ_OPCODE 0 1 target
-  _ | op == TOK_BGE_PSEUDO_OP || op == TOK_BGEU_PSEUDO_OP ->
-    branchCompare (if op == TOK_BGE_PSEUDO_OP then TOK_SLT_OPCODE else TOK_SLTU_OPCODE)
-      (if op == TOK_BGE_PSEUDO_OP then TOK_SLTI_OPCODE else TOK_SLTIU_OPCODE) TOK_BEQ_OPCODE
-  _ | op == TOK_BLT_PSEUDO_OP || op == TOK_BLTU_PSEUDO_OP ->
-    branchCompare (if op == TOK_BLT_PSEUDO_OP then TOK_SLT_OPCODE else TOK_SLTU_OPCODE)
-      (if op == TOK_BLT_PSEUDO_OP then TOK_SLTI_OPCODE else TOK_SLTIU_OPCODE) TOK_BNE_OPCODE
+  _
+    | op == TOK_BGE_PSEUDO_OP || op == TOK_BGEU_PSEUDO_OP ->
+        branchCompare
+          (if op == TOK_BGE_PSEUDO_OP then TOK_SLT_OPCODE else TOK_SLTU_OPCODE)
+          (if op == TOK_BGE_PSEUDO_OP then TOK_SLTI_OPCODE else TOK_SLTIU_OPCODE)
+          TOK_BEQ_OPCODE
+  _
+    | op == TOK_BLT_PSEUDO_OP || op == TOK_BLTU_PSEUDO_OP ->
+        branchCompare
+          (if op == TOK_BLT_PSEUDO_OP then TOK_SLT_OPCODE else TOK_SLTU_OPCODE)
+          (if op == TOK_BLT_PSEUDO_OP then TOK_SLTI_OPCODE else TOK_SLTIU_OPCODE)
+          TOK_BNE_OPCODE
   _ | op == TOK_BLE_PSEUDO_OP || op == TOK_BLEU_PSEUDO_OP -> do
     rs :: Int <- parseRegister s
     t :: Token <- peek s
@@ -1144,10 +1151,22 @@ parseDirective s d = case d of
           appendNode s (kind n (int size))
     ignored :: [Opcode]
     ignored =
-      [ TOK_FILE_DIRECTIVE, TOK_LOC_DIRECTIVE, TOK_FRAME_DIRECTIVE, TOK_MASK_DIRECTIVE
-      , TOK_FMASK_DIRECTIVE, TOK_ENT_DIRECTIVE, TOK_END_DIRECTIVE, TOK_LABEL_DIRECTIVE
-      , TOK_LIVEREG_DIRECTIVE, TOK_OPTIONS_DIRECTIVE, TOK_BGNB_DIRECTIVE, TOK_ENDB_DIRECTIVE
-      , TOK_ENDR_DIRECTIVE, TOK_ASM0_DIRECTIVE, TOK_ALIAS_DIRECTIVE, TOK_SET_DIRECTIVE
+      [ TOK_FILE_DIRECTIVE,
+        TOK_LOC_DIRECTIVE,
+        TOK_FRAME_DIRECTIVE,
+        TOK_MASK_DIRECTIVE,
+        TOK_FMASK_DIRECTIVE,
+        TOK_ENT_DIRECTIVE,
+        TOK_END_DIRECTIVE,
+        TOK_LABEL_DIRECTIVE,
+        TOK_LIVEREG_DIRECTIVE,
+        TOK_OPTIONS_DIRECTIVE,
+        TOK_BGNB_DIRECTIVE,
+        TOK_ENDB_DIRECTIVE,
+        TOK_ENDR_DIRECTIVE,
+        TOK_ASM0_DIRECTIVE,
+        TOK_ALIAS_DIRECTIVE,
+        TOK_SET_DIRECTIVE
       ]
 
 -- | @name:@ or @name = expression@ (C: @parse_opt_label@).
@@ -1316,13 +1335,13 @@ emitOne s node = do
     InstFpCompare op fs ft cc -> rCondType s op fs ft cc
     Pseudo _ kids -> emitList s kids
   where
-    segText :: Foldable t => Bool -> t Word32 -> IO ()
+    segText :: (Foldable t) => Bool -> t Word32 -> IO ()
     segText kernel addr = do
       userKernelTextSegment s kernel
       set (dataDir s) False
       set (textDir s) True
       mapM_ (setTextPc s) addr
-    segData :: Foldable t => Bool -> t Word32 -> IO ()
+    segData :: (Foldable t) => Bool -> t Word32 -> IO ()
     segData kernel addr = do
       userKernelDataSegment s kernel
       set (dataDir s) True
@@ -1341,7 +1360,7 @@ emitOne s node = do
       when (addr == 0) $ currentDataPc s >>= \pc -> () <$ recordLabel s name pc True
     -- A value naming a label not yet defined is stored as its offset and
     -- patched when the label is defined.
-    emitData :: Foldable t => t ImmExpr -> (Int32 -> IO b) -> Int -> IO ()
+    emitData :: (Foldable t) => t ImmExpr -> (Int32 -> IO b) -> Int -> IO ()
     emitData es store width = forM_ es $ \e -> do
       defined :: Bool <- maybe (pure True) symbolIsDefined (ieSymbol e)
       case ieSymbol e of

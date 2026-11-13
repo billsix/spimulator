@@ -6,31 +6,32 @@
 -- labels in bucket order.  A label used before it is defined collects
 -- "uses"; when the label is defined, each use is patched.
 module SymbolTable
-  ( initializeSymbolTable
-  , labelIsDefined
-  , lookupLabel
-  , recordLabel
-  , makeLabelGlobal
-  , recordInstUsesSymbol
-  , recordDataUsesSymbol
-  , resolveLabelUses
-  , resolveALabel
-  , flushLocalLabels
-  , findSymbolAddress
-  , printSymbols
-  , undefinedSymbolString
-  , allLabels
-  , evalImmExpr
-  , symbolIsDefined
-  ) where
+  ( initializeSymbolTable,
+    labelIsDefined,
+    lookupLabel,
+    recordLabel,
+    makeLabelGlobal,
+    recordInstUsesSymbol,
+    recordDataUsesSymbol,
+    resolveLabelUses,
+    resolveALabel,
+    flushLocalLabels,
+    findSymbolAddress,
+    printSymbols,
+    undefinedSymbolString,
+    allLabels,
+    evalImmExpr,
+    symbolIsDefined,
+  )
+where
 
 import AsmCommon
 import Control.Monad (forM, forM_, unless, when)
 import Data.Array.IO (readArray, writeArray)
 import Data.Bits (complement, shiftR, (.&.))
 import Data.Char (ord)
-import Data.Int (Int32)
 import Data.IORef (newIORef)
+import Data.Int (Int32)
 import Data.Word (Word32)
 import InstFormat (printInst)
 import Instruction
@@ -51,11 +52,13 @@ hashOf name = fromIntegral ((h .&. (2 ^ (30 :: Int) - 1)) `rem` fromIntegral tab
   where
     h :: Word32
     h = foldl step (fromIntegral (length name)) name :: Word32
-    step :: Num a => a -> Char -> a
+    step :: (Num a) => a -> Char -> a
     step acc c = acc * 613 + signedChar c
-    signedChar :: Num b => Char -> b
-    signedChar c = let b :: Int
-                       b = ord c in if b >= 128 then fromIntegral (b - 256 :: Int) else fromIntegral b
+    signedChar :: (Num b) => Char -> b
+    signedChar c =
+      let b :: Int
+          b = ord c
+       in if b >= 128 then fromIntegral (b - 256 :: Int) else fromIntegral b
 
 -- | Empty the table (C: @initialize_symbol_table@).
 initializeSymbolTable :: Spim -> IO ()
@@ -68,9 +71,11 @@ initializeSymbolTable s = do
 labelIsDefined :: Spim -> String -> IO (Maybe Label)
 labelIsDefined s name = do
   bucket :: [Label] <- readArray (labelTable s) (hashOf name)
-  pure (case filter ((== name) . lblName) bucket of
-          (l : _) -> Just l
-          [] -> Nothing)
+  pure
+    ( case filter ((== name) . lblName) bucket of
+        (l : _) -> Just l
+        [] -> Nothing
+    )
 
 -- | The label with this name, created (undefined) if it is new
 -- (C: @lookup_label@).

@@ -46,11 +46,11 @@ import System.FilePath ((</>))
 
 -- | One binding (or pattern) without a written type.
 data Missing = Missing
-  { missingKind :: String
-  , missingFile :: FilePath
-  , missingSpan :: Span
-  , missingName :: String
-  , missingType :: String
+  { missingKind :: String,
+    missingFile :: FilePath,
+    missingSpan :: Span,
+    missingName :: String,
+    missingType :: String
   }
 
 main :: IO ()
@@ -84,14 +84,14 @@ main = do
     render m =
       intercalate
         "\t"
-        [ missingKind m
-        , missingFile m
-        , show (srcSpanStartLine s)
-        , show (srcSpanStartCol s)
-        , show (srcSpanEndLine s)
-        , show (srcSpanEndCol s)
-        , missingName m
-        , missingType m
+        [ missingKind m,
+          missingFile m,
+          show (srcSpanStartLine s),
+          show (srcSpanStartCol s),
+          show (srcSpanEndLine s),
+          show (srcSpanEndCol s),
+          missingName m,
+          missingType m
         ]
       where
         s :: Span
@@ -99,8 +99,8 @@ main = do
 
 -- | An AST node with every node above it, nearest first.
 data Located = Located
-  { locNode :: HieAST TypeIndex
-  , locAbove :: [HieAST TypeIndex]
+  { locNode :: HieAST TypeIndex,
+    locAbove :: [HieAST TypeIndex]
   }
 
 -- | Every node of a tree, each with its ancestors.
@@ -138,10 +138,10 @@ patternVariables :: HieAST TypeIndex -> [(Name, TypeIndex)]
 patternVariables pat =
   nub
     [ (name, ix)
-    | l <- nodes pat
-    , (name, details) <- identifiers (locNode l)
-    , any isPatternBind (identInfo details)
-    , Just ix <- [identType details]
+    | l <- nodes pat,
+      (name, details) <- identifiers (locNode l),
+      any isPatternBind (identInfo details),
+      Just ix <- [identType details]
     ]
   where
     isPatternBind :: ContextInfo -> Bool
@@ -168,9 +168,9 @@ missingIn dflags hie = doBinds ++ patternBinds ++ localBinds
     signed =
       Set.fromList
         [ name
-        | l <- everything
-        , (name, details) <- identifiers (locNode l)
-        , TyDecl `Set.member` identInfo details
+        | l <- everything,
+          (name, details) <- identifiers (locNode l),
+          TyDecl `Set.member` identInfo details
         ]
 
     -- The module's source, one string per line.
@@ -193,13 +193,13 @@ missingIn dflags hie = doBinds ++ patternBinds ++ localBinds
     doBinds :: [Missing]
     doBinds =
       [ Missing "do" file (nodeSpan pat) (unwords (map (nameText . fst) (patternVariables pat))) (typeText ix)
-      | l <- everything
-      , hasConstr "BindStmt" (annotations (locNode l))
-      , inDoBlock (locAbove l)
-      , Just pat <- [listToMaybe (nodeChildren (locNode l))]
-      , not (isSigned pat)
-      , not (hasConstr "WildPat" (annotations pat))
-      , Just ix <- [listToMaybe (concatMap nodeType (infos pat))]
+      | l <- everything,
+        hasConstr "BindStmt" (annotations (locNode l)),
+        inDoBlock (locAbove l),
+        Just pat <- [listToMaybe (nodeChildren (locNode l))],
+        not (isSigned pat),
+        not (hasConstr "WildPat" (annotations pat)),
+        Just ix <- [listToMaybe (concatMap nodeType (infos pat))]
       ]
     -- A SigPat, or a parenthesized one: (Just x :: Maybe Int).
     isSigned :: HieAST TypeIndex -> Bool
@@ -222,14 +222,14 @@ missingIn dflags hie = doBinds ++ patternBinds ++ localBinds
           (nodeSpan (locNode l))
           (unwords (map (nameText . fst) unsigned))
           (intercalate ";;" (map (typeText . snd) unsigned))
-      | l <- everything
-      , hasConstr "PatBind" (annotations (locNode l))
-      , not (null (locAbove l)) -- a top-level pattern binding has a signature by -Wall
-      , Just pat <- [listToMaybe (nodeChildren (locNode l))]
-      , let unsigned :: [(Name, TypeIndex)]
-            unsigned = filter ((`Set.notMember` signed) . fst) (patternVariables pat)
-      , not (null unsigned)
-      , not (isVariable pat)
+      | l <- everything,
+        hasConstr "PatBind" (annotations (locNode l)),
+        not (null (locAbove l)), -- a top-level pattern binding has a signature by -Wall
+        Just pat <- [listToMaybe (nodeChildren (locNode l))],
+        let unsigned :: [(Name, TypeIndex)]
+            unsigned = filter ((`Set.notMember` signed) . fst) (patternVariables pat),
+        not (null unsigned),
+        not (isVariable pat)
       ]
     -- A PatBind whose pattern is a single variable is a value binding,
     -- reported by localBinds.
@@ -244,11 +244,11 @@ missingIn dflags hie = doBinds ++ patternBinds ++ localBinds
         ( Map.fromListWith
             earlier
             [ (name, Missing "local" file (nodeSpan (locNode l)) (nameText name) (typeText ix))
-            | l <- everything
-            , (name, details) <- identifiers (locNode l)
-            , name `Set.notMember` signed
-            , any isLocalValue (identInfo details)
-            , Just ix <- [identType details]
+            | l <- everything,
+              (name, details) <- identifiers (locNode l),
+              name `Set.notMember` signed,
+              any isLocalValue (identInfo details),
+              Just ix <- [identType details]
             ]
         )
     isLocalValue :: ContextInfo -> Bool

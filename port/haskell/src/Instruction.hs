@@ -4,21 +4,22 @@
 -- Everything here is a pure function: an instruction record in, a 32-bit
 -- word out ('instEncode'), or the other way around ('instDecode').
 module Instruction
-  ( instEncode
-  , instEncodeIO
-  , instDecode
-  , opcodeIsBranch
-  , opcodeIsNullifiedBranch
-  , opcodeIsTrueBranch
-  , opcodeIsJump
-  , opcodeIsLoadStore
-  , tok
-  , isTok
-  , binRs
-  , binRt
-  , binRd
-  , binShamt
-  ) where
+  ( instEncode,
+    instEncodeIO,
+    instDecode,
+    opcodeIsBranch,
+    opcodeIsNullifiedBranch,
+    opcodeIsTrueBranch,
+    opcodeIsJump,
+    opcodeIsLoadStore,
+    tok,
+    isTok,
+    binRs,
+    binRt,
+    binRd,
+    binShamt,
+  )
+where
 
 import Data.Bits (shiftL, shiftR, (.&.), (.|.))
 import Data.Int (Int32)
@@ -170,25 +171,59 @@ opcodeIsBranch t = maybe False (`elem` branches) (opcodeOfToken t)
   where
     branches :: [Opcode]
     branches =
-      [ TOK_BC1F_OPCODE, TOK_BC1FL_OPCODE, TOK_BC1T_OPCODE, TOK_BC1TL_OPCODE
-      , TOK_BC2F_OPCODE, TOK_BC2FL_OPCODE, TOK_BC2T_OPCODE, TOK_BC2TL_OPCODE
-      , TOK_BEQ_OPCODE, TOK_BEQL_OPCODE, TOK_BEQZ_PSEUDO_OP, TOK_BGE_PSEUDO_OP
-      , TOK_BGEU_PSEUDO_OP, TOK_BGEZ_OPCODE, TOK_BGEZAL_OPCODE, TOK_BGEZALL_OPCODE
-      , TOK_BGEZL_OPCODE, TOK_BGT_PSEUDO_OP, TOK_BGTU_PSEUDO_OP, TOK_BGTZ_OPCODE
-      , TOK_BGTZL_OPCODE, TOK_BLE_PSEUDO_OP, TOK_BLEU_PSEUDO_OP, TOK_BLEZ_OPCODE
-      , TOK_BLEZL_OPCODE, TOK_BLT_PSEUDO_OP, TOK_BLTU_PSEUDO_OP, TOK_BLTZ_OPCODE
-      , TOK_BLTZAL_OPCODE, TOK_BLTZALL_OPCODE, TOK_BLTZL_OPCODE, TOK_BNE_OPCODE
-      , TOK_BNEL_OPCODE, TOK_BNEZ_PSEUDO_OP
+      [ TOK_BC1F_OPCODE,
+        TOK_BC1FL_OPCODE,
+        TOK_BC1T_OPCODE,
+        TOK_BC1TL_OPCODE,
+        TOK_BC2F_OPCODE,
+        TOK_BC2FL_OPCODE,
+        TOK_BC2T_OPCODE,
+        TOK_BC2TL_OPCODE,
+        TOK_BEQ_OPCODE,
+        TOK_BEQL_OPCODE,
+        TOK_BEQZ_PSEUDO_OP,
+        TOK_BGE_PSEUDO_OP,
+        TOK_BGEU_PSEUDO_OP,
+        TOK_BGEZ_OPCODE,
+        TOK_BGEZAL_OPCODE,
+        TOK_BGEZALL_OPCODE,
+        TOK_BGEZL_OPCODE,
+        TOK_BGT_PSEUDO_OP,
+        TOK_BGTU_PSEUDO_OP,
+        TOK_BGTZ_OPCODE,
+        TOK_BGTZL_OPCODE,
+        TOK_BLE_PSEUDO_OP,
+        TOK_BLEU_PSEUDO_OP,
+        TOK_BLEZ_OPCODE,
+        TOK_BLEZL_OPCODE,
+        TOK_BLT_PSEUDO_OP,
+        TOK_BLTU_PSEUDO_OP,
+        TOK_BLTZ_OPCODE,
+        TOK_BLTZAL_OPCODE,
+        TOK_BLTZALL_OPCODE,
+        TOK_BLTZL_OPCODE,
+        TOK_BNE_OPCODE,
+        TOK_BNEL_OPCODE,
+        TOK_BNEZ_PSEUDO_OP
       ]
 
 -- | A branch-likely, which skips its delay slot when not taken.
 opcodeIsNullifiedBranch :: Opcode -> Bool
 opcodeIsNullifiedBranch op =
-  op `elem`
-    [ TOK_BC1FL_OPCODE, TOK_BC1TL_OPCODE, TOK_BC2FL_OPCODE, TOK_BC2TL_OPCODE
-    , TOK_BEQL_OPCODE, TOK_BGEZALL_OPCODE, TOK_BGEZL_OPCODE, TOK_BGTZL_OPCODE
-    , TOK_BLEZL_OPCODE, TOK_BLTZALL_OPCODE, TOK_BLTZL_OPCODE, TOK_BNEL_OPCODE
-    ]
+  op
+    `elem` [ TOK_BC1FL_OPCODE,
+             TOK_BC1TL_OPCODE,
+             TOK_BC2FL_OPCODE,
+             TOK_BC2TL_OPCODE,
+             TOK_BEQL_OPCODE,
+             TOK_BGEZALL_OPCODE,
+             TOK_BGEZL_OPCODE,
+             TOK_BGTZL_OPCODE,
+             TOK_BLEZL_OPCODE,
+             TOK_BLTZALL_OPCODE,
+             TOK_BLTZL_OPCODE,
+             TOK_BNEL_OPCODE
+           ]
 
 -- | A coprocessor branch on a true condition.
 opcodeIsTrueBranch :: Opcode -> Bool
@@ -204,9 +239,26 @@ opcodeIsLoadStore t = maybe False (`elem` loadStores) (opcodeOfToken t)
   where
     loadStores :: [Opcode]
     loadStores =
-      [ TOK_LB_OPCODE, TOK_LBU_OPCODE, TOK_LH_OPCODE, TOK_LHU_OPCODE, TOK_LL_OPCODE
-      , TOK_LDC1_OPCODE, TOK_LDC2_OPCODE, TOK_LW_OPCODE, TOK_LWC1_OPCODE, TOK_LWC2_OPCODE
-      , TOK_LWL_OPCODE, TOK_LWR_OPCODE, TOK_SB_OPCODE, TOK_SC_OPCODE, TOK_SH_OPCODE
-      , TOK_SDC1_OPCODE, TOK_SDC2_OPCODE, TOK_SW_OPCODE, TOK_SWC1_OPCODE, TOK_SWC2_OPCODE
-      , TOK_SWL_OPCODE, TOK_SWR_OPCODE
+      [ TOK_LB_OPCODE,
+        TOK_LBU_OPCODE,
+        TOK_LH_OPCODE,
+        TOK_LHU_OPCODE,
+        TOK_LL_OPCODE,
+        TOK_LDC1_OPCODE,
+        TOK_LDC2_OPCODE,
+        TOK_LW_OPCODE,
+        TOK_LWC1_OPCODE,
+        TOK_LWC2_OPCODE,
+        TOK_LWL_OPCODE,
+        TOK_LWR_OPCODE,
+        TOK_SB_OPCODE,
+        TOK_SC_OPCODE,
+        TOK_SH_OPCODE,
+        TOK_SDC1_OPCODE,
+        TOK_SDC2_OPCODE,
+        TOK_SW_OPCODE,
+        TOK_SWC1_OPCODE,
+        TOK_SWC2_OPCODE,
+        TOK_SWL_OPCODE,
+        TOK_SWR_OPCODE
       ]

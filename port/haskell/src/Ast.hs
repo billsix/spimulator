@@ -9,26 +9,29 @@
 -- The tree is plain immutable data and both printers are pure functions
 -- from a tree to text.
 module Ast
-  ( Node (..)
-  , NodeKind (..)
-  , LabelKind (..)
-  , printAst
-  , printAstJson
-  ) where
+  ( Node (..),
+    NodeKind (..),
+    LabelKind (..),
+    printAst,
+    printAstJson,
+  )
+where
 
 import CFormat (formatG)
 import Data.Char (ord)
 import Data.Int (Int32)
 import Data.Word (Word32)
 import OpcodeTables (opTokenName)
-import Text.Printf (printf, PrintfArg)
+import Text.Printf (PrintfArg, printf)
 import Types (ImmExpr (..), Label (..))
 
 -- | One node: where it came from, and what it is.
 data Node = Node
-  { nodeLine :: Int -- ^ the source line number
-  , nodeSrc :: Maybe String -- ^ the source text, as "NNN: text"
-  , nodeKind :: NodeKind
+  { -- | the source line number
+    nodeLine :: Int,
+    -- | the source text, as "NNN: text"
+    nodeSrc :: Maybe String,
+    nodeKind :: NodeKind
   }
 
 -- | A label definition: @name:@ places it, @name = value@ makes a constant.
@@ -37,19 +40,27 @@ data LabelKind = LabelNormal | LabelConst Int32
 -- | The kinds of node.  Instruction operands are register numbers; an
 -- immediate is an 'ImmExpr'.
 data NodeKind
-  = InstR Int Int Int Int -- ^ op rd rs rt
-  | InstRShift Int Int Int Int -- ^ op rd rt shamt
-  | InstI Int Int Int ImmExpr -- ^ op rt rs imm
-  | InstJ Int ImmExpr -- ^ op target
-  | InstFpR Int Int Int Int -- ^ op fd fs ft
-  | InstFpCompare Int Int Int Int -- ^ op fs ft cc
-  | Pseudo String [Node] -- ^ a pseudo-instruction and what it expanded to
+  = -- | op rd rs rt
+    InstR Int Int Int Int
+  | -- | op rd rt shamt
+    InstRShift Int Int Int Int
+  | -- | op rt rs imm
+    InstI Int Int Int ImmExpr
+  | -- | op target
+    InstJ Int ImmExpr
+  | -- | op fd fs ft
+    InstFpR Int Int Int Int
+  | -- | op fs ft cc
+    InstFpCompare Int Int Int Int
+  | -- | a pseudo-instruction and what it expanded to
+    Pseudo String [Node]
   | DataByte [ImmExpr]
   | DataHalf [ImmExpr]
   | DataWord [ImmExpr]
   | DataFloat [Double]
   | DataDouble [Double]
-  | DataString String Bool -- ^ the bytes, and whether to add a NUL
+  | -- | the bytes, and whether to add a NUL
+    DataString String Bool
   | DirText (Maybe Word32)
   | DirData (Maybe Word32)
   | DirKText (Maybe Word32)
@@ -60,7 +71,8 @@ data NodeKind
   | DirExtern String Int
   | DirComm String Int
   | LabelDef String LabelKind
-  | File (Maybe String) [Node] -- ^ the root: the file name and its statements
+  | -- | the root: the file name and its statements
+    File (Maybe String) [Node]
 
 -- | The indented text dump (C: @ast_print@).
 printAst :: Node -> String
@@ -89,7 +101,8 @@ printNode depth node =
       DataDouble vs -> fpList "DATA_DOUBLE" vs
       DataString bytes nul ->
         printf "DATA_STRING len=%d null_term=%s value=\"" (length bytes) (if nul then "yes" else "no" :: String)
-          ++ concatMap escape bytes ++ "\"\n"
+          ++ concatMap escape bytes
+          ++ "\"\n"
       DirText a -> seg "DIR_TEXT" a
       DirData a -> seg "DIR_DATA" a
       DirKText a -> seg "DIR_KTEXT" a
@@ -104,12 +117,14 @@ printNode depth node =
     intList :: String -> [ImmExpr] -> String
     intList tag es =
       printf "%s count=%d values=[" (tag :: String) (length es)
-        ++ joinWith ", " (map showImm es) ++ "]\n"
+        ++ joinWith ", " (map showImm es)
+        ++ "]\n"
     fpList :: String -> [Double] -> String
     fpList tag vs =
       printf "%s count=%d values=[" (tag :: String) (length vs)
-        ++ joinWith ", " (map (formatG 6) vs) ++ "]\n"
-    seg :: PrintfArg t => String -> Maybe t -> String
+        ++ joinWith ", " (map (formatG 6) vs)
+        ++ "]\n"
+    seg :: (PrintfArg t) => String -> Maybe t -> String
     seg tag (Just a) = printf "%s start=0x%08x\n" (tag :: String) a
     seg tag Nothing = tag ++ "\n"
     escape :: Char -> String
@@ -160,8 +175,8 @@ jsonNode node = "{\"kind\":\"" ++ kindName ++ "\",\"source_line\":" ++ show (nod
       DataFloat vs -> ("DATA_FLOAT", fpValues vs)
       DataDouble vs -> ("DATA_DOUBLE", fpValues vs)
       DataString bytes nul ->
-        ( "DATA_STRING"
-        , printf ",\"length\":%d,\"null_terminate\":%s,\"value\":" (length bytes) (jsonBool nul) ++ jsonString bytes
+        ( "DATA_STRING",
+          printf ",\"length\":%d,\"null_terminate\":%s,\"value\":" (length bytes) (jsonBool nul) ++ jsonString bytes
         )
       DirText a -> ("DIR_TEXT", start a)
       DirData a -> ("DIR_DATA", start a)
@@ -183,7 +198,7 @@ jsonNode node = "{\"kind\":\"" ++ kindName ++ "\",\"source_line\":" ++ show (nod
     intValues es = printf ",\"count\":%d,\"values\":" (length es) ++ "[" ++ joinWith "," (map jsonImm es) ++ "]"
     fpValues :: [Double] -> String
     fpValues vs = printf ",\"count\":%d,\"values\":[" (length vs) ++ joinWith "," (map (formatG 17) vs) ++ "]"
-    start :: PrintfArg t => Maybe t -> String
+    start :: (PrintfArg t) => Maybe t -> String
     start (Just a) = printf ",\"start_addr\":%u" a
     start Nothing = ""
     jsonBool :: Bool -> String
@@ -191,9 +206,13 @@ jsonNode node = "{\"kind\":\"" ++ kindName ++ "\",\"source_line\":" ++ show (nod
 
 jsonImm :: ImmExpr -> String
 jsonImm e =
-  "{\"offset\":" ++ show (ieOffset e) ++ ",\"symbol\":"
+  "{\"offset\":"
+    ++ show (ieOffset e)
+    ++ ",\"symbol\":"
     ++ maybe "null" (jsonString . lblName) (ieSymbol e)
-    ++ ",\"pc_relative\":" ++ (if iePcRelative e then "true" else "false") ++ "}"
+    ++ ",\"pc_relative\":"
+    ++ (if iePcRelative e then "true" else "false")
+    ++ "}"
 
 -- | A JSON string literal; control bytes become @\\uXXXX@.
 jsonString :: String -> String

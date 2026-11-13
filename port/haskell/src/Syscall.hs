@@ -6,9 +6,10 @@
 -- engine's services print and read through the C library; the file
 -- services (open, read, write, close) are passed straight to the host.
 module Syscall
-  ( doSyscall
-  , handleException
-  ) where
+  ( doSyscall,
+    handleException,
+  )
+where
 
 import CFormat (cStrtod, formatF, formatG)
 import Control.Monad (forM_, when)
@@ -17,8 +18,9 @@ import Data.Char (chr)
 import Data.Int (Int32)
 import Data.Word (Word32, Word8)
 import Foreign.C.String (withCString)
+import Foreign.C.Types (CInt, CSize)
 import Foreign.Marshal.Alloc (allocaBytes)
-import Foreign.Ptr (plusPtr, Ptr)
+import Foreign.Ptr (Ptr, plusPtr)
 import Foreign.Storable (peekByteOff, pokeByteOff)
 import GHC.Float (double2Float, float2Double)
 import Memory
@@ -26,7 +28,6 @@ import Output
 import Registers
 import State
 import Text.Printf (printf)
-import Foreign.C.Types (CInt, CSize)
 
 -- | C's @read_input@: read up to n-1 bytes, through the first newline;
 -- returns the bytes read.

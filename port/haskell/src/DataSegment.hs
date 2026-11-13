@@ -7,34 +7,35 @@
 -- off.  A datum that does not fit on its boundary is stored a piece at a
 -- time.
 module DataSegment
-  ( userKernelDataSegment
-  , endOfAssemblyFile
-  , dataBeginsAtPoint
-  , kDataBeginsAtPoint
-  , alignData
-  , setDataAlignment
-  , enableDataAlignment
-  , setDataPc
-  , incrementDataPc
-  , storeString
-  , storeByte
-  , storeHalf
-  , storeWord
-  , storeDouble
-  , storeFloat
-  ) where
+  ( userKernelDataSegment,
+    endOfAssemblyFile,
+    dataBeginsAtPoint,
+    kDataBeginsAtPoint,
+    alignData,
+    setDataAlignment,
+    enableDataAlignment,
+    setDataPc,
+    incrementDataPc,
+    storeString,
+    storeByte,
+    storeHalf,
+    storeWord,
+    storeDouble,
+    storeFloat,
+  )
+where
 
 import AsmCommon
 import Control.Monad (forM_, when)
 import Data.Bits (complement, shiftL, shiftR, (.&.))
 import Data.Char (ord)
+import Data.IORef (IORef)
 import Data.Int (Int32)
-import Data.Word (Word32, Word64, Word64)
+import Data.Word (Word32, Word64)
 import GHC.Float (castDoubleToWord64, castFloatToWord32, double2Float)
 import Memory
 import Registers (setGpr)
 import State
-import Data.IORef (IORef)
 
 -- | Send the following data to the kernel or the user data segment.
 userKernelDataSegment :: Spim -> Bool -> IO ()

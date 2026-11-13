@@ -6,17 +6,18 @@
 -- scanner.c and assembler-event.c; collecting them here lets the larger
 -- modules depend on them without depending on each other.
 module AsmCommon
-  ( currentTextPc
-  , currentDataPc
-  , parseError
-  , parseWarn
-  , erroneousLine
-  , sourceLine
-  , lineNo
-  , setLineNo
-  , fire
-  , fixCurrentLabelAddress
-  ) where
+  ( currentTextPc,
+    currentDataPc,
+    parseError,
+    parseWarn,
+    erroneousLine,
+    sourceLine,
+    lineNo,
+    setLineNo,
+    fire,
+    fixCurrentLabelAddress,
+  )
+where
 
 import Data.Word (Word32)
 import Output (cError)

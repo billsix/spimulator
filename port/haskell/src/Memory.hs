@@ -16,36 +16,37 @@
 -- the x86 and ARM machines the C engine runs on.  A bad access raises a
 -- MIPS exception (bad address, misaligned), just as on a real MIPS.
 module Memory
-  ( makeMemory
-  , memReadInst
-  , memPeekInst
-  , memWriteInst
-  , memReadByte
-  , memReadHalf
-  , memReadWord
-  , memWriteByte
-  , memWriteHalf
-  , memWriteWord
-  , expandData
-  , expandKData
-  , memReference
-  , SegmentRef
-  , readCString
-  , checkMemoryMappedIO
-  , consoleInputAvailable
-  , textBot
-  , dataBot
-  , stackTop
-  , kTextBot
-  , kDataBot
-  ) where
+  ( makeMemory,
+    memReadInst,
+    memPeekInst,
+    memWriteInst,
+    memReadByte,
+    memReadHalf,
+    memReadWord,
+    memWriteByte,
+    memWriteHalf,
+    memWriteWord,
+    expandData,
+    expandKData,
+    memReference,
+    SegmentRef,
+    readCString,
+    checkMemoryMappedIO,
+    consoleInputAvailable,
+    textBot,
+    dataBot,
+    stackTop,
+    kTextBot,
+    kDataBot,
+  )
+where
 
 import Control.Monad (forM_, when)
-import Data.Array.IO (IOUArray, getBounds, newArray, readArray, writeArray, IOArray)
+import Data.Array.IO (IOArray, IOUArray, getBounds, newArray, readArray, writeArray)
 import Data.Bits (complement, shiftL, shiftR, (.&.), (.|.))
 import Data.Char (chr)
-import Data.Int (Int16, Int32, Int8)
 import Data.IORef (IORef, newIORef)
+import Data.Int (Int16, Int32, Int8)
 import Data.Word (Word32, Word8)
 import Foreign.C.Types (CInt (..))
 import Foreign.Marshal.Alloc (allocaBytes)
@@ -83,7 +84,8 @@ makeMemory s = do
     fatalError ("-stext " ++ show textSize ++ ": the text segment needs at least one word (4 bytes)\n")
   when (kTextSize < 0x180 + 4) $
     fatalError
-      ( "-sktext " ++ show kTextSize
+      ( "-sktext "
+          ++ show kTextSize
           ++ ": the kernel text segment must hold the exception handler at 0x80000180 (at least 388 bytes)\n"
       )
   let dataSize' :: Int
@@ -131,27 +133,27 @@ expandData :: Spim -> Int -> IO ()
 expandData s =
   growSegment
     UpwardSegment
-      { upBottom = dataBot
-      , upTop = dataTop s
-      , upLimit = dataSizeLimit s
-      , upBytes = dataSeg s
-      , upTooBig = \addl newSize -> do
+      { upBottom = dataBot,
+        upTop = dataTop s,
+        upLimit = dataSizeLimit s,
+        upBytes = dataSeg s,
+        upTooBig = \addl newSize -> do
           cError ("Can't expand data segment by " ++ show addl ++ " bytes to " ++ show newSize ++ " bytes\n")
-          runError ("Use -ldata # with # > " ++ show newSize ++ "\n")
-      , upReallocFailed = "realloc failed in expand_data\n"
+          runError ("Use -ldata # with # > " ++ show newSize ++ "\n"),
+        upReallocFailed = "realloc failed in expand_data\n"
       }
 
 -- | A segment that grows up from a fixed bottom: the data and kernel data
 -- segments.
 data UpwardSegment = UpwardSegment
-  { upBottom :: Word32
-  , upTop :: IORef Word32
-  , upLimit :: IORef Int
-  , upBytes :: IORef (IOUArray Int Word8)
-  , upTooBig :: Int -> Int -> IO ()
-  -- ^ The report of a growth by n bytes to a size past the limit.
-  , upReallocFailed :: String
-  -- ^ The fatal error for a size that wrapped negative.
+  { upBottom :: Word32,
+    upTop :: IORef Word32,
+    upLimit :: IORef Int,
+    upBytes :: IORef (IOUArray Int Word8),
+    -- | The report of a growth by n bytes to a size past the limit.
+    upTooBig :: Int -> Int -> IO (),
+    -- | The fatal error for a size that wrapped negative.
+    upReallocFailed :: String
   }
 
 -- | Grow an upward segment by n bytes (the body of C's @expand_data@ and
@@ -195,8 +197,13 @@ expandStack s addl = do
       newSize = wrap32 (oldSize + max delta oldSize)
   when (addl < 0 || newSize > limit) $
     runError
-      ( "Can't expand stack segment by " ++ show addl ++ " bytes to " ++ show newSize
-          ++ " bytes.\nUse -lstack # with # > " ++ show newSize ++ "\n"
+      ( "Can't expand stack segment by "
+          ++ show addl
+          ++ " bytes to "
+          ++ show newSize
+          ++ " bytes.\nUse -lstack # with # > "
+          ++ show newSize
+          ++ "\n"
       )
   when (newSize < 0) $
     fatalError ("Out of memory at request for " ++ show (toInteger newSize `mod` (2 ^ (64 :: Int))) ++ " bytes.\n")
@@ -213,16 +220,21 @@ expandKData :: Spim -> Int -> IO ()
 expandKData s =
   growSegment
     UpwardSegment
-      { upBottom = kDataBot
-      , upTop = kDataTop s
-      , upLimit = kDataSizeLimit s
-      , upBytes = kDataSeg s
-      , upTooBig = \addl newSize ->
+      { upBottom = kDataBot,
+        upTop = kDataTop s,
+        upLimit = kDataSizeLimit s,
+        upBytes = kDataSeg s,
+        upTooBig = \addl newSize ->
           runError
-            ( "Can't expand kernel data segment by " ++ show addl ++ " bytes to " ++ show newSize
-                ++ " bytes.\nUse -lkdata # with # > " ++ show newSize ++ "\n"
-            )
-      , upReallocFailed = "realloc failed in expand_k_data\n"
+            ( "Can't expand kernel data segment by "
+                ++ show addl
+                ++ " bytes to "
+                ++ show newSize
+                ++ " bytes.\nUse -lkdata # with # > "
+                ++ show newSize
+                ++ "\n"
+            ),
+        upReallocFailed = "realloc failed in expand_k_data\n"
       }
 
 -- | A place in a byte segment: the segment's bytes, the offset of the address
@@ -329,11 +341,14 @@ memWriteInst s addr inst = do
 
 readBytes :: IOUArray Int Word8 -> Int -> Int -> IO Word32
 readBytes arr off n =
-  foldr (\i acc -> do
-            b :: Word8 <- readArray arr (off + i)
-            rest :: Word32 <- acc
-            pure (rest .|. (fromIntegral b `shiftL` (8 * i))))
-    (pure 0) [0 .. n - 1]
+  foldr
+    ( \i acc -> do
+        b :: Word8 <- readArray arr (off + i)
+        rest :: Word32 <- acc
+        pure (rest .|. (fromIntegral b `shiftL` (8 * i)))
+    )
+    (pure 0)
+    [0 .. n - 1]
 
 writeBytes :: IOUArray Int Word8 -> Int -> Int -> Word32 -> IO ()
 writeBytes arr off n v = forM_ [0 .. n - 1] $ \i -> writeArray arr (off + i) (fromIntegral (v `shiftR` (8 * i)))

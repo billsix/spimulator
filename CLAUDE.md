@@ -86,7 +86,13 @@ is for quick iteration only.
   `generate: image`: the image build rejects stale tables, so it fails until you regenerate);
   commit the result with the data-file change (`README.md`, "Changing the opcode table").
 - `make shell` *(runs `format` first)* — dev shell.
-- `make format` — clang-format; `lint.sh` runs `clang-tidy`. Both run on shell exit.
+- `make format` — clang-format on the C engine, plus the ports' formatters: `ruff` (Python),
+  `cargo fmt` (Rust) and `ormolu` (Haskell), all in `entrypoint/format.sh`; `lint.sh` runs
+  `clang-tidy`. Both run on shell exit. `make check-format` (CI) runs `format` and fails on any
+  `git diff`.
+- `make image MINIMAL_IMAGE=1` — a lean image without Emacs or the book toolchain
+  (`USE_EMACS`/`BUILD_DOCS` off). The gate flags `BUILD_TREE_SITTER` and `RUN_SANITIZERS` stay on,
+  so it still runs every suite.
 - `make html` / `pdf` / `epub` / `docs` *(BUILD_DOCS)* — build the **pgu** book via
   sphinx-build directly (the Makefile rasterizes SVGs and calls `sphinx-build`
   rather than `pgu/docs/Makefile`, which routes through an interactive aspell step).
@@ -162,6 +168,21 @@ not spim's intentional exit-time leaks) + the integer-UB primer:
   Guide: `tasks/reference/mips-asm-teaching-style.md` (the living reference). Every
   non-exempt demo follows it; a new demo must too (the conversion record is
   `tasks/archive/2026/10/31/asm-simplification-sweep*.md`).
+
+## Continuous integration
+
+`.github/workflows/checks.yml` runs on every push and pull request, as two jobs that are each
+`checkout` then one `make` target. All logic lives in the Makefile, so the same command runs
+locally. `CONTAINER_CMD` falls back to docker on the `ubuntu-latest` runner.
+- **`format`:** `make check-format MINIMAL_IMAGE=1`, the formatters, then `git diff --exit-code`.
+- **`test`:** `make image MINIMAL_IMAGE=1 RUN_SANITIZERS=1`. The image build is the test gate:
+  the generated-table check, every meson suite, and the UBSan/ASan regression runs.
+
+Neither job commits. A CI-facing target must work without a TTY (no `-it`; see
+`tasks/archive/2026/11/13/remove-tty-flag-from-batch-make-targets.md`), must use absolute host
+paths in `-v` (`$(CURDIR)`, because docker reads a bare `.` as a volume name), and must not pass
+`podman build`-only flags to `build` (`ELPA_MOUNT` is empty when `USE_EMACS=0`). If CI needs a
+step, add it as a `make` target first.
 
 ## Reviews
 

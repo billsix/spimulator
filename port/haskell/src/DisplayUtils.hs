@@ -1,12 +1,13 @@
 -- | Text views of the machine: the register display, memory dumps and the
 -- disassembly listing (C: src/display-utils.c).
 module DisplayUtils
-  ( formatRegisters
-  , formatInsts
-  , formatMem
-  , formatDataSegs
-  , printTextListing
-  ) where
+  ( formatRegisters,
+    formatInsts,
+    formatMem,
+    formatDataSegs,
+    printTextListing,
+  )
+where
 
 import CFormat (formatGAlt, leftIn)
 import Control.Monad (forM)
