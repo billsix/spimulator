@@ -68,7 +68,7 @@ shell: format  ## Get Shell into a ephermeral container made from the image
 
 .PHONY: format
 format: image ## Format the C code
-	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) -it --rm \
+	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) --rm \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \
 		$(OUTPUT_DIR_TO_MOUNT) \
@@ -76,6 +76,10 @@ format: image ## Format the C code
 		$(CONTAINER_NAME) \
 		/usr/local/bin/format.sh
 
+# html/pdf/epub keep `-it`: their scripts run `make` in pgu/docs, whose catch-all
+# rule depends on `spellcheck`, an interactive `aspell check` of every .rst, so they
+# need a terminal. The top-level Makefile's book targets call sphinx-build directly
+# and skip aspell, so they run without one.
 .PHONY: docs
 docs: html pdf epub ## Build the book in HTML, PDF, and EPUB form
 

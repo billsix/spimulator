@@ -125,7 +125,7 @@ generate: ## Regenerate every opcode table from include/opcodes.tsv (tools/gen_o
 
 .PHONY: format
 format: image ## Format the C code
-	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) -it --rm \
+	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) --rm \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \
 		$(CONTAINER_NAME) \
@@ -148,7 +148,7 @@ DOCS_SRC   = /spimulator/pgu/docs/source
 DOCS_BUILD = /spimulator/pgu/docs/build
 
 define run_in_container
-	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) -it --rm \
+	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) --rm \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \
 		$(ELPA_MOUNT) \
