@@ -1,0 +1,7 @@
+# Commits that only reformat code; git blame skips them when run with
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# (GitHub reads this file automatically). If history is squashed, replace
+# each SHA with the commit that replaced it.
+
+# port/haskell: reformat with ormolu (2026-11-13)
+84392c8f7fa661411b0e115023a0ab00fe94509c
