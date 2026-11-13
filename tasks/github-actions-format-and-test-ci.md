@@ -1,130 +1,69 @@
 # GitHub Actions CI: check formatting and run the tests on every push, driven by make
 
-**Status:** proposed — needs go-ahead (questions answered 2026-11-13)
-**Priority:** 5
-**Difficulty:** 4
-**Created:** 2026-11-13 (William Emerison Six <billsix@gmail.com>)
+**Done:** 2026-11-13. **Created:** 2026-11-13 (William Emerison Six <billsix@gmail.com>).
+**Prerequisite (done first, same branch):**
+`tasks/archive/2026/11/13/remove-tty-flag-from-batch-make-targets.md`.
 
-## BLUF
+## Outcome
 
-Add `.github/workflows/checks.yml` so that every push and pull request to GitHub fails when the code
-is not formatted or when the test suite fails. "Formatted" covers the C engine (clang-format) and the
-three engine ports: Python (`ruff format`), Rust (`cargo fmt`) and Haskell (ormolu). As in github.com/billsix/geometricalgebra and
-github.com/billsix/modelviewprojection, each job is only `checkout` followed by `make <target>`, and
-all the logic lives in the Makefile, so the same command runs on a laptop. Done means:
-- the workflow exists with a `format` job and a `test` job;
-- both jobs pass on a GitHub `ubuntu-latest` runner (Docker, not podman);
-- `make check-format` and the test target also run locally.
+`.github/workflows/checks.yml` runs on every push and pull request. Each job is `checkout`
+(`actions/checkout@v5`) then one `make` target, and all logic lives in the Makefile:
+- **`format`:** `make check-format MINIMAL_IMAGE=1`.
+- **`test`:** `make image MINIMAL_IMAGE=1 RUN_SANITIZERS=1`.
 
-## Context
+Neither job commits.
 
-- **The two reference workflows** (read both first):
-  - geometricalgebra `.github/workflows/checks.yml`: jobs `format` (`make check-format
-    MINIMAL_IMAGE=1`), `test`, `generated` and `notebooks`. Its header comment states the
-    thin-wrapper rule. Its `check-format` target is two lines: `check-format: format` then
-    `git diff --exit-code`.
-  - modelviewprojection `.github/workflows/checks.yml`: the same shape. Its `CLAUDE.md` ("Continuous
-    integration") explains why.
-  - Both pin `actions/checkout@v5` (Node 24; `@v4` uses the deprecated Node 20) and build the lean
-    image on the runner.
-- **spimulator today** has no `.github/` directory.
-  - `CONTAINER_CMD` already falls back from podman to docker (Makefile line `CONTAINER_CMD ?=`).
-  - `make format` runs `entrypoint/format.sh`, which is `clang-format -i` over every
-    `*.c`/`*.cpp`/`*.h`/`*.hpp` except `pgu/upstreamSource`.
-  - **The tests already gate the image build.** `CLAUDE.md` ("Build / container workflow") calls
-    `make image` the gate:
-    - its preprocessing stage fails on stale generated opcode tables (`tools/gen_opcodes.py --check`);
-    - `RUN meson test -C ${SPIM_BUILD_DIR} --print-errorlogs` runs every meson suite (regression,
-      port-python, port-haskell, port-rust, examples).
+Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-13):
+1. **The test job is the image build.** No separate `make test` target was added. The build
+   already checks the generated opcode tables, runs every meson suite (regression, the three
+   engine ports, examples) and fails on any failure, and a fresh runner has no layer cache. The
+   rejected alternative re-ran `meson test` on the mounted tree, which would have run the suite
+   twice and skipped the table check.
+2. **CI runs the sanitizer gate** (`RUN_SANITIZERS=1`).
+3. **`make format` formats the ports too.**
 
-    So `make image` fails if any test fails. There is no separate `make test` target. A
-    `RUN_SANITIZERS=1` build (Makefile default 1) also runs the regression suite under UBSan and ASan.
-- **What breaks on a GitHub runner** (found by reading the Makefile on 2026-11-13; confirm each on
-  the first CI run):
-  1. `format` runs `podman run … -it`. On a runner there is no TTY, so Docker fails with "the input
-     device is not a TTY". `tasks/archive/2026/11/13/remove-tty-flag-from-batch-make-targets.md` removed `-it` from
-     `format` and the other batch targets. Do it first; then `check-format: format` works on a
-     runner as is.
-  2. `FILES_TO_MOUNT` uses a relative host path, `-v .:/spimulator/:Z`. Recent Docker accepts
-     relative bind paths, but older Docker reads `.` as a volume name. If the runner's Docker
-     rejects it, use `$(CURDIR)`.
-  3. `make image` passes `$(ELPA_MOUNT)` (a `-v`) to `build`. That works on podman but `docker build`
-     has no `-v`. It is empty when `USE_EMACS=0`, so a lean CI build avoids it, but only if the lean
-     build turns Emacs off (item 4).
-  4. **No `MINIMAL_IMAGE` idiom.** The Makefile's `USE_EMACS ?= 1`, `BUILD_TREE_SITTER ?= 1` and
-     `BUILD_DOCS ?= 1` are plain defaults. Following the fleet convention
-     (runClaudeInContainer `tasks/reference/minimal-nested-images.md`), the flags a lean image drops
-     become `?= $(if $(filter 1,$(MINIMAL_IMAGE)),0,1)`:
-     - `USE_EMACS` and `BUILD_DOCS`.
+What changed:
+- **`make check-format`** (new) runs `format` and then `git diff --exit-code`.
+- **`entrypoint/format.sh`** now runs, after clang-format:
+  - `ruff check --fix --exit-zero` and `ruff format` in `port/python`;
+  - `cargo fmt` for `port/rust`;
+  - `ormolu --mode inplace` over `port/haskell/{src,tools,tests}`.
 
-     A flag the gate needs stays plain `?= 1`. That includes **`BUILD_TREE_SITTER`**: `CLAUDE.md`
-     says any `opcodes.tsv` change must be gated with it, because a `BUILD_TREE_SITTER=0` image never
-     builds or tests the grammar, so a CI that dropped it would miss a broken grammar.
-     `RUN_SANITIZERS` is also a gate flag (Decisions 2).
-  5. **Drift found along the way:** the Dockerfile declares `ARG BUILD_DOCS=1`. The fleet convention
-     is `0` in the Dockerfile and `1` in the Makefile, so a bare `podman build` is lean. Fix it in
-     the same change, since the CI image build depends on what the defaults mean.
-- **Every containerized target a CI job runs needs `: image`** as a prerequisite, because a fresh
-  runner has no image (`format: image` already has it).
-- **`make format` must also format the ports** (William Emerison Six <billsix@gmail.com>, 2026-11-13).
-  Today `entrypoint/format.sh` runs only clang-format. The ports' tools are already in the image
-  (`entrypoint/05-install-ports.sh` installs `ruff`, `ty`, `hlint`, `rustfmt` and `clippy`), but
-  only in check mode, inside meson's lint suites:
-  - `port/python/lint.sh` runs `ruff check .` and `ruff format --check .`;
-  - `port/rust/lint.sh` runs `cargo fmt --check`;
-  - `port/haskell/lint.sh` runs only `hlint` (advisory). No Haskell formatter is installed.
+  The status accumulates, so every formatter runs and any failure fails the script. ormolu was
+  added to `entrypoint/05-install-ports.sh`.
+- **Generated files are skipped by ormolu.** The first ormolu run also reformatted `Opcodes.hs` and
+  `OpcodeTypes.hs`, which `tools/gen_opcodes.py` writes "in their final form". Committing that
+  would make the `generated_opcode_tables` test fail on the next `make generate`. The agent's
+  call: `format.sh` skips any `.hs` marked `GENERATED by tools/gen_opcodes.py`, so a new generated
+  file is skipped automatically. The two files were reverted. The generated Python and Rust files
+  already match ruff and rustfmt, so nothing there needed excluding.
+- **The Haskell reformat is its own commit,** "port/haskell: reformat with ormolu". It is pure
+  formatter output across 22 hand-written files, and **`.git-blame-ignore-revs`** (new) lists its
+  SHA. If the branch is squashed, that SHA must be repointed.
+- **`MINIMAL_IMAGE`:**
+  - `USE_EMACS` and `BUILD_DOCS` now default to `$(if $(filter 1,$(MINIMAL_IMAGE)),0,1)`;
+  - `BUILD_TREE_SITTER` (the grammar gate) and `RUN_SANITIZERS` stay plain `?= 1`, so the lean
+    image still runs every suite;
+  - the Dockerfile's `ARG BUILD_DOCS` now defaults to `0`, the fleet convention. `make` always
+    passes it, so make users see no change.
+- **Docker compatibility:** `FILES_TO_MOUNT` uses `$(CURDIR)` instead of the relative `.`, which
+  older docker reads as a volume name. `ELPA_MOUNT`, a `-v` on `podman build` that docker would
+  reject, is empty when `MINIMAL_IMAGE=1` turns Emacs off.
+- **Docs:** a "Continuous integration" section in `CLAUDE.md`, the `make format` and
+  `MINIMAL_IMAGE` lines there, and the README's container bullets.
 
-  Measured 2026-11-13 in the sandbox:
-  - Python: `ruff format --check` reports all 26 files already formatted;
-  - Rust: `cargo fmt --check` exits 0;
-  - Haskell: `ormolu --mode check` (ormolu 0.7.7.0, the Fedora 45 package) flags **24 of the 26**
-    `.hs` files under `src/`, `tools/` and `tests/`. ormolu is the formatter the shared Haskell
-    standard names (the haskell-coding-standard.md reference doc in
-    github.com/billsix/runClaudeInContainer).
+## Verification
 
-  The first ormolu run is therefore a whole-tree reformat of the Haskell port. Give it its own commit
-  and list that commit in a `.git-blame-ignore-revs` (the cpp-build-modernization.md reference doc in
-  the same repo explains the mechanism). Then rerun the port suites: the reformat must change
-  layout only, so `port-haskell` stays green.
+All nested and with no terminal attached (stdin `/dev/null`, output to a file):
+- `make format MINIMAL_IMAGE=1` built the lean image (ormolu installed) and passed the whole
+  gate: 348 ok, 0 failed; UBSan 53/0; ASan 53/0. ruff and cargo fmt changed nothing.
+- After the generated-file exclusion, `format.sh` changed the 22 hand-written `.hs` files and left
+  `Opcodes.hs` / `OpcodeTypes.hs` alone. A second run changed nothing.
+- `make check-format MINIMAL_IMAGE=1`, exactly the CI command, rebuilt the image on the
+  reformatted sources and exited 0: 348 ok / 0 failed, with all 88 `port-haskell` tests,
+  `haskell-annotations`, `port-haskell-hlint` and `generated_opcode_tables` passing; sanitizers
+  53/0 and 53/0. The formatters then left `git diff` clean.
 
-## Plan
-
-1. Add the `MINIMAL_IMAGE` idiom (item 4) and fix the Dockerfile `ARG BUILD_DOCS` default (item 5).
-   Check that `make image MINIMAL_IMAGE=1` builds and still runs `meson test`.
-2. Make the format path TTY-free (item 1) and add `check-format: format` + `git diff --exit-code`,
-   `## `-documented, as geometricalgebra does.
-3. Extend `entrypoint/format.sh` to the ports. Keep the multi-step shape, `status=0; cmd ||
-   status=1; … exit $status`, so every formatter runs and any failure fails the script:
-   - `ruff check --fix` and `ruff format` in `port/python`;
-   - `cargo fmt` for `port/rust/Cargo.toml`;
-   - `ormolu --mode inplace` over `port/haskell`'s `src/`, `tools/` and `tests/` `.hs` files.
-
-   Add `ormolu` to `entrypoint/05-install-ports.sh`. Do the first Haskell reformat as its own commit,
-   added to `.git-blame-ignore-revs` (Context). Optionally add `ormolu --mode check` to
-   `port/haskell/lint.sh`, so the image build also catches unformatted Haskell; `check-format` already
-   catches it in CI.
-4. Write `.github/workflows/checks.yml` with a header comment stating the thin-wrapper rule (copy
-   geometricalgebra's wording, adapted). Jobs:
-   - `format` runs `make check-format MINIMAL_IMAGE=1`;
-   - `test` runs `make image MINIMAL_IMAGE=1` with `RUN_SANITIZERS=1` (the default), which runs every
-     meson suite, the generated-tables check and the sanitizer gate (Decisions).
-
-   Both use `actions/checkout@v5` and run on `push` and `pull_request`.
-5. Verify:
-   - locally, with nested podman and the same commands the workflow runs;
-   - on GitHub, once the maintainer pushes. Only the maintainer can push. Fix items 2 and 3 if the
-     runner's Docker trips on them.
-6. Record CI in `CLAUDE.md` and, if it has a commands section, the README: the jobs, and the rule
-   that CI is `make` targets only.
-
-## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-13)
-
-1. **The CI `test` job runs `make image MINIMAL_IMAGE=1`.** No new `make test` target. The image
-   build is already the documented gate: it checks the generated opcode tables, runs every meson
-   suite, and fails on any failure. A fresh runner has no layer cache, so the tests always run.
-   (The rejected alternative was a `make test: image` that reran `meson test` on the bind-mounted
-   tree; it would have run the whole suite twice in CI and skipped the generated-tables check.)
-2. **CI runs the sanitizer gate** (`RUN_SANITIZERS=1`, the Makefile default) in that same image
-   build. Sanitizer failures are what CI should catch, and the cost is one more regression-suite
-   run.
-3. **`make format` formats the ports too**: Python, Rust and Haskell, as in Plan step 3.
+**Not verified here:** a run on GitHub's runner, which uses Docker; the sandbox has none. Watch the
+first push for docker-only problems, such as BuildKit cache mounts or `:Z` on a host without
+SELinux.
