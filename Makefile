@@ -1,8 +1,14 @@
 .DEFAULT_GOAL := help
 
-USE_EMACS ?= 1
+# Optional features a lean image drops: `make image MINIMAL_IMAGE=1` (CI, a small
+# export) turns these off; otherwise they default on. Convention: runClaudeInContainer
+# tasks/reference/minimal-nested-images.md.
+USE_EMACS ?= $(if $(filter 1,$(MINIMAL_IMAGE)),0,1)
+BUILD_DOCS ?= $(if $(filter 1,$(MINIMAL_IMAGE)),0,1)
+# Gate flags stay on even in a lean image. BUILD_TREE_SITTER builds and tests the
+# editor grammar, whose keyword lists are generated from include/opcodes.tsv, so an
+# image without it never checks the grammar.
 BUILD_TREE_SITTER ?= 1
-BUILD_DOCS ?= 1
 # Gate the image on a UBSan(trap)+ASan build+test of spim. Set RUN_SANITIZERS=0
 # to skip (faster rebuilds). See tasks/archive/2026/06/16/ubsan-sweep.md.
 RUN_SANITIZERS ?= 1
@@ -18,11 +24,13 @@ CONTAINER_NAME = spimulator
 # On `run` lines only, never `build` (podman build rejects --cgroups). Convention:
 # runClaudeInContainer tasks/reference/nested-podman-design.md.
 PODMAN_RUN_FLAGS ?= $(if $(filter 1,$(NESTED_PODMAN)),--cgroups=disabled)
-FILES_TO_MOUNT = -v .:/spimulator/:Z \
-                 -v ./entrypoint/shell.sh:/usr/local/bin/shell.sh:Z \
-                 -v ./entrypoint/format.sh:/usr/local/bin/format.sh:Z \
-                 -v ./entrypoint/lint.sh:/usr/local/bin/lint.sh:Z \
-                 -v ./entrypoint/dotfiles/.tmux.conf:/root/.tmux.conf:Z
+# Absolute host paths ($(CURDIR)), which both podman and docker accept; docker reads
+# a bare relative `.` as a volume name.
+FILES_TO_MOUNT = -v $(CURDIR):/spimulator/:Z \
+                 -v $(CURDIR)/entrypoint/shell.sh:/usr/local/bin/shell.sh:Z \
+                 -v $(CURDIR)/entrypoint/format.sh:/usr/local/bin/format.sh:Z \
+                 -v $(CURDIR)/entrypoint/lint.sh:/usr/local/bin/lint.sh:Z \
+                 -v $(CURDIR)/entrypoint/dotfiles/.tmux.conf:/root/.tmux.conf:Z
 
 # USE_EMACS=1 (the default) bind-mounts just the vendored elpa/ tree into the
 # container so an interactive `make shell` can *use* the vendored packages (:U
@@ -124,12 +132,18 @@ generate: ## Regenerate every opcode table from include/opcodes.tsv (tools/gen_o
 
 
 .PHONY: format
-format: image ## Format the C code
+format: image ## Format the C engine and the Python/Rust/Haskell ports (entrypoint/format.sh)
 	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) --rm \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \
 		$(CONTAINER_NAME) \
 		/usr/local/bin/format.sh
+
+# The CI format gate (.github/workflows/checks.yml): format, then fail if that
+# changed any tracked file. Nothing is committed; the diff is the report.
+.PHONY: check-format
+check-format: format ## (CI) run format, then fail if it changed any tracked file
+	git diff --exit-code
 
 
 # ---------------------------------------------------------------------------

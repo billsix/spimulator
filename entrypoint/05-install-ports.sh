@@ -12,5 +12,6 @@
 set -uo pipefail
 
 # Each port's lint tools, for the port suites' lint tests (port/<port>/lint.sh):
-# ruff and ty (Python), hlint (Haskell), clippy and rustfmt (Rust).
-dnf install -y python3 ruff ty ghc hlint rust cargo clippy rustfmt
+# ruff and ty (Python), hlint (Haskell), clippy and rustfmt (Rust); ormolu (Haskell)
+# and the ruff/rustfmt formatters are also what `make format` runs on the ports.
+dnf install -y python3 ruff ty ghc hlint ormolu rust cargo clippy rustfmt

@@ -1,0 +1,38 @@
+# Check-only CI, on every push and pull request.
+#
+# CI is a thin wrapper over the make/Dockerfile system: each job is `checkout` then
+# `make <target>`, and all the logic lives in the Makefile, so the same command runs
+# on a laptop. CONTAINER_CMD falls back from podman to docker, so the same target
+# runs on the ubuntu-latest runner (Docker) and on the maintainer's podman host.
+#
+# Both jobs build the lean image (MINIMAL_IMAGE=1: no Emacs, no Sphinx/TeX book
+# toolchain) but keep the gate flags on: BUILD_TREE_SITTER (the grammar is built and
+# tested only with it) and RUN_SANITIZERS (the UBSan/ASan regression runs).
+#
+# Neither job modifies the repo. `make check-format` runs the formatters inside the
+# disposable runner checkout and then fails on any `git diff`; nothing is committed
+# or pushed. The test job is the image build itself: it checks that the generated
+# opcode tables are current, runs every meson suite (regression, the three engine
+# ports, examples) and the sanitizer gate, and fails on any failure. A fresh runner
+# has no layer cache, so the tests always run. actions/checkout is pinned @v5
+# (Node 24; @v4 is Node 20, which GitHub is deprecating).
+name: checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: make check-format
+        run: make check-format MINIMAL_IMAGE=1
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: make image (builds and runs every test suite)
+        run: make image MINIMAL_IMAGE=1 RUN_SANITIZERS=1

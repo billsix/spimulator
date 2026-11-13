@@ -50,11 +50,12 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
 
 # Install the toolchain to build the PGU book (the MIPS-on-spim port
 # under pgu/) into HTML/PDF/EPUB?  Adds Sphinx + furo + a full TeX
-# Live (~hundreds of MB), so it is a build-time opt-out.  The book
-# itself is built at runtime by the `docs`/`html`/`pdf`/`epub`
-# Makefile targets, which mount the repo and run sphinx-build inside
-# this image — nothing is built during `docker build`.
-ARG BUILD_DOCS=1
+# Live (~hundreds of MB).  Off for a bare `podman build`; the Makefile
+# passes BUILD_DOCS=1 unless MINIMAL_IMAGE=1.  The book itself is built
+# at runtime by the `docs`/`html`/`pdf`/`epub` Makefile targets, which
+# mount the repo and run sphinx-build inside this image — nothing is
+# built during `docker build`.
+ARG BUILD_DOCS=0
 
 # PGU book toolchain (gated by BUILD_DOCS).  Mirrors the deps in
 # pgu/Dockerfile: Sphinx + the furo theme for HTML/EPUB, latexmk +
