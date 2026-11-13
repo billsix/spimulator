@@ -1,14 +1,15 @@
 # GitHub Actions CI: check formatting and run the tests on every push, driven by make
 
-**Status:** proposed — needs go-ahead (and answers to the Open questions)
+**Status:** proposed — needs go-ahead (questions answered 2026-11-13)
 **Priority:** 5
-**Difficulty:** 3
+**Difficulty:** 4
 **Created:** 2026-11-13 (William Emerison Six <billsix@gmail.com>)
 
 ## BLUF
 
-Add `.github/workflows/checks.yml` so that every push and pull request to GitHub fails when the C code
-is not clang-formatted or when the test suite fails. As in github.com/billsix/geometricalgebra and
+Add `.github/workflows/checks.yml` so that every push and pull request to GitHub fails when the code
+is not formatted or when the test suite fails. "Formatted" covers the C engine (clang-format) and the
+three engine ports: Python (`ruff format`), Rust (`cargo fmt`) and Haskell (ormolu). As in github.com/billsix/geometricalgebra and
 github.com/billsix/modelviewprojection, each job is only `checkout` followed by `make <target>`, and
 all the logic lives in the Makefile, so the same command runs on a laptop. Done means:
 - the workflow exists with a `format` job and a `test` job;
@@ -41,10 +42,9 @@ all the logic lives in the Makefile, so the same command runs on a laptop. Done 
 - **What breaks on a GitHub runner** (found by reading the Makefile on 2026-11-13; confirm each on
   the first CI run):
   1. `format` runs `podman run … -it`. On a runner there is no TTY, so Docker fails with "the input
-     device is not a TTY". The CI path needs a run without `-it`. Either add a `check-format` target
-     that hand-rolls a minimal `run` (geometricalgebra's `CLAUDE.md`, "Continuous integration",
-     explains why CI targets avoid the interactive flags), or drop `-it` from `format`, which does
-     not need a TTY.
+     device is not a TTY". `tasks/remove-tty-flag-from-batch-make-targets.md` removes `-it` from
+     `format` and the other batch targets. Do it first; then `check-format: format` works on a
+     runner as is.
   2. `FILES_TO_MOUNT` uses a relative host path, `-v .:/spimulator/:Z`. Recent Docker accepts
      relative bind paths, but older Docker reads `.` as a volume name. If the runner's Docker
      rejects it, use `$(CURDIR)`.
@@ -60,12 +60,32 @@ all the logic lives in the Makefile, so the same command runs on a laptop. Done 
      A flag the gate needs stays plain `?= 1`. That includes **`BUILD_TREE_SITTER`**: `CLAUDE.md`
      says any `opcodes.tsv` change must be gated with it, because a `BUILD_TREE_SITTER=0` image never
      builds or tests the grammar, so a CI that dropped it would miss a broken grammar.
-     `RUN_SANITIZERS` is also a gate flag (open question 2).
+     `RUN_SANITIZERS` is also a gate flag (Decisions 2).
   5. **Drift found along the way:** the Dockerfile declares `ARG BUILD_DOCS=1`. The fleet convention
      is `0` in the Dockerfile and `1` in the Makefile, so a bare `podman build` is lean. Fix it in
      the same change, since the CI image build depends on what the defaults mean.
 - **Every containerized target a CI job runs needs `: image`** as a prerequisite, because a fresh
   runner has no image (`format: image` already has it).
+- **`make format` must also format the ports** (William Emerison Six <billsix@gmail.com>, 2026-11-13).
+  Today `entrypoint/format.sh` runs only clang-format. The ports' tools are already in the image
+  (`entrypoint/05-install-ports.sh` installs `ruff`, `ty`, `hlint`, `rustfmt` and `clippy`), but
+  only in check mode, inside meson's lint suites:
+  - `port/python/lint.sh` runs `ruff check .` and `ruff format --check .`;
+  - `port/rust/lint.sh` runs `cargo fmt --check`;
+  - `port/haskell/lint.sh` runs only `hlint` (advisory). No Haskell formatter is installed.
+
+  Measured 2026-11-13 in the sandbox:
+  - Python: `ruff format --check` reports all 26 files already formatted;
+  - Rust: `cargo fmt --check` exits 0;
+  - Haskell: `ormolu --mode check` (ormolu 0.7.7.0, the Fedora 45 package) flags **24 of the 26**
+    `.hs` files under `src/`, `tools/` and `tests/`. ormolu is the formatter the shared Haskell
+    standard names (the haskell-coding-standard.md reference doc in
+    github.com/billsix/runClaudeInContainer).
+
+  The first ormolu run is therefore a whole-tree reformat of the Haskell port. Give it its own commit
+  and list that commit in a `.git-blame-ignore-revs` (the cpp-build-modernization.md reference doc in
+  the same repo explains the mechanism). Then rerun the port suites: the reformat must change
+  layout only, so `port-haskell` stays green.
 
 ## Plan
 
@@ -73,11 +93,21 @@ all the logic lives in the Makefile, so the same command runs on a laptop. Done 
    Check that `make image MINIMAL_IMAGE=1` builds and still runs `meson test`.
 2. Make the format path TTY-free (item 1) and add `check-format: format` + `git diff --exit-code`,
    `## `-documented, as geometricalgebra does.
-3. Add the test target chosen in open question 1.
+3. Extend `entrypoint/format.sh` to the ports. Keep the multi-step shape, `status=0; cmd ||
+   status=1; … exit $status`, so every formatter runs and any failure fails the script:
+   - `ruff check --fix` and `ruff format` in `port/python`;
+   - `cargo fmt` for `port/rust/Cargo.toml`;
+   - `ormolu --mode inplace` over `port/haskell`'s `src/`, `tools/` and `tests/` `.hs` files.
+
+   Add `ormolu` to `entrypoint/05-install-ports.sh`. Do the first Haskell reformat as its own commit,
+   added to `.git-blame-ignore-revs` (Context). Optionally add `ormolu --mode check` to
+   `port/haskell/lint.sh`, so the image build also catches unformatted Haskell; `check-format` already
+   catches it in CI.
 4. Write `.github/workflows/checks.yml` with a header comment stating the thin-wrapper rule (copy
    geometricalgebra's wording, adapted). Jobs:
    - `format` runs `make check-format MINIMAL_IMAGE=1`;
-   - `test` runs the test target with `MINIMAL_IMAGE=1`, plus `RUN_SANITIZERS` per open question 2.
+   - `test` runs `make image MINIMAL_IMAGE=1` with `RUN_SANITIZERS=1` (the default), which runs every
+     meson suite, the generated-tables check and the sanitizer gate (Decisions).
 
    Both use `actions/checkout@v5` and run on `push` and `pull_request`.
 5. Verify:
@@ -87,21 +117,14 @@ all the logic lives in the Makefile, so the same command runs on a laptop. Done 
 6. Record CI in `CLAUDE.md` and, if it has a commands section, the README: the jobs, and the rule
    that CI is `make` targets only.
 
-## Open questions
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-13)
 
-1. Which test target should the CI `test` job run?
-   - **(a)** `make image MINIMAL_IMAGE=1`, since the image build already runs `meson test` and fails
-     on a failure. That needs no new target, and a fresh runner has no layer cache, so the tests
-     always run.
-   - **(b)** A new `make test: image` that runs `meson setup`, `meson compile` (every target, which
-     `CLAUDE.md` "Tests" requires because the examples' and ports' tests compare against the demos'
-     native binaries) and `meson test` in the container against the bind-mounted tree, with the
-     build directory outside the mount. That also lets you re-test host edits locally without an
-     image rebuild, but CI then runs the whole suite twice (once in the image build, once in the
-     target), including the three port suites.
-
-   Recommendation: (a) for CI, because the image build is already the documented gate and runs the
-   generated-tables check that (b) would skip. Add (b) only if you also want it as a local command.
-2. Should CI also run the UBSan/ASan pass (`RUN_SANITIZERS=1`, the Makefile default)? Recommendation:
-   yes, in the `test` job's image build. Sanitizer failures are the kind CI should catch, and the cost
-   is one more regression-suite run.
+1. **The CI `test` job runs `make image MINIMAL_IMAGE=1`.** No new `make test` target. The image
+   build is already the documented gate: it checks the generated opcode tables, runs every meson
+   suite, and fails on any failure. A fresh runner has no layer cache, so the tests always run.
+   (The rejected alternative was a `make test: image` that reran `meson test` on the bind-mounted
+   tree; it would have run the whole suite twice in CI and skipped the generated-tables check.)
+2. **CI runs the sanitizer gate** (`RUN_SANITIZERS=1`, the Makefile default) in that same image
+   build. Sanitizer failures are what CI should catch, and the cost is one more regression-suite
+   run.
+3. **`make format` formats the ports too**: Python, Rust and Haskell, as in Plan step 3.
