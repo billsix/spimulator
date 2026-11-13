@@ -1,7 +1,7 @@
 # Remove `-it` from the batch `make` targets that run a container
 
 **Done:** 2026-11-13. **Created:** 2026-11-13 (William Emerison Six <billsix@gmail.com>).
-**Needed by:** `tasks/github-actions-format-and-test-ci.md`. A GitHub runner has no TTY, so
+**Needed by:** `tasks/archive/2026/11/13/github-actions-format-and-test-ci.md`. A GitHub runner has no TTY, so
 `make format` could not run there with `-it`.
 
 ## Outcome
