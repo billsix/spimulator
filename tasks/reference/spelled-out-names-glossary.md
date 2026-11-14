@@ -2,8 +2,8 @@
 
 **Reference document.** Read it before naming anything new in `src/` or `include/`, and before
 the port tasks that carry the same names into `port/python`, `port/haskell` and `port/rust`
-(`tasks/spelled-out-names-python-port.md`, `tasks/spelled-out-names-haskell-port.md`,
-`tasks/spelled-out-names-rust-port.md`). Update it in place when a name is added or a decision
+(`tasks/archive/2026/11/14/spelled-out-names-python-port.md`,
+`tasks/spelled-out-names-haskell-port.md`, `tasks/spelled-out-names-rust-port.md`). Update it in place when a name is added or a decision
 changes. Written 2026-11-14 (William Emerison Six <billsix@gmail.com>) by the rename recorded in
 `tasks/archive/2026/11/14/spelled-out-names-c-core.md`.
 
