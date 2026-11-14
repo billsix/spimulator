@@ -27,15 +27,24 @@ scan_value_t scan_value = {};
    explain.c also call register_name_to_number, independent of the
    scanner's internal keyword table. */
 static const name_val_val register_tbl[] = {
-    {"a0", 4, 0},  {"a1", 5, 0},   {"a2", 6, 0},   {"a3", 7, 0},
-    {"at", 1, 0},  {"fp", 30, 0},  {"gp", 28, 0},  {"k0", 26, 0},
-    {"k1", 27, 0}, {"kt0", 26, 0}, {"kt1", 27, 0}, {"ra", 31, 0},
-    {"s0", 16, 0}, {"s1", 17, 0},  {"s2", 18, 0},  {"s3", 19, 0},
-    {"s4", 20, 0}, {"s5", 21, 0},  {"s6", 22, 0},  {"s7", 23, 0},
-    {"s8", 30, 0}, {"sp", 29, 0},  {"t0", 8, 0},   {"t1", 9, 0},
-    {"t2", 10, 0}, {"t3", 11, 0},  {"t4", 12, 0},  {"t5", 13, 0},
-    {"t6", 14, 0}, {"t7", 15, 0},  {"t8", 24, 0},  {"t9", 25, 0},
-    {"v0", 2, 0},  {"v1", 3, 0},   {"zero", 0, 0}};
+    {.name = "a0", .value1 = 4},   {.name = "a1", .value1 = 5},
+    {.name = "a2", .value1 = 6},   {.name = "a3", .value1 = 7},
+    {.name = "at", .value1 = 1},   {.name = "fp", .value1 = 30},
+    {.name = "gp", .value1 = 28},  {.name = "k0", .value1 = 26},
+    {.name = "k1", .value1 = 27},  {.name = "kt0", .value1 = 26},
+    {.name = "kt1", .value1 = 27}, {.name = "ra", .value1 = 31},
+    {.name = "s0", .value1 = 16},  {.name = "s1", .value1 = 17},
+    {.name = "s2", .value1 = 18},  {.name = "s3", .value1 = 19},
+    {.name = "s4", .value1 = 20},  {.name = "s5", .value1 = 21},
+    {.name = "s6", .value1 = 22},  {.name = "s7", .value1 = 23},
+    {.name = "s8", .value1 = 30},  {.name = "sp", .value1 = 29},
+    {.name = "t0", .value1 = 8},   {.name = "t1", .value1 = 9},
+    {.name = "t2", .value1 = 10},  {.name = "t3", .value1 = 11},
+    {.name = "t4", .value1 = 12},  {.name = "t5", .value1 = 13},
+    {.name = "t6", .value1 = 14},  {.name = "t7", .value1 = 15},
+    {.name = "t8", .value1 = 24},  {.name = "t9", .value1 = 25},
+    {.name = "v0", .value1 = 2},   {.name = "v1", .value1 = 3},
+    {.name = "zero", .value1 = 0}};
 
 int register_name_to_number(const char* name) {
   const int c1 = *name, c2 = *(name + 1);
