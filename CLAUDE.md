@@ -146,7 +146,7 @@ not spim's intentional exit-time leaks) + the integer-UB primer:
   `python3 tools/c_dispatch_check.py BUILDDIR src`, which the meson test `dispatch_check` runs; it is the shared, vendored copy of
   `github.com/billsix/runClaudeInContainer:tasks/reference/c_dispatch_check.py`, kept byte-identical). Struct and union
   initializers are designated (`{.name = …}`); `python3 tools/c_designated_init_check.py BUILDDIR src
-  include` lists any positional one (a clang-configured build; vendored the same way, no gate runs it;
+  include` lists any positional one (the meson test `designated_init_check` runs it; vendored the same way;
   `tasks/archive/2026/11/14/c23-designated-initializers.md`). `include/opcodes.tsv` is the single source of truth for
   the simulator, the ports and the tree-sitter grammar; edit it and run `make generate`, never the
   generated tables. **Any change to `opcodes.tsv` (or `opcode-types.tsv`) must be gated with

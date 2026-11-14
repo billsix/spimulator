@@ -190,6 +190,16 @@ if clang_for_ast.found()
               meson.current_build_dir(), 'src'],
        workdir: meson.current_source_dir(),
        suite: 'regression')
+  # The C coding standard's designated-initializer rule: every struct or union
+  # initializer in the core is written `{.name = …}`.  tools/c_designated_init_check.py
+  # reads the same AST and fails on a positional one not accepted with a
+  # `designated-init-check: ok` comment.  Scoped to the core: the teaching C under
+  # examples/ stays in the subset tasks/mini-c-compiler.md compiles.
+  test('designated_init_check', find_program('python3'),
+       args: [meson.current_source_dir() / 'tools' / 'c_designated_init_check.py',
+              meson.current_build_dir(), 'src', 'include'],
+       workdir: meson.current_source_dir(),
+       suite: 'regression')
 endif
 
 # --- Examples curriculum (paired C + MIPS-asm teaching demos) -----------
