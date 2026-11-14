@@ -2,7 +2,7 @@
 """Discover and rename the abbreviated names of one engine port, from the C core's renames.
 
 Shared by the three port tasks (``tasks/archive/2026/11/14/spelled-out-names-python-port.md``,
-``tasks/spelled-out-names-haskell-port.md``, ``tasks/spelled-out-names-rust-port.md``). The C core's rename
+``tasks/archive/2026/11/14/spelled-out-names-haskell-port.md``, ``tasks/spelled-out-names-rust-port.md``). The C core's rename
 (``tasks/archive/2026/11/14/spelled-out-names-c-core.md``) left two inputs, in
 ``tasks/adhoc/spelled-out-names-c-core/data/``: ``renames.tsv`` (every C name and its new
 spelling) and ``glossary.tsv`` (every abbreviated word and its spelling).
