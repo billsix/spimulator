@@ -19,22 +19,23 @@ import math
 import time
 from collections.abc import Callable
 
-from . import console, instruction, machine, memory, opcodes, options, syscall, traps
+from . import console, machine, memory, opcodes, options, syscall, traps
+from . import instruction as instruction_module
 from . import memory_layout as layout
 from . import registers as regs
-from .inst import ImmExpr, Instruction
+from .inst import ImmediateExpression, Instruction
 from .machine import M32
 from .opcode_table import OpType, Tok
 from .registers import cpu
-from .traps import ExcCode
+from .traps import ExceptionCode
 
 type Step = Callable[[], bool | None]
 """An instruction's compiled form: run it once."""
 
 SIGN: int = 0x80000000
 
-gpr: list[int] = cpu.gpr
-fpr: list[int] = cpu.fpr
+general_purpose_registers: list[int] = cpu.general_purpose_registers
+floating_point_register: list[int] = cpu.floating_point_registers
 
 # A pending delayed load: (register list, register number, value).
 type _Pending = tuple[list[int], int, int]
@@ -54,7 +55,7 @@ def _wrap(value: int) -> int:
 # --- the CP0 timer ----------------------------------------------------------------
 
 
-def _start_cp0_timer() -> None:
+def _start_coprocessor_0_timer() -> None:
     """Start the 10 ms timer unless it is already running."""
     global _timer_deadline
     now: float = time.monotonic()
@@ -62,14 +63,19 @@ def _start_cp0_timer() -> None:
         _timer_deadline = now + layout.TIMER_TICK_MS / 1000
 
 
-def _poll_cp0_timer() -> None:
+def _poll_coprocessor_0_timer() -> None:
     """Count one tick if the timer expired, raising interrupt 7 on Compare."""
     global _timer_deadline
     now: float = time.monotonic()
     if _timer_deadline is not None and now >= _timer_deadline:
-        cp0: list[int] = cpu.cpr[0]
-        cp0[regs.CP0_COUNT] = _wrap(cp0[regs.CP0_COUNT] + 1)
-        if cp0[regs.CP0_COUNT] == cp0[regs.CP0_COMPARE]:
+        coprocessor_0: list[int] = cpu.coprocessor_registers[0]
+        coprocessor_0[regs.COPROCESSOR_0_COUNT] = _wrap(
+            coprocessor_0[regs.COPROCESSOR_0_COUNT] + 1
+        )
+        if (
+            coprocessor_0[regs.COPROCESSOR_0_COUNT]
+            == coprocessor_0[regs.COPROCESSOR_0_COMPARE]
+        ):
             memory._raise_interrupt(7)
         _timer_deadline = now + layout.TIMER_TICK_MS / 1000
 
@@ -77,8 +83,8 @@ def _poll_cp0_timer() -> None:
 # --- the main loop ------------------------------------------------------------------
 
 
-def run_spim(initial_pc: int, steps_to_run: int, display: bool) -> bool:
-    """Run from initial_pc for up to steps_to_run instructions.
+def run_spim(initial_program_counter: int, steps_to_run: int, display: bool) -> bool:
+    """Run from initial_program_counter for up to steps_to_run instructions.
 
     Returns:
         bool: True if the program can continue (steps ran out, or a
@@ -92,61 +98,67 @@ def run_spim(initial_pc: int, steps_to_run: int, display: bool) -> bool:
     saved_display: bool = _display
     _display = display
     try:
-        cpu.pc = initial_pc
+        cpu.program_counter = initial_program_counter
         mapped: bool = not options.bare_machine and options.mapped_io
         chunk: int = layout.IO_INTERVAL if mapped else steps_to_run
-        _start_cp0_timer()
+        _start_coprocessor_0_timer()
         delayed_loads: bool = options.delayed_loads
-        text_seg: list[Instruction | None] = memory.text_seg
+        text_segment: list[Instruction | None] = memory.text_segment
         text_top: int = memory.text_top
-        text_bot: int = layout.TEXT_BOT
+        text_bottom: int = layout.TEXT_BOTTOM
         poll: int = 0
         while steps_to_run > 0:
             step_size: int = min(chunk, steps_to_run)
             steps_to_run -= step_size
             if mapped:
                 memory.check_memory_mapped_io()
-            cp0: list[int] = cpu.cpr[0]
-            status: int = cp0[regs.CP0_STATUS]
+            coprocessor_0: list[int] = cpu.coprocessor_registers[0]
+            status: int = coprocessor_0[regs.COPROCESSOR_0_STATUS]
             if (
-                status & regs.STATUS_IE
-                and not status & regs.STATUS_EXL
-                and cp0[regs.CP0_CAUSE] & regs.CAUSE_IP & status & regs.STATUS_IM
+                status & regs.STATUS_INTERRUPT_ENABLE
+                and not status & regs.STATUS_EXCEPTION_LEVEL
+                and coprocessor_0[regs.COPROCESSOR_0_CAUSE]
+                & regs.CAUSE_INTERRUPTS_PENDING
+                & status
+                & regs.STATUS_INTERRUPT_MASK
             ):
                 # Take the interrupt before the next instruction, so EPC
                 # points at the instruction to return to.
-                traps.raise_exception(ExcCode.INT)
+                traps.raise_exception(ExceptionCode.INTERRUPT)
                 syscall.handle_exception()
             for _ in range(step_size):
-                gpr[0] = 0  # $0 is always zero
+                general_purpose_registers[0] = 0  # $0 is always zero
                 poll -= 1
                 if poll < 0:
                     poll = 63
-                    _poll_cp0_timer()
-                pc: int = cpu.pc
-                inst: Instruction | None
-                if text_bot <= pc < text_top and not pc & 3:
-                    inst = text_seg[(pc - text_bot) >> 2]
+                    _poll_coprocessor_0_timer()
+                program_counter: int = cpu.program_counter
+                instruction: Instruction | None
+                if (
+                    text_bottom <= program_counter < text_top
+                    and not program_counter & 3
+                ):
+                    instruction = text_segment[(program_counter - text_bottom) >> 2]
                 else:
                     traps.exception_occurred = False
-                    inst = memory.read_inst(pc)
+                    instruction = memory.read_instruction(program_counter)
                     if traps.exception_occurred:  # in fetching the instruction
                         traps.exception_occurred = False
                         syscall.handle_exception()
                         continue
-                if inst is None:
+                if instruction is None:
                     raise console.run_error(
-                        f"Attempt to execute non-instruction at 0x{pc:08x}\n"
+                        f"Attempt to execute non-instruction at 0x{program_counter:08x}\n"
                     )
-                expr: ImmExpr | None = inst.expr
+                expression: ImmediateExpression | None = instruction.expression
                 if (
-                    expr is not None
-                    and expr.symbol is not None
-                    and expr.symbol.addr == 0
+                    expression is not None
+                    and expression.symbol is not None
+                    and expression.symbol.address == 0
                 ):
                     raise console.run_error(
-                        f"Instruction references undefined symbol at 0x{pc:08x}\n"
-                        f"  {instruction.inst_to_string(pc)}"
+                        f"Instruction references undefined symbol at 0x{program_counter:08x}\n"
+                        f"  {instruction_module.instruction_to_string(program_counter)}"
                     )
                 if delayed_loads:
                     if _delayed_load_2 is not None:
@@ -154,17 +166,17 @@ def run_spim(initial_pc: int, steps_to_run: int, display: bool) -> bool:
                         registers[number] = value
                     _delayed_load_2 = _delayed_load_1
                     _delayed_load_1 = None
-                step: Step | None = inst.exec_cache
+                step: Step | None = instruction.exec_cache
                 if step is None:
-                    step = _compile(inst)
-                    inst.exec_cache = step
+                    step = _compile(instruction)
+                    instruction.exec_cache = step
                 traps.exception_occurred = False
                 stop: bool | None = step()
                 if stop is not None:
                     return stop
-                cpu.pc = (cpu.pc + 4) & M32
+                cpu.program_counter = (cpu.program_counter + 4) & M32
                 if display:
-                    instruction.print_inst(cpu.pc)
+                    instruction_module.print_instruction(cpu.program_counter)
                 if traps.exception_occurred:
                     syscall.handle_exception()
         return True
@@ -172,22 +184,22 @@ def run_spim(initial_pc: int, steps_to_run: int, display: bool) -> bool:
         _display = saved_display
 
 
-def _compile(inst: Instruction) -> Step:
+def _compile(instruction: Instruction) -> Step:
     """The step function of inst (decoded once, then cached on it).
 
     Raises:
         SystemExit: the opcode cannot be executed (the C engine's fatal
             "Unknown instruction type").
     """
-    factory: Callable[[Instruction], Step] | None = _FACTORIES.get(inst.opcode)
+    factory: Callable[[Instruction], Step] | None = _FACTORIES.get(instruction.opcode)
     if factory is None:
-        opcode: int = machine.s16(inst.opcode)
+        opcode: int = machine.s16(instruction.opcode)
 
         def unknown() -> None:
             raise console.fatal_error(f"Unknown instruction type: {opcode}\n")
 
         return unknown
-    return factory(inst)
+    return factory(instruction)
 
 
 _FACTORIES: dict[int, Callable[[Instruction], Step]] = {}
@@ -208,7 +220,7 @@ def _executes(
     return register
 
 
-def _raise(code: ExcCode) -> None:
+def _raise(code: ExceptionCode) -> None:
     """Raise a MIPS exception; the main loop handles it after this step."""
     traps.raise_exception(code)
 
@@ -220,9 +232,9 @@ def _jump(target: int) -> None:
     """Jump to target, first running the delay-slot instruction if delayed."""
     if options.delayed_branches:
         traps.running_in_delay_slot = True
-        run_spim((cpu.pc + 4) & M32, 1, _display)
+        run_spim((cpu.program_counter + 4) & M32, 1, _display)
         traps.running_in_delay_slot = False
-    cpu.pc = (target - 4) & M32  # the main loop adds 4
+    cpu.program_counter = (target - 4) & M32  # the main loop adds 4
 
 
 def _branch(taken: bool, offset: int, nullify: bool) -> None:
@@ -231,12 +243,12 @@ def _branch(taken: bool, offset: int, nullify: bool) -> None:
     A branch-likely (nullify) that is not taken skips its delay slot.
     """
     if taken:
-        target: int = cpu.pc + offset
+        target: int = cpu.program_counter + offset
         if options.delayed_branches:
             target += 4
         _jump(target)
     elif nullify:
-        cpu.pc = (cpu.pc + 4) & M32
+        cpu.program_counter = (cpu.program_counter + 4) & M32
     else:
         pass  # not taken and not nullified: the delay slot runs as the next instruction
 
@@ -250,11 +262,11 @@ def _load(registers: list[int], number: int, value: int) -> None:
         registers[number] = value
 
 
-def _coprocessor_unusable(inst: Instruction) -> Step:
+def _coprocessor_unusable(instruction: Instruction) -> Step:
     """Coprocessor 2 does not exist: raise CpU."""
 
     def step() -> None:
-        _raise(ExcCode.CPU)
+        _raise(ExceptionCode.COPROCESSOR_UNUSABLE)
 
     return step
 
@@ -268,11 +280,11 @@ for _token in (
     _FACTORIES[_token] = _coprocessor_unusable
 
 
-def _reserved(inst: Instruction) -> Step:
+def _reserved(instruction: Instruction) -> Step:
     """Not a MIPS32 instruction (rfe) or the TLB, which is not simulated: RI."""
 
     def step() -> None:
-        _raise(ExcCode.RI)
+        _raise(ExceptionCode.RESERVED_INSTRUCTION)
 
     return step
 
@@ -288,7 +300,7 @@ for _token in (
 
 
 @_executes(Tok.CACHE_OPCODE, Tok.PREF_OPCODE, Tok.SYNC_OPCODE)
-def _no_operation(inst: Instruction) -> Step:
+def _no_operation(instruction: Instruction) -> Step:
     """Cache and memory-ordering details are not simulated."""
 
     def step() -> None:
@@ -301,79 +313,125 @@ def _no_operation(inst: Instruction) -> Step:
 
 
 @_executes(Tok.ADD_OPCODE)
-def _add(inst: Instruction) -> Step:
+def _add(instruction: Instruction) -> Step:
     """add: rd = rs + rt, trapping on signed overflow."""
-    rd, rs, rt = inst.rd, inst.rs, inst.rt
+    destination_register, source_register, target_register = (
+        instruction.destination_register,
+        instruction.source_register,
+        instruction.target_register,
+    )
 
     def step() -> None:
-        total: int = gpr[rs] + gpr[rt]
+        total: int = (
+            general_purpose_registers[source_register]
+            + general_purpose_registers[target_register]
+        )
         if not -SIGN <= total < SIGN:
-            _raise(ExcCode.OV)
+            _raise(ExceptionCode.ARITHMETIC_OVERFLOW)
         else:
-            gpr[rd] = total
+            general_purpose_registers[destination_register] = total
 
     return step
 
 
 @_executes(Tok.ADDI_OPCODE)
-def _addi(inst: Instruction) -> Step:
+def _addi(instruction: Instruction) -> Step:
     """addi: rt = rs + imm, trapping on signed overflow."""
-    rt, rs, imm = inst.rt, inst.rs, inst.imm
+    target_register, source_register, immediate = (
+        instruction.target_register,
+        instruction.source_register,
+        instruction.immediate,
+    )
 
     def step() -> None:
-        total: int = gpr[rs] + imm
+        total: int = general_purpose_registers[source_register] + immediate
         if not -SIGN <= total < SIGN:
-            _raise(ExcCode.OV)
+            _raise(ExceptionCode.ARITHMETIC_OVERFLOW)
         else:
-            gpr[rt] = total
+            general_purpose_registers[target_register] = total
 
     return step
 
 
 @_executes(Tok.ADDIU_OPCODE)
-def _addiu(inst: Instruction) -> Step:
+def _addiu(instruction: Instruction) -> Step:
     """addiu: rt = rs + imm, wrapping (no trap, despite the "u")."""
-    rt, rs, imm = inst.rt, inst.rs, inst.imm
+    target_register, source_register, immediate = (
+        instruction.target_register,
+        instruction.source_register,
+        instruction.immediate,
+    )
 
     def step() -> None:
-        gpr[rt] = ((gpr[rs] + imm + SIGN) & M32) - SIGN
+        general_purpose_registers[target_register] = (
+            (general_purpose_registers[source_register] + immediate + SIGN) & M32
+        ) - SIGN
 
     return step
 
 
 @_executes(Tok.ADDU_OPCODE)
-def _addu(inst: Instruction) -> Step:
+def _addu(instruction: Instruction) -> Step:
     """addu: rd = rs + rt, wrapping."""
-    rd, rs, rt = inst.rd, inst.rs, inst.rt
+    destination_register, source_register, target_register = (
+        instruction.destination_register,
+        instruction.source_register,
+        instruction.target_register,
+    )
 
     def step() -> None:
-        gpr[rd] = ((gpr[rs] + gpr[rt] + SIGN) & M32) - SIGN
+        general_purpose_registers[destination_register] = (
+            (
+                general_purpose_registers[source_register]
+                + general_purpose_registers[target_register]
+                + SIGN
+            )
+            & M32
+        ) - SIGN
 
     return step
 
 
 @_executes(Tok.SUB_OPCODE)
-def _sub(inst: Instruction) -> Step:
+def _subtract(instruction: Instruction) -> Step:
     """sub: rd = rs - rt, trapping on signed overflow."""
-    rd, rs, rt = inst.rd, inst.rs, inst.rt
+    destination_register, source_register, target_register = (
+        instruction.destination_register,
+        instruction.source_register,
+        instruction.target_register,
+    )
 
     def step() -> None:
-        difference: int = gpr[rs] - gpr[rt]
+        difference: int = (
+            general_purpose_registers[source_register]
+            - general_purpose_registers[target_register]
+        )
         if not -SIGN <= difference < SIGN:
-            _raise(ExcCode.OV)
+            _raise(ExceptionCode.ARITHMETIC_OVERFLOW)
         else:
-            gpr[rd] = difference
+            general_purpose_registers[destination_register] = difference
 
     return step
 
 
 @_executes(Tok.SUBU_OPCODE)
-def _subu(inst: Instruction) -> Step:
+def _subu(instruction: Instruction) -> Step:
     """subu: rd = rs - rt, wrapping."""
-    rd, rs, rt = inst.rd, inst.rs, inst.rt
+    destination_register, source_register, target_register = (
+        instruction.destination_register,
+        instruction.source_register,
+        instruction.target_register,
+    )
 
     def step() -> None:
-        gpr[rd] = ((gpr[rs] - gpr[rt] + SIGN) & M32) - SIGN
+        general_purpose_registers[destination_register] = (
+            (
+                general_purpose_registers[source_register]
+                - general_purpose_registers[target_register]
+                + SIGN
+            )
+            & M32
+        ) - SIGN
 
     return step
 
@@ -381,11 +439,18 @@ def _subu(inst: Instruction) -> Step:
 def _logic(operation: Callable[[int, int], int]) -> Callable[[Instruction], Step]:
     """The factory of a three-register logical instruction."""
 
-    def factory(inst: Instruction) -> Step:
-        rd, rs, rt = inst.rd, inst.rs, inst.rt
+    def factory(instruction: Instruction) -> Step:
+        destination_register, source_register, target_register = (
+            instruction.destination_register,
+            instruction.source_register,
+            instruction.target_register,
+        )
 
         def step() -> None:
-            gpr[rd] = operation(gpr[rs], gpr[rt])
+            general_purpose_registers[destination_register] = operation(
+                general_purpose_registers[source_register],
+                general_purpose_registers[target_register],
+            )
 
         return step
 
@@ -401,25 +466,35 @@ _FACTORIES[Tok.SLTU_OPCODE] = _logic(lambda a, b: 1 if a & M32 < b & M32 else 0)
 
 
 @_executes(Tok.ANDI_OPCODE, Tok.ORI_OPCODE, Tok.XORI_OPCODE)
-def _logic_immediate(inst: Instruction) -> Step:
+def _logic_immediate(instruction: Instruction) -> Step:
     """andi/ori/xori: the immediate is zero-extended."""
-    rt, rs, imm = inst.rt, inst.rs, inst.imm & 0xFFFF
-    opcode: int = inst.opcode
+    target_register, source_register, immediate = (
+        instruction.target_register,
+        instruction.source_register,
+        instruction.immediate & 0xFFFF,
+    )
+    opcode: int = instruction.opcode
 
     if opcode == Tok.ANDI_OPCODE:
 
         def step() -> None:
-            gpr[rt] = gpr[rs] & imm
+            general_purpose_registers[target_register] = (
+                general_purpose_registers[source_register] & immediate
+            )
 
     elif opcode == Tok.ORI_OPCODE:
 
         def step() -> None:
-            gpr[rt] = gpr[rs] | imm
+            general_purpose_registers[target_register] = (
+                general_purpose_registers[source_register] | immediate
+            )
 
     elif opcode == Tok.XORI_OPCODE:
 
         def step() -> None:
-            gpr[rt] = gpr[rs] ^ imm
+            general_purpose_registers[target_register] = (
+                general_purpose_registers[source_register] ^ immediate
+            )
 
     else:
         raise AssertionError(
@@ -431,67 +506,97 @@ def _logic_immediate(inst: Instruction) -> Step:
 
 
 @_executes(Tok.SLTI_OPCODE)
-def _slti(inst: Instruction) -> Step:
+def _slti(instruction: Instruction) -> Step:
     """slti: rt = 1 if rs < imm (signed)."""
-    rt, rs, imm = inst.rt, inst.rs, inst.imm
+    target_register, source_register, immediate = (
+        instruction.target_register,
+        instruction.source_register,
+        instruction.immediate,
+    )
 
     def step() -> None:
-        gpr[rt] = 1 if gpr[rs] < imm else 0
+        general_purpose_registers[target_register] = (
+            1 if general_purpose_registers[source_register] < immediate else 0
+        )
 
     return step
 
 
 @_executes(Tok.SLTIU_OPCODE)
-def _sltiu(inst: Instruction) -> Step:
+def _sltiu(instruction: Instruction) -> Step:
     """sltiu: the immediate is sign-extended, then compared unsigned."""
-    rt, rs, imm = inst.rt, inst.rs, inst.imm & M32
+    target_register, source_register, immediate = (
+        instruction.target_register,
+        instruction.source_register,
+        instruction.immediate & M32,
+    )
 
     def step() -> None:
-        gpr[rt] = 1 if gpr[rs] & M32 < imm else 0
+        general_purpose_registers[target_register] = (
+            1 if general_purpose_registers[source_register] & M32 < immediate else 0
+        )
 
     return step
 
 
 @_executes(Tok.LUI_OPCODE)
-def _lui(inst: Instruction) -> Step:
+def _lui(instruction: Instruction) -> Step:
     """lui: rt = imm << 16."""
-    rt, value = inst.rt, machine.s32(inst.imm << 16)
+    target_register, value = (
+        instruction.target_register,
+        machine.s32(instruction.immediate << 16),
+    )
 
     def step() -> None:
-        gpr[rt] = value
+        general_purpose_registers[target_register] = value
 
     return step
 
 
 @_executes(Tok.CLO_OPCODE, Tok.CLZ_OPCODE)
-def _count_leading(inst: Instruction) -> Step:
+def _count_leading(instruction: Instruction) -> Step:
     """clo/clz: count the leading ones/zeros of rs."""
-    rd, rs = inst.rd, inst.rs
+    destination_register, source_register = (
+        instruction.destination_register,
+        instruction.source_register,
+    )
     count: Callable[[int], int] = (
-        machine.leading_ones if inst.opcode == Tok.CLO_OPCODE else machine.leading_zeros
+        machine.leading_ones
+        if instruction.opcode == Tok.CLO_OPCODE
+        else machine.leading_zeros
     )
 
     def step() -> None:
-        gpr[rd] = count(gpr[rs])
+        general_purpose_registers[destination_register] = count(
+            general_purpose_registers[source_register]
+        )
 
     return step
 
 
 @_executes(Tok.MOVN_OPCODE, Tok.MOVZ_OPCODE)
-def _move_conditional(inst: Instruction) -> Step:
+def _move_conditional(instruction: Instruction) -> Step:
     """movn/movz: rd = rs if rt is nonzero/zero."""
-    rd, rs, rt = inst.rd, inst.rs, inst.rt
-    if inst.opcode == Tok.MOVN_OPCODE:
+    destination_register, source_register, target_register = (
+        instruction.destination_register,
+        instruction.source_register,
+        instruction.target_register,
+    )
+    if instruction.opcode == Tok.MOVN_OPCODE:
 
         def step() -> None:
-            if gpr[rt] != 0:
-                gpr[rd] = gpr[rs]
+            if general_purpose_registers[target_register] != 0:
+                general_purpose_registers[destination_register] = (
+                    general_purpose_registers[source_register]
+                )
 
     else:
 
         def step() -> None:
-            if gpr[rt] == 0:
-                gpr[rd] = gpr[rs]
+            if general_purpose_registers[target_register] == 0:
+                general_purpose_registers[destination_register] = (
+                    general_purpose_registers[source_register]
+                )
 
     return step
 
@@ -500,52 +605,89 @@ def _move_conditional(inst: Instruction) -> Step:
 
 
 @_executes(Tok.SLL_OPCODE, Tok.SRL_OPCODE, Tok.SRA_OPCODE)
-def _shift(inst: Instruction) -> Step:
+def _shift(instruction: Instruction) -> Step:
     """sll/srl/sra by the constant shamt (srl is logical, sra arithmetic)."""
-    rd, rt, shamt = inst.rd, inst.rt, inst.shamt
-    opcode: int = inst.opcode
-    if shamt >= 32:  # cannot be encoded; the C engine copies rt
+    destination_register, target_register, shift_amount = (
+        instruction.destination_register,
+        instruction.target_register,
+        instruction.shift_amount,
+    )
+    opcode: int = instruction.opcode
+    if shift_amount >= 32:  # cannot be encoded; the C engine copies rt
 
         def step() -> None:
-            gpr[rd] = gpr[rt]
+            general_purpose_registers[destination_register] = general_purpose_registers[
+                target_register
+            ]
 
     elif opcode == Tok.SLL_OPCODE:
 
         def step() -> None:
-            gpr[rd] = (((gpr[rt] << shamt) + SIGN) & M32) - SIGN
+            general_purpose_registers[destination_register] = (
+                ((general_purpose_registers[target_register] << shift_amount) + SIGN)
+                & M32
+            ) - SIGN
 
     elif opcode == Tok.SRL_OPCODE:
 
         def step() -> None:
-            gpr[rd] = (((gpr[rt] & M32) >> shamt) + SIGN & M32) - SIGN
+            general_purpose_registers[destination_register] = (
+                ((general_purpose_registers[target_register] & M32) >> shift_amount)
+                + SIGN
+                & M32
+            ) - SIGN
 
     else:
 
         def step() -> None:
-            gpr[rd] = gpr[rt] >> shamt  # Python's >> is arithmetic
+            general_purpose_registers[destination_register] = (
+                general_purpose_registers[target_register] >> shift_amount
+            )  # Python's >> is arithmetic
 
     return step
 
 
 @_executes(Tok.SLLV_OPCODE, Tok.SRLV_OPCODE, Tok.SRAV_OPCODE)
-def _shift_variable(inst: Instruction) -> Step:
+def _shift_variable(instruction: Instruction) -> Step:
     """sllv/srlv/srav by the low 5 bits of rs."""
-    rd, rt, rs = inst.rd, inst.rt, inst.rs
-    opcode: int = inst.opcode
+    destination_register, target_register, source_register = (
+        instruction.destination_register,
+        instruction.target_register,
+        instruction.source_register,
+    )
+    opcode: int = instruction.opcode
     if opcode == Tok.SLLV_OPCODE:
 
         def step() -> None:
-            gpr[rd] = (((gpr[rt] << (gpr[rs] & 31)) + SIGN) & M32) - SIGN
+            general_purpose_registers[destination_register] = (
+                (
+                    (
+                        general_purpose_registers[target_register]
+                        << (general_purpose_registers[source_register] & 31)
+                    )
+                    + SIGN
+                )
+                & M32
+            ) - SIGN
 
     elif opcode == Tok.SRLV_OPCODE:
 
         def step() -> None:
-            gpr[rd] = (((gpr[rt] & M32) >> (gpr[rs] & 31)) + SIGN & M32) - SIGN
+            general_purpose_registers[destination_register] = (
+                (
+                    (general_purpose_registers[target_register] & M32)
+                    >> (general_purpose_registers[source_register] & 31)
+                )
+                + SIGN
+                & M32
+            ) - SIGN
 
     else:
 
         def step() -> None:
-            gpr[rd] = gpr[rt] >> (gpr[rs] & 31)
+            general_purpose_registers[destination_register] = general_purpose_registers[
+                target_register
+            ] >> (general_purpose_registers[source_register] & 31)
 
     return step
 
@@ -553,116 +695,148 @@ def _shift_variable(inst: Instruction) -> Step:
 # --- multiply and divide ----------------------------------------------------------------
 
 
-def _set_hi_lo(product: int) -> None:
+def _set_multiply_divide(product: int) -> None:
     """Split a 64-bit product (any sign) into HI and LO."""
-    cpu.lo = _wrap(product)
-    cpu.hi = _wrap(product >> 32)
+    cpu.multiply_divide_low = _wrap(product)
+    cpu.multiply_divide_high = _wrap(product >> 32)
 
 
 @_executes(Tok.MULT_OPCODE, Tok.MULTU_OPCODE, Tok.MUL_OPCODE)
-def _multiply(inst: Instruction) -> Step:
+def _multiply(instruction: Instruction) -> Step:
     """mult/multu: HI:LO = rs * rt; mul also puts LO in rd (and clobbers HI)."""
-    rd, rs, rt = inst.rd, inst.rs, inst.rt
-    opcode: int = inst.opcode
+    destination_register, source_register, target_register = (
+        instruction.destination_register,
+        instruction.source_register,
+        instruction.target_register,
+    )
+    opcode: int = instruction.opcode
     if opcode == Tok.MULTU_OPCODE:
 
         def step() -> None:
-            _set_hi_lo((gpr[rs] & M32) * (gpr[rt] & M32))
+            _set_multiply_divide(
+                (general_purpose_registers[source_register] & M32)
+                * (general_purpose_registers[target_register] & M32)
+            )
 
     elif opcode == Tok.MULT_OPCODE:
 
         def step() -> None:
-            _set_hi_lo(gpr[rs] * gpr[rt])
+            _set_multiply_divide(
+                general_purpose_registers[source_register]
+                * general_purpose_registers[target_register]
+            )
 
     else:
 
         def step() -> None:
-            _set_hi_lo(gpr[rs] * gpr[rt])
-            gpr[rd] = cpu.lo
+            _set_multiply_divide(
+                general_purpose_registers[source_register]
+                * general_purpose_registers[target_register]
+            )
+            general_purpose_registers[destination_register] = cpu.multiply_divide_low
 
     return step
 
 
 @_executes(Tok.MADD_OPCODE, Tok.MADDU_OPCODE, Tok.MSUB_OPCODE, Tok.MSUBU_OPCODE)
-def _multiply_accumulate(inst: Instruction) -> Step:
+def _multiply_accumulate(instruction: Instruction) -> Step:
     """madd/msub(u): HI:LO += or -= rs * rt, as 64-bit arithmetic."""
-    rs, rt = inst.rs, inst.rt
-    opcode: int = inst.opcode
+    source_register, target_register = (
+        instruction.source_register,
+        instruction.target_register,
+    )
+    opcode: int = instruction.opcode
     is_unsigned: bool = opcode in (Tok.MADDU_OPCODE, Tok.MSUBU_OPCODE)
     sign: int = 1 if opcode in (Tok.MADD_OPCODE, Tok.MADDU_OPCODE) else -1
 
     def step() -> None:
-        a: int = gpr[rs] & M32 if is_unsigned else gpr[rs]
-        b: int = gpr[rt] & M32 if is_unsigned else gpr[rt]
-        accumulator: int = ((cpu.hi & M32) << 32) | (cpu.lo & M32)
-        _set_hi_lo(accumulator + sign * a * b)
+        a: int = (
+            general_purpose_registers[source_register] & M32
+            if is_unsigned
+            else general_purpose_registers[source_register]
+        )
+        b: int = (
+            general_purpose_registers[target_register] & M32
+            if is_unsigned
+            else general_purpose_registers[target_register]
+        )
+        accumulator: int = ((cpu.multiply_divide_high & M32) << 32) | (
+            cpu.multiply_divide_low & M32
+        )
+        _set_multiply_divide(accumulator + sign * a * b)
 
     return step
 
 
 @_executes(Tok.DIV_OPCODE)
-def _div(inst: Instruction) -> Step:
+def _divide(instruction: Instruction) -> Step:
     """div: LO = rs / rt, HI = rs % rt, truncating toward zero.
 
     Dividing by zero or INT_MIN by -1 leaves HI and LO unchanged.
     """
-    rs, rt = inst.rs, inst.rt
+    source_register, target_register = (
+        instruction.source_register,
+        instruction.target_register,
+    )
 
     def step() -> None:
-        divisor: int = gpr[rt]
-        dividend: int = gpr[rs]
+        divisor: int = general_purpose_registers[target_register]
+        dividend: int = general_purpose_registers[source_register]
         if divisor != 0 and not (dividend == -SIGN and divisor == -1):
-            cpu.lo = machine.c_div(dividend, divisor)
-            cpu.hi = machine.c_rem(dividend, divisor)
+            cpu.multiply_divide_low = machine.c_divide(dividend, divisor)
+            cpu.multiply_divide_high = machine.c_rem(dividend, divisor)
 
     return step
 
 
 @_executes(Tok.DIVU_OPCODE)
-def _divu(inst: Instruction) -> Step:
+def _divu(instruction: Instruction) -> Step:
     """divu: unsigned division; by zero leaves HI and LO unchanged."""
-    rs, rt = inst.rs, inst.rt
+    source_register, target_register = (
+        instruction.source_register,
+        instruction.target_register,
+    )
 
     def step() -> None:
-        divisor: int = gpr[rt] & M32
+        divisor: int = general_purpose_registers[target_register] & M32
         if divisor != 0:
-            dividend: int = gpr[rs] & M32
-            cpu.lo = _wrap(dividend // divisor)
-            cpu.hi = _wrap(dividend % divisor)
+            dividend: int = general_purpose_registers[source_register] & M32
+            cpu.multiply_divide_low = _wrap(dividend // divisor)
+            cpu.multiply_divide_high = _wrap(dividend % divisor)
 
     return step
 
 
 @_executes(Tok.MFHI_OPCODE, Tok.MFLO_OPCODE)
-def _move_from_hi_lo(inst: Instruction) -> Step:
+def _move_from_multiply_divide(instruction: Instruction) -> Step:
     """mfhi/mflo: rd = HI or LO."""
-    rd: int = inst.rd
-    if inst.opcode == Tok.MFHI_OPCODE:
+    destination_register: int = instruction.destination_register
+    if instruction.opcode == Tok.MFHI_OPCODE:
 
         def step() -> None:
-            gpr[rd] = cpu.hi
+            general_purpose_registers[destination_register] = cpu.multiply_divide_high
 
     else:
 
         def step() -> None:
-            gpr[rd] = cpu.lo
+            general_purpose_registers[destination_register] = cpu.multiply_divide_low
 
     return step
 
 
 @_executes(Tok.MTHI_OPCODE, Tok.MTLO_OPCODE)
-def _move_to_hi_lo(inst: Instruction) -> Step:
+def _move_to_multiply_divide(instruction: Instruction) -> Step:
     """mthi/mtlo: HI or LO = rs."""
-    rs: int = inst.rs
-    if inst.opcode == Tok.MTHI_OPCODE:
+    source_register: int = instruction.source_register
+    if instruction.opcode == Tok.MTHI_OPCODE:
 
         def step() -> None:
-            cpu.hi = gpr[rs]
+            cpu.multiply_divide_high = general_purpose_registers[source_register]
 
     else:
 
         def step() -> None:
-            cpu.lo = gpr[rs]
+            cpu.multiply_divide_low = general_purpose_registers[source_register]
 
     return step
 
@@ -670,26 +844,40 @@ def _move_to_hi_lo(inst: Instruction) -> Step:
 # --- branches and jumps -----------------------------------------------------------------
 
 
-def _branch_offset(inst: Instruction) -> int:
+def _branch_offset(instruction: Instruction) -> int:
     """The branch's displacement in bytes (the 16-bit field times 4)."""
-    return inst.imm << 2
+    return instruction.immediate << 2
 
 
 @_executes(Tok.BEQ_OPCODE, Tok.BEQL_OPCODE, Tok.BNE_OPCODE, Tok.BNEL_OPCODE)
-def _branch_compare(inst: Instruction) -> Step:
+def _branch_compare(instruction: Instruction) -> Step:
     """beq/bne (and their branch-likely forms): compare rs with rt."""
-    rs, rt, offset = inst.rs, inst.rt, _branch_offset(inst)
-    opcode: int = inst.opcode
+    source_register, target_register, offset = (
+        instruction.source_register,
+        instruction.target_register,
+        _branch_offset(instruction),
+    )
+    opcode: int = instruction.opcode
     nullify: bool = opcode in (Tok.BEQL_OPCODE, Tok.BNEL_OPCODE)
     if opcode in (Tok.BEQ_OPCODE, Tok.BEQL_OPCODE):
 
         def step() -> None:
-            _branch(gpr[rs] == gpr[rt], offset, nullify)
+            _branch(
+                general_purpose_registers[source_register]
+                == general_purpose_registers[target_register],
+                offset,
+                nullify,
+            )
 
     else:
 
         def step() -> None:
-            _branch(gpr[rs] != gpr[rt], offset, nullify)
+            _branch(
+                general_purpose_registers[source_register]
+                != general_purpose_registers[target_register],
+                offset,
+                nullify,
+            )
 
     return step
 
@@ -749,44 +937,56 @@ _LINKING_SIGN_BRANCHES: frozenset[int] = frozenset(
     Tok.BLTZAL_OPCODE,
     Tok.BLTZALL_OPCODE,
 )
-def _branch_sign(inst: Instruction) -> Step:
+def _branch_sign(instruction: Instruction) -> Step:
     """The branches on the sign of rs; the -AL forms link $ra first."""
-    rs, offset = inst.rs, _branch_offset(inst)
-    link: bool = inst.opcode in _LINKING_SIGN_BRANCHES
-    nullify: bool = instruction.opcode_is_nullified_branch(inst.opcode)
-    test: Callable[[int], bool] = _SIGN_TESTS[inst.opcode]
+    source_register, offset = instruction.source_register, _branch_offset(instruction)
+    link: bool = instruction.opcode in _LINKING_SIGN_BRANCHES
+    nullify: bool = instruction_module.opcode_is_nullified_branch(instruction.opcode)
+    test: Callable[[int], bool] = _SIGN_TESTS[instruction.opcode]
 
     def step() -> None:
         if link:
             # Set before the test, so `bgezal $ra, ...` tests the new $ra.
-            gpr[31] = _wrap(cpu.pc + (8 if options.delayed_branches else 4))
-        _branch(test(gpr[rs]), offset, nullify)
+            general_purpose_registers[31] = _wrap(
+                cpu.program_counter + (8 if options.delayed_branches else 4)
+            )
+        _branch(test(general_purpose_registers[source_register]), offset, nullify)
 
     return step
 
 
 @_executes(Tok.BC1F_OPCODE, Tok.BC1FL_OPCODE, Tok.BC1T_OPCODE, Tok.BC1TL_OPCODE)
-def _branch_fp_condition(inst: Instruction) -> Step:
+def _branch_floating_point_condition(instruction: Instruction) -> Step:
     """bc1f/bc1t: branch on FP condition code cc (rt holds cc, nd, tf)."""
-    offset: int = _branch_offset(inst)
-    cc, nullify, on_true = inst.rt >> 2, bool((inst.rt >> 1) & 1), inst.rt & 1
+    offset: int = _branch_offset(instruction)
+    condition_code, nullify, on_true = (
+        instruction.target_register >> 2,
+        bool((instruction.target_register >> 1) & 1),
+        instruction.target_register & 1,
+    )
 
     def step() -> None:
-        _branch(regs.fcc(cc) == on_true, offset, nullify)
+        _branch(
+            regs.floating_point_condition_code(condition_code) == on_true,
+            offset,
+            nullify,
+        )
 
     return step
 
 
 @_executes(Tok.J_OPCODE, Tok.JAL_OPCODE)
-def _jump_absolute(inst: Instruction) -> Step:
+def _jump_absolute(instruction: Instruction) -> Step:
     """j/jal: jump within the current 256 MB region; jal links $ra."""
-    target: int = (inst.target << 2) & M32
-    link: bool = inst.opcode == Tok.JAL_OPCODE
+    target: int = (instruction.target << 2) & M32
+    link: bool = instruction.opcode == Tok.JAL_OPCODE
 
     def step() -> None:
         if link:
-            gpr[31] = _wrap(cpu.pc + (8 if options.delayed_branches else 4))
-        _jump((cpu.pc & 0xF0000000) | target)
+            general_purpose_registers[31] = _wrap(
+                cpu.program_counter + (8 if options.delayed_branches else 4)
+            )
+        _jump((cpu.program_counter & 0xF0000000) | target)
 
     return step
 
@@ -794,37 +994,44 @@ def _jump_absolute(inst: Instruction) -> Step:
 # The hazard-barrier forms (.hb) run as the plain ones: the simulator has no pipeline
 # hazards for a barrier to clear.
 @_executes(Tok.JR_OPCODE, Tok.JR_HB_OPCODE)
-def _jr(inst: Instruction) -> Step:
+def _jr(instruction: Instruction) -> Step:
     """jr: jump to the address in rs."""
-    rs: int = inst.rs
+    source_register: int = instruction.source_register
 
     def step() -> None:
-        _jump(gpr[rs] & M32)
+        _jump(general_purpose_registers[source_register] & M32)
 
     return step
 
 
 @_executes(Tok.JALR_OPCODE, Tok.JALR_HB_OPCODE)
-def _jalr(inst: Instruction) -> Step:
+def _jalr(instruction: Instruction) -> Step:
     """jalr: rd = return address, jump to rs (read before rd is written)."""
-    rd, rs = inst.rd, inst.rs
+    destination_register, source_register = (
+        instruction.destination_register,
+        instruction.source_register,
+    )
 
     def step() -> None:
-        target: int = gpr[rs] & M32
-        gpr[rd] = _wrap(cpu.pc + (8 if options.delayed_branches else 4))
+        target: int = general_purpose_registers[source_register] & M32
+        general_purpose_registers[destination_register] = _wrap(
+            cpu.program_counter + (8 if options.delayed_branches else 4)
+        )
         _jump(target)
 
     return step
 
 
 @_executes(Tok.ERET_OPCODE)
-def _eret(inst: Instruction) -> Step:
+def _eret(instruction: Instruction) -> Step:
     """eret: clear EXL and return to EPC (with a delay slot if delayed)."""
 
     def step() -> None:
-        cp0: list[int] = cpu.cpr[0]
-        cp0[regs.CP0_STATUS] = _wrap(cp0[regs.CP0_STATUS] & ~regs.STATUS_EXL)
-        _jump(cp0[regs.CP0_EPC] & M32)
+        coprocessor_0: list[int] = cpu.coprocessor_registers[0]
+        coprocessor_0[regs.COPROCESSOR_0_STATUS] = _wrap(
+            coprocessor_0[regs.COPROCESSOR_0_STATUS] & ~regs.STATUS_EXCEPTION_LEVEL
+        )
+        _jump(coprocessor_0[regs.COPROCESSOR_0_EXCEPTION_PROGRAM_COUNTER] & M32)
 
     return step
 
@@ -840,10 +1047,14 @@ def _eret(inst: Instruction) -> Step:
     Tok.LW_OPCODE,
     Tok.LL_OPCODE,
 )
-def _load_integer(inst: Instruction) -> Step:
+def _load_integer(instruction: Instruction) -> Step:
     """The loads; a faulting load still writes 0 to rt."""
-    rt, base, offset = inst.rt, inst.rs, inst.imm
-    opcode: int = inst.opcode
+    target_register, base, offset = (
+        instruction.target_register,
+        instruction.source_register,
+        instruction.immediate,
+    )
+    opcode: int = instruction.opcode
     read: Callable[[int], int]
     mask: int = -1
     if opcode in (Tok.LB_OPCODE, Tok.LBU_OPCODE):
@@ -856,40 +1067,52 @@ def _load_integer(inst: Instruction) -> Step:
         read = memory.read_word
 
     def step() -> None:
-        _load(gpr, rt, read((gpr[base] + offset) & M32) & mask)
+        _load(
+            general_purpose_registers,
+            target_register,
+            read((general_purpose_registers[base] + offset) & M32) & mask,
+        )
 
     return step
 
 
 @_executes(Tok.LWL_OPCODE, Tok.LWR_OPCODE)
-def _load_unaligned(inst: Instruction) -> Step:
+def _load_unaligned(instruction: Instruction) -> Step:
     """lwl/lwr: merge part of an aligned word into rt (little-endian)."""
-    rt, base, offset = inst.rt, inst.rs, inst.imm
-    is_left: bool = inst.opcode == Tok.LWL_OPCODE
+    target_register, base, offset = (
+        instruction.target_register,
+        instruction.source_register,
+        instruction.immediate,
+    )
+    is_left: bool = instruction.opcode == Tok.LWL_OPCODE
 
     def step() -> None:
-        addr: int = (gpr[base] + offset) & M32
-        byte: int = addr & 3
-        reg: int = gpr[rt] & M32
-        word: int = memory.read_word(addr & 0xFFFFFFFC) & M32
+        address: int = (general_purpose_registers[base] + offset) & M32
+        byte: int = address & 3
+        register_number: int = general_purpose_registers[target_register] & M32
+        word: int = memory.read_word(address & 0xFFFFFFFC) & M32
         if not traps.exception_occurred:
             if is_left:
                 keep: int = 8 * (3 - byte)  # bits of rt that survive
-                word = ((word << keep) & M32) | (reg & ((1 << keep) - 1))
+                word = ((word << keep) & M32) | (register_number & ((1 << keep) - 1))
             else:
                 drop: int = 8 * byte
-                word = (reg & ~(M32 >> drop) & M32) | (word >> drop)
-        _load(gpr, rt, _wrap(word))
+                word = (register_number & ~(M32 >> drop) & M32) | (word >> drop)
+        _load(general_purpose_registers, target_register, _wrap(word))
 
     return step
 
 
 @_executes(Tok.SB_OPCODE, Tok.SH_OPCODE, Tok.SW_OPCODE, Tok.SC_OPCODE)
-def _store_integer(inst: Instruction) -> Step:
+def _store_integer(instruction: Instruction) -> Step:
     """The stores (sc is a plain store: one processor, so it always succeeds)."""
-    rt, base, offset = inst.rt, inst.rs, inst.imm
+    target_register, base, offset = (
+        instruction.target_register,
+        instruction.source_register,
+        instruction.immediate,
+    )
     write: Callable[[int, int], None]
-    match inst.opcode:
+    match instruction.opcode:
         case Tok.SB_OPCODE:
             write = memory.write_byte
         case Tok.SH_OPCODE:
@@ -898,34 +1121,41 @@ def _store_integer(inst: Instruction) -> Step:
             write = memory.write_word
         case _:
             raise AssertionError(
-                f"_store_integer: opcode {inst.opcode} is not a store; only they are"
+                f"_store_integer: opcode {instruction.opcode} is not a store; only they are"
                 " registered"
             )
 
     def step() -> None:
-        write((gpr[base] + offset) & M32, gpr[rt])
+        write(
+            (general_purpose_registers[base] + offset) & M32,
+            general_purpose_registers[target_register],
+        )
 
     return step
 
 
 @_executes(Tok.SWL_OPCODE, Tok.SWR_OPCODE)
-def _store_unaligned(inst: Instruction) -> Step:
+def _store_unaligned(instruction: Instruction) -> Step:
     """swl/swr: store part of rt into an aligned word (little-endian)."""
-    rt, base, offset = inst.rt, inst.rs, inst.imm
-    is_left: bool = inst.opcode == Tok.SWL_OPCODE
+    target_register, base, offset = (
+        instruction.target_register,
+        instruction.source_register,
+        instruction.immediate,
+    )
+    is_left: bool = instruction.opcode == Tok.SWL_OPCODE
 
     def step() -> None:
-        addr: int = (gpr[base] + offset) & M32
-        byte: int = addr & 3
-        reg: int = gpr[rt] & M32
-        aligned: int = addr & 0xFFFFFFFC
+        address: int = (general_purpose_registers[base] + offset) & M32
+        byte: int = address & 3
+        register_number: int = general_purpose_registers[target_register] & M32
+        aligned: int = address & 0xFFFFFFFC
         data: int = memory.read_word(aligned) & M32
         if is_left:
             shift: int = 8 * (3 - byte)
-            data = (data & ~(M32 >> shift) & M32) | (reg >> shift)
+            data = (data & ~(M32 >> shift) & M32) | (register_number >> shift)
         else:
             shift = 8 * byte
-            data = ((reg << shift) & M32) | (data & ((1 << shift) - 1))
+            data = ((register_number << shift) & M32) | (data & ((1 << shift) - 1))
         memory.write_word(aligned, _wrap(data))
 
     return step
@@ -956,14 +1186,20 @@ for _register_form, _immediate_form, _trap_test in (
     Tok.TGEU_OPCODE,
     Tok.TLTU_OPCODE,
 )
-def _trap_register(inst: Instruction) -> Step:
+def _trap_register(instruction: Instruction) -> Step:
     """Trap if the comparison of rs with rt holds."""
-    rs, rt = inst.rs, inst.rt
-    test: Callable[[int, int], bool] = _TRAP_TESTS[inst.opcode]
+    source_register, target_register = (
+        instruction.source_register,
+        instruction.target_register,
+    )
+    test: Callable[[int, int], bool] = _TRAP_TESTS[instruction.opcode]
 
     def step() -> None:
-        if test(gpr[rs], gpr[rt]):
-            _raise(ExcCode.TR)
+        if test(
+            general_purpose_registers[source_register],
+            general_purpose_registers[target_register],
+        ):
+            _raise(ExceptionCode.TRAP)
 
     return step
 
@@ -976,32 +1212,32 @@ def _trap_register(inst: Instruction) -> Step:
     Tok.TGEIU_OPCODE,
     Tok.TLTIU_OPCODE,
 )
-def _trap_immediate(inst: Instruction) -> Step:
+def _trap_immediate(instruction: Instruction) -> Step:
     """Trap if the comparison of rs with the sign-extended immediate holds."""
-    rs, imm = inst.rs, inst.imm
-    test: Callable[[int, int], bool] = _TRAP_TESTS[inst.opcode]
+    source_register, immediate = instruction.source_register, instruction.immediate
+    test: Callable[[int, int], bool] = _TRAP_TESTS[instruction.opcode]
 
     def step() -> None:
-        if test(gpr[rs], imm):
-            _raise(ExcCode.TR)
+        if test(general_purpose_registers[source_register], immediate):
+            _raise(ExceptionCode.TRAP)
 
     return step
 
 
 @_executes(Tok.BREAK_OPCODE)
-def _break(inst: Instruction) -> Step:
+def _break(instruction: Instruction) -> Step:
     """break: a Bp exception; ``break 1`` is a debugger breakpoint (stop)."""
-    is_debugger: bool = inst.rd == 1
+    is_debugger: bool = instruction.destination_register == 1
 
     def step() -> bool | None:
-        _raise(ExcCode.BP)
+        _raise(ExceptionCode.BREAKPOINT)
         return True if is_debugger else None
 
     return step
 
 
 @_executes(Tok.SYSCALL_OPCODE)
-def _syscall(inst: Instruction) -> Step:
+def _syscall(instruction: Instruction) -> Step:
     """syscall: the service number is in $v0 (syscall.py)."""
 
     def step() -> bool | None:
@@ -1014,37 +1250,48 @@ def _syscall(inst: Instruction) -> Step:
 
 
 @_executes(Tok.MFC0_OPCODE)
-def _mfc0(inst: Instruction) -> Step:
+def _mfc0(instruction: Instruction) -> Step:
     """mfc0: rt = a CP0 register (its number is in the rd byte)."""
-    rt, number = inst.rt, inst.rd
+    target_register, number = (
+        instruction.target_register,
+        instruction.destination_register,
+    )
 
     def step() -> None:
-        gpr[rt] = cpu.cpr[0][number]
+        general_purpose_registers[target_register] = cpu.coprocessor_registers[0][
+            number
+        ]
 
     return step
 
 
 @_executes(Tok.MTC0_OPCODE)
-def _mtc0(inst: Instruction) -> Step:
+def _mtc0(instruction: Instruction) -> Step:
     """mtc0: a CP0 register = rt, keeping only its writable bits."""
-    rt, number = inst.rt, inst.rd
+    target_register, number = (
+        instruction.target_register,
+        instruction.destination_register,
+    )
 
     def step() -> None:
-        cp0: list[int] = cpu.cpr[0]
-        cp0[number] = gpr[rt]
+        coprocessor_0: list[int] = cpu.coprocessor_registers[0]
+        coprocessor_0[number] = general_purpose_registers[target_register]
         match number:
-            case regs.CP0_COMPARE:
-                cp0[regs.CP0_CAUSE] = _wrap(cp0[regs.CP0_CAUSE] & ~regs.CAUSE_IP7)
-            case regs.CP0_STATUS:
-                cp0[number] = _wrap(
-                    (cp0[number] & regs.STATUS_MASK)
-                    | (regs.STATUS_CU & 0x30000000)
-                    | regs.STATUS_UM
+            case regs.COPROCESSOR_0_COMPARE:
+                coprocessor_0[regs.COPROCESSOR_0_CAUSE] = _wrap(
+                    coprocessor_0[regs.COPROCESSOR_0_CAUSE]
+                    & ~regs.CAUSE_INTERRUPT_PENDING_7
                 )
-            case regs.CP0_CAUSE:
-                cp0[number] = _wrap(cp0[number] & regs.CAUSE_MASK)
-            case regs.CP0_CONFIG:
-                cp0[number] = _wrap(cp0[number] & regs.CONFIG_MASK)
+            case regs.COPROCESSOR_0_STATUS:
+                coprocessor_0[number] = _wrap(
+                    (coprocessor_0[number] & regs.STATUS_MASK)
+                    | (regs.STATUS_COPROCESSOR_USABLE & 0x30000000)
+                    | regs.STATUS_USER_MODE
+                )
+            case regs.COPROCESSOR_0_CAUSE:
+                coprocessor_0[number] = _wrap(coprocessor_0[number] & regs.CAUSE_MASK)
+            case regs.COPROCESSOR_0_CONFIG:
+                coprocessor_0[number] = _wrap(coprocessor_0[number] & regs.CONFIG_MASK)
             case _:
                 pass  # other CP0 registers keep the whole value written
 
@@ -1052,18 +1299,25 @@ def _mtc0(inst: Instruction) -> Step:
 
 
 @_executes(Tok.CFC0_OPCODE, Tok.CTC0_OPCODE)
-def _coprocessor0_control(inst: Instruction) -> Step:
+def _coprocessor0_control(instruction: Instruction) -> Step:
     """cfc0/ctc0: move from/to a CP0 control register."""
-    rt, number = inst.rt, inst.rd
-    if inst.opcode == Tok.CFC0_OPCODE:
+    target_register, number = (
+        instruction.target_register,
+        instruction.destination_register,
+    )
+    if instruction.opcode == Tok.CFC0_OPCODE:
 
         def step() -> None:
-            gpr[rt] = cpu.ccr[0][number]
+            general_purpose_registers[target_register] = (
+                cpu.coprocessor_control_registers[0][number]
+            )
 
     else:
 
         def step() -> None:
-            cpu.ccr[0][number] = gpr[rt]
+            cpu.coprocessor_control_registers[0][number] = general_purpose_registers[
+                target_register
+            ]
 
     return step
 
@@ -1071,71 +1325,100 @@ def _coprocessor0_control(inst: Instruction) -> Step:
 # --- the floating-point unit ---------------------------------------------------------------
 
 
-def _fp_binary(
+def _floating_point_binary(
     operation: Callable[[float, float], float], double: bool
 ) -> Callable[[Instruction], Step]:
     """The factory of add/sub/mul/div.s or .d: fd = fs op ft."""
 
-    def factory(inst: Instruction) -> Step:
-        fd, fs, ft = inst.shamt, inst.rd, inst.rt
+    def factory(instruction: Instruction) -> Step:
+        floating_point_destination, floating_point_source, floating_point_target = (
+            instruction.shift_amount,
+            instruction.destination_register,
+            instruction.target_register,
+        )
         if double:
 
             def step() -> None:
-                if fd & 1:
+                if floating_point_destination & 1:
                     raise console.run_error("Odd FP double register number\n")
-                regs.set_fpr_d(fd, operation(regs.fpr_d(fs), regs.fpr_d(ft)))
+                regs.set_floating_point_register_double(
+                    floating_point_destination,
+                    operation(
+                        regs.floating_point_register_double(floating_point_source),
+                        regs.floating_point_register_double(floating_point_target),
+                    ),
+                )
 
         else:
 
             def step() -> None:
-                regs.set_fpr_s(fd, operation(regs.fpr_s(fs), regs.fpr_s(ft)))
+                regs.set_floating_point_register_single(
+                    floating_point_destination,
+                    operation(
+                        regs.floating_point_register_single(floating_point_source),
+                        regs.floating_point_register_single(floating_point_target),
+                    ),
+                )
 
         return step
 
     return factory
 
 
-for _add_token, _sub_token, _mul_token, _div_token, _double in (
+for _add_token, _subtract_token, _multiply_token, _divide_token, _double in (
     (Tok.ADD_S_OPCODE, Tok.SUB_S_OPCODE, Tok.MUL_S_OPCODE, Tok.DIV_S_OPCODE, False),
     (Tok.ADD_D_OPCODE, Tok.SUB_D_OPCODE, Tok.MUL_D_OPCODE, Tok.DIV_D_OPCODE, True),
 ):
-    _FACTORIES[_add_token] = _fp_binary(lambda a, b: a + b, _double)
-    _FACTORIES[_sub_token] = _fp_binary(lambda a, b: a - b, _double)
-    _FACTORIES[_mul_token] = _fp_binary(lambda a, b: a * b, _double)
-    _FACTORIES[_div_token] = _fp_binary(machine.f_div, _double)
+    _FACTORIES[_add_token] = _floating_point_binary(lambda a, b: a + b, _double)
+    _FACTORIES[_subtract_token] = _floating_point_binary(lambda a, b: a - b, _double)
+    _FACTORIES[_multiply_token] = _floating_point_binary(lambda a, b: a * b, _double)
+    _FACTORIES[_divide_token] = _floating_point_binary(machine.f_divide, _double)
 
 
-def _fp_unary(
+def _floating_point_unary(
     operation: Callable[[float], float], double: bool
 ) -> Callable[[Instruction], Step]:
     """The factory of abs/neg/sqrt.s or .d: fd = op(fs)."""
 
-    def factory(inst: Instruction) -> Step:
-        fd, fs = inst.shamt, inst.rd
+    def factory(instruction: Instruction) -> Step:
+        floating_point_destination, floating_point_source = (
+            instruction.shift_amount,
+            instruction.destination_register,
+        )
         if double:
 
             def step() -> None:
-                if fd & 1:
+                if floating_point_destination & 1:
                     raise console.run_error("Odd FP double register number\n")
-                regs.set_fpr_d(fd, operation(regs.fpr_d(fs)))
+                regs.set_floating_point_register_double(
+                    floating_point_destination,
+                    operation(
+                        regs.floating_point_register_double(floating_point_source)
+                    ),
+                )
 
         else:
 
             def step() -> None:
-                regs.set_fpr_s(fd, operation(regs.fpr_s(fs)))
+                regs.set_floating_point_register_single(
+                    floating_point_destination,
+                    operation(
+                        regs.floating_point_register_single(floating_point_source)
+                    ),
+                )
 
         return step
 
     return factory
 
 
-for _abs_token, _neg_token, _sqrt_token, _double in (
+for _absolute_token, _neg_token, _sqrt_token, _double in (
     (Tok.ABS_S_OPCODE, Tok.NEG_S_OPCODE, Tok.SQRT_S_OPCODE, False),
     (Tok.ABS_D_OPCODE, Tok.NEG_D_OPCODE, Tok.SQRT_D_OPCODE, True),
 ):
-    _FACTORIES[_abs_token] = _fp_unary(math.fabs, _double)
-    _FACTORIES[_neg_token] = _fp_unary(lambda x: -x, _double)
-    _FACTORIES[_sqrt_token] = _fp_unary(machine.f_sqrt, _double)
+    _FACTORIES[_absolute_token] = _floating_point_unary(math.fabs, _double)
+    _FACTORIES[_neg_token] = _floating_point_unary(lambda x: -x, _double)
+    _FACTORIES[_sqrt_token] = _floating_point_unary(machine.f_sqrt, _double)
 
 
 def _rounded(rounding: Callable[[float], float]) -> Callable[[float], float]:
@@ -1155,8 +1438,8 @@ for _double_form, _single_form, _to_word_adjust in (
     (Tok.TRUNC_W_D_OPCODE, Tok.TRUNC_W_S_OPCODE, lambda x: x),
     (Tok.CVT_W_D_OPCODE, Tok.CVT_W_S_OPCODE, lambda x: x),
 ):
-    _TO_WORD[_double_form] = (_to_word_adjust, regs.fpr_d)
-    _TO_WORD[_single_form] = (_to_word_adjust, regs.fpr_s)
+    _TO_WORD[_double_form] = (_to_word_adjust, regs.floating_point_register_double)
+    _TO_WORD[_single_form] = (_to_word_adjust, regs.floating_point_register_single)
 
 
 @_executes(
@@ -1171,15 +1454,20 @@ for _double_form, _single_form, _to_word_adjust in (
     Tok.CVT_W_D_OPCODE,
     Tok.CVT_W_S_OPCODE,
 )
-def _fp_to_word(inst: Instruction) -> Step:
+def _floating_point_to_word(instruction: Instruction) -> Step:
     """Convert fs to a 32-bit integer in fd (x86's INT_MIN when out of range)."""
-    fd, fs = inst.shamt, inst.rd
+    floating_point_destination, floating_point_source = (
+        instruction.shift_amount,
+        instruction.destination_register,
+    )
     adjust: Callable[[float], float]
     read: Callable[[int], float]
-    adjust, read = _TO_WORD[inst.opcode]
+    adjust, read = _TO_WORD[instruction.opcode]
 
     def step() -> None:
-        fpr[fd] = machine.to_s32(adjust(read(fs)))
+        floating_point_register[floating_point_destination] = machine.to_s32(
+            adjust(read(floating_point_source))
+        )
 
     return step
 
@@ -1187,27 +1475,42 @@ def _fp_to_word(inst: Instruction) -> Step:
 @_executes(
     Tok.CVT_D_S_OPCODE, Tok.CVT_D_W_OPCODE, Tok.CVT_S_D_OPCODE, Tok.CVT_S_W_OPCODE
 )
-def _fp_convert(inst: Instruction) -> Step:
+def _floating_point_convert(instruction: Instruction) -> Step:
     """cvt between single, double and word."""
-    fd, fs = inst.shamt, inst.rd
-    opcode: int = inst.opcode
+    floating_point_destination, floating_point_source = (
+        instruction.shift_amount,
+        instruction.destination_register,
+    )
+    opcode: int = instruction.opcode
     match opcode:
         case Tok.CVT_D_S_OPCODE:
 
             def step() -> None:
-                regs.set_fpr_d(fd, regs.fpr_s(fs))
+                regs.set_floating_point_register_double(
+                    floating_point_destination,
+                    regs.floating_point_register_single(floating_point_source),
+                )
         case Tok.CVT_D_W_OPCODE:
 
             def step() -> None:
-                regs.set_fpr_d(fd, float(fpr[fs]))
+                regs.set_floating_point_register_double(
+                    floating_point_destination,
+                    float(floating_point_register[floating_point_source]),
+                )
         case Tok.CVT_S_D_OPCODE:
 
             def step() -> None:
-                regs.set_fpr_s(fd, regs.fpr_d(fs))
+                regs.set_floating_point_register_single(
+                    floating_point_destination,
+                    regs.floating_point_register_double(floating_point_source),
+                )
         case Tok.CVT_S_W_OPCODE:
 
             def step() -> None:
-                regs.set_fpr_s(fd, float(fpr[fs]))
+                regs.set_floating_point_register_single(
+                    floating_point_destination,
+                    float(floating_point_register[floating_point_source]),
+                )
         case _:
             raise AssertionError(
                 f"_fp_convert: opcode {opcode} is not a cvt; only they are registered"
@@ -1216,28 +1519,39 @@ def _fp_convert(inst: Instruction) -> Step:
     return step
 
 
-def _fp_compare(double: bool) -> Callable[[Instruction], Step]:
+def _floating_point_compare(double: bool) -> Callable[[Instruction], Step]:
     """The factory of c.cond.s/.d: set FP condition code cc."""
 
-    def factory(inst: Instruction) -> Step:
-        fs, ft, cond, cc = inst.rd, inst.rt, inst.rs, inst.shamt >> 2
-        read: Callable[[int], float] = regs.fpr_d if double else regs.fpr_s
+    def factory(instruction: Instruction) -> Step:
+        floating_point_source, floating_point_target, condition, condition_code = (
+            instruction.destination_register,
+            instruction.target_register,
+            instruction.source_register,
+            instruction.shift_amount >> 2,
+        )
+        read: Callable[[int], float] = (
+            regs.floating_point_register_double
+            if double
+            else regs.floating_point_register_single
+        )
 
         def step() -> None:
-            a: float = read(fs)
-            b: float = read(ft)
+            a: float = read(floating_point_source)
+            b: float = read(floating_point_target)
             if math.isnan(a) or math.isnan(b):
-                if cond & instruction.COND_IN:
-                    _raise(ExcCode.FPE)
+                if condition & instruction_module.CONDITION_INVALID:
+                    _raise(ExceptionCode.FLOATING_POINT_EXCEPTION)
                     return
-                regs.set_fcc(cc, cond & instruction.COND_UN)
+                regs.set_floating_point_condition_code(
+                    condition_code, condition & instruction_module.CONDITION_UNORDERED
+                )
             else:
                 result: int = 0
-                if cond & instruction.COND_LT and a < b:
+                if condition & instruction_module.CONDITION_LESS_THAN and a < b:
                     result = 1
-                if cond & instruction.COND_EQ and a == b:
+                if condition & instruction_module.CONDITION_EQUAL and a == b:
                     result = 1
-                regs.set_fcc(cc, result)
+                regs.set_floating_point_condition_code(condition_code, result)
 
         return step
 
@@ -1248,7 +1562,9 @@ def _fp_compare(double: bool) -> Callable[[Instruction], Step]:
 # is 0x11 for a double, 0x10 for a single.
 for _row in opcodes.ROWS:
     if _row.kind == OpType.FLOATING_POINT_COMPARE_SOURCE_TARGET_INSTRUCTION:
-        _FACTORIES[_row.token] = _fp_compare((_row.encoding >> 21) & 0x1F == 0x11)
+        _FACTORIES[_row.token] = _floating_point_compare(
+            (_row.encoding >> 21) & 0x1F == 0x11
+        )
 
 
 @_executes(
@@ -1263,10 +1579,14 @@ for _row in opcodes.ROWS:
     Tok.MOVN_D_OPCODE,
     Tok.MOVZ_D_OPCODE,
 )
-def _fp_move(inst: Instruction) -> Step:
+def _floating_point_move(instruction: Instruction) -> Step:
     """mov.fmt, and its conditional forms (on a cc, or on a register)."""
-    fd, fs, rt = inst.shamt, inst.rd, inst.rt
-    opcode: int = inst.opcode
+    floating_point_destination, floating_point_source, target_register = (
+        instruction.shift_amount,
+        instruction.destination_register,
+        instruction.target_register,
+    )
+    opcode: int = instruction.opcode
     double: bool = opcode in (
         Tok.MOV_D_OPCODE, Tok.MOVF_D_OPCODE, Tok.MOVT_D_OPCODE, Tok.MOVN_D_OPCODE,
         Tok.MOVZ_D_OPCODE,
@@ -1276,13 +1596,13 @@ def _fp_move(inst: Instruction) -> Step:
         """Whether this move happens."""
         match opcode:
             case Tok.MOVF_S_OPCODE | Tok.MOVF_D_OPCODE:
-                return regs.fcc(rt >> 2) == 0
+                return regs.floating_point_condition_code(target_register >> 2) == 0
             case Tok.MOVT_S_OPCODE | Tok.MOVT_D_OPCODE:
-                return regs.fcc(rt >> 2) != 0
+                return regs.floating_point_condition_code(target_register >> 2) != 0
             case Tok.MOVN_S_OPCODE | Tok.MOVN_D_OPCODE:
-                return gpr[rt] != 0
+                return general_purpose_registers[target_register] != 0
             case Tok.MOVZ_S_OPCODE | Tok.MOVZ_D_OPCODE:
-                return gpr[rt] == 0
+                return general_purpose_registers[target_register] == 0
             case Tok.MOV_S_OPCODE | Tok.MOV_D_OPCODE:
                 return True
             case _:
@@ -1294,98 +1614,153 @@ def _fp_move(inst: Instruction) -> Step:
     def step() -> None:
         if condition():
             if double:
-                regs.set_fpr_d(fd, regs.fpr_d(fs))
+                regs.set_floating_point_register_double(
+                    floating_point_destination,
+                    regs.floating_point_register_double(floating_point_source),
+                )
             else:
-                fpr[fd] = fpr[fs]  # a single moves as raw bits
+                floating_point_register[floating_point_destination] = (
+                    floating_point_register[floating_point_source]
+                )  # a single moves as raw bits
 
     return step
 
 
 @_executes(Tok.MOVF_OPCODE, Tok.MOVT_OPCODE)
-def _move_on_fp_condition(inst: Instruction) -> Step:
+def _move_on_floating_point_condition(instruction: Instruction) -> Step:
     """movf/movt: rd = rs if FP condition code cc is false/true."""
-    rd, rs, cc = inst.rd, inst.rs, inst.rt >> 2
-    wanted: int = 0 if inst.opcode == Tok.MOVF_OPCODE else 1
+    destination_register, source_register, condition_code = (
+        instruction.destination_register,
+        instruction.source_register,
+        instruction.target_register >> 2,
+    )
+    wanted: int = 0 if instruction.opcode == Tok.MOVF_OPCODE else 1
 
     def step() -> None:
-        if regs.fcc(cc) == wanted:
-            gpr[rd] = gpr[rs]
+        if regs.floating_point_condition_code(condition_code) == wanted:
+            general_purpose_registers[destination_register] = general_purpose_registers[
+                source_register
+            ]
 
     return step
 
 
 @_executes(Tok.MFC1_OPCODE, Tok.MTC1_OPCODE)
-def _move_fp_word(inst: Instruction) -> Step:
+def _move_floating_point_word(instruction: Instruction) -> Step:
     """mfc1/mtc1: copy a word's bits between rt and FP register fs."""
-    rt, fs = inst.rt, inst.rd
-    if inst.opcode == Tok.MFC1_OPCODE:
+    target_register, floating_point_source = (
+        instruction.target_register,
+        instruction.destination_register,
+    )
+    if instruction.opcode == Tok.MFC1_OPCODE:
 
         def step() -> None:
-            gpr[rt] = fpr[fs]
+            general_purpose_registers[target_register] = floating_point_register[
+                floating_point_source
+            ]
 
     else:
 
         def step() -> None:
-            fpr[fs] = gpr[rt]
+            floating_point_register[floating_point_source] = general_purpose_registers[
+                target_register
+            ]
 
     return step
 
 
 @_executes(Tok.CFC1_OPCODE, Tok.CTC1_OPCODE)
-def _fp_control(inst: Instruction) -> Step:
+def _floating_point_control(instruction: Instruction) -> Step:
     """cfc1/ctc1: move from/to an FPU control register (FIR, FCSR)."""
-    rt, number = inst.rt, inst.rd
-    if inst.opcode == Tok.CFC1_OPCODE:
+    target_register, number = (
+        instruction.target_register,
+        instruction.destination_register,
+    )
+    if instruction.opcode == Tok.CFC1_OPCODE:
 
         def step() -> None:
-            gpr[rt] = cpu.cpr[1][number]
+            general_purpose_registers[target_register] = cpu.coprocessor_registers[1][
+                number
+            ]
 
     else:
 
         def step() -> None:
-            cpu.cpr[1][number] = gpr[rt]
-            if number == regs.FCSR_REG and gpr[rt] & M32 & ~regs.FCSR_MASK:
-                _raise(ExcCode.FPE)  # an unsupported mode
+            cpu.coprocessor_registers[1][number] = general_purpose_registers[
+                target_register
+            ]
+            if (
+                number == regs.FLOATING_POINT_CONTROL_STATUS_REGISTER_NUMBER
+                and general_purpose_registers[target_register]
+                & M32
+                & ~regs.FLOATING_POINT_CONTROL_STATUS_MASK
+            ):
+                _raise(ExceptionCode.FLOATING_POINT_EXCEPTION)  # an unsupported mode
 
     return step
 
 
 @_executes(Tok.LWC1_OPCODE, Tok.LDC1_OPCODE)
-def _load_fp(inst: Instruction) -> Step:
+def _load_floating_point(instruction: Instruction) -> Step:
     """lwc1/ldc1: load one or two words into FP registers."""
-    ft, base, offset = inst.rt, inst.rs, inst.imm
-    double: bool = inst.opcode == Tok.LDC1_OPCODE
+    floating_point_target, base, offset = (
+        instruction.target_register,
+        instruction.source_register,
+        instruction.immediate,
+    )
+    double: bool = instruction.opcode == Tok.LDC1_OPCODE
 
     def step() -> None:
-        addr: int = (gpr[base] + offset) & M32
+        address: int = (general_purpose_registers[base] + offset) & M32
         if double:
-            if addr & 3:
-                memory._bad_address(ExcCode.ADEL, addr)
-            _load(fpr, ft, memory.read_word(addr))
-            _load(fpr, ft + 1, memory.read_word((addr + 4) & M32))
+            if address & 3:
+                memory._bad_address(ExceptionCode.ADDRESS_ERROR_LOAD, address)
+            _load(
+                floating_point_register,
+                floating_point_target,
+                memory.read_word(address),
+            )
+            _load(
+                floating_point_register,
+                floating_point_target + 1,
+                memory.read_word((address + 4) & M32),
+            )
         else:
-            _load(fpr, ft, memory.read_word(addr))
+            _load(
+                floating_point_register,
+                floating_point_target,
+                memory.read_word(address),
+            )
 
     return step
 
 
 @_executes(Tok.SWC1_OPCODE, Tok.SDC1_OPCODE)
-def _store_fp(inst: Instruction) -> Step:
+def _store_floating_point(instruction: Instruction) -> Step:
     """swc1/sdc1: store FP register(s) as one or two words."""
-    ft, base, offset = inst.rt, inst.rs, inst.imm
-    double: bool = inst.opcode == Tok.SDC1_OPCODE
+    floating_point_target, base, offset = (
+        instruction.target_register,
+        instruction.source_register,
+        instruction.immediate,
+    )
+    double: bool = instruction.opcode == Tok.SDC1_OPCODE
 
     def step() -> None:
         if double:
             low: int
             high: int
-            low, high = machine.double_words(regs.fpr_d(ft))
-            addr: int = (gpr[base] + offset) & M32
-            if addr & 3:
-                memory._bad_address(ExcCode.ADEL, addr)
-            memory.write_word(addr, low)
-            memory.write_word((addr + 4) & M32, high)
+            low, high = machine.double_words(
+                regs.floating_point_register_double(floating_point_target)
+            )
+            address: int = (general_purpose_registers[base] + offset) & M32
+            if address & 3:
+                memory._bad_address(ExceptionCode.ADDRESS_ERROR_LOAD, address)
+            memory.write_word(address, low)
+            memory.write_word((address + 4) & M32, high)
         else:
-            memory.write_word((gpr[base] + offset) & M32, fpr[ft])
+            memory.write_word(
+                (general_purpose_registers[base] + offset) & M32,
+                floating_point_register[floating_point_target],
+            )
 
     return step

@@ -108,24 +108,24 @@ def add_overflows(a: int, b: int) -> bool:
     return not -0x8000_0000 <= a + b <= 0x7FFF_FFFF
 
 
-def sub_overflows(a: int, b: int) -> bool:
+def subtract_overflows(a: int, b: int) -> bool:
     """True if the signed 32-bit difference a - b does not fit (``ckd_sub``).
 
     Example:
-        >>> sub_overflows(-0x80000000, 1), sub_overflows(0, 1)
+        >>> subtract_overflows(-0x80000000, 1), subtract_overflows(0, 1)
         (True, False)
     """
     return not -0x8000_0000 <= a - b <= 0x7FFF_FFFF
 
 
-def c_div(a: int, b: int) -> int:
+def c_divide(a: int, b: int) -> int:
     """Integer division truncating toward zero, as C's ``a / b``.
 
     Python's ``//`` rounds toward minus infinity: ``-7 // 2 == -4``, while
     C gives ``-3``.
 
     Example:
-        >>> c_div(-7, 2), -7 // 2
+        >>> c_divide(-7, 2), -7 // 2
         (-3, -4)
     """
     q: int = abs(a) // abs(b)
@@ -133,7 +133,7 @@ def c_div(a: int, b: int) -> int:
 
 
 def c_rem(a: int, b: int) -> int:
-    """The remainder that goes with :func:`c_div`, as C's ``a % b``.
+    """The remainder that goes with :func:`c_divide`, as C's ``a % b``.
 
     Its sign follows the dividend: ``-7 % 2`` is ``-1`` in C, ``1`` in Python.
 
@@ -141,7 +141,7 @@ def c_rem(a: int, b: int) -> int:
         >>> c_rem(-7, 2), -7 % 2
         (-1, 1)
     """
-    return a - c_div(a, b) * b
+    return a - c_divide(a, b) * b
 
 
 def leading_zeros(x: int) -> int:
@@ -233,13 +233,13 @@ def words_double(low: int, high: int) -> float:
     return _DOUBLE.unpack(_TWO_WORDS.pack(s32(low), s32(high)))[0]
 
 
-def f_div(a: float, b: float) -> float:
+def f_divide(a: float, b: float) -> float:
     """IEEE division a / b, as the hardware does it (no ZeroDivisionError).
 
     Example:
-        >>> f_div(1.0, 0.0), f_div(-1.0, 0.0), f_div(1.0, -0.0)
+        >>> f_divide(1.0, 0.0), f_divide(-1.0, 0.0), f_divide(1.0, -0.0)
         (inf, -inf, -inf)
-        >>> math.isnan(f_div(0.0, 0.0))
+        >>> math.isnan(f_divide(0.0, 0.0))
         True
     """
     if b != 0.0:

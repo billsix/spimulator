@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class ImmExpr:
+class ImmediateExpression:
     """An immediate written as ``symbol +/- offset`` (C ``imm_expr``).
 
     Attributes:
@@ -37,25 +37,27 @@ class ImmExpr:
         symbol: the label, or None for a plain constant.
         bits: 0 for the whole value, > 0 for its upper 16 bits (``lui``),
             < 0 for its lower 16 bits.
-        pc_relative: the value is a branch displacement from the PC.
+        program_counter_relative: the value is a branch displacement from the PC.
     """
 
     offset: int = 0
     symbol: "Label | None" = None
     bits: int = 0
-    pc_relative: bool = False
+    program_counter_relative: bool = False
 
-    def copy(self) -> "ImmExpr":
+    def copy(self) -> "ImmediateExpression":
         """A shallow copy (the label is shared, as in C)."""
-        return ImmExpr(self.offset, self.symbol, self.bits, self.pc_relative)
+        return ImmediateExpression(
+            self.offset, self.symbol, self.bits, self.program_counter_relative
+        )
 
 
 @dataclass
-class AddrExpr:
+class AddressExpression:
     """An address written as ``imm(register)`` (C ``addr_expr``)."""
 
-    reg_no: int
-    imm: ImmExpr
+    register_no: int
+    immediate: ImmediateExpression
 
 
 class Instruction:
@@ -74,71 +76,76 @@ class Instruction:
 
     __slots__ = (
         "opcode",
-        "rs",
-        "rt",
-        "rd",
-        "shamt",
-        "imm",
+        "source_register",
+        "target_register",
+        "destination_register",
+        "shift_amount",
+        "immediate",
         "target",
         "encoding",
-        "expr",
+        "expression",
         "source",
         "exec_cache",
     )
 
     def __init__(self, opcode: int = 0) -> None:
         self.opcode: int = opcode
-        self.rs: int = 0
-        self.rt: int = 0
-        self.rd: int = 0
-        self.shamt: int = 0
-        self.imm: int = 0
+        self.source_register: int = 0
+        self.target_register: int = 0
+        self.destination_register: int = 0
+        self.shift_amount: int = 0
+        self.immediate: int = 0
         self.target: int = 0
         self.encoding: int = 0
-        self.expr: ImmExpr | None = None
+        self.expression: ImmediateExpression | None = None
         self.source: str | None = None
         self.exec_cache: Callable[[], bool | None] | None = None
 
     def _bytes_changed(self) -> None:
         """Recompute the overlapping views (imm, target) from the four bytes."""
-        self.imm = machine.s16(self.rd | self.shamt << 8)
-        self.target = self.rs | self.rt << 8 | self.rd << 16 | self.shamt << 24
+        self.immediate = machine.s16(self.destination_register | self.shift_amount << 8)
+        self.target = (
+            self.source_register
+            | self.target_register << 8
+            | self.destination_register << 16
+            | self.shift_amount << 24
+        )
         self.exec_cache = None
 
-    def set_rs(self, value: int) -> None:
+    def set_source_register(self, value: int) -> None:
         """Set the rs byte (also the FP condition, ``COND``)."""
-        self.rs = value & 0xFF
+        self.source_register = value & 0xFF
         self._bytes_changed()
 
-    def set_rt(self, value: int) -> None:
+    def set_target_register(self, value: int) -> None:
         """Set the rt byte (also FT)."""
-        self.rt = value & 0xFF
+        self.target_register = value & 0xFF
         self._bytes_changed()
 
-    def set_rd(self, value: int) -> None:
+    def set_destination_register(self, value: int) -> None:
         """Set the rd byte (also FS)."""
-        self.rd = value & 0xFF
+        self.destination_register = value & 0xFF
         self._bytes_changed()
 
-    def set_shamt(self, value: int) -> None:
+    def set_shift_amount(self, value: int) -> None:
         """Set the shamt byte (also FD)."""
-        self.shamt = value & 0xFF
+        self.shift_amount = value & 0xFF
         self._bytes_changed()
 
-    def set_imm(self, value: int) -> None:
+    def set_immediate(self, value: int) -> None:
         """Set the 16-bit immediate (bytes rd and shamt)."""
         value &= 0xFFFF
-        self.rd = value & 0xFF
-        self.shamt = value >> 8
+        self.destination_register = value & 0xFF
+        self.shift_amount = value >> 8
         self._bytes_changed()
 
     def set_target(self, value: int) -> None:
         """Set the 32-bit J-type target (all four bytes)."""
         value &= 0xFFFFFFFF
-        self.rs = value & 0xFF
-        self.rt = (value >> 8) & 0xFF
-        self.rd = (value >> 16) & 0xFF
-        self.shamt = value >> 24
+        self.source_register = value & 0xFF
+        self.target_register = (value >> 8) & 0xFF
+        self.destination_register = (value >> 16) & 0xFF
+        self.shift_amount = value >> 24
         self._bytes_changed()
 
     def set_encoding(self, value: int) -> None:
@@ -148,14 +155,21 @@ class Instruction:
     def copy(self) -> "Instruction":
         """A copy with its own expression (C ``copy_inst``)."""
         other: Instruction = Instruction(self.opcode)
-        other.rs, other.rt, other.rd, other.shamt = (
-            self.rs,
-            self.rt,
-            self.rd,
-            self.shamt,
+        (
+            other.source_register,
+            other.target_register,
+            other.destination_register,
+            other.shift_amount,
+        ) = (
+            self.source_register,
+            self.target_register,
+            self.destination_register,
+            self.shift_amount,
         )
         other._bytes_changed()
         other.encoding = self.encoding
-        other.expr = self.expr.copy() if self.expr is not None else None
+        other.expression = (
+            self.expression.copy() if self.expression is not None else None
+        )
         other.source = self.source
         return other

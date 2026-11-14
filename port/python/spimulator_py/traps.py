@@ -13,24 +13,24 @@ from . import machine
 from . import registers as regs
 
 
-class ExcCode(IntEnum):
-    """The ExcCode values of the MIPS32 Cause register."""
+class ExceptionCode(IntEnum):
+    """The values of the MIPS32 Cause register's ExcCode field."""
 
-    INT = 0  # interrupt
-    MOD = 1
-    TLBL = 2
-    TLBS = 3
-    ADEL = 4  # address error on a load or fetch
-    ADES = 5  # address error on a store
-    IBE = 6  # bus error on an instruction fetch
-    DBE = 7  # bus error on a data reference
-    SYS = 8  # syscall
-    BP = 9  # breakpoint
-    RI = 10  # reserved instruction
-    CPU = 11  # coprocessor unusable
-    OV = 12  # arithmetic overflow
-    TR = 13  # trap
-    FPE = 15  # floating point
+    INTERRUPT = 0  # Int: interrupt
+    TRANSLATION_LOOKASIDE_BUFFER_MODIFIED = 1  # Mod
+    TRANSLATION_LOOKASIDE_BUFFER_LOAD = 2  # TLBL
+    TRANSLATION_LOOKASIDE_BUFFER_STORE = 3  # TLBS
+    ADDRESS_ERROR_LOAD = 4  # AdEL: address error on a load or fetch
+    ADDRESS_ERROR_STORE = 5  # AdES: address error on a store
+    INSTRUCTION_BUS_ERROR = 6  # IBE: bus error on an instruction fetch
+    DATA_BUS_ERROR = 7  # DBE: bus error on a data reference
+    SYSTEM_CALL = 8  # Sys: syscall
+    BREAKPOINT = 9  # Bp: breakpoint
+    RESERVED_INSTRUCTION = 10  # RI: reserved instruction
+    COPROCESSOR_UNUSABLE = 11  # CpU: coprocessor unusable
+    ARITHMETIC_OVERFLOW = 12  # Ov: arithmetic overflow
+    TRAP = 13  # Tr: trap
+    FLOATING_POINT_EXCEPTION = 15  # FPE: floating point
 
 
 exception_occurred: bool = False
@@ -52,22 +52,37 @@ def raise_exception(code: int) -> None:
     the first EPC; the cause is always overwritten.
     """
     global exception_occurred, first_bad_exception
-    cp0: list[int] = regs.cpu.cpr[0]
-    status: int = machine.u32(cp0[regs.CP0_STATUS])
-    if code == ExcCode.INT and not (
-        status & regs.STATUS_IE and not status & regs.STATUS_EXL
+    coprocessor_0: list[int] = regs.cpu.coprocessor_registers[0]
+    status: int = machine.u32(coprocessor_0[regs.COPROCESSOR_0_STATUS])
+    if code == ExceptionCode.INTERRUPT and not (
+        status & regs.STATUS_INTERRUPT_ENABLE
+        and not status & regs.STATUS_EXCEPTION_LEVEL
     ):
         return
     exception_occurred = True
-    if first_bad_exception == -1 and code not in (ExcCode.INT, ExcCode.SYS, ExcCode.BP):
+    if first_bad_exception == -1 and code not in (
+        ExceptionCode.INTERRUPT,
+        ExceptionCode.SYSTEM_CALL,
+        ExceptionCode.BREAKPOINT,
+    ):
         first_bad_exception = code
-    if not status & regs.STATUS_EXL:
+    if not status & regs.STATUS_EXCEPTION_LEVEL:
         if running_in_delay_slot:
             # Report the branch, and set BD to say the fault was in its slot.
-            cp0[regs.CP0_EPC] = machine.s32((regs.cpu.pc - 4) & ~3)
-            cp0[regs.CP0_CAUSE] = machine.s32(cp0[regs.CP0_CAUSE] | regs.CAUSE_BD)
+            coprocessor_0[regs.COPROCESSOR_0_EXCEPTION_PROGRAM_COUNTER] = machine.s32(
+                (regs.cpu.program_counter - 4) & ~3
+            )
+            coprocessor_0[regs.COPROCESSOR_0_CAUSE] = machine.s32(
+                coprocessor_0[regs.COPROCESSOR_0_CAUSE] | regs.CAUSE_BD
+            )
         else:
-            cp0[regs.CP0_EPC] = machine.s32(regs.cpu.pc & ~3)
-    cause: int = machine.u32(cp0[regs.CP0_CAUSE])
-    cp0[regs.CP0_CAUSE] = machine.s32((cause & ~regs.CAUSE_EXCCODE) | (code << 2))
-    cp0[regs.CP0_STATUS] = machine.s32(status | regs.STATUS_EXL)
+            coprocessor_0[regs.COPROCESSOR_0_EXCEPTION_PROGRAM_COUNTER] = machine.s32(
+                regs.cpu.program_counter & ~3
+            )
+    cause: int = machine.u32(coprocessor_0[regs.COPROCESSOR_0_CAUSE])
+    coprocessor_0[regs.COPROCESSOR_0_CAUSE] = machine.s32(
+        (cause & ~regs.CAUSE_EXCEPTION_CODE) | (code << 2)
+    )
+    coprocessor_0[regs.COPROCESSOR_0_STATUS] = machine.s32(
+        status | regs.STATUS_EXCEPTION_LEVEL
+    )

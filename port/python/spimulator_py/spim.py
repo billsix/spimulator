@@ -2,7 +2,7 @@
 
 ``main`` reads the C engine's flags, loads the ``-f`` files, and then either
 runs the program (exit status: the program's, or 128 + the first fault's
-ExcCode, 1 for undefined symbols, 2 for a parse error), dumps it
+ExceptionCode, 1 for undefined symbols, 2 for a parse error), dumps it
 (``-dump``), prints its tree (``-print-ast``), or, with no program, starts
 the REPL, which reads one command per line from stdin.
 
@@ -22,7 +22,6 @@ from . import (
     console,
     data,
     display,
-    instruction,
     machine,
     memory,
     opcodes,
@@ -33,6 +32,9 @@ from . import (
     spim_utils,
     symbol_table,
     traps,
+)
+from . import (
+    instruction as instruction_module,
 )
 from . import memory_layout as layout
 from . import registers as regs
@@ -114,36 +116,38 @@ def _listing_observer(event: Event) -> None:
         return
     line: str = f"line {event.source_line:4d}  "
     match event.kind:
-        case Kind.LABEL_DEF:
+        case Kind.LABEL_DEFINITION:
             line += (
-                f"label  {event.name:<24s} defined at 0x{event.addr:08x}"
+                f"label  {event.name:<24s} defined at 0x{event.address:08x}"
                 f"{'  (global)' if event.flag else ''}\n"
             )
-        case Kind.TEXT_INST:
-            text: str = instruction.inst_to_string(event.addr)
-            line += f"text   0x{event.addr:08x}  {text:<32s}  0x{event.value:08x}\n"
+        case Kind.TEXT_INSTRUCTION:
+            text: str = instruction_module.instruction_to_string(event.address)
+            line += f"text   0x{event.address:08x}  {text:<32s}  0x{event.value:08x}\n"
         case Kind.DATA_BYTE:
-            line += f"data   0x{event.addr:08x}  byte    0x{event.value & 0xFF:02x}\n"
-        case Kind.DATA_HALF:
-            line += f"data   0x{event.addr:08x}  half    0x{event.value & 0xFFFF:04x}\n"
-        case Kind.DATA_WORD:
             line += (
-                f"data   0x{event.addr:08x}  word    0x{machine.u32(event.value):08x}\n"
+                f"data   0x{event.address:08x}  byte    0x{event.value & 0xFF:02x}\n"
             )
+        case Kind.DATA_HALF:
+            line += (
+                f"data   0x{event.address:08x}  half    0x{event.value & 0xFFFF:04x}\n"
+            )
+        case Kind.DATA_WORD:
+            line += f"data   0x{event.address:08x}  word    0x{machine.u32(event.value):08x}\n"
         case Kind.DATA_DOUBLE:
-            line += f"data   0x{event.addr:08x}  double  {c_format('%.18g', event.double)}\n"
+            line += f"data   0x{event.address:08x}  double  {c_format('%.18g', event.double)}\n"
         case Kind.DATA_STRING:
             line += (
-                f"data   0x{event.addr:08x}  string  len={event.value}"
+                f"data   0x{event.address:08x}  string  len={event.value}"
                 f"{' (+\\0)' if event.flag else ''}\n"
             )
         case Kind.FORWARD_REF:
             line += (
-                f"fref   0x{event.addr:08x}  uses unresolved symbol '{event.name}'\n"
+                f"fref   0x{event.address:08x}  uses unresolved symbol '{event.name}'\n"
             )
         case Kind.FORWARD_RESOLVED:
             line += (
-                f"fres   0x{event.addr:08x}  patched '{event.name}'"
+                f"fres   0x{event.address:08x}  patched '{event.name}'"
                 f" = 0x{machine.u32(event.value):08x}\n"
             )
         case _:
@@ -198,28 +202,28 @@ def _main(argv: list[str]) -> int:
     assembly_file_loaded: bool = False
     assembly_file_attempted: bool = False
     world_initialized: bool = False
-    last_file_i: int = -1
+    last_file_index: int = -1
     print_usage: bool = False
     assemble: bool = False
     dump_user: bool = False
     dump_all: bool = False
-    args: list[str] = ["spimulator-python", *argv]
-    argc: int = len(args)
-    env_handler: bytes | None = os.environb.get(b"SPIM_EXCEPTION_HANDLER")
-    if env_handler is not None:
-        exception_file_name = console.from_bytes(env_handler)
+    arguments: list[str] = ["spimulator-python", *argv]
+    argc: int = len(arguments)
+    environment_handler: bytes | None = os.environb.get(b"SPIM_EXCEPTION_HANDLER")
+    if environment_handler is not None:
+        exception_file_name = console.from_bytes(environment_handler)
 
-    def next_arg(i: int) -> str | None:
+    def next_argument(i: int) -> str | None:
         """argv[i], or None past the end (C would read NULL)."""
-        return args[i] if i < argc else None
+        return arguments[i] if i < argc else None
 
     i: int = 1
     while i < argc:
-        arg: str = args[i]
-        match arg:
-            case _ if arg in _VALUE_FLAGS and i + 1 >= argc:
+        argument: str = arguments[i]
+        match argument:
+            case _ if argument in _VALUE_FLAGS and i + 1 >= argc:
                 # The flag's value is missing: report it, then the usage.
-                console.error(f"spimulator: {arg} requires a value\n")
+                console.error(f"spimulator: {argument} requires a value\n")
                 print_usage = True
             case "-asm" | "-a":
                 options.bare_machine = False
@@ -240,70 +244,74 @@ def _main(argv: list[str]) -> int:
                 load_exception_handler = False
             case "-exception_file" | "-ef" | "-trap_file" | "-tf":
                 i += 1
-                exception_file_name = next_arg(i) or ""
+                exception_file_name = next_argument(i) or ""
                 load_exception_handler = True
             case "-mapped_io" | "-mio":
                 options.mapped_io = True
             case "-nomapped_io" | "-nmio":
                 options.mapped_io = False
             case "-pseudo" | "-p":
-                options.accept_pseudo_insts = True
+                options.accept_pseudo_instructions = True
             case "-nopseudo" | "-np":
-                options.accept_pseudo_insts = False
+                options.accept_pseudo_instructions = False
             case "-quiet" | "-q":
                 options.quiet = True
             case "-noquiet" | "-nq":
                 options.quiet = False
             case "-noexplain" | "-nx":
                 pass  # the teaching mode is off: there is none
-            case _ if arg in ("-explain", "-x") or arg.startswith(("-explain=", "-x=")):
+            case _ if argument in ("-explain", "-x") or argument.startswith(
+                ("-explain=", "-x=")
+            ):
                 console.error(EXPLAIN_UNSUPPORTED)
                 return 2
             case "-stext" | "-st":
                 i += 1
-                options.initial_text_size = _c_atoi(next_arg(i))
+                options.initial_text_size = _c_atoi(next_argument(i))
             case "-sdata" | "-sd":
                 i += 1
-                options.initial_data_size = _c_atoi(next_arg(i))
+                options.initial_data_size = _c_atoi(next_argument(i))
             case "-ldata" | "-ld":
                 i += 1
-                options.initial_data_limit = machine.s32(_c_atoi(next_arg(i)))
+                options.initial_data_limit = machine.s32(_c_atoi(next_argument(i)))
             case "-sstack" | "-ss":
                 i += 1
-                options.initial_stack_size = _c_atoi(next_arg(i))
+                options.initial_stack_size = _c_atoi(next_argument(i))
             case "-lstack" | "-ls":
                 i += 1
-                options.initial_stack_limit = machine.s32(_c_atoi(next_arg(i)))
+                options.initial_stack_limit = machine.s32(_c_atoi(next_argument(i)))
             case "-sktext" | "-skt":
                 i += 1
-                options.initial_k_text_size = _c_atoi(next_arg(i))
+                options.initial_kernel_text_size = _c_atoi(next_argument(i))
             case "-skdata" | "-skd":
                 i += 1
-                options.initial_k_data_size = _c_atoi(next_arg(i))
+                options.initial_kernel_data_size = _c_atoi(next_argument(i))
             case "-lkdata" | "-lkd":
                 i += 1
-                options.initial_k_data_limit = machine.s32(_c_atoi(next_arg(i)))
-            case _ if (arg in ("-file", "-f") and i + 1 < argc) or not arg.startswith(
-                "-"
-            ):
+                options.initial_kernel_data_limit = machine.s32(
+                    _c_atoi(next_argument(i))
+                )
+            case _ if (
+                argument in ("-file", "-f") and i + 1 < argc
+            ) or not argument.startswith("-"):
                 # `-f FILE` (may repeat: the files share one symbol table), or a
                 # bare FILE, which is also argv[0], followed by the program's args.
-                is_explicit_f: bool = arg.startswith("-")
-                if not is_explicit_f and assembly_file_loaded:
+                is_explicit_file: bool = argument.startswith("-")
+                if not is_explicit_file and assembly_file_loaded:
                     break
-                file_i: int = i + 1 if is_explicit_f else i
+                file_index: int = i + 1 if is_explicit_file else i
                 if not world_initialized:
                     spim_utils.initialize_world(_exception_files(), not options.quiet)
                     world_initialized = True
                 assembly_file_attempted = True
-                if not spim_utils.read_assembly_file(args[file_i]):
+                if not spim_utils.read_assembly_file(arguments[file_index]):
                     break
                 assembly_file_loaded = True
-                last_file_i = file_i
-                if is_explicit_f:
-                    i = file_i + 1
+                last_file_index = file_index
+                if is_explicit_file:
+                    i = file_index + 1
                     continue
-                program_argv = args[file_i:]
+                program_argv = arguments[file_index:]
                 break
             case "-assemble":
                 assemble = True
@@ -323,7 +331,7 @@ def _main(argv: list[str]) -> int:
                     i += 1
                     continue
                 i += 1
-                path: str = args[i]
+                path: str = arguments[i]
                 if path == "-":
                     _listing = sys.stderr.buffer
                 else:
@@ -340,12 +348,12 @@ def _main(argv: list[str]) -> int:
             case "-full_dump":
                 dump_all = True
             case _:
-                console.error(f"\nUnknown argument: {arg} (ignored)\n")
+                console.error(f"\nUnknown argument: {argument} (ignored)\n")
                 print_usage = True
         i += 1
 
     if assembly_file_loaded and not program_argv:
-        program_argv = args[last_file_i:]
+        program_argv = arguments[last_file_index:]
     if print_usage:
         console.error(USAGE)
     try:
@@ -376,11 +384,11 @@ def _after_arguments(
         return 1 if write_assembled_code(program_argv[0]) else 0
     else:
         if dump_user:
-            _dump_data_seg(False)
-            _dump_text_seg(False)
+            _dump_data_segment(False)
+            _dump_text_segment(False)
         elif dump_all:
-            _dump_data_seg(True)
-            _dump_text_seg(True)
+            _dump_data_segment(True)
+            _dump_text_segment(True)
         else:
             console.console_to_program()
             spim_utils.initialize_run_stack(program_argv)
@@ -405,7 +413,7 @@ def _after_arguments(
                     options.spim_return_value = 1
             console.console_to_spim()
             if traps.first_bad_exception != -1 and options.spim_return_value == 0:
-                # A fault the program did not survive cleanly: 128 + ExcCode, like
+                # A fault the program did not survive cleanly: 128 + ExceptionCode, like
                 # a shell's 128 + signal number.  An explicit exit2(N) wins.
                 options.spim_return_value = 128 + traps.first_bad_exception
         return options.spim_return_value
@@ -425,21 +433,21 @@ def write_assembled_code(program_name: str) -> bool:
     except OSError as problem:
         console.error(f"{name}: {problem.strerror}\n")
         return True
-    instruction.user_kernel_text_segment(False)
+    instruction_module.user_kernel_text_segment(False)
     start: int = symbol_table.find_symbol_address(layout.END_OF_TRAP_HANDLER_SYMBOL)
-    end: int = instruction.current_text_pc()
+    end: int = instruction_module.current_text_location()
     words: list[str] = [
-        f"0x{machine.u32(instruction.inst_encode(memory.read_inst(addr))):x}"
-        for addr in range(start, end, 4)
+        f"0x{machine.u32(instruction_module.instruction_encode(memory.read_instruction(address))):x}"
+        for address in range(start, end, 4)
     ]
     text: str = f".text # 0x{start:x} .. 0x{end:x}\n.word " + ", ".join(words) + "\n"
     data.user_kernel_data_segment(False)
-    start = 0 if options.bare_machine else layout.DATA_BOT
-    end = data.current_data_pc()
+    start = 0 if options.bare_machine else layout.DATA_BOTTOM
+    end = data.current_data_location()
     if end > start:
         values: list[str] = [
-            f"0x{machine.u32(memory.read_word(addr)):x}"
-            for addr in range(start, end, 4)
+            f"0x{machine.u32(memory.read_word(address)):x}"
+            for address in range(start, end, 4)
         ]
         text += f".data # 0x{start:x} .. 0x{end:x}\n.word " + ", ".join(values) + "\n"
     with out:
@@ -453,28 +461,30 @@ def _write_file(name: str, text: str) -> None:
         out.write(console.to_bytes(text))
 
 
-def _dump_data_seg(kernel_also: bool) -> None:
+def _dump_data_segment(kernel_also: bool) -> None:
     """``-dump``/``-full_dump``: the data segment(s) to data.asm."""
     if kernel_also:
-        _write_file("data.asm", display.format_data_segs())
+        _write_file("data.asm", display.format_data_segments())
     else:
         _write_file(
             "data.asm",
-            "\tDATA\n" + display.format_mem(layout.DATA_BOT, memory.data_top),
+            "\tDATA\n" + display.format_memory(layout.DATA_BOTTOM, memory.data_top),
         )
 
 
-def _dump_text_seg(kernel_also: bool) -> None:
+def _dump_text_segment(kernel_also: bool) -> None:
     """``-dump``/``-full_dump``: the text segment(s) to text.asm."""
     if kernel_also:
         text: str = (
-            display.format_insts(layout.TEXT_BOT, memory.text_top)
+            display.format_instructions(layout.TEXT_BOTTOM, memory.text_top)
             + "\n\tKERNEL\n"
-            + display.format_insts(layout.K_TEXT_BOT, memory.k_text_top)
+            + display.format_instructions(
+                layout.KERNEL_TEXT_BOTTOM, memory.kernel_text_top
+            )
         )
     else:
-        text = "\n\tUSER TEXT SEGMENT\n" + display.format_insts(
-            layout.TEXT_BOT, memory.text_top
+        text = "\n\tUSER TEXT SEGMENT\n" + display.format_instructions(
+            layout.TEXT_BOTTOM, memory.text_top
         )
     _write_file("text.asm", text)
 
@@ -522,7 +532,7 @@ def top_level() -> None:
         SystemExit: always, at the end.
     """
     signal.signal(signal.SIGINT, _control_c_seen)
-    scanner.init(None)
+    scanner.initialize(None)
     parser.input_file_name = "<standard input>"
     redo: bool = False
     while True:
@@ -557,29 +567,29 @@ class Command(enum.IntEnum):
     RUN = 3
     STEP = 4
     PRINT = 5
-    PRINT_SYM = 6
-    PRINT_ALL_REGS = 7
+    PRINT_SYMBOL = 6
+    PRINT_ALL_REGISTERS = 7
     REINITIALIZE = 8
     ASM = 9
     REDO = 10
     NOP = 11
     HELP = 12
     CONTINUE = 13
-    SET_BKPT = 14
-    DELETE_BKPT = 15
-    LIST_BKPT = 16
-    DUMPNATIVE = 17
+    SET_BREAKPOINT = 14
+    DELETE_BREAKPOINT = 15
+    LIST_BREAKPOINT = 16
+    DUMP_NATIVE = 17
     DUMP = 18
-    DISASM = 19
-    ARGS = 20
+    DISASSEMBLY = 19
+    ARGUMENTS = 20
 
 
-_prev_cmd: Command = Command.NOP
-_prev_token: int = 0
-_run_addr: int = 0
+_previous_command: Command = Command.NOP
+_previous_token: int = 0
+_run_address: int = 0
 _step_count: int = 0
-_print_loc: int = 0
-_bkpt_addr: int = 0
+_print_location: int = 0
+_breakpoint_address: int = 0
 
 
 def _read_token() -> int:
@@ -589,7 +599,7 @@ def _read_token() -> int:
         SystemExit: at end of input.
     """
     token: int = scanner.advance()
-    if token == opcodes.TOK_EOF:
+    if token == opcodes.TOKEN_EOF:
         console.console_to_spim()
         raise SystemExit(0)
     return token
@@ -597,34 +607,34 @@ def _read_token() -> int:
 
 def _flush_to_newline() -> None:
     """Skip the rest of the command line, including its newline."""
-    while _read_token() != opcodes.TOK_NL:
+    while _read_token() != opcodes.TOKEN_NEWLINE:
         pass
 
 
-def _get_opt_int() -> int:
+def _get_optional_integer() -> int:
     """An optional integer argument (0 if there is none); flushes the line."""
     token: int = _read_token()
-    if token == opcodes.TOK_INT:
+    if token == opcodes.TOKEN_INTEGER:
         _flush_to_newline()
-        return _value_int()
-    if token != opcodes.TOK_NL:
+        return _value_integer()
+    if token != opcodes.TOKEN_NEWLINE:
         _flush_to_newline()
     return 0
 
 
-def _value_int() -> int:
+def _value_integer() -> int:
     """The scanner's last value, as an int."""
     value: int | float | str = scanner.scan_value
     return value if isinstance(value, int) else 0
 
 
-def _value_str() -> str:
+def _value_string() -> str:
     """The scanner's last value, as a string."""
     value: int | float | str = scanner.scan_value
     return value if isinstance(value, str) else ""
 
 
-def _str_prefix(text: str, command: str, min_match: int) -> bool:
+def _string_prefix(text: str, command: str, min_match: int) -> bool:
     """True if text is a prefix of command at least min_match long."""
     return command.startswith(text) and len(text) >= min_match
 
@@ -633,36 +643,36 @@ _COMMANDS: list[tuple[str, int, Command]] = [
     ("exit", 2, Command.EXIT),
     ("quit", 2, Command.EXIT),
     ("print", 1, Command.PRINT),
-    ("print_symbols", 7, Command.PRINT_SYM),
-    ("print_all_regs", 7, Command.PRINT_ALL_REGS),
+    ("print_symbols", 7, Command.PRINT_SYMBOL),
+    ("print_all_regs", 7, Command.PRINT_ALL_REGISTERS),
     ("run", 2, Command.RUN),
-    ("args", 2, Command.ARGS),
+    ("args", 2, Command.ARGUMENTS),
     ("read", 2, Command.READ),
     ("load", 2, Command.READ),
     ("reinitialize", 6, Command.REINITIALIZE),
     ("step", 1, Command.STEP),
     ("help", 1, Command.HELP),
     ("continue", 1, Command.CONTINUE),
-    ("breakpoint", 2, Command.SET_BKPT),
-    ("delete", 1, Command.DELETE_BKPT),
-    ("list", 2, Command.LIST_BKPT),
-    ("dumpnative", 5, Command.DUMPNATIVE),
+    ("breakpoint", 2, Command.SET_BREAKPOINT),
+    ("delete", 1, Command.DELETE_BREAKPOINT),
+    ("list", 2, Command.LIST_BREAKPOINT),
+    ("dumpnative", 5, Command.DUMP_NATIVE),
     ("dump", 4, Command.DUMP),
-    ("disasm", 3, Command.DISASM),  # "di" is the MIPS32r2 instruction, a keyword
+    ("disasm", 3, Command.DISASSEMBLY),  # "di" is the MIPS32r2 instruction, a keyword
 ]
 
 
 def _read_assembly_command() -> Command:
     """Read a command word; the first matching (prefix, min) entry wins."""
     token: int = _read_token()
-    if token == opcodes.TOK_NL:
+    if token == opcodes.TOKEN_NEWLINE:
         return Command.REDO
-    elif token != opcodes.TOK_ID:
+    elif token != opcodes.TOKEN_IDENTIFIER:
         return Command.UNKNOWN
     else:
-        word: str = _value_str()
+        word: str = _value_string()
         for command, min_match, number in _COMMANDS:
-            if _str_prefix(word, command, min_match):
+            if _string_prefix(word, command, min_match):
                 return number
         if word.startswith("?"):
             return Command.HELP
@@ -709,7 +719,7 @@ HELP_TEXT: str = (
 def _report_breakpoint(stopped: bool) -> None:
     """Say so if the run stopped at a breakpoint."""
     if stopped:
-        console.message(f"Breakpoint encountered at 0x{cpu.pc:08x}\n")
+        console.message(f"Breakpoint encountered at 0x{cpu.program_counter:08x}\n")
 
 
 def parse_spim_command(redo: bool) -> bool:
@@ -721,30 +731,38 @@ def parse_spim_command(redo: bool) -> bool:
     Raises:
         SystemExit: ``exit``/``quit``, or end of input.
     """
-    global _prev_cmd, _prev_token, _run_addr, _step_count, _print_loc, _bkpt_addr
+    global \
+        _previous_command, \
+        _previous_token, \
+        _run_address, \
+        _step_count, \
+        _print_location, \
+        _breakpoint_address
     global program_argv
-    cmd: Command = _prev_cmd if redo else _read_assembly_command()
-    if cmd == Command.EXIT:
+    command: Command = _previous_command if redo else _read_assembly_command()
+    if command == Command.EXIT:
         console.console_to_spim()
         raise SystemExit(0)
-    match cmd:
+    match command:
         case Command.READ:
-            token: int = _prev_token if redo else _read_token()
+            token: int = _previous_token if redo else _read_token()
             if not redo:
                 _flush_to_newline()
-            if token == opcodes.TOK_STR:
-                spim_utils.read_assembly_file(_value_str())
+            if token == opcodes.TOKEN_STRING:
+                spim_utils.read_assembly_file(_value_string())
                 scanner.pop_source()
             else:
                 console.error("Must supply a filename to read\n")
-            _prev_cmd = Command.READ
+            _previous_command = Command.READ
         case Command.RUN:
-            _run_addr = _run_addr if redo else machine.u32(_get_opt_int())
-            if _run_addr == 0:
-                _run_addr = spim_utils.starting_address()
+            _run_address = (
+                _run_address if redo else machine.u32(_get_optional_integer())
+            )
+            if _run_address == 0:
+                _run_address = spim_utils.starting_address()
             spim_utils.initialize_run_stack(program_argv)
             console.console_to_program()
-            if _run_addr != 0:
+            if _run_address != 0:
                 undefined: str | None = symbol_table.undefined_symbol_string()
                 if undefined is not None:
                     console.message(
@@ -752,149 +770,157 @@ def parse_spim_command(redo: bool) -> bool:
                     )
                 _report_breakpoint(
                     spim_utils.run_program(
-                        _run_addr, layout.DEFAULT_RUN_STEPS, False, False
+                        _run_address, layout.DEFAULT_RUN_STEPS, False, False
                     )
                 )
             console.console_to_spim()
-            _prev_cmd = Command.RUN
+            _previous_command = Command.RUN
         case Command.CONTINUE:
-            if cpu.pc != 0:
+            if cpu.program_counter != 0:
                 console.console_to_program()
                 _report_breakpoint(
                     spim_utils.run_program(
-                        cpu.pc, layout.DEFAULT_RUN_STEPS, False, True
+                        cpu.program_counter, layout.DEFAULT_RUN_STEPS, False, True
                     )
                 )
                 console.console_to_spim()
-            _prev_cmd = Command.CONTINUE
+            _previous_command = Command.CONTINUE
         case Command.STEP:
-            _step_count = _step_count if redo else _get_opt_int()
-            addr: int = spim_utils.starting_address() if cpu.pc == 0 else cpu.pc
+            _step_count = _step_count if redo else _get_optional_integer()
+            address: int = (
+                spim_utils.starting_address()
+                if cpu.program_counter == 0
+                else cpu.program_counter
+            )
             if _step_count == 0:
                 _step_count = 1
-            if addr != 0:
+            if address != 0:
                 console.console_to_program()
                 _report_breakpoint(
-                    spim_utils.run_program(addr, _step_count, True, True)
+                    spim_utils.run_program(address, _step_count, True, True)
                 )
                 console.console_to_spim()
-            _prev_cmd = Command.STEP
+            _previous_command = Command.STEP
         case Command.PRINT:
-            token = _prev_token if redo else _read_token()
-            consumed_nl: bool = False
+            token = _previous_token if redo else _read_token()
+            consumed_newline: bool = False
             match token:
-                case opcodes.TOK_REG:
-                    _print_loc = _print_loc + 1 if redo else _value_int()
-                    _print_reg(_print_loc)
-                case opcodes.TOK_FP_REG:
-                    _print_loc = _print_loc + 2 if redo else _value_int()
-                    _print_fp_reg(_print_loc)
-                case opcodes.TOK_INT:
+                case opcodes.TOKEN_REGISTER:
+                    _print_location = _print_location + 1 if redo else _value_integer()
+                    _print_register(_print_location)
+                case opcodes.TOKEN_FLOATING_POINT_REGISTER:
+                    _print_location = _print_location + 2 if redo else _value_integer()
+                    _print_floating_point_register(_print_location)
+                case opcodes.TOKEN_INTEGER:
                     if redo:
-                        _print_loc = machine.s32(_print_loc + 4)
-                        memory.print_mem(machine.u32(_print_loc))
+                        _print_location = machine.s32(_print_location + 4)
+                        memory.print_memory(machine.u32(_print_location))
                     else:
-                        consumed_nl = _print_address(_value_int())
-                case opcodes.TOK_ID:
-                    name: str = _value_str()
-                    if not _print_reg_from_string(name):
-                        _print_loc = (
-                            machine.s32(_print_loc + 4)
+                        consumed_newline = _print_address(_value_integer())
+                case opcodes.TOKEN_IDENTIFIER:
+                    name: str = _value_string()
+                    if not _print_register_from_string(name):
+                        _print_location = (
+                            machine.s32(_print_location + 4)
                             if redo
                             else machine.s32(symbol_table.find_symbol_address(name))
                         )
-                        if _print_loc != 0:
-                            memory.print_mem(machine.u32(_print_loc))
+                        if _print_location != 0:
+                            memory.print_memory(machine.u32(_print_location))
                         else:
                             console.error(f"Unknown label: {name}\n")
                 case _:
                     console.error("Print what?\n")
-            if not redo and not consumed_nl:
+            if not redo and not consumed_newline:
                 _flush_to_newline()
-            _prev_cmd = Command.PRINT
-            _prev_token = token
-        case Command.PRINT_SYM:
+            _previous_command = Command.PRINT
+            _previous_token = token
+        case Command.PRINT_SYMBOL:
             symbol_table.print_symbols()
             if not redo:
                 _flush_to_newline()
-            _prev_cmd = Command.NOP
-        case Command.PRINT_ALL_REGS:
-            token = _prev_token if redo else _read_token()
-            hex_flag: bool = token == opcodes.TOK_ID and _value_str() == "hex"
+            _previous_command = Command.NOP
+        case Command.PRINT_ALL_REGISTERS:
+            token = _previous_token if redo else _read_token()
+            hex_flag: bool = (
+                token == opcodes.TOKEN_IDENTIFIER and _value_string() == "hex"
+            )
             console.message(display.format_registers(hex_flag, hex_flag) + "\n")
             if (
-                not redo and token != opcodes.TOK_NL
+                not redo and token != opcodes.TOKEN_NEWLINE
             ):  # a bare newline ends the line already
                 _flush_to_newline()
-            _prev_cmd = Command.NOP
+            _previous_command = Command.NOP
         case Command.REINITIALIZE:
             _flush_to_newline()
             spim_utils.initialize_world(_exception_files(), not options.quiet)
             spim_utils.initialize_run_stack(program_argv)
             spim_utils.write_startup_message()
-            _prev_cmd = Command.NOP
+            _previous_command = Command.NOP
         case Command.ASM:
             parser.parse_file()
-            _prev_cmd = Command.ASM
+            _previous_command = Command.ASM
         case Command.REDO:
             return True
         case Command.NOP:
-            _prev_cmd = Command.NOP
-        case Command.ARGS:
+            _previous_command = Command.NOP
+        case Command.ARGUMENTS:
             argv0: str = program_argv[0] if program_argv else "<repl>"
             words: list[str] = []
-            while (token := _read_token()) not in (opcodes.TOK_NL, 0):
-                if token in (opcodes.TOK_STR, opcodes.TOK_ID):
-                    words.append(_value_str())
-                elif token == opcodes.TOK_INT:
-                    words.append(str(_value_int()))
+            while (token := _read_token()) not in (opcodes.TOKEN_NEWLINE, 0):
+                if token in (opcodes.TOKEN_STRING, opcodes.TOKEN_IDENTIFIER):
+                    words.append(_value_string())
+                elif token == opcodes.TOKEN_INTEGER:
+                    words.append(str(_value_integer()))
                 else:
                     pass  # any other token is not an argument word
             program_argv = [argv0, *words]
-            _prev_cmd = Command.ARGS
+            _previous_command = Command.ARGUMENTS
         case Command.HELP:
             if not redo:
                 _flush_to_newline()
             console.message(HELP_TEXT)
-            _prev_cmd = Command.HELP
-        case Command.SET_BKPT | Command.DELETE_BKPT:
-            token = _prev_token if redo else _read_token()
+            _previous_command = Command.HELP
+        case Command.SET_BREAKPOINT | Command.DELETE_BREAKPOINT:
+            token = _previous_token if redo else _read_token()
             if (
-                not redo and token != opcodes.TOK_NL
+                not redo and token != opcodes.TOKEN_NEWLINE
             ):  # a bare newline ends the line already
                 _flush_to_newline()
-            if token == opcodes.TOK_INT:
-                _bkpt_addr = (
-                    machine.u32(_bkpt_addr + 4) if redo else machine.u32(_value_int())
-                )
-            elif token == opcodes.TOK_ID:
-                _bkpt_addr = (
-                    machine.u32(_bkpt_addr + 4)
+            if token == opcodes.TOKEN_INTEGER:
+                _breakpoint_address = (
+                    machine.u32(_breakpoint_address + 4)
                     if redo
-                    else symbol_table.find_symbol_address(_value_str())
+                    else machine.u32(_value_integer())
+                )
+            elif token == opcodes.TOKEN_IDENTIFIER:
+                _breakpoint_address = (
+                    machine.u32(_breakpoint_address + 4)
+                    if redo
+                    else symbol_table.find_symbol_address(_value_string())
                 )
             else:
                 console.error("Must supply an address for breakpoint\n")
                 return False
-            if cmd == Command.SET_BKPT:
-                spim_utils.add_breakpoint(_bkpt_addr)
+            if command == Command.SET_BREAKPOINT:
+                spim_utils.add_breakpoint(_breakpoint_address)
             else:
-                spim_utils.delete_breakpoint(_bkpt_addr)
-            _prev_cmd = cmd
-        case Command.LIST_BKPT:
+                spim_utils.delete_breakpoint(_breakpoint_address)
+            _previous_command = command
+        case Command.LIST_BREAKPOINT:
             if not redo:
                 _flush_to_newline()
             spim_utils.list_breakpoints()
-            _prev_cmd = Command.LIST_BKPT
-        case Command.DUMP | Command.DUMPNATIVE:
-            _dump_command(cmd, _prev_token if redo else _read_token())
-        case Command.DISASM:
+            _previous_command = Command.LIST_BREAKPOINT
+        case Command.DUMP | Command.DUMP_NATIVE:
+            _dump_command(command, _previous_token if redo else _read_token())
+        case Command.DISASSEMBLY:
             display.print_text_listing()
             if not redo:
                 _flush_to_newline()
-            _prev_cmd = Command.NOP
+            _previous_command = Command.NOP
         case _:
-            while _read_token() != opcodes.TOK_NL:
+            while _read_token() != opcodes.TOKEN_NEWLINE:
                 pass
             console.error("Unknown spim command\n")
     return False
@@ -906,34 +932,38 @@ def _print_address(address: int) -> bool:
     Returns:
         bool: True if the command line's newline was already read.
     """
-    global _print_loc
+    global _print_location
     following: int = _read_token()
     if following == ord("("):
-        reg_token: int = _read_token()
-        reg: int = _value_int() if reg_token == opcodes.TOK_REG else -1
-        close: int = _read_token() if reg_token == opcodes.TOK_REG else 0
-        if reg < 0 or close != ord(")"):
+        register_token: int = _read_token()
+        register_number: int = (
+            _value_integer() if register_token == opcodes.TOKEN_REGISTER else -1
+        )
+        close: int = _read_token() if register_token == opcodes.TOKEN_REGISTER else 0
+        if register_number < 0 or close != ord(")"):
             console.error("expected $reg) after '(' in print N($reg) form\n")
         else:
-            _print_loc = machine.s32(cpu.gpr[reg] + address)
-            memory.print_mem(machine.u32(_print_loc))
-        return opcodes.TOK_NL in (reg_token, close)
-    _print_loc = address
-    memory.print_mem(machine.u32(_print_loc))
-    return following == opcodes.TOK_NL
+            _print_location = machine.s32(
+                cpu.general_purpose_registers[register_number] + address
+            )
+            memory.print_memory(machine.u32(_print_location))
+        return opcodes.TOKEN_NEWLINE in (register_token, close)
+    _print_location = address
+    memory.print_memory(machine.u32(_print_location))
+    return following == opcodes.TOKEN_NEWLINE
 
 
-def _dump_command(cmd: Command, token: int) -> None:
+def _dump_command(command: Command, token: int) -> None:
     """``dump``/``dumpnative ["FILE"]``: the user code as raw words."""
-    global _prev_cmd
+    global _previous_command
     filename: str
-    if token == opcodes.TOK_STR:
-        filename = _value_str()
-    elif token == opcodes.TOK_NL:
+    if token == opcodes.TOKEN_STRING:
+        filename = _value_string()
+    elif token == opcodes.TOKEN_NEWLINE:
         filename = "spim.dump"
     else:
         console.error(
-            f'usage: {"dump" if cmd == Command.DUMP else "dumpnative"} [ "filename" ]\n'
+            f'usage: {"dump" if command == Command.DUMP else "dumpnative"} [ "filename" ]\n'
         )
         return
     try:
@@ -941,58 +971,67 @@ def _dump_command(cmd: Command, token: int) -> None:
     except OSError as problem:
         console.error(f"{filename}: {problem.strerror}\n")
         return
-    instruction.user_kernel_text_segment(False)
+    instruction_module.user_kernel_text_segment(False)
     start: int = symbol_table.find_symbol_address(layout.END_OF_TRAP_HANDLER_SYMBOL)
-    end: int = instruction.current_text_pc()
+    end: int = instruction_module.current_text_location()
     byte_order: str = (
-        "big" if cmd == Command.DUMP else "little"
+        "big" if command == Command.DUMP else "little"
     )  # network order for dump
     words: int = 0
     with out:
-        for addr in range(start, end, 4):
-            code: int = machine.u32(instruction.inst_encode(memory.read_inst(addr)))
+        for address in range(start, end, 4):
+            code: int = machine.u32(
+                instruction_module.instruction_encode(memory.read_instruction(address))
+            )
             out.write(code.to_bytes(4, byte_order))
             words += 1
     console.error(
         f"Dumped {words} words starting at 0x{start:08x} to file {filename}\n"
     )
-    _prev_cmd = cmd
+    _previous_command = command
 
 
-def _print_reg(number: int) -> None:
+def _print_register(number: int) -> None:
     """``print $N``."""
-    value: int = cpu.gpr[number] if 0 <= number < 32 else 0  # C reads past gpr[]
+    value: int = (
+        cpu.general_purpose_registers[number] if 0 <= number < 32 else 0
+    )  # C reads past gpr[]
     console.message(f"Reg {number} = 0x{machine.u32(value):08x} ({value})\n")
 
 
-def _print_fp_reg(number: int) -> None:
+def _print_floating_point_register(number: int) -> None:
     """``print $fN``: as a double too when N is even."""
     number &= 31  # C would read past the register file
     if number & 1 == 0:
         console.message(
-            f"FP reg {number} = {c_format('%g', regs.fpr_d(number))} (double)\n"
+            f"FP reg {number} = {c_format('%g', regs.floating_point_register_double(number))} (double)\n"
         )
     console.message(
-        f"FP reg {number} = {c_format('%g', regs.fpr_s(number))} (single)\n"
+        f"FP reg {number} = {c_format('%g', regs.floating_point_register_single(number))} (single)\n"
     )
 
 
-def _print_reg_from_string(name: str) -> bool:
+def _print_register_from_string(name: str) -> bool:
     """``print pc`` and the other named special registers; False if none."""
     # C's tolower in the "C" locale changes only ASCII letters.
     lowered: str = console.from_bytes(
         console.to_bytes(name[:100]).lower()
     ).removeprefix("$")
-    cp0: list[int] = cpu.cpr[0]
+    coprocessor_0: list[int] = cpu.coprocessor_registers[0]
     special: dict[str, tuple[str, int]] = {
-        "pc": ("PC", cpu.pc),
-        "hi": ("HI", cpu.hi),
-        "lo": ("LO", cpu.lo),
-        "fpcond": ("FCSR", cpu.cpr[1][regs.FCSR_REG]),
-        "cause": ("Cause", cp0[regs.CP0_CAUSE]),
-        "epc": ("EPC", cp0[regs.CP0_EPC]),
-        "status": ("Status", cp0[regs.CP0_STATUS]),
-        "badvaddr": ("BadVAddr", cp0[regs.CP0_BADVADDR]),
+        "pc": ("PC", cpu.program_counter),
+        "hi": ("HI", cpu.multiply_divide_high),
+        "lo": ("LO", cpu.multiply_divide_low),
+        "fpcond": (
+            "FCSR",
+            cpu.coprocessor_registers[1][
+                regs.FLOATING_POINT_CONTROL_STATUS_REGISTER_NUMBER
+            ],
+        ),
+        "cause": ("Cause", coprocessor_0[regs.COPROCESSOR_0_CAUSE]),
+        "epc": ("EPC", coprocessor_0[regs.COPROCESSOR_0_EXCEPTION_PROGRAM_COUNTER]),
+        "status": ("Status", coprocessor_0[regs.COPROCESSOR_0_STATUS]),
+        "badvaddr": ("BadVAddr", coprocessor_0[regs.COPROCESSOR_0_BAD_VIRTUAL_ADDRESS]),
     }
     if lowered not in special:
         return False

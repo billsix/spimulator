@@ -21,18 +21,18 @@ from typing import Any, assert_never
 
 from . import opcodes, scanner
 from .cformat import c_format
-from .inst import ImmExpr
+from .inst import ImmediateExpression
 
 
 class Kind(Enum):
     """The kinds of node."""
 
-    INST_R = auto()
-    INST_R_SHIFT = auto()
-    INST_I = auto()
-    INST_J = auto()
-    INST_FP_R = auto()
-    INST_FP_COMPARE = auto()
+    INSTRUCTION_R = auto()
+    INSTRUCTION_R_SHIFT = auto()
+    INSTRUCTION_I = auto()
+    INSTRUCTION_J = auto()
+    INSTRUCTION_FLOATING_POINT_R = auto()
+    INSTRUCTION_FLOATING_POINT_COMPARE = auto()
     PSEUDO = auto()
     DATA_BYTE = auto()
     DATA_HALF = auto()
@@ -40,17 +40,45 @@ class Kind(Enum):
     DATA_FLOAT = auto()
     DATA_DOUBLE = auto()
     DATA_STRING = auto()
-    DIR_TEXT = auto()
-    DIR_DATA = auto()
-    DIR_KTEXT = auto()
-    DIR_KDATA = auto()
-    DIR_ALIGN = auto()
-    DIR_SPACE = auto()
-    DIR_GLOBL = auto()
-    DIR_EXTERN = auto()
-    DIR_COMM = auto()
-    LABEL_DEF = auto()
+    DIRECTIVE_TEXT = auto()
+    DIRECTIVE_DATA = auto()
+    DIRECTIVE_KTEXT = auto()
+    DIRECTIVE_KDATA = auto()
+    DIRECTIVE_ALIGN = auto()
+    DIRECTIVE_SPACE = auto()
+    DIRECTIVE_GLOBL = auto()
+    DIRECTIVE_EXTERN = auto()
+    DIRECTIVE_COMM = auto()
+    LABEL_DEFINITION = auto()
     FILE = auto()
+
+
+# The name each kind prints as in -print-ast and -print-ast-json: the C engine's
+# spelling (src/ast.c), which the parity tests compare. A kind not listed prints its
+# own name.
+_PRINTED_NAME: dict[Kind, str] = {
+    Kind.INSTRUCTION_R: "INST_R",
+    Kind.INSTRUCTION_R_SHIFT: "INST_R_SHIFT",
+    Kind.INSTRUCTION_I: "INST_I",
+    Kind.INSTRUCTION_J: "INST_J",
+    Kind.INSTRUCTION_FLOATING_POINT_R: "INST_FP_R",
+    Kind.INSTRUCTION_FLOATING_POINT_COMPARE: "INST_FP_COMPARE",
+    Kind.DIRECTIVE_TEXT: "DIR_TEXT",
+    Kind.DIRECTIVE_DATA: "DIR_DATA",
+    Kind.DIRECTIVE_KTEXT: "DIR_KTEXT",
+    Kind.DIRECTIVE_KDATA: "DIR_KDATA",
+    Kind.DIRECTIVE_ALIGN: "DIR_ALIGN",
+    Kind.DIRECTIVE_SPACE: "DIR_SPACE",
+    Kind.DIRECTIVE_GLOBL: "DIR_GLOBL",
+    Kind.DIRECTIVE_EXTERN: "DIR_EXTERN",
+    Kind.DIRECTIVE_COMM: "DIR_COMM",
+    Kind.LABEL_DEFINITION: "LABEL_DEF",
+}
+
+
+def printed_name(kind: Kind) -> str:
+    """The name a kind prints as, as the C engine prints it."""
+    return _PRINTED_NAME.get(kind, kind.name)
 
 
 @dataclass(eq=False)
@@ -60,7 +88,7 @@ class Node:
     Attributes:
         kind: what the node is.
         source_line: the line number when the node was built.
-        src_text: the source line ("NNN: text") when the node was built;
+        source_text: the source line ("NNN: text") when the node was built;
             emit_ast gives it to the instructions the node stores.
         op, rd, rs, rt, shamt, fd, fs, ft, cc: an instruction's opcode token
             and fields.
@@ -71,34 +99,34 @@ class Node:
         doubles: a .float/.double list.
         string: a .ascii/.asciiz string's bytes.
         null_terminate: the string is .asciiz.
-        has_start_addr, start_addr: a segment directive's address.
+        has_start_address, start_address: a segment directive's address.
         number: .align's power, .space's or .extern/.comm's size, a
             constant label's value.
         name: a label, .globl, .extern or .comm name; a FILE's source.
-        is_constant: a LABEL_DEF is ``NAME = EXPR``, not ``NAME:``.
+        is_constant: a LABEL_DEFINITION is ``NAME = EXPR``, not ``NAME:``.
     """
 
     kind: Kind
     source_line: int = 0
-    src_text: str | None = None
-    op: int = 0
-    rd: int = 0
-    rs: int = 0
-    rt: int = 0
-    shamt: int = 0
-    fd: int = 0
-    fs: int = 0
-    ft: int = 0
-    cc: int = 0
-    imm: ImmExpr | None = None
+    source_text: str | None = None
+    opcode: int = 0
+    destination_register: int = 0
+    source_register: int = 0
+    target_register: int = 0
+    shift_amount: int = 0
+    floating_point_destination: int = 0
+    floating_point_source: int = 0
+    floating_point_target: int = 0
+    condition_code: int = 0
+    immediate: ImmediateExpression | None = None
     children: list["Node"] = field(default_factory=list)
     mnemonic: str = ""
-    exprs: list[ImmExpr] = field(default_factory=list)
+    expressions: list[ImmediateExpression] = field(default_factory=list)
     doubles: list[float] = field(default_factory=list)
     string: bytes = b""
     null_terminate: bool = False
-    has_start_addr: bool = False
-    start_addr: int = 0
+    has_start_address: bool = False
+    start_address: int = 0
     number: int = 0
     name: str | None = None
     is_constant: bool = False
@@ -108,28 +136,28 @@ def make(kind: Kind, **fields: Any) -> Node:
     """A new node, stamped with the scanner's current line (C ``new_node``)."""
     node: Node = Node(kind, **fields)
     node.source_line = scanner.line_no
-    node.src_text = scanner.source_line()
+    node.source_text = scanner.source_line()
     return node
 
 
 # --- the indented text printer (-print-ast, -show-expansion) -----------------
 
 
-def _imm_text(expr: ImmExpr | None) -> str:
+def _immediate_text(expression: ImmediateExpression | None) -> str:
     """An immediate as ``-print-ast`` shows it."""
-    if expr is None:
+    if expression is None:
         return "(null)"
-    elif expr.symbol is None:
-        return str(expr.offset)
+    elif expression.symbol is None:
+        return str(expression.offset)
     else:
-        text: str = expr.symbol.name
-        if expr.offset > 0:
-            text += f"+{expr.offset}"
-        elif expr.offset < 0:
-            text += str(expr.offset)
+        text: str = expression.symbol.name
+        if expression.offset > 0:
+            text += f"+{expression.offset}"
+        elif expression.offset < 0:
+            text += str(expression.offset)
         else:
             pass  # a zero offset prints as the bare name
-        return text + (" (pc-rel)" if expr.pc_relative else "")
+        return text + (" (pc-rel)" if expression.program_counter_relative else "")
 
 
 def _string_text(data: bytes) -> str:
@@ -150,10 +178,10 @@ def _string_text(data: bytes) -> str:
 
 
 _SEGMENT_TAGS: dict[Kind, str] = {
-    Kind.DIR_TEXT: "DIR_TEXT",
-    Kind.DIR_DATA: "DIR_DATA",
-    Kind.DIR_KTEXT: "DIR_KTEXT",
-    Kind.DIR_KDATA: "DIR_KDATA",
+    Kind.DIRECTIVE_TEXT: "DIR_TEXT",
+    Kind.DIRECTIVE_DATA: "DIR_DATA",
+    Kind.DIRECTIVE_KTEXT: "DIR_KTEXT",
+    Kind.DIRECTIVE_KDATA: "DIR_KDATA",
 }
 
 
@@ -162,52 +190,57 @@ def _describe(node: Node) -> str:
     match node.kind:
         case Kind.FILE:
             return f"FILE source={node.name if node.name is not None else '(stdin)'}"
-        case Kind.INST_R:
-            return f"INST_R op={opcodes.name_of(node.op)} rd={node.rd} rs={node.rs} rt={node.rt}"
-        case Kind.INST_R_SHIFT:
+        case Kind.INSTRUCTION_R:
+            return f"INST_R op={opcodes.name_of(node.opcode)} rd={node.destination_register} rs={node.source_register} rt={node.target_register}"
+        case Kind.INSTRUCTION_R_SHIFT:
             return (
-                f"INST_R_SHIFT op={opcodes.name_of(node.op)} rd={node.rd} rt={node.rt}"
-                f" shamt={node.shamt}"
+                f"INST_R_SHIFT op={opcodes.name_of(node.opcode)} rd={node.destination_register} rt={node.target_register}"
+                f" shamt={node.shift_amount}"
             )
-        case Kind.INST_I:
+        case Kind.INSTRUCTION_I:
             return (
-                f"INST_I op={opcodes.name_of(node.op)} rt={node.rt} rs={node.rs}"
-                f" imm={_imm_text(node.imm)}"
+                f"INST_I op={opcodes.name_of(node.opcode)} rt={node.target_register} rs={node.source_register}"
+                f" imm={_immediate_text(node.immediate)}"
             )
-        case Kind.INST_J:
-            return f"INST_J op={opcodes.name_of(node.op)} target={_imm_text(node.imm)}"
-        case Kind.INST_FP_R:
-            return f"INST_FP_R op={opcodes.name_of(node.op)} fd={node.fd} fs={node.fs} ft={node.ft}"
-        case Kind.INST_FP_COMPARE:
-            return f"INST_FP_COMPARE op={opcodes.name_of(node.op)} fs={node.fs} ft={node.ft} cc={node.cc}"
+        case Kind.INSTRUCTION_J:
+            return f"INST_J op={opcodes.name_of(node.opcode)} target={_immediate_text(node.immediate)}"
+        case Kind.INSTRUCTION_FLOATING_POINT_R:
+            return f"INST_FP_R op={opcodes.name_of(node.opcode)} fd={node.floating_point_destination} fs={node.floating_point_source} ft={node.floating_point_target}"
+        case Kind.INSTRUCTION_FLOATING_POINT_COMPARE:
+            return f"INST_FP_COMPARE op={opcodes.name_of(node.opcode)} fs={node.floating_point_source} ft={node.floating_point_target} cc={node.condition_code}"
         case Kind.PSEUDO:
             return f"PSEUDO mnemonic={node.mnemonic}"
         case Kind.DATA_BYTE | Kind.DATA_HALF | Kind.DATA_WORD:
-            values: str = ", ".join(_imm_text(e) for e in node.exprs)
-            return f"{node.kind.name} count={len(node.exprs)} values=[{values}]"
+            values: str = ", ".join(_immediate_text(e) for e in node.expressions)
+            return f"{printed_name(node.kind)} count={len(node.expressions)} values=[{values}]"
         case Kind.DATA_FLOAT | Kind.DATA_DOUBLE:
             numbers: str = ", ".join(c_format("%g", d) for d in node.doubles)
-            return f"{node.kind.name} count={len(node.doubles)} values=[{numbers}]"
+            return f"{printed_name(node.kind)} count={len(node.doubles)} values=[{numbers}]"
         case Kind.DATA_STRING:
             return (
                 f"DATA_STRING len={len(node.string)}"
                 f" null_term={'yes' if node.null_terminate else 'no'}"
                 f' value="{_string_text(node.string)}"'
             )
-        case Kind.DIR_TEXT | Kind.DIR_DATA | Kind.DIR_KTEXT | Kind.DIR_KDATA:
+        case (
+            Kind.DIRECTIVE_TEXT
+            | Kind.DIRECTIVE_DATA
+            | Kind.DIRECTIVE_KTEXT
+            | Kind.DIRECTIVE_KDATA
+        ):
             tag: str = _SEGMENT_TAGS[node.kind]
-            if node.has_start_addr:
-                return f"{tag} start=0x{node.start_addr:08x}"
+            if node.has_start_address:
+                return f"{tag} start=0x{node.start_address:08x}"
             return tag
-        case Kind.DIR_ALIGN:
+        case Kind.DIRECTIVE_ALIGN:
             return f"DIR_ALIGN n={node.number}"
-        case Kind.DIR_SPACE:
+        case Kind.DIRECTIVE_SPACE:
             return f"DIR_SPACE size={node.number}"
-        case Kind.DIR_GLOBL:
+        case Kind.DIRECTIVE_GLOBL:
             return f"DIR_GLOBL name={node.name}"
-        case Kind.DIR_EXTERN | Kind.DIR_COMM:
-            return f"{node.kind.name} name={node.name} size={node.number}"
-        case Kind.LABEL_DEF:
+        case Kind.DIRECTIVE_EXTERN | Kind.DIRECTIVE_COMM:
+            return f"{printed_name(node.kind)} name={node.name} size={node.number}"
+        case Kind.LABEL_DEFINITION:
             if node.is_constant:
                 return f"LABEL_DEF name={node.name} = {node.number} (constant)"
             return f"LABEL_DEF name={node.name} (placement)"
@@ -253,18 +286,22 @@ def _json_name(text: str) -> str:
     return _json_string(text.encode("latin-1"))
 
 
-def _json_imm(expr: ImmExpr | None) -> str:
+def _json_immediate(expression: ImmediateExpression | None) -> str:
     """An immediate as a JSON object."""
-    if expr is None:
+    if expression is None:
         return "null"
-    symbol: str = _json_name(expr.symbol.name) if expr.symbol is not None else "null"
-    pc_relative: str = "true" if expr.pc_relative else "false"
-    return f'{{"offset":{expr.offset},"symbol":{symbol},"pc_relative":{pc_relative}}}'
+    symbol: str = (
+        _json_name(expression.symbol.name) if expression.symbol is not None else "null"
+    )
+    program_counter_relative: str = (
+        "true" if expression.program_counter_relative else "false"
+    )
+    return f'{{"offset":{expression.offset},"symbol":{symbol},"pc_relative":{program_counter_relative}}}'
 
 
 def _json_fields(node: Node) -> str:
     """The JSON members after ``kind`` and ``source_line`` for one node."""
-    mnemonic: str = _json_name(opcodes.name_of(node.op))
+    mnemonic: str = _json_name(opcodes.name_of(node.opcode))
     match node.kind:
         case Kind.FILE:
             source: str = (
@@ -273,34 +310,32 @@ def _json_fields(node: Node) -> str:
                 else ""
             )
             return f'{source},"children":{_json_chain(node.children)}'
-        case Kind.INST_R:
+        case Kind.INSTRUCTION_R:
             return (
-                f',"op":{node.op},"mnemonic":{mnemonic},'
-                f'"rd":{node.rd},"rs":{node.rs},"rt":{node.rt}'
+                f',"op":{node.opcode},"mnemonic":{mnemonic},'
+                f'"rd":{node.destination_register},"rs":{node.source_register},"rt":{node.target_register}'
             )
-        case Kind.INST_R_SHIFT:
+        case Kind.INSTRUCTION_R_SHIFT:
             return (
-                f',"op":{node.op},"mnemonic":{mnemonic},'
-                f'"rd":{node.rd},"rt":{node.rt},"shamt":{node.shamt}'
+                f',"op":{node.opcode},"mnemonic":{mnemonic},'
+                f'"rd":{node.destination_register},"rt":{node.target_register},"shamt":{node.shift_amount}'
             )
-        case Kind.INST_I:
+        case Kind.INSTRUCTION_I:
             return (
-                f',"op":{node.op},"mnemonic":{mnemonic},'
-                f'"rt":{node.rt},"rs":{node.rs},"imm":{_json_imm(node.imm)}'
+                f',"op":{node.opcode},"mnemonic":{mnemonic},'
+                f'"rt":{node.target_register},"rs":{node.source_register},"imm":{_json_immediate(node.immediate)}'
             )
-        case Kind.INST_J:
+        case Kind.INSTRUCTION_J:
+            return f',"op":{node.opcode},"mnemonic":{mnemonic},"target":{_json_immediate(node.immediate)}'
+        case Kind.INSTRUCTION_FLOATING_POINT_R:
             return (
-                f',"op":{node.op},"mnemonic":{mnemonic},"target":{_json_imm(node.imm)}'
+                f',"op":{node.opcode},"mnemonic":{mnemonic},'
+                f'"fd":{node.floating_point_destination},"fs":{node.floating_point_source},"ft":{node.floating_point_target}'
             )
-        case Kind.INST_FP_R:
+        case Kind.INSTRUCTION_FLOATING_POINT_COMPARE:
             return (
-                f',"op":{node.op},"mnemonic":{mnemonic},'
-                f'"fd":{node.fd},"fs":{node.fs},"ft":{node.ft}'
-            )
-        case Kind.INST_FP_COMPARE:
-            return (
-                f',"op":{node.op},"mnemonic":{mnemonic},'
-                f'"fs":{node.fs},"ft":{node.ft},"cc":{node.cc}'
+                f',"op":{node.opcode},"mnemonic":{mnemonic},'
+                f'"fs":{node.floating_point_source},"ft":{node.floating_point_target},"cc":{node.condition_code}'
             )
         case Kind.PSEUDO:
             return (
@@ -308,8 +343,8 @@ def _json_fields(node: Node) -> str:
                 f'"children":{_json_chain(node.children)}'
             )
         case Kind.DATA_BYTE | Kind.DATA_HALF | Kind.DATA_WORD:
-            values: str = ",".join(_json_imm(e) for e in node.exprs)
-            return f',"count":{len(node.exprs)},"values":[{values}]'
+            values: str = ",".join(_json_immediate(e) for e in node.expressions)
+            return f',"count":{len(node.expressions)},"values":[{values}]'
         case Kind.DATA_FLOAT | Kind.DATA_DOUBLE:
             numbers: str = ",".join(c_format("%.17g", d) for d in node.doubles)
             return f',"count":{len(node.doubles)},"values":[{numbers}]'
@@ -319,17 +354,24 @@ def _json_fields(node: Node) -> str:
                 f',"length":{len(node.string)},"null_terminate":{null_terminate},'
                 f'"value":{_json_string(node.string)}'
             )
-        case Kind.DIR_TEXT | Kind.DIR_DATA | Kind.DIR_KTEXT | Kind.DIR_KDATA:
-            return f',"start_addr":{node.start_addr}' if node.has_start_addr else ""
-        case Kind.DIR_ALIGN:
+        case (
+            Kind.DIRECTIVE_TEXT
+            | Kind.DIRECTIVE_DATA
+            | Kind.DIRECTIVE_KTEXT
+            | Kind.DIRECTIVE_KDATA
+        ):
+            return (
+                f',"start_addr":{node.start_address}' if node.has_start_address else ""
+            )
+        case Kind.DIRECTIVE_ALIGN:
             return f',"n":{node.number}'
-        case Kind.DIR_SPACE:
+        case Kind.DIRECTIVE_SPACE:
             return f',"size":{node.number}'
-        case Kind.DIR_GLOBL:
+        case Kind.DIRECTIVE_GLOBL:
             return f',"name":{_json_name(node.name or "")}'
-        case Kind.DIR_EXTERN | Kind.DIR_COMM:
+        case Kind.DIRECTIVE_EXTERN | Kind.DIRECTIVE_COMM:
             return f',"name":{_json_name(node.name or "")},"size":{node.number}'
-        case Kind.LABEL_DEF:
+        case Kind.LABEL_DEFINITION:
             kind: str = "constant" if node.is_constant else "placement"
             value: str = f',"value":{node.number}' if node.is_constant else ""
             return f',"name":{_json_name(node.name or "")},"label_kind":"{kind}"{value}'
@@ -345,7 +387,7 @@ def _json_chain(nodes: list[Node]) -> str:
 def _json_node(node: Node) -> str:
     """One node as a JSON object."""
     return (
-        f'{{"kind":"{node.kind.name}","source_line":{node.source_line}'
+        f'{{"kind":"{printed_name(node.kind)}","source_line":{node.source_line}'
         f"{_json_fields(node)}}}"
     )
 

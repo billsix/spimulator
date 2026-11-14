@@ -122,7 +122,7 @@ def read_input(size: int) -> bytes:
     return bytes(data)
 
 
-def read_int_input() -> int | None:
+def read_integer_input() -> int | None:
     """Read one decimal integer the way scanf's ``%ld`` does (syscall 5).
 
     Skips white space, takes an optional sign and the digits; the byte that
@@ -160,8 +160,8 @@ def console_to_program() -> None:
         import termios
 
         _saved_terminal = termios.tcgetattr(STDIN)
-        params: list[Any] = termios.tcgetattr(STDIN)
-        iflag: int = params[0]
+        parameters: list[Any] = termios.tcgetattr(STDIN)
+        iflag: int = parameters[0]
         iflag &= ~(
             termios.ISTRIP
             | termios.INLCR
@@ -173,15 +173,15 @@ def console_to_program() -> None:
             | termios.BRKINT
             | termios.PARMRK
         )
-        params[0] = iflag | termios.IGNBRK | termios.IGNPAR | termios.ICRNL
-        params[1] = termios.OPOST | termios.ONLCR
-        cflag: int = params[2]
-        params[2] = (cflag & ~termios.PARENB) | termios.CREAD | termios.CS8
-        params[3] = 0
-        cc: list[bytes | int] = params[6]
-        cc[termios.VMIN] = 1
-        cc[termios.VTIME] = 1
-        termios.tcsetattr(STDIN, termios.TCSANOW, params)
+        parameters[0] = iflag | termios.IGNBRK | termios.IGNPAR | termios.ICRNL
+        parameters[1] = termios.OPOST | termios.ONLCR
+        cflag: int = parameters[2]
+        parameters[2] = (cflag & ~termios.PARENB) | termios.CREAD | termios.CS8
+        parameters[3] = 0
+        condition_code: list[bytes | int] = parameters[6]
+        condition_code[termios.VMIN] = 1
+        condition_code[termios.VTIME] = 1
+        termios.tcsetattr(STDIN, termios.TCSANOW, parameters)
 
 
 def console_to_spim() -> None:
