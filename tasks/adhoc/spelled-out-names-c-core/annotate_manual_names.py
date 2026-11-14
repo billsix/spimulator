@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Put the manual's (or the old idiom's) name beside each spelled-out definition.
 
-Decisions 1, 2 and 4 of ``tasks/spelled-out-names-c-core.md``: an architecture name is spelled
+Decisions 1, 2 and 4 of ``tasks/archive/2026/11/14/spelled-out-names-c-core.md``: an architecture name is spelled
 out with the MIPS manual's name in a comment (``coprocessor_0_status /* CP0 Status */``), a
 register a student names in assembly with the name they type (``/* $sp */``), and the
 allocation wrappers with their GNU-style name (``/* xmalloc in GNU style */``). For each
