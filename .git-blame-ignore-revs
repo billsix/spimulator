@@ -5,3 +5,11 @@
 
 # port/haskell: reformat with ormolu (2026-11-13)
 84392c8f7fa661411b0e115023a0ab00fe94509c
+
+# The C core: the spelled-out-names rename and its format pass (2026-11-14);
+# tasks/archive/2026/11/14/spelled-out-names-c-core.md.
+dfcc03d196574e7c1f09ca44219316fb9c0cf2f0
+3db0b226c44b9b3b2a4d6f7d6f2a83f67ffb9126
+c20664a28ca9bc302f835abfbcf2fbf4a57f73fe
+443122ae611a244224aa420494045f50964c0cd7
+804f8ac3d655d5c2f12e5cea6c14024a152e0069
