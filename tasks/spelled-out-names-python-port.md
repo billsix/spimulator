@@ -1,63 +1,73 @@
 # Spell out the abbreviated names in the Python port (`port/python/`)
 
-**Status:** proposed — needs go-ahead
-**Priority:** 6
-**Difficulty:** 5
 **Created:** 2026-11-14 (William Emerison Six <billsix@gmail.com>)
-**Depends on:** `tasks/archive/2026/11/14/spelled-out-names-c-core.md` (done; its glossary is this task's input)
+**Done:** 2026-11-14, on branch `spelled-out-names-c-core` (commit `7f23a4b`)
+**Depended on:** `tasks/archive/2026/11/14/spelled-out-names-c-core.md`
 
-## BLUF
+## Summary
 
-Apply the C core's spelled-out names to the Python engine port, so that a student reading the
-port next to the C sees the same names in the same places. Done means every name the glossary
-renames is renamed in the port, using Python's casing, plus any abbreviation that exists only
-in the port. The port's parity and lint gates must pass.
+The Python port's own names were spelled out to match the C core's, so a student reading the
+port beside the C sees the same names in the same places. There were 375 renamed names and 4,662
+renamed tokens; `gpr` became `general_purpose_registers` and `inst` became `instruction`. All 86
+port-python meson tests pass, and so does the lint gate (`port/python/lint.sh`: ruff, ty, the
+annotation check and 38 doctests). The parity runs against the C engine (`compare_engines.py`,
+`compare_all_programs.py`, `compare_repl.py`) are among those tests.
 
 ## Request (William Emerison Six <billsix@gmail.com>, 2026-11-14)
 
 "Once that's done for the C task, I want a follow up task for the python port, haskell port, and
-rust port to do the same."
+rust port to do the same." The go-ahead to run the ports straight after the C task, with no
+stop for review: "you should be able to start on the ports without asking me anything".
 
-## Context
+## How
 
-- The C task is done: `tasks/archive/2026/11/14/spelled-out-names-c-core.md`. Its glossary,
-  `tasks/reference/spelled-out-names-glossary.md`, holds each abbreviated word, its spelling, the
-  conventions, and the exemptions with their reasons. Reuse it. Don't re-derive it. The per-name
-  table is `tasks/adhoc/spelled-out-names-c-core/data/renames.tsv` (old, new, kinds, source,
-  location), which maps each C name to its new spelling.
-- **Already done by the C task:** the names `tools/gen_opcodes.py` generates for the port (the
-  token and operand-shape names of its opcode tables) were renamed with the C, and the port's
-  references to them followed. This task renames the port's own names.
-- The last of the three port tasks to be archived `git rm`s
-  `tasks/adhoc/spelled-out-names-c-core/` in its archive commit, since the ports were the reason
-  to keep it.
-- The ports mirror the C engine's names on purpose (`tasks/reference/engine-ports-design.md`), so a
-  C rename maps to a port rename, with the casing changed to `snake_case` (already C's casing) and
-  `CapWords` for classes.
-- Scope: `port/python/` (about 9,900 lines of Python). Coding standard: the shared
-  `python-coding-standard.md` (github.com/billsix/runClaudeInContainer `tasks/reference/`).
-- The same exemptions apply: externally defined names (the standard library, `argparse` options,
-  dunder methods), text the program prints or reads (the goldens must stay byte-identical), and the
-  tight-scope and familiar-acronym names the C task's review kept.
+- `tasks/adhoc/spelled-out-names-python-port/port_names.py` (shared by the three port tasks)
+  lists the names the port declares, from Python's `ast`.
+  - Each name that spells a C name in the port's casing (`gpr`, `CP0_STATUS`) takes the C name's
+    new words. Each other name gets the glossary's word spellings.
+  - `data/python.manual.tsv` decides the rest, and the result is `data/python.names.tsv`.
+- **The renaming** went by `tokenize` token: in code, f-string expressions and docstrings, but
+  never in other string literals. Dunder methods and Python's builtins are never renamed.
+- **The port-only words:**
+  - `cpr` and `ccr` became `coprocessor_registers` and `coprocessor_control_registers` (the CPU
+    object's register banks);
+  - `CAUSE_EXCCODE` became `CAUSE_EXCEPTION_CODE`;
+  - a local `brk` became `breakpoint_instruction`;
+  - `_emit_data_ints` became `_emit_data_integers`.
 
-## Plan
+## Exceptions and hand fixes
 
-1. **Discover the port's names mechanically:** Python's `ast` module over the port's modules (every
-   `Name` store, `FunctionDef`, `ClassDef`, `arg`, `Attribute` store and module constant). Save the
-   command as `tasks/adhoc/spelled-out-names-python-port/discover.sh` and the result as a worklog
-   under its `data/`.
-2. **Map them through the glossary.** Each name is (a) a mirror of a renamed C name, renamed the
-   same way, (b) a port-only abbreviation, added to the glossary with its meaning before renaming,
-   or (c) exempt, with the reason recorded.
-3. **Stop for the maintainer's review** of the port-only abbreviations and any new exemption.
-4. **Rename in batches, one glossary word per commit:** rope's rename refactoring, or an
-   `ast`-located rewrite; then `ty` and ruff confirm nothing dangles. Add each commit to
-   `.git-blame-ignore-revs`.
-5. **Gate every batch** with the port's suites from `port/README.md`: the regression and examples
-   runs, `port/harness/compare_engines.py`, `compare_all_programs.py` and `compare_repl.py`, the
-   float-format checks, and `port-python-lint` (`port/python/lint.sh`).
-6. **Harvest:** add the port-only words to `tasks/reference/spelled-out-names-glossary.md`.
+Spellings that mean two things in the port, and names inside strings, were handled by
+`alias_instruction_module.py` (before the token pass) and `fix_python_after_apply.py` (after it).
 
-## Open questions
+- **The `instruction` module** is imported as `instruction as instruction_module` in the eight
+  files that use it, because the port's locals named `inst` became `instruction`.
+  `from .inst import` keeps the `inst` module (`inst.py`).
+- **`console.py`'s `fd`** stays `fd`: it is a POSIX file descriptor there. Everywhere else `fd`
+  is the floating-point destination field.
+- **`cpu` and `CPU`** (the register-file object and its class) keep their names. The glossary's
+  `cpu` is the CpU exception code, and `ExcCode.CPU` shares the class's spelling.
+- **`ExcCode` became `ExceptionCode`.** Its members were renamed by a targeted pass
+  (`ExceptionCode.ADDRESS_ERROR_LOAD  # AdEL: …`), with the manual's mnemonic in the comment.
+- **The CPU object's attributes:**
+  - `hi`/`lo` are the HI and LO registers, so they became `multiply_divide_high` and
+    `multiply_divide_low` (C decision 2), not the generic `high`/`low`;
+  - `fpr` holds all 32 floating-point registers, so it is plural: `floating_point_registers`;
+  - its `__slots__` strings and the class docstring follow.
+- **Quoted forward references** (`"ImmExpr"`) follow their classes.
+- **The `Kind` members** print in `-print-ast` and `-print-ast-json`. They were renamed
+  (`DIRECTIVE_DATA`), and `printed_name` gives the C engine's printed spelling (`DIR_DATA`), so
+  the output is byte-identical to the C engine's.
+- **Kept:**
+  - the R/I/J format letters (`i_type`, `emit_r`);
+  - the grammar shapes (`_parse_b2`, `_parse_r3`);
+  - the numeric helpers (`s32`, `u8`, `to_s32`);
+  - termios's `iflag`/`cflag`;
+  - `PSEUDO_OP`;
+  - English-word names (`at_eof`, `in_text`).
 
-None yet. Step 3 settles the port-only cases.
+## Follow-ups
+
+None for this port. The Haskell and Rust tasks reuse `port_names.py`. The last of them to be
+archived removes `tasks/adhoc/spelled-out-names-python-port/` and
+`tasks/adhoc/spelled-out-names-c-core/`.

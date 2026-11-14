@@ -64,6 +64,18 @@ comments" section is the general form of the rule; this doc is the core's vocabu
   parser, which are `operator`; `hi`/`lo` are `high`/`low`, except the explain snapshot's copies of
   HI and LO, which are `multiply_divide_high`/`multiply_divide_low`.
 
+## In the ports
+
+The ports carry the same names in their own casing (`general_purpose_registers` in Python,
+`GENERAL_PURPOSE_REGISTER_COUNT` as a constant). What each port added or kept differently:
+
+- **Python** (`tasks/archive/2026/11/14/spelled-out-names-python-port.md`):
+  - `cpr` and `ccr` are `coprocessor_registers` and `coprocessor_control_registers`;
+  - `cpu`/`CPU` (the register-file object) keep their names;
+  - the `instruction` module is imported as `instruction_module`;
+  - `console.py`'s `fd` is a file descriptor and stays;
+  - `Kind` members print the C engine's spelling through `printed_name`.
+
 The decisions are in the archived task's Decisions section. The full per-name table is
 `tasks/adhoc/spelled-out-names-c-core/data/renames.tsv` until the port tasks are done.
 
