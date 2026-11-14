@@ -45,7 +45,7 @@ void print_undefined_symbols(void);
 label* record_label(const char* name, mem_addr address, bool resolve_uses);
 void record_data_uses_symbol(mem_addr location, label* symbol, int32_t offset,
                              int width);
-void record_inst_uses_symbol(mips_instruction* instruction, label* symbol);
+void record_instruction_uses_symbol(mips_instruction* instruction, label* symbol);
 [[nodiscard]] char* undefined_symbol_string(void);
 void resolve_a_label(label* symbol, mips_instruction* instruction);
 void resolve_label_uses(label* symbol);

@@ -15,7 +15,7 @@
 
 static asm_event_observer current_observer = nullptr;
 
-asm_event_observer asm_set_observer(asm_event_observer observer) {
+asm_event_observer assembler_set_observer(asm_event_observer observer) {
   const asm_event_observer previous = current_observer;
   current_observer = observer;
   return previous;
@@ -30,45 +30,45 @@ static void fire(asm_event e) {
   current_observer(&e);
 }
 
-void asm_fire_label_def(mem_addr address, const char* name, bool global) {
+void assembler_fire_label_definition(mem_addr address, const char* name, bool global) {
   if (current_observer == nullptr) return;
   fire((asm_event){.kind = AE_LABEL_DEF,
                    .address = address,
                    .payload.label_definition = {.name = name, .global = global}});
 }
 
-void asm_fire_text_inst(mem_addr address, uint32_t encoding) {
+void assembler_fire_text_instruction(mem_addr address, uint32_t encoding) {
   if (current_observer == nullptr) return;
   fire((asm_event){.kind = AE_TEXT_INST,
                    .address = address,
                    .payload.text_instruction = {.encoding = encoding}});
 }
 
-void asm_fire_data_byte(mem_addr address, int value) {
+void assembler_fire_data_byte(mem_addr address, int value) {
   if (current_observer == nullptr) return;
   fire((asm_event){
       .kind = AE_DATA_BYTE, .address = address, .payload.data_integer = {.value = value}});
 }
 
-void asm_fire_data_half(mem_addr address, int value) {
+void assembler_fire_data_half(mem_addr address, int value) {
   if (current_observer == nullptr) return;
   fire((asm_event){
       .kind = AE_DATA_HALF, .address = address, .payload.data_integer = {.value = value}});
 }
 
-void asm_fire_data_word(mem_addr address, int value) {
+void assembler_fire_data_word(mem_addr address, int value) {
   if (current_observer == nullptr) return;
   fire((asm_event){
       .kind = AE_DATA_WORD, .address = address, .payload.data_integer = {.value = value}});
 }
 
-void asm_fire_data_double(mem_addr address, double value) {
+void assembler_fire_data_double(mem_addr address, double value) {
   if (current_observer == nullptr) return;
   fire((asm_event){
       .kind = AE_DATA_DOUBLE, .address = address, .payload.data_double = {.value = value}});
 }
 
-void asm_fire_data_string(mem_addr address, const char* s, int length,
+void assembler_fire_data_string(mem_addr address, const char* s, int length,
                           bool null_term) {
   if (current_observer == nullptr) return;
   fire((asm_event){
@@ -78,7 +78,7 @@ void asm_fire_data_string(mem_addr address, const char* s, int length,
   });
 }
 
-void asm_fire_align(mem_addr address, int low_bits, int offset, asm_segment segment) {
+void assembler_fire_align(mem_addr address, int low_bits, int offset, asm_segment segment) {
   if (current_observer == nullptr) return;
   fire((asm_event){
       .kind = AE_ALIGN,
@@ -89,20 +89,20 @@ void asm_fire_align(mem_addr address, int low_bits, int offset, asm_segment segm
   });
 }
 
-void asm_fire_seg_change(asm_segment segment, mem_addr address) {
+void assembler_fire_segment_change(asm_segment segment, mem_addr address) {
   if (current_observer == nullptr) return;
   fire((asm_event){
       .kind = AE_SEG_CHANGE, .address = address, .payload.segment_change = {.segment = segment}});
 }
 
-void asm_fire_forward_ref(mem_addr from, const char* symbol) {
+void assembler_fire_forward_reference(mem_addr from, const char* symbol) {
   if (current_observer == nullptr) return;
   fire((asm_event){.kind = AE_FORWARD_REF,
                    .address = from,
                    .payload.forward_ref = {.symbol = symbol, .from = from}});
 }
 
-void asm_fire_forward_resolved(mem_addr at, const char* symbol, int32_t value) {
+void assembler_fire_forward_resolved(mem_addr at, const char* symbol, int32_t value) {
   if (current_observer == nullptr) return;
   fire((asm_event){
       .kind = AE_FORWARD_RESOLVED,

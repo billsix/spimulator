@@ -30,10 +30,10 @@ bool force_break =
 
 /* Local functions: */
 
-static void bump_CP0_timer(void);
-static void set_fpu_cc(int condition, int condition_code, int less, int equal, int unordered);
+static void bump_coprocessor_0_timer(void);
+static void set_floating_point_unit_condition_code(int condition, int condition_code, int less, int equal, int unordered);
 static void signed_multiply(reg_word v1, reg_word v2);
-static void start_CP0_timer(void);
+static void start_coprocessor_0_timer(void);
 static void unsigned_multiply(reg_word v1, reg_word v2);
 
 /* Extract bit 31 — used by the sign-aware branch instructions
@@ -141,7 +141,7 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
       (!bare_machine && mapped_io) ? IO_INTERVAL : steps_to_run;
 
   /* Start a timer running */
-  start_CP0_timer();
+  start_coprocessor_0_timer();
 
   for (step_size = MIN(next_step, steps_to_run); steps_to_run > 0;
        steps_to_run -= step_size, step_size = MIN(next_step, steps_to_run)) {
@@ -180,15 +180,15 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
         }
         if (time.it_value.tv_usec == 0 && time.it_value.tv_sec == 0) {
           /* Timer expired */
-          bump_CP0_timer();
+          bump_coprocessor_0_timer();
 
           /* Restart timer for next interval */
-          start_CP0_timer();
+          start_coprocessor_0_timer();
         }
       }
 
       exception_occurred = false;
-      instruction = mem_read_inst(PC);
+      instruction = memory_read_instruction(PC);
       /* Every branch of this chain leaves, so the rest of the loop body is its
          else; nesting all of that one level deeper would read worse. */
       /* dispatch-check: ok -- see the comment above */
@@ -204,7 +204,7 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
                  EXPR(instruction)->symbol != nullptr &&
                  EXPR(instruction)->symbol->address == 0) {
         run_error("Instruction references undefined symbol at 0x%08x\n  %s", PC,
-                  inst_to_string(PC));
+                  instruction_to_string(PC));
         return false;
       }
 
@@ -458,28 +458,28 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
 
         case TOK_LB_OPCODE:
           LOAD_INST(&gpr[RT(instruction)],
-                    mem_read_byte((u_reg_word)gpr[BASE(instruction)] +
+                    memory_read_byte((u_reg_word)gpr[BASE(instruction)] +
                                   (u_reg_word)IOFFSET(instruction)),
                     (reg_word)0xffffffff);
           break;
 
         case TOK_LBU_OPCODE:
           LOAD_INST(&gpr[RT(instruction)],
-                    mem_read_byte((u_reg_word)gpr[BASE(instruction)] +
+                    memory_read_byte((u_reg_word)gpr[BASE(instruction)] +
                                   (u_reg_word)IOFFSET(instruction)),
                     0xff);
           break;
 
         case TOK_LH_OPCODE:
           LOAD_INST(&gpr[RT(instruction)],
-                    mem_read_half((u_reg_word)gpr[BASE(instruction)] +
+                    memory_read_half((u_reg_word)gpr[BASE(instruction)] +
                                   (u_reg_word)IOFFSET(instruction)),
                     (reg_word)0xffffffff);
           break;
 
         case TOK_LHU_OPCODE:
           LOAD_INST(&gpr[RT(instruction)],
-                    mem_read_half((u_reg_word)gpr[BASE(instruction)] +
+                    memory_read_half((u_reg_word)gpr[BASE(instruction)] +
                                   (u_reg_word)IOFFSET(instruction)),
                     0xffff);
           break;
@@ -487,7 +487,7 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
         case TOK_LL_OPCODE:
           /* Uniprocess, so this instruction is just a load */
           LOAD_INST(&gpr[RT(instruction)],
-                    mem_read_word((u_reg_word)gpr[BASE(instruction)] +
+                    memory_read_word((u_reg_word)gpr[BASE(instruction)] +
                                   (u_reg_word)IOFFSET(instruction)),
                     (reg_word)0xffffffff);
           break;
@@ -499,7 +499,7 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
 
         case TOK_LW_OPCODE:
           LOAD_INST(&gpr[RT(instruction)],
-                    mem_read_word((u_reg_word)gpr[BASE(instruction)] +
+                    memory_read_word((u_reg_word)gpr[BASE(instruction)] +
                                   (u_reg_word)IOFFSET(instruction)),
                     (reg_word)0xffffffff);
           break;
@@ -517,7 +517,7 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
                                 (u_reg_word)IOFFSET(instruction);
           const int byte = address & 0x3;
           const reg_word register_value = gpr[RT(instruction)];
-          reg_word word = mem_read_word(address & 0xfffffffc);
+          reg_word word = memory_read_word(address & 0xfffffffc);
           if (!exception_occurred)
 #ifdef SPIM_BIGENDIAN
             switch (byte) {
@@ -572,7 +572,7 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
                                 (u_reg_word)IOFFSET(instruction);
           const int byte = address & 0x3;
           const reg_word register_value = gpr[RT(instruction)];
-          reg_word word = mem_read_word(address & 0xfffffffc);
+          reg_word word = memory_read_word(address & 0xfffffffc);
           if (!exception_occurred)
 #ifdef SPIM_BIGENDIAN
             switch (byte) {
@@ -781,14 +781,14 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
           break;
 
         case TOK_SB_OPCODE:
-          mem_write_byte((u_reg_word)gpr[BASE(instruction)] +
+          memory_write_byte((u_reg_word)gpr[BASE(instruction)] +
                              (u_reg_word)IOFFSET(instruction),
                          gpr[RT(instruction)]);
           break;
 
         case TOK_SC_OPCODE:
           /* Uniprocessor, so instruction is just a store */
-          mem_write_word((u_reg_word)gpr[BASE(instruction)] +
+          memory_write_word((u_reg_word)gpr[BASE(instruction)] +
                              (u_reg_word)IOFFSET(instruction),
                          gpr[RT(instruction)]);
           break;
@@ -798,7 +798,7 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
           break;
 
         case TOK_SH_OPCODE:
-          mem_write_half((u_reg_word)gpr[BASE(instruction)] +
+          memory_write_half((u_reg_word)gpr[BASE(instruction)] +
                              (u_reg_word)IOFFSET(instruction),
                          gpr[RT(instruction)]);
           break;
@@ -915,7 +915,7 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
           break;
 
         case TOK_SW_OPCODE:
-          mem_write_word((u_reg_word)gpr[BASE(instruction)] +
+          memory_write_word((u_reg_word)gpr[BASE(instruction)] +
                              (u_reg_word)IOFFSET(instruction),
                          gpr[RT(instruction)]);
           break;
@@ -929,7 +929,7 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
                                 (u_reg_word)IOFFSET(instruction);
           const reg_word register_number = gpr[RT(instruction)];
           const int byte = address & 0x3;
-          mem_word data = mem_read_word(address & 0xfffffffc);
+          mem_word data = memory_read_word(address & 0xfffffffc);
 #ifdef SPIM_BIGENDIAN
           switch (byte) {
             case 0:
@@ -974,7 +974,7 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
               fatal_error("internal error: run_spim: SWL byte lane %d\n", byte);
           }
 #endif
-          mem_write_word(address & 0xfffffffc, data);
+          memory_write_word(address & 0xfffffffc, data);
           break;
         }
 
@@ -983,7 +983,7 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
                                 (u_reg_word)IOFFSET(instruction);
           const reg_word register_number = gpr[RT(instruction)];
           const int byte = address & 0x3;
-          mem_word data = mem_read_word(address & 0xfffffffc);
+          mem_word data = memory_read_word(address & 0xfffffffc);
 #ifdef SPIM_BIGENDIAN
           switch (byte) {
             case 0:
@@ -1028,7 +1028,7 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
               fatal_error("internal error: run_spim: SWR byte lane %d\n", byte);
           }
 #endif
-          mem_write_word(address & 0xfffffffc, data);
+          memory_write_word(address & 0xfffffffc, data);
           break;
         }
 
@@ -1158,7 +1158,7 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
           const int condition_code = CC(instruction);
           const int nullify_delay = ND(instruction); /* 1 => nullify */
           const int true_false = TF(instruction); /* 0 => BC1F, 1 => BC1T */
-          BRANCH_INST(fcc(condition_code) == true_false, PC + (mem_addr)BRANCH_OFFSET(instruction),
+          BRANCH_INST(floating_point_condition_code(condition_code) == true_false, PC + (mem_addr)BRANCH_OFFSET(instruction),
                       nullify_delay);
           break;
         }
@@ -1188,9 +1188,9 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
             if ((uint32_t)condition & COND_IN) {
               RAISE_EXCEPTION(ExcCode_FPE, break);
             }
-            set_fpu_cc(condition, condition_code, 0, 0, 1);
+            set_floating_point_unit_condition_code(condition, condition_code, 0, 0, 1);
           } else {
-            set_fpu_cc(condition, condition_code, v1 < v2, v1 == v2, 0);
+            set_floating_point_unit_condition_code(condition, condition_code, v1 < v2, v1 == v2, 0);
           }
         } break;
 
@@ -1218,9 +1218,9 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
             if ((uint32_t)condition & COND_IN) {
               RAISE_EXCEPTION(ExcCode_FPE, break);
             }
-            set_fpu_cc(condition, condition_code, 0, 0, 1);
+            set_floating_point_unit_condition_code(condition, condition_code, 0, 0, 1);
           } else {
-            set_fpu_cc(condition, condition_code, v1 < v2, v1 == v2, 0);
+            set_floating_point_unit_condition_code(condition, condition_code, v1 < v2, v1 == v2, 0);
           }
         } break;
 
@@ -1328,17 +1328,17 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
           if ((address & 0x3) != 0)
             RAISE_EXCEPTION(ExcCode_AdEL, CP0_BadVAddr = (reg_word)address);
 
-          LOAD_INST((reg_word*)&FPR_S(FT(instruction)), mem_read_word(address),
+          LOAD_INST((reg_word*)&FPR_S(FT(instruction)), memory_read_word(address),
                     (reg_word)0xffffffff);
           LOAD_INST((reg_word*)&FPR_S(FT(instruction) + 1),
-                    mem_read_word(address + sizeof(mem_word)),
+                    memory_read_word(address + sizeof(mem_word)),
                     (reg_word)0xffffffff);
           break;
         }
 
         case TOK_LWC1_OPCODE:
           LOAD_INST((reg_word*)&FPR_S(FT(instruction)),
-                    mem_read_word((u_reg_word)gpr[BASE(instruction)] +
+                    memory_read_word((u_reg_word)gpr[BASE(instruction)] +
                                   (u_reg_word)IOFFSET(instruction)),
                     (reg_word)0xffffffff);
           break;
@@ -1362,19 +1362,19 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
 
         case TOK_MOVF_OPCODE: {
           const int condition_code = CC(instruction);
-          if (fcc(condition_code) == 0) gpr[RD(instruction)] = gpr[RS(instruction)];
+          if (floating_point_condition_code(condition_code) == 0) gpr[RD(instruction)] = gpr[RS(instruction)];
           break;
         }
 
         case TOK_MOVF_D_OPCODE: {
           const int condition_code = CC(instruction);
-          if (fcc(condition_code) == 0) SET_FPR_D(FD(instruction), FPR_D(FS(instruction)));
+          if (floating_point_condition_code(condition_code) == 0) SET_FPR_D(FD(instruction), FPR_D(FS(instruction)));
           break;
         }
 
         case TOK_MOVF_S_OPCODE: {
           const int condition_code = CC(instruction);
-          if (fcc(condition_code) == 0) SET_FPR_S(FD(instruction), FPR_S(FS(instruction)));
+          if (floating_point_condition_code(condition_code) == 0) SET_FPR_S(FD(instruction), FPR_S(FS(instruction)));
           break;
         }
 
@@ -1392,19 +1392,19 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
 
         case TOK_MOVT_OPCODE: {
           const int condition_code = CC(instruction);
-          if (fcc(condition_code) != 0) gpr[RD(instruction)] = gpr[RS(instruction)];
+          if (floating_point_condition_code(condition_code) != 0) gpr[RD(instruction)] = gpr[RS(instruction)];
           break;
         }
 
         case TOK_MOVT_D_OPCODE: {
           const int condition_code = CC(instruction);
-          if (fcc(condition_code) != 0) SET_FPR_D(FD(instruction), FPR_D(FS(instruction)));
+          if (floating_point_condition_code(condition_code) != 0) SET_FPR_D(FD(instruction), FPR_D(FS(instruction)));
           break;
         }
 
         case TOK_MOVT_S_OPCODE: {
           const int condition_code = CC(instruction);
-          if (fcc(condition_code) != 0) SET_FPR_S(FD(instruction), FPR_S(FS(instruction)));
+          if (floating_point_condition_code(condition_code) != 0) SET_FPR_S(FD(instruction), FPR_S(FS(instruction)));
           break;
         }
 
@@ -1472,8 +1472,8 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
           if ((address & 0x3) != 0)
             RAISE_EXCEPTION(ExcCode_AdEL, CP0_BadVAddr = (reg_word)address);
 
-          mem_write_word(address, words[0]);
-          mem_write_word(address + sizeof(mem_word), words[1]);
+          memory_write_word(address, words[0]);
+          memory_write_word(address + sizeof(mem_word), words[1]);
           break;
         }
 
@@ -1500,7 +1500,7 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
           reg_word bits; /* the float's bit pattern, not its value */
           memcpy(&bits, &value, sizeof bits);
 
-          mem_write_word((u_reg_word)gpr[BASE(instruction)] +
+          memory_write_word((u_reg_word)gpr[BASE(instruction)] +
                              (u_reg_word)IOFFSET(instruction),
                          bits);
           break;
@@ -1530,7 +1530,7 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
 
       explain_after(instruction);
 
-      if (display) print_inst(PC);
+      if (display) print_instruction(PC);
 
       if (exception_occurred) {
         handle_exception();
@@ -1545,14 +1545,14 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
 /* Increment CP0 Count register and test if it matches the Compare
    register. If so, cause an interrupt. */
 
-static void bump_CP0_timer(void) {
+static void bump_coprocessor_0_timer(void) {
   CP0_Count += 1;
   if (CP0_Count == CP0_Compare) {
     RAISE_INTERRUPT(7);
   }
 }
 
-static void start_CP0_timer(void) {
+static void start_coprocessor_0_timer(void) {
   /* Read the timer with getitimer rather than handling SIGALRM, since signals
      interrupt I/O calls (read, etc.) and make user interaction with SPIM work
      very poorly. Since speed isn't an important aspect of SPIM, polling isn't
@@ -1638,14 +1638,14 @@ static void signed_multiply(reg_word v1, reg_word v2) {
   }
 }
 
-static void set_fpu_cc(int condition, int condition_code, int less, int equal, int unordered) {
+static void set_floating_point_unit_condition_code(int condition, int condition_code, int less, int equal, int unordered) {
   int result = 0;
 
   if ((uint32_t)condition & COND_LT) result |= less;
   if ((uint32_t)condition & COND_EQ) result |= equal;
   if ((uint32_t)condition & COND_UN) result |= unordered;
 
-  set_fcc(condition_code, result);
+  set_floating_point_condition_code(condition_code, result);
 }
 
 void raise_exception(mips_exc_code exception_code) {

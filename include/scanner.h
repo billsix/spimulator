@@ -10,7 +10,7 @@
 
 /* Exported functions. */
 
-void scanner_init(FILE* input_stream);
+void scanner_initialize(FILE* input_stream);
 char* erroneous_line(void);
 void scanner_start_line(void);
 int scanner_peek(void);

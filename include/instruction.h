@@ -218,16 +218,16 @@ typedef enum mips_exc_code : uint8_t {
 
 /* Exported functions: */
 
-imm_expr* addr_expr_imm(const addr_expr* expression);
-int addr_expr_reg(const addr_expr* expression);
+imm_expr* address_expression_immediate(const addr_expr* expression);
+int address_expression_register(const addr_expr* expression);
 void align_text(int alignment);
-[[nodiscard]] imm_expr* const_imm_expr(int32_t value);
-[[nodiscard]] mips_instruction* copy_inst(const mips_instruction* instruction);
-mem_addr current_text_pc(void);
-int32_t eval_imm_expr(const imm_expr* expression);
-void format_an_inst(str_stream* stream, mips_instruction* instruction,
+[[nodiscard]] imm_expr* constant_immediate_expression(int32_t value);
+[[nodiscard]] mips_instruction* copy_instruction(const mips_instruction* instruction);
+mem_addr current_text_location(void);
+int32_t evaluate_immediate_expression(const imm_expr* expression);
+void format_an_instruction(str_stream* stream, mips_instruction* instruction,
                     mem_addr address);
-void free_inst(mips_instruction* instruction);
+void free_instruction(mips_instruction* instruction);
 /* Override the source-line text store_instruction records, for deferred
    (AST) emission where the scanner has moved past the instruction's
    line.  emit_ast sets it per node (may be null) and clears it when
@@ -244,35 +244,35 @@ void emit_source_set(const char* s);
 void emit_source_clear(void);
 void i_type(int opcode, int target_register, int source_register, const imm_expr* expression);
 void i_type_free(int opcode, int target_register, int source_register, imm_expr* expression);
-[[nodiscard]] imm_expr* incr_expr_offset(const imm_expr* expression, int32_t value);
-[[nodiscard]] mips_instruction* inst_decode(int32_t value);
-int32_t inst_encode(const mips_instruction* instruction);
-bool inst_is_breakpoint(mem_addr address);
-[[nodiscard]] const char* inst_op_name(const mips_instruction* instruction);
+[[nodiscard]] imm_expr* increment_expression_offset(const imm_expr* expression, int32_t value);
+[[nodiscard]] mips_instruction* instruction_decode(int32_t value);
+int32_t instruction_encode(const mips_instruction* instruction);
+bool instruction_is_breakpoint(mem_addr address);
+[[nodiscard]] const char* instruction_opcode_name(const mips_instruction* instruction);
 /* Lookup mnemonic for a raw opcode token (TOK_*_OP, TOK_*_POP).
    Returned pointer is owned by the static opcode_table (opcode-tables.h). */
-[[nodiscard]] const char* op_token_name(int opcode_token);
+[[nodiscard]] const char* opcode_token_name(int opcode_token);
 void j_type(int opcode, imm_expr* target);
-void k_text_begins_at_point(mem_addr address);
-[[nodiscard]] addr_expr* make_addr_expr(int offset, const char* symbol, int register_no);
-[[nodiscard]] imm_expr* make_imm_expr(int offset, const char* symbol,
+void kernel_text_begins_at_point(mem_addr address);
+[[nodiscard]] addr_expr* make_address_expression(int offset, const char* symbol, int register_no);
+[[nodiscard]] imm_expr* make_immediate_expression(int offset, const char* symbol,
                                       bool is_program_counter_relative);
 bool opcode_is_branch(int opcode);
 bool opcode_is_nullified_branch(int opcode);
 bool opcode_is_true_branch(int opcode);
 bool opcode_is_jump(int opcode);
 bool opcode_is_load_store(int opcode);
-void print_inst(mem_addr address);
-[[nodiscard]] char* inst_to_string(mem_addr address);
-void r_co_type(int opcode, int floating_point_destination, int floating_point_source, int floating_point_target);
-void r_cond_type(int opcode, int floating_point_source, int floating_point_target, int condition_code);
-void r_sh_type(int opcode, int destination_register, int target_register, int shift_amount);
+void print_instruction(mem_addr address);
+[[nodiscard]] char* instruction_to_string(mem_addr address);
+void r_coprocessor_type(int opcode, int floating_point_destination, int floating_point_source, int floating_point_target);
+void r_condition_type(int opcode, int floating_point_source, int floating_point_target, int condition_code);
+void r_shift_amount_type(int opcode, int destination_register, int target_register, int shift_amount);
 void r_type(int opcode, int destination_register, int source_register, int target_register);
 void raise_exception(mips_exc_code exception_code);
 [[nodiscard]] mips_instruction* set_breakpoint(mem_addr address);
 void test_assembly(mips_instruction* instruction);
 void text_begins_at_point(mem_addr address);
 void user_kernel_text_segment(bool to_kernel);
-bool is_zero_imm(const imm_expr* expression);
+bool is_zero_immediate(const imm_expr* expression);
 
 #endif

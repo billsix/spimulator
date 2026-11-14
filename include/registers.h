@@ -183,19 +183,19 @@ constexpr int CC1_bit = 25;
 /* The FCSR bit for condition code N (cc 0 is bit 23, cc 1..7 are bits
    25..31; out-of-range N means cc 0).  1u: for n==7 the shift is
    `1 << 31`, which is UB on a signed `1`. */
-static inline u_reg_word cc_mask(int n) {
+static inline u_reg_word condition_code_mask(int n) {
   return ((n == 0) || (n > 7)) ? (1u << CC0_bit) : (1u << (CC1_bit + n - 1));
 }
 
-static inline int fcc(int n) {
-  return (((u_reg_word)FCSR & cc_mask(n)) == 0) ? 0 : 1;
+static inline int floating_point_condition_code(int n) {
+  return (((u_reg_word)FCSR & condition_code_mask(n)) == 0) ? 0 : 1;
 }
 
-static inline void set_fcc(int n, int v) {
+static inline void set_floating_point_condition_code(int n, int v) {
   if (v == 0)
-    FCSR = (reg_word)((u_reg_word)FCSR & ~cc_mask(n));
+    FCSR = (reg_word)((u_reg_word)FCSR & ~condition_code_mask(n));
   else
-    FCSR = (reg_word)((u_reg_word)FCSR | cc_mask(n));
+    FCSR = (reg_word)((u_reg_word)FCSR | condition_code_mask(n));
 }
 
 /* Floating point Cause (not implemented): */

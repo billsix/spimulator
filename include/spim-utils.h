@@ -30,9 +30,9 @@ extern char SPIM_DEFAULT_EXCEPTIONS_SENTINEL[];
 
 void add_breakpoint(mem_addr address);
 void delete_breakpoint(mem_addr address);
-void format_data_segs(str_stream* stream);
-void format_insts(str_stream* stream, mem_addr from, mem_addr to);
-void format_mem(str_stream* stream, mem_addr from, mem_addr to);
+void format_data_segments(str_stream* stream);
+void format_instructions(str_stream* stream, mem_addr from, mem_addr to);
+void format_memory(str_stream* stream, mem_addr from, mem_addr to);
 void print_text_listing(void);
 void format_registers(str_stream* stream, bool print_general_purpose_registers_hex, bool print_floating_point_register_hex);
 void initialize_registers(void);
@@ -40,9 +40,9 @@ void initialize_stack(const char* command_line);
 void initialize_run_stack(int argc, char** argv);
 void initialize_world(const char* exception_file_names, bool print_message);
 void list_breakpoints(void);
-const name_val_val* map_int_to_name_val_val(const name_val_val table[],
+const name_val_val* map_integer_to_name_value_value(const name_val_val table[],
                                             int table_length, int number);
-const name_val_val* map_string_to_name_val_val(const name_val_val table[],
+const name_val_val* map_string_to_name_value_value(const name_val_val table[],
                                                int table_length, const char* identifier);
 [[nodiscard]] bool read_assembly_file(char* name);
 [[nodiscard]] bool run_program(mem_addr program_counter, int steps, bool display,
@@ -52,8 +52,8 @@ mem_addr starting_address(void);
    ExcCode of the first runtime fault when that value is 0. */
 int program_exit_status(void);
 void write_startup_message(void);
-[[nodiscard]] void* xmalloc(size_t);
-[[nodiscard]] void* xrealloc(void*, size_t);
-[[nodiscard]] void* zmalloc(size_t);
+[[nodiscard]] void* allocate_or_exit(size_t);
+[[nodiscard]] void* reallocate_or_exit(void*, size_t);
+[[nodiscard]] void* allocate_zeroed_or_exit(size_t);
 
 #endif

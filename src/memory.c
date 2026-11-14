@@ -43,8 +43,8 @@ mem_addr k_data_top;
 
 /* Local functions: */
 
-static mem_word bad_mem_read(mem_addr address, int mask);
-static void bad_mem_write(mem_addr address, mem_word value, int mask);
+static mem_word bad_memory_read(mem_addr address, int mask);
+static void bad_memory_write(mem_addr address, mem_word value, int mask);
 static mips_instruction* bad_text_read(mem_addr address);
 static void bad_text_write(mem_addr address, const mips_instruction* instruction);
 static void free_instructions(mips_instruction** instruction, int n);
@@ -105,10 +105,10 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   data_size = ROUND_UP(data_size, BYTES_PER_WORD); /* Keep word aligned */
 
   if (text_seg == nullptr)
-    text_seg = (mips_instruction**)xmalloc(BYTES_TO_INST((size_t)text_size));
+    text_seg = (mips_instruction**)allocate_or_exit(BYTES_TO_INST((size_t)text_size));
   else {
     free_instructions(text_seg, (int)((text_top - TEXT_BOT) / BYTES_PER_WORD));
-    text_seg = (mips_instruction**)xrealloc(text_seg,
+    text_seg = (mips_instruction**)reallocate_or_exit(text_seg,
                                             BYTES_TO_INST((size_t)text_size));
   }
   memset(text_seg, 0, BYTES_TO_INST((size_t)text_size));
@@ -116,9 +116,9 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
 
   data_size = ROUND_UP(data_size, BYTES_PER_WORD); /* Keep word aligned */
   if (data_seg == nullptr)
-    data_seg = (mem_word*)xmalloc((size_t)data_size);
+    data_seg = (mem_word*)allocate_or_exit((size_t)data_size);
   else
-    data_seg = (mem_word*)xrealloc(data_seg, (size_t)data_size);
+    data_seg = (mem_word*)reallocate_or_exit(data_seg, (size_t)data_size);
   memset(data_seg, 0, (size_t)data_size);
   data_seg_b = (int8_t*)data_seg;
   data_seg_h = (short*)data_seg;
@@ -127,9 +127,9 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
 
   stack_size = ROUND_UP(stack_size, BYTES_PER_WORD); /* Keep word aligned */
   if (stack_seg == nullptr)
-    stack_seg = (mem_word*)xmalloc((size_t)stack_size);
+    stack_seg = (mem_word*)allocate_or_exit((size_t)stack_size);
   else
-    stack_seg = (mem_word*)xrealloc(stack_seg, (size_t)stack_size);
+    stack_seg = (mem_word*)reallocate_or_exit(stack_seg, (size_t)stack_size);
   memset(stack_seg, 0, (size_t)stack_size);
   stack_seg_b = (int8_t*)stack_seg;
   stack_seg_h = (short*)stack_seg;
@@ -138,11 +138,11 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
 
   if (k_text_seg == nullptr)
     k_text_seg =
-        (mips_instruction**)xmalloc(BYTES_TO_INST((size_t)kernel_text_size));
+        (mips_instruction**)allocate_or_exit(BYTES_TO_INST((size_t)kernel_text_size));
   else {
     free_instructions(k_text_seg,
                       (int)((k_text_top - K_TEXT_BOT) / BYTES_PER_WORD));
-    k_text_seg = (mips_instruction**)xrealloc(
+    k_text_seg = (mips_instruction**)reallocate_or_exit(
         k_text_seg, BYTES_TO_INST((size_t)kernel_text_size));
   }
   memset(k_text_seg, 0, BYTES_TO_INST((size_t)kernel_text_size));
@@ -150,9 +150,9 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
 
   kernel_data_size = ROUND_UP(kernel_data_size, BYTES_PER_WORD); /* Keep word aligned */
   if (k_data_seg == nullptr)
-    k_data_seg = (mem_word*)xmalloc((size_t)kernel_data_size);
+    k_data_seg = (mem_word*)allocate_or_exit((size_t)kernel_data_size);
   else
-    k_data_seg = (mem_word*)xrealloc(k_data_seg, (size_t)kernel_data_size);
+    k_data_seg = (mem_word*)reallocate_or_exit(k_data_seg, (size_t)kernel_data_size);
   memset(k_data_seg, 0, (size_t)kernel_data_size);
   k_data_seg_b = (int8_t*)k_data_seg;
   k_data_seg_h = (short*)k_data_seg;
@@ -167,7 +167,7 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
 
 static void free_instructions(mips_instruction** instruction, int n) {
   for (; n > 0; n--, instruction++)
-    if (*instruction) free_inst(*instruction);
+    if (*instruction) free_instruction(*instruction);
 }
 
 /* Expand the data segment by adding N bytes. */
@@ -213,7 +213,7 @@ void expand_stack(int additional_bytes) {
         additional_bytes, new_size, new_size);
   }
 
-  new_segment = (mem_word*)xmalloc((size_t)new_size);
+  new_segment = (mem_word*)allocate_or_exit((size_t)new_size);
   memset(new_segment, 0, (size_t)new_size);
 
   old_pointer = stack_seg + (old_size / BYTES_PER_WORD - 1);
@@ -229,7 +229,7 @@ void expand_stack(int additional_bytes) {
 
 /* Expand the kernel data segment by adding N bytes. */
 
-void expand_k_data(int additional_bytes) {
+void expand_kernel_data(int additional_bytes) {
   const int delta =
       ROUND_UP(additional_bytes, BYTES_PER_WORD); /* Keep word aligned */
   const int old_size = (int)(k_data_top - K_DATA_BOT);
@@ -256,7 +256,7 @@ void expand_k_data(int additional_bytes) {
 
 /* Access memory */
 
-void* mem_reference(mem_addr address) {
+void* memory_reference(mem_addr address) {
   if ((address >= TEXT_BOT) && (address < text_top))
     return address - TEXT_BOT + (char*)text_seg;
   else if ((address >= DATA_BOT) && (address < data_top))
@@ -273,7 +273,7 @@ void* mem_reference(mem_addr address) {
   }
 }
 
-mips_instruction* mem_read_inst(mem_addr address) {
+mips_instruction* memory_read_instruction(mem_addr address) {
   if ((address >= TEXT_BOT) && (address < text_top) && !(address & 0x3))
     return text_seg[(address - TEXT_BOT) >> 2];
   else if ((address >= K_TEXT_BOT) && (address < k_text_top) && !(address & 0x3))
@@ -282,7 +282,7 @@ mips_instruction* mem_read_inst(mem_addr address) {
     return bad_text_read(address);
 }
 
-reg_word mem_read_byte(mem_addr address) {
+reg_word memory_read_byte(mem_addr address) {
   if ((address >= DATA_BOT) && (address < data_top))
     return data_seg_b[address - DATA_BOT];
   else if ((address >= stack_bot) && (address < STACK_TOP))
@@ -290,10 +290,10 @@ reg_word mem_read_byte(mem_addr address) {
   else if ((address >= K_DATA_BOT) && (address < k_data_top))
     return k_data_seg_b[address - K_DATA_BOT];
   else
-    return bad_mem_read(address, 0);
+    return bad_memory_read(address, 0);
 }
 
-reg_word mem_read_half(mem_addr address) {
+reg_word memory_read_half(mem_addr address) {
   if ((address >= DATA_BOT) && (address < data_top) && !(address & 0x1))
     return data_seg_h[(address - DATA_BOT) >> 1];
   else if ((address >= stack_bot) && (address < STACK_TOP) && !(address & 0x1))
@@ -301,10 +301,10 @@ reg_word mem_read_half(mem_addr address) {
   else if ((address >= K_DATA_BOT) && (address < k_data_top) && !(address & 0x1))
     return k_data_seg_h[(address - K_DATA_BOT) >> 1];
   else
-    return bad_mem_read(address, 0x1);
+    return bad_memory_read(address, 0x1);
 }
 
-reg_word mem_read_word(mem_addr address) {
+reg_word memory_read_word(mem_addr address) {
   if ((address >= DATA_BOT) && (address < data_top) && !(address & 0x3))
     return data_seg[(address - DATA_BOT) >> 2];
   else if ((address >= stack_bot) && (address < STACK_TOP) && !(address & 0x3))
@@ -312,10 +312,10 @@ reg_word mem_read_word(mem_addr address) {
   else if ((address >= K_DATA_BOT) && (address < k_data_top) && !(address & 0x3))
     return k_data_seg[(address - K_DATA_BOT) >> 2];
   else
-    return bad_mem_read(address, 0x3);
+    return bad_memory_read(address, 0x3);
 }
 
-bool mem_peek_inst(mem_addr address, mips_instruction** out) {
+bool memory_peek_instruction(mem_addr address, mips_instruction** out) {
   if ((address & 0x3) != 0) {
     return false;
   } else if ((address >= TEXT_BOT) && (address < text_top)) {
@@ -329,7 +329,7 @@ bool mem_peek_inst(mem_addr address, mips_instruction** out) {
   }
 }
 
-bool mem_peek(mem_addr address, int mask, reg_word* out) {
+bool memory_peek(mem_addr address, int mask, reg_word* out) {
   *out = 0;
   if ((address & (mem_addr)mask) != 0) {
     return false;
@@ -339,28 +339,28 @@ bool mem_peek(mem_addr address, int mask, reg_word* out) {
     /* In range and aligned, so the reader takes its plain path. */
     switch (mask) {
       case 0x0:
-        *out = mem_read_byte(address);
+        *out = memory_read_byte(address);
         return true;
       case 0x1:
-        *out = mem_read_half(address);
+        *out = memory_read_half(address);
         return true;
       case 0x3:
-        *out = mem_read_word(address);
+        *out = memory_read_word(address);
         return true;
       default:
         return false;
     }
   } else if ((address >= TEXT_BOT) && (address < text_top)) {
-    /* bad_mem_read's text-segment branch reads the encoding and has no
+    /* bad_memory_read's text-segment branch reads the encoding and has no
        side effects for an aligned address. */
-    *out = bad_mem_read(address, mask);
+    *out = bad_memory_read(address, mask);
     return true;
   } else {
     return false;
   }
 }
 
-void mem_write_inst(mem_addr address, mips_instruction* instruction) {
+void memory_write_instruction(mem_addr address, mips_instruction* instruction) {
   text_modified = true;
   if ((address >= TEXT_BOT) && (address < text_top) && !(address & 0x3))
     text_seg[(address - TEXT_BOT) >> 2] = instruction;
@@ -370,7 +370,7 @@ void mem_write_inst(mem_addr address, mips_instruction* instruction) {
     bad_text_write(address, instruction);
 }
 
-void mem_write_byte(mem_addr address, reg_word value) {
+void memory_write_byte(mem_addr address, reg_word value) {
   data_modified = true;
   if ((address >= DATA_BOT) && (address < data_top))
     data_seg_b[address - DATA_BOT] = (int8_t)value;
@@ -379,10 +379,10 @@ void mem_write_byte(mem_addr address, reg_word value) {
   else if ((address >= K_DATA_BOT) && (address < k_data_top))
     k_data_seg_b[address - K_DATA_BOT] = (int8_t)value;
   else
-    bad_mem_write(address, value, 0);
+    bad_memory_write(address, value, 0);
 }
 
-void mem_write_half(mem_addr address, reg_word value) {
+void memory_write_half(mem_addr address, reg_word value) {
   data_modified = true;
   if ((address >= DATA_BOT) && (address < data_top) && !(address & 0x1))
     data_seg_h[(address - DATA_BOT) >> 1] = (short)value;
@@ -391,10 +391,10 @@ void mem_write_half(mem_addr address, reg_word value) {
   else if ((address >= K_DATA_BOT) && (address < k_data_top) && !(address & 0x1))
     k_data_seg_h[(address - K_DATA_BOT) >> 1] = (short)value;
   else
-    bad_mem_write(address, value, 0x1);
+    bad_memory_write(address, value, 0x1);
 }
 
-void mem_write_word(mem_addr address, reg_word value) {
+void memory_write_word(mem_addr address, reg_word value) {
   data_modified = true;
   if ((address >= DATA_BOT) && (address < data_top) && !(address & 0x3))
     data_seg[(address - DATA_BOT) >> 2] = (mem_word)value;
@@ -403,19 +403,19 @@ void mem_write_word(mem_addr address, reg_word value) {
   else if ((address >= K_DATA_BOT) && (address < k_data_top) && !(address & 0x3))
     k_data_seg[(address - K_DATA_BOT) >> 2] = (mem_word)value;
   else
-    bad_mem_write(address, value, 0x3);
+    bad_memory_write(address, value, 0x3);
 }
 
 /* Handle the infrequent and erroneous cases in memory accesses. */
 
 static mips_instruction* bad_text_read(mem_addr address) {
   RAISE_EXCEPTION(ExcCode_IBE, CP0_BadVAddr = (reg_word)address);
-  return (inst_decode(0));
+  return (instruction_decode(0));
 }
 
 static void bad_text_write(mem_addr address, const mips_instruction* instruction) {
   RAISE_EXCEPTION(ExcCode_IBE, CP0_BadVAddr = (reg_word)address);
-  mem_write_word(address, ENCODING(instruction));
+  memory_write_word(address, ENCODING(instruction));
 }
 
 /* The encoding of the user-text word holding ADDR, or 0 for a word no
@@ -425,7 +425,7 @@ static mem_word text_word_at(mem_addr address) {
   return instruction == nullptr ? 0 : ENCODING(instruction);
 }
 
-static mem_word bad_mem_read(mem_addr address, int mask) {
+static mem_word bad_memory_read(mem_addr address, int mask) {
   mem_word temporary;
 
   if ((address & (mem_addr)mask) != 0)
@@ -476,7 +476,7 @@ static mem_word bad_mem_read(mem_addr address, int mask) {
   return (0);
 }
 
-static void bad_mem_write(mem_addr address, mem_word value, int mask) {
+static void bad_memory_write(mem_addr address, mem_word value, int mask) {
   mem_word temporary;
 
   if ((address & (mem_addr)mask) != 0) /* Unaligned address fault */
@@ -522,10 +522,10 @@ static void bad_mem_write(mem_addr address, mem_word value, int mask) {
           temporary = 0;
           run_error("Bad mask (0x%x) in bad_mem_read\n", mask);
       }
-      free_inst(text_seg[(address - TEXT_BOT) >> 2]);
+      free_instruction(text_seg[(address - TEXT_BOT) >> 2]);
     }
 
-    text_seg[(address - TEXT_BOT) >> 2] = inst_decode(temporary);
+    text_seg[(address - TEXT_BOT) >> 2] = instruction_decode(temporary);
     text_modified = true;
   } else if (address > data_top &&
              address < stack_bot
@@ -683,26 +683,26 @@ static mem_word read_memory_mapped_IO(mem_addr address) {
 
 /* Misc. routines */
 
-void print_mem(mem_addr address) {
+void print_memory(mem_addr address) {
   mem_word value;
 
   if ((address & 0x3) != 0)
     address &= (mem_addr)~0x3; /* Address must be word-aligned */
 
   if (TEXT_BOT <= address && address < text_top)
-    print_inst(address);
+    print_instruction(address);
   else if (DATA_BOT <= address && address < data_top) {
-    value = mem_read_word(address);
+    value = memory_read_word(address);
     write_output(message_out, "Data seg @ 0x%08x (%d) = 0x%08x (%d)\n", address,
                  address, value, value);
   } else if (stack_bot <= address && address < STACK_TOP) {
-    value = mem_read_word(address);
+    value = memory_read_word(address);
     write_output(message_out, "Stack seg @ 0x%08x (%d) = 0x%08x (%d)\n", address,
                  address, value, value);
   } else if (K_TEXT_BOT <= address && address < k_text_top)
-    print_inst(address);
+    print_instruction(address);
   else if (K_DATA_BOT <= address && address < k_data_top) {
-    value = mem_read_word(address);
+    value = memory_read_word(address);
     write_output(message_out, "Kernel Data seg @ 0x%08x (%d) = 0x%08x (%d)\n",
                  address, address, value, value);
   } else

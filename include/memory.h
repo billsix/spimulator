@@ -107,27 +107,27 @@ constexpr int TRANS_INT_LEVEL = 2; /* HW Interrupt 0 */
 
 void check_memory_mapped_IO(void);
 void expand_data(int additional_bytes);
-void expand_k_data(int additional_bytes);
+void expand_kernel_data(int additional_bytes);
 void expand_stack(int additional_bytes);
 void make_memory(int text_size, int data_size, int data_limit, int stack_size,
                  int stack_limit, int kernel_text_size, int kernel_data_size,
                  int kernel_data_limit);
-void* mem_reference(mem_addr address);
-void print_mem(mem_addr address);
-mips_instruction* mem_read_inst(mem_addr address);
-reg_word mem_read_byte(mem_addr address);
-reg_word mem_read_half(mem_addr address);
-reg_word mem_read_word(mem_addr address);
+void* memory_reference(mem_addr address);
+void print_memory(mem_addr address);
+mips_instruction* memory_read_instruction(mem_addr address);
+reg_word memory_read_byte(mem_addr address);
+reg_word memory_read_half(mem_addr address);
+reg_word memory_read_word(mem_addr address);
 /* Side-effect-free reads, for code that only shows memory (the teaching
    mode, the disassembler).  They raise no exception, grow no segment and
    touch no memory-mapped IO register.  Each returns false when ADDR is not
-   an aligned location in a segment; mem_peek_inst then leaves *OUT alone,
-   and mem_peek sets *OUT to 0.  MASK is 0, 1 or 3 for a byte, half or word. */
-[[nodiscard]] bool mem_peek_inst(mem_addr address, mips_instruction** out);
-bool mem_peek(mem_addr address, int mask, reg_word* out);
-void mem_write_inst(mem_addr address, mips_instruction* instruction);
-void mem_write_byte(mem_addr address, reg_word value);
-void mem_write_half(mem_addr address, reg_word value);
-void mem_write_word(mem_addr address, reg_word value);
+   an aligned location in a segment; memory_peek_instruction then leaves *OUT alone,
+   and memory_peek sets *OUT to 0.  MASK is 0, 1 or 3 for a byte, half or word. */
+[[nodiscard]] bool memory_peek_instruction(mem_addr address, mips_instruction** out);
+bool memory_peek(mem_addr address, int mask, reg_word* out);
+void memory_write_instruction(mem_addr address, mips_instruction* instruction);
+void memory_write_byte(mem_addr address, reg_word value);
+void memory_write_half(mem_addr address, reg_word value);
+void memory_write_word(mem_addr address, reg_word value);
 
 #endif

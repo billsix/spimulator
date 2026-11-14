@@ -18,7 +18,7 @@
 /* Local functions: */
 
 static void get_hash(const char* name, int* slot_no, label** entry);
-static void resolve_a_label_sub(const label* symbol, mips_instruction* instruction,
+static void resolve_a_label_subtract(const label* symbol, mips_instruction* instruction,
                                 mem_addr program_counter);
 
 /* Keep track of the memory location that a label represents.  If we
@@ -75,7 +75,7 @@ static void get_hash(const char* name, int* slot_no, label** entry) {
   *slot_no = (int)high;
   /* Search table for entry */
   for (label* cursor = label_hash_table[high]; cursor; cursor = cursor->next)
-    if (streq(cursor->name, name)) {
+    if (strings_equal(cursor->name, name)) {
       *entry = cursor; /* <-- return if found */
       return;
     }
@@ -107,7 +107,7 @@ label* lookup_label(const char* name) {
 
   /* Not found: create an undefined (addr 0), flagless label at the head
      of its hash chain. */
-  label* new_entry = (label*)xmalloc(sizeof(label));
+  label* new_entry = (label*)allocate_or_exit(sizeof(label));
   *new_entry = (label){.name = strdup(name), .next = label_hash_table[high]};
   label_hash_table[high] = new_entry;
   return new_entry; /* <-- return if created */
@@ -127,7 +127,7 @@ label* record_label(const char* name, mem_addr address, bool resolve_uses) {
     l->address = address;
   }
 
-  asm_fire_label_def(address, l->name, l->global_flag != 0);
+  assembler_fire_label_definition(address, l->name, l->global_flag != 0);
 
   if (resolve_uses) {
     resolve_label_uses(l);
@@ -151,19 +151,19 @@ label* make_label_global(const char* name) {
 
 /* Record that an INSTRUCTION uses the as-yet undefined SYMBOL. */
 
-void record_inst_uses_symbol(mips_instruction* instruction, label* symbol) {
-  label_use* u = (label_use*)xmalloc(sizeof(label_use));
+void record_instruction_uses_symbol(mips_instruction* instruction, label* symbol) {
+  label_use* u = (label_use*)allocate_or_exit(sizeof(label_use));
 
   if (data_dir) /* Want to free up original instruction */
-    *u = (label_use){.instruction = copy_inst(instruction),
-                     .address = current_data_pc(),
+    *u = (label_use){.instruction = copy_instruction(instruction),
+                     .address = current_data_location(),
                      .next = symbol->uses};
   else
     *u = (label_use){.instruction = instruction,
-                     .address = current_text_pc(),
+                     .address = current_text_location(),
                      .next = symbol->uses};
   symbol->uses = u;
-  asm_fire_forward_ref(u->address, symbol->name);
+  assembler_fire_forward_reference(u->address, symbol->name);
 }
 
 /* Record that the WIDTH-byte datum at memory LOCATION holds the as-yet
@@ -171,12 +171,12 @@ void record_inst_uses_symbol(mips_instruction* instruction, label* symbol) {
 
 void record_data_uses_symbol(mem_addr location, label* symbol, int32_t offset,
                              int width) {
-  label_use* u = (label_use*)xmalloc(sizeof(label_use));
+  label_use* u = (label_use*)allocate_or_exit(sizeof(label_use));
 
   *u = (label_use){
       .address = location, .offset = offset, .width = width, .next = symbol->uses};
   symbol->uses = u;
-  asm_fire_forward_ref(location, symbol->name);
+  assembler_fire_forward_reference(location, symbol->name);
 }
 
 /* Store the low WIDTH bytes of VALUE at AT in target byte order, one byte at a
@@ -190,7 +190,7 @@ static void write_data_value(mem_addr at, int32_t value, int width) {
 #else
     const int shift = 8 * i;
 #endif
-    mem_write_byte(at + (mem_addr)i,
+    memory_write_byte(at + (mem_addr)i,
                    (reg_word)(((uint32_t)value >> shift) & 0xffu));
   }
 }
@@ -205,13 +205,13 @@ void resolve_label_uses(label* symbol) {
     if (use->instruction == nullptr)
       write_data_value(use->address, (int32_t)symbol->address + use->offset, use->width);
     else
-      resolve_a_label_sub(symbol, use->instruction, use->address);
+      resolve_a_label_subtract(symbol, use->instruction, use->address);
     if (use->instruction != nullptr && use->address >= DATA_BOT &&
         use->address < stack_bot) {
-      mem_write_word(use->address, inst_encode(use->instruction));
-      free_inst(use->instruction);
+      memory_write_word(use->address, instruction_encode(use->instruction));
+      free_instruction(use->instruction);
     }
-    asm_fire_forward_resolved(use->address, symbol->name, (int32_t)symbol->address);
+    assembler_fire_forward_resolved(use->address, symbol->name, (int32_t)symbol->address);
     next_use = use->next;
     free(use);
   }
@@ -221,15 +221,15 @@ void resolve_label_uses(label* symbol) {
 /* Resolve the newly-defined label in INSTRUCTION. */
 
 void resolve_a_label(label* symbol, mips_instruction* instruction) {
-  resolve_a_label_sub(symbol, instruction,
-                      (data_dir ? current_data_pc() : current_text_pc()));
+  resolve_a_label_subtract(symbol, instruction,
+                      (data_dir ? current_data_location() : current_text_location()));
 }
 
-static void resolve_a_label_sub(const label* symbol, mips_instruction* instruction,
+static void resolve_a_label_subtract(const label* symbol, mips_instruction* instruction,
                                 mem_addr program_counter) {
   if (instruction == nullptr) {
     /* Memory data: */
-    mem_write_word(program_counter, (reg_word)symbol->address);
+    memory_write_word(program_counter, (reg_word)symbol->address);
   } else {
     /* Instruction: */
     if (EXPR(instruction)->program_counter_relative)
@@ -246,7 +246,7 @@ static void resolve_a_label_sub(const label* symbol, mips_instruction* instructi
            bits, which would truncate a branch more than 32 KB away. */
         imm_expr whole = *EXPR(instruction);
         whole.bits = 0;
-        const int32_t byte_offset = eval_imm_expr(&whole);
+        const int32_t byte_offset = evaluate_immediate_expression(&whole);
         /* Drop low two bits since instructions are on word boundaries. */
         int32_t word_offset = byte_offset / BYTES_PER_WORD;
 
@@ -260,7 +260,7 @@ static void resolve_a_label_sub(const label* symbol, mips_instruction* instructi
         value = (int32_t)((uint32_t)word_offset & 0xffffu);
         field_mask = 0xffff;
       } else if (opcode_is_jump(OPCODE(instruction))) {
-        value = eval_imm_expr(EXPR(instruction));
+        value = evaluate_immediate_expression(EXPR(instruction));
         if (((unsigned int)value & 0xf0000000) != (program_counter & 0xf0000000)) {
           error(
               "Target of jump differs in high-order 4 bits from instruction pc "
@@ -274,15 +274,15 @@ static void resolve_a_label_sub(const label* symbol, mips_instruction* instructi
                                              instruction */
       } else if (opcode_is_load_store(OPCODE(instruction))) {
         /* Label's location is an address */
-        value = eval_imm_expr(EXPR(instruction));
+        value = evaluate_immediate_expression(EXPR(instruction));
         field_mask = 0xffff;
 
         if (value & 0x8000) {
           /* LW/SW sign extends offset. Compensate by adding 1 to high 16 bits.
            */
-          mips_instruction* previous_instruction = mem_read_inst(program_counter - BYTES_PER_WORD);
+          mips_instruction* previous_instruction = memory_read_instruction(program_counter - BYTES_PER_WORD);
           mips_instruction* previous_previous_instruction =
-              mem_read_inst(program_counter - 2 * BYTES_PER_WORD);
+              memory_read_instruction(program_counter - 2 * BYTES_PER_WORD);
 
           if (previous_instruction != nullptr && OPCODE(previous_instruction) == TOK_LUI_OPCODE &&
               EXPR(instruction)->symbol == EXPR(previous_instruction)->symbol &&
@@ -304,20 +304,20 @@ static void resolve_a_label_sub(const label* symbol, mips_instruction* instructi
         }
       } else {
         /* Label's location is a value */
-        value = eval_imm_expr(EXPR(instruction));
+        value = evaluate_immediate_expression(EXPR(instruction));
         field_mask = 0xffff;
       }
 
       if ((value & ~field_mask) != (int32_t)0 &&
           (value & ~field_mask) != (int32_t)0xffff0000) {
         error("Immediate value is too large for field: ");
-        print_inst(program_counter);
+        print_instruction(program_counter);
       }
       if (opcode_is_jump(OPCODE(instruction)))
         SET_TARGET(instruction, value); /* Don't mask so it is sign-extended */
       else
         SET_IMM(instruction, value); /* Ditto */
-      SET_ENCODING(instruction, inst_encode(instruction));
+      SET_ENCODING(instruction, instruction_encode(instruction));
     } else
       error("Resolving undefined symbol: %s\n",
             (EXPR(instruction)->symbol == nullptr)
@@ -403,7 +403,7 @@ char* undefined_symbol_string(void) {
         const int after_length = string_length + name_length + 2;
         if (buffer_length < after_length) {
           buffer_length = MAX(2 * buffer_length, 2 * after_length);
-          buffer = (char*)xrealloc(buffer, (size_t)buffer_length);
+          buffer = (char*)reallocate_or_exit(buffer, (size_t)buffer_length);
         }
         memcpy(buffer + string_length, l->name, (size_t)name_length);
         string_length += name_length;

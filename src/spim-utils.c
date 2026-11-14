@@ -24,8 +24,8 @@
 
 /* Internal functions: */
 
-static mem_addr copy_int_to_stack(int n);
-static mem_addr copy_str_to_stack(const char* s);
+static mem_addr copy_integer_to_stack(int n);
+static mem_addr copy_string_to_stack(const char* s);
 static void delete_all_breakpoints(void);
 static bool load_embedded_exception_handler(bool print_message);
 
@@ -83,15 +83,15 @@ mem_addr initial_k_data_limit = K_DATA_LIMIT;
 void initialize_world(const char* exception_file_names, bool print_message) {
   /* Allocate the floating point registers */
   if (fp_single_view == nullptr)
-    fp_double_view = (double*)xmalloc(FPR_LENGTH * sizeof(double));
+    fp_double_view = (double*)allocate_or_exit(FPR_LENGTH * sizeof(double));
   /* Allocate the memory */
   make_memory(initial_text_size, initial_data_size, (int)initial_data_limit,
               initial_stack_size, (int)initial_stack_limit, initial_k_text_size,
               initial_k_data_size, (int)initial_k_data_limit);
   initialize_registers();
   initialize_symbol_table();
-  k_text_begins_at_point(K_TEXT_BOT);
-  k_data_begins_at_point(K_DATA_BOT);
+  kernel_text_begins_at_point(K_TEXT_BOT);
+  kernel_data_begins_at_point(K_DATA_BOT);
   data_begins_at_point(DATA_BOT);
   text_begins_at_point(TEXT_BOT);
 
@@ -133,7 +133,7 @@ void initialize_world(const char* exception_file_names, bool print_message) {
       (void)record_label("main", 0, false);
     }
   }
-  scanner_init(stdin);
+  scanner_initialize(stdin);
   delete_all_breakpoints();
 }
 
@@ -183,7 +183,7 @@ bool read_assembly_file(char* name) {
     error("Cannot open file: `%s'\n", name);
     return false;
   } else {
-    parser_init(file, name);
+    parser_initialize(file, name);
     (void)parse_file();
     fclose(file);
     flush_local_labels(!parse_error_occurred);
@@ -201,7 +201,7 @@ static bool load_embedded_exception_handler(bool print_message) {
                               sizeof(embedded_exceptions_bytes), "rt");
   if (file == nullptr) return false;
 
-  parser_init(file, "<embedded exceptions.s>");
+  parser_initialize(file, "<embedded exceptions.s>");
   (void)parse_file();
   fclose(file);
   flush_local_labels(!parse_error_occurred);
@@ -265,11 +265,11 @@ void initialize_run_stack(int argc, char** argv) {
 
   /* Put strings on stack: */
   /* env: */
-  for (p = environ; *p != nullptr; p++) addresses[j++] = copy_str_to_stack(*p);
+  for (p = environ; *p != nullptr; p++) addresses[j++] = copy_string_to_stack(*p);
   environment_count = j;
 
   /* argv; */
-  for (i = 0; i < argc; i++) addresses[j++] = copy_str_to_stack(argv[i]);
+  for (i = 0; i < argc; i++) addresses[j++] = copy_string_to_stack(argv[i]);
 
   /* Align stack pointer for word-size data */
   gpr[REG_SP] = gpr[REG_SP] & ~3; /* Round down to nearest word */
@@ -278,32 +278,32 @@ void initialize_run_stack(int argc, char** argv) {
 
   /* Build vectors on stack: */
   /* env: */
-  (void)copy_int_to_stack(0); /* Null-terminate vector */
+  (void)copy_integer_to_stack(0); /* Null-terminate vector */
   for (i = environment_count - 1; i >= 0; i--)
-    gpr[REG_A2] = (reg_word)copy_int_to_stack((int)addresses[i]);
+    gpr[REG_A2] = (reg_word)copy_integer_to_stack((int)addresses[i]);
 
   /* argv: */
-  (void)copy_int_to_stack(0); /* Null-terminate vector */
+  (void)copy_integer_to_stack(0); /* Null-terminate vector */
   for (i = j - 1; i >= environment_count; i--)
-    gpr[REG_A1] = (reg_word)copy_int_to_stack((int)addresses[i]);
+    gpr[REG_A1] = (reg_word)copy_integer_to_stack((int)addresses[i]);
 
   /* argc: */
   gpr[REG_A0] = argc;
-  mem_write_word((mem_addr)gpr[REG_SP], argc); /* Leave argc on stack */
+  memory_write_word((mem_addr)gpr[REG_SP], argc); /* Leave argc on stack */
 }
 
-static mem_addr copy_str_to_stack(const char* s) {
+static mem_addr copy_string_to_stack(const char* s) {
   int i = (int)strlen(s);
   while (i >= 0) {
-    mem_write_byte((mem_addr)gpr[REG_SP], s[i]);
+    memory_write_byte((mem_addr)gpr[REG_SP], s[i]);
     gpr[REG_SP] -= 1;
     i -= 1;
   }
   return ((mem_addr)gpr[REG_SP] + 1); /* Leaves stack pointer byte-aligned!! */
 }
 
-static mem_addr copy_int_to_stack(int n) {
-  mem_write_word((mem_addr)gpr[REG_SP], n);
+static mem_addr copy_integer_to_stack(int n) {
+  memory_write_word((mem_addr)gpr[REG_SP], n);
   gpr[REG_SP] -= BYTES_PER_WORD;
   return ((mem_addr)gpr[REG_SP] + BYTES_PER_WORD);
 }
@@ -315,7 +315,7 @@ static mem_addr copy_int_to_stack(int n) {
 
 bool run_program(mem_addr program_counter, int steps, bool display, bool continue_breakpoint,
                  bool* continuable) {
-  if (continue_breakpoint && inst_is_breakpoint(program_counter)) {
+  if (continue_breakpoint && instruction_is_breakpoint(program_counter)) {
     const mem_addr address = PC == 0 ? program_counter : PC;
 
     delete_breakpoint(address);
@@ -351,7 +351,7 @@ static bkpt* bkpts = nullptr;
 /* Set a breakpoint at memory location ADDR. */
 
 void add_breakpoint(mem_addr address) {
-  bkpt* record = (bkpt*)xmalloc(sizeof(bkpt));
+  bkpt* record = (bkpt*)allocate_or_exit(sizeof(bkpt));
   *record =
       (bkpt){.address = address, .instruction = set_breakpoint(address), .next = bkpts};
 
@@ -374,7 +374,7 @@ void delete_breakpoint(mem_addr address) {
 
   for (p = nullptr, b = bkpts; b != nullptr;)
     if (b->address == address) {
-      mem_write_inst(address, b->instruction);
+      memory_write_instruction(address, b->instruction);
       if (p == nullptr)
         bkpts = b->next;
       else
@@ -415,14 +415,14 @@ void list_breakpoints(void) {
    order strcmp induces; all keys are plain ASCII).
    Return nullptr if no such entry exists. */
 
-static int cmp_key_to_name(const void* key, const void* elem) {
+static int compare_key_to_name(const void* key, const void* elem) {
   return strcmp((const char*)key, ((const name_val_val*)elem)->name);
 }
 
-const name_val_val* map_string_to_name_val_val(const name_val_val table[],
+const name_val_val* map_string_to_name_value_value(const name_val_val table[],
                                                int table_length, const char* identifier) {
   return bsearch(identifier, table, (size_t)table_length, sizeof(name_val_val),
-                 cmp_key_to_name);
+                 compare_key_to_name);
 }
 
 /* Return the entry in the linear TABLE of length LENGTH with VALUE1 field NUM.
@@ -430,19 +430,19 @@ const name_val_val* map_string_to_name_val_val(const name_val_val table[],
    are; see opcode-tables.h).
    Return nullptr if no such entry exists. */
 
-static int cmp_key_to_value1(const void* key, const void* elem) {
+static int compare_key_to_value1(const void* key, const void* elem) {
   const int k = *(const int*)key;
   const int v = ((const name_val_val*)elem)->value1;
   return (k > v) - (k < v);
 }
 
-const name_val_val* map_int_to_name_val_val(const name_val_val table[],
+const name_val_val* map_integer_to_name_value_value(const name_val_val table[],
                                             int table_length, int number) {
   return bsearch(&number, table, (size_t)table_length, sizeof(name_val_val),
-                 cmp_key_to_value1);
+                 compare_key_to_value1);
 }
 
-void* xmalloc(size_t size) {
+void* allocate_or_exit(size_t size) {
   void* const x = malloc(size);
 
   if (x == nullptr)
@@ -452,7 +452,7 @@ void* xmalloc(size_t size) {
 
 /* Resize a block of storage; out of memory is fatal, as in xmalloc. */
 
-void* xrealloc(void* block, size_t size) {
+void* reallocate_or_exit(void* block, size_t size) {
   void* const x = realloc(block, size);
 
   if (x == nullptr)
@@ -462,7 +462,7 @@ void* xrealloc(void* block, size_t size) {
 
 /* Allocate a zero'ed block of storage. */
 
-void* zmalloc(size_t size) {
+void* allocate_zeroed_or_exit(size_t size) {
   void* const z = calloc(1, size);
 
   if (z == nullptr)

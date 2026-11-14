@@ -44,7 +44,7 @@ bool do_syscall(void) {
 
     case PRINT_STRING_SYSCALL:
       write_output(console_out, "%s",
-                   (char*)mem_reference((mem_addr)gpr[REG_A0]));
+                   (char*)memory_reference((mem_addr)gpr[REG_A0]));
       break;
 
     case READ_INT_SYSCALL: {
@@ -53,7 +53,7 @@ bool do_syscall(void) {
          `echo 43 3 12 | spimulator ...` yields all three ints, one per
          syscall, not just the first. */
       long value;
-      const int ok = read_int_input(&value);
+      const int ok = read_integer_input(&value);
       gpr[REG_RES] = (reg_word)value;
       gpr[REG_A3] = ok ? 0 : 1; /* 0 = success, 1 = EOF/no number */
       break;
@@ -77,7 +77,7 @@ bool do_syscall(void) {
 
     case READ_STRING_SYSCALL: {
       const int n =
-          read_input((char*)mem_reference((mem_addr)gpr[REG_A0]), gpr[REG_A1]);
+          read_input((char*)memory_reference((mem_addr)gpr[REG_A0]), gpr[REG_A1]);
       gpr[REG_A3] = (n == 0) ? 1 : 0; /* EOF flag */
       data_modified = true;
       break;
@@ -118,16 +118,16 @@ bool do_syscall(void) {
       return (false);
 
     case OPEN_SYSCALL: {
-      gpr[REG_RES] = open((char*)mem_reference((mem_addr)gpr[REG_A0]),
+      gpr[REG_RES] = open((char*)memory_reference((mem_addr)gpr[REG_A0]),
                           gpr[REG_A1], gpr[REG_A2]);
       break;
     }
 
     case READ_SYSCALL: {
       /* Test if address is valid */
-      (void)mem_reference((mem_addr)(gpr[REG_A1] + gpr[REG_A2] - 1));
+      (void)memory_reference((mem_addr)(gpr[REG_A1] + gpr[REG_A2] - 1));
       gpr[REG_RES] =
-          (reg_word)read(gpr[REG_A0], mem_reference((mem_addr)gpr[REG_A1]),
+          (reg_word)read(gpr[REG_A0], memory_reference((mem_addr)gpr[REG_A1]),
                          (size_t)gpr[REG_A2]);
       data_modified = true;
       break;
@@ -135,9 +135,9 @@ bool do_syscall(void) {
 
     case WRITE_SYSCALL: {
       /* Test if address is valid */
-      (void)mem_reference((mem_addr)(gpr[REG_A1] + gpr[REG_A2] - 1));
+      (void)memory_reference((mem_addr)(gpr[REG_A1] + gpr[REG_A2] - 1));
       gpr[REG_RES] =
-          (reg_word)write(gpr[REG_A0], mem_reference((mem_addr)gpr[REG_A1]),
+          (reg_word)write(gpr[REG_A0], memory_reference((mem_addr)gpr[REG_A1]),
                           (size_t)gpr[REG_A2]);
       break;
     }

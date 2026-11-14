@@ -30,7 +30,7 @@ typedef union {
   void* pointer;
 } intptr_union;
 
-static inline bool streq(const char* a, const char* b) {
+static inline bool strings_equal(const char* a, const char* b) {
   return strcmp(a, b) == 0;
 }
 
@@ -166,7 +166,7 @@ int console_input_available(void);
 char get_console_char(void);
 void put_console_char(char c);
 int read_input(char* string, int n); /* Returns bytes read (0 on EOF). */
-[[nodiscard]] int read_int_input(
+[[nodiscard]] int read_integer_input(
     long* value); /* Scanf-style int read for syscall 5.
        Returns 1 on success, 0 on EOF/garbage. */
 [[noreturn, gnu::format(printf, 1, 2)]] void run_error(const char* format, ...);

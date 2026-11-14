@@ -216,13 +216,13 @@ struct ast_node {
 /* source_line is captured from the scanner's global at call time.    */
 
 /* Instructions */
-[[nodiscard]] ast_node* ast_make_inst_r(int opcode, int destination_register, int source_register, int target_register);
-[[nodiscard]] ast_node* ast_make_inst_r_shift(int opcode, int destination_register, int target_register,
+[[nodiscard]] ast_node* ast_make_instruction_r(int opcode, int destination_register, int source_register, int target_register);
+[[nodiscard]] ast_node* ast_make_instruction_r_shift(int opcode, int destination_register, int target_register,
                                               int shift_amount);
-[[nodiscard]] ast_node* ast_make_inst_i(int opcode, int target_register, int source_register, imm_expr* immediate);
-[[nodiscard]] ast_node* ast_make_inst_j(int opcode, imm_expr* target);
-[[nodiscard]] ast_node* ast_make_inst_fp_r(int opcode, int floating_point_destination, int floating_point_source, int floating_point_target);
-[[nodiscard]] ast_node* ast_make_inst_fp_compare(int opcode, int floating_point_source, int floating_point_target,
+[[nodiscard]] ast_node* ast_make_instruction_i(int opcode, int target_register, int source_register, imm_expr* immediate);
+[[nodiscard]] ast_node* ast_make_instruction_j(int opcode, imm_expr* target);
+[[nodiscard]] ast_node* ast_make_instruction_floating_point_r(int opcode, int floating_point_destination, int floating_point_source, int floating_point_target);
+[[nodiscard]] ast_node* ast_make_instruction_floating_point_compare(int opcode, int floating_point_source, int floating_point_target,
                                                  int condition_code);
 [[nodiscard]] ast_node* ast_make_pseudo(
     const char* mnemonic); /* mnemonic dup'd */
@@ -239,23 +239,23 @@ struct ast_node {
                                              bool null_term);
 
 /* Segment + layout */
-[[nodiscard]] ast_node* ast_make_dir_text(bool has_start_address,
+[[nodiscard]] ast_node* ast_make_directive_text(bool has_start_address,
                                           mem_addr start_address);
-[[nodiscard]] ast_node* ast_make_dir_data(bool has_start_address,
+[[nodiscard]] ast_node* ast_make_directive_data(bool has_start_address,
                                           mem_addr start_address);
-[[nodiscard]] ast_node* ast_make_dir_ktext(bool has_start_address,
+[[nodiscard]] ast_node* ast_make_directive_ktext(bool has_start_address,
                                            mem_addr start_address);
-[[nodiscard]] ast_node* ast_make_dir_kdata(bool has_start_address,
+[[nodiscard]] ast_node* ast_make_directive_kdata(bool has_start_address,
                                            mem_addr start_address);
-[[nodiscard]] ast_node* ast_make_dir_align(int n);
-[[nodiscard]] ast_node* ast_make_dir_space(int size);
-[[nodiscard]] ast_node* ast_make_dir_globl(const char* name); /* name dup'd */
-[[nodiscard]] ast_node* ast_make_dir_extern(const char* name, int size);
-[[nodiscard]] ast_node* ast_make_dir_comm(const char* name, int size);
+[[nodiscard]] ast_node* ast_make_directive_align(int n);
+[[nodiscard]] ast_node* ast_make_directive_space(int size);
+[[nodiscard]] ast_node* ast_make_directive_globl(const char* name); /* name dup'd */
+[[nodiscard]] ast_node* ast_make_directive_extern(const char* name, int size);
+[[nodiscard]] ast_node* ast_make_directive_comm(const char* name, int size);
 
 /* Labels */
 [[nodiscard]] ast_node* ast_make_label_normal(const char* name);
-[[nodiscard]] ast_node* ast_make_label_const(const char* name, int32_t value);
+[[nodiscard]] ast_node* ast_make_label_constant(const char* name, int32_t value);
 
 /* File root */
 [[nodiscard]] ast_node* ast_make_file(const char* source_file);

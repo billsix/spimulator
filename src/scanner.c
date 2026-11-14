@@ -57,7 +57,7 @@ int register_name_to_number(const char* name) {
     const long floating_point_register = strtol(name + 1, nullptr, 10);
     return floating_point_register <= 31 ? (int)floating_point_register : -1;
   } else {
-    const name_val_val* const entry = map_string_to_name_val_val(
+    const name_val_val* const entry = map_string_to_name_value_value(
         register_tbl, sizeof(register_tbl) / sizeof(name_val_val), name);
     return entry ? entry->value1 : -1;
   }
@@ -69,7 +69,7 @@ int register_name_to_number(const char* name) {
 
 static int check_keyword(const char* identifier, bool allow_pseudo_ops) {
   const name_val_val* const entry =
-      map_string_to_name_val_val(opcode_tbl, OPCODE_COUNT, identifier);
+      map_string_to_name_value_value(opcode_tbl, OPCODE_COUNT, identifier);
   if (entry == nullptr)
     return 0;
   else if (!allow_pseudo_ops && entry->value2 == PSEUDO_OP)
@@ -117,7 +117,7 @@ static bool force_id_next = false;
 
 /* --- public API ------------------------------------------- */
 
-void scanner_init(FILE* input) {
+void scanner_initialize(FILE* input) {
   input_file = input;
   line_pos = 0;
   line_len = 0;
@@ -138,7 +138,7 @@ void scanner_force_identifier(void) { force_id_next = true; }
 /* Read the next line from input_file into line_buffer.  Sets at_eof
    if the read returns 0 bytes.  Includes the trailing newline
    (if present) so newline-tokenization sees it. */
-static void fill_line_buf(void) {
+static void fill_line_buffer(void) {
   if (at_eof) {
     return;
   } else if (fgets(line_buf, LINE_BUF_MAX, input_file) == nullptr) {
@@ -196,7 +196,7 @@ static inline int hex_digit_value(int c) {
    is a floating-point literal (matches `[0-9]+[.][0-9]+(e[+-]?[0-9]+)?`)
    vs a plain integer.  Returns the position past the FP-literal
    on success; line_position on no-match.  Does NOT mutate line_position. */
-static int scan_fp_check(void) {
+static int scan_floating_point_check(void) {
   int p = line_pos;
   /* digits */
   if (p >= line_len || !isdigit((unsigned char)line_buf[p])) return line_pos;
@@ -216,7 +216,7 @@ static int scan_fp_check(void) {
   return p;
 }
 
-static int scan_fp(int sign, int end_position, scan_token* out) {
+static int scan_floating_point(int sign, int end_position, scan_token* out) {
   static double scratch;
   /* Copy the literal text into a temp buffer for atof. */
   char buffer[64];
@@ -234,7 +234,7 @@ static int scan_fp(int sign, int end_position, scan_token* out) {
 /* Scan an integer literal (decimal or hex).  Leading optional
    '-' has already been consumed if signed.  Returns TOK_INT with
    scan_value.i set. */
-static int scan_int(int sign, scan_token* out) {
+static int scan_integer(int sign, scan_token* out) {
   /* Accumulate in uint32_t: left-shifting/multiplying a signed int past
      its range is UB (e.g. 0x80000000, or a long decimal run).  Unsigned
      arithmetic is defined to wrap; convert to the signed value at the end. */
@@ -307,7 +307,7 @@ static int scan_escape_char(const char** cursor) {
 /* Decode a string literal — produces a fresh heap-allocated
    NUL-terminated decoded buffer. */
 static char* decode_string(const char* source, int length) {
-  char* const destination = (char*)xmalloc((size_t)(length + 1));
+  char* const destination = (char*)allocate_or_exit((size_t)(length + 1));
   char* d = destination;
   const char* s = source;
   const char* const end = source + length;
@@ -560,7 +560,7 @@ static void scan_one_token(scan_token* out) {
       *out = (scan_token){.type = TOK_EOF, .present = true};
       return;
     }
-    fill_line_buf();
+    fill_line_buffer();
     if (at_eof && line_len == 0) {
       *out = (scan_token){.type = TOK_EOF, .present = true};
       return;
@@ -595,21 +595,21 @@ have_char:
       /* Negative integer or FP? */
       if (c == '-' && isdigit(peek_char2())) {
         next_char(); /* consume the '-' */
-        const int floating_point_end = scan_fp_check();
+        const int floating_point_end = scan_floating_point_check();
         if (floating_point_end > line_pos) {
-          scan_fp(-1, floating_point_end, out);
+          scan_floating_point(-1, floating_point_end, out);
           return;
         }
-        scan_int(-1, out);
+        scan_integer(-1, out);
         return;
       } else if (isdigit(c)) {
         /* Positive number — could be int or FP. */
-        const int floating_point_end = scan_fp_check();
+        const int floating_point_end = scan_floating_point_check();
         if (floating_point_end > line_pos) {
-          scan_fp(1, floating_point_end, out);
+          scan_floating_point(1, floating_point_end, out);
           return;
         }
-        scan_int(1, out);
+        scan_integer(1, out);
         return;
       } else if (c == '_' || c == '.' || isalpha(c)) {
         /* Identifier or keyword? */
@@ -743,7 +743,7 @@ void scanner_push_source(FILE* input_stream) {
   s->force_identifier_next = force_id_next;
   memcpy(s->token_buffer, tok_buf, sizeof(tok_buf));
 
-  scanner_init(input_stream);
+  scanner_initialize(input_stream);
 }
 
 void scanner_pop_source(void) {
@@ -773,7 +773,7 @@ void scanner_pop_source(void) {
    indented and newline-terminated, for the parse-error printer. */
 char* erroneous_line(void) {
   const size_t length = strlen(current_line_buf);
-  char* const r = (char*)xmalloc(length + 16);
+  char* const r = (char*)allocate_or_exit(length + 16);
   snprintf(r, length + 16, "\t  %s\n", current_line_buf);
   return r;
 }
@@ -785,7 +785,7 @@ char* source_line(void) {
   if (!current_line_saved) return nullptr;
   const size_t length = strlen(current_line_buf);
   /* "NNN: " prefix — up to 10 digits + ": " + line + NUL */
-  char* const r = (char*)xmalloc(length + 16);
+  char* const r = (char*)allocate_or_exit(length + 16);
   snprintf(r, length + 16, "%d: %s", current_line_no_saved, current_line_buf);
   return r;
 }

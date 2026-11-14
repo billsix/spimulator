@@ -24,23 +24,23 @@
 
 /* Local functions: */
 
-static imm_expr* copy_imm_expr(const imm_expr* old_expression);
-static void increment_text_pc(int delta);
-static imm_expr* lower_bits_of_expr(const imm_expr* old_expression);
+static imm_expr* copy_immediate_expression(const imm_expr* old_expression);
+static void increment_text_location(int delta);
+static imm_expr* lower_bits_of_expression(const imm_expr* old_expression);
 static void store_instruction(mips_instruction* instruction);
-static imm_expr* upper_bits_of_expr(const imm_expr* old_expression);
+static imm_expr* upper_bits_of_expression(const imm_expr* old_expression);
 
-static void format_imm_expr(str_stream* stream, imm_expr* expression, int base_register);
+static void format_immediate_expression(str_stream* stream, imm_expr* expression, int base_register);
 static void i_type_full_word(int opcode, int target_register, int source_register, const imm_expr* expression,
                              bool value_known, int32_t value);
-static void inst_cmp(mips_instruction* instruction1, mips_instruction* instruction2);
+static void compare_instructions(mips_instruction* instruction1, mips_instruction* instruction2);
 static mips_instruction* make_r_type(int opcode, int destination_register, int source_register, int target_register);
-static mips_instruction* mk_i_inst(int32_t value, int opcode, int source_register, int target_register,
+static mips_instruction* make_i_instruction(int32_t value, int opcode, int source_register, int target_register,
                                    int offset);
-static mips_instruction* mk_j_inst(int32_t value, int opcode, int target);
-static mips_instruction* mk_r_inst(int32_t value, int opcode, int source_register, int target_register,
+static mips_instruction* make_j_instruction(int32_t value, int opcode, int target);
+static mips_instruction* make_r_instruction(int32_t value, int opcode, int source_register, int target_register,
                                    int destination_register, int shift_amount);
-static mips_instruction* mk_co_r_inst(int32_t value, int opcode, int floating_point_destination, int floating_point_source,
+static mips_instruction* make_coprocessor_r_instruction(int32_t value, int opcode, int floating_point_destination, int floating_point_source,
                                       int floating_point_target);
 static void produce_immediate(const imm_expr* expression, int target_register, bool value_known,
                               int32_t value);
@@ -70,7 +70,7 @@ void text_begins_at_point(mem_addr address) {
   in_kernel = false;
 }
 
-void k_text_begins_at_point(mem_addr address) {
+void kernel_text_begins_at_point(mem_addr address) {
   next_k_text_pc = address;
   in_kernel = false;
 }
@@ -97,7 +97,7 @@ void align_text(int alignment) {
 
 /* Set the location (in user or kernel text space) for the next instruction. */
 
-void set_text_pc(mem_addr address) {
+void set_text_location(mem_addr address) {
   if (in_kernel)
     next_k_text_pc = address;
   else
@@ -106,11 +106,11 @@ void set_text_pc(mem_addr address) {
 
 /* Return address for next instruction, in appropriate text segment. */
 
-mem_addr current_text_pc(void) { return (INST_PC); }
+mem_addr current_text_location(void) { return (INST_PC); }
 
 /* Increment the current text segement PC. */
 
-static void increment_text_pc(int delta) {
+static void increment_text_location(int delta) {
   if (in_kernel) {
     next_k_text_pc += (mem_addr)delta;
     if (k_text_top <= next_k_text_pc)
@@ -165,7 +165,7 @@ void expansion_begin(const char* mnemonic, bool is_pseudo) {
   /* The mnemonic's own string may be freed with its AST; keep the
      opcode table's copy. */
   const name_val_val* const entry =
-      map_string_to_name_val_val(opcode_tbl, OPCODE_COUNT, mnemonic);
+      map_string_to_name_value_value(opcode_tbl, OPCODE_COUNT, mnemonic);
   expansion_mnemonic = entry != nullptr ? entry->name : nullptr;
   expansion_is_pseudo = is_pseudo;
   expansion_len = 0;
@@ -191,26 +191,26 @@ void expansion_end(void) {
 
 static void store_instruction(mips_instruction* instruction) {
   if (data_dir) {
-    store_word(inst_encode(instruction));
-    free_inst(instruction);
+    store_word(instruction_encode(instruction));
+    free_instruction(instruction);
   } else if (text_dir) {
     const mem_addr at = INST_PC;
     exception_occurred = false;
-    mem_write_inst(at, instruction);
+    memory_write_instruction(at, instruction);
     if (exception_occurred)
       error("Invalid address (0x%08x) for instruction\n", at);
     else
-      increment_text_pc(BYTES_PER_WORD);
+      increment_text_location(BYTES_PER_WORD);
     if (instruction != nullptr) {
       SET_SOURCE(instruction,
                  emit_source_active
                      ? (emit_source_text ? strdup(emit_source_text) : nullptr)
                      : source_line());
       if (ENCODING(instruction) == 0)
-        SET_ENCODING(instruction, inst_encode(instruction));
+        SET_ENCODING(instruction, instruction_encode(instruction));
       if (expansion_depth > 0 && expansion_len < EXPANSION_MAX)
         expansion_insts[expansion_len++] = instruction;
-      asm_fire_text_inst(at, (uint32_t)ENCODING(instruction));
+      assembler_fire_text_instruction(at, (uint32_t)ENCODING(instruction));
     }
   } else {
     /* Never reached: the parser always sets data_directive and text_directive as a pair,
@@ -234,15 +234,15 @@ void i_type_free(int opcode, int target_register, int source_register, imm_expr*
 
 void i_type(int opcode, int target_register, int source_register, const imm_expr* expression) {
   mips_instruction* instruction =
-      (mips_instruction*)zmalloc(sizeof(mips_instruction));
+      (mips_instruction*)allocate_zeroed_or_exit(sizeof(mips_instruction));
 
   SET_OPCODE(instruction, opcode);
   SET_RS(instruction, source_register);
   SET_RT(instruction, target_register);
-  SET_EXPR(instruction, copy_imm_expr(expression));
+  SET_EXPR(instruction, copy_immediate_expression(expression));
   if (expression->symbol == nullptr || SYMBOL_IS_DEFINED(expression->symbol)) {
     /* Evaluate the instruction's expression. */
-    const int32_t value = eval_imm_expr(expression);
+    const int32_t value = evaluate_immediate_expression(expression);
 
     if (!bare_machine &&
         (((opcode == TOK_ADDI_OPCODE || opcode == TOK_ADDIU_OPCODE ||
@@ -257,7 +257,7 @@ void i_type(int opcode, int target_register, int source_register, const imm_expr
               // Not sign-extended:
               : ((unsigned int)value & 0xffff0000) != 0))) {
       // Non-immediate value
-      free_inst(instruction);
+      free_instruction(instruction);
       i_type_full_word(opcode, target_register, source_register, expression, true, value);
       return;
     } else
@@ -265,12 +265,12 @@ void i_type(int opcode, int target_register, int source_register, const imm_expr
   } else if (bare_machine || expression->bits != 0)
     /* Don't know expression's value, but only needed upper/lower 16-bits
        anyways. */
-    record_inst_uses_symbol(instruction, expression->symbol);
+    record_instruction_uses_symbol(instruction, expression->symbol);
   else {
     /* Don't know the expressions's value and want all of its bits,
        so assume that it will not produce a small result and generate
        sequence for 32 bit value. */
-    free_inst(instruction);
+    free_instruction(instruction);
 
     i_type_full_word(opcode, target_register, source_register, expression, false, 0);
     return;
@@ -290,7 +290,7 @@ static void i_type_full_word(int opcode, int target_register, int source_registe
     if (expression->symbol != nullptr && expression->symbol->global_pointer_flag && source_register == 0 &&
         IMM_MIN <= (offset = (int32_t)(expression->symbol->address + expression->offset)) &&
         offset <= IMM_MAX) {
-      i_type_free(opcode, target_register, REG_GP, make_imm_expr(offset, nullptr, false));
+      i_type_free(opcode, target_register, REG_GP, make_immediate_expression(offset, nullptr, false));
     } else if (value_known) {
       int high = (value >> 16) & 0xffff;
       const int low = value & 0xffff;
@@ -303,33 +303,33 @@ static void i_type_full_word(int opcode, int target_register, int source_registe
           high += 1;
         }
 
-        i_type_free(TOK_LUI_OPCODE, 1, 0, const_imm_expr(high));
+        i_type_free(TOK_LUI_OPCODE, 1, 0, constant_immediate_expression(high));
         if (source_register != 0) /* Base register */
         {
           r_type(TOK_ADDU_OPCODE, 1, 1, source_register);
         }
-        /* lower_bits_of_expr copies its argument, so the const_imm_expr
+        /* lower_bits_of_expression copies its argument, so the constant_immediate_expression
            node it wraps is not adopted by anyone — free the intermediate. */
-        imm_expr* const low_expression = const_imm_expr(low);
-        i_type_free(opcode, target_register, 1, lower_bits_of_expr(low_expression));
+        imm_expr* const low_expression = constant_immediate_expression(low);
+        i_type_free(opcode, target_register, 1, lower_bits_of_expression(low_expression));
         free(low_expression);
       } else {
         /* Special case, sign-extension of low 16 bits sets high to 0xffff */
-        i_type_free(opcode, target_register, source_register, const_imm_expr(low));
+        i_type_free(opcode, target_register, source_register, constant_immediate_expression(low));
       }
     } else {
       /* Use $at */
       /* Need to adjust if lower bits are negative */
-      i_type_free(TOK_LUI_OPCODE, 1, 0, upper_bits_of_expr(expression));
+      i_type_free(TOK_LUI_OPCODE, 1, 0, upper_bits_of_expression(expression));
       if (source_register != 0) /* Base register */
       {
         r_type(TOK_ADDU_OPCODE, 1, 1, source_register);
       }
-      i_type_free(opcode, target_register, 1, lower_bits_of_expr(expression));
+      i_type_free(opcode, target_register, 1, lower_bits_of_expression(expression));
     }
   } else if (opcode_is_branch(opcode)) {
     /* This only allows branches +/- 32K, which is not correct! */
-    i_type_free(opcode, target_register, source_register, lower_bits_of_expr(expression));
+    i_type_free(opcode, target_register, source_register, lower_bits_of_expression(expression));
   } else
   /* Computation instruction */
   {
@@ -339,7 +339,7 @@ static void i_type_full_word(int opcode, int target_register, int source_registe
         IMM_MIN <= (offset = (int32_t)(expression->symbol->address + expression->offset)) &&
         offset <= IMM_MAX) {
       i_type_free((opcode == TOK_LUI_OPCODE ? TOK_ADDIU_OPCODE : opcode), target_register,
-                  REG_GP, make_imm_expr(offset, nullptr, false));
+                  REG_GP, make_immediate_expression(offset, nullptr, false));
     } else {
       /* Use $at */
       if ((opcode == TOK_ORI_OPCODE || opcode == TOK_ADDI_OPCODE ||
@@ -348,7 +348,7 @@ static void i_type_full_word(int opcode, int target_register, int source_registe
         produce_immediate(expression, target_register, value_known, value);
       } else {
         produce_immediate(expression, 1, value_known, value);
-        r_type(imm_op_to_op(opcode), target_register, source_register, 1);
+        r_type(immediate_opcode_to_opcode(opcode), target_register, source_register, 1);
       }
     }
   }
@@ -357,12 +357,12 @@ static void i_type_full_word(int opcode, int target_register, int source_registe
 static void produce_immediate(const imm_expr* expression, int target_register, bool value_known,
                               int32_t value) {
   if (value_known && (value & 0xffff) == 0) {
-    i_type_free(TOK_LUI_OPCODE, target_register, 0, upper_bits_of_expr(expression));
+    i_type_free(TOK_LUI_OPCODE, target_register, 0, upper_bits_of_expression(expression));
   } else if (value_known && ((unsigned int)value & 0xffff0000) == 0) {
-    i_type_free(TOK_ORI_OPCODE, target_register, 0, lower_bits_of_expr(expression));
+    i_type_free(TOK_ORI_OPCODE, target_register, 0, lower_bits_of_expression(expression));
   } else {
-    i_type_free(TOK_LUI_OPCODE, 1, 0, upper_bits_of_expr(expression));
-    i_type_free(TOK_ORI_OPCODE, target_register, 1, lower_bits_of_expr(expression));
+    i_type_free(TOK_LUI_OPCODE, 1, 0, upper_bits_of_expression(expression));
+    i_type_free(TOK_ORI_OPCODE, target_register, 1, lower_bits_of_expression(expression));
   }
 }
 
@@ -372,16 +372,16 @@ static void produce_immediate(const imm_expr* expression, int target_register, b
 
 void j_type(int opcode, imm_expr* target) {
   mips_instruction* instruction =
-      (mips_instruction*)zmalloc(sizeof(mips_instruction));
+      (mips_instruction*)allocate_zeroed_or_exit(sizeof(mips_instruction));
 
   SET_OPCODE(instruction, opcode);
   target->offset = 0; /* Not PC relative */
   target->program_counter_relative = false;
-  SET_EXPR(instruction, copy_imm_expr(target));
+  SET_EXPR(instruction, copy_immediate_expression(target));
   if (target->symbol == nullptr || SYMBOL_IS_DEFINED(target->symbol))
     resolve_a_label(target->symbol, instruction);
   else
-    record_inst_uses_symbol(instruction, target->symbol);
+    record_instruction_uses_symbol(instruction, target->symbol);
   store_instruction(instruction);
 }
 
@@ -390,7 +390,7 @@ void j_type(int opcode, imm_expr* target) {
 
 static mips_instruction* make_r_type(int opcode, int destination_register, int source_register, int target_register) {
   mips_instruction* instruction =
-      (mips_instruction*)zmalloc(sizeof(mips_instruction));
+      (mips_instruction*)allocate_zeroed_or_exit(sizeof(mips_instruction));
 
   SET_OPCODE(instruction, opcode);
   SET_RS(instruction, source_register);
@@ -409,7 +409,7 @@ void r_type(int opcode, int destination_register, int source_register, int targe
 /* Return a register-type instruction with the given OPCODE, FD, FS, and FT
    fields. */
 
-void r_co_type(int opcode, int floating_point_destination, int floating_point_source, int floating_point_target) {
+void r_coprocessor_type(int opcode, int floating_point_destination, int floating_point_source, int floating_point_target) {
   mips_instruction* instruction = make_r_type(opcode, floating_point_source, 0, floating_point_target);
   SET_FD(instruction, floating_point_destination);
   store_instruction(instruction);
@@ -418,7 +418,7 @@ void r_co_type(int opcode, int floating_point_destination, int floating_point_so
 /* Return a register-shift instruction with the given OPCODE, RD, RT, and
    SHAMT fields.*/
 
-void r_sh_type(int opcode, int destination_register, int target_register, int shift_amount) {
+void r_shift_amount_type(int opcode, int destination_register, int target_register, int shift_amount) {
   mips_instruction* instruction = make_r_type(opcode, destination_register, 0, target_register);
   SET_SHAMT(instruction, shift_amount & 0x1f);
   store_instruction(instruction);
@@ -427,7 +427,7 @@ void r_sh_type(int opcode, int destination_register, int target_register, int sh
 /* Return a floating-point compare instruction with the given OPCODE,
    FS, FT, and CC fields.*/
 
-void r_cond_type(int opcode, int floating_point_source, int floating_point_target, int condition_code) {
+void r_condition_type(int opcode, int floating_point_source, int floating_point_target, int condition_code) {
   mips_instruction* instruction = make_r_type(opcode, floating_point_source, 0, floating_point_target);
   SET_FD(instruction, condition_code << 2);
   switch (opcode) {
@@ -537,17 +537,17 @@ void r_cond_type(int opcode, int floating_point_source, int floating_point_targe
 
 /* Make and return a deep copy of INST. */
 
-mips_instruction* copy_inst(const mips_instruction* instruction) {
+mips_instruction* copy_instruction(const mips_instruction* instruction) {
   mips_instruction* new_instruction =
-      (mips_instruction*)xmalloc(sizeof(mips_instruction));
+      (mips_instruction*)allocate_or_exit(sizeof(mips_instruction));
 
   *new_instruction = *instruction;
   /*memcpy ((void*)new_instruction, (void*)instruction , sizeof (instruction));*/
-  SET_EXPR(new_instruction, copy_imm_expr(EXPR(instruction)));
+  SET_EXPR(new_instruction, copy_immediate_expression(EXPR(instruction)));
   return (new_instruction);
 }
 
-void free_inst(mips_instruction* instruction) {
+void free_instruction(mips_instruction* instruction) {
   if (instruction != break_inst)
   /* Don't free the breakpoint insructions since we only have one. */
   {
@@ -558,12 +558,12 @@ void free_inst(mips_instruction* instruction) {
 
 /* The opcode tables (opcode_table, opcode_encoding_table, opcode_decode_table) are
    generated from include/opcodes.tsv into src/opcode-tables.c, already in
-   the order map_int_to_name_val_val's bsearch needs; see opcode-tables.h. */
+   the order map_integer_to_name_value_value's bsearch needs; see opcode-tables.h. */
 
 /* Print the instruction stored at the memory ADDRESS. */
 
-void print_inst(mem_addr address) {
-  char* const instruction_string = inst_to_string(address);
+void print_instruction(mem_addr address) {
+  char* const instruction_string = instruction_to_string(address);
   write_output(message_out, "%s", instruction_string);
   free(instruction_string);
 }
@@ -571,27 +571,27 @@ void print_inst(mem_addr address) {
 /* Return the canonical mnemonic for instruction (e.g. "addu", "ori", "j"), or
    "<unknown>" if OPCODE(instruction) isn't in opcode_table. The returned pointer
    is owned by the static opcode_table and must not be freed. */
-const char* inst_op_name(const mips_instruction* instruction) {
+const char* instruction_opcode_name(const mips_instruction* instruction) {
   if (instruction == nullptr) return "<null>";
   const name_val_val* const entry =
-      map_int_to_name_val_val(opcode_tbl, OPCODE_COUNT, OPCODE(instruction));
+      map_integer_to_name_value_value(opcode_tbl, OPCODE_COUNT, OPCODE(instruction));
   return entry ? entry->name : "<unknown>";
 }
 
 /* Op-token variant: take a raw opcode token (TOK_*_OP, TOK_*_POP) and
    return its mnemonic — used by the AST builder to label AST_PSEUDO
    nodes. */
-const char* op_token_name(int opcode_token) {
+const char* opcode_token_name(int opcode_token) {
   const name_val_val* const entry =
-      map_int_to_name_val_val(opcode_tbl, OPCODE_COUNT, opcode_token);
+      map_integer_to_name_value_value(opcode_tbl, OPCODE_COUNT, opcode_token);
   return entry ? entry->name : "<unknown>";
 }
 
-char* inst_to_string(mem_addr address) {
+char* instruction_to_string(mem_addr address) {
   /* A side-effect-free read: showing an instruction must not raise, or
      clear, the exception the program's own step raised. */
   mips_instruction* instruction = nullptr;
-  if (!mem_peek_inst(address, &instruction)) {
+  if (!memory_peek_instruction(address, &instruction)) {
     error("Can't print instruction not in text segment (0x%08x)\n", address);
     /* Callers free the result, so it must be heap-allocated — a string
        literal here would get free()d. */
@@ -599,96 +599,96 @@ char* inst_to_string(mem_addr address) {
   }
 
   str_stream stream;
-  ss_init(&stream);
-  format_an_inst(&stream, instruction, address);
+  stream_initialize(&stream);
+  format_an_instruction(&stream, instruction, address);
   /* Transfer the buffer to the caller (who frees it); ss is a local,
      so its stream must not outlive this call. */
-  return ss_take_string(&stream);
+  return stream_take_string(&stream);
 }
 
-void format_an_inst(str_stream* stream, mips_instruction* instruction,
+void format_an_instruction(str_stream* stream, mips_instruction* instruction,
                     mem_addr address) {
   const name_val_val* entry;
-  const int line_start = ss_length(stream);
+  const int line_start = stream_length(stream);
 
-  if (address != 0 && inst_is_breakpoint(address)) {
+  if (address != 0 && instruction_is_breakpoint(address)) {
     delete_breakpoint(address);
-    ss_printf(stream, "*");
-    format_an_inst(stream, mem_read_inst(address), address);
+    stream_printf(stream, "*");
+    format_an_instruction(stream, memory_read_instruction(address), address);
     add_breakpoint(address);
     return;
   }
 
-  ss_printf(stream, "[0x%08x]\t", address);
+  stream_printf(stream, "[0x%08x]\t", address);
   if (instruction == nullptr) {
-    ss_printf(stream, "<none>\n");
+    stream_printf(stream, "<none>\n");
     return;
   }
 
   entry =
-      map_int_to_name_val_val(opcode_tbl, OPCODE_COUNT, OPCODE(instruction));
+      map_integer_to_name_value_value(opcode_tbl, OPCODE_COUNT, OPCODE(instruction));
   if (entry == nullptr) {
-    ss_printf(stream, "<unknown instruction %d>\n", OPCODE(instruction));
+    stream_printf(stream, "<unknown instruction %d>\n", OPCODE(instruction));
     return;
   }
 
-  ss_printf(stream, "0x%08x  %s", (uint32_t)ENCODING(instruction), entry->name);
+  stream_printf(stream, "0x%08x  %s", (uint32_t)ENCODING(instruction), entry->name);
   switch (entry->value2) {
     case BRANCH_COPROC_COND_INST:
-      ss_printf(stream, "%d %d", CC(instruction), (int)BRANCH_OFFSET(instruction));
+      stream_printf(stream, "%d %d", CC(instruction), (int)BRANCH_OFFSET(instruction));
       break;
 
     case BRANCH_RS_LABEL_INST:
-      ss_printf(stream, " $%s %d", int_reg_names[RS(instruction)],
+      stream_printf(stream, " $%s %d", int_reg_names[RS(instruction)],
                 (int)BRANCH_OFFSET(instruction));
       break;
 
     case RS_IMM_INST:
-      ss_printf(stream, " $%s, %d", int_reg_names[RS(instruction)],
+      stream_printf(stream, " $%s, %d", int_reg_names[RS(instruction)],
                 IMM(instruction));
       break;
 
     case RT_IMM_INST:
-      ss_printf(stream, " $%s, %d", int_reg_names[RT(instruction)],
+      stream_printf(stream, " $%s, %d", int_reg_names[RT(instruction)],
                 IMM(instruction));
       break;
 
     case RT_RS_IMM_INST:
-      ss_printf(stream, " $%s, $%s, %d", int_reg_names[RT(instruction)],
+      stream_printf(stream, " $%s, $%s, %d", int_reg_names[RT(instruction)],
                 int_reg_names[RS(instruction)], IMM(instruction));
       break;
 
     case BRANCH_RS_RT_LABEL_INST:
-      ss_printf(stream, " $%s, $%s, %d", int_reg_names[RS(instruction)],
+      stream_printf(stream, " $%s, $%s, %d", int_reg_names[RS(instruction)],
                 int_reg_names[RT(instruction)],
                 (int)BRANCH_OFFSET(instruction));
       break;
 
     case RT_ADDR_INST:
-      ss_printf(stream, " $%s, %d($%s)", int_reg_names[RT(instruction)],
+      stream_printf(stream, " $%s, %d($%s)", int_reg_names[RT(instruction)],
                 IMM(instruction), int_reg_names[BASE(instruction)]);
       break;
 
     case RS_INST:
-      ss_printf(stream, " $%s", int_reg_names[RS(instruction)]);
+      stream_printf(stream, " $%s", int_reg_names[RS(instruction)]);
       break;
 
     case RD_INST:
-      ss_printf(stream, " $%s", int_reg_names[RD(instruction)]);
+      stream_printf(stream, " $%s", int_reg_names[RD(instruction)]);
       break;
 
     case RT_COPREG_INST:
-      ss_printf(stream, " $%s, $%s", int_reg_names[RT(instruction)],
+      stream_printf(stream, " $%s, $%s", int_reg_names[RT(instruction)],
                 int_reg_names[RD(instruction)]);
       break;
 
     case RS_RT_INST:
-      ss_printf(stream, " $%s, $%s", int_reg_names[RS(instruction)],
+      stream_printf(stream, " $%s, $%s", int_reg_names[RS(instruction)],
                 int_reg_names[RT(instruction)]);
       break;
 
     case RD_RS_INST:
-      ss_printf(stream, " $%s, $%s", int_reg_names[RD(instruction)],
+      stream_printf(stream, " $%s, $%s", int_reg_names[RD(instruction)],
                 int_reg_names[RS(instruction)]);
       break;
 
@@ -699,52 +699,52 @@ void format_an_inst(str_stream* stream, mips_instruction* instruction,
        * Check the actual fields instead. */
       if (RD(instruction) == 0 && RT(instruction) == 0 &&
           SHAMT(instruction) == 0) {
-        ss_erase(stream, 3); /* zap sll */
-        ss_printf(stream, "nop");
+        stream_erase(stream, 3); /* zap sll */
+        stream_printf(stream, "nop");
       } else
-        ss_printf(stream, " $%s, $%s, %d", int_reg_names[RD(instruction)],
+        stream_printf(stream, " $%s, $%s, %d", int_reg_names[RD(instruction)],
                   int_reg_names[RT(instruction)], SHAMT(instruction));
       break;
 
     case RD_RS_RT_INST:
-      ss_printf(stream, " $%s, $%s, $%s", int_reg_names[RD(instruction)],
+      stream_printf(stream, " $%s, $%s, $%s", int_reg_names[RD(instruction)],
                 int_reg_names[RS(instruction)], int_reg_names[RT(instruction)]);
       break;
 
     case RD_RT_RS_INST:
-      ss_printf(stream, " $%s, $%s, $%s", int_reg_names[RD(instruction)],
+      stream_printf(stream, " $%s, $%s, $%s", int_reg_names[RD(instruction)],
                 int_reg_names[RT(instruction)], int_reg_names[RS(instruction)]);
       break;
 
     case FP_FT_ADDR_INST:
-      ss_printf(stream, " $f%d, %d($%s)", FT(instruction), IMM(instruction),
+      stream_printf(stream, " $f%d, %d($%s)", FT(instruction), IMM(instruction),
                 int_reg_names[BASE(instruction)]);
       break;
 
     case FP_FD_FS_INST:
-      ss_printf(stream, " $f%d, $f%d", FD(instruction), FS(instruction));
+      stream_printf(stream, " $f%d, $f%d", FD(instruction), FS(instruction));
       break;
 
     case FP_RT_COPREG_INST:
-      ss_printf(stream, " $%s, $f%d", int_reg_names[RT(instruction)],
+      stream_printf(stream, " $%s, $f%d", int_reg_names[RT(instruction)],
                 FS(instruction));
       break;
 
     case FP_CMP_FS_FT_INST:
       if (FD(instruction) == 0)
-        ss_printf(stream, " $f%d, $f%d", FS(instruction), FT(instruction));
+        stream_printf(stream, " $f%d, $f%d", FS(instruction), FT(instruction));
       else
-        ss_printf(stream, " %d, $f%d, $f%d", FD(instruction) >> 2, FS(instruction),
+        stream_printf(stream, " %d, $f%d, $f%d", FD(instruction) >> 2, FS(instruction),
                   FT(instruction));
       break;
 
     case FP_FD_FS_FT_INST:
-      ss_printf(stream, " $f%d, $f%d, $f%d", FD(instruction), FS(instruction),
+      stream_printf(stream, " $f%d, $f%d, $f%d", FD(instruction), FS(instruction),
                 FT(instruction));
       break;
 
     case MOVC_TYPE_INST:
-      ss_printf(stream, " $%s, $%s, %d", int_reg_names[RD(instruction)],
+      stream_printf(stream, " $%s, $%s, %d", int_reg_names[RD(instruction)],
                 int_reg_names[RS(instruction)], RT(instruction) >> 2);
       break;
 
@@ -755,19 +755,19 @@ void format_an_inst(str_stream* stream, mips_instruction* instruction,
         case TOK_MOVZ_S_OPCODE:
         case TOK_MOVZ_D_OPCODE:
           /* movn/movz test a general register */
-          ss_printf(stream, " $f%d, $f%d, $%s", FD(instruction), FS(instruction),
+          stream_printf(stream, " $f%d, $f%d, $%s", FD(instruction), FS(instruction),
                     int_reg_names[RT(instruction)]);
           break;
         default:
           /* movf/movt test a condition code */
-          ss_printf(stream, " $f%d, $f%d, %d", FD(instruction), FS(instruction),
+          stream_printf(stream, " $f%d, $f%d, %d", FD(instruction), FS(instruction),
                     CC(instruction));
           break;
       }
       break;
 
     case J_TYPE_INST:
-      ss_printf(stream, " 0x%08x", TARGET(instruction) << 2);
+      stream_printf(stream, " 0x%08x", TARGET(instruction) << 2);
       break;
 
     case NOARG_TYPE_INST:
@@ -778,26 +778,26 @@ void format_an_inst(str_stream* stream, mips_instruction* instruction,
   }
 
   if (EXPR(instruction) != nullptr && EXPR(instruction)->symbol != nullptr) {
-    ss_printf(stream, " [");
+    stream_printf(stream, " [");
     if (opcode_is_load_store(OPCODE(instruction)))
-      format_imm_expr(stream, EXPR(instruction), BASE(instruction));
+      format_immediate_expression(stream, EXPR(instruction), BASE(instruction));
     else
-      format_imm_expr(stream, EXPR(instruction), -1);
-    ss_printf(stream, "]");
+      format_immediate_expression(stream, EXPR(instruction), -1);
+    stream_printf(stream, "]");
   }
 
   if (SOURCE(instruction) != nullptr) {
     /* Comment is source line text of current line. */
-    int gap_length = 57 - (ss_length(stream) - line_start);
+    int gap_length = 57 - (stream_length(stream) - line_start);
     for (; 0 < gap_length; gap_length -= 1) {
-      ss_printf(stream, " ");
+      stream_printf(stream, " ");
     }
 
-    ss_printf(stream, "; ");
-    ss_printf(stream, "%s", SOURCE(instruction));
+    stream_printf(stream, "; ");
+    stream_printf(stream, "%s", SOURCE(instruction));
   }
 
-  ss_printf(stream, "\n");
+  stream_printf(stream, "\n");
 }
 
 /* Return true if SPIM OPCODE (e.g. Y_...) represents a conditional
@@ -935,11 +935,11 @@ bool opcode_is_load_store(int opcode) {
 
 /* Return true if a breakpoint is set at ADDR. */
 
-bool inst_is_breakpoint(mem_addr address) {
+bool instruction_is_breakpoint(mem_addr address) {
   if (break_inst == nullptr)
     break_inst = make_r_type(TOK_BREAK_OPCODE, 1, 0, 0);
 
-  return (mem_read_inst(address) == break_inst);
+  return (memory_read_instruction(address) == break_inst);
 }
 
 /* Set a breakpoint at ADDR and return the old instruction.  If the
@@ -950,10 +950,10 @@ mips_instruction* set_breakpoint(mem_addr address) {
     break_inst = make_r_type(TOK_BREAK_OPCODE, 1, 0, 0);
 
   exception_occurred = false;
-  mips_instruction* const old_instruction = mem_read_inst(address);
+  mips_instruction* const old_instruction = memory_read_instruction(address);
   if (old_instruction == break_inst) return (nullptr);
 
-  mem_write_inst(address, break_inst);
+  memory_write_instruction(address, break_inst);
   if (exception_occurred)
     return (nullptr);
   else
@@ -965,8 +965,8 @@ mips_instruction* set_breakpoint(mem_addr address) {
 
 /* Make and return a new immediate expression */
 
-imm_expr* make_imm_expr(int offset, const char* symbol, bool is_program_counter_relative) {
-  imm_expr* expression = (imm_expr*)xmalloc(sizeof(imm_expr));
+imm_expr* make_immediate_expression(int offset, const char* symbol, bool is_program_counter_relative) {
+  imm_expr* expression = (imm_expr*)allocate_or_exit(sizeof(imm_expr));
 
   *expression = (imm_expr){
       .offset = offset,
@@ -978,8 +978,8 @@ imm_expr* make_imm_expr(int offset, const char* symbol, bool is_program_counter_
 
 /* Return a shallow copy of the EXPRESSION. */
 
-static imm_expr* copy_imm_expr(const imm_expr* old_expression) {
-  imm_expr* expression = (imm_expr*)xmalloc(sizeof(imm_expr));
+static imm_expr* copy_immediate_expression(const imm_expr* old_expression) {
+  imm_expr* expression = (imm_expr*)allocate_or_exit(sizeof(imm_expr));
 
   *expression = *old_expression;
   /*memcpy ((void*)expr, (void*)old_expression, sizeof (imm_expr));*/
@@ -989,8 +989,8 @@ static imm_expr* copy_imm_expr(const imm_expr* old_expression) {
 /* Return a shallow copy of an EXPRESSION that only uses the upper
    sixteen bits of the expression's value. */
 
-static imm_expr* upper_bits_of_expr(const imm_expr* old_expression) {
-  imm_expr* expression = copy_imm_expr(old_expression);
+static imm_expr* upper_bits_of_expression(const imm_expr* old_expression) {
+  imm_expr* expression = copy_immediate_expression(old_expression);
 
   expression->bits = 1;
   return (expression);
@@ -999,8 +999,8 @@ static imm_expr* upper_bits_of_expr(const imm_expr* old_expression) {
 /* Return a shallow copy of the EXPRESSION that only uses the lower
    sixteen bits of the expression's value. */
 
-static imm_expr* lower_bits_of_expr(const imm_expr* old_expression) {
-  imm_expr* expression = copy_imm_expr(old_expression);
+static imm_expr* lower_bits_of_expression(const imm_expr* old_expression) {
+  imm_expr* expression = copy_immediate_expression(old_expression);
 
   expression->bits = -1;
   return (expression);
@@ -1008,15 +1008,15 @@ static imm_expr* lower_bits_of_expr(const imm_expr* old_expression) {
 
 /* Return an instruction expression for a constant VALUE. */
 
-imm_expr* const_imm_expr(int32_t value) {
-  return (make_imm_expr(value, nullptr, false));
+imm_expr* constant_immediate_expression(int32_t value) {
+  return (make_immediate_expression(value, nullptr, false));
 }
 
 /* Return a shallow copy of the EXPRESSION with the offset field
    incremented by the given amount. */
 
-imm_expr* incr_expr_offset(const imm_expr* expression, int32_t value) {
-  imm_expr* new_expression = copy_imm_expr(expression);
+imm_expr* increment_expression_offset(const imm_expr* expression, int32_t value) {
+  imm_expr* new_expression = copy_immediate_expression(expression);
 
   new_expression->offset += value;
   return (new_expression);
@@ -1024,7 +1024,7 @@ imm_expr* incr_expr_offset(const imm_expr* expression, int32_t value) {
 
 /* Return the value of the EXPRESSION. */
 
-int32_t eval_imm_expr(const imm_expr* expression) {
+int32_t evaluate_immediate_expression(const imm_expr* expression) {
   int32_t value;
 
   if (expression->symbol == nullptr)
@@ -1045,83 +1045,83 @@ int32_t eval_imm_expr(const imm_expr* expression) {
 
 /* Print the EXPRESSION. */
 
-static void format_imm_expr(str_stream* stream, imm_expr* expression, int base_register) {
+static void format_immediate_expression(str_stream* stream, imm_expr* expression, int base_register) {
   if (expression->symbol != nullptr) {
-    ss_printf(stream, "%s", expression->symbol->name);
+    stream_printf(stream, "%s", expression->symbol->name);
   }
 
   if (expression->program_counter_relative)
-    ss_printf(stream, "-0x%08x", (unsigned int)-expression->offset);
+    stream_printf(stream, "-0x%08x", (unsigned int)-expression->offset);
   else if (expression->offset < -10)
-    ss_printf(stream, "-%d (-0x%08x)", -expression->offset, (unsigned int)-expression->offset);
+    stream_printf(stream, "-%d (-0x%08x)", -expression->offset, (unsigned int)-expression->offset);
   else if (expression->offset > 10)
-    ss_printf(stream, "+%d (0x%08x)", expression->offset, (unsigned int)expression->offset);
+    stream_printf(stream, "+%d (0x%08x)", expression->offset, (unsigned int)expression->offset);
   else {
     /* An offset from -10 to 10 is not printed. */
   }
 
   if (base_register != -1 && expression->symbol != nullptr &&
       (expression->offset > 10 || expression->offset < -10)) {
-    if (expression->offset == 0 && base_register != 0) ss_printf(stream, "+0");
+    if (expression->offset == 0 && base_register != 0) stream_printf(stream, "+0");
 
     if (expression->offset != 0 || base_register != 0)
-      ss_printf(stream, "($%s)", int_reg_names[base_register]);
+      stream_printf(stream, "($%s)", int_reg_names[base_register]);
   }
 }
 
 /* Return true if the EXPRESSION is a constant 0. */
 
-bool is_zero_imm(const imm_expr* expression) {
+bool is_zero_immediate(const imm_expr* expression) {
   return (expression->offset == 0 && expression->symbol == nullptr);
 }
 
 /* Return an address expression of the form SYMBOL +/- IOFFSET (REGISTER).
    Any of the three parts may be omitted. */
 
-addr_expr* make_addr_expr(int offset, const char* symbol, int register_no) {
-  addr_expr* expression = (addr_expr*)xmalloc(sizeof(addr_expr));
+addr_expr* make_address_expression(int offset, const char* symbol, int register_no) {
+  addr_expr* expression = (addr_expr*)allocate_or_exit(sizeof(addr_expr));
   label* looked_up;
 
   if (register_no == 0 && symbol != nullptr &&
       (looked_up = lookup_label(symbol))->global_pointer_flag) {
     *expression = (addr_expr){
         .register_no = REG_GP,
-        .immediate = make_imm_expr((int)(offset + looked_up->address - gp_midpoint),
+        .immediate = make_immediate_expression((int)(offset + looked_up->address - gp_midpoint),
                              nullptr, false),
     };
   } else {
-    /* make_imm_expr only reads `sym` (via lookup_label) and stores the
+    /* make_immediate_expression only reads `sym` (via lookup_label) and stores the
        resulting label*, never the string itself — so it neither retains
        nor frees it.  strdup'ing here produced a copy that was orphaned on
        every call; pass the caller's `sym` straight through instead.  The
        caller keeps ownership and frees it. */
     *expression = (addr_expr){
         .register_no = (uint8_t)register_no,
-        .immediate = make_imm_expr(offset, symbol, false),
+        .immediate = make_immediate_expression(offset, symbol, false),
     };
   }
   return (expression);
 }
 
-imm_expr* addr_expr_imm(const addr_expr* expression) { return (expression->immediate); }
+imm_expr* address_expression_immediate(const addr_expr* expression) { return (expression->immediate); }
 
-int addr_expr_reg(const addr_expr* expression) { return (expression->register_no); }
+int address_expression_register(const addr_expr* expression) { return (expression->register_no); }
 
 /* Map between a SPIM instruction and the binary representation of the
    instruction. */
 
 #define REGS(R, O) (((R) & 0x1f) << O)
 
-int32_t inst_encode(const mips_instruction* instruction) {
+int32_t instruction_encode(const mips_instruction* instruction) {
   if (instruction == nullptr) return (0);
 
-  const name_val_val* entry = map_int_to_name_val_val(
+  const name_val_val* entry = map_integer_to_name_value_value(
       opcode_encoding_tbl, OPCODE_COUNT, OPCODE(instruction));
   if (entry == nullptr) return 0;
 
   const int32_t table_opcode = entry->value2;
   entry =
-      map_int_to_name_val_val(opcode_tbl, OPCODE_COUNT, OPCODE(instruction));
+      map_integer_to_name_value_value(opcode_tbl, OPCODE_COUNT, OPCODE(instruction));
 
   switch (entry->value2) {
     case BRANCH_COPROC_COND_INST:
@@ -1215,7 +1215,7 @@ int32_t inst_encode(const mips_instruction* instruction) {
   }
 }
 
-mips_instruction* inst_decode(int32_t value) {
+mips_instruction* instruction_decode(int32_t value) {
   int32_t table_opcode = (int32_t)((unsigned int)value & 0xfc000000);
 
   /* Field classes: (opcode is continued in other part of instruction): */
@@ -1249,100 +1249,100 @@ mips_instruction* inst_decode(int32_t value) {
   }
 
   const name_val_val* const entry =
-      map_int_to_name_val_val(opcode_decode_tbl, OPCODE_DECODE_COUNT, table_opcode);
+      map_integer_to_name_value_value(opcode_decode_tbl, OPCODE_DECODE_COUNT, table_opcode);
   if (entry == nullptr)
-    return (mk_r_inst(value, 0, 0, 0, 0, 0)); /* Invalid instruction */
+    return (make_r_instruction(value, 0, 0, 0, 0, 0)); /* Invalid instruction */
 
   const int32_t instruction_opcode = entry->value2;
 
-  switch (map_int_to_name_val_val(opcode_tbl, OPCODE_COUNT, instruction_opcode)->value2) {
+  switch (map_integer_to_name_value_value(opcode_tbl, OPCODE_COUNT, instruction_opcode)->value2) {
     case BRANCH_COPROC_COND_INST:
-      return (mk_i_inst(value, instruction_opcode, BIN_RS(value), BIN_RT(value), value & 0xffff));
+      return (make_i_instruction(value, instruction_opcode, BIN_RS(value), BIN_RT(value), value & 0xffff));
 
     case BRANCH_RS_LABEL_INST:
-      return (mk_i_inst(value, instruction_opcode, BIN_RS(value), 0, value & 0xffff));
+      return (make_i_instruction(value, instruction_opcode, BIN_RS(value), 0, value & 0xffff));
 
     case RS_IMM_INST:
-      return (mk_i_inst(value, instruction_opcode, BIN_RS(value), 0, value & 0xffff));
+      return (make_i_instruction(value, instruction_opcode, BIN_RS(value), 0, value & 0xffff));
 
     case RT_IMM_INST:
-      return (mk_i_inst(value, instruction_opcode, BIN_RS(value), BIN_RT(value), value & 0xffff));
+      return (make_i_instruction(value, instruction_opcode, BIN_RS(value), BIN_RT(value), value & 0xffff));
 
     case RT_RS_IMM_INST:
     case BRANCH_RS_RT_LABEL_INST:
-      return (mk_i_inst(value, instruction_opcode, BIN_RS(value), BIN_RT(value), value & 0xffff));
+      return (make_i_instruction(value, instruction_opcode, BIN_RS(value), BIN_RT(value), value & 0xffff));
 
     case RT_ADDR_INST:
-      return (mk_i_inst(value, instruction_opcode, BIN_RS(value), BIN_RT(value), value & 0xffff));
+      return (make_i_instruction(value, instruction_opcode, BIN_RS(value), BIN_RT(value), value & 0xffff));
 
     case RS_INST:
-      return (mk_r_inst(value, instruction_opcode, BIN_RS(value), 0, 0, 0));
+      return (make_r_instruction(value, instruction_opcode, BIN_RS(value), 0, 0, 0));
 
     case RD_INST:
-      return (mk_r_inst(value, instruction_opcode, 0, 0, BIN_RD(value), 0));
+      return (make_r_instruction(value, instruction_opcode, 0, 0, BIN_RD(value), 0));
 
     case RT_COPREG_INST:
-      return (mk_r_inst(value, instruction_opcode, 0, BIN_RT(value), BIN_RD(value), 0));
+      return (make_r_instruction(value, instruction_opcode, 0, BIN_RT(value), BIN_RD(value), 0));
 
     case RS_RT_INST:
-      return (mk_r_inst(value, instruction_opcode, BIN_RS(value), BIN_RT(value), 0, 0));
+      return (make_r_instruction(value, instruction_opcode, BIN_RS(value), BIN_RT(value), 0, 0));
 
     case RD_RS_INST:
-      return (mk_r_inst(value, instruction_opcode, BIN_RS(value), 0, BIN_RD(value), 0));
+      return (make_r_instruction(value, instruction_opcode, BIN_RS(value), 0, BIN_RD(value), 0));
 
     case RD_RT_SHAMT_INST:
-      return (mk_r_inst(value, instruction_opcode, 0, BIN_RT(value), BIN_RD(value),
+      return (make_r_instruction(value, instruction_opcode, 0, BIN_RT(value), BIN_RD(value),
                         BIN_SHAMT(value)));
 
     case RD_RS_RT_INST:
       return (
-          mk_r_inst(value, instruction_opcode, BIN_RS(value), BIN_RT(value), BIN_RD(value), 0));
+          make_r_instruction(value, instruction_opcode, BIN_RS(value), BIN_RT(value), BIN_RD(value), 0));
 
     case RD_RT_RS_INST:
       return (
-          mk_r_inst(value, instruction_opcode, BIN_RS(value), BIN_RT(value), BIN_RD(value), 0));
+          make_r_instruction(value, instruction_opcode, BIN_RS(value), BIN_RT(value), BIN_RD(value), 0));
 
     case FP_FT_ADDR_INST:
       return (
-          mk_i_inst(value, instruction_opcode, BIN_BASE(value), BIN_FT(value), value & 0xffff));
+          make_i_instruction(value, instruction_opcode, BIN_BASE(value), BIN_FT(value), value & 0xffff));
 
     case FP_FD_FS_INST:
-      return (mk_co_r_inst(value, instruction_opcode, BIN_FS(value), 0, BIN_FD(value)));
+      return (make_coprocessor_r_instruction(value, instruction_opcode, BIN_FS(value), 0, BIN_FD(value)));
 
     case FP_RT_COPREG_INST:
-      return (mk_r_inst(value, instruction_opcode, 0, BIN_RT(value), BIN_FS(value), 0));
+      return (make_r_instruction(value, instruction_opcode, 0, BIN_RT(value), BIN_FS(value), 0));
 
     case FP_CMP_FS_FT_INST: {
-      /* mk_co_r_inst, not mk_r_inst: FS lives in the rd slot, so passing FD as
+      /* make_coprocessor_r_instruction, not make_r_instruction: FS lives in the rd slot, so passing FD as
          rd would overwrite it.  The condition goes in the rs slot. */
       mips_instruction* instruction =
-          mk_co_r_inst(value, instruction_opcode, BIN_FS(value), BIN_FT(value), BIN_FD(value));
+          make_coprocessor_r_instruction(value, instruction_opcode, BIN_FS(value), BIN_FT(value), BIN_FD(value));
       SET_COND(instruction, value & 0xf);
       return (instruction);
     }
 
     case FP_FD_FS_FT_INST:
       return (
-          mk_co_r_inst(value, instruction_opcode, BIN_FS(value), BIN_FT(value), BIN_FD(value)));
+          make_coprocessor_r_instruction(value, instruction_opcode, BIN_FS(value), BIN_FT(value), BIN_FD(value)));
 
     case MOVC_TYPE_INST:
       return (
-          mk_r_inst(value, instruction_opcode, BIN_RS(value), BIN_RT(value), BIN_RD(value), 0));
+          make_r_instruction(value, instruction_opcode, BIN_RS(value), BIN_RT(value), BIN_RD(value), 0));
 
     case FP_MOVC_TYPE_INST:
       /* FS in the rd slot, the GPR (movn/movz) or cc<<2|tf (movf/movt) in rt,
-         FD in shamt -- the layout emit_fp_r builds. */
+         FD in shamt -- the layout emit_floating_point_r builds. */
       return (
-          mk_co_r_inst(value, instruction_opcode, BIN_FS(value), BIN_RT(value), BIN_FD(value)));
+          make_coprocessor_r_instruction(value, instruction_opcode, BIN_FS(value), BIN_RT(value), BIN_FD(value)));
 
     case J_TYPE_INST:
-      return (mk_j_inst(value, instruction_opcode, value & 0x3ffffff));
+      return (make_j_instruction(value, instruction_opcode, value & 0x3ffffff));
 
     case NOARG_TYPE_INST:
-      return (mk_r_inst(value, instruction_opcode, 0, 0, 0, 0));
+      return (make_r_instruction(value, instruction_opcode, 0, 0, 0, 0));
 
     default:
-      return (mk_r_inst(value, 0, 0, 0, 0, 0)); /* Invalid instruction */
+      return (make_r_instruction(value, 0, 0, 0, 0, 0)); /* Invalid instruction */
   }
 }
 
@@ -1352,10 +1352,10 @@ mips_instruction* inst_decode(int32_t value) {
    the rd slot, FD in shamt, IOFFSET in imm), and an initializer would
    restate that mapping at every site.  zmalloc supplies the zero fill. */
 
-static mips_instruction* mk_r_inst(int32_t value, int opcode, int source_register, int target_register,
+static mips_instruction* make_r_instruction(int32_t value, int opcode, int source_register, int target_register,
                                    int destination_register, int shift_amount) {
   mips_instruction* instruction =
-      (mips_instruction*)zmalloc(sizeof(mips_instruction));
+      (mips_instruction*)allocate_zeroed_or_exit(sizeof(mips_instruction));
 
   SET_OPCODE(instruction, opcode);
   SET_RS(instruction, source_register);
@@ -1367,10 +1367,10 @@ static mips_instruction* mk_r_inst(int32_t value, int opcode, int source_registe
   return (instruction);
 }
 
-static mips_instruction* mk_co_r_inst(int32_t value, int opcode, int floating_point_source, int floating_point_target,
+static mips_instruction* make_coprocessor_r_instruction(int32_t value, int opcode, int floating_point_source, int floating_point_target,
                                       int floating_point_destination) {
   mips_instruction* instruction =
-      (mips_instruction*)zmalloc(sizeof(mips_instruction));
+      (mips_instruction*)allocate_zeroed_or_exit(sizeof(mips_instruction));
 
   SET_OPCODE(instruction, opcode);
   SET_FS(instruction, floating_point_source);
@@ -1381,10 +1381,10 @@ static mips_instruction* mk_co_r_inst(int32_t value, int opcode, int floating_po
   return (instruction);
 }
 
-static mips_instruction* mk_i_inst(int32_t value, int opcode, int source_register, int target_register,
+static mips_instruction* make_i_instruction(int32_t value, int opcode, int source_register, int target_register,
                                    int offset) {
   mips_instruction* instruction =
-      (mips_instruction*)zmalloc(sizeof(mips_instruction));
+      (mips_instruction*)allocate_zeroed_or_exit(sizeof(mips_instruction));
 
   SET_OPCODE(instruction, opcode);
   SET_RS(instruction, source_register);
@@ -1395,9 +1395,9 @@ static mips_instruction* mk_i_inst(int32_t value, int opcode, int source_registe
   return (instruction);
 }
 
-static mips_instruction* mk_j_inst(int32_t value, int opcode, int target) {
+static mips_instruction* make_j_instruction(int32_t value, int opcode, int target) {
   mips_instruction* instruction =
-      (mips_instruction*)zmalloc(sizeof(mips_instruction));
+      (mips_instruction*)allocate_zeroed_or_exit(sizeof(mips_instruction));
 
   SET_OPCODE(instruction, opcode);
   SET_TARGET(instruction, target);
@@ -1409,24 +1409,24 @@ static mips_instruction* mk_j_inst(int32_t value, int opcode, int target) {
 /* Code to test encode/decode of instructions. */
 
 void test_assembly(mips_instruction* instruction) {
-  mips_instruction* const new_instruction = inst_decode(inst_encode(instruction));
+  mips_instruction* const new_instruction = instruction_decode(instruction_encode(instruction));
 
-  inst_cmp(instruction, new_instruction);
-  free_inst(new_instruction);
+  compare_instructions(instruction, new_instruction);
+  free_instruction(new_instruction);
 }
 
-static void inst_cmp(mips_instruction* instruction1, mips_instruction* instruction2) {
+static void compare_instructions(mips_instruction* instruction1, mips_instruction* instruction2) {
   static str_stream stream;
 
-  ss_clear(&stream);
+  stream_clear(&stream);
   if (instruction1->opcode != instruction2->opcode || instruction1->encoding != instruction2->encoding ||
       RS(instruction1) != RS(instruction2) || RT(instruction1) != RT(instruction2) ||
       RD(instruction1) != RD(instruction2) || SHAMT(instruction1) != SHAMT(instruction2)) {
-    ss_printf(&stream, "=================== Not Equal ===================\n");
-    format_an_inst(&stream, instruction1, 0);
-    ss_printf(&stream, "===================\n");
-    format_an_inst(&stream, instruction2, 0);
-    ss_printf(&stream, "=================== Not Equal ===================\n");
-    error("%s", ss_to_string(&stream));
+    stream_printf(&stream, "=================== Not Equal ===================\n");
+    format_an_instruction(&stream, instruction1, 0);
+    stream_printf(&stream, "===================\n");
+    format_an_instruction(&stream, instruction2, 0);
+    stream_printf(&stream, "=================== Not Equal ===================\n");
+    error("%s", stream_to_string(&stream));
   }
 }

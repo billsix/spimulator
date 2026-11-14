@@ -52,13 +52,13 @@ void set_input_file_name(char* name);
 
 /* Initialize scanner + parser state for a fresh assembly file.
    Call before parse_file(). */
-void parser_init(FILE* input, char* file_name);
+void parser_initialize(FILE* input, char* file_name);
 
 void fix_current_label_address(mem_addr new_address);
-int imm_op_to_op(int opcode);
+int immediate_opcode_to_opcode(int opcode);
 void parse_error(const char* s);
 
-/* Name of the current input file (set by parser_init).  May be null
+/* Name of the current input file (set by parser_initialize).  May be null
    when assembling from a non-file stream. */
 char* input_file_name_get(void);
 
@@ -74,8 +74,8 @@ void emit_r_shift(int opcode, int destination_register, int target_register, int
 void emit_i(int opcode, int target_register, int source_register, const imm_expr* immediate);
 void emit_i_free(int opcode, int target_register, int source_register, imm_expr* immediate);
 void emit_j(int opcode, const imm_expr* target);
-void emit_fp_r(int opcode, int floating_point_destination, int floating_point_source, int floating_point_target);
-void emit_fp_compare(int opcode, int floating_point_source, int floating_point_target, int condition_code);
+void emit_floating_point_r(int opcode, int floating_point_destination, int floating_point_source, int floating_point_target);
+void emit_floating_point_compare(int opcode, int floating_point_source, int floating_point_target, int condition_code);
 
 /* Exported Variables: */
 

@@ -45,10 +45,10 @@ void parse_error(const char* s) {
 }
 
 /* ------------------------------------------------------------------ *
- * imm_op_to_op: needed by src/instruction.c's pseudo-op expander.
+ * immediate_opcode_to_opcode: needed by src/instruction.c's pseudo-op expander.
  * ------------------------------------------------------------------ */
 
-int imm_op_to_op(int opcode) {
+int immediate_opcode_to_opcode(int opcode) {
   switch (opcode) {
     case TOK_ADDI_OPCODE:
       return TOK_ADD_OPCODE;
@@ -85,17 +85,17 @@ int imm_op_to_op(int opcode) {
    in via parser.h's emit_* dispatch wrappers so they participate in
    AST construction. */
 
-void nop_inst(void) {
+void nop_instruction(void) {
   emit_r(TOK_SLL_OPCODE, 0, 0, 0); /* sll $0, $0, 0 == 0x00000000 */
 }
 
-void trap_inst(void) { emit_r(TOK_BREAK_OPCODE, 0, 0, 0); }
+void trap_instruction(void) { emit_r(TOK_BREAK_OPCODE, 0, 0, 0); }
 
 imm_expr* branch_offset(int instruction_count) {
-  return const_imm_expr(instruction_count << 2); /* later shifted right 2 by the encoder */
+  return constant_immediate_expression(instruction_count << 2); /* later shifted right 2 by the encoder */
 }
 
-int op_to_imm_op(int opcode) {
+int opcode_to_immediate_opcode(int opcode) {
   switch (opcode) {
     case TOK_ADD_OPCODE:
       return TOK_ADDI_OPCODE;
@@ -123,11 +123,11 @@ int op_to_imm_op(int opcode) {
   }
 }
 
-void div_inst(int opcode, int destination_register, int source_register, int target_register, int constant_divisor) {
+void divide_instruction(int opcode, int destination_register, int source_register, int target_register, int constant_divisor) {
   if (destination_register != 0 && !constant_divisor) {
     emit_i_free(TOK_BNE_OPCODE, 0, target_register, branch_offset(3));
-    nop_inst();
-    trap_inst();
+    nop_instruction();
+    trap_instruction();
   }
 
   if (opcode == TOK_DIV_OPCODE || opcode == TOK_REM_PSEUDO_OP)
@@ -144,7 +144,7 @@ void div_inst(int opcode, int destination_register, int source_register, int tar
   }
 }
 
-void mult_inst(int opcode, int destination_register, int source_register, int target_register) {
+void multiply_instruction(int opcode, int destination_register, int source_register, int target_register) {
   if (opcode == TOK_MULOU_PSEUDO_OP)
     emit_r(TOK_MULTU_OPCODE, 0, source_register, target_register);
   else
@@ -153,68 +153,68 @@ void mult_inst(int opcode, int destination_register, int source_register, int ta
   if (opcode == TOK_MULOU_PSEUDO_OP && destination_register != 0) {
     emit_r(TOK_MFHI_OPCODE, 1, 0, 0); /* Use $at */
     emit_i_free(TOK_BEQ_OPCODE, 0, 1, branch_offset(3));
-    nop_inst();
-    trap_inst();
+    nop_instruction();
+    trap_instruction();
   } else if (opcode == TOK_MULO_PSEUDO_OP && destination_register != 0) {
     emit_r(TOK_MFHI_OPCODE, 1, 0, 0); /* use $at */
     emit_r(TOK_MFLO_OPCODE, destination_register, 0, 0);
     emit_r_shift(TOK_SRA_OPCODE, destination_register, destination_register, 31);
     emit_i_free(TOK_BEQ_OPCODE, destination_register, 1, branch_offset(3));
-    nop_inst();
-    trap_inst();
+    nop_instruction();
+    trap_instruction();
   } else {
     /* Any other op, or a result into $zero: no overflow check. */
   }
   if (destination_register != 0) emit_r(TOK_MFLO_OPCODE, destination_register, 0, 0);
 }
 
-void set_le_inst(int opcode, int destination_register, int source_register, int target_register) {
+void set_less_or_equal_instruction(int opcode, int destination_register, int source_register, int target_register) {
   emit_i_free(TOK_BNE_OPCODE, source_register, target_register, branch_offset(3));
-  emit_i_free(TOK_ORI_OPCODE, destination_register, 0, const_imm_expr(1));
+  emit_i_free(TOK_ORI_OPCODE, destination_register, 0, constant_immediate_expression(1));
   emit_i_free(TOK_BEQ_OPCODE, 0, 0, branch_offset(3));
-  nop_inst();
+  nop_instruction();
   emit_r((opcode == TOK_SLE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE), destination_register, source_register,
          target_register);
 }
 
-void set_gt_inst(int opcode, int destination_register, int source_register, int target_register) {
+void set_greater_than_instruction(int opcode, int destination_register, int source_register, int target_register) {
   emit_r(opcode == TOK_SGT_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, destination_register, target_register,
          source_register);
 }
 
-void set_ge_inst(int opcode, int destination_register, int source_register, int target_register) {
+void set_greater_or_equal_instruction(int opcode, int destination_register, int source_register, int target_register) {
   emit_i_free(TOK_BNE_OPCODE, source_register, target_register, branch_offset(3));
-  emit_i_free(TOK_ORI_OPCODE, destination_register, 0, const_imm_expr(1));
+  emit_i_free(TOK_ORI_OPCODE, destination_register, 0, constant_immediate_expression(1));
   emit_i_free(TOK_BEQ_OPCODE, 0, 0, branch_offset(3));
-  nop_inst();
+  nop_instruction();
   emit_r(opcode == TOK_SGE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, destination_register, target_register,
          source_register);
 }
 
-void set_eq_inst(int opcode, int destination_register, int source_register, int target_register) {
+void set_equal_instruction(int opcode, int destination_register, int source_register, int target_register) {
   imm_expr *if_equal, *if_not_equal;
 
   if (opcode == TOK_SEQ_PSEUDO_OP) {
-    if_equal = const_imm_expr(1);
-    if_not_equal = const_imm_expr(0);
+    if_equal = constant_immediate_expression(1);
+    if_not_equal = constant_immediate_expression(0);
   } else {
-    if_equal = const_imm_expr(0);
-    if_not_equal = const_imm_expr(1);
+    if_equal = constant_immediate_expression(0);
+    if_not_equal = constant_immediate_expression(1);
   }
 
   emit_i_free(TOK_BEQ_OPCODE, source_register, target_register, branch_offset(3));
   /* RD <- 0 (if not equal) */
   emit_i_free(TOK_ORI_OPCODE, destination_register, 0, if_not_equal);
   emit_i_free(TOK_BEQ_OPCODE, 0, 0, branch_offset(3)); /* Branch always */
-  nop_inst();
+  nop_instruction();
   /* RD <- 1 */
   emit_i_free(TOK_ORI_OPCODE, destination_register, 0, if_equal);
 }
 
-void check_imm_range(const imm_expr* expression, int32_t min, int32_t max, int line) {
+void check_immediate_range(const imm_expr* expression, int32_t min, int32_t max, int line) {
   if (expression->symbol == nullptr || SYMBOL_IS_DEFINED(expression->symbol)) {
     /* If expression can be evaluated, compare against limits. */
-    const int32_t value = eval_imm_expr(expression);
+    const int32_t value = evaluate_immediate_expression(expression);
 
     if (value < min || max < value) {
       char string[200];
@@ -225,10 +225,10 @@ void check_imm_range(const imm_expr* expression, int32_t min, int32_t max, int l
   }
 }
 
-void check_uimm_range(const imm_expr* expression, uint32_t min, uint32_t max,
+void check_unsigned_immediate_range(const imm_expr* expression, uint32_t min, uint32_t max,
                       int line) {
   if (expression->symbol == nullptr || SYMBOL_IS_DEFINED(expression->symbol)) {
-    const uint32_t value = (uint32_t)eval_imm_expr(expression);
+    const uint32_t value = (uint32_t)evaluate_immediate_expression(expression);
 
     if (value < min || max < value) {
       char string[200];

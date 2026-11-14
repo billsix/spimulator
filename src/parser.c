@@ -44,7 +44,7 @@ static bool null_term;
 
 /* ------- Forward declarations for items defined below ------ */
 
-static void cons_label(label* l);
+static void prepend_label(label* l);
 static bool auto_align; /* defined as static further down */
 
 /* ------- Parser mode and AST state ------------------------- */
@@ -65,7 +65,7 @@ static FILE* ast_print_out = nullptr;
 static bool print_ast_only_ = false;
 
 /* parse_factor stashes the FIRST unresolved label it sees in the
-   current expression here so data_int_push can attach symbol info to
+   current expression here so data_integer_push can attach symbol info to
    the AST imm_expr; emit_ast then records the forward-reference use at
    the correct (emit-time) data PC. */
 static label* expr_unresolved_label = nullptr;
@@ -88,7 +88,7 @@ static void ast_append(ast_node* node) {
   } else if (current_file != nullptr) {
     ast_file_append(current_file, node);
   } else {
-    /* No tree is being built (parser_init has not run): the node is
+    /* No tree is being built (parser_initialize has not run): the node is
        dropped. */
   }
 }
@@ -142,9 +142,9 @@ bool parser_get_print_ast_only(void) { return print_ast_only_; }
 
 /* Deep-copy an imm_expr so the AST can own its own copy independent
    of the one the action helper sees. */
-static imm_expr* dup_imm(const imm_expr* e) {
+static imm_expr* duplicate_immediate(const imm_expr* e) {
   if (e == nullptr) return nullptr;
-  imm_expr* c = (imm_expr*)xmalloc(sizeof(imm_expr));
+  imm_expr* c = (imm_expr*)allocate_or_exit(sizeof(imm_expr));
   *c = *e;
   return c;
 }
@@ -152,42 +152,42 @@ static imm_expr* dup_imm(const imm_expr* e) {
 /* ----- instruction dispatch helpers ------------------------ */
 
 void emit_r(int opcode, int destination_register, int source_register, int target_register) {
-  ast_append(ast_make_inst_r(opcode, destination_register, source_register, target_register));
+  ast_append(ast_make_instruction_r(opcode, destination_register, source_register, target_register));
 }
 
 void emit_r_shift(int opcode, int destination_register, int target_register, int shift_amount) {
-  ast_append(ast_make_inst_r_shift(opcode, destination_register, target_register, shift_amount));
+  ast_append(ast_make_instruction_r_shift(opcode, destination_register, target_register, shift_amount));
 }
 
 /* emit_i: caller keeps ownership of imm (the AST takes its own copy). */
 void emit_i(int opcode, int target_register, int source_register, const imm_expr* immediate) {
-  ast_append(ast_make_inst_i(opcode, target_register, source_register, dup_imm(immediate)));
+  ast_append(ast_make_instruction_i(opcode, target_register, source_register, duplicate_immediate(immediate)));
 }
 
 /* emit_i_free: caller transfers ownership of imm.  The AST takes a copy,
    so the original is freed here. */
 void emit_i_free(int opcode, int target_register, int source_register, imm_expr* immediate) {
-  ast_append(ast_make_inst_i(opcode, target_register, source_register, dup_imm(immediate)));
+  ast_append(ast_make_instruction_i(opcode, target_register, source_register, duplicate_immediate(immediate)));
   free(immediate);
 }
 
 void emit_j(int opcode, const imm_expr* target) {
   /* The AST takes its own copy; caller (parse_j) frees the original. */
-  ast_append(ast_make_inst_j(opcode, dup_imm(target)));
+  ast_append(ast_make_instruction_j(opcode, duplicate_immediate(target)));
 }
 
-void emit_fp_r(int opcode, int floating_point_destination, int floating_point_source, int floating_point_target) {
-  ast_append(ast_make_inst_fp_r(opcode, floating_point_destination, floating_point_source, floating_point_target));
+void emit_floating_point_r(int opcode, int floating_point_destination, int floating_point_source, int floating_point_target) {
+  ast_append(ast_make_instruction_floating_point_r(opcode, floating_point_destination, floating_point_source, floating_point_target));
 }
 
-void emit_fp_compare(int opcode, int floating_point_source, int floating_point_target, int condition_code) {
-  ast_append(ast_make_inst_fp_compare(opcode, floating_point_source, floating_point_target, condition_code));
+void emit_floating_point_compare(int opcode, int floating_point_source, int floating_point_target, int condition_code) {
+  ast_append(ast_make_instruction_floating_point_compare(opcode, floating_point_source, floating_point_target, condition_code));
 }
 
 /* ----- data dispatch helpers ------------------------------- */
 
-/* Buffered current-directive accumulator.  parse_dir_word / half / byte
-   set the kind, then parse_expr_list collects values into this buffer;
+/* Buffered current-directive accumulator.  parse_directive_word / half / byte
+   set the kind, then parse_expression_list collects values into this buffer;
    at the end of the list, finalize_data_int_node builds one AST node. */
 static ast_kind data_int_kind = AST_DATA_WORD;
 static imm_expr** data_int_buf = nullptr;
@@ -203,22 +203,22 @@ static double* data_fp_buf = nullptr;
 static int data_fp_count = 0;
 static int data_fp_cap = 0;
 
-static void data_int_begin(ast_kind kind) {
+static void data_integer_begin(ast_kind kind) {
   data_int_kind = kind;
   data_int_count = 0;
   data_directive_line = line_no;
   if (data_int_buf == nullptr) {
     data_int_cap = 8;
     data_int_buf =
-        (imm_expr**)xmalloc((size_t)data_int_cap * sizeof(imm_expr*));
+        (imm_expr**)allocate_or_exit((size_t)data_int_cap * sizeof(imm_expr*));
   }
 }
 
-static void data_int_push(int value) {
+static void data_integer_push(int value) {
   if (data_int_count == data_int_cap) {
     data_int_cap *= 2;
     imm_expr** const grow =
-        (imm_expr**)xmalloc((size_t)data_int_cap * sizeof(imm_expr*));
+        (imm_expr**)allocate_or_exit((size_t)data_int_cap * sizeof(imm_expr*));
     memcpy(grow, data_int_buf, (size_t)data_int_count * sizeof(imm_expr*));
     free(data_int_buf);
     data_int_buf = grow;
@@ -228,20 +228,20 @@ static void data_int_push(int value) {
      register the use against the correct PC. */
   const char* const symbol_name =
       expr_unresolved_label != nullptr ? expr_unresolved_label->name : nullptr;
-  data_int_buf[data_int_count++] = make_imm_expr(value, (char*)symbol_name, false);
+  data_int_buf[data_int_count++] = make_immediate_expression(value, (char*)symbol_name, false);
   expr_unresolved_label = nullptr;
 }
 
-static void data_int_finalize(void) {
+static void data_integer_finalize(void) {
   if (data_int_count == 0) {
     return;
   }
   /* Hand off the array as-is; ast_node owns it now. */
   imm_expr** const expressions =
-      (imm_expr**)xmalloc((size_t)data_int_count * sizeof(imm_expr*));
+      (imm_expr**)allocate_or_exit((size_t)data_int_count * sizeof(imm_expr*));
   memcpy(expressions, data_int_buf, (size_t)data_int_count * sizeof(imm_expr*));
   ast_node* node;
-  /* Integer values are only collected after data_int_begin, whose callers pass
+  /* Integer values are only collected after data_integer_begin, whose callers pass
      AST_DATA_BYTE, _HALF or _WORD; no other kind builds a data-int node, so
      -Wswitch-enum's demand for a case per kind does not apply here. */
 #pragma GCC diagnostic push
@@ -266,20 +266,20 @@ static void data_int_finalize(void) {
   data_int_count = 0;
 }
 
-static void data_fp_begin(ast_kind kind) {
+static void data_floating_point_begin(ast_kind kind) {
   data_int_kind = kind; /* reuse the discriminant */
   data_fp_count = 0;
   data_directive_line = line_no;
   if (data_fp_buf == nullptr) {
     data_fp_cap = 8;
-    data_fp_buf = (double*)xmalloc((size_t)data_fp_cap * sizeof(double));
+    data_fp_buf = (double*)allocate_or_exit((size_t)data_fp_cap * sizeof(double));
   }
 }
 
-static void data_fp_push(double value) {
+static void data_floating_point_push(double value) {
   if (data_fp_count == data_fp_cap) {
     data_fp_cap *= 2;
-    double* const grow = (double*)xmalloc((size_t)data_fp_cap * sizeof(double));
+    double* const grow = (double*)allocate_or_exit((size_t)data_fp_cap * sizeof(double));
     memcpy(grow, data_fp_buf, (size_t)data_fp_count * sizeof(double));
     free(data_fp_buf);
     data_fp_buf = grow;
@@ -287,12 +287,12 @@ static void data_fp_push(double value) {
   data_fp_buf[data_fp_count++] = value;
 }
 
-static void data_fp_finalize(void) {
+static void data_floating_point_finalize(void) {
   if (data_fp_count == 0) {
     return;
   }
   double* const values =
-      (double*)xmalloc((size_t)data_fp_count * sizeof(double));
+      (double*)allocate_or_exit((size_t)data_fp_count * sizeof(double));
   memcpy(values, data_fp_buf, (size_t)data_fp_count * sizeof(double));
   ast_node* node = (data_int_kind == AST_DATA_FLOAT)
                        ? ast_make_data_float(data_fp_count, values)
@@ -312,27 +312,27 @@ static void emit_label_normal(const char* name) {
   ast_append(ast_make_label_normal(name));
 }
 
-static void emit_label_const(const char* name, int v) {
-  ast_append(ast_make_label_const(name, v));
+static void emit_label_constant(const char* name, int v) {
+  ast_append(ast_make_label_constant(name, v));
 }
 
-static void emit_dir_globl(const char* name) {
-  ast_append(ast_make_dir_globl(name));
+static void emit_directive_globl(const char* name) {
+  ast_append(ast_make_directive_globl(name));
 }
 
-static void emit_dir_align(int n) { ast_append(ast_make_dir_align(n)); }
+static void emit_directive_align(int n) { ast_append(ast_make_directive_align(n)); }
 
-static void emit_dir_space(int v) { ast_append(ast_make_dir_space(v)); }
+static void emit_directive_space(int v) { ast_append(ast_make_directive_space(v)); }
 
-static void emit_dir_extern(const char* symbol, int size) {
-  ast_append(ast_make_dir_extern(symbol, size));
+static void emit_directive_extern(const char* symbol, int size) {
+  ast_append(ast_make_directive_extern(symbol, size));
 }
 
-static void emit_dir_comm(const char* symbol, int size) {
-  ast_append(ast_make_dir_comm(symbol, size));
+static void emit_directive_comm(const char* symbol, int size) {
+  ast_append(ast_make_directive_comm(symbol, size));
 }
 
-static void emit_dir_seg(ast_kind kind, bool has_address, mem_addr address) {
+static void emit_directive_segment(ast_kind kind, bool has_address, mem_addr address) {
   /* The kernel/user distinction is implied by `kind` (KTEXT/KDATA vs
      TEXT/DATA) in the AST node; the segment switch happens at emit time. */
   /* Update parser-state flags unconditionally so subsequent directive
@@ -357,19 +357,19 @@ static void emit_dir_seg(ast_kind kind, bool has_address, mem_addr address) {
 #pragma GCC diagnostic ignored "-Wswitch-enum"
   switch (kind) {
     case AST_DIR_TEXT:
-      n = ast_make_dir_text(has_address, address);
+      n = ast_make_directive_text(has_address, address);
       break;
     case AST_DIR_DATA:
-      n = ast_make_dir_data(has_address, address);
+      n = ast_make_directive_data(has_address, address);
       break;
     case AST_DIR_KTEXT:
-      n = ast_make_dir_ktext(has_address, address);
+      n = ast_make_directive_ktext(has_address, address);
       break;
     case AST_DIR_KDATA:
-      n = ast_make_dir_kdata(has_address, address);
+      n = ast_make_directive_kdata(has_address, address);
       break;
     default:
-      n = ast_make_dir_data(has_address, address);
+      n = ast_make_directive_data(has_address, address);
       break;
   }
 #pragma GCC diagnostic pop
@@ -393,8 +393,8 @@ static label_cell* this_line_labels = nullptr;
    Cleared by `.align 0`, set by `.data` / `.kdata`. */
 static bool auto_align = true;
 
-static void cons_label(label* l) {
-  label_cell* c = (label_cell*)xmalloc(sizeof(label_cell));
+static void prepend_label(label* l) {
+  label_cell* c = (label_cell*)allocate_or_exit(sizeof(label_cell));
   c->label = l;
   c->next = this_line_labels;
   this_line_labels = c;
@@ -441,7 +441,7 @@ static void parse_error_at(const char* message) {
    outer loop pointing at the next line's first token and the
    newline check would mis-fire "Extra tokens after instruction"
    on every line that follows an ignored directive like `.set`. */
-static void sync_to_nl(void) {
+static void sync_to_newline(void) {
   while (scanner_peek() != TOK_NL && scanner_peek() != TOK_EOF) {
     const int t = scanner_advance();
     /* TOK_ID / TOK_STR tokens own a heap string that advance moves into
@@ -475,7 +475,7 @@ static int parse_register(void) {
 }
 
 /* TOK_FP_REG → FP register number 0..31 */
-static int parse_fp_register(void) {
+static int parse_floating_point_register(void) {
   if (scanner_peek() == TOK_FP_REG) {
     scanner_advance();
     return scan_value.integer;
@@ -485,7 +485,7 @@ static int parse_fp_register(void) {
 }
 
 /* ABS_ADDR : TOK_INT | TOK_INT '+' TOK_INT | TOK_INT TOK_INT (negative sub) */
-static int parse_abs_addr(void) {
+static int parse_absolute_address(void) {
   if (scanner_peek() != TOK_INT) {
     parse_error_at("Expected integer");
     return 0;
@@ -516,7 +516,7 @@ static int parse_abs_addr(void) {
    ID resolves to its label's address; forward references
    record a data-uses-symbol entry for later resolution. */
 
-static int parse_expr(void); /* forward */
+static int parse_sum_of_terms(void); /* forward */
 static int parse_factor(void) {
   switch (scanner_peek()) {
     case TOK_INT:
@@ -524,7 +524,7 @@ static int parse_factor(void) {
       return scan_value.integer;
     case '(': {
       scanner_advance();
-      const int v = parse_expr();
+      const int v = parse_sum_of_terms();
       expect(')', "Expected ')'");
       return v;
     }
@@ -533,7 +533,7 @@ static int parse_factor(void) {
       char* const symbol_name = (char*)scan_value.pointer;
       label* const l = lookup_label(symbol_name);
       if (l->address == 0) {
-        /* Forward reference.  current_data_pc isn't the right address at
+        /* Forward reference.  current_data_location isn't the right address at
            parse time (emission is deferred to emit_ast), so stash the
            label and let emit_ast record the use against the actual data
            PC. */
@@ -575,7 +575,7 @@ static int parse_term(void) {
 }
 
 /* EXPR : TRM ( ('+'|'-') TRM )* */
-static int parse_expr(void) {
+static int parse_sum_of_terms(void) {
   int v = parse_term();
   while (scanner_peek() == '+' || scanner_peek() == '-') {
     const int operator = scanner_advance();
@@ -594,12 +594,12 @@ static int parse_expr(void) {
 static int parse_expression(void) {
   scanner_force_identifier();
   expr_unresolved_label = nullptr;
-  return parse_expr();
+  return parse_sum_of_terms();
 }
 
 /* IMM32 : ABS_ADDR | '(' ABS_ADDR ')' '>' '>' TOK_INT
         | TOK_ID | TOK_ID '+' ABS_ADDR | TOK_ID '-' ABS_ADDR */
-static imm_expr* parse_imm32(void) {
+static imm_expr* parse_immediate32(void) {
   scanner_force_identifier();
   /* TOK_ID lookahead: maybe followed by + or - */
   if (scanner_peek() == TOK_ID) {
@@ -607,76 +607,76 @@ static imm_expr* parse_imm32(void) {
     char* const symbol = (char*)scan_value.pointer;
     if (scanner_peek() == '+') {
       scanner_advance();
-      const int offset = parse_abs_addr();
-      imm_expr* const r = make_imm_expr(offset, symbol, false);
-      /* make_imm_expr copies sym internally, so free our local. */
+      const int offset = parse_absolute_address();
+      imm_expr* const r = make_immediate_expression(offset, symbol, false);
+      /* make_immediate_expression copies sym internally, so free our local. */
       free(symbol);
       return r;
     } else if (scanner_peek() == '-') {
       scanner_advance();
-      const int offset = parse_abs_addr();
-      imm_expr* const r = make_imm_expr(-offset, symbol, false);
+      const int offset = parse_absolute_address();
+      imm_expr* const r = make_immediate_expression(-offset, symbol, false);
       free(symbol);
       return r;
     } else {
-      imm_expr* const r = make_imm_expr(0, symbol, false);
-      /* make_imm_expr does not retain `sym`; this frame owns and frees it. */
+      imm_expr* const r = make_immediate_expression(0, symbol, false);
+      /* make_immediate_expression does not retain `sym`; this frame owns and frees it. */
       free(symbol);
       return r;
     }
   } else if (scanner_peek() == '(') {
     /* '(' ABS_ADDR ')' '>' '>' TOK_INT */
     scanner_advance();
-    const int v = parse_abs_addr();
+    const int v = parse_absolute_address();
     expect(')', "Expected ')'");
     expect('>', "Expected '>'");
     expect('>', "Expected '>'");
     if (scanner_peek() != TOK_INT) {
       parse_error_at("Expected integer after '>>'");
-      return make_imm_expr(0, nullptr, false);
+      return make_immediate_expression(0, nullptr, false);
     }
     scanner_advance();
     const int shift_amount = scan_value.integer;
-    return make_imm_expr(v >> shift_amount, nullptr, false);
+    return make_immediate_expression(v >> shift_amount, nullptr, false);
   } else {
     /* ABS_ADDR */
-    const int v = parse_abs_addr();
-    return make_imm_expr(v, nullptr, false);
+    const int v = parse_absolute_address();
+    return make_immediate_expression(v, nullptr, false);
   }
 }
 
 /* IMM16, UIMM16 — IMM32 plus range check */
-static imm_expr* parse_imm16(void) {
+static imm_expr* parse_immediate16(void) {
   /* The instruction's line: parsing the immediate can scan the newline after
      it, which advances line_no. */
   const int line = line_no;
-  imm_expr* const e = parse_imm32();
-  check_imm_range(e, IMM_MIN, IMM_MAX, line);
+  imm_expr* const e = parse_immediate32();
+  check_immediate_range(e, IMM_MIN, IMM_MAX, line);
   return e;
 }
 
-static imm_expr* parse_uimm16(void) {
-  const int line = line_no; /* as in parse_imm16 */
-  imm_expr* const e = parse_imm32();
-  check_uimm_range(e, UIMM_MIN, UIMM_MAX, line);
+static imm_expr* parse_unsigned_immediate16(void) {
+  const int line = line_no; /* as in parse_immediate16 */
+  imm_expr* const e = parse_immediate32();
+  check_unsigned_immediate_range(e, UIMM_MIN, UIMM_MAX, line);
   return e;
 }
 
 /* LABEL — like ID but produces a PC-relative imm_expr suitable
    for a branch target.  Matches exactly:
-   the initial offset is `-current_text_pc()`, which gets
-   overwritten with `-pc` in resolve_a_label_sub at fix-up
+   the initial offset is `-current_text_location()`, which gets
+   overwritten with `-pc` in resolve_a_label_subtract at fix-up
    time, encoding the (target - branch_pc) displacement that
    MIPS branches require. */
 static imm_expr* parse_label(void) {
   if (scanner_peek() != TOK_ID) {
     parse_error_at("Expected label");
-    return make_imm_expr(0, nullptr, true);
+    return make_immediate_expression(0, nullptr, true);
   }
   scanner_advance();
   char* const symbol = (char*)scan_value.pointer;
-  imm_expr* const r = make_imm_expr(-(int)current_text_pc(), symbol, true);
-  /* make_imm_expr looks `sym` up into a label* and does not retain the
+  imm_expr* const r = make_immediate_expression(-(int)current_text_location(), symbol, true);
+  /* make_immediate_expression looks `sym` up into a label* and does not retain the
      string, so this frame owns it and must free it. */
   free(symbol);
   return r;
@@ -694,20 +694,20 @@ static addr_expr* parse_address(void) {
       scanner_advance();
       const int register_number = parse_register();
       expect(')', "Expected ')' after register");
-      return make_addr_expr(0, nullptr, register_number);
+      return make_address_expression(0, nullptr, register_number);
     }
 
     case TOK_INT: {
       /* ABS_ADDR [ '(' REGISTER ')' ] */
-      const int immediate = parse_abs_addr();
+      const int immediate = parse_absolute_address();
       if (scanner_peek() == '+' && scanner_peek2() == TOK_ID) {
         /* ABS_ADDR '+' ID */
         scanner_advance(); /* + */
         scanner_force_identifier();
         scanner_advance();
         char* const symbol = (char*)scan_value.pointer;
-        addr_expr* const r = make_addr_expr(immediate, symbol, 0);
-        /* make_addr_expr does not retain `sym` (see instruction.c); free it,
+        addr_expr* const r = make_address_expression(immediate, symbol, 0);
+        /* make_address_expression does not retain `sym` (see instruction.c); free it,
            matching the TOK_ID path below. */
         free(symbol);
         return r;
@@ -715,9 +715,9 @@ static addr_expr* parse_address(void) {
         scanner_advance();
         const int register_number = parse_register();
         expect(')', "Expected ')'");
-        return make_addr_expr(immediate, nullptr, register_number);
+        return make_address_expression(immediate, nullptr, register_number);
       } else {
-        return make_addr_expr(immediate, nullptr, 0);
+        return make_address_expression(immediate, nullptr, 0);
       }
     }
 
@@ -728,10 +728,10 @@ static addr_expr* parse_address(void) {
       int offset = 0;
       if (scanner_peek() == '+') {
         scanner_advance();
-        offset = parse_abs_addr();
+        offset = parse_absolute_address();
       } else if (scanner_peek() == '-') {
         scanner_advance();
-        offset = -parse_abs_addr();
+        offset = -parse_absolute_address();
       } else {
         /* No offset: off stays 0. */
       }
@@ -741,14 +741,14 @@ static addr_expr* parse_address(void) {
         register_number = parse_register();
         expect(')', "Expected ')'");
       }
-      addr_expr* const r = make_addr_expr(offset, symbol, register_number);
+      addr_expr* const r = make_address_expression(offset, symbol, register_number);
       free(symbol);
       return r;
     }
 
     default:
       parse_error_at("Expected address");
-      return make_addr_expr(0, nullptr, 0);
+      return make_address_expression(0, nullptr, 0);
   }
 }
 
@@ -757,7 +757,7 @@ static addr_expr* parse_address(void) {
 /* Return true if `op` is a BINARYI_OPS opcode (has both reg-reg
    and reg-imm forms — add, addu, and, or, xor, slt, sltu).
    */
-static bool op_has_imm_form(int opcode) {
+static bool opcode_has_immediate_form(int opcode) {
   switch (opcode) {
     case TOK_ADD_OPCODE:
     case TOK_ADDU_OPCODE:
@@ -794,7 +794,7 @@ static void parse_r3(int opcode) {
       const int target_register = parse_register();
       emit_r(opcode, destination_register, source_register, target_register);
     } else {
-      imm_expr* const immediate = parse_imm32();
+      imm_expr* const immediate = parse_immediate32();
       emit_i_free(TOK_ORI_OPCODE, 1, 0, immediate);
       emit_r(opcode, destination_register, source_register, 1);
     }
@@ -803,10 +803,10 @@ static void parse_r3(int opcode) {
     /* SUB_OPS: 3-reg, 3-with-imm, or 2-with-imm.  Convert imm
        form to addi/addiu with negated value. */
     if (scanner_peek() != TOK_REG) {
-      imm_expr* const immediate = parse_imm32();
-      const int value = eval_imm_expr(immediate);
+      imm_expr* const immediate = parse_immediate32();
+      const int value = evaluate_immediate_expression(immediate);
       emit_i(opcode == TOK_SUB_OPCODE ? TOK_ADDI_OPCODE : TOK_ADDIU_OPCODE, destination_register, destination_register,
-             make_imm_expr(-value, nullptr, false));
+             make_immediate_expression(-value, nullptr, false));
       free(immediate);
       return;
     }
@@ -815,18 +815,18 @@ static void parse_r3(int opcode) {
       const int target_register = parse_register();
       emit_r(opcode, destination_register, source_register, target_register);
     } else {
-      imm_expr* const immediate = parse_imm32();
-      const int value = eval_imm_expr(immediate);
+      imm_expr* const immediate = parse_immediate32();
+      const int value = evaluate_immediate_expression(immediate);
       emit_i(opcode == TOK_SUB_OPCODE ? TOK_ADDI_OPCODE : TOK_ADDIU_OPCODE, destination_register, source_register,
-             make_imm_expr(-value, nullptr, false));
+             make_immediate_expression(-value, nullptr, false));
       free(immediate);
     }
     return;
-  } else if (op_has_imm_form(opcode)) {
+  } else if (opcode_has_immediate_form(opcode)) {
     /* Two-operand form: <op> DEST, IMM */
     if (scanner_peek() != TOK_REG) {
-      imm_expr* const immediate = parse_imm32();
-      emit_i_free(op_to_imm_op(opcode), destination_register, destination_register, immediate);
+      imm_expr* const immediate = parse_immediate32();
+      emit_i_free(opcode_to_immediate_opcode(opcode), destination_register, destination_register, immediate);
       return;
     }
     const int source_register = parse_register();
@@ -836,8 +836,8 @@ static void parse_r3(int opcode) {
       const int target_register = parse_register();
       emit_r(opcode, destination_register, source_register, target_register);
     } else {
-      imm_expr* const immediate = parse_imm32();
-      emit_i_free(op_to_imm_op(opcode), destination_register, source_register, immediate);
+      imm_expr* const immediate = parse_immediate32();
+      emit_i_free(opcode_to_immediate_opcode(opcode), destination_register, source_register, immediate);
     }
     return;
   } else {
@@ -850,7 +850,7 @@ static void parse_r3(int opcode) {
 
 /* RD_RT_SHAMT_INST: <op> DEST, SRC1, SHAMT (immediate 0..31).
    ssnop is a special no-operand case emitting `sll $0, $0, 1`. */
-static void parse_r2sh(int opcode) {
+static void parse_two_registers_shift_amount(int opcode) {
   if (opcode == TOK_SSNOP_OPCODE) {
     emit_r_shift(TOK_SLL_OPCODE, 0, 0, 1);
     return;
@@ -880,18 +880,18 @@ static void parse_i2(int opcode) {
   const int target_register = parse_register();
   const int source_register = scanner_peek() == TOK_REG ? parse_register() : target_register;
   /* andi/ori/xori take unsigned; addi/addiu/slti signed.  The
-     range check happens inside parse_imm16/parse_uimm16. */
+     range check happens inside parse_immediate16/parse_unsigned_immediate16. */
   imm_expr* const immediate =
       (opcode == TOK_ANDI_OPCODE || opcode == TOK_ORI_OPCODE || opcode == TOK_XORI_OPCODE)
-          ? parse_uimm16()
-          : parse_imm16();
+          ? parse_unsigned_immediate16()
+          : parse_immediate16();
   emit_i_free(opcode, target_register, source_register, immediate);
 }
 
 /* RT_IMM_INST: <op> DEST, UIMM16 (lui) */
 static void parse_i1t(int opcode) {
   const int target_register = parse_register();
-  imm_expr* const immediate = parse_uimm16();
+  imm_expr* const immediate = parse_unsigned_immediate16();
   emit_i_free(opcode, target_register, 0, immediate);
 }
 
@@ -899,11 +899,11 @@ static void parse_i1t(int opcode) {
 static void parse_i2a(int opcode) {
   const int target_register = parse_register();
   addr_expr* const address = parse_address();
-  emit_i(opcode, target_register, addr_expr_reg(address), addr_expr_imm(address));
+  emit_i(opcode, target_register, address_expression_register(address), address_expression_immediate(address));
   /* Bison frees the addr_expr's inner imm + the addr_expr; do the
      same.  spim runtime exposes free_imm_expr but not
      free_addr_expr — see instruction.h.  Use free() since that's what */
-  free(addr_expr_imm(address));
+  free(address_expression_immediate(address));
   free(address);
 }
 
@@ -918,9 +918,9 @@ static void parse_b2(int opcode) {
     emit_i_free(opcode, source2, source1, target);
   } else {
     /* Immediate form */
-    imm_expr* const immediate = parse_imm32();
+    imm_expr* const immediate = parse_immediate32();
     imm_expr* const target = parse_label();
-    if (is_zero_imm(immediate)) {
+    if (is_zero_immediate(immediate)) {
       /* Special case: comparing against literal 0 → use $0 directly */
       emit_i(opcode, source1, 0, target);
     } else {
@@ -968,7 +968,7 @@ static void parse_j(int opcode) {
           emit_r(TOK_JALR_HB_OPCODE, r1, r2, 0);
           break;
         default:
-          /* Never reached: parse_asm_code sends only J_TYPE_INST and
+          /* Never reached: parse_assembly_code sends only J_TYPE_INST and
              RD_RS_INST opcodes here, and cop2 is handled above. */
           fatal_error("internal error: parse_j: unexpected opcode %d\n", opcode);
       }
@@ -1015,7 +1015,7 @@ static void parse_j(int opcode) {
 
 /* NOARG_TYPE_INST: <op>  (syscall) or <op> IMM (break N, sync N).
    See. */
-static void parse_noarg(int opcode) {
+static void parse_no_argument(int opcode) {
   if (scanner_peek() == TOK_INT) {
     /* break N or sync N — encode the int in the rd slot.
        Bison: emit_r(op, $2.i, 0, 0). */
@@ -1032,7 +1032,7 @@ static void parse_noarg(int opcode) {
 
 /* ---------------- directive parsers ---------------- */
 
-static void parse_dir_data(bool kernel) {
+static void parse_directive_data(bool kernel) {
   bool has_address = false;
   mem_addr address = 0;
   if (scanner_peek() == TOK_INT) {
@@ -1040,10 +1040,10 @@ static void parse_dir_data(bool kernel) {
     has_address = true;
     address = (mem_addr)scan_value.integer;
   }
-  emit_dir_seg(kernel ? AST_DIR_KDATA : AST_DIR_DATA, has_address, address);
+  emit_directive_segment(kernel ? AST_DIR_KDATA : AST_DIR_DATA, has_address, address);
 }
 
-static void parse_dir_text(bool kernel) {
+static void parse_directive_text(bool kernel) {
   bool has_address = false;
   mem_addr address = 0;
   if (scanner_peek() == TOK_INT) {
@@ -1051,10 +1051,10 @@ static void parse_dir_text(bool kernel) {
     has_address = true;
     address = (mem_addr)scan_value.integer;
   }
-  emit_dir_seg(kernel ? AST_DIR_KTEXT : AST_DIR_TEXT, has_address, address);
+  emit_directive_segment(kernel ? AST_DIR_KTEXT : AST_DIR_TEXT, has_address, address);
 }
 
-static void parse_dir_globl(void) {
+static void parse_directive_globl(void) {
   scanner_force_identifier();
   if (scanner_peek() != TOK_ID) {
     parse_error_at("Expected identifier after .globl");
@@ -1062,11 +1062,11 @@ static void parse_dir_globl(void) {
   }
   scanner_advance();
   char* const symbol = (char*)scan_value.pointer;
-  emit_dir_globl(symbol);
+  emit_directive_globl(symbol);
   free(symbol);
 }
 
-static void parse_dir_align(void) {
+static void parse_directive_align(void) {
   const int line = line_no; /* the expression can consume the newline */
   const int v = parse_expression();
   if (v < 0 || v > 31) {
@@ -1075,10 +1075,10 @@ static void parse_dir_align(void) {
     return;
   }
   if (v == 0) auto_align = false; /* mirror data.c's flag */
-  emit_dir_align(v);
+  emit_directive_align(v);
 }
 
-static void parse_dir_extern(void) {
+static void parse_directive_extern(void) {
   scanner_force_identifier();
   if (scanner_peek() != TOK_ID) {
     parse_error_at("Expected ID");
@@ -1087,11 +1087,11 @@ static void parse_dir_extern(void) {
   scanner_advance();
   char* const symbol = (char*)scan_value.pointer;
   const int size = parse_expression();
-  emit_dir_extern(symbol, size);
+  emit_directive_extern(symbol, size);
   free(symbol);
 }
 
-static void parse_dir_comm(void) {
+static void parse_directive_comm(void) {
   scanner_force_identifier();
   if (scanner_peek() != TOK_ID) {
     parse_error_at("Expected ID");
@@ -1100,37 +1100,37 @@ static void parse_dir_comm(void) {
   scanner_advance();
   char* const symbol = (char*)scan_value.pointer;
   const int size = parse_expression();
-  emit_dir_comm(symbol, size);
+  emit_directive_comm(symbol, size);
   free(symbol);
 }
 
-static void parse_dir_space(void) {
+static void parse_directive_space(void) {
   const int v = parse_expression();
   if (text_dir) {
     parse_error_at("Can't put data in text segment");
     return;
   }
-  emit_dir_space(v);
+  emit_directive_space(v);
 }
 
 /* EXPR_LST: collect each expression value into the AST data
-   accumulator; data_int_finalize builds the AST node. */
-static void parse_expr_list(void) {
+   accumulator; data_integer_finalize builds the AST node. */
+static void parse_expression_list(void) {
   while (true) {
     const int errors_before = parse_errors_seen;
     const int v = parse_expression();
     if (parse_errors_seen != errors_before) {
       /* parse_expression reports a token it cannot use without consuming
          it; skip the rest of the line instead of asking again forever. */
-      sync_to_nl();
+      sync_to_newline();
       break;
     }
-    data_int_push(v);
+    data_integer_push(v);
     /* commas are skipped by the scanner; same with whitespace */
     if (scanner_peek() == TOK_NL || scanner_peek() == TOK_EOF) break;
     /* Otherwise continue to next expression */
   }
-  data_int_finalize();
+  data_integer_finalize();
 }
 
 /* Pre-fix any labels currently on this_line_labels to the
@@ -1140,14 +1140,14 @@ static void parse_expr_list(void) {
    auto-align gate that data.c uses. */
 static void align_labels_to(int alignment) {
   if (!data_dir || !auto_align || this_line_labels == nullptr) return;
-  const mem_addr current = current_data_pc();
+  const mem_addr current = current_data_location();
   const mem_addr aligned = (current + (1u << alignment) - 1) & (~0u << alignment);
   fix_current_label_address(aligned);
 }
 
 /* FP_EXPR_LST: consume TOK_FP tokens, collecting into the AST data
-   accumulator; data_fp_finalize builds the AST node. */
-static void parse_fp_expr_list(void) {
+   accumulator; data_floating_point_finalize builds the AST node. */
+static void parse_floating_point_expression_list(void) {
   while (true) {
     if (scanner_peek() != TOK_FP) {
       parse_error_at("Expected floating-point literal");
@@ -1155,41 +1155,41 @@ static void parse_fp_expr_list(void) {
     }
     scanner_advance();
     double* const value = (double*)scan_value.pointer;
-    data_fp_push(*value);
+    data_floating_point_push(*value);
     if (scanner_peek() == TOK_NL || scanner_peek() == TOK_EOF) break;
   }
-  data_fp_finalize();
+  data_floating_point_finalize();
 }
 
-static void parse_dir_float(void) {
+static void parse_directive_float(void) {
   align_labels_to(2);
   if (data_dir) set_data_alignment(2);
-  data_fp_begin(AST_DATA_FLOAT);
-  parse_fp_expr_list();
+  data_floating_point_begin(AST_DATA_FLOAT);
+  parse_floating_point_expression_list();
 }
 
-static void parse_dir_double(void) {
+static void parse_directive_double(void) {
   align_labels_to(3);
   if (data_dir) set_data_alignment(3);
-  data_fp_begin(AST_DATA_DOUBLE);
-  parse_fp_expr_list();
+  data_floating_point_begin(AST_DATA_DOUBLE);
+  parse_floating_point_expression_list();
 }
 
-static void parse_dir_word(void) {
+static void parse_directive_word(void) {
   align_labels_to(2);
   if (data_dir) set_data_alignment(2);
-  data_int_begin(AST_DATA_WORD);
-  parse_expr_list();
+  data_integer_begin(AST_DATA_WORD);
+  parse_expression_list();
 }
-static void parse_dir_half(void) {
+static void parse_directive_half(void) {
   align_labels_to(1);
   if (data_dir) set_data_alignment(1);
-  data_int_begin(AST_DATA_HALF);
-  parse_expr_list();
+  data_integer_begin(AST_DATA_HALF);
+  parse_expression_list();
 }
-static void parse_dir_byte(void) {
-  data_int_begin(AST_DATA_BYTE);
-  parse_expr_list();
+static void parse_directive_byte(void) {
+  data_integer_begin(AST_DATA_BYTE);
+  parse_expression_list();
 }
 
 /* STR_LST: emit each string via store_string */
@@ -1212,11 +1212,11 @@ static void parse_string_list(void) {
   }
 }
 
-static void parse_dir_ascii(void) {
+static void parse_directive_ascii(void) {
   null_term = false;
   parse_string_list();
 }
-static void parse_dir_asciiz(void) {
+static void parse_directive_asciiz(void) {
   null_term = true;
   parse_string_list();
 }
@@ -1231,9 +1231,9 @@ static void parse_dir_asciiz(void) {
    so the -1 sentinel is representable; case labels in the caller's
    switch compare against the typed `op_type` enumerators via the
    usual int/enum conversions. */
-static int find_op_type(int opcode) {
+static int find_opcode_type(int opcode) {
   const name_val_val* const entry =
-      map_int_to_name_val_val(opcode_tbl, OPCODE_COUNT, opcode);
+      map_integer_to_name_value_value(opcode_tbl, OPCODE_COUNT, opcode);
   return entry ? entry->value2 : -1;
 }
 
@@ -1250,7 +1250,7 @@ static void do_parse_pseudo(int opcode);
 
 static void parse_pseudo(int opcode) {
   const int saved_line = line_no;
-  ast_node* pseudo_node = ast_make_pseudo(op_token_name(opcode));
+  ast_node* pseudo_node = ast_make_pseudo(opcode_token_name(opcode));
   pseudo_node->source_line = saved_line;
   ast_node* const saved_pseudo = current_pseudo;
   current_pseudo = pseudo_node;
@@ -1271,7 +1271,7 @@ static void do_parse_pseudo(int opcode) {
     case TOK_LI_PSEUDO_OP: {
       /* li DEST, IMM32  →  ori DEST, $0, imm */
       const int target_register = parse_register();
-      imm_expr* const immediate = parse_imm32();
+      imm_expr* const immediate = parse_immediate32();
       emit_i_free(TOK_ORI_OPCODE, target_register, 0, immediate);
       break;
     }
@@ -1324,10 +1324,10 @@ static void do_parse_pseudo(int opcode) {
         }
         emit_r(TOK_OR_OPCODE, destination_register, destination_register, 1);
       } else {
-        const int line = line_no; /* as in parse_imm16 */
-        imm_expr* const immediate = parse_imm32();
-        const int distance = eval_imm_expr(immediate);
-        check_imm_range(immediate, 0, 31, line);
+        const int line = line_no; /* as in parse_immediate16 */
+        imm_expr* const immediate = parse_immediate32();
+        const int distance = evaluate_immediate_expression(immediate);
+        check_immediate_range(immediate, 0, 31, line);
         if (opcode == TOK_ROR_PSEUDO_OP) {
           emit_r_shift(TOK_SLL_OPCODE, 1, source_register, -distance);
           emit_r_shift(TOK_SRL_OPCODE, destination_register, source_register, distance);
@@ -1356,8 +1356,8 @@ static void do_parse_pseudo(int opcode) {
       if (scanner_peek() == TOK_REG) {
         target_register = parse_register();
       } else {
-        imm_expr* const immediate = parse_imm32();
-        if (!is_zero_imm(immediate)) {
+        imm_expr* const immediate = parse_immediate32();
+        if (!is_zero_immediate(immediate)) {
           emit_i(TOK_ORI_OPCODE, 1, 0, immediate);
           target_register = 1;
         } else {
@@ -1368,19 +1368,19 @@ static void do_parse_pseudo(int opcode) {
       switch (opcode) {
         case TOK_SLE_PSEUDO_OP:
         case TOK_SLEU_PSEUDO_OP:
-          set_le_inst(opcode, destination_register, source_register, target_register);
+          set_less_or_equal_instruction(opcode, destination_register, source_register, target_register);
           break;
         case TOK_SGT_PSEUDO_OP:
         case TOK_SGTU_PSEUDO_OP:
-          set_gt_inst(opcode, destination_register, source_register, target_register);
+          set_greater_than_instruction(opcode, destination_register, source_register, target_register);
           break;
         case TOK_SGE_PSEUDO_OP:
         case TOK_SGEU_PSEUDO_OP:
-          set_ge_inst(opcode, destination_register, source_register, target_register);
+          set_greater_or_equal_instruction(opcode, destination_register, source_register, target_register);
           break;
         case TOK_SEQ_PSEUDO_OP:
         case TOK_SNE_PSEUDO_OP:
-          set_eq_inst(opcode, destination_register, source_register, target_register);
+          set_equal_instruction(opcode, destination_register, source_register, target_register);
           break;
         default:
           /* Never reached: the enclosing case admits only the eight
@@ -1401,12 +1401,12 @@ static void do_parse_pseudo(int opcode) {
         emit_r(TOK_ADDU_OPCODE, destination_register, 0, source_register);
       }
       emit_i_free(TOK_BGEZ_OPCODE, 0, source_register, branch_offset(3));
-      nop_inst();
+      nop_instruction();
       emit_r(TOK_SUB_OPCODE, destination_register, 0, source_register);
       break;
     }
     case TOK_NOP_PSEUDO_OP: {
-      nop_inst();
+      nop_instruction();
       break;
     }
     case TOK_REM_PSEUDO_OP:
@@ -1417,14 +1417,14 @@ static void do_parse_pseudo(int opcode) {
       const int source_register = parse_register();
       if (scanner_peek() == TOK_REG) {
         const int target_register = parse_register();
-        div_inst(opcode, destination_register, source_register, target_register, 0);
+        divide_instruction(opcode, destination_register, source_register, target_register, 0);
       } else {
-        imm_expr* const immediate = parse_imm32();
-        if (is_zero_imm(immediate)) {
+        imm_expr* const immediate = parse_immediate32();
+        if (is_zero_immediate(immediate)) {
           parse_error_at("Divide by zero");
         } else {
           emit_i_free(TOK_ORI_OPCODE, 1, 0, immediate);
-          div_inst(opcode, destination_register, source_register, 1, 1);
+          divide_instruction(opcode, destination_register, source_register, 1, 1);
         }
       }
       break;
@@ -1436,15 +1436,15 @@ static void do_parse_pseudo(int opcode) {
       const int source_register = parse_register();
       if (scanner_peek() == TOK_REG) {
         const int target_register = parse_register();
-        mult_inst(opcode, destination_register, source_register, target_register);
+        multiply_instruction(opcode, destination_register, source_register, target_register);
       } else {
-        imm_expr* const immediate = parse_imm32();
-        if (is_zero_imm(immediate)) {
+        imm_expr* const immediate = parse_immediate32();
+        if (is_zero_immediate(immediate)) {
           /* Optimize: n * 0 == 0 */
           emit_i_free(TOK_ORI_OPCODE, destination_register, 0, immediate);
         } else {
           emit_i_free(TOK_ORI_OPCODE, 1, 0, immediate);
-          mult_inst(opcode, destination_register, source_register, 1);
+          multiply_instruction(opcode, destination_register, source_register, 1);
         }
       }
       break;
@@ -1455,15 +1455,15 @@ static void do_parse_pseudo(int opcode) {
       const int line = line_no; /* the last operand can consume the newline */
       const int register_number = parse_register();
       const int coprocessor_register =
-          scanner_peek() == TOK_FP_REG ? parse_fp_register() : parse_register();
+          scanner_peek() == TOK_FP_REG ? parse_floating_point_register() : parse_register();
       if (register_number == 31 || coprocessor_register == 31) {
         /* the pair's second register would be 32, past the register file */
         parse_error_on_line("Register pair starts at the last register (31)",
                             line);
         break;
       }
-      emit_fp_r(TOK_MFC1_OPCODE, 0, coprocessor_register, register_number);
-      emit_fp_r(TOK_MFC1_OPCODE, 0, coprocessor_register + 1, register_number + 1);
+      emit_floating_point_r(TOK_MFC1_OPCODE, 0, coprocessor_register, register_number);
+      emit_floating_point_r(TOK_MFC1_OPCODE, 0, coprocessor_register + 1, register_number + 1);
       break;
     }
     case TOK_MTC1_D_PSEUDO_OP: {
@@ -1472,21 +1472,21 @@ static void do_parse_pseudo(int opcode) {
       const int line = line_no; /* the last operand can consume the newline */
       const int register_number = parse_register();
       const int coprocessor_register =
-          scanner_peek() == TOK_FP_REG ? parse_fp_register() : parse_register();
+          scanner_peek() == TOK_FP_REG ? parse_floating_point_register() : parse_register();
       if (register_number == 31 || coprocessor_register == 31) {
         /* the pair's second register would be 32, past the register file */
         parse_error_on_line("Register pair starts at the last register (31)",
                             line);
         break;
       }
-      emit_fp_r(TOK_MTC1_OPCODE, 0, coprocessor_register, register_number);
-      emit_fp_r(TOK_MTC1_OPCODE, 0, coprocessor_register + 1, register_number + 1);
+      emit_floating_point_r(TOK_MTC1_OPCODE, 0, coprocessor_register, register_number);
+      emit_floating_point_r(TOK_MTC1_OPCODE, 0, coprocessor_register + 1, register_number + 1);
       break;
     }
     case TOK_LI_D_PSEUDO_OP: {
       /* li.d F_DEST <TOK_FP>  →  load double-precision constant
          via two mtc1. */
-      const int floating_point_destination = parse_fp_register();
+      const int floating_point_destination = parse_floating_point_register();
       if (scanner_peek() != TOK_FP) {
         parse_error_at("Expected FP literal");
         break;
@@ -1494,18 +1494,18 @@ static void do_parse_pseudo(int opcode) {
       scanner_advance();
       int32_t words[2]; /* the double's two words, in host order */
       memcpy(words, scan_value.pointer, sizeof words);
-      /* emit_i_free (not emit_i): the const_imm_expr node is allocated
+      /* emit_i_free (not emit_i): the constant_immediate_expression node is allocated
          inline with no other owner, so transfer it to be freed. */
-      emit_i_free(TOK_ORI_OPCODE, 1, 0, const_imm_expr(words[0]));
-      emit_fp_r(TOK_MTC1_OPCODE, 0, floating_point_destination, 1);
-      emit_i_free(TOK_ORI_OPCODE, 1, 0, const_imm_expr(words[1]));
-      emit_fp_r(TOK_MTC1_OPCODE, 0, floating_point_destination + 1, 1);
+      emit_i_free(TOK_ORI_OPCODE, 1, 0, constant_immediate_expression(words[0]));
+      emit_floating_point_r(TOK_MTC1_OPCODE, 0, floating_point_destination, 1);
+      emit_i_free(TOK_ORI_OPCODE, 1, 0, constant_immediate_expression(words[1]));
+      emit_floating_point_r(TOK_MTC1_OPCODE, 0, floating_point_destination + 1, 1);
       break;
     }
     case TOK_LI_S_PSEUDO_OP: {
       /* li.s F_DEST <TOK_FP>  →  single-precision const via one mtc1
        */
-      const int floating_point_destination = parse_fp_register();
+      const int floating_point_destination = parse_floating_point_register();
       if (scanner_peek() != TOK_FP) {
         parse_error_at("Expected FP literal");
         break;
@@ -1514,44 +1514,44 @@ static void do_parse_pseudo(int opcode) {
       float float_value = (float)*((double*)scan_value.pointer);
       int32_t bits; /* the float's bit pattern, not its value */
       memcpy(&bits, &float_value, sizeof bits);
-      /* emit_i_free: inline const_imm_expr node has no other owner. */
-      emit_i_free(TOK_ORI_OPCODE, 1, 0, const_imm_expr(bits));
-      emit_fp_r(TOK_MTC1_OPCODE, 0, floating_point_destination, 1);
+      /* emit_i_free: inline constant_immediate_expression node has no other owner. */
+      emit_i_free(TOK_ORI_OPCODE, 1, 0, constant_immediate_expression(bits));
+      emit_floating_point_r(TOK_MTC1_OPCODE, 0, floating_point_destination, 1);
       break;
     }
     case TOK_L_D_PSEUDO_OP: {
       /* l.d F_DEST ADDRESS  →  ldc1. */
-      const int floating_point_addend = parse_fp_register();
+      const int floating_point_addend = parse_floating_point_register();
       addr_expr* const address = parse_address();
-      emit_i(TOK_LDC1_OPCODE, floating_point_addend, addr_expr_reg(address), addr_expr_imm(address));
-      free(addr_expr_imm(address));
+      emit_i(TOK_LDC1_OPCODE, floating_point_addend, address_expression_register(address), address_expression_immediate(address));
+      free(address_expression_immediate(address));
       free(address);
       break;
     }
     case TOK_L_S_PSEUDO_OP: {
       /* l.s F_DEST ADDRESS  →  lwc1. */
-      const int floating_point_addend = parse_fp_register();
+      const int floating_point_addend = parse_floating_point_register();
       addr_expr* const address = parse_address();
-      emit_i(TOK_LWC1_OPCODE, floating_point_addend, addr_expr_reg(address), addr_expr_imm(address));
-      free(addr_expr_imm(address));
+      emit_i(TOK_LWC1_OPCODE, floating_point_addend, address_expression_register(address), address_expression_immediate(address));
+      free(address_expression_immediate(address));
       free(address);
       break;
     }
     case TOK_S_D_PSEUDO_OP: {
       /* s.d F_SRC1 ADDRESS  →  sdc1. */
-      const int floating_point_addend = parse_fp_register();
+      const int floating_point_addend = parse_floating_point_register();
       addr_expr* const address = parse_address();
-      emit_i(TOK_SDC1_OPCODE, floating_point_addend, addr_expr_reg(address), addr_expr_imm(address));
-      free(addr_expr_imm(address));
+      emit_i(TOK_SDC1_OPCODE, floating_point_addend, address_expression_register(address), address_expression_immediate(address));
+      free(address_expression_immediate(address));
       free(address);
       break;
     }
     case TOK_S_S_PSEUDO_OP: {
       /* s.s F_SRC1 ADDRESS  →  swc1. */
-      const int floating_point_addend = parse_fp_register();
+      const int floating_point_addend = parse_floating_point_register();
       addr_expr* const address = parse_address();
-      emit_i(TOK_SWC1_OPCODE, floating_point_addend, addr_expr_reg(address), addr_expr_imm(address));
-      free(addr_expr_imm(address));
+      emit_i(TOK_SWC1_OPCODE, floating_point_addend, address_expression_register(address), address_expression_immediate(address));
+      free(address_expression_immediate(address));
       free(address);
       break;
     }
@@ -1565,14 +1565,14 @@ static void do_parse_pseudo(int opcode) {
         /* the pair's second register would be 32, past the register file */
         parse_error_on_line("Register pair starts at the last register (31)",
                             line);
-        free(addr_expr_imm(address));
+        free(address_expression_immediate(address));
         free(address);
         break;
       }
-      emit_i(TOK_LW_OPCODE, target_register, addr_expr_reg(address), addr_expr_imm(address));
-      emit_i_free(TOK_LW_OPCODE, target_register + 1, addr_expr_reg(address),
-                  incr_expr_offset(addr_expr_imm(address), 4));
-      free(addr_expr_imm(address));
+      emit_i(TOK_LW_OPCODE, target_register, address_expression_register(address), address_expression_immediate(address));
+      emit_i_free(TOK_LW_OPCODE, target_register + 1, address_expression_register(address),
+                  increment_expression_offset(address_expression_immediate(address), 4));
+      free(address_expression_immediate(address));
       free(address);
       break;
     }
@@ -1585,14 +1585,14 @@ static void do_parse_pseudo(int opcode) {
         /* the pair's second register would be 32, past the register file */
         parse_error_on_line("Register pair starts at the last register (31)",
                             line);
-        free(addr_expr_imm(address));
+        free(address_expression_immediate(address));
         free(address);
         break;
       }
-      emit_i(TOK_SW_OPCODE, target_register, addr_expr_reg(address), addr_expr_imm(address));
-      emit_i_free(TOK_SW_OPCODE, target_register + 1, addr_expr_reg(address),
-                  incr_expr_offset(addr_expr_imm(address), 4));
-      free(addr_expr_imm(address));
+      emit_i(TOK_SW_OPCODE, target_register, address_expression_register(address), address_expression_immediate(address));
+      emit_i_free(TOK_SW_OPCODE, target_register + 1, address_expression_register(address),
+                  increment_expression_offset(address_expression_immediate(address), 4));
+      free(address_expression_immediate(address));
       free(address);
       break;
     }
@@ -1602,10 +1602,10 @@ static void do_parse_pseudo(int opcode) {
          offset bumped by 3 on the LWL. */
       const int target_register = parse_register();
       addr_expr* const address = parse_address();
-      emit_i_free(TOK_LWL_OPCODE, target_register, addr_expr_reg(address),
-                  incr_expr_offset(addr_expr_imm(address), 3));
-      emit_i(TOK_LWR_OPCODE, target_register, addr_expr_reg(address), addr_expr_imm(address));
-      free(addr_expr_imm(address));
+      emit_i_free(TOK_LWL_OPCODE, target_register, address_expression_register(address),
+                  increment_expression_offset(address_expression_immediate(address), 3));
+      emit_i(TOK_LWR_OPCODE, target_register, address_expression_register(address), address_expression_immediate(address));
+      free(address_expression_immediate(address));
       free(address);
       break;
     }
@@ -1615,12 +1615,12 @@ static void do_parse_pseudo(int opcode) {
       const int target_register = parse_register();
       addr_expr* const address = parse_address();
       emit_i_free(opcode == TOK_ULH_PSEUDO_OP ? TOK_LB_OPCODE : TOK_LBU_OPCODE, target_register,
-                  addr_expr_reg(address),
-                  incr_expr_offset(addr_expr_imm(address), 1));
-      emit_i(TOK_LBU_OPCODE, 1, addr_expr_reg(address), addr_expr_imm(address));
+                  address_expression_register(address),
+                  increment_expression_offset(address_expression_immediate(address), 1));
+      emit_i(TOK_LBU_OPCODE, 1, address_expression_register(address), address_expression_immediate(address));
       emit_r_shift(TOK_SLL_OPCODE, target_register, target_register, 8);
       emit_r(TOK_OR_OPCODE, target_register, target_register, 1);
-      free(addr_expr_imm(address));
+      free(address_expression_immediate(address));
       free(address);
       break;
     }
@@ -1628,10 +1628,10 @@ static void do_parse_pseudo(int opcode) {
       /* Unaligned store word.  LE path. */
       const int target_register = parse_register();
       addr_expr* const address = parse_address();
-      emit_i_free(TOK_SWL_OPCODE, target_register, addr_expr_reg(address),
-                  incr_expr_offset(addr_expr_imm(address), 3));
-      emit_i(TOK_SWR_OPCODE, target_register, addr_expr_reg(address), addr_expr_imm(address));
-      free(addr_expr_imm(address));
+      emit_i_free(TOK_SWL_OPCODE, target_register, address_expression_register(address),
+                  increment_expression_offset(address_expression_immediate(address), 3));
+      emit_i(TOK_SWR_OPCODE, target_register, address_expression_register(address), address_expression_immediate(address));
+      free(address_expression_immediate(address));
       free(address);
       break;
     }
@@ -1640,18 +1640,18 @@ static void do_parse_pseudo(int opcode) {
          high byte, ROR. */
       const int target_register = parse_register();
       addr_expr* const address = parse_address();
-      emit_i(TOK_SB_OPCODE, target_register, addr_expr_reg(address), addr_expr_imm(address));
+      emit_i(TOK_SB_OPCODE, target_register, address_expression_register(address), address_expression_immediate(address));
       /* ROL SRC, SRC, 8 (via SLL+SRL+OR) */
       emit_r_shift(TOK_SLL_OPCODE, 1, target_register, 24);
       emit_r_shift(TOK_SRL_OPCODE, target_register, target_register, 8);
       emit_r(TOK_OR_OPCODE, target_register, target_register, 1);
-      emit_i_free(TOK_SB_OPCODE, target_register, addr_expr_reg(address),
-                  incr_expr_offset(addr_expr_imm(address), 1));
+      emit_i_free(TOK_SB_OPCODE, target_register, address_expression_register(address),
+                  increment_expression_offset(address_expression_immediate(address), 1));
       /* ROR SRC, SRC, 8 (via SRL+SLL+OR) */
       emit_r_shift(TOK_SRL_OPCODE, 1, target_register, 24);
       emit_r_shift(TOK_SLL_OPCODE, target_register, target_register, 8);
       emit_r(TOK_OR_OPCODE, target_register, target_register, 1);
-      free(addr_expr_imm(address));
+      free(address_expression_immediate(address));
       free(address);
       break;
     }
@@ -1661,12 +1661,12 @@ static void do_parse_pseudo(int opcode) {
          `ori DEST, $0, offset`. */
       const int target_register = parse_register();
       addr_expr* const address = parse_address();
-      if (addr_expr_reg(address)) {
-        emit_i(TOK_ADDI_OPCODE, target_register, addr_expr_reg(address), addr_expr_imm(address));
+      if (address_expression_register(address)) {
+        emit_i(TOK_ADDI_OPCODE, target_register, address_expression_register(address), address_expression_immediate(address));
       } else {
-        emit_i(TOK_ORI_OPCODE, target_register, 0, addr_expr_imm(address));
+        emit_i(TOK_ORI_OPCODE, target_register, 0, address_expression_immediate(address));
       }
-      free(addr_expr_imm(address));
+      free(address_expression_immediate(address));
       free(address);
       break;
     }
@@ -1704,10 +1704,10 @@ static void do_parse_pseudo(int opcode) {
         emit_i_free(TOK_BNE_OPCODE, 0, 1, target);
       } else {
         /* Immediate form — see */
-        imm_expr* const immediate = parse_imm32();
+        imm_expr* const immediate = parse_immediate32();
         imm_expr* const target = parse_label();
         if (opcode == TOK_BGT_PSEUDO_OP) {
-          imm_expr* const immediate_increment = incr_expr_offset(immediate, 1);
+          imm_expr* const immediate_increment = increment_expression_offset(immediate, 1);
           emit_i_free(TOK_SLTI_OPCODE, 1, source_register, immediate_increment);
           emit_i(TOK_BEQ_OPCODE, 0, 1, target);
         } else {
@@ -1733,7 +1733,7 @@ static void do_parse_pseudo(int opcode) {
                source_register, target_register);
         emit_i_free(TOK_BEQ_OPCODE, 0, 1, target);
       } else {
-        imm_expr* const immediate = parse_imm32();
+        imm_expr* const immediate = parse_immediate32();
         imm_expr* const target = parse_label();
         emit_i(opcode == TOK_BGE_PSEUDO_OP ? TOK_SLTI_OPCODE : TOK_SLTIU_OPCODE, 1,
                source_register, immediate);
@@ -1754,7 +1754,7 @@ static void do_parse_pseudo(int opcode) {
                source_register, target_register);
         emit_i_free(TOK_BNE_OPCODE, 0, 1, target);
       } else {
-        imm_expr* const immediate = parse_imm32();
+        imm_expr* const immediate = parse_immediate32();
         imm_expr* const target = parse_label();
         emit_i(opcode == TOK_BLT_PSEUDO_OP ? TOK_SLTI_OPCODE : TOK_SLTIU_OPCODE, 1,
                source_register, immediate);
@@ -1775,10 +1775,10 @@ static void do_parse_pseudo(int opcode) {
                target_register, source_register);
         emit_i_free(TOK_BEQ_OPCODE, 0, 1, target);
       } else {
-        imm_expr* const immediate = parse_imm32();
+        imm_expr* const immediate = parse_immediate32();
         imm_expr* const target = parse_label();
         if (opcode == TOK_BLE_PSEUDO_OP) {
-          imm_expr* const immediate_increment = incr_expr_offset(immediate, 1);
+          imm_expr* const immediate_increment = increment_expression_offset(immediate, 1);
           emit_i_free(TOK_SLTI_OPCODE, 1, source_register, immediate_increment);
           emit_i(TOK_BNE_OPCODE, 0, 1, target);
         } else {
@@ -1795,24 +1795,24 @@ static void do_parse_pseudo(int opcode) {
 
     default:
       parse_error_at("Pseudo-op not yet supported");
-      sync_to_nl();
+      sync_to_newline();
       break;
   }
 }
 
-static void parse_asm_code(void) {
+static void parse_assembly_code(void) {
   const int opcode = scanner_advance();
-  const int type = find_op_type(opcode);
+  const int type = find_opcode_type(opcode);
 
   switch (type) {
     case NOARG_TYPE_INST:
-      parse_noarg(opcode);
+      parse_no_argument(opcode);
       break;
     case RD_RS_RT_INST:
       parse_r3(opcode);
       break;
     case RD_RT_SHAMT_INST:
-      parse_r2sh(opcode);
+      parse_two_registers_shift_amount(opcode);
       break;
     case RS_INST:
       parse_r1s(opcode);
@@ -1843,8 +1843,8 @@ static void parse_asm_code(void) {
          TOK_REG or TOK_FP_REG. */
       const int register_number = parse_register();
       const int coprocessor_register =
-          scanner_peek() == TOK_FP_REG ? parse_fp_register() : parse_register();
-      emit_fp_r(opcode, 0, coprocessor_register, register_number);
+          scanner_peek() == TOK_FP_REG ? parse_floating_point_register() : parse_register();
+      emit_floating_point_r(opcode, 0, coprocessor_register, register_number);
       break;
     }
     case RD_RS_INST: {
@@ -1893,17 +1893,17 @@ static void parse_asm_code(void) {
               break;
             case TOK_REG: {
               const int r3 = parse_register();
-              div_inst(opcode, r1, r2, r3, 0);
+              divide_instruction(opcode, r1, r2, r3, 0);
               break;
             }
             default: {
               /* 3-operand form with an immediate divisor. */
-              imm_expr* const immediate = parse_imm32();
-              if (is_zero_imm(immediate)) {
+              imm_expr* const immediate = parse_immediate32();
+              if (is_zero_immediate(immediate)) {
                 parse_error_at("Divide by zero");
               } else {
                 emit_i_free(TOK_ORI_OPCODE, 1, 0, immediate);
-                div_inst(opcode, r1, r2, 1, 1);
+                divide_instruction(opcode, r1, r2, 1, 1);
                 /* don't free imm again — i_type_free already freed */
                 break;
               }
@@ -1933,14 +1933,14 @@ static void parse_asm_code(void) {
       /* BINARYIR_OPS: sllv, srav, srlv (variable-register shift).
          DEST SRC1 SRC2 — note the r_type call below has rs/rt
          swapped (rt=SRC2, rs=SRC1).  Also accepts immediate form
-         which uses op_to_imm_op for the shamt encoding. */
+         which uses opcode_to_immediate_opcode for the shamt encoding. */
       const int destination_register = parse_register();
       const int source_register = parse_register();
       if (scanner_peek() == TOK_REG) {
         const int target_register = parse_register();
         emit_r(opcode, destination_register, target_register, source_register);
       } else {
-        /* DEST SRC1 TOK_INT → emit_r_shift(op_to_imm_op(op), DEST, SRC1,
+        /* DEST SRC1 TOK_INT → emit_r_shift(opcode_to_immediate_opcode(op), DEST, SRC1,
          * shamt) */
         if (scanner_peek() != TOK_INT) {
           parse_error_at("Expected register or integer shift");
@@ -1948,7 +1948,7 @@ static void parse_asm_code(void) {
         }
         scanner_advance();
         const int shift_amount = scan_value.integer;
-        emit_r_shift(op_to_imm_op(opcode), destination_register, source_register, shift_amount);
+        emit_r_shift(opcode_to_immediate_opcode(opcode), destination_register, source_register, shift_amount);
       }
       break;
     }
@@ -1957,7 +1957,7 @@ static void parse_asm_code(void) {
          <op> SRC1 IMM16 → emit_i_free(op, 0, rs, imm).
  */
       const int source_register = parse_register();
-      imm_expr* const immediate = parse_imm16();
+      imm_expr* const immediate = parse_immediate16();
       emit_i_free(opcode, 0, source_register, immediate);
       break;
     }
@@ -1998,19 +1998,19 @@ static void parse_asm_code(void) {
     /* --- FP family --- */
     case FP_FD_FS_INST: {
       /* FP_UNARY_OPS / FP_MOVE_OPS: <op> F_DEST F_SRC2.
-         etc.: emit_fp_r($1, $2, $3, 0). */
-      const int floating_point_destination = parse_fp_register();
-      const int floating_point_source = parse_fp_register();
-      emit_fp_r(opcode, floating_point_destination, floating_point_source, 0);
+         etc.: emit_floating_point_r($1, $2, $3, 0). */
+      const int floating_point_destination = parse_floating_point_register();
+      const int floating_point_source = parse_floating_point_register();
+      emit_floating_point_r(opcode, floating_point_destination, floating_point_source, 0);
       break;
     }
     case FP_FD_FS_FT_INST: {
       /* FP_BINARY_OPS: <op> F_DEST F_SRC1 F_SRC2.
        */
-      const int floating_point_destination = parse_fp_register();
-      const int floating_point_source = parse_fp_register();
-      const int floating_point_target = parse_fp_register();
-      emit_fp_r(opcode, floating_point_destination, floating_point_source, floating_point_target);
+      const int floating_point_destination = parse_floating_point_register();
+      const int floating_point_source = parse_floating_point_register();
+      const int floating_point_target = parse_floating_point_register();
+      emit_floating_point_r(opcode, floating_point_destination, floating_point_source, floating_point_target);
       break;
     }
     case FP_CMP_FS_FT_INST: {
@@ -2022,41 +2022,41 @@ static void parse_asm_code(void) {
         scanner_advance();
         condition_code = scan_value.integer;
       }
-      const int floating_point_source = parse_fp_register();
-      const int floating_point_target = parse_fp_register();
-      emit_fp_compare(opcode, floating_point_source, floating_point_target, condition_code);
+      const int floating_point_source = parse_floating_point_register();
+      const int floating_point_target = parse_floating_point_register();
+      emit_floating_point_compare(opcode, floating_point_source, floating_point_target, condition_code);
       break;
     }
     case FP_MOVC_TYPE_INST: {
       /* FP_MOVC_TYPE covers two families with different operand
          shapes:
            FP_MOVEC_OPS  (movn/movz.{s,d}) : F_DEST F_SRC1 REG
-              → emit_fp_r(op, fd, fs, rt)
+              → emit_floating_point_r(op, fd, fs, rt)
            FP_MOVECC_OPS (movf/movt.{s,d}) : F_DEST F_SRC1 [CC_REG]
-              → emit_fp_r(op, fd, fs, cc_to_rt(cc, 0, 0))
+              → emit_floating_point_r(op, fd, fs, cc_to_rt(cc, 0, 0))
          Disambiguate by inspecting the third operand. */
-      const int floating_point_destination = parse_fp_register();
-      const int floating_point_source = parse_fp_register();
+      const int floating_point_destination = parse_floating_point_register();
+      const int floating_point_source = parse_floating_point_register();
       if (scanner_peek() == TOK_REG) {
         const int target_register = parse_register();
-        emit_fp_r(opcode, floating_point_destination, floating_point_source, target_register);
+        emit_floating_point_r(opcode, floating_point_destination, floating_point_source, target_register);
       } else if (scanner_peek() == TOK_INT) {
         scanner_advance();
         const int condition_code = scan_value.integer;
-        emit_fp_r(opcode, floating_point_destination, floating_point_source, (condition_code & 0x7) << 2);
+        emit_floating_point_r(opcode, floating_point_destination, floating_point_source, (condition_code & 0x7) << 2);
       } else {
         /* No third operand (movf/movt with implicit cc=0). */
-        emit_fp_r(opcode, floating_point_destination, floating_point_source, 0);
+        emit_floating_point_r(opcode, floating_point_destination, floating_point_source, 0);
       }
       break;
     }
     case FP_FT_ADDR_INST: {
       /* lwc1 / ldc1 / lwc2 etc.: <op> F_REG ADDRESS.
        */
-      const int floating_point_addend = parse_fp_register();
+      const int floating_point_addend = parse_floating_point_register();
       addr_expr* const address = parse_address();
-      emit_i(opcode, floating_point_addend, addr_expr_reg(address), addr_expr_imm(address));
-      free(addr_expr_imm(address));
+      emit_i(opcode, floating_point_addend, address_expression_register(address), address_expression_immediate(address));
+      free(address_expression_immediate(address));
       free(address);
       break;
     }
@@ -2066,13 +2066,13 @@ static void parse_asm_code(void) {
          2574) — both name the coprocessor register number. */
       const int register_number = parse_register();
       const int coprocessor_register =
-          scanner_peek() == TOK_FP_REG ? parse_fp_register() : parse_register();
-      emit_fp_r(opcode, 0, coprocessor_register, register_number);
+          scanner_peek() == TOK_FP_REG ? parse_floating_point_register() : parse_register();
+      emit_floating_point_r(opcode, 0, coprocessor_register, register_number);
       break;
     }
     default:
       parse_error_at("Instruction not yet supported");
-      sync_to_nl();
+      sync_to_newline();
       break;
   }
 }
@@ -2080,52 +2080,52 @@ static void parse_asm_code(void) {
 static void parse_directive(int directive_token) {
   switch (directive_token) {
     case TOK_DATA_DIRECTIVE:
-      parse_dir_data(false);
+      parse_directive_data(false);
       break;
     case TOK_K_DATA_DIRECTIVE:
-      parse_dir_data(true);
+      parse_directive_data(true);
       break;
     case TOK_TEXT_DIRECTIVE:
-      parse_dir_text(false);
+      parse_directive_text(false);
       break;
     case TOK_K_TEXT_DIRECTIVE:
-      parse_dir_text(true);
+      parse_directive_text(true);
       break;
     case TOK_GLOBAL_DIRECTIVE:
-      parse_dir_globl();
+      parse_directive_globl();
       break;
     case TOK_WORD_DIRECTIVE:
-      parse_dir_word();
+      parse_directive_word();
       break;
     case TOK_HALF_DIRECTIVE:
-      parse_dir_half();
+      parse_directive_half();
       break;
     case TOK_BYTE_DIRECTIVE:
-      parse_dir_byte();
+      parse_directive_byte();
       break;
     case TOK_ASCII_DIRECTIVE:
-      parse_dir_ascii();
+      parse_directive_ascii();
       break;
     case TOK_ASCIIZ_DIRECTIVE:
-      parse_dir_asciiz();
+      parse_directive_asciiz();
       break;
     case TOK_FLOAT_DIRECTIVE:
-      parse_dir_float();
+      parse_directive_float();
       break;
     case TOK_DOUBLE_DIRECTIVE:
-      parse_dir_double();
+      parse_directive_double();
       break;
     case TOK_SPACE_DIRECTIVE:
-      parse_dir_space();
+      parse_directive_space();
       break;
     case TOK_ALIGN_DIRECTIVE:
-      parse_dir_align();
+      parse_directive_align();
       break;
     case TOK_COMM_DIRECTIVE:
-      parse_dir_comm();
+      parse_directive_comm();
       break;
     case TOK_EXTERN_DIRECTIVE:
-      parse_dir_extern();
+      parse_directive_extern();
       break;
     case TOK_ERR_DIRECTIVE:
       parse_error_at(".err directive");
@@ -2147,23 +2147,23 @@ static void parse_directive(int directive_token) {
     case TOK_ASM0_DIRECTIVE:
     case TOK_ALIAS_DIRECTIVE:
     case TOK_SET_DIRECTIVE:
-      sync_to_nl();
+      sync_to_newline();
       break;
     default:
       parse_error_at("Directive not yet supported");
-      sync_to_nl();
+      sync_to_newline();
       break;
   }
 }
 
 /* Helper: is this token an assembler directive? */
 static bool is_directive(int token) {
-  const int t = find_op_type(token);
+  const int t = find_opcode_type(token);
   return t == ASM_DIR;
 }
 
 /* OPT_LBL: ID ':'  |  ID '=' EXPR */
-static void parse_opt_label(void) {
+static void parse_optional_label(void) {
   /* The peek2 disambiguation already happened in parse_line.
      We know peek == TOK_ID and peek2 == ':' or '='.  Don't call
      scanner_force_identifier here — the TOK_ID was already
@@ -2184,7 +2184,7 @@ static void parse_opt_label(void) {
   } else {
     /* ID '=' EXPR : constant label */
     const int v = parse_expression();
-    emit_label_const(symbol, v);
+    emit_label_constant(symbol, v);
     free(symbol);
   }
 }
@@ -2201,7 +2201,7 @@ static void parse_line(void) {
     /* Look ahead for optional label */
     if (scanner_peek() == TOK_ID &&
         (scanner_peek2() == ':' || scanner_peek2() == '=')) {
-      parse_opt_label();
+      parse_optional_label();
     }
 
     /* Then maybe directive or instruction */
@@ -2217,18 +2217,18 @@ static void parse_line(void) {
         parse_directive(directive_token);
         clear_labels(); /* clear labels after the directive */
       } else {
-        parse_asm_code();
+        parse_assembly_code();
         clear_labels(); /* clear labels after the instruction */
       }
 
       /* Expect newline or EOF */
       if (parse_error_occurred) {
-        sync_to_nl();
+        sync_to_newline();
       } else if (scanner_peek() == TOK_NL) {
         scanner_advance();
       } else if (scanner_peek() != TOK_EOF) {
         parse_error_at("Extra tokens after instruction");
-        sync_to_nl();
+        sync_to_newline();
       } else {
         /* At TOK_EOF: there is no newline to consume. */
       }
@@ -2238,8 +2238,8 @@ static void parse_line(void) {
 
 /* ---------------- public API ---------------- */
 
-void parser_init(FILE* input, char* file_name) {
-  scanner_init(input);
+void parser_initialize(FILE* input, char* file_name) {
+  scanner_initialize(input);
   input_file_name = file_name;
   parse_errors_seen = 0;
   parse_error_occurred = false;
@@ -2321,7 +2321,7 @@ int parse_file(void) {
 
    Forward references in `.word LABEL`-style data work via a small
    side channel: the parser attaches the unresolved label to the
-   imm_expr in the AST_DATA_* node, and emit_data_int_node here
+   imm_expr in the AST_DATA_* node, and emit_data_integer_node here
    records the use at the correct data PC at emit time.
 */
 
@@ -2356,7 +2356,7 @@ void emit_ast(const ast_node* file, const ast_node* after) {
    and record the use at the (now-correct) data PC; the existing
    resolve_label_uses mechanism patches it when the label is later
    defined. */
-static void emit_data_int_node(const ast_node* node, void (*store)(int),
+static void emit_data_integer_node(const ast_node* node, void (*store)(int),
                                int width) {
   for (int i = 0; i < node->payload.data_integer.count; i++) {
     imm_expr* const e = node->payload.data_integer.expressions[i];
@@ -2365,15 +2365,15 @@ static void emit_data_int_node(const ast_node* node, void (*store)(int),
       continue;
     }
     if (e->symbol != nullptr && !SYMBOL_IS_DEFINED(e->symbol)) {
-      record_data_uses_symbol(current_data_pc(), e->symbol, e->offset, width);
+      record_data_uses_symbol(current_data_location(), e->symbol, e->offset, width);
       store(e->offset);
     } else {
-      store(eval_imm_expr(e));
+      store(evaluate_immediate_expression(e));
     }
   }
 }
 
-static void emit_data_fp_node(const ast_node* node, void (*store)(double*)) {
+static void emit_data_floating_point_node(const ast_node* node, void (*store)(double*)) {
   for (int i = 0; i < node->payload.data_floating_point.count; i++) {
     double temporary = node->payload.data_floating_point.values[i];
     store(&temporary);
@@ -2392,7 +2392,7 @@ static void emit_one(const ast_node* node) {
     expansion_end();
   } else if (node->kind == AST_INST_I) {
     /* The one kind i_type may expand (a label or wide immediate). */
-    expansion_begin(op_token_name(node->payload.instruction_i.opcode), false);
+    expansion_begin(opcode_token_name(node->payload.instruction_i.opcode), false);
     emit_node(node);
     expansion_end();
   } else {
@@ -2416,20 +2416,20 @@ static void emit_node(const ast_node* node) {
     case AST_ERROR:
       return; /* shouldn't appear as a direct child of the file root */
 
-    /* Segment changes — mirror parse_dir_data / parse_dir_text. */
+    /* Segment changes — mirror parse_directive_data / parse_directive_text. */
     case AST_DIR_TEXT:
       user_kernel_text_segment(false);
       data_dir = false;
       text_dir = true;
       if (node->payload.directive_segment.has_start_address)
-        set_text_pc(node->payload.directive_segment.start_address);
+        set_text_location(node->payload.directive_segment.start_address);
       return;
     case AST_DIR_KTEXT:
       user_kernel_text_segment(true);
       data_dir = false;
       text_dir = true;
       if (node->payload.directive_segment.has_start_address)
-        set_text_pc(node->payload.directive_segment.start_address);
+        set_text_location(node->payload.directive_segment.start_address);
       return;
     case AST_DIR_DATA:
       user_kernel_data_segment(false);
@@ -2438,7 +2438,7 @@ static void emit_node(const ast_node* node) {
       enable_data_alignment();
       auto_align = true;
       if (node->payload.directive_segment.has_start_address)
-        set_data_pc(node->payload.directive_segment.start_address);
+        set_data_location(node->payload.directive_segment.start_address);
       return;
     case AST_DIR_KDATA:
       user_kernel_data_segment(true);
@@ -2447,7 +2447,7 @@ static void emit_node(const ast_node* node) {
       enable_data_alignment();
       auto_align = true;
       if (node->payload.directive_segment.has_start_address)
-        set_data_pc(node->payload.directive_segment.start_address);
+        set_data_location(node->payload.directive_segment.start_address);
       return;
 
     case AST_DIR_ALIGN: {
@@ -2461,7 +2461,7 @@ static void emit_node(const ast_node* node) {
     }
 
     case AST_DIR_SPACE:
-      increment_data_pc(node->payload.directive_space.size);
+      increment_data_location(node->payload.directive_space.size);
       return;
 
     case AST_DIR_GLOBL:
@@ -2472,8 +2472,8 @@ static void emit_node(const ast_node* node) {
       const char* const symbol = node->payload.directive_named_size.name;
       make_label_global((char*)symbol);
       if (lookup_label((char*)symbol)->address == 0)
-        record_label((char*)symbol, current_data_pc(), true);
-      increment_data_pc(node->payload.directive_named_size.size);
+        record_label((char*)symbol, current_data_location(), true);
+      increment_data_location(node->payload.directive_named_size.size);
       return;
     }
 
@@ -2481,34 +2481,34 @@ static void emit_node(const ast_node* node) {
       const char* const symbol = node->payload.directive_named_size.name;
       align_data(2);
       if (lookup_label((char*)symbol)->address == 0)
-        record_label((char*)symbol, current_data_pc(), true);
-      increment_data_pc(node->payload.directive_named_size.size);
+        record_label((char*)symbol, current_data_location(), true);
+      increment_data_location(node->payload.directive_named_size.size);
       return;
     }
 
     /* Data. */
     case AST_DATA_BYTE:
-      emit_data_int_node(node, store_byte, 1);
+      emit_data_integer_node(node, store_byte, 1);
       return;
     case AST_DATA_HALF:
       align_labels_to(1);
       if (data_dir) set_data_alignment(1);
-      emit_data_int_node(node, store_half, 2);
+      emit_data_integer_node(node, store_half, 2);
       return;
     case AST_DATA_WORD:
       align_labels_to(2);
       if (data_dir) set_data_alignment(2);
-      emit_data_int_node(node, store_word, 4);
+      emit_data_integer_node(node, store_word, 4);
       return;
     case AST_DATA_FLOAT:
       align_labels_to(2);
       if (data_dir) set_data_alignment(2);
-      emit_data_fp_node(node, store_float);
+      emit_data_floating_point_node(node, store_float);
       return;
     case AST_DATA_DOUBLE:
       align_labels_to(3);
       if (data_dir) set_data_alignment(3);
-      emit_data_fp_node(node, store_double);
+      emit_data_floating_point_node(node, store_double);
       return;
 
     case AST_DATA_STRING:
@@ -2521,10 +2521,10 @@ static void emit_node(const ast_node* node) {
     /* Labels. */
     case AST_LABEL_DEF:
       if (node->payload.label_definition.kind == AST_LABEL_NORMAL) {
-        const mem_addr address = text_dir ? current_text_pc() : current_data_pc();
+        const mem_addr address = text_dir ? current_text_location() : current_data_location();
         label* const l =
             record_label((char*)node->payload.label_definition.name, address, false);
-        cons_label(l);
+        prepend_label(l);
       } else {
         label* l = record_label((char*)node->payload.label_definition.name,
                                 (mem_addr)node->payload.label_definition.value, true);
@@ -2541,27 +2541,27 @@ static void emit_node(const ast_node* node) {
              node->payload.instruction_r.target_register);
       return;
     case AST_INST_R_SHIFT:
-      r_sh_type(node->payload.instruction_r_shift.opcode, node->payload.instruction_r_shift.destination_register,
+      r_shift_amount_type(node->payload.instruction_r_shift.opcode, node->payload.instruction_r_shift.destination_register,
                 node->payload.instruction_r_shift.target_register, node->payload.instruction_r_shift.shift_amount);
       return;
     case AST_INST_I: {
-      imm_expr* const copy = dup_imm(node->payload.instruction_i.immediate);
+      imm_expr* const copy = duplicate_immediate(node->payload.instruction_i.immediate);
       i_type_free(node->payload.instruction_i.opcode, node->payload.instruction_i.target_register, node->payload.instruction_i.source_register,
                   copy);
       return;
     }
     case AST_INST_J: {
-      imm_expr* const copy = dup_imm(node->payload.instruction_j.target);
+      imm_expr* const copy = duplicate_immediate(node->payload.instruction_j.target);
       j_type(node->payload.instruction_j.opcode, copy);
       free(copy);
       return;
     }
     case AST_INST_FP_R:
-      r_co_type(node->payload.instruction_floating_point_r.opcode, node->payload.instruction_floating_point_r.floating_point_destination,
+      r_coprocessor_type(node->payload.instruction_floating_point_r.opcode, node->payload.instruction_floating_point_r.floating_point_destination,
                 node->payload.instruction_floating_point_r.floating_point_source, node->payload.instruction_floating_point_r.floating_point_target);
       return;
     case AST_INST_FP_COMPARE:
-      r_cond_type(node->payload.instruction_floating_point_compare.opcode, node->payload.instruction_floating_point_compare.floating_point_source,
+      r_condition_type(node->payload.instruction_floating_point_compare.opcode, node->payload.instruction_floating_point_compare.floating_point_source,
                   node->payload.instruction_floating_point_compare.floating_point_target, node->payload.instruction_floating_point_compare.condition_code);
       return;
 
