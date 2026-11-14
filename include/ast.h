@@ -21,7 +21,7 @@
    Ownership: each ast_node owns
      - its own malloc'd struct
      - any "name" fields (free'd by ast_free)
-     - any imm_expr* / addr_expr* it holds
+     - any immediate_expression* / address_expression* it holds
      - the .next chain (recursively)
      - the .child chain (for AST_FILE and AST_PSEUDO)
 
@@ -33,7 +33,7 @@
 #include <stdio.h>
 
 #include "spim.h"
-#include "instruction.h" /* for imm_expr, addr_expr */
+#include "instruction.h" /* for immediate_expression, address_expression */
 
 /* ------------------------------------------------------------------ */
 /* Node kinds                                                          */
@@ -41,38 +41,38 @@
 
 typedef enum : uint8_t {
   /* Instructions */
-  AST_INST_R,          /* op rd, rs, rt                     */
-  AST_INST_R_SHIFT,    /* op rd, rt, shamt                  */
-  AST_INST_I,          /* op rt, rs, imm                    */
-  AST_INST_J,          /* op target                         */
-  AST_INST_FP_R,       /* op fd, fs, ft                     */
-  AST_INST_FP_COMPARE, /* op fs, ft, cc                     */
+  AST_INSTRUCTION_R,          /* op rd, rs, rt                     */
+  AST_INSTRUCTION_R_SHIFT,    /* op rd, rt, shamt                  */
+  AST_INSTRUCTION_I,          /* op rt, rs, imm                    */
+  AST_INSTRUCTION_J,          /* op target                         */
+  AST_INSTRUCTION_FLOATING_POINT_R,       /* op fd, fs, ft                     */
+  AST_INSTRUCTION_FLOATING_POINT_COMPARE, /* op fs, ft, cc                     */
   AST_PSEUDO,          /* wrapper for a parser-level pseudo-op
                           rewrite (la, li, move, neg, bge, ...).
                           Children are the real instructions the
                           parser emits for that pseudo-op. */
 
   /* Data directives */
-  AST_DATA_BYTE,   /* .byte  EXPR[, EXPR]*              */
-  AST_DATA_HALF,   /* .half  EXPR[, EXPR]*              */
-  AST_DATA_WORD,   /* .word  EXPR[, EXPR]*              */
+  AST_DATA_BYTE,   /* .byte  EXPRESSION[, EXPRESSION]*              */
+  AST_DATA_HALF,   /* .half  EXPRESSION[, EXPRESSION]*              */
+  AST_DATA_WORD,   /* .word  EXPRESSION[, EXPRESSION]*              */
   AST_DATA_FLOAT,  /* .float FP[, FP]*                  */
   AST_DATA_DOUBLE, /* .double FP[, FP]*                 */
   AST_DATA_STRING, /* .ascii STR  or  .asciiz STR       */
 
   /* Segment / layout directives */
-  AST_DIR_TEXT,   /* .text [ADDR]                      */
-  AST_DIR_DATA,   /* .data [ADDR]                      */
-  AST_DIR_KTEXT,  /* .ktext [ADDR]                     */
-  AST_DIR_KDATA,  /* .kdata [ADDR]                     */
-  AST_DIR_ALIGN,  /* .align N                          */
-  AST_DIR_SPACE,  /* .space N                          */
-  AST_DIR_GLOBL,  /* .globl NAME                       */
-  AST_DIR_EXTERN, /* .extern NAME SIZE                 */
-  AST_DIR_COMM,   /* .comm NAME SIZE                   */
+  AST_DIRECTIVE_TEXT,   /* .text [ADDR]                      */
+  AST_DIRECTIVE_DATA,   /* .data [ADDR]                      */
+  AST_DIRECTIVE_KTEXT,  /* .ktext [ADDR]                     */
+  AST_DIRECTIVE_KDATA,  /* .kdata [ADDR]                     */
+  AST_DIRECTIVE_ALIGN,  /* .align N                          */
+  AST_DIRECTIVE_SPACE,  /* .space N                          */
+  AST_DIRECTIVE_GLOBL,  /* .globl NAME                       */
+  AST_DIRECTIVE_EXTERN, /* .extern NAME SIZE                 */
+  AST_DIRECTIVE_COMM,   /* .comm NAME SIZE                   */
 
   /* Labels */
-  AST_LABEL_DEF, /* NAME:    or    NAME = EXPR        */
+  AST_LABEL_DEFINITION, /* NAME:    or    NAME = EXPRESSION        */
 
   /* Structural */
   AST_FILE, /* root — owns the .child chain      */
@@ -83,7 +83,7 @@ typedef enum : uint8_t {
 
 typedef enum : uint8_t {
   AST_LABEL_NORMAL, /* NAME : (placement at current PC)     */
-  AST_LABEL_CONST,  /* NAME = EXPR (compile-time constant)  */
+  AST_LABEL_CONSTANT,  /* NAME = EXPRESSION (compile-time constant)  */
 } ast_label_kind;
 
 /* ------------------------------------------------------------------ */
@@ -120,12 +120,12 @@ struct ast_node {
     struct {
       int opcode;
       int target_register, source_register;
-      imm_expr* immediate; /* owned */
+      immediate_expression* immediate; /* owned */
     } instruction_i;
 
     struct {
       int opcode;
-      imm_expr* target; /* owned */
+      immediate_expression* target; /* owned */
     } instruction_j;
 
     struct {
@@ -148,7 +148,7 @@ struct ast_node {
 
     struct {
       int count;
-      imm_expr** expressions; /* array of count imm_expr*, each owned */
+      immediate_expression** expressions; /* array of count immediate_expression*, each owned */
     } data_integer;         /* used by BYTE / HALF / WORD */
 
     struct {
@@ -166,7 +166,7 @@ struct ast_node {
 
     struct {
       bool has_start_address;
-      mem_addr start_address;
+      memory_address start_address;
     } directive_segment; /* covers TEXT / DATA / KTEXT / KDATA */
 
     struct {
@@ -191,7 +191,7 @@ struct ast_node {
     struct {
       char* name; /* owned */
       ast_label_kind kind;
-      int32_t value; /* for AST_LABEL_CONST; ignored otherwise */
+      int32_t value; /* for AST_LABEL_CONSTANT; ignored otherwise */
     } label_definition;
 
     /* ---------- file ---------- */
@@ -219,8 +219,8 @@ struct ast_node {
 [[nodiscard]] ast_node* ast_make_instruction_r(int opcode, int destination_register, int source_register, int target_register);
 [[nodiscard]] ast_node* ast_make_instruction_r_shift(int opcode, int destination_register, int target_register,
                                               int shift_amount);
-[[nodiscard]] ast_node* ast_make_instruction_i(int opcode, int target_register, int source_register, imm_expr* immediate);
-[[nodiscard]] ast_node* ast_make_instruction_j(int opcode, imm_expr* target);
+[[nodiscard]] ast_node* ast_make_instruction_i(int opcode, int target_register, int source_register, immediate_expression* immediate);
+[[nodiscard]] ast_node* ast_make_instruction_j(int opcode, immediate_expression* target);
 [[nodiscard]] ast_node* ast_make_instruction_floating_point_r(int opcode, int floating_point_destination, int floating_point_source, int floating_point_target);
 [[nodiscard]] ast_node* ast_make_instruction_floating_point_compare(int opcode, int floating_point_source, int floating_point_target,
                                                  int condition_code);
@@ -229,9 +229,9 @@ struct ast_node {
 
 /* Data */
 [[nodiscard]] ast_node* ast_make_data_byte(
-    int count, imm_expr** expressions); /* takes ownership */
-[[nodiscard]] ast_node* ast_make_data_half(int count, imm_expr** expressions);
-[[nodiscard]] ast_node* ast_make_data_word(int count, imm_expr** expressions);
+    int count, immediate_expression** expressions); /* takes ownership */
+[[nodiscard]] ast_node* ast_make_data_half(int count, immediate_expression** expressions);
+[[nodiscard]] ast_node* ast_make_data_word(int count, immediate_expression** expressions);
 [[nodiscard]] ast_node* ast_make_data_float(
     int count, double* values); /* takes ownership */
 [[nodiscard]] ast_node* ast_make_data_double(int count, double* values);
@@ -240,13 +240,13 @@ struct ast_node {
 
 /* Segment + layout */
 [[nodiscard]] ast_node* ast_make_directive_text(bool has_start_address,
-                                          mem_addr start_address);
+                                          memory_address start_address);
 [[nodiscard]] ast_node* ast_make_directive_data(bool has_start_address,
-                                          mem_addr start_address);
+                                          memory_address start_address);
 [[nodiscard]] ast_node* ast_make_directive_ktext(bool has_start_address,
-                                           mem_addr start_address);
+                                           memory_address start_address);
 [[nodiscard]] ast_node* ast_make_directive_kdata(bool has_start_address,
-                                           mem_addr start_address);
+                                           memory_address start_address);
 [[nodiscard]] ast_node* ast_make_directive_align(int n);
 [[nodiscard]] ast_node* ast_make_directive_space(int size);
 [[nodiscard]] ast_node* ast_make_directive_globl(const char* name); /* name dup'd */

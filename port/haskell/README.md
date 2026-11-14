@@ -45,7 +45,7 @@ binary's directory.
 | `include/registers.h`, `raise_exception` | `src/Registers.hs` | register files, CP0, exceptions |
 | `instruction.c` (encode/decode) | `src/Instruction.hs` | pure encoding and decoding |
 | `memory.c` | `src/Memory.hs` | the five segments, memory-mapped IO |
-| `instruction.c` (disassembly), breakpoints | `src/InstFormat.hs` | disassembly, breakpoints, `print_mem` |
+| `instruction.c` (disassembly), breakpoints | `src/InstFormat.hs` | disassembly, breakpoints, `print_memory` |
 | scattered helpers | `src/AsmCommon.hs` | location counters, parse errors, listing events |
 | `symbol-table.c` | `src/SymbolTable.hs` | labels and forward references |
 | `data.c` | `src/DataSegment.hs` | data directives |

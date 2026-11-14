@@ -21,7 +21,7 @@ use std::time::Instant;
 use crate::ast::AstNode;
 use crate::instruction::{ImmExpr, InstRef, Instruction};
 use crate::memory::{MappedIo, Memory};
-use crate::opcodes::TOK_BREAK_OPCODE;
+use crate::opcodes::TOKEN_BREAK_OPCODE;
 use crate::registers::Registers;
 use crate::scanner::Scanner;
 use crate::symbol_table::{LabelId, SymbolTable};
@@ -239,7 +239,7 @@ impl Machine {
             run: RunState::default(),
             exception_occurred: false,
             first_bad_exception: -1,
-            break_inst: Instruction::r_type(TOK_BREAK_OPCODE, 1, 0, 0).into_ref(),
+            break_inst: Instruction::r_type(TOKEN_BREAK_OPCODE, 1, 0, 0).into_ref(),
             breakpoints: Vec::new(),
             return_value: 0,
             listing: None,

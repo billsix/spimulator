@@ -42,7 +42,7 @@ breakInstruction s = do
   case existing of
     Just b -> pure b
     Nothing -> do
-      b :: InstRef <- newIORef (setRd 1 (emptyInstruction (tok TOK_BREAK_OPCODE)))
+      b :: InstRef <- newIORef (setRd 1 (emptyInstruction (tok TOKEN_BREAK_OPCODE)))
       set (breakInst s) (Just b)
       pure b
 
@@ -157,39 +157,39 @@ formatAnInst s minst addr = do
 -- | The operand text for each operand shape.  Nothing means "no operands".
 formatOperands :: Instruction -> OpType -> IO (Maybe (String, String))
 formatOperands i ty = case ty of
-  BRANCH_COPROC_COND_INST -> ok (printf "%d %d" (instRt i `div` 4) (branchOffset i))
-  BRANCH_RS_LABEL_INST -> ok (printf " $%s %d" (reg (instRs i)) (branchOffset i))
-  RS_IMM_INST -> ok (printf " $%s, %d" (reg (instRs i)) (instImm i))
-  RT_IMM_INST -> ok (printf " $%s, %d" (reg (instRt i)) (instImm i))
-  RT_RS_IMM_INST -> ok (printf " $%s, $%s, %d" (reg (instRt i)) (reg (instRs i)) (instImm i))
-  BRANCH_RS_RT_LABEL_INST -> ok (printf " $%s, $%s, %d" (reg (instRs i)) (reg (instRt i)) (branchOffset i))
-  RT_ADDR_INST -> ok (printf " $%s, %d($%s)" (reg (instRt i)) (instImm i) (reg (instBase i)))
-  RS_INST -> ok (" $" ++ reg (instRs i))
-  RD_INST -> ok (" $" ++ reg (instRd i))
-  RT_COPREG_INST -> ok (printf " $%s, $%s" (reg (instRt i)) (reg (instRd i)))
-  RS_RT_INST -> ok (printf " $%s, $%s" (reg (instRs i)) (reg (instRt i)))
-  RD_RS_INST -> ok (printf " $%s, $%s" (reg (instRd i)) (reg (instRs i)))
-  RD_RT_SHAMT_INST
+  BRANCH_COPROCESSOR_CONDITION_INSTRUCTION -> ok (printf "%d %d" (instRt i `div` 4) (branchOffset i))
+  BRANCH_SOURCE_REGISTER_LABEL_INSTRUCTION -> ok (printf " $%s %d" (reg (instRs i)) (branchOffset i))
+  SOURCE_REGISTER_IMMEDIATE_INSTRUCTION -> ok (printf " $%s, %d" (reg (instRs i)) (instImm i))
+  TARGET_REGISTER_IMMEDIATE_INSTRUCTION -> ok (printf " $%s, %d" (reg (instRt i)) (instImm i))
+  TARGET_REGISTER_SOURCE_REGISTER_IMMEDIATE_INSTRUCTION -> ok (printf " $%s, $%s, %d" (reg (instRt i)) (reg (instRs i)) (instImm i))
+  BRANCH_SOURCE_REGISTER_TARGET_REGISTER_LABEL_INSTRUCTION -> ok (printf " $%s, $%s, %d" (reg (instRs i)) (reg (instRt i)) (branchOffset i))
+  TARGET_REGISTER_ADDRESS_INSTRUCTION -> ok (printf " $%s, %d($%s)" (reg (instRt i)) (instImm i) (reg (instBase i)))
+  SOURCE_REGISTER_INSTRUCTION -> ok (" $" ++ reg (instRs i))
+  DESTINATION_REGISTER_INSTRUCTION -> ok (" $" ++ reg (instRd i))
+  TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION -> ok (printf " $%s, $%s" (reg (instRt i)) (reg (instRd i)))
+  SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION -> ok (printf " $%s, $%s" (reg (instRs i)) (reg (instRt i)))
+  DESTINATION_REGISTER_SOURCE_REGISTER_INSTRUCTION -> ok (printf " $%s, $%s" (reg (instRd i)) (reg (instRs i)))
+  DESTINATION_REGISTER_TARGET_REGISTER_SHIFT_AMOUNT_INSTRUCTION
     -- nop is sll $0, $0, 0: the C engine erases the last three letters
     -- of the mnemonic and writes "nop" in their place.
     | instRd i == 0 && instRt i == 0 && instShamt i == 0 -> pure (Just ("nop-erase", ""))
     | otherwise -> ok (printf " $%s, $%s, %d" (reg (instRd i)) (reg (instRt i)) (instShamt i))
-  RD_RS_RT_INST -> ok (printf " $%s, $%s, $%s" (reg (instRd i)) (reg (instRs i)) (reg (instRt i)))
-  RD_RT_RS_INST -> ok (printf " $%s, $%s, $%s" (reg (instRd i)) (reg (instRt i)) (reg (instRs i)))
-  FP_FT_ADDR_INST -> ok (printf " $f%d, %d($%s)" (instFt i) (instImm i) (reg (instBase i)))
-  FP_FD_FS_INST -> ok (printf " $f%d, $f%d" (instFd i) (instFs i))
-  FP_RT_COPREG_INST -> ok (printf " $%s, $f%d" (reg (instRt i)) (instFs i))
-  FP_CMP_FS_FT_INST
+  DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION -> ok (printf " $%s, $%s, $%s" (reg (instRd i)) (reg (instRs i)) (reg (instRt i)))
+  DESTINATION_REGISTER_TARGET_REGISTER_SOURCE_REGISTER_INSTRUCTION -> ok (printf " $%s, $%s, $%s" (reg (instRd i)) (reg (instRt i)) (reg (instRs i)))
+  FLOATING_POINT_TARGET_ADDRESS_INSTRUCTION -> ok (printf " $f%d, %d($%s)" (instFt i) (instImm i) (reg (instBase i)))
+  FLOATING_POINT_DESTINATION_SOURCE_INSTRUCTION -> ok (printf " $f%d, $f%d" (instFd i) (instFs i))
+  FLOATING_POINT_TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION -> ok (printf " $%s, $f%d" (reg (instRt i)) (instFs i))
+  FLOATING_POINT_COMPARE_SOURCE_TARGET_INSTRUCTION
     | instFd i == 0 -> ok (printf " $f%d, $f%d" (instFs i) (instFt i))
     | otherwise -> ok (printf " %d, $f%d, $f%d" (instFd i `div` 4) (instFs i) (instFt i))
-  FP_FD_FS_FT_INST -> ok (printf " $f%d, $f%d, $f%d" (instFd i) (instFs i) (instFt i))
-  MOVC_TYPE_INST -> ok (printf " $%s, $%s, %d" (reg (instRd i)) (reg (instRs i)) (instRt i `div` 4))
-  FP_MOVC_TYPE_INST
-    | inOpcode i `elem` map tok [TOK_MOVN_S_OPCODE, TOK_MOVN_D_OPCODE, TOK_MOVZ_S_OPCODE, TOK_MOVZ_D_OPCODE] ->
+  FLOATING_POINT_DESTINATION_SOURCE_TARGET_INSTRUCTION -> ok (printf " $f%d, $f%d, $f%d" (instFd i) (instFs i) (instFt i))
+  MOVE_CONDITIONAL_TYPE_INSTRUCTION -> ok (printf " $%s, $%s, %d" (reg (instRd i)) (reg (instRs i)) (instRt i `div` 4))
+  FLOATING_POINT_MOVE_CONDITIONAL_TYPE_INSTRUCTION
+    | inOpcode i `elem` map tok [TOKEN_MOVN_S_OPCODE, TOKEN_MOVN_D_OPCODE, TOKEN_MOVZ_S_OPCODE, TOKEN_MOVZ_D_OPCODE] ->
         ok (printf " $f%d, $f%d, $%s" (instFd i) (instFs i) (reg (instRt i)))
     | otherwise -> ok (printf " $f%d, $f%d, %d" (instFd i) (instFs i) (instRt i `div` 4))
-  J_TYPE_INST -> ok (printf " 0x%08x" (instTarget i * 4))
-  NOARG_TYPE_INST -> pure Nothing
+  J_TYPE_INSTRUCTION -> ok (printf " 0x%08x" (instTarget i * 4))
+  NO_ARGUMENT_TYPE_INSTRUCTION -> pure Nothing
   _ -> fatalError "Unknown instruction type in print_inst\n"
   where
     ok :: (Applicative f) => b -> f (Maybe (String, b))

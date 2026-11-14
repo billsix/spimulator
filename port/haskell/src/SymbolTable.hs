@@ -249,7 +249,7 @@ compensateLui s e pc = do
     isPlainLui (Just ref) = do
       i :: Instruction <- get ref
       pure $ case inExpr i of
-        Just pe -> isTok TOK_LUI_OPCODE (inOpcode i) && ieSymbol e == ieSymbol pe && instImm i == 0
+        Just pe -> isTok TOKEN_LUI_OPCODE (inOpcode i) && ieSymbol e == ieSymbol pe && instImm i == 0
         Nothing -> False
     bump :: Maybe InstRef -> IO ()
     bump Nothing = pure ()

@@ -483,30 +483,30 @@ impl Machine {
     /// arithmetic instructions (`parse_r3`).
     fn parse_r3(&mut self, op: i32) {
         let rd: i32 = self.parse_register();
-        if op == TOK_CLO_OPCODE || op == TOK_CLZ_OPCODE {
+        if op == TOKEN_CLO_OPCODE || op == TOKEN_CLZ_OPCODE {
             // The hardware wants rt equal to rd.
             let rs: i32 = self.parse_register();
             self.emit_r(op, rd, rs, rd);
             return;
         }
-        if op == TOK_MUL_OPCODE {
+        if op == TOKEN_MUL_OPCODE {
             let rs: i32 = self.parse_register();
             if self.peek() == TOK_REG {
                 let rt: i32 = self.parse_register();
                 self.emit_r(op, rd, rs, rt);
             } else {
                 let imm: ImmExpr = self.parse_imm32();
-                self.emit_i(TOK_ORI_OPCODE, 1, 0, &imm);
+                self.emit_i(TOKEN_ORI_OPCODE, 1, 0, &imm);
                 self.emit_r(op, rd, rs, 1);
             }
             return;
         }
-        if op == TOK_SUB_OPCODE || op == TOK_SUBU_OPCODE {
+        if op == TOKEN_SUB_OPCODE || op == TOKEN_SUBU_OPCODE {
             // `sub rd, rs, imm` becomes `addi rd, rs, -imm`.
-            let add_op: i32 = if op == TOK_SUB_OPCODE {
-                TOK_ADDI_OPCODE
+            let add_op: i32 = if op == TOKEN_SUB_OPCODE {
+                TOKEN_ADDI_OPCODE
             } else {
-                TOK_ADDIU_OPCODE
+                TOKEN_ADDIU_OPCODE
             };
             if self.peek() != TOK_REG {
                 let imm: ImmExpr = self.parse_imm32();
@@ -527,13 +527,13 @@ impl Machine {
         }
         if matches!(
             op,
-            TOK_ADD_OPCODE
-                | TOK_ADDU_OPCODE
-                | TOK_AND_OPCODE
-                | TOK_OR_OPCODE
-                | TOK_XOR_OPCODE
-                | TOK_SLT_OPCODE
-                | TOK_SLTU_OPCODE
+            TOKEN_ADD_OPCODE
+                | TOKEN_ADDU_OPCODE
+                | TOKEN_AND_OPCODE
+                | TOKEN_OR_OPCODE
+                | TOKEN_XOR_OPCODE
+                | TOKEN_SLT_OPCODE
+                | TOKEN_SLTU_OPCODE
         ) {
             if self.peek() != TOK_REG {
                 let imm: ImmExpr = self.parse_imm32();
@@ -557,8 +557,8 @@ impl Machine {
 
     /// `op rd, rt, shamt`; `ssnop` is `sll $0, $0, 1` (`parse_r2sh`).
     fn parse_r2sh(&mut self, op: i32) {
-        if op == TOK_SSNOP_OPCODE {
-            self.emit_r_shift(TOK_SLL_OPCODE, 0, 0, 1);
+        if op == TOKEN_SSNOP_OPCODE {
+            self.emit_r_shift(TOKEN_SLL_OPCODE, 0, 0, 1);
             return;
         }
         let rd: i32 = self.parse_register();
@@ -580,7 +580,8 @@ impl Machine {
         } else {
             rt
         };
-        let imm: ImmExpr = if matches!(op, TOK_ANDI_OPCODE | TOK_ORI_OPCODE | TOK_XORI_OPCODE) {
+        let imm: ImmExpr = if matches!(op, TOKEN_ANDI_OPCODE | TOKEN_ORI_OPCODE | TOKEN_XORI_OPCODE)
+        {
             self.parse_uimm16()
         } else {
             self.parse_imm16()
@@ -608,7 +609,7 @@ impl Machine {
             if imm.is_zero() {
                 self.emit_i(op, src1, 0, &target);
             } else {
-                self.emit_i(TOK_ORI_OPCODE, 1, 0, &imm);
+                self.emit_i(TOKEN_ORI_OPCODE, 1, 0, &imm);
                 self.emit_i(op, src1, 1, &target);
             }
         }
@@ -619,7 +620,7 @@ impl Machine {
     fn parse_j(&mut self, op: i32) {
         // jalr.hb keeps its own opcode (jalr with the hazard-barrier bit) and takes
         // registers only. cop2 shares J_TYPE_INST, but spim has no coprocessor 2.
-        if op == TOK_COP2_OPCODE {
+        if op == TOKEN_COP2_OPCODE {
             self.parse_error_at("cop2 is not supported: spim has no coprocessor 2");
         } else if self.peek() == TOK_REG {
             let r1: i32 = self.parse_register();
@@ -627,9 +628,11 @@ impl Machine {
                 // DEST SRC1 form
                 let r2: i32 = self.parse_register();
                 match op {
-                    TOK_J_OPCODE | TOK_JR_OPCODE => self.emit_r(TOK_JR_OPCODE, 0, r2, 0),
-                    TOK_JAL_OPCODE | TOK_JALR_OPCODE => self.emit_r(TOK_JALR_OPCODE, r1, r2, 0),
-                    TOK_JALR_HB_OPCODE => self.emit_r(TOK_JALR_HB_OPCODE, r1, r2, 0),
+                    TOKEN_J_OPCODE | TOKEN_JR_OPCODE => self.emit_r(TOKEN_JR_OPCODE, 0, r2, 0),
+                    TOKEN_JAL_OPCODE | TOKEN_JALR_OPCODE => {
+                        self.emit_r(TOKEN_JALR_OPCODE, r1, r2, 0)
+                    }
+                    TOKEN_JALR_HB_OPCODE => self.emit_r(TOKEN_JALR_HB_OPCODE, r1, r2, 0),
                     // Never reached: only J_TYPE_INST and RD_RS_INST opcodes come here.
                     _ => crate::machine::fatal_error(&format!(
                         "internal error: parse_j: unexpected opcode {op}\n"
@@ -638,22 +641,24 @@ impl Machine {
             } else {
                 // SRC1-only form
                 match op {
-                    TOK_J_OPCODE | TOK_JR_OPCODE => self.emit_r(TOK_JR_OPCODE, 0, r1, 0),
-                    TOK_JAL_OPCODE | TOK_JALR_OPCODE => self.emit_r(TOK_JALR_OPCODE, 31, r1, 0),
-                    TOK_JALR_HB_OPCODE => self.emit_r(TOK_JALR_HB_OPCODE, 31, r1, 0),
+                    TOKEN_J_OPCODE | TOKEN_JR_OPCODE => self.emit_r(TOKEN_JR_OPCODE, 0, r1, 0),
+                    TOKEN_JAL_OPCODE | TOKEN_JALR_OPCODE => {
+                        self.emit_r(TOKEN_JALR_OPCODE, 31, r1, 0)
+                    }
+                    TOKEN_JALR_HB_OPCODE => self.emit_r(TOKEN_JALR_HB_OPCODE, 31, r1, 0),
                     // Never reached: as in the DEST SRC1 form above.
                     _ => crate::machine::fatal_error(&format!(
                         "internal error: parse_j: unexpected opcode {op}\n"
                     )),
                 }
             }
-        } else if op == TOK_JALR_HB_OPCODE {
+        } else if op == TOKEN_JALR_HB_OPCODE {
             self.parse_error_at("jalr.hb needs a register operand");
         } else {
             let target: ImmExpr = self.parse_label();
             match op {
-                TOK_J_OPCODE | TOK_JR_OPCODE => self.emit_j(TOK_J_OPCODE, &target),
-                TOK_JAL_OPCODE | TOK_JALR_OPCODE => self.emit_j(TOK_JAL_OPCODE, &target),
+                TOKEN_J_OPCODE | TOKEN_JR_OPCODE => self.emit_j(TOKEN_J_OPCODE, &target),
+                TOKEN_JAL_OPCODE | TOKEN_JALR_OPCODE => self.emit_j(TOKEN_JAL_OPCODE, &target),
                 // Never reached: jalr.hb and cop2 are handled above.
                 _ => crate::machine::fatal_error(&format!(
                     "internal error: parse_j: unexpected opcode {op}\n"
@@ -667,7 +672,7 @@ impl Machine {
         if self.peek() == TOK_INT {
             self.advance();
             let n: i32 = self.value_int();
-            if op == TOK_BREAK_OPCODE && n == 1 {
+            if op == TOKEN_BREAK_OPCODE && n == 1 {
                 self.parse_error_at("Breakpoint 1 is reserved for debugger");
             }
             self.emit_r(op, n, 0, 0);
@@ -713,34 +718,35 @@ impl Machine {
     /// The expansion of each pseudo-instruction (`do_parse_pseudo`).
     fn do_parse_pseudo(&mut self, op: i32) {
         match op {
-            TOK_LI_PSEUDO_OP => {
+            TOKEN_LI_PSEUDO_OP => {
                 let rt: i32 = self.parse_register();
                 let imm: ImmExpr = self.parse_imm32();
-                self.emit_i(TOK_ORI_OPCODE, rt, 0, &imm);
+                self.emit_i(TOKEN_ORI_OPCODE, rt, 0, &imm);
             }
-            TOK_MOVE_PSEUDO_OP => {
+            TOKEN_MOVE_PSEUDO_OP => {
                 let rd: i32 = self.parse_register();
                 let rs: i32 = self.parse_register();
-                self.emit_r(TOK_ADDU_OPCODE, rd, 0, rs);
+                self.emit_r(TOKEN_ADDU_OPCODE, rd, 0, rs);
             }
-            TOK_NEG_PSEUDO_OP | TOK_NEGU_PSEUDO_OP => {
+            TOKEN_NEG_PSEUDO_OP | TOKEN_NEGU_PSEUDO_OP => {
                 let rd: i32 = self.parse_register();
                 let rs: i32 = self.parse_register();
-                let sub: i32 = if op == TOK_NEG_PSEUDO_OP {
-                    TOK_SUB_OPCODE
+                let sub: i32 = if op == TOKEN_NEG_PSEUDO_OP {
+                    TOKEN_SUB_OPCODE
                 } else {
-                    TOK_SUBU_OPCODE
+                    TOKEN_SUBU_OPCODE
                 };
                 self.emit_r(sub, rd, 0, rs);
             }
-            TOK_NOT_PSEUDO_OP => {
+            TOKEN_NOT_PSEUDO_OP => {
                 let rd: i32 = self.parse_register();
                 let rs: i32 = self.parse_register();
-                self.emit_r(TOK_NOR_OPCODE, rd, rs, 0);
+                self.emit_r(TOKEN_NOR_OPCODE, rd, rs, 0);
             }
-            TOK_ROR_PSEUDO_OP | TOK_ROL_PSEUDO_OP => self.parse_rotate(op),
-            TOK_SLE_PSEUDO_OP | TOK_SLEU_PSEUDO_OP | TOK_SGT_PSEUDO_OP | TOK_SGTU_PSEUDO_OP
-            | TOK_SGE_PSEUDO_OP | TOK_SGEU_PSEUDO_OP | TOK_SEQ_PSEUDO_OP | TOK_SNE_PSEUDO_OP => {
+            TOKEN_ROR_PSEUDO_OP | TOKEN_ROL_PSEUDO_OP => self.parse_rotate(op),
+            TOKEN_SLE_PSEUDO_OP | TOKEN_SLEU_PSEUDO_OP | TOKEN_SGT_PSEUDO_OP
+            | TOKEN_SGTU_PSEUDO_OP | TOKEN_SGE_PSEUDO_OP | TOKEN_SGEU_PSEUDO_OP
+            | TOKEN_SEQ_PSEUDO_OP | TOKEN_SNE_PSEUDO_OP => {
                 let rd: i32 = self.parse_register();
                 let rs: i32 = self.parse_register();
                 let rt: i32 = if self.peek() == TOK_REG {
@@ -750,29 +756,29 @@ impl Machine {
                     if imm.is_zero() {
                         0
                     } else {
-                        self.emit_i(TOK_ORI_OPCODE, 1, 0, &imm);
+                        self.emit_i(TOKEN_ORI_OPCODE, 1, 0, &imm);
                         1
                     }
                 };
                 match op {
-                    TOK_SLE_PSEUDO_OP | TOK_SLEU_PSEUDO_OP => self.set_le_inst(op, rd, rs, rt),
-                    TOK_SGT_PSEUDO_OP | TOK_SGTU_PSEUDO_OP => self.set_gt_inst(op, rd, rs, rt),
-                    TOK_SGE_PSEUDO_OP | TOK_SGEU_PSEUDO_OP => self.set_ge_inst(op, rd, rs, rt),
+                    TOKEN_SLE_PSEUDO_OP | TOKEN_SLEU_PSEUDO_OP => self.set_le_inst(op, rd, rs, rt),
+                    TOKEN_SGT_PSEUDO_OP | TOKEN_SGTU_PSEUDO_OP => self.set_gt_inst(op, rd, rs, rt),
+                    TOKEN_SGE_PSEUDO_OP | TOKEN_SGEU_PSEUDO_OP => self.set_ge_inst(op, rd, rs, rt),
                     _ => self.set_eq_inst(op, rd, rs, rt),
                 }
             }
-            TOK_ABS_PSEUDO_OP => {
+            TOKEN_ABS_PSEUDO_OP => {
                 let rd: i32 = self.parse_register();
                 let rs: i32 = self.parse_register();
                 if rd != rs {
-                    self.emit_r(TOK_ADDU_OPCODE, rd, 0, rs);
+                    self.emit_r(TOKEN_ADDU_OPCODE, rd, 0, rs);
                 }
-                self.emit_i(TOK_BGEZ_OPCODE, 0, rs, &branch_offset(3));
+                self.emit_i(TOKEN_BGEZ_OPCODE, 0, rs, &branch_offset(3));
                 self.nop_inst();
-                self.emit_r(TOK_SUB_OPCODE, rd, 0, rs);
+                self.emit_r(TOKEN_SUB_OPCODE, rd, 0, rs);
             }
-            TOK_NOP_PSEUDO_OP => self.nop_inst(),
-            TOK_REM_PSEUDO_OP | TOK_REMU_PSEUDO_OP => {
+            TOKEN_NOP_PSEUDO_OP => self.nop_inst(),
+            TOKEN_REM_PSEUDO_OP | TOKEN_REMU_PSEUDO_OP => {
                 let rd: i32 = self.parse_register();
                 let rs: i32 = self.parse_register();
                 if self.peek() == TOK_REG {
@@ -783,12 +789,12 @@ impl Machine {
                     if imm.is_zero() {
                         self.parse_error_at("Divide by zero");
                     } else {
-                        self.emit_i(TOK_ORI_OPCODE, 1, 0, &imm);
+                        self.emit_i(TOKEN_ORI_OPCODE, 1, 0, &imm);
                         self.div_inst(op, rd, rs, 1, true);
                     }
                 }
             }
-            TOK_MULO_PSEUDO_OP | TOK_MULOU_PSEUDO_OP => {
+            TOKEN_MULO_PSEUDO_OP | TOKEN_MULOU_PSEUDO_OP => {
                 let rd: i32 = self.parse_register();
                 let rs: i32 = self.parse_register();
                 if self.peek() == TOK_REG {
@@ -798,14 +804,14 @@ impl Machine {
                     let imm: ImmExpr = self.parse_imm32();
                     if imm.is_zero() {
                         // n * 0 is 0.
-                        self.emit_i(TOK_ORI_OPCODE, rd, 0, &imm);
+                        self.emit_i(TOKEN_ORI_OPCODE, rd, 0, &imm);
                     } else {
-                        self.emit_i(TOK_ORI_OPCODE, 1, 0, &imm);
+                        self.emit_i(TOKEN_ORI_OPCODE, 1, 0, &imm);
                         self.mult_inst(op, rd, rs, 1);
                     }
                 }
             }
-            TOK_MFC1_D_PSEUDO_OP | TOK_MTC1_D_PSEUDO_OP => {
+            TOKEN_MFC1_D_PSEUDO_OP | TOKEN_MTC1_D_PSEUDO_OP => {
                 let line: i32 = self.scanner.line_no(); // the last operand can consume the newline
                 let reg: i32 = self.parse_register();
                 let copreg: i32 = self.parse_copreg();
@@ -817,15 +823,15 @@ impl Machine {
                     );
                     return;
                 }
-                let real: i32 = if op == TOK_MFC1_D_PSEUDO_OP {
-                    TOK_MFC1_OPCODE
+                let real: i32 = if op == TOKEN_MFC1_D_PSEUDO_OP {
+                    TOKEN_MFC1_OPCODE
                 } else {
-                    TOK_MTC1_OPCODE
+                    TOKEN_MTC1_OPCODE
                 };
                 self.emit_fp_r(real, 0, copreg, reg);
                 self.emit_fp_r(real, 0, copreg.wrapping_add(1), reg.wrapping_add(1));
             }
-            TOK_LI_D_PSEUDO_OP => {
+            TOKEN_LI_D_PSEUDO_OP => {
                 let fd: i32 = self.parse_fp_register();
                 if self.peek() != TOK_FP {
                     self.parse_error_at("Expected FP literal");
@@ -834,17 +840,17 @@ impl Machine {
                 self.advance();
                 let bits: u64 = self.scanner.scan_value.fp().to_bits();
                 // The double's two words, low word first (little-endian).
-                self.emit_i(TOK_ORI_OPCODE, 1, 0, &ImmExpr::constant(bits as i32));
-                self.emit_fp_r(TOK_MTC1_OPCODE, 0, fd, 1);
+                self.emit_i(TOKEN_ORI_OPCODE, 1, 0, &ImmExpr::constant(bits as i32));
+                self.emit_fp_r(TOKEN_MTC1_OPCODE, 0, fd, 1);
                 self.emit_i(
-                    TOK_ORI_OPCODE,
+                    TOKEN_ORI_OPCODE,
                     1,
                     0,
                     &ImmExpr::constant((bits >> 32) as i32),
                 );
-                self.emit_fp_r(TOK_MTC1_OPCODE, 0, fd.wrapping_add(1), 1);
+                self.emit_fp_r(TOKEN_MTC1_OPCODE, 0, fd.wrapping_add(1), 1);
             }
-            TOK_LI_S_PSEUDO_OP => {
+            TOKEN_LI_S_PSEUDO_OP => {
                 let fd: i32 = self.parse_fp_register();
                 if self.peek() != TOK_FP {
                     self.parse_error_at("Expected FP literal");
@@ -853,29 +859,30 @@ impl Machine {
                 self.advance();
                 let single: f32 = self.scanner.scan_value.fp() as f32;
                 self.emit_i(
-                    TOK_ORI_OPCODE,
+                    TOKEN_ORI_OPCODE,
                     1,
                     0,
                     &ImmExpr::constant(single.to_bits() as i32),
                 );
-                self.emit_fp_r(TOK_MTC1_OPCODE, 0, fd, 1);
+                self.emit_fp_r(TOKEN_MTC1_OPCODE, 0, fd, 1);
             }
-            TOK_L_D_PSEUDO_OP | TOK_L_S_PSEUDO_OP | TOK_S_D_PSEUDO_OP | TOK_S_S_PSEUDO_OP => {
+            TOKEN_L_D_PSEUDO_OP | TOKEN_L_S_PSEUDO_OP | TOKEN_S_D_PSEUDO_OP
+            | TOKEN_S_S_PSEUDO_OP => {
                 let real: i32 = match op {
-                    TOK_L_D_PSEUDO_OP => TOK_LDC1_OPCODE,
-                    TOK_L_S_PSEUDO_OP => TOK_LWC1_OPCODE,
-                    TOK_S_D_PSEUDO_OP => TOK_SDC1_OPCODE,
-                    _ => TOK_SWC1_OPCODE,
+                    TOKEN_L_D_PSEUDO_OP => TOKEN_LDC1_OPCODE,
+                    TOKEN_L_S_PSEUDO_OP => TOKEN_LWC1_OPCODE,
+                    TOKEN_S_D_PSEUDO_OP => TOKEN_SDC1_OPCODE,
+                    _ => TOKEN_SWC1_OPCODE,
                 };
                 let fr: i32 = self.parse_fp_register();
                 let addr: AddrExpr = self.parse_address();
                 self.emit_i(real, fr, addr.reg, &addr.imm);
             }
-            TOK_LD_PSEUDO_OP | TOK_SD_PSEUDO_OP => {
-                let real: i32 = if op == TOK_LD_PSEUDO_OP {
-                    TOK_LW_OPCODE
+            TOKEN_LD_PSEUDO_OP | TOKEN_SD_PSEUDO_OP => {
+                let real: i32 = if op == TOKEN_LD_PSEUDO_OP {
+                    TOKEN_LW_OPCODE
                 } else {
-                    TOK_SW_OPCODE
+                    TOKEN_SW_OPCODE
                 };
                 let line: i32 = self.scanner.line_no(); // the address can consume the newline
                 let rt: i32 = self.parse_register();
@@ -891,77 +898,75 @@ impl Machine {
                 self.emit_i(real, rt, addr.reg, &addr.imm);
                 self.emit_i(real, rt.wrapping_add(1), addr.reg, &addr.imm.plus(4));
             }
-            TOK_ULW_PSEUDO_OP => {
+            TOKEN_ULW_PSEUDO_OP => {
                 let rt: i32 = self.parse_register();
                 let addr: AddrExpr = self.parse_address();
-                self.emit_i(TOK_LWL_OPCODE, rt, addr.reg, &addr.imm.plus(3));
-                self.emit_i(TOK_LWR_OPCODE, rt, addr.reg, &addr.imm);
+                self.emit_i(TOKEN_LWL_OPCODE, rt, addr.reg, &addr.imm.plus(3));
+                self.emit_i(TOKEN_LWR_OPCODE, rt, addr.reg, &addr.imm);
             }
-            TOK_ULH_PSEUDO_OP | TOK_ULHU_PSEUDO_OP => {
+            TOKEN_ULH_PSEUDO_OP | TOKEN_ULHU_PSEUDO_OP => {
                 let rt: i32 = self.parse_register();
                 let addr: AddrExpr = self.parse_address();
-                let load_high: i32 = if op == TOK_ULH_PSEUDO_OP {
-                    TOK_LB_OPCODE
+                let load_high: i32 = if op == TOKEN_ULH_PSEUDO_OP {
+                    TOKEN_LB_OPCODE
                 } else {
-                    TOK_LBU_OPCODE
+                    TOKEN_LBU_OPCODE
                 };
                 self.emit_i(load_high, rt, addr.reg, &addr.imm.plus(1));
-                self.emit_i(TOK_LBU_OPCODE, 1, addr.reg, &addr.imm);
-                self.emit_r_shift(TOK_SLL_OPCODE, rt, rt, 8);
-                self.emit_r(TOK_OR_OPCODE, rt, rt, 1);
+                self.emit_i(TOKEN_LBU_OPCODE, 1, addr.reg, &addr.imm);
+                self.emit_r_shift(TOKEN_SLL_OPCODE, rt, rt, 8);
+                self.emit_r(TOKEN_OR_OPCODE, rt, rt, 1);
             }
-            TOK_USW_PSEUDO_OP => {
+            TOKEN_USW_PSEUDO_OP => {
                 let rt: i32 = self.parse_register();
                 let addr: AddrExpr = self.parse_address();
-                self.emit_i(TOK_SWL_OPCODE, rt, addr.reg, &addr.imm.plus(3));
-                self.emit_i(TOK_SWR_OPCODE, rt, addr.reg, &addr.imm);
+                self.emit_i(TOKEN_SWL_OPCODE, rt, addr.reg, &addr.imm.plus(3));
+                self.emit_i(TOKEN_SWR_OPCODE, rt, addr.reg, &addr.imm);
             }
-            TOK_USH_PSEUDO_OP => {
+            TOKEN_USH_PSEUDO_OP => {
                 let rt: i32 = self.parse_register();
                 let addr: AddrExpr = self.parse_address();
-                self.emit_i(TOK_SB_OPCODE, rt, addr.reg, &addr.imm);
-                self.emit_r_shift(TOK_SLL_OPCODE, 1, rt, 24);
-                self.emit_r_shift(TOK_SRL_OPCODE, rt, rt, 8);
-                self.emit_r(TOK_OR_OPCODE, rt, rt, 1);
-                self.emit_i(TOK_SB_OPCODE, rt, addr.reg, &addr.imm.plus(1));
-                self.emit_r_shift(TOK_SRL_OPCODE, 1, rt, 24);
-                self.emit_r_shift(TOK_SLL_OPCODE, rt, rt, 8);
-                self.emit_r(TOK_OR_OPCODE, rt, rt, 1);
+                self.emit_i(TOKEN_SB_OPCODE, rt, addr.reg, &addr.imm);
+                self.emit_r_shift(TOKEN_SLL_OPCODE, 1, rt, 24);
+                self.emit_r_shift(TOKEN_SRL_OPCODE, rt, rt, 8);
+                self.emit_r(TOKEN_OR_OPCODE, rt, rt, 1);
+                self.emit_i(TOKEN_SB_OPCODE, rt, addr.reg, &addr.imm.plus(1));
+                self.emit_r_shift(TOKEN_SRL_OPCODE, 1, rt, 24);
+                self.emit_r_shift(TOKEN_SLL_OPCODE, rt, rt, 8);
+                self.emit_r(TOKEN_OR_OPCODE, rt, rt, 1);
             }
-            TOK_LA_PSEUDO_OP => {
+            TOKEN_LA_PSEUDO_OP => {
                 let rt: i32 = self.parse_register();
                 let addr: AddrExpr = self.parse_address();
                 if addr.reg != 0 {
-                    self.emit_i(TOK_ADDI_OPCODE, rt, addr.reg, &addr.imm);
+                    self.emit_i(TOKEN_ADDI_OPCODE, rt, addr.reg, &addr.imm);
                 } else {
-                    self.emit_i(TOK_ORI_OPCODE, rt, 0, &addr.imm);
+                    self.emit_i(TOKEN_ORI_OPCODE, rt, 0, &addr.imm);
                 }
             }
-            TOK_BEQZ_PSEUDO_OP | TOK_BNEZ_PSEUDO_OP => {
+            TOKEN_BEQZ_PSEUDO_OP | TOKEN_BNEZ_PSEUDO_OP => {
                 let rs: i32 = self.parse_register();
                 let target: ImmExpr = self.parse_label();
-                let real: i32 = if op == TOK_BEQZ_PSEUDO_OP {
-                    TOK_BEQ_OPCODE
+                let real: i32 = if op == TOKEN_BEQZ_PSEUDO_OP {
+                    TOKEN_BEQ_OPCODE
                 } else {
-                    TOK_BNE_OPCODE
+                    TOKEN_BNE_OPCODE
                 };
                 self.emit_i(real, 0, rs, &target);
             }
-            TOK_B_PSEUDO_OP | TOK_BAL_PSEUDO_OP => {
+            TOKEN_B_PSEUDO_OP | TOKEN_BAL_PSEUDO_OP => {
                 let target: ImmExpr = self.parse_label();
-                let real: i32 = if op == TOK_BAL_PSEUDO_OP {
-                    TOK_BGEZAL_OPCODE
+                let real: i32 = if op == TOKEN_BAL_PSEUDO_OP {
+                    TOKEN_BGEZAL_OPCODE
                 } else {
-                    TOK_BGEZ_OPCODE
+                    TOKEN_BGEZ_OPCODE
                 };
                 self.emit_i(real, 0, 0, &target);
             }
-            TOK_BGT_PSEUDO_OP | TOK_BGTU_PSEUDO_OP | TOK_BLE_PSEUDO_OP | TOK_BLEU_PSEUDO_OP => {
-                self.parse_branch_gt_le(op)
-            }
-            TOK_BGE_PSEUDO_OP | TOK_BGEU_PSEUDO_OP | TOK_BLT_PSEUDO_OP | TOK_BLTU_PSEUDO_OP => {
-                self.parse_branch_ge_lt(op)
-            }
+            TOKEN_BGT_PSEUDO_OP | TOKEN_BGTU_PSEUDO_OP | TOKEN_BLE_PSEUDO_OP
+            | TOKEN_BLEU_PSEUDO_OP => self.parse_branch_gt_le(op),
+            TOKEN_BGE_PSEUDO_OP | TOKEN_BGEU_PSEUDO_OP | TOKEN_BLT_PSEUDO_OP
+            | TOKEN_BLTU_PSEUDO_OP => self.parse_branch_ge_lt(op),
             _ => {
                 self.parse_error_at("Pseudo-op not yet supported");
                 self.sync_to_nl();
@@ -973,52 +978,52 @@ impl Machine {
     fn parse_rotate(&mut self, op: i32) {
         let rd: i32 = self.parse_register();
         let rs: i32 = self.parse_register();
-        let right: bool = op == TOK_ROR_PSEUDO_OP;
+        let right: bool = op == TOKEN_ROR_PSEUDO_OP;
         if self.peek() == TOK_REG {
             let rt: i32 = self.parse_register();
-            self.emit_r(TOK_SUBU_OPCODE, 1, 0, rt);
+            self.emit_r(TOKEN_SUBU_OPCODE, 1, 0, rt);
             if right {
-                self.emit_r(TOK_SLLV_OPCODE, 1, 1, rs);
-                self.emit_r(TOK_SRLV_OPCODE, rd, rt, rs);
+                self.emit_r(TOKEN_SLLV_OPCODE, 1, 1, rs);
+                self.emit_r(TOKEN_SRLV_OPCODE, rd, rt, rs);
             } else {
-                self.emit_r(TOK_SRLV_OPCODE, 1, 1, rs);
-                self.emit_r(TOK_SLLV_OPCODE, rd, rt, rs);
+                self.emit_r(TOKEN_SRLV_OPCODE, 1, 1, rs);
+                self.emit_r(TOKEN_SLLV_OPCODE, rd, rt, rs);
             }
-            self.emit_r(TOK_OR_OPCODE, rd, rd, 1);
+            self.emit_r(TOKEN_OR_OPCODE, rd, rd, 1);
         } else {
             let line: i32 = self.scanner.line_no(); // as in parse_imm16
             let imm: ImmExpr = self.parse_imm32();
             let distance: i32 = self.eval_imm_expr(&imm);
             self.check_imm_range(&imm, 0, 31, line);
             if right {
-                self.emit_r_shift(TOK_SLL_OPCODE, 1, rs, distance.wrapping_neg());
-                self.emit_r_shift(TOK_SRL_OPCODE, rd, rs, distance);
+                self.emit_r_shift(TOKEN_SLL_OPCODE, 1, rs, distance.wrapping_neg());
+                self.emit_r_shift(TOKEN_SRL_OPCODE, rd, rs, distance);
             } else {
-                self.emit_r_shift(TOK_SRL_OPCODE, 1, rs, distance.wrapping_neg());
-                self.emit_r_shift(TOK_SLL_OPCODE, rd, rs, distance);
+                self.emit_r_shift(TOKEN_SRL_OPCODE, 1, rs, distance.wrapping_neg());
+                self.emit_r_shift(TOKEN_SLL_OPCODE, rd, rs, distance);
             }
-            self.emit_r(TOK_OR_OPCODE, rd, rd, 1);
+            self.emit_r(TOKEN_OR_OPCODE, rd, rd, 1);
         }
     }
 
     /// `bgt`, `bgtu`, `ble`, `bleu`: compare with `slt` into `$at`, branch.
     fn parse_branch_gt_le(&mut self, op: i32) {
-        let greater: bool = op == TOK_BGT_PSEUDO_OP || op == TOK_BGTU_PSEUDO_OP;
-        let signed: bool = op == TOK_BGT_PSEUDO_OP || op == TOK_BLE_PSEUDO_OP;
+        let greater: bool = op == TOKEN_BGT_PSEUDO_OP || op == TOKEN_BGTU_PSEUDO_OP;
+        let signed: bool = op == TOKEN_BGT_PSEUDO_OP || op == TOKEN_BLE_PSEUDO_OP;
         // bgt branches when the comparison is true (bne), ble when false.
         let branch: i32 = if greater {
-            TOK_BNE_OPCODE
+            TOKEN_BNE_OPCODE
         } else {
-            TOK_BEQ_OPCODE
+            TOKEN_BEQ_OPCODE
         };
         let rs: i32 = self.parse_register();
         if self.peek() == TOK_REG {
             let rt: i32 = self.parse_register();
             let target: ImmExpr = self.parse_label();
             let slt: i32 = if signed {
-                TOK_SLT_OPCODE
+                TOKEN_SLT_OPCODE
             } else {
-                TOK_SLTU_OPCODE
+                TOKEN_SLTU_OPCODE
             };
             self.emit_r(slt, 1, rt, rs);
             self.emit_i(branch, 0, 1, &target);
@@ -1027,44 +1032,44 @@ impl Machine {
         let imm: ImmExpr = self.parse_imm32();
         let target: ImmExpr = self.parse_label();
         if signed {
-            self.emit_i(TOK_SLTI_OPCODE, 1, rs, &imm.plus(1));
+            self.emit_i(TOKEN_SLTI_OPCODE, 1, rs, &imm.plus(1));
             // bgt: rs >= imm+1 means rs > imm; branch when slti is false.
             let after_slti: i32 = if greater {
-                TOK_BEQ_OPCODE
+                TOKEN_BEQ_OPCODE
             } else {
-                TOK_BNE_OPCODE
+                TOKEN_BNE_OPCODE
             };
             self.emit_i(after_slti, 0, 1, &target);
         } else if greater {
-            self.emit_i(TOK_ORI_OPCODE, 1, 0, &imm);
-            self.emit_i(TOK_BEQ_OPCODE, rs, 1, &branch_offset(3));
-            self.emit_r(TOK_SLTU_OPCODE, 1, rs, 1);
-            self.emit_i(TOK_BEQ_OPCODE, 0, 1, &target);
+            self.emit_i(TOKEN_ORI_OPCODE, 1, 0, &imm);
+            self.emit_i(TOKEN_BEQ_OPCODE, rs, 1, &branch_offset(3));
+            self.emit_r(TOKEN_SLTU_OPCODE, 1, rs, 1);
+            self.emit_i(TOKEN_BEQ_OPCODE, 0, 1, &target);
         } else {
-            self.emit_i(TOK_ORI_OPCODE, 1, 0, &imm);
-            self.emit_i(TOK_BEQ_OPCODE, rs, 1, &target);
-            self.emit_r(TOK_SLTU_OPCODE, 1, rs, 1);
-            self.emit_i(TOK_BNE_OPCODE, 0, 1, &target);
+            self.emit_i(TOKEN_ORI_OPCODE, 1, 0, &imm);
+            self.emit_i(TOKEN_BEQ_OPCODE, rs, 1, &target);
+            self.emit_r(TOKEN_SLTU_OPCODE, 1, rs, 1);
+            self.emit_i(TOKEN_BNE_OPCODE, 0, 1, &target);
         }
     }
 
     /// `bge`, `bgeu`, `blt`, `bltu`: `slt` into `$at`, branch.
     fn parse_branch_ge_lt(&mut self, op: i32) {
-        let signed: bool = op == TOK_BGE_PSEUDO_OP || op == TOK_BLT_PSEUDO_OP;
+        let signed: bool = op == TOKEN_BGE_PSEUDO_OP || op == TOKEN_BLT_PSEUDO_OP;
         // bge branches when rs < rt is false (beq $at, $0), blt when true.
-        let branch: i32 = if op == TOK_BGE_PSEUDO_OP || op == TOK_BGEU_PSEUDO_OP {
-            TOK_BEQ_OPCODE
+        let branch: i32 = if op == TOKEN_BGE_PSEUDO_OP || op == TOKEN_BGEU_PSEUDO_OP {
+            TOKEN_BEQ_OPCODE
         } else {
-            TOK_BNE_OPCODE
+            TOKEN_BNE_OPCODE
         };
         let rs: i32 = self.parse_register();
         if self.peek() == TOK_REG {
             let rt: i32 = self.parse_register();
             let target: ImmExpr = self.parse_label();
             let slt: i32 = if signed {
-                TOK_SLT_OPCODE
+                TOKEN_SLT_OPCODE
             } else {
-                TOK_SLTU_OPCODE
+                TOKEN_SLTU_OPCODE
             };
             self.emit_r(slt, 1, rs, rt);
             self.emit_i(branch, 0, 1, &target);
@@ -1072,9 +1077,9 @@ impl Machine {
             let imm: ImmExpr = self.parse_imm32();
             let target: ImmExpr = self.parse_label();
             let slti: i32 = if signed {
-                TOK_SLTI_OPCODE
+                TOKEN_SLTI_OPCODE
             } else {
-                TOK_SLTIU_OPCODE
+                TOKEN_SLTIU_OPCODE
             };
             self.emit_i(slti, 1, rs, &imm);
             self.emit_i(branch, 0, 1, &target);
@@ -1085,39 +1090,45 @@ impl Machine {
     fn parse_asm_code(&mut self) {
         let op: i32 = self.advance();
         match token_type(op) {
-            Some(OpType::NoargTypeInst) => self.parse_noarg(op),
-            Some(OpType::RdRsRtInst) => self.parse_r3(op),
-            Some(OpType::RdRtShamtInst) => self.parse_r2sh(op),
-            Some(OpType::RsInst) => {
+            Some(OpType::NoArgumentTypeInstruction) => self.parse_noarg(op),
+            Some(OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction) => {
+                self.parse_r3(op)
+            }
+            Some(OpType::DestinationRegisterTargetRegisterShiftAmountInstruction) => {
+                self.parse_r2sh(op)
+            }
+            Some(OpType::SourceRegisterInstruction) => {
                 let rs: i32 = self.parse_register();
                 self.emit_r(op, 0, rs, 0);
             }
-            Some(OpType::RtRsImmInst) => self.parse_i2(op),
-            Some(OpType::RtImmInst) => {
+            Some(OpType::TargetRegisterSourceRegisterImmediateInstruction) => self.parse_i2(op),
+            Some(OpType::TargetRegisterImmediateInstruction) => {
                 let rt: i32 = self.parse_register();
                 let imm: ImmExpr = self.parse_uimm16();
                 self.emit_i(op, rt, 0, &imm);
             }
-            Some(OpType::RtAddrInst) => self.parse_i2a(op),
-            Some(OpType::BranchRsRtLabelInst) => self.parse_b2(op),
-            Some(OpType::BranchRsLabelInst) => {
+            Some(OpType::TargetRegisterAddressInstruction) => self.parse_i2a(op),
+            Some(OpType::BranchSourceRegisterTargetRegisterLabelInstruction) => self.parse_b2(op),
+            Some(OpType::BranchSourceRegisterLabelInstruction) => {
                 let rs: i32 = self.parse_register();
                 let target: ImmExpr = self.parse_label();
                 self.emit_i(op, 0, rs, &target);
             }
-            Some(OpType::JTypeInst) | Some(OpType::RdRsInst) => self.parse_j(op),
+            Some(OpType::JTypeInstruction)
+            | Some(OpType::DestinationRegisterSourceRegisterInstruction) => self.parse_j(op),
             Some(OpType::PseudoOp) => self.parse_pseudo(op),
-            Some(OpType::RtCopregInst) | Some(OpType::FpRtCopregInst) => {
+            Some(OpType::TargetRegisterCoprocessorRegisterInstruction)
+            | Some(OpType::FloatingPointTargetRegisterCoprocessorRegisterInstruction) => {
                 let reg: i32 = self.parse_register();
                 let copreg: i32 = self.parse_copreg();
                 self.emit_fp_r(op, 0, copreg, reg);
             }
-            Some(OpType::RsRtInst) => self.parse_rs_rt(op),
-            Some(OpType::RdInst) => {
+            Some(OpType::SourceRegisterTargetRegisterInstruction) => self.parse_rs_rt(op),
+            Some(OpType::DestinationRegisterInstruction) => {
                 let rd: i32 = self.parse_register();
                 self.emit_r(op, rd, 0, 0);
             }
-            Some(OpType::RdRtRsInst) => {
+            Some(OpType::DestinationRegisterTargetRegisterSourceRegisterInstruction) => {
                 // sllv rd, rt, rs: the register operands are swapped in
                 // the encoding; a constant third operand means sll.
                 let rd: i32 = self.parse_register();
@@ -1135,12 +1146,12 @@ impl Machine {
                     self.emit_r_shift(op_to_imm_op(op), rd, rs, shamt);
                 }
             }
-            Some(OpType::RsImmInst) => {
+            Some(OpType::SourceRegisterImmediateInstruction) => {
                 let rs: i32 = self.parse_register();
                 let imm: ImmExpr = self.parse_imm16();
                 self.emit_i(op, 0, rs, &imm);
             }
-            Some(OpType::BranchCoprocCondInst) => {
+            Some(OpType::BranchCoprocessorConditionInstruction) => {
                 let nd: i32 = i32::from(opcode_is_nullified_branch(op));
                 let tf: i32 = i32::from(opcode_is_true_branch(op));
                 let mut cc: i32 = 0;
@@ -1151,7 +1162,7 @@ impl Machine {
                 let target: ImmExpr = self.parse_label();
                 self.emit_i(op, (cc << 2) | (nd << 1) | tf, 0, &target);
             }
-            Some(OpType::MovcTypeInst) => {
+            Some(OpType::MoveConditionalTypeInstruction) => {
                 let rd: i32 = self.parse_register();
                 let rs: i32 = self.parse_register();
                 let mut cc: i32 = 0;
@@ -1161,18 +1172,18 @@ impl Machine {
                 }
                 self.emit_r(op, rd, rs, (cc & 0x7) << 2);
             }
-            Some(OpType::FpFdFsInst) => {
+            Some(OpType::FloatingPointDestinationSourceInstruction) => {
                 let fd: i32 = self.parse_fp_register();
                 let fs: i32 = self.parse_fp_register();
                 self.emit_fp_r(op, fd, fs, 0);
             }
-            Some(OpType::FpFdFsFtInst) => {
+            Some(OpType::FloatingPointDestinationSourceTargetInstruction) => {
                 let fd: i32 = self.parse_fp_register();
                 let fs: i32 = self.parse_fp_register();
                 let ft: i32 = self.parse_fp_register();
                 self.emit_fp_r(op, fd, fs, ft);
             }
-            Some(OpType::FpCmpFsFtInst) => {
+            Some(OpType::FloatingPointCompareSourceTargetInstruction) => {
                 let mut cc: i32 = 0;
                 if self.peek() == TOK_INT {
                     self.advance();
@@ -1182,7 +1193,7 @@ impl Machine {
                 let ft: i32 = self.parse_fp_register();
                 self.emit_fp_compare(op, fs, ft, cc);
             }
-            Some(OpType::FpMovcTypeInst) => {
+            Some(OpType::FloatingPointMoveConditionalTypeInstruction) => {
                 let fd: i32 = self.parse_fp_register();
                 let fs: i32 = self.parse_fp_register();
                 if self.peek() == TOK_REG {
@@ -1196,12 +1207,14 @@ impl Machine {
                     self.emit_fp_r(op, fd, fs, 0);
                 }
             }
-            Some(OpType::FpFtAddrInst) => {
+            Some(OpType::FloatingPointTargetAddressInstruction) => {
                 let fr: i32 = self.parse_fp_register();
                 let addr: AddrExpr = self.parse_address();
                 self.emit_i(op, fr, addr.reg, &addr.imm);
             }
-            Some(OpType::AsmDir) | Some(OpType::FpFdFrFsFtInst) | None => {
+            Some(OpType::AssemblerDirective)
+            | Some(OpType::FloatingPointDestinationAddendSourceTargetInstruction)
+            | None => {
                 self.parse_error_at("Instruction not yet supported");
                 self.sync_to_nl();
             }
@@ -1219,16 +1232,16 @@ impl Machine {
         }
         if matches!(
             op,
-            TOK_TEQ_OPCODE
-                | TOK_TGE_OPCODE
-                | TOK_TGEU_OPCODE
-                | TOK_TLT_OPCODE
-                | TOK_TLTU_OPCODE
-                | TOK_TNE_OPCODE
+            TOKEN_TEQ_OPCODE
+                | TOKEN_TGE_OPCODE
+                | TOKEN_TGEU_OPCODE
+                | TOKEN_TLT_OPCODE
+                | TOKEN_TLTU_OPCODE
+                | TOKEN_TNE_OPCODE
         ) {
             let r2: i32 = self.parse_register();
             self.emit_r(op, 0, r1, r2);
-        } else if op == TOK_DIV_OPCODE || op == TOK_DIVU_OPCODE {
+        } else if op == TOKEN_DIV_OPCODE || op == TOKEN_DIVU_OPCODE {
             let r2: i32 = self.parse_register();
             if self.peek() == TOK_NL || self.peek() == TOK_EOF {
                 self.emit_r(op, 0, r1, r2);
@@ -1240,7 +1253,7 @@ impl Machine {
                 if imm.is_zero() {
                     self.parse_error_at("Divide by zero");
                 } else {
-                    self.emit_i(TOK_ORI_OPCODE, 1, 0, &imm);
+                    self.emit_i(TOKEN_ORI_OPCODE, 1, 0, &imm);
                     self.div_inst(op, r1, r2, 1, true);
                 }
             }
@@ -1262,9 +1275,9 @@ impl Machine {
             start = Some(self.value_int() as u32);
         }
         let kind: AstKind = match directive {
-            TOK_TEXT_DIRECTIVE => AstKind::DirText(start),
-            TOK_K_TEXT_DIRECTIVE => AstKind::DirKtext(start),
-            TOK_K_DATA_DIRECTIVE => AstKind::DirKdata(start),
+            TOKEN_TEXT_DIRECTIVE => AstKind::DirText(start),
+            TOKEN_K_TEXT_DIRECTIVE => AstKind::DirKtext(start),
+            TOKEN_K_DATA_DIRECTIVE => AstKind::DirKdata(start),
             _ => AstKind::DirData(start),
         };
         if matches!(kind, AstKind::DirText(_) | AstKind::DirKtext(_)) {
@@ -1404,35 +1417,37 @@ impl Machine {
     /// Parse one directive (`parse_directive`).
     fn parse_directive(&mut self, directive: i32) {
         match directive {
-            TOK_DATA_DIRECTIVE | TOK_K_DATA_DIRECTIVE | TOK_TEXT_DIRECTIVE
-            | TOK_K_TEXT_DIRECTIVE => self.parse_dir_segment(directive),
-            TOK_GLOBAL_DIRECTIVE => {
+            TOKEN_DATA_DIRECTIVE
+            | TOKEN_K_DATA_DIRECTIVE
+            | TOKEN_TEXT_DIRECTIVE
+            | TOKEN_K_TEXT_DIRECTIVE => self.parse_dir_segment(directive),
+            TOKEN_GLOBAL_DIRECTIVE => {
                 if let Some(name) = self.parse_directive_name("Expected identifier after .globl") {
                     self.emit_node(AstKind::DirGlobl(name));
                 }
             }
-            TOK_WORD_DIRECTIVE => {
+            TOKEN_WORD_DIRECTIVE => {
                 self.align_for_data(2);
                 self.parse_expr_list(DataKind::Word);
             }
-            TOK_HALF_DIRECTIVE => {
+            TOKEN_HALF_DIRECTIVE => {
                 self.align_for_data(1);
                 self.parse_expr_list(DataKind::Half);
             }
-            TOK_BYTE_DIRECTIVE => self.parse_expr_list(DataKind::Byte),
-            TOK_ASCII_DIRECTIVE | TOK_ASCIIZ_DIRECTIVE => {
-                self.asm.null_term = directive == TOK_ASCIIZ_DIRECTIVE;
+            TOKEN_BYTE_DIRECTIVE => self.parse_expr_list(DataKind::Byte),
+            TOKEN_ASCII_DIRECTIVE | TOKEN_ASCIIZ_DIRECTIVE => {
+                self.asm.null_term = directive == TOKEN_ASCIIZ_DIRECTIVE;
                 self.parse_string_list();
             }
-            TOK_FLOAT_DIRECTIVE => {
+            TOKEN_FLOAT_DIRECTIVE => {
                 self.align_for_data(2);
                 self.parse_fp_expr_list(DataKind::Float);
             }
-            TOK_DOUBLE_DIRECTIVE => {
+            TOKEN_DOUBLE_DIRECTIVE => {
                 self.align_for_data(3);
                 self.parse_fp_expr_list(DataKind::Double);
             }
-            TOK_SPACE_DIRECTIVE => {
+            TOKEN_SPACE_DIRECTIVE => {
                 let size: i32 = self.parse_expression();
                 if self.asm.text_dir {
                     self.parse_error_at("Can't put data in text segment");
@@ -1440,7 +1455,7 @@ impl Machine {
                 }
                 self.emit_node(AstKind::DirSpace(size));
             }
-            TOK_ALIGN_DIRECTIVE => {
+            TOKEN_ALIGN_DIRECTIVE => {
                 let line: i32 = self.scanner.line_no(); // the expression can consume the newline
                 let n: i32 = self.parse_expression();
                 if !(0..=31).contains(&n) {
@@ -1453,10 +1468,10 @@ impl Machine {
                     self.emit_node(AstKind::DirAlign(n));
                 }
             }
-            TOK_COMM_DIRECTIVE | TOK_EXTERN_DIRECTIVE => {
+            TOKEN_COMM_DIRECTIVE | TOKEN_EXTERN_DIRECTIVE => {
                 if let Some(name) = self.parse_directive_name("Expected ID") {
                     let size: i32 = self.parse_expression();
-                    let kind: AstKind = if directive == TOK_COMM_DIRECTIVE {
+                    let kind: AstKind = if directive == TOKEN_COMM_DIRECTIVE {
                         AstKind::DirComm { name, size }
                     } else {
                         AstKind::DirExtern { name, size }
@@ -1464,23 +1479,23 @@ impl Machine {
                     self.emit_node(kind);
                 }
             }
-            TOK_ERR_DIRECTIVE => self.parse_error_at(".err directive"),
-            TOK_FILE_DIRECTIVE
-            | TOK_LOC_DIRECTIVE
-            | TOK_FRAME_DIRECTIVE
-            | TOK_MASK_DIRECTIVE
-            | TOK_FMASK_DIRECTIVE
-            | TOK_ENT_DIRECTIVE
-            | TOK_END_DIRECTIVE
-            | TOK_LABEL_DIRECTIVE
-            | TOK_LIVEREG_DIRECTIVE
-            | TOK_OPTIONS_DIRECTIVE
-            | TOK_BGNB_DIRECTIVE
-            | TOK_ENDB_DIRECTIVE
-            | TOK_ENDR_DIRECTIVE
-            | TOK_ASM0_DIRECTIVE
-            | TOK_ALIAS_DIRECTIVE
-            | TOK_SET_DIRECTIVE => {
+            TOKEN_ERR_DIRECTIVE => self.parse_error_at(".err directive"),
+            TOKEN_FILE_DIRECTIVE
+            | TOKEN_LOC_DIRECTIVE
+            | TOKEN_FRAME_DIRECTIVE
+            | TOKEN_MASK_DIRECTIVE
+            | TOKEN_FMASK_DIRECTIVE
+            | TOKEN_ENT_DIRECTIVE
+            | TOKEN_END_DIRECTIVE
+            | TOKEN_LABEL_DIRECTIVE
+            | TOKEN_LIVEREG_DIRECTIVE
+            | TOKEN_OPTIONS_DIRECTIVE
+            | TOKEN_BGNB_DIRECTIVE
+            | TOKEN_ENDB_DIRECTIVE
+            | TOKEN_ENDR_DIRECTIVE
+            | TOKEN_ASM0_DIRECTIVE
+            | TOKEN_ALIAS_DIRECTIVE
+            | TOKEN_SET_DIRECTIVE => {
                 // Metadata for other assemblers: ignore the rest of the line.
                 self.sync_to_nl();
             }
@@ -1526,7 +1541,7 @@ impl Machine {
         if t == TOK_EOF {
             return;
         }
-        if token_type(t) == Some(OpType::AsmDir) {
+        if token_type(t) == Some(OpType::AssemblerDirective) {
             let directive: i32 = self.advance();
             self.parse_directive(directive);
         } else {

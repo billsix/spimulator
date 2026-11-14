@@ -11,17 +11,17 @@
 /* Exported functions: */
 
 void align_data(int alignment);
-mem_addr current_data_location(void);
-void data_begins_at_point(mem_addr address);
+memory_address current_data_location(void);
+void data_begins_at_point(memory_address address);
 void enable_data_alignment(void);
 void end_of_assembly_file(void);
 void extern_directive(const char* name, int size);
 void increment_data_location(int value);
-void kernel_data_begins_at_point(mem_addr address);
+void kernel_data_begins_at_point(memory_address address);
 void lcomm_directive(const char* name, int size);
 void set_data_alignment(int);
-void set_data_location(mem_addr address);
-void set_text_location(mem_addr address);
+void set_data_location(memory_address address);
+void set_text_location(memory_address address);
 void store_byte(int value);
 void store_double(double* value);
 void store_float(double* value);

@@ -79,8 +79,8 @@ pub fn c_bsearch<T>(table: &[T], compare_key_to: impl Fn(&T) -> Ordering) -> Opt
 /// `opcodes.tsv` order).
 ///
 /// ```
-/// use spimulator::opcodes::{keyword_row, TOK_ADDU_OPCODE};
-/// assert_eq!(keyword_row(b"addu").map(|r| r.token), Some(TOK_ADDU_OPCODE));
+/// use spimulator::opcodes::{keyword_row, TOKEN_ADDU_OPCODE};
+/// assert_eq!(keyword_row(b"addu").map(|r| r.token), Some(TOKEN_ADDU_OPCODE));
 /// assert!(keyword_row(b"loop").is_none());
 /// ```
 pub fn keyword_row(name: &[u8]) -> Option<&'static OpcodeRow> {
@@ -101,8 +101,8 @@ pub fn token_row(token: i32) -> Option<&'static OpcodeRow> {
 /// The mnemonic of a token (`op_token_name`), or `"<unknown>"`.
 ///
 /// ```
-/// use spimulator::opcodes::{token_name, TOK_LI_PSEUDO_OP};
-/// assert_eq!(token_name(TOK_LI_PSEUDO_OP), "li");
+/// use spimulator::opcodes::{token_name, TOKEN_LI_PSEUDO_OP};
+/// assert_eq!(token_name(TOKEN_LI_PSEUDO_OP), "li");
 /// assert_eq!(token_name(7), "<unknown>");
 /// ```
 pub fn token_name(token: i32) -> &'static str {

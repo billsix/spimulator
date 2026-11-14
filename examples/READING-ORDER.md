@@ -329,7 +329,7 @@ recursion demos taught.
     testable pure function (the shape the mini C compiler's front end needs).
     **Its unit tests are `calc-eval-test`** — it drives `eval()` over a hardcoded
     battery of expressions with no stdin, printing `<expr> => <result>` (golden-
-    pinned): the direct payoff of making `parse_factor`/`parse_term`/`parse_expr`
+    pinned): the direct payoff of making `parse_factor`/`parse_term`/`parse_sum_of_terms`
     depend on a character array instead of I/O.
 43. **`calc-tree`** — the SAME language and grammar as calc-sdt, but
     the parser *builds an abstract syntax tree* and a SEPARATE

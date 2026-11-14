@@ -25,7 +25,7 @@ void set_equal_instruction(int opcode, int destination_register, int source_regi
 
 void nop_instruction(void);
 void trap_instruction(void);
-imm_expr* branch_offset(int instruction_count);
+immediate_expression* branch_offset(int instruction_count);
 
 /* Range checkers for immediate values. */
 
@@ -33,8 +33,8 @@ imm_expr* branch_offset(int instruction_count);
    the instruction it belongs to.  (The scanner's line_no can already be on the
    next line: reading past the immediate scans the newline, which advances it.)
  */
-void check_immediate_range(const imm_expr* expression, int32_t min, int32_t max, int line);
-void check_unsigned_immediate_range(const imm_expr* expression, uint32_t min, uint32_t max,
+void check_immediate_range(const immediate_expression* expression, int32_t min, int32_t max, int line);
+void check_unsigned_immediate_range(const immediate_expression* expression, uint32_t min, uint32_t max,
                       int line);
 
 /* Opcode lookups. */

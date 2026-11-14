@@ -24,8 +24,8 @@ in a preprocessing stage and fails, with a diff, if anything committed differs. 
 - **`include/opcodes.tsv`**, tab-separated. `#` lines are comments, and an empty line starts a new
   group (kept as a blank line in the C output). The columns:
   - `name`: the mnemonic as written (`add`, `.word`, `li`).
-  - `token`: the C token name (`TOK_ADD_OPCODE`). Tokens are numbered `264 + row index`, after
-    eight structural tokens from 256 (`TOK_EOF` … `TOK_FP`). `-print-ast` prints these numbers, so
+  - `token`: the C token name (`TOKEN_ADD_OPCODE`). Tokens are numbered `264 + row index`, after
+    eight structural tokens from 256 (`TOKEN_EOF` … `TOKEN_FLOATING_POINT`). `-print-ast` prints these numbers, so
     every engine uses the same ones.
   - `type`: an operand-shape tag from `opcode-types.tsv`.
   - `encoding`: the instruction's fixed bits, as the C source writes them (`0x00000020`), or `-1`
@@ -48,7 +48,7 @@ Only one encoding is shared today: `-1`, by every directive and pseudo-instructi
 left out of the decode tables (no decode key is -1) and may not carry a `*`. Every real instruction has its own encoding, checked against GNU `as`
 (`mips64-linux-gnu-as -mabi=32 -mips32r2 -mfp64 -EB`, then `mips64-linux-gnu-objdump -d`). The COP1X
 rows (major opcode 0x13, `0x4c…`) are keyed by their funct field, and so is the decode
-(`inst_decode`'s `case 0x4c000000` in `src/instruction.c`, and each port's counterpart).
+(`instruction_decode`'s `case 0x4c000000` in `src/instruction.c`, and each port's counterpart).
 
 Why: upstream's table gave six encodings two rows each, which the engine settled by a sort and a
 binary search. The rows were corrected in `tasks/archive/2026/11/11/duplicate-cop1x-encodings.md`.
@@ -61,8 +61,8 @@ a binary word decodes to.
 | File | For | Holds |
 |---|---|---|
 | `include/tokens.h` | C | the `TOK_*` enum |
-| `include/opcode-types.h` | C | the `op_type` enum |
-| `include/opcode-tables.h`, `src/opcode-tables.c` | C | `opcode_tbl` {name, token, op_type}, sorted by name and by token; `opcode_encoding_tbl` {name, token, encoding}; `opcode_decode_tbl` {name, encoding, token}, one row per encoding. `OPCODE_COUNT` and `OPCODE_DECODE_COUNT` are `constexpr`. |
+| `include/opcode-types.h` | C | the `opcode_type` enum |
+| `include/opcode-tables.h`, `src/opcode-tables.c` | C | `opcode_table` {name, token, op_type}, sorted by name and by token; `opcode_encoding_table` {name, token, encoding}; `opcode_decode_table` {name, encoding, token}, one row per encoding. `OPCODE_COUNT` and `OPCODE_DECODE_COUNT` are `constexpr`. |
 | `port/python/spimulator_py/opcode_table.py` | Python | the `OpType` and `Tok` `IntEnum`s, `ROWS`, `DECODE` |
 | `port/haskell/src/Opcodes.hs`, `OpcodeTypes.hs` | Haskell | the `Opcode` and `OpType` types, `opcodeRows`, `opcodeDecodeRows` |
 | `port/rust/src/opcodes_table.rs`, `opcode_types.rs` | Rust | `OPCODE_ROWS`, the `TOK_*` constants, `DECODE_TABLE`, the `OpType` enum |
@@ -103,7 +103,7 @@ hand-written copy.
    - It should give the decode table from `table.decode_rows()`, already sorted with one row per
      encoding.
    - It should give the operand-shape tags from `table.types`.
-   - Use the C names (`TOK_ADD_OPCODE`, `RD_RS_RT_INST`), or a mechanical spelling of them such as
+   - Use the C names (`TOKEN_ADD_OPCODE`, `DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION`), or a mechanical spelling of them such as
      Rust's `RdRsRtInst`, so the sources can be read side by side.
    - Write the file in final form if you can. If it must go through a formatter, the formatter has
      to be installed in the image, as `clang-format` is.

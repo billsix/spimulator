@@ -141,7 +141,7 @@ Strips away everything that isn't a pseudo-op wrapper, so you can
 quickly see *exactly* what gets rewritten.  Reading this, a student
 should walk away knowing:
 
-- `li $rt, IMM` becomes `ori $rt, $0, IMM` (the parser-level
+- `li $rt, IMMEDIATE` becomes `ori $rt, $0, IMMEDIATE` (the parser-level
   rewrite — for small immediates that fit in 16 bits).
 - `la $rt, label` becomes `ori $rt, $0, label`-style addressing
   (the parser's first cut; the encoder may further split into

@@ -167,16 +167,16 @@ signedImmOp op =
   op
     `elem` map
       tok
-      [ TOK_ADDI_OPCODE,
-        TOK_ADDIU_OPCODE,
-        TOK_SLTI_OPCODE,
-        TOK_SLTIU_OPCODE,
-        TOK_TEQI_OPCODE,
-        TOK_TGEI_OPCODE,
-        TOK_TGEIU_OPCODE,
-        TOK_TLTI_OPCODE,
-        TOK_TLTIU_OPCODE,
-        TOK_TNEI_OPCODE
+      [ TOKEN_ADDI_OPCODE,
+        TOKEN_ADDIU_OPCODE,
+        TOKEN_SLTI_OPCODE,
+        TOKEN_SLTIU_OPCODE,
+        TOKEN_TEQI_OPCODE,
+        TOKEN_TGEI_OPCODE,
+        TOKEN_TGEIU_OPCODE,
+        TOKEN_TLTI_OPCODE,
+        TOKEN_TLTIU_OPCODE,
+        TOKEN_TNEI_OPCODE
       ]
 
 -- | An immediate instruction @op rt, rs, expr@ (C: @i_type@).  It may
@@ -226,22 +226,22 @@ iTypeFullWord s op rt rs expr known value = do
               then do
                 let high :: Int32
                     high = if low .&. 0x8000 /= 0 then high0 + 1 else high0
-                iType s (tok TOK_LUI_OPCODE) 1 0 (constImmExpr high)
-                when (rs /= 0) $ rType s (tok TOK_ADDU_OPCODE) 1 1 rs
+                iType s (tok TOKEN_LUI_OPCODE) 1 0 (constImmExpr high)
+                when (rs /= 0) $ rType s (tok TOKEN_ADDU_OPCODE) 1 1 rs
                 iType s op rt 1 (lowerBits (constImmExpr low))
               else iType s op rt rs (constImmExpr low)
         | otherwise -> do
-            iType s (tok TOK_LUI_OPCODE) 1 0 (upperBits expr)
-            when (rs /= 0) $ rType s (tok TOK_ADDU_OPCODE) 1 1 rs
+            iType s (tok TOKEN_LUI_OPCODE) 1 0 (upperBits expr)
+            when (rs /= 0) $ rType s (tok TOKEN_ADDU_OPCODE) 1 1 rs
             iType s op rt 1 (lowerBits expr)
     else
       if opcodeIsBranch op
         then iType s op rt rs (lowerBits expr)
         else case gpOffset of
           Just offset ->
-            iType s (if isTok TOK_LUI_OPCODE op then tok TOK_ADDIU_OPCODE else op) rt 28 (constImmExpr offset)
+            iType s (if isTok TOKEN_LUI_OPCODE op then tok TOKEN_ADDIU_OPCODE else op) rt 28 (constImmExpr offset)
           Nothing
-            | op `elem` map tok [TOK_ORI_OPCODE, TOK_ADDI_OPCODE, TOK_ADDIU_OPCODE, TOK_LUI_OPCODE] && rs == 0 ->
+            | op `elem` map tok [TOKEN_ORI_OPCODE, TOKEN_ADDI_OPCODE, TOKEN_ADDIU_OPCODE, TOKEN_LUI_OPCODE] && rs == 0 ->
                 produceImmediate s expr rt known value
             | otherwise -> do
                 produceImmediate s expr 1 known value
@@ -263,11 +263,11 @@ iTypeFullWord s op rt rs expr known value = do
 -- | Load a 32-bit value into a register (C: @produce_immediate@).
 produceImmediate :: Spim -> ImmExpr -> Int -> Bool -> Int32 -> IO ()
 produceImmediate s expr rt known value
-  | known && value .&. 0xffff == 0 = iType s (tok TOK_LUI_OPCODE) rt 0 (upperBits expr)
-  | known && (fromIntegral value .&. (0xffff0000 :: Word32)) == 0 = iType s (tok TOK_ORI_OPCODE) rt 0 (lowerBits expr)
+  | known && value .&. 0xffff == 0 = iType s (tok TOKEN_LUI_OPCODE) rt 0 (upperBits expr)
+  | known && (fromIntegral value .&. (0xffff0000 :: Word32)) == 0 = iType s (tok TOKEN_ORI_OPCODE) rt 0 (lowerBits expr)
   | otherwise = do
-      iType s (tok TOK_LUI_OPCODE) 1 0 (upperBits expr)
-      iType s (tok TOK_ORI_OPCODE) rt 1 (lowerBits expr)
+      iType s (tok TOKEN_LUI_OPCODE) 1 0 (upperBits expr)
+      iType s (tok TOKEN_ORI_OPCODE) rt 1 (lowerBits expr)
 
 -- | A jump to a label (C: @j_type@).
 jType :: Spim -> Int -> ImmExpr -> IO ()
@@ -313,24 +313,24 @@ rCondType s op fs ft cc = do
       -- Nothing for an opcode that is not one of the 32 compares (16 conditions, .s and .d).
       condBits :: Maybe Int
       condBits
-        | any (both op) [TOK_C_EQ_D_OPCODE, TOK_C_EQ_S_OPCODE] = Just eq
-        | any (both op) [TOK_C_LE_D_OPCODE, TOK_C_LE_S_OPCODE] = Just (inv .|. lt .|. eq)
-        | any (both op) [TOK_C_LT_D_OPCODE, TOK_C_LT_S_OPCODE] = Just (inv .|. lt)
-        | any (both op) [TOK_C_NGE_D_OPCODE, TOK_C_NGE_S_OPCODE] = Just (inv .|. lt .|. un)
-        | any (both op) [TOK_C_NGLE_D_OPCODE, TOK_C_NGLE_S_OPCODE] = Just (inv .|. un)
-        | any (both op) [TOK_C_NGL_D_OPCODE, TOK_C_NGL_S_OPCODE] = Just (inv .|. eq .|. un)
-        | any (both op) [TOK_C_NGT_D_OPCODE, TOK_C_NGT_S_OPCODE] = Just (inv .|. lt .|. eq .|. un)
-        | any (both op) [TOK_C_OLT_D_OPCODE, TOK_C_OLT_S_OPCODE] = Just lt
-        | any (both op) [TOK_C_OLE_D_OPCODE, TOK_C_OLE_S_OPCODE] = Just (lt .|. eq)
-        | any (both op) [TOK_C_SEQ_D_OPCODE, TOK_C_SEQ_S_OPCODE] = Just (inv .|. eq)
-        | any (both op) [TOK_C_SF_D_OPCODE, TOK_C_SF_S_OPCODE] = Just inv
-        | any (both op) [TOK_C_F_D_OPCODE, TOK_C_F_S_OPCODE] = Just 0
-        | any (both op) [TOK_C_UEQ_D_OPCODE, TOK_C_UEQ_S_OPCODE] = Just (eq .|. un)
-        | any (both op) [TOK_C_ULT_D_OPCODE, TOK_C_ULT_S_OPCODE] = Just (lt .|. un)
-        | any (both op) [TOK_C_ULE_D_OPCODE, TOK_C_ULE_S_OPCODE] = Just (lt .|. eq .|. un)
-        | any (both op) [TOK_C_UN_D_OPCODE, TOK_C_UN_S_OPCODE] = Just un
+        | any (both op) [TOKEN_C_EQ_D_OPCODE, TOKEN_C_EQ_S_OPCODE] = Just eq
+        | any (both op) [TOKEN_C_LE_D_OPCODE, TOKEN_C_LE_S_OPCODE] = Just (inv .|. lt .|. eq)
+        | any (both op) [TOKEN_C_LT_D_OPCODE, TOKEN_C_LT_S_OPCODE] = Just (inv .|. lt)
+        | any (both op) [TOKEN_C_NGE_D_OPCODE, TOKEN_C_NGE_S_OPCODE] = Just (inv .|. lt .|. un)
+        | any (both op) [TOKEN_C_NGLE_D_OPCODE, TOKEN_C_NGLE_S_OPCODE] = Just (inv .|. un)
+        | any (both op) [TOKEN_C_NGL_D_OPCODE, TOKEN_C_NGL_S_OPCODE] = Just (inv .|. eq .|. un)
+        | any (both op) [TOKEN_C_NGT_D_OPCODE, TOKEN_C_NGT_S_OPCODE] = Just (inv .|. lt .|. eq .|. un)
+        | any (both op) [TOKEN_C_OLT_D_OPCODE, TOKEN_C_OLT_S_OPCODE] = Just lt
+        | any (both op) [TOKEN_C_OLE_D_OPCODE, TOKEN_C_OLE_S_OPCODE] = Just (lt .|. eq)
+        | any (both op) [TOKEN_C_SEQ_D_OPCODE, TOKEN_C_SEQ_S_OPCODE] = Just (inv .|. eq)
+        | any (both op) [TOKEN_C_SF_D_OPCODE, TOKEN_C_SF_S_OPCODE] = Just inv
+        | any (both op) [TOKEN_C_F_D_OPCODE, TOKEN_C_F_S_OPCODE] = Just 0
+        | any (both op) [TOKEN_C_UEQ_D_OPCODE, TOKEN_C_UEQ_S_OPCODE] = Just (eq .|. un)
+        | any (both op) [TOKEN_C_ULT_D_OPCODE, TOKEN_C_ULT_S_OPCODE] = Just (lt .|. un)
+        | any (both op) [TOKEN_C_ULE_D_OPCODE, TOKEN_C_ULE_S_OPCODE] = Just (lt .|. eq .|. un)
+        | any (both op) [TOKEN_C_UN_D_OPCODE, TOKEN_C_UN_S_OPCODE] = Just un
         | otherwise = Nothing
-  -- Never reached: only FP_CMP_FS_FT_INST rows reach here, and the guards above are all 32.
+  -- Never reached: only FLOATING_POINT_COMPARE_SOURCE_TARGET_INSTRUCTION rows reach here, and the guards above are all 32.
   cond :: Int <-
     maybe
       (fatalError ("internal error: r_cond_type: not an FP compare: " ++ show op ++ "\n"))
@@ -344,18 +344,18 @@ immOpToOp op = maybe (fatalError "Can't convert immediate op to op\n") (pure . t
   where
     table :: [(Int, Opcode)]
     table =
-      [ (tok TOK_ADDI_OPCODE, TOK_ADD_OPCODE),
-        (tok TOK_ADDIU_OPCODE, TOK_ADDU_OPCODE),
-        (tok TOK_ANDI_OPCODE, TOK_AND_OPCODE),
-        (tok TOK_ORI_OPCODE, TOK_OR_OPCODE),
-        (tok TOK_XORI_OPCODE, TOK_XOR_OPCODE),
-        (tok TOK_SLTI_OPCODE, TOK_SLT_OPCODE),
-        (tok TOK_SLTIU_OPCODE, TOK_SLTU_OPCODE),
-        (tok TOK_J_OPCODE, TOK_JR_OPCODE),
-        (tok TOK_LUI_OPCODE, TOK_ADDU_OPCODE),
-        (tok TOK_SLL_OPCODE, TOK_SLLV_OPCODE),
-        (tok TOK_SRA_OPCODE, TOK_SRAV_OPCODE),
-        (tok TOK_SRL_OPCODE, TOK_SRLV_OPCODE)
+      [ (tok TOKEN_ADDI_OPCODE, TOKEN_ADD_OPCODE),
+        (tok TOKEN_ADDIU_OPCODE, TOKEN_ADDU_OPCODE),
+        (tok TOKEN_ANDI_OPCODE, TOKEN_AND_OPCODE),
+        (tok TOKEN_ORI_OPCODE, TOKEN_OR_OPCODE),
+        (tok TOKEN_XORI_OPCODE, TOKEN_XOR_OPCODE),
+        (tok TOKEN_SLTI_OPCODE, TOKEN_SLT_OPCODE),
+        (tok TOKEN_SLTIU_OPCODE, TOKEN_SLTU_OPCODE),
+        (tok TOKEN_J_OPCODE, TOKEN_JR_OPCODE),
+        (tok TOKEN_LUI_OPCODE, TOKEN_ADDU_OPCODE),
+        (tok TOKEN_SLL_OPCODE, TOKEN_SLLV_OPCODE),
+        (tok TOKEN_SRA_OPCODE, TOKEN_SRAV_OPCODE),
+        (tok TOKEN_SRL_OPCODE, TOKEN_SRLV_OPCODE)
       ]
 
 -- | The immediate form of a register instruction (C: @op_to_imm_op@).
@@ -364,14 +364,14 @@ opToImmOp op = maybe (fatalError "Can't convert op to immediate op\n") pure (loo
   where
     table :: [(Opcode, Opcode)]
     table =
-      [ (TOK_ADD_OPCODE, TOK_ADDI_OPCODE),
-        (TOK_ADDU_OPCODE, TOK_ADDIU_OPCODE),
-        (TOK_AND_OPCODE, TOK_ANDI_OPCODE),
-        (TOK_OR_OPCODE, TOK_ORI_OPCODE),
-        (TOK_XOR_OPCODE, TOK_XORI_OPCODE),
-        (TOK_SLT_OPCODE, TOK_SLTI_OPCODE),
-        (TOK_SLTU_OPCODE, TOK_SLTIU_OPCODE),
-        (TOK_SLLV_OPCODE, TOK_SLL_OPCODE),
-        (TOK_SRAV_OPCODE, TOK_SRA_OPCODE),
-        (TOK_SRLV_OPCODE, TOK_SRL_OPCODE)
+      [ (TOKEN_ADD_OPCODE, TOKEN_ADDI_OPCODE),
+        (TOKEN_ADDU_OPCODE, TOKEN_ADDIU_OPCODE),
+        (TOKEN_AND_OPCODE, TOKEN_ANDI_OPCODE),
+        (TOKEN_OR_OPCODE, TOKEN_ORI_OPCODE),
+        (TOKEN_XOR_OPCODE, TOKEN_XORI_OPCODE),
+        (TOKEN_SLT_OPCODE, TOKEN_SLTI_OPCODE),
+        (TOKEN_SLTU_OPCODE, TOKEN_SLTIU_OPCODE),
+        (TOKEN_SLLV_OPCODE, TOKEN_SLL_OPCODE),
+        (TOKEN_SRAV_OPCODE, TOKEN_SRA_OPCODE),
+        (TOKEN_SRLV_OPCODE, TOKEN_SRL_OPCODE)
       ]

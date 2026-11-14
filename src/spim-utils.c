@@ -24,8 +24,8 @@
 
 /* Internal functions: */
 
-static mem_addr copy_integer_to_stack(int n);
-static mem_addr copy_string_to_stack(const char* s);
+static memory_address copy_integer_to_stack(int n);
+static memory_address copy_string_to_stack(const char* s);
 static void delete_all_breakpoints(void);
 static bool load_embedded_exception_handler(bool print_message);
 
@@ -66,42 +66,42 @@ int initial_text_size = TEXT_SIZE;
 
 int initial_data_size = DATA_SIZE;
 
-mem_addr initial_data_limit = DATA_LIMIT;
+memory_address initial_data_limit = DATA_LIMIT;
 
 int initial_stack_size = STACK_SIZE;
 
-mem_addr initial_stack_limit = STACK_LIMIT;
+memory_address initial_stack_limit = STACK_LIMIT;
 
-int initial_k_text_size = K_TEXT_SIZE;
+int initial_kernel_text_size = KERNEL_TEXT_SIZE;
 
-int initial_k_data_size = K_DATA_SIZE;
+int initial_kernel_data_size = KERNEL_DATA_SIZE;
 
-mem_addr initial_k_data_limit = K_DATA_LIMIT;
+memory_address initial_kernel_data_limit = KERNEL_DATA_LIMIT;
 
 /* Initialize or reinitialize the state of the machine. */
 
 void initialize_world(const char* exception_file_names, bool print_message) {
   /* Allocate the floating point registers */
-  if (fp_single_view == nullptr)
-    fp_double_view = (double*)allocate_or_exit(FPR_LENGTH * sizeof(double));
+  if (floating_point_single_view == nullptr)
+    floating_point_double_view = (double*)allocate_or_exit(FLOATING_POINT_REGISTER_LENGTH * sizeof(double));
   /* Allocate the memory */
   make_memory(initial_text_size, initial_data_size, (int)initial_data_limit,
-              initial_stack_size, (int)initial_stack_limit, initial_k_text_size,
-              initial_k_data_size, (int)initial_k_data_limit);
+              initial_stack_size, (int)initial_stack_limit, initial_kernel_text_size,
+              initial_kernel_data_size, (int)initial_kernel_data_limit);
   initialize_registers();
   initialize_symbol_table();
-  kernel_text_begins_at_point(K_TEXT_BOT);
-  kernel_data_begins_at_point(K_DATA_BOT);
-  data_begins_at_point(DATA_BOT);
-  text_begins_at_point(TEXT_BOT);
+  kernel_text_begins_at_point(KERNEL_TEXT_BOTTOM);
+  kernel_data_begins_at_point(KERNEL_DATA_BOTTOM);
+  data_begins_at_point(DATA_BOTTOM);
+  text_begins_at_point(TEXT_BOTTOM);
 
   if (exception_file_names != nullptr) {
     const bool old_bare = bare_machine;
-    const bool old_accept = accept_pseudo_insts;
+    const bool old_accept = accept_pseudo_instructions;
 
     /* Save machine state */
     bare_machine = false; /* Exception handler uses extended machine */
-    accept_pseudo_insts = true;
+    accept_pseudo_instructions = true;
 
     if (exception_file_names == SPIM_DEFAULT_EXCEPTIONS_SENTINEL) {
       /* No user override — load the #embed'd default. */
@@ -126,7 +126,7 @@ void initialize_world(const char* exception_file_names, bool print_message) {
 
     /* Restore machine state */
     bare_machine = old_bare;
-    accept_pseudo_insts = old_accept;
+    accept_pseudo_instructions = old_accept;
 
     if (!bare_machine) {
       (void)make_label_global("main"); /* In case .globl main forgotten */
@@ -147,29 +147,29 @@ void write_startup_message(void) {
 }
 
 void initialize_registers(void) {
-  memset(fp_double_view, 0, FPR_LENGTH * sizeof(double));
-  fp_single_view = (float*)fp_double_view;
-  fp_int_view = (int32_t*)fp_double_view;
+  memset(floating_point_double_view, 0, FLOATING_POINT_REGISTER_LENGTH * sizeof(double));
+  floating_point_single_view = (float*)floating_point_double_view;
+  floating_point_integer_view = (int32_t*)floating_point_double_view;
 
-  memset(gpr, 0, R_LENGTH * sizeof(reg_word));
-  gpr[REG_SP] = STACK_TOP - BYTES_PER_WORD - 4096; /* Initialize $sp */
-  HI = LO = 0;
-  PC = 0;
+  memset(general_purpose_registers, 0, GENERAL_PURPOSE_REGISTER_COUNT * sizeof(register_word));
+  general_purpose_registers[STACK_POINTER_REGISTER] = STACK_TOP - BYTES_PER_WORD - 4096; /* Initialize $sp */
+  MULTIPLY_DIVIDE_HIGH = MULTIPLY_DIVIDE_LOW = 0;
+  PROGRAM_COUNTER = 0;
 
-  CP0_BadVAddr = 0;
-  CP0_Count = 0;
-  CP0_Compare = 0;
-  CP0_Status = (CP0_Status_CU & 0x30000000) | CP0_Status_IM | CP0_Status_UM;
-  CP0_Cause = 0;
-  CP0_EPC = 0;
+  coprocessor_0_bad_virtual_address = 0;
+  coprocessor_0_count = 0;
+  coprocessor_0_compare = 0;
+  coprocessor_0_status = (COPROCESSOR_0_STATUS_COPROCESSOR_USABLE & 0x30000000) | COPROCESSOR_0_STATUS_INTERRUPT_MASK | COPROCESSOR_0_STATUS_USER_MODE;
+  coprocessor_0_cause = 0;
+  coprocessor_0_exception_program_counter = 0;
 #ifdef SPIM_BIGENDIAN
-  CP0_Config = CP0_Config_BE;
+  coprocessor_0_config = COPROCESSOR_0_CONFIG_BIG_ENDIAN;
 #else
-  CP0_Config = 0;
+  coprocessor_0_config = 0;
 #endif
 
-  FIR = FIR_W | FIR_D | FIR_S; /* Word, double, & single implemented */
-  FCSR = 0x0;
+  floating_point_implementation_register = FLOATING_POINT_IMPLEMENTATION_HAS_WORD | FLOATING_POINT_IMPLEMENTATION_HAS_DOUBLE | FLOATING_POINT_IMPLEMENTATION_HAS_SINGLE; /* Word, double, & single implemented */
+  floating_point_control_status_register = 0x0;
 }
 
 /* Read file NAME, which should contain assembly code.  Returns
@@ -212,17 +212,17 @@ static bool load_embedded_exception_handler(bool print_message) {
   return true;
 }
 
-mem_addr starting_address(void) {
+memory_address starting_address(void) {
   return (find_symbol_address(DEFAULT_RUN_LOCATION));
 }
 
-constexpr int MAX_ARGS = 10000;
+constexpr int MAX_ARGUMENTS = 10000;
 
 /* Initialize the SPIM stack from a string containing the command line. */
 
 void initialize_stack(const char* command_line) {
   int argc = 0;
-  char* argv[MAX_ARGS];
+  char* argv[MAX_ARGUMENTS];
   char* a;
   char* arguments = strdup((char*)command_line); /* Destructively modify string */
   char* const original_arguments = arguments;
@@ -243,7 +243,7 @@ void initialize_stack(const char* command_line) {
 
       argv[argc++] = a;
 
-      if (MAX_ARGS == argc) {
+      if (MAX_ARGUMENTS == argc) {
         break; /* If too many, ignore rest of list */
       }
     }
@@ -259,9 +259,9 @@ void initialize_run_stack(int argc, char** argv) {
   char** p;
   extern char** environ;
   int i, j = 0, environment_count;
-  mem_addr addresses[10000];
+  memory_address addresses[10000];
 
-  gpr[REG_SP] = STACK_TOP - 1; /* Initialize $sp */
+  general_purpose_registers[STACK_POINTER_REGISTER] = STACK_TOP - 1; /* Initialize $sp */
 
   /* Put strings on stack: */
   /* env: */
@@ -272,40 +272,40 @@ void initialize_run_stack(int argc, char** argv) {
   for (i = 0; i < argc; i++) addresses[j++] = copy_string_to_stack(argv[i]);
 
   /* Align stack pointer for word-size data */
-  gpr[REG_SP] = gpr[REG_SP] & ~3; /* Round down to nearest word */
-  gpr[REG_SP] -= BYTES_PER_WORD;  /* First free word on stack */
-  gpr[REG_SP] = gpr[REG_SP] & ~7; /* Double-word align stack-pointer*/
+  general_purpose_registers[STACK_POINTER_REGISTER] = general_purpose_registers[STACK_POINTER_REGISTER] & ~3; /* Round down to nearest word */
+  general_purpose_registers[STACK_POINTER_REGISTER] -= BYTES_PER_WORD;  /* First free word on stack */
+  general_purpose_registers[STACK_POINTER_REGISTER] = general_purpose_registers[STACK_POINTER_REGISTER] & ~7; /* Double-word align stack-pointer*/
 
   /* Build vectors on stack: */
   /* env: */
   (void)copy_integer_to_stack(0); /* Null-terminate vector */
   for (i = environment_count - 1; i >= 0; i--)
-    gpr[REG_A2] = (reg_word)copy_integer_to_stack((int)addresses[i]);
+    general_purpose_registers[ARGUMENT_REGISTER_2] = (register_word)copy_integer_to_stack((int)addresses[i]);
 
   /* argv: */
   (void)copy_integer_to_stack(0); /* Null-terminate vector */
   for (i = j - 1; i >= environment_count; i--)
-    gpr[REG_A1] = (reg_word)copy_integer_to_stack((int)addresses[i]);
+    general_purpose_registers[ARGUMENT_REGISTER_1] = (register_word)copy_integer_to_stack((int)addresses[i]);
 
   /* argc: */
-  gpr[REG_A0] = argc;
-  memory_write_word((mem_addr)gpr[REG_SP], argc); /* Leave argc on stack */
+  general_purpose_registers[ARGUMENT_REGISTER_0] = argc;
+  memory_write_word((memory_address)general_purpose_registers[STACK_POINTER_REGISTER], argc); /* Leave argc on stack */
 }
 
-static mem_addr copy_string_to_stack(const char* s) {
+static memory_address copy_string_to_stack(const char* s) {
   int i = (int)strlen(s);
   while (i >= 0) {
-    memory_write_byte((mem_addr)gpr[REG_SP], s[i]);
-    gpr[REG_SP] -= 1;
+    memory_write_byte((memory_address)general_purpose_registers[STACK_POINTER_REGISTER], s[i]);
+    general_purpose_registers[STACK_POINTER_REGISTER] -= 1;
     i -= 1;
   }
-  return ((mem_addr)gpr[REG_SP] + 1); /* Leaves stack pointer byte-aligned!! */
+  return ((memory_address)general_purpose_registers[STACK_POINTER_REGISTER] + 1); /* Leaves stack pointer byte-aligned!! */
 }
 
-static mem_addr copy_integer_to_stack(int n) {
-  memory_write_word((mem_addr)gpr[REG_SP], n);
-  gpr[REG_SP] -= BYTES_PER_WORD;
-  return ((mem_addr)gpr[REG_SP] + BYTES_PER_WORD);
+static memory_address copy_integer_to_stack(int n) {
+  memory_write_word((memory_address)general_purpose_registers[STACK_POINTER_REGISTER], n);
+  general_purpose_registers[STACK_POINTER_REGISTER] -= BYTES_PER_WORD;
+  return ((memory_address)general_purpose_registers[STACK_POINTER_REGISTER] + BYTES_PER_WORD);
 }
 
 /* Run the program, starting at PC, for STEPS instructions. Display each
@@ -313,25 +313,25 @@ static mem_addr copy_integer_to_stack(int n) {
    true, then step through a breakpoint. CONTINUABLE is true if
    execution can continue. Return true if breakpoint is encountered. */
 
-bool run_program(mem_addr program_counter, int steps, bool display, bool continue_breakpoint,
+bool run_program(memory_address program_counter, int steps, bool display, bool continue_breakpoint,
                  bool* continuable) {
   if (continue_breakpoint && instruction_is_breakpoint(program_counter)) {
-    const mem_addr address = PC == 0 ? program_counter : PC;
+    const memory_address address = PROGRAM_COUNTER == 0 ? program_counter : PROGRAM_COUNTER;
 
     delete_breakpoint(address);
     exception_occurred = false;
     *continuable = run_spim(address, 1, display);
     add_breakpoint(address);
     steps -= 1;
-    program_counter = PC;
+    program_counter = PROGRAM_COUNTER;
   }
 
   exception_occurred = false;
   *continuable = run_spim(program_counter, steps, display);
-  if (exception_occurred && (uint32_t)CP0_ExCode == ExcCode_Bp) {
+  if (exception_occurred && (uint32_t)coprocessor_0_exception_code == EXCEPTION_CODE_BREAKPOINT) {
     /* Turn off EXL bit, so subsequent interrupts set EPC since the break is
     handled by SPIM code, not MIPS code. */
-    CP0_Status = (reg_word)((u_reg_word)CP0_Status & ~CP0_Status_EXL);
+    coprocessor_0_status = (register_word)((unsigned_register_word)coprocessor_0_status & ~COPROCESSOR_0_STATUS_EXCEPTION_LEVEL);
     return true;
   } else
     return false;
@@ -340,23 +340,23 @@ bool run_program(mem_addr program_counter, int steps, bool display, bool continu
 /* Record of where a breakpoint was placed and the instruction previously
    in memory. */
 
-typedef struct bkptrec {
-  mem_addr address;
+typedef struct breakpoint_record {
+  memory_address address;
   mips_instruction* instruction;
-  struct bkptrec* next;
-} bkpt;
+  struct breakpoint_record* next;
+} breakpoint;
 
-static bkpt* bkpts = nullptr;
+static breakpoint* breakpoints = nullptr;
 
 /* Set a breakpoint at memory location ADDR. */
 
-void add_breakpoint(mem_addr address) {
-  bkpt* record = (bkpt*)allocate_or_exit(sizeof(bkpt));
+void add_breakpoint(memory_address address) {
+  breakpoint* record = (breakpoint*)allocate_or_exit(sizeof(breakpoint));
   *record =
-      (bkpt){.address = address, .instruction = set_breakpoint(address), .next = bkpts};
+      (breakpoint){.address = address, .instruction = set_breakpoint(address), .next = breakpoints};
 
   if (record->instruction != nullptr)
-    bkpts = record;
+    breakpoints = record;
   else {
     if (exception_occurred)
       error("Cannot put a breakpoint at address 0x%08x\n", address);
@@ -368,18 +368,18 @@ void add_breakpoint(mem_addr address) {
 
 /* Delete all breakpoints at memory location ADDR. */
 
-void delete_breakpoint(mem_addr address) {
-  bkpt *p, *b;
+void delete_breakpoint(memory_address address) {
+  breakpoint *p, *b;
   bool deleted_one = false;
 
-  for (p = nullptr, b = bkpts; b != nullptr;)
+  for (p = nullptr, b = breakpoints; b != nullptr;)
     if (b->address == address) {
       memory_write_instruction(address, b->instruction);
       if (p == nullptr)
-        bkpts = b->next;
+        breakpoints = b->next;
       else
         p->next = b->next;
-      bkpt* const n = b->next;
+      breakpoint* const n = b->next;
       free(b);
       b = n;
       deleted_one = true;
@@ -389,20 +389,20 @@ void delete_breakpoint(mem_addr address) {
 }
 
 static void delete_all_breakpoints(void) {
-  bkpt* n = nullptr;
+  breakpoint* n = nullptr;
 
-  for (bkpt* b = bkpts; b != nullptr; b = n) {
+  for (breakpoint* b = breakpoints; b != nullptr; b = n) {
     n = b->next;
     free(b);
   }
-  bkpts = nullptr;
+  breakpoints = nullptr;
 }
 
 /* List all breakpoints. */
 
 void list_breakpoints(void) {
-  if (bkpts)
-    for (bkpt* b = bkpts; b != nullptr; b = b->next)
+  if (breakpoints)
+    for (breakpoint* b = breakpoints; b != nullptr; b = b->next)
       write_output(message_out, "Breakpoint at 0x%08x\n", b->address);
   else
     write_output(message_out, "No breakpoints set\n");
@@ -416,12 +416,12 @@ void list_breakpoints(void) {
    Return nullptr if no such entry exists. */
 
 static int compare_key_to_name(const void* key, const void* elem) {
-  return strcmp((const char*)key, ((const name_val_val*)elem)->name);
+  return strcmp((const char*)key, ((const name_value_value*)elem)->name);
 }
 
-const name_val_val* map_string_to_name_value_value(const name_val_val table[],
+const name_value_value* map_string_to_name_value_value(const name_value_value table[],
                                                int table_length, const char* identifier) {
-  return bsearch(identifier, table, (size_t)table_length, sizeof(name_val_val),
+  return bsearch(identifier, table, (size_t)table_length, sizeof(name_value_value),
                  compare_key_to_name);
 }
 
@@ -432,13 +432,13 @@ const name_val_val* map_string_to_name_value_value(const name_val_val table[],
 
 static int compare_key_to_value1(const void* key, const void* elem) {
   const int k = *(const int*)key;
-  const int v = ((const name_val_val*)elem)->value1;
+  const int v = ((const name_value_value*)elem)->value1;
   return (k > v) - (k < v);
 }
 
-const name_val_val* map_integer_to_name_value_value(const name_val_val table[],
+const name_value_value* map_integer_to_name_value_value(const name_value_value table[],
                                             int table_length, int number) {
-  return bsearch(&number, table, (size_t)table_length, sizeof(name_val_val),
+  return bsearch(&number, table, (size_t)table_length, sizeof(name_value_value),
                  compare_key_to_value1);
 }
 

@@ -373,7 +373,7 @@ parseAddress s = do
 
 -- | Opcodes with both a register and an immediate form.
 hasImmForm :: Opcode -> Bool
-hasImmForm op = op `elem` [TOK_ADD_OPCODE, TOK_ADDU_OPCODE, TOK_AND_OPCODE, TOK_OR_OPCODE, TOK_XOR_OPCODE, TOK_SLT_OPCODE, TOK_SLTU_OPCODE]
+hasImmForm op = op `elem` [TOKEN_ADD_OPCODE, TOKEN_ADDU_OPCODE, TOKEN_AND_OPCODE, TOKEN_OR_OPCODE, TOKEN_XOR_OPCODE, TOKEN_SLT_OPCODE, TOKEN_SLTU_OPCODE]
 
 -- | @op rd, rs, rt@ and its immediate forms (C: @parse_r3@).
 parseR3 :: Spim -> Opcode -> IO ()
@@ -381,21 +381,21 @@ parseR3 s op = do
   rd :: Int <- parseRegister s
   case () of
     _
-      | op == TOK_CLO_OPCODE || op == TOK_CLZ_OPCODE -> do
+      | op == TOKEN_CLO_OPCODE || op == TOKEN_CLZ_OPCODE -> do
           rs :: Int <- parseRegister s
           emitR s op rd rs rd
-      | op == TOK_MUL_OPCODE -> do
+      | op == TOKEN_MUL_OPCODE -> do
           rs :: Int <- parseRegister s
           t :: Token <- peek s
           if t == TokReg
             then parseRegister s >>= emitR s op rd rs
             else do
               imm :: ImmExpr <- parseImm32 s
-              emitI s TOK_ORI_OPCODE 1 0 imm
+              emitI s TOKEN_ORI_OPCODE 1 0 imm
               emitR s op rd rs 1
-      | op == TOK_SUB_OPCODE || op == TOK_SUBU_OPCODE -> do
+      | op == TOKEN_SUB_OPCODE || op == TOKEN_SUBU_OPCODE -> do
           let immOp :: Opcode
-              immOp = if op == TOK_SUB_OPCODE then TOK_ADDI_OPCODE else TOK_ADDIU_OPCODE
+              immOp = if op == TOKEN_SUB_OPCODE then TOKEN_ADDI_OPCODE else TOKEN_ADDIU_OPCODE
           t :: Token <- peek s
           if t /= TokReg
             then do
@@ -430,7 +430,7 @@ parseR3 s op = do
 -- | @op rd, rt, shamt@ (C: @parse_r2sh@); @ssnop@ is @sll $0, $0, 1@.
 parseR2sh :: Spim -> Opcode -> IO ()
 parseR2sh s op
-  | op == TOK_SSNOP_OPCODE = emitRShift s TOK_SLL_OPCODE 0 0 1
+  | op == TOKEN_SSNOP_OPCODE = emitRShift s TOKEN_SLL_OPCODE 0 0 1
   | otherwise = do
       rd :: Int <- parseRegister s
       rt :: Int <- parseRegister s
@@ -448,7 +448,7 @@ parseI2 s op = do
   rt :: Int <- parseRegister s
   t :: Token <- peek s
   rs :: Int <- if t == TokReg then parseRegister s else pure rt
-  imm :: ImmExpr <- if op `elem` [TOK_ANDI_OPCODE, TOK_ORI_OPCODE, TOK_XORI_OPCODE] then parseUimm16 s else parseImm16 s
+  imm :: ImmExpr <- if op `elem` [TOKEN_ANDI_OPCODE, TOKEN_ORI_OPCODE, TOKEN_XORI_OPCODE] then parseUimm16 s else parseImm16 s
   emitI s op rt rs imm
 
 -- | Loads and stores: @op rt, address@.
@@ -474,15 +474,15 @@ parseB2 s op = do
       if isZeroImm imm
         then emitI s op src1 0 target
         else do
-          emitI s TOK_ORI_OPCODE 1 0 imm
+          emitI s TOKEN_ORI_OPCODE 1 0 imm
           emitI s op src1 1 target
 
 -- | @j label@ / @jal label@, or the register forms (C: @parse_j@). @jalr.hb@ keeps its own
 -- opcode (@jalr@ with the hazard-barrier bit) and takes registers only; @cop2@ shares
--- @J_TYPE_INST@, but spim has no coprocessor 2, so it is an error.
+-- @J_TYPE_INSTRUCTION@, but spim has no coprocessor 2, so it is an error.
 parseJ :: Spim -> Opcode -> IO ()
 parseJ s op
-  | op == TOK_COP2_OPCODE = parseErrorAt s "cop2 is not supported: spim has no coprocessor 2"
+  | op == TOKEN_COP2_OPCODE = parseErrorAt s "cop2 is not supported: spim has no coprocessor 2"
   | otherwise = do
       t :: Token <- peek s
       if t == TokReg
@@ -494,32 +494,32 @@ parseJ s op
               -- DEST SRC1 form
               r2 :: Int <- parseRegister s
               case op of
-                TOK_J_OPCODE -> emitR s TOK_JR_OPCODE 0 r2 0
-                TOK_JR_OPCODE -> emitR s TOK_JR_OPCODE 0 r2 0
-                TOK_JAL_OPCODE -> emitR s TOK_JALR_OPCODE r1 r2 0
-                TOK_JALR_OPCODE -> emitR s TOK_JALR_OPCODE r1 r2 0
-                TOK_JALR_HB_OPCODE -> emitR s TOK_JALR_HB_OPCODE r1 r2 0
-                -- Never reached: only J_TYPE_INST and RD_RS_INST opcodes come here.
+                TOKEN_J_OPCODE -> emitR s TOKEN_JR_OPCODE 0 r2 0
+                TOKEN_JR_OPCODE -> emitR s TOKEN_JR_OPCODE 0 r2 0
+                TOKEN_JAL_OPCODE -> emitR s TOKEN_JALR_OPCODE r1 r2 0
+                TOKEN_JALR_OPCODE -> emitR s TOKEN_JALR_OPCODE r1 r2 0
+                TOKEN_JALR_HB_OPCODE -> emitR s TOKEN_JALR_HB_OPCODE r1 r2 0
+                -- Never reached: only J_TYPE_INSTRUCTION and DESTINATION_REGISTER_SOURCE_REGISTER_INSTRUCTION opcodes come here.
                 _ -> unexpected
             else case op of
               -- SRC1-only form
-              TOK_J_OPCODE -> emitR s TOK_JR_OPCODE 0 r1 0
-              TOK_JR_OPCODE -> emitR s TOK_JR_OPCODE 0 r1 0
-              TOK_JAL_OPCODE -> emitR s TOK_JALR_OPCODE 31 r1 0
-              TOK_JALR_OPCODE -> emitR s TOK_JALR_OPCODE 31 r1 0
-              TOK_JALR_HB_OPCODE -> emitR s TOK_JALR_HB_OPCODE 31 r1 0
+              TOKEN_J_OPCODE -> emitR s TOKEN_JR_OPCODE 0 r1 0
+              TOKEN_JR_OPCODE -> emitR s TOKEN_JR_OPCODE 0 r1 0
+              TOKEN_JAL_OPCODE -> emitR s TOKEN_JALR_OPCODE 31 r1 0
+              TOKEN_JALR_OPCODE -> emitR s TOKEN_JALR_OPCODE 31 r1 0
+              TOKEN_JALR_HB_OPCODE -> emitR s TOKEN_JALR_HB_OPCODE 31 r1 0
               -- Never reached: as in the DEST SRC1 form above.
               _ -> unexpected
         else
-          if op == TOK_JALR_HB_OPCODE
+          if op == TOKEN_JALR_HB_OPCODE
             then parseErrorAt s "jalr.hb needs a register operand"
             else do
               target :: ImmExpr <- parseLabel s
               case op of
-                TOK_J_OPCODE -> emitJ s TOK_J_OPCODE target
-                TOK_JR_OPCODE -> emitJ s TOK_J_OPCODE target
-                TOK_JAL_OPCODE -> emitJ s TOK_JAL_OPCODE target
-                TOK_JALR_OPCODE -> emitJ s TOK_JAL_OPCODE target
+                TOKEN_J_OPCODE -> emitJ s TOKEN_J_OPCODE target
+                TOKEN_JR_OPCODE -> emitJ s TOKEN_J_OPCODE target
+                TOKEN_JAL_OPCODE -> emitJ s TOKEN_JAL_OPCODE target
+                TOKEN_JALR_OPCODE -> emitJ s TOKEN_JAL_OPCODE target
                 -- Never reached: jalr.hb and cop2 are handled above.
                 _ -> unexpected
   where
@@ -535,7 +535,7 @@ parseNoarg s op = do
     then do
       _ <- advance s
       n :: Int <- int <$> valInt s
-      when (op == TOK_BREAK_OPCODE && n == 1) $ parseErrorAt s "Breakpoint 1 is reserved for debugger"
+      when (op == TOKEN_BREAK_OPCODE && n == 1) $ parseErrorAt s "Breakpoint 1 is reserved for debugger"
       emitR s op n 0 0
     else emitR s op 0 0 0
 
@@ -546,51 +546,51 @@ branchOffsetExpr :: Int32 -> ImmExpr
 branchOffsetExpr n = constImmExpr (n `shiftL` 2)
 
 nopInst, trapInst :: Spim -> IO ()
-nopInst s = emitR s TOK_SLL_OPCODE 0 0 0
-trapInst s = emitR s TOK_BREAK_OPCODE 0 0 0
+nopInst s = emitR s TOKEN_SLL_OPCODE 0 0 0
+trapInst s = emitR s TOKEN_BREAK_OPCODE 0 0 0
 
 -- | @div@/@rem@ with three operands: check for zero, divide, move the
 -- quotient or the remainder (C: @div_inst@).
 divInst :: Spim -> Opcode -> Int -> Int -> Int -> Bool -> IO ()
 divInst s op rd rs rt constDivisor = do
   when (rd /= 0 && not constDivisor) $ do
-    emitI s TOK_BNE_OPCODE 0 rt (branchOffsetExpr 3)
+    emitI s TOKEN_BNE_OPCODE 0 rt (branchOffsetExpr 3)
     nopInst s
     trapInst s
-  if op == TOK_DIV_OPCODE || op == TOK_REM_PSEUDO_OP
-    then emitR s TOK_DIV_OPCODE 0 rs rt
-    else emitR s TOK_DIVU_OPCODE 0 rs rt
+  if op == TOKEN_DIV_OPCODE || op == TOKEN_REM_PSEUDO_OP
+    then emitR s TOKEN_DIV_OPCODE 0 rs rt
+    else emitR s TOKEN_DIVU_OPCODE 0 rs rt
   when (rd /= 0) $
-    if op == TOK_DIV_OPCODE || op == TOK_DIVU_OPCODE
-      then emitR s TOK_MFLO_OPCODE rd 0 0
-      else emitR s TOK_MFHI_OPCODE rd 0 0
+    if op == TOKEN_DIV_OPCODE || op == TOKEN_DIVU_OPCODE
+      then emitR s TOKEN_MFLO_OPCODE rd 0 0
+      else emitR s TOKEN_MFHI_OPCODE rd 0 0
 
 -- | @mulo@/@mulou@: multiply and trap on overflow (C: @mult_inst@).
 multInst :: Spim -> Opcode -> Int -> Int -> Int -> IO ()
 multInst s op rd rs rt = do
-  emitR s (if op == TOK_MULOU_PSEUDO_OP then TOK_MULTU_OPCODE else TOK_MULT_OPCODE) 0 rs rt
-  if op == TOK_MULOU_PSEUDO_OP && rd /= 0
+  emitR s (if op == TOKEN_MULOU_PSEUDO_OP then TOKEN_MULTU_OPCODE else TOKEN_MULT_OPCODE) 0 rs rt
+  if op == TOKEN_MULOU_PSEUDO_OP && rd /= 0
     then do
-      emitR s TOK_MFHI_OPCODE 1 0 0
-      emitI s TOK_BEQ_OPCODE 0 1 (branchOffsetExpr 3)
+      emitR s TOKEN_MFHI_OPCODE 1 0 0
+      emitI s TOKEN_BEQ_OPCODE 0 1 (branchOffsetExpr 3)
       nopInst s
       trapInst s
-    else when (op == TOK_MULO_PSEUDO_OP && rd /= 0) $ do
-      emitR s TOK_MFHI_OPCODE 1 0 0
-      emitR s TOK_MFLO_OPCODE rd 0 0
-      emitRShift s TOK_SRA_OPCODE rd rd 31
-      emitI s TOK_BEQ_OPCODE rd 1 (branchOffsetExpr 3)
+    else when (op == TOKEN_MULO_PSEUDO_OP && rd /= 0) $ do
+      emitR s TOKEN_MFHI_OPCODE 1 0 0
+      emitR s TOKEN_MFLO_OPCODE rd 0 0
+      emitRShift s TOKEN_SRA_OPCODE rd rd 31
+      emitI s TOKEN_BEQ_OPCODE rd 1 (branchOffsetExpr 3)
       nopInst s
       trapInst s
-  when (rd /= 0) $ emitR s TOK_MFLO_OPCODE rd 0 0
+  when (rd /= 0) $ emitR s TOKEN_MFLO_OPCODE rd 0 0
 
 -- | @sle@/@sge@ family: a branch-around sequence (C: @set_le_inst@,
 -- @set_ge_inst@).
 setCompareInst :: Spim -> Opcode -> Int -> Int -> Int -> Int -> IO ()
 setCompareInst s slt rd rs rt finalRs = do
-  emitI s TOK_BNE_OPCODE rs rt (branchOffsetExpr 3)
-  emitI s TOK_ORI_OPCODE rd 0 (constImmExpr 1)
-  emitI s TOK_BEQ_OPCODE 0 0 (branchOffsetExpr 3)
+  emitI s TOKEN_BNE_OPCODE rs rt (branchOffsetExpr 3)
+  emitI s TOKEN_ORI_OPCODE rd 0 (constImmExpr 1)
+  emitI s TOKEN_BEQ_OPCODE 0 0 (branchOffsetExpr 3)
   nopInst s
   emitR s slt rd finalRs (if finalRs == rs then rt else rs)
 
@@ -599,12 +599,12 @@ setEqInst :: Spim -> Opcode -> Int -> Int -> Int -> IO ()
 setEqInst s op rd rs rt = do
   let ifEq :: Int32
       ifNeq :: Int32
-      (ifEq, ifNeq) = if op == TOK_SEQ_PSEUDO_OP then (1, 0) else (0, 1)
-  emitI s TOK_BEQ_OPCODE rs rt (branchOffsetExpr 3)
-  emitI s TOK_ORI_OPCODE rd 0 (constImmExpr ifNeq)
-  emitI s TOK_BEQ_OPCODE 0 0 (branchOffsetExpr 3)
+      (ifEq, ifNeq) = if op == TOKEN_SEQ_PSEUDO_OP then (1, 0) else (0, 1)
+  emitI s TOKEN_BEQ_OPCODE rs rt (branchOffsetExpr 3)
+  emitI s TOKEN_ORI_OPCODE rd 0 (constImmExpr ifNeq)
+  emitI s TOKEN_BEQ_OPCODE 0 0 (branchOffsetExpr 3)
   nopInst s
-  emitI s TOK_ORI_OPCODE rd 0 (constImmExpr ifEq)
+  emitI s TOKEN_ORI_OPCODE rd 0 (constImmExpr ifEq)
 
 -- | A pseudo-instruction: parse it into a 'Pseudo' node that holds its
 -- expansion (C: @parse_pseudo@).
@@ -625,35 +625,35 @@ parsePseudo s op = do
 -- | The expansion of each pseudo-instruction (C: @do_parse_pseudo@).
 doParsePseudo :: Spim -> Opcode -> IO ()
 doParsePseudo s op = case op of
-  TOK_LI_PSEUDO_OP -> do
+  TOKEN_LI_PSEUDO_OP -> do
     rt :: Int <- parseRegister s
-    parseImm32 s >>= emitI s TOK_ORI_OPCODE rt 0
-  TOK_MOVE_PSEUDO_OP -> twoRegs (\rd rs -> emitR s TOK_ADDU_OPCODE rd 0 rs)
-  TOK_NEG_PSEUDO_OP -> twoRegs (\rd rs -> emitR s TOK_SUB_OPCODE rd 0 rs)
-  TOK_NEGU_PSEUDO_OP -> twoRegs (\rd rs -> emitR s TOK_SUBU_OPCODE rd 0 rs)
-  TOK_NOT_PSEUDO_OP -> twoRegs (\rd rs -> emitR s TOK_NOR_OPCODE rd rs 0)
-  _ | op == TOK_ROR_PSEUDO_OP || op == TOK_ROL_PSEUDO_OP -> do
+    parseImm32 s >>= emitI s TOKEN_ORI_OPCODE rt 0
+  TOKEN_MOVE_PSEUDO_OP -> twoRegs (\rd rs -> emitR s TOKEN_ADDU_OPCODE rd 0 rs)
+  TOKEN_NEG_PSEUDO_OP -> twoRegs (\rd rs -> emitR s TOKEN_SUB_OPCODE rd 0 rs)
+  TOKEN_NEGU_PSEUDO_OP -> twoRegs (\rd rs -> emitR s TOKEN_SUBU_OPCODE rd 0 rs)
+  TOKEN_NOT_PSEUDO_OP -> twoRegs (\rd rs -> emitR s TOKEN_NOR_OPCODE rd rs 0)
+  _ | op == TOKEN_ROR_PSEUDO_OP || op == TOKEN_ROL_PSEUDO_OP -> do
     rd :: Int <- parseRegister s
     rs :: Int <- parseRegister s
     t :: Token <- peek s
     if t == TokReg
       then do
         rt :: Int <- parseRegister s
-        emitR s TOK_SUBU_OPCODE 1 0 rt
-        if op == TOK_ROR_PSEUDO_OP
-          then emitR s TOK_SLLV_OPCODE 1 1 rs >> emitR s TOK_SRLV_OPCODE rd rt rs
-          else emitR s TOK_SRLV_OPCODE 1 1 rs >> emitR s TOK_SLLV_OPCODE rd rt rs
-        emitR s TOK_OR_OPCODE rd rd 1
+        emitR s TOKEN_SUBU_OPCODE 1 0 rt
+        if op == TOKEN_ROR_PSEUDO_OP
+          then emitR s TOKEN_SLLV_OPCODE 1 1 rs >> emitR s TOKEN_SRLV_OPCODE rd rt rs
+          else emitR s TOKEN_SRLV_OPCODE 1 1 rs >> emitR s TOKEN_SLLV_OPCODE rd rt rs
+        emitR s TOKEN_OR_OPCODE rd rd 1
       else do
         line :: Int <- lineNo s
         imm :: ImmExpr <- parseImm32 s
         dist :: Int <- int <$> evalImmExpr s imm
         checkImmRange s imm 0 31 line
-        if op == TOK_ROR_PSEUDO_OP
-          then emitRShift s TOK_SLL_OPCODE 1 rs (negate dist) >> emitRShift s TOK_SRL_OPCODE rd rs dist
-          else emitRShift s TOK_SRL_OPCODE 1 rs (negate dist) >> emitRShift s TOK_SLL_OPCODE rd rs dist
-        emitR s TOK_OR_OPCODE rd rd 1
-  _ | op `elem` [TOK_SLE_PSEUDO_OP, TOK_SLEU_PSEUDO_OP, TOK_SGT_PSEUDO_OP, TOK_SGTU_PSEUDO_OP, TOK_SGE_PSEUDO_OP, TOK_SGEU_PSEUDO_OP, TOK_SEQ_PSEUDO_OP, TOK_SNE_PSEUDO_OP] -> do
+        if op == TOKEN_ROR_PSEUDO_OP
+          then emitRShift s TOKEN_SLL_OPCODE 1 rs (negate dist) >> emitRShift s TOKEN_SRL_OPCODE rd rs dist
+          else emitRShift s TOKEN_SRL_OPCODE 1 rs (negate dist) >> emitRShift s TOKEN_SLL_OPCODE rd rs dist
+        emitR s TOKEN_OR_OPCODE rd rd 1
+  _ | op `elem` [TOKEN_SLE_PSEUDO_OP, TOKEN_SLEU_PSEUDO_OP, TOKEN_SGT_PSEUDO_OP, TOKEN_SGTU_PSEUDO_OP, TOKEN_SGE_PSEUDO_OP, TOKEN_SGEU_PSEUDO_OP, TOKEN_SEQ_PSEUDO_OP, TOKEN_SNE_PSEUDO_OP] -> do
     rd :: Int <- parseRegister s
     rs :: Int <- parseRegister s
     t :: Token <- peek s
@@ -663,25 +663,25 @@ doParsePseudo s op = case op of
         else do
           imm :: ImmExpr <- parseImm32 s
           if not (isZeroImm imm)
-            then emitI s TOK_ORI_OPCODE 1 0 imm >> pure 1
+            then emitI s TOKEN_ORI_OPCODE 1 0 imm >> pure 1
             else pure 0
     case op of
-      TOK_SLE_PSEUDO_OP -> setCompareInst s TOK_SLT_OPCODE rd rs rt rs
-      TOK_SLEU_PSEUDO_OP -> setCompareInst s TOK_SLTU_OPCODE rd rs rt rs
-      TOK_SGT_PSEUDO_OP -> emitR s TOK_SLT_OPCODE rd rt rs
-      TOK_SGTU_PSEUDO_OP -> emitR s TOK_SLTU_OPCODE rd rt rs
-      TOK_SGE_PSEUDO_OP -> setCompareInst s TOK_SLT_OPCODE rd rs rt rt
-      TOK_SGEU_PSEUDO_OP -> setCompareInst s TOK_SLTU_OPCODE rd rs rt rt
+      TOKEN_SLE_PSEUDO_OP -> setCompareInst s TOKEN_SLT_OPCODE rd rs rt rs
+      TOKEN_SLEU_PSEUDO_OP -> setCompareInst s TOKEN_SLTU_OPCODE rd rs rt rs
+      TOKEN_SGT_PSEUDO_OP -> emitR s TOKEN_SLT_OPCODE rd rt rs
+      TOKEN_SGTU_PSEUDO_OP -> emitR s TOKEN_SLTU_OPCODE rd rt rs
+      TOKEN_SGE_PSEUDO_OP -> setCompareInst s TOKEN_SLT_OPCODE rd rs rt rt
+      TOKEN_SGEU_PSEUDO_OP -> setCompareInst s TOKEN_SLTU_OPCODE rd rs rt rt
       _ -> setEqInst s op rd rs rt
-  TOK_ABS_PSEUDO_OP -> do
+  TOKEN_ABS_PSEUDO_OP -> do
     rd :: Int <- parseRegister s
     rs :: Int <- parseRegister s
-    when (rd /= rs) $ emitR s TOK_ADDU_OPCODE rd 0 rs
-    emitI s TOK_BGEZ_OPCODE 0 rs (branchOffsetExpr 3)
+    when (rd /= rs) $ emitR s TOKEN_ADDU_OPCODE rd 0 rs
+    emitI s TOKEN_BGEZ_OPCODE 0 rs (branchOffsetExpr 3)
     nopInst s
-    emitR s TOK_SUB_OPCODE rd 0 rs
-  TOK_NOP_PSEUDO_OP -> nopInst s
-  _ | op == TOK_REM_PSEUDO_OP || op == TOK_REMU_PSEUDO_OP -> do
+    emitR s TOKEN_SUB_OPCODE rd 0 rs
+  TOKEN_NOP_PSEUDO_OP -> nopInst s
+  _ | op == TOKEN_REM_PSEUDO_OP || op == TOKEN_REMU_PSEUDO_OP -> do
     rd :: Int <- parseRegister s
     rs :: Int <- parseRegister s
     t :: Token <- peek s
@@ -691,8 +691,8 @@ doParsePseudo s op = case op of
         imm :: ImmExpr <- parseImm32 s
         if isZeroImm imm
           then parseErrorAt s "Divide by zero"
-          else emitI s TOK_ORI_OPCODE 1 0 imm >> divInst s op rd rs 1 True
-  _ | op == TOK_MULO_PSEUDO_OP || op == TOK_MULOU_PSEUDO_OP -> do
+          else emitI s TOKEN_ORI_OPCODE 1 0 imm >> divInst s op rd rs 1 True
+  _ | op == TOKEN_MULO_PSEUDO_OP || op == TOKEN_MULOU_PSEUDO_OP -> do
     rd :: Int <- parseRegister s
     rs :: Int <- parseRegister s
     t :: Token <- peek s
@@ -701,11 +701,11 @@ doParsePseudo s op = case op of
       else do
         imm :: ImmExpr <- parseImm32 s
         if isZeroImm imm
-          then emitI s TOK_ORI_OPCODE rd 0 imm
-          else emitI s TOK_ORI_OPCODE 1 0 imm >> multInst s op rd rs 1
-  _ | op == TOK_MFC1_D_PSEUDO_OP || op == TOK_MTC1_D_PSEUDO_OP -> do
+          then emitI s TOKEN_ORI_OPCODE rd 0 imm
+          else emitI s TOKEN_ORI_OPCODE 1 0 imm >> multInst s op rd rs 1
+  _ | op == TOKEN_MFC1_D_PSEUDO_OP || op == TOKEN_MTC1_D_PSEUDO_OP -> do
     let real :: Opcode
-        real = if op == TOK_MFC1_D_PSEUDO_OP then TOK_MFC1_OPCODE else TOK_MTC1_OPCODE
+        real = if op == TOKEN_MFC1_D_PSEUDO_OP then TOKEN_MFC1_OPCODE else TOKEN_MTC1_OPCODE
     line :: Int <- lineNo s -- the last operand can consume the newline
     r :: Int <- parseRegister s
     copreg :: Int <- coprocessorRegister s
@@ -714,7 +714,7 @@ doParsePseudo s op = case op of
       else do
         emitFpR s real 0 copreg r
         emitFpR s real 0 (copreg + 1) (r + 1)
-  TOK_LI_D_PSEUDO_OP -> do
+  TOKEN_LI_D_PSEUDO_OP -> do
     fd :: Int <- parseFpRegister s
     t :: Token <- peek s
     if t /= TokFp
@@ -722,11 +722,11 @@ doParsePseudo s op = case op of
       else do
         _ <- advance s
         bits :: Word64 <- castDoubleToWord64 <$> valFp s
-        emitI s TOK_ORI_OPCODE 1 0 (constImmExpr (fromIntegral bits))
-        emitFpR s TOK_MTC1_OPCODE 0 fd 1
-        emitI s TOK_ORI_OPCODE 1 0 (constImmExpr (fromIntegral (bits `shiftR` 32)))
-        emitFpR s TOK_MTC1_OPCODE 0 (fd + 1) 1
-  TOK_LI_S_PSEUDO_OP -> do
+        emitI s TOKEN_ORI_OPCODE 1 0 (constImmExpr (fromIntegral bits))
+        emitFpR s TOKEN_MTC1_OPCODE 0 fd 1
+        emitI s TOKEN_ORI_OPCODE 1 0 (constImmExpr (fromIntegral (bits `shiftR` 32)))
+        emitFpR s TOKEN_MTC1_OPCODE 0 (fd + 1) 1
+  TOKEN_LI_S_PSEUDO_OP -> do
     fd :: Int <- parseFpRegister s
     t :: Token <- peek s
     if t /= TokFp
@@ -734,15 +734,15 @@ doParsePseudo s op = case op of
       else do
         _ <- advance s
         bits :: Word32 <- castFloatToWord32 . double2Float <$> valFp s
-        emitI s TOK_ORI_OPCODE 1 0 (constImmExpr (fromIntegral bits))
-        emitFpR s TOK_MTC1_OPCODE 0 fd 1
-  TOK_L_D_PSEUDO_OP -> fpAddress TOK_LDC1_OPCODE
-  TOK_L_S_PSEUDO_OP -> fpAddress TOK_LWC1_OPCODE
-  TOK_S_D_PSEUDO_OP -> fpAddress TOK_SDC1_OPCODE
-  TOK_S_S_PSEUDO_OP -> fpAddress TOK_SWC1_OPCODE
-  _ | op == TOK_LD_PSEUDO_OP || op == TOK_SD_PSEUDO_OP -> do
+        emitI s TOKEN_ORI_OPCODE 1 0 (constImmExpr (fromIntegral bits))
+        emitFpR s TOKEN_MTC1_OPCODE 0 fd 1
+  TOKEN_L_D_PSEUDO_OP -> fpAddress TOKEN_LDC1_OPCODE
+  TOKEN_L_S_PSEUDO_OP -> fpAddress TOKEN_LWC1_OPCODE
+  TOKEN_S_D_PSEUDO_OP -> fpAddress TOKEN_SDC1_OPCODE
+  TOKEN_S_S_PSEUDO_OP -> fpAddress TOKEN_SWC1_OPCODE
+  _ | op == TOKEN_LD_PSEUDO_OP || op == TOKEN_SD_PSEUDO_OP -> do
     let real :: Opcode
-        real = if op == TOK_LD_PSEUDO_OP then TOK_LW_OPCODE else TOK_SW_OPCODE
+        real = if op == TOKEN_LD_PSEUDO_OP then TOKEN_LW_OPCODE else TOKEN_SW_OPCODE
     line :: Int <- lineNo s -- the address can consume the newline
     rt :: Int <- parseRegister s
     (r, imm) :: (Int, ImmExpr) <- parseAddress s
@@ -751,99 +751,99 @@ doParsePseudo s op = case op of
       else do
         emitI s real rt r imm
         emitI s real (rt + 1) r (incrExprOffset imm 4)
-  TOK_ULW_PSEUDO_OP -> do
+  TOKEN_ULW_PSEUDO_OP -> do
     rt :: Int <- parseRegister s
     (r, imm) :: (Int, ImmExpr) <- parseAddress s
-    emitI s TOK_LWL_OPCODE rt r (incrExprOffset imm 3)
-    emitI s TOK_LWR_OPCODE rt r imm
-  _ | op == TOK_ULH_PSEUDO_OP || op == TOK_ULHU_PSEUDO_OP -> do
+    emitI s TOKEN_LWL_OPCODE rt r (incrExprOffset imm 3)
+    emitI s TOKEN_LWR_OPCODE rt r imm
+  _ | op == TOKEN_ULH_PSEUDO_OP || op == TOKEN_ULHU_PSEUDO_OP -> do
     rt :: Int <- parseRegister s
     (r, imm) :: (Int, ImmExpr) <- parseAddress s
-    emitI s (if op == TOK_ULH_PSEUDO_OP then TOK_LB_OPCODE else TOK_LBU_OPCODE) rt r (incrExprOffset imm 1)
-    emitI s TOK_LBU_OPCODE 1 r imm
-    emitRShift s TOK_SLL_OPCODE rt rt 8
-    emitR s TOK_OR_OPCODE rt rt 1
-  TOK_USW_PSEUDO_OP -> do
+    emitI s (if op == TOKEN_ULH_PSEUDO_OP then TOKEN_LB_OPCODE else TOKEN_LBU_OPCODE) rt r (incrExprOffset imm 1)
+    emitI s TOKEN_LBU_OPCODE 1 r imm
+    emitRShift s TOKEN_SLL_OPCODE rt rt 8
+    emitR s TOKEN_OR_OPCODE rt rt 1
+  TOKEN_USW_PSEUDO_OP -> do
     rt :: Int <- parseRegister s
     (r, imm) :: (Int, ImmExpr) <- parseAddress s
-    emitI s TOK_SWL_OPCODE rt r (incrExprOffset imm 3)
-    emitI s TOK_SWR_OPCODE rt r imm
-  TOK_USH_PSEUDO_OP -> do
+    emitI s TOKEN_SWL_OPCODE rt r (incrExprOffset imm 3)
+    emitI s TOKEN_SWR_OPCODE rt r imm
+  TOKEN_USH_PSEUDO_OP -> do
     rt :: Int <- parseRegister s
     (r, imm) :: (Int, ImmExpr) <- parseAddress s
-    emitI s TOK_SB_OPCODE rt r imm
-    emitRShift s TOK_SLL_OPCODE 1 rt 24
-    emitRShift s TOK_SRL_OPCODE rt rt 8
-    emitR s TOK_OR_OPCODE rt rt 1
-    emitI s TOK_SB_OPCODE rt r (incrExprOffset imm 1)
-    emitRShift s TOK_SRL_OPCODE 1 rt 24
-    emitRShift s TOK_SLL_OPCODE rt rt 8
-    emitR s TOK_OR_OPCODE rt rt 1
-  TOK_LA_PSEUDO_OP -> do
+    emitI s TOKEN_SB_OPCODE rt r imm
+    emitRShift s TOKEN_SLL_OPCODE 1 rt 24
+    emitRShift s TOKEN_SRL_OPCODE rt rt 8
+    emitR s TOKEN_OR_OPCODE rt rt 1
+    emitI s TOKEN_SB_OPCODE rt r (incrExprOffset imm 1)
+    emitRShift s TOKEN_SRL_OPCODE 1 rt 24
+    emitRShift s TOKEN_SLL_OPCODE rt rt 8
+    emitR s TOKEN_OR_OPCODE rt rt 1
+  TOKEN_LA_PSEUDO_OP -> do
     rt :: Int <- parseRegister s
     (r, imm) :: (Int, ImmExpr) <- parseAddress s
-    if r /= 0 then emitI s TOK_ADDI_OPCODE rt r imm else emitI s TOK_ORI_OPCODE rt 0 imm
-  _ | op == TOK_BEQZ_PSEUDO_OP || op == TOK_BNEZ_PSEUDO_OP -> do
+    if r /= 0 then emitI s TOKEN_ADDI_OPCODE rt r imm else emitI s TOKEN_ORI_OPCODE rt 0 imm
+  _ | op == TOKEN_BEQZ_PSEUDO_OP || op == TOKEN_BNEZ_PSEUDO_OP -> do
     rs :: Int <- parseRegister s
     target :: ImmExpr <- parseLabel s
-    emitI s (if op == TOK_BEQZ_PSEUDO_OP then TOK_BEQ_OPCODE else TOK_BNE_OPCODE) 0 rs target
-  _ | op == TOK_B_PSEUDO_OP || op == TOK_BAL_PSEUDO_OP -> do
+    emitI s (if op == TOKEN_BEQZ_PSEUDO_OP then TOKEN_BEQ_OPCODE else TOKEN_BNE_OPCODE) 0 rs target
+  _ | op == TOKEN_B_PSEUDO_OP || op == TOKEN_BAL_PSEUDO_OP -> do
     target :: ImmExpr <- parseLabel s
-    emitI s (if op == TOK_BAL_PSEUDO_OP then TOK_BGEZAL_OPCODE else TOK_BGEZ_OPCODE) 0 0 target
-  _ | op == TOK_BGT_PSEUDO_OP || op == TOK_BGTU_PSEUDO_OP -> do
+    emitI s (if op == TOKEN_BAL_PSEUDO_OP then TOKEN_BGEZAL_OPCODE else TOKEN_BGEZ_OPCODE) 0 0 target
+  _ | op == TOKEN_BGT_PSEUDO_OP || op == TOKEN_BGTU_PSEUDO_OP -> do
     rs :: Int <- parseRegister s
     t :: Token <- peek s
     if t == TokReg
       then do
         rt :: Int <- parseRegister s
         target :: ImmExpr <- parseLabel s
-        emitR s (if op == TOK_BGT_PSEUDO_OP then TOK_SLT_OPCODE else TOK_SLTU_OPCODE) 1 rt rs
-        emitI s TOK_BNE_OPCODE 0 1 target
+        emitR s (if op == TOKEN_BGT_PSEUDO_OP then TOKEN_SLT_OPCODE else TOKEN_SLTU_OPCODE) 1 rt rs
+        emitI s TOKEN_BNE_OPCODE 0 1 target
       else do
         imm :: ImmExpr <- parseImm32 s
         target :: ImmExpr <- parseLabel s
-        if op == TOK_BGT_PSEUDO_OP
+        if op == TOKEN_BGT_PSEUDO_OP
           then do
-            emitI s TOK_SLTI_OPCODE 1 rs (incrExprOffset imm 1)
-            emitI s TOK_BEQ_OPCODE 0 1 target
+            emitI s TOKEN_SLTI_OPCODE 1 rs (incrExprOffset imm 1)
+            emitI s TOKEN_BEQ_OPCODE 0 1 target
           else do
-            emitI s TOK_ORI_OPCODE 1 0 imm
-            emitI s TOK_BEQ_OPCODE rs 1 (branchOffsetExpr 3)
-            emitR s TOK_SLTU_OPCODE 1 rs 1
-            emitI s TOK_BEQ_OPCODE 0 1 target
+            emitI s TOKEN_ORI_OPCODE 1 0 imm
+            emitI s TOKEN_BEQ_OPCODE rs 1 (branchOffsetExpr 3)
+            emitR s TOKEN_SLTU_OPCODE 1 rs 1
+            emitI s TOKEN_BEQ_OPCODE 0 1 target
   _
-    | op == TOK_BGE_PSEUDO_OP || op == TOK_BGEU_PSEUDO_OP ->
+    | op == TOKEN_BGE_PSEUDO_OP || op == TOKEN_BGEU_PSEUDO_OP ->
         branchCompare
-          (if op == TOK_BGE_PSEUDO_OP then TOK_SLT_OPCODE else TOK_SLTU_OPCODE)
-          (if op == TOK_BGE_PSEUDO_OP then TOK_SLTI_OPCODE else TOK_SLTIU_OPCODE)
-          TOK_BEQ_OPCODE
+          (if op == TOKEN_BGE_PSEUDO_OP then TOKEN_SLT_OPCODE else TOKEN_SLTU_OPCODE)
+          (if op == TOKEN_BGE_PSEUDO_OP then TOKEN_SLTI_OPCODE else TOKEN_SLTIU_OPCODE)
+          TOKEN_BEQ_OPCODE
   _
-    | op == TOK_BLT_PSEUDO_OP || op == TOK_BLTU_PSEUDO_OP ->
+    | op == TOKEN_BLT_PSEUDO_OP || op == TOKEN_BLTU_PSEUDO_OP ->
         branchCompare
-          (if op == TOK_BLT_PSEUDO_OP then TOK_SLT_OPCODE else TOK_SLTU_OPCODE)
-          (if op == TOK_BLT_PSEUDO_OP then TOK_SLTI_OPCODE else TOK_SLTIU_OPCODE)
-          TOK_BNE_OPCODE
-  _ | op == TOK_BLE_PSEUDO_OP || op == TOK_BLEU_PSEUDO_OP -> do
+          (if op == TOKEN_BLT_PSEUDO_OP then TOKEN_SLT_OPCODE else TOKEN_SLTU_OPCODE)
+          (if op == TOKEN_BLT_PSEUDO_OP then TOKEN_SLTI_OPCODE else TOKEN_SLTIU_OPCODE)
+          TOKEN_BNE_OPCODE
+  _ | op == TOKEN_BLE_PSEUDO_OP || op == TOKEN_BLEU_PSEUDO_OP -> do
     rs :: Int <- parseRegister s
     t :: Token <- peek s
     if t == TokReg
       then do
         rt :: Int <- parseRegister s
         target :: ImmExpr <- parseLabel s
-        emitR s (if op == TOK_BLE_PSEUDO_OP then TOK_SLT_OPCODE else TOK_SLTU_OPCODE) 1 rt rs
-        emitI s TOK_BEQ_OPCODE 0 1 target
+        emitR s (if op == TOKEN_BLE_PSEUDO_OP then TOKEN_SLT_OPCODE else TOKEN_SLTU_OPCODE) 1 rt rs
+        emitI s TOKEN_BEQ_OPCODE 0 1 target
       else do
         imm :: ImmExpr <- parseImm32 s
         target :: ImmExpr <- parseLabel s
-        if op == TOK_BLE_PSEUDO_OP
+        if op == TOKEN_BLE_PSEUDO_OP
           then do
-            emitI s TOK_SLTI_OPCODE 1 rs (incrExprOffset imm 1)
-            emitI s TOK_BNE_OPCODE 0 1 target
+            emitI s TOKEN_SLTI_OPCODE 1 rs (incrExprOffset imm 1)
+            emitI s TOKEN_BNE_OPCODE 0 1 target
           else do
-            emitI s TOK_ORI_OPCODE 1 0 imm
-            emitI s TOK_BEQ_OPCODE rs 1 target
-            emitR s TOK_SLTU_OPCODE 1 rs 1
-            emitI s TOK_BNE_OPCODE 0 1 target
+            emitI s TOKEN_ORI_OPCODE 1 0 imm
+            emitI s TOKEN_BEQ_OPCODE rs 1 target
+            emitR s TOKEN_SLTU_OPCODE 1 rs 1
+            emitI s TOKEN_BNE_OPCODE 0 1 target
   _ -> parseErrorAt s "Pseudo-op not yet supported" >> syncToNl s
   where
     twoRegs :: (Int -> Int -> IO b) -> IO b
@@ -891,33 +891,33 @@ parseAsmCode s = do
     unsupported = parseErrorAt s "Instruction not yet supported" >> syncToNl s
     parseOp :: Opcode -> OpType -> IO ()
     parseOp op ty = case ty of
-      NOARG_TYPE_INST -> parseNoarg s op
-      RD_RS_RT_INST -> parseR3 s op
-      RD_RT_SHAMT_INST -> parseR2sh s op
-      RS_INST -> parseRegister s >>= \rs -> emitR s op 0 rs 0
-      RT_RS_IMM_INST -> parseI2 s op
-      RT_IMM_INST -> do
+      NO_ARGUMENT_TYPE_INSTRUCTION -> parseNoarg s op
+      DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION -> parseR3 s op
+      DESTINATION_REGISTER_TARGET_REGISTER_SHIFT_AMOUNT_INSTRUCTION -> parseR2sh s op
+      SOURCE_REGISTER_INSTRUCTION -> parseRegister s >>= \rs -> emitR s op 0 rs 0
+      TARGET_REGISTER_SOURCE_REGISTER_IMMEDIATE_INSTRUCTION -> parseI2 s op
+      TARGET_REGISTER_IMMEDIATE_INSTRUCTION -> do
         rt :: Int <- parseRegister s
         parseUimm16 s >>= emitI s op rt 0
-      RT_ADDR_INST -> parseI2a s op
-      BRANCH_RS_RT_LABEL_INST -> parseB2 s op
-      BRANCH_RS_LABEL_INST -> do
+      TARGET_REGISTER_ADDRESS_INSTRUCTION -> parseI2a s op
+      BRANCH_SOURCE_REGISTER_TARGET_REGISTER_LABEL_INSTRUCTION -> parseB2 s op
+      BRANCH_SOURCE_REGISTER_LABEL_INSTRUCTION -> do
         rs :: Int <- parseRegister s
         parseLabel s >>= emitI s op 0 rs
-      J_TYPE_INST -> parseJ s op
+      J_TYPE_INSTRUCTION -> parseJ s op
       PSEUDO_OP -> parsePseudo s op
-      RT_COPREG_INST -> copreg op
-      RD_RS_INST -> parseJ s op
-      RS_RT_INST -> do
+      TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION -> copreg op
+      DESTINATION_REGISTER_SOURCE_REGISTER_INSTRUCTION -> parseJ s op
+      SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION -> do
         r1 :: Int <- parseRegister s
         t :: Token <- peek s
         if t /= TokReg && t /= TokInt && t /= TokId
           then parseErrorAt s "Expected operand for div/mult"
           else
-            if op `elem` [TOK_TEQ_OPCODE, TOK_TGE_OPCODE, TOK_TGEU_OPCODE, TOK_TLT_OPCODE, TOK_TLTU_OPCODE, TOK_TNE_OPCODE]
+            if op `elem` [TOKEN_TEQ_OPCODE, TOKEN_TGE_OPCODE, TOKEN_TGEU_OPCODE, TOKEN_TLT_OPCODE, TOKEN_TLTU_OPCODE, TOKEN_TNE_OPCODE]
               then parseRegister s >>= emitR s op 0 r1
               else
-                if op == TOK_DIV_OPCODE || op == TOK_DIVU_OPCODE
+                if op == TOKEN_DIV_OPCODE || op == TOKEN_DIVU_OPCODE
                   then do
                     r2 :: Int <- parseRegister s
                     t2 :: Token <- peek s
@@ -930,10 +930,10 @@ parseAsmCode s = do
                             imm :: ImmExpr <- parseImm32 s
                             if isZeroImm imm
                               then parseErrorAt s "Divide by zero"
-                              else emitI s TOK_ORI_OPCODE 1 0 imm >> divInst s op r1 r2 1 True
+                              else emitI s TOKEN_ORI_OPCODE 1 0 imm >> divInst s op r1 r2 1 True
                   else parseRegister s >>= emitR s op 0 r1
-      RD_INST -> parseRegister s >>= \rd -> emitR s op rd 0 0
-      RD_RT_RS_INST -> do
+      DESTINATION_REGISTER_INSTRUCTION -> parseRegister s >>= \rd -> emitR s op rd 0 0
+      DESTINATION_REGISTER_TARGET_REGISTER_SOURCE_REGISTER_INSTRUCTION -> do
         rd :: Int <- parseRegister s
         rs :: Int <- parseRegister s
         t :: Token <- peek s
@@ -947,10 +947,10 @@ parseAsmCode s = do
                 sh :: Int <- int <$> valInt s
                 immOp :: Opcode <- opToImmOp op
                 emitRShift s immOp rd rs sh
-      RS_IMM_INST -> do
+      SOURCE_REGISTER_IMMEDIATE_INSTRUCTION -> do
         rs :: Int <- parseRegister s
         parseImm16 s >>= emitI s op 0 rs
-      BRANCH_COPROC_COND_INST -> do
+      BRANCH_COPROCESSOR_CONDITION_INSTRUCTION -> do
         let nd :: Int
             nd = if opcodeIsNullifiedBranch op then 1 else 0
             tf :: Int
@@ -959,28 +959,28 @@ parseAsmCode s = do
         cc :: Int <- if t == TokInt then advance s >> int <$> valInt s else pure 0
         target :: ImmExpr <- parseLabel s
         emitI s op ((cc `shiftL` 2) .|. (nd `shiftL` 1) .|. tf) 0 target
-      MOVC_TYPE_INST -> do
+      MOVE_CONDITIONAL_TYPE_INSTRUCTION -> do
         rd :: Int <- parseRegister s
         rs :: Int <- parseRegister s
         t :: Token <- peek s
         cc :: Int <- if t == TokInt then advance s >> int <$> valInt s else pure 0
         emitR s op rd rs ((cc .&. 7) `shiftL` 2)
-      FP_FD_FS_INST -> do
+      FLOATING_POINT_DESTINATION_SOURCE_INSTRUCTION -> do
         fd :: Int <- parseFpRegister s
         fs :: Int <- parseFpRegister s
         emitFpR s op fd fs 0
-      FP_FD_FS_FT_INST -> do
+      FLOATING_POINT_DESTINATION_SOURCE_TARGET_INSTRUCTION -> do
         fd :: Int <- parseFpRegister s
         fs :: Int <- parseFpRegister s
         ft :: Int <- parseFpRegister s
         emitFpR s op fd fs ft
-      FP_CMP_FS_FT_INST -> do
+      FLOATING_POINT_COMPARE_SOURCE_TARGET_INSTRUCTION -> do
         t :: Token <- peek s
         cc :: Int <- if t == TokInt then advance s >> int <$> valInt s else pure 0
         fs :: Int <- parseFpRegister s
         ft :: Int <- parseFpRegister s
         emitFpCompare s op fs ft cc
-      FP_MOVC_TYPE_INST -> do
+      FLOATING_POINT_MOVE_CONDITIONAL_TYPE_INSTRUCTION -> do
         fd :: Int <- parseFpRegister s
         fs :: Int <- parseFpRegister s
         t :: Token <- peek s
@@ -991,11 +991,11 @@ parseAsmCode s = do
             cc :: Int <- int <$> valInt s
             emitFpR s op fd fs ((cc .&. 7) `shiftL` 2)
           _ -> emitFpR s op fd fs 0
-      FP_FT_ADDR_INST -> do
+      FLOATING_POINT_TARGET_ADDRESS_INSTRUCTION -> do
         fr :: Int <- parseFpRegister s
         (r, imm) :: (Int, ImmExpr) <- parseAddress s
         emitI s op fr r imm
-      FP_RT_COPREG_INST -> copreg op
+      FLOATING_POINT_TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION -> copreg op
       _ -> unsupported
     copreg :: Opcode -> IO ()
     copreg op = do
@@ -1110,23 +1110,23 @@ parseStringList s = do
 -- | One directive (C: @parse_directive@).
 parseDirective :: Spim -> Opcode -> IO ()
 parseDirective s d = case d of
-  TOK_DATA_DIRECTIVE -> parseDirSeg s DirData False
-  TOK_K_DATA_DIRECTIVE -> parseDirSeg s DirKData False
-  TOK_TEXT_DIRECTIVE -> parseDirSeg s DirText True
-  TOK_K_TEXT_DIRECTIVE -> parseDirSeg s DirKText True
-  TOK_GLOBAL_DIRECTIVE -> directiveName s "Expected identifier after .globl" >>= mapM_ (appendNode s . DirGlobl)
-  TOK_WORD_DIRECTIVE -> alignForData s 2 >> parseExprList s DataWord
-  TOK_HALF_DIRECTIVE -> alignForData s 1 >> parseExprList s DataHalf
-  TOK_BYTE_DIRECTIVE -> parseExprList s DataByte
-  TOK_ASCII_DIRECTIVE -> set (nullTerm s) False >> parseStringList s
-  TOK_ASCIIZ_DIRECTIVE -> set (nullTerm s) True >> parseStringList s
-  TOK_FLOAT_DIRECTIVE -> alignForData s 2 >> parseFpExprList s DataFloat
-  TOK_DOUBLE_DIRECTIVE -> alignForData s 3 >> parseFpExprList s DataDouble
-  TOK_SPACE_DIRECTIVE -> do
+  TOKEN_DATA_DIRECTIVE -> parseDirSeg s DirData False
+  TOKEN_K_DATA_DIRECTIVE -> parseDirSeg s DirKData False
+  TOKEN_TEXT_DIRECTIVE -> parseDirSeg s DirText True
+  TOKEN_K_TEXT_DIRECTIVE -> parseDirSeg s DirKText True
+  TOKEN_GLOBAL_DIRECTIVE -> directiveName s "Expected identifier after .globl" >>= mapM_ (appendNode s . DirGlobl)
+  TOKEN_WORD_DIRECTIVE -> alignForData s 2 >> parseExprList s DataWord
+  TOKEN_HALF_DIRECTIVE -> alignForData s 1 >> parseExprList s DataHalf
+  TOKEN_BYTE_DIRECTIVE -> parseExprList s DataByte
+  TOKEN_ASCII_DIRECTIVE -> set (nullTerm s) False >> parseStringList s
+  TOKEN_ASCIIZ_DIRECTIVE -> set (nullTerm s) True >> parseStringList s
+  TOKEN_FLOAT_DIRECTIVE -> alignForData s 2 >> parseFpExprList s DataFloat
+  TOKEN_DOUBLE_DIRECTIVE -> alignForData s 3 >> parseFpExprList s DataDouble
+  TOKEN_SPACE_DIRECTIVE -> do
     v :: Int32 <- parseExpression s
     inText :: Bool <- get (textDir s)
     if inText then parseErrorAt s "Can't put data in text segment" else appendNode s (DirSpace (int v))
-  TOK_ALIGN_DIRECTIVE -> do
+  TOKEN_ALIGN_DIRECTIVE -> do
     line :: Int <- lineNo s -- the expression can consume the newline
     v :: Int32 <- parseExpression s
     if v < 0 || v > 31 -- C shifts a 32-bit mask by it
@@ -1134,9 +1134,9 @@ parseDirective s d = case d of
       else do
         when (v == 0) $ set (autoAlign s) False
         appendNode s (DirAlign (int v))
-  TOK_COMM_DIRECTIVE -> namedSize DirComm
-  TOK_EXTERN_DIRECTIVE -> namedSize DirExtern
-  TOK_ERR_DIRECTIVE -> parseErrorAt s ".err directive"
+  TOKEN_COMM_DIRECTIVE -> namedSize DirComm
+  TOKEN_EXTERN_DIRECTIVE -> namedSize DirExtern
+  TOKEN_ERR_DIRECTIVE -> parseErrorAt s ".err directive"
   _
     | d `elem` ignored -> syncToNl s
     | otherwise -> parseErrorAt s "Directive not yet supported" >> syncToNl s
@@ -1151,22 +1151,22 @@ parseDirective s d = case d of
           appendNode s (kind n (int size))
     ignored :: [Opcode]
     ignored =
-      [ TOK_FILE_DIRECTIVE,
-        TOK_LOC_DIRECTIVE,
-        TOK_FRAME_DIRECTIVE,
-        TOK_MASK_DIRECTIVE,
-        TOK_FMASK_DIRECTIVE,
-        TOK_ENT_DIRECTIVE,
-        TOK_END_DIRECTIVE,
-        TOK_LABEL_DIRECTIVE,
-        TOK_LIVEREG_DIRECTIVE,
-        TOK_OPTIONS_DIRECTIVE,
-        TOK_BGNB_DIRECTIVE,
-        TOK_ENDB_DIRECTIVE,
-        TOK_ENDR_DIRECTIVE,
-        TOK_ASM0_DIRECTIVE,
-        TOK_ALIAS_DIRECTIVE,
-        TOK_SET_DIRECTIVE
+      [ TOKEN_FILE_DIRECTIVE,
+        TOKEN_LOC_DIRECTIVE,
+        TOKEN_FRAME_DIRECTIVE,
+        TOKEN_MASK_DIRECTIVE,
+        TOKEN_FMASK_DIRECTIVE,
+        TOKEN_ENT_DIRECTIVE,
+        TOKEN_END_DIRECTIVE,
+        TOKEN_LABEL_DIRECTIVE,
+        TOKEN_LIVEREG_DIRECTIVE,
+        TOKEN_OPTIONS_DIRECTIVE,
+        TOKEN_BGNB_DIRECTIVE,
+        TOKEN_ENDB_DIRECTIVE,
+        TOKEN_ENDR_DIRECTIVE,
+        TOKEN_ASM0_DIRECTIVE,
+        TOKEN_ALIAS_DIRECTIVE,
+        TOKEN_SET_DIRECTIVE
       ]
 
 -- | @name:@ or @name = expression@ (C: @parse_opt_label@).
@@ -1182,7 +1182,7 @@ parseOptLabel s = do
       appendNode s (LabelDef name (LabelConst v))
 
 isDirective :: Token -> Bool
-isDirective (TokOp op) = findOpType op == ASM_DIR
+isDirective (TokOp op) = findOpType op == ASSEMBLER_DIRECTIVE
 isDirective _ = False
 
 -- | One line (C: @parse_line@).

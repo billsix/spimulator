@@ -1247,7 +1247,7 @@ def _fp_compare(double: bool) -> Callable[[Instruction], Step]:
 # The FP compares are the table's c.cond.fmt rows; the fmt field (bits 21-25)
 # is 0x11 for a double, 0x10 for a single.
 for _row in opcodes.ROWS:
-    if _row.kind == OpType.FP_CMP_FS_FT_INST:
+    if _row.kind == OpType.FLOATING_POINT_COMPARE_SOURCE_TARGET_INSTRUCTION:
         _FACTORIES[_row.token] = _fp_compare((_row.encoding >> 21) & 0x1F == 0x11)
 
 

@@ -39,7 +39,7 @@ class OpcodeRow:
         symbol: the C token name ("TOK_ADD_OPCODE").
         token: the token number the scanner returns for the mnemonic.
         kind: the operand-shape tag from opcode-types.h (e.g. 26 for
-            RD_RS_RT_INST); ASM_DIR for directives, PSEUDO_OP for
+            DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION); ASSEMBLER_DIRECTIVE for directives, PSEUDO_OP for
             pseudo-instructions.
         encoding: the instruction's fixed bits as a signed 32-bit value, or
             -1 for a directive or pseudo-instruction.
@@ -58,9 +58,9 @@ ROWS: list[OpcodeRow] = [
 ]
 
 KIND: dict[str, int] = {tag.name: int(tag) for tag in OpType}
-"""Operand-shape tags by name, e.g. ``KIND["RD_RS_RT_INST"] == 26``."""
+"""Operand-shape tags by name, e.g. ``KIND["DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION"] == 26``."""
 
-ASM_DIR: int = KIND["ASM_DIR"]
+ASSEMBLER_DIRECTIVE: int = KIND["ASSEMBLER_DIRECTIVE"]
 PSEUDO_OP: int = KIND["PSEUDO_OP"]
 
 TOKEN: dict[str, int] = {row.symbol.removeprefix("TOK_"): row.token for row in ROWS}

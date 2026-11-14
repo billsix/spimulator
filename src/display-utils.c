@@ -13,12 +13,12 @@
 #include "run.h"
 #include "symbol-table.h"
 
-char* int_reg_names[32] = {"r0", "at", "v0", "v1", "a0", "a1", "a2", "a3",
+char* integer_register_names[32] = {"r0", "at", "v0", "v1", "a0", "a1", "a2", "a3",
                            "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
                            "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7",
                            "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"};
 
-static mem_addr format_partial_line(str_stream* stream, mem_addr address);
+static memory_address format_partial_line(string_stream* stream, memory_address address);
 
 /* Write to the stream the contents of the machine's registers, in a wide
    variety of formats. */
@@ -34,16 +34,16 @@ static int32_t float_bits(float f) {
   return bits;
 }
 
-void format_registers(str_stream* stream, bool print_general_purpose_registers_hex, bool print_floating_point_register_hex) {
+void format_registers(string_stream* stream, bool print_general_purpose_registers_hex, bool print_floating_point_register_hex) {
   int i;
 
-  stream_printf(stream, " PC      = %08x   ", PC);
-  stream_printf(stream, "EPC     = %08x  ", CP0_EPC);
-  stream_printf(stream, " Cause   = %08x  ", CP0_Cause);
-  stream_printf(stream, " BadVAddr= %08x\n", CP0_BadVAddr);
-  stream_printf(stream, " Status  = %08x   ", CP0_Status);
-  stream_printf(stream, "HI      = %08x  ", HI);
-  stream_printf(stream, " LO      = %08x\n", LO);
+  stream_printf(stream, " PC      = %08x   ", PROGRAM_COUNTER);
+  stream_printf(stream, "EPC     = %08x  ", coprocessor_0_exception_program_counter);
+  stream_printf(stream, " Cause   = %08x  ", coprocessor_0_cause);
+  stream_printf(stream, " BadVAddr= %08x\n", coprocessor_0_bad_virtual_address);
+  stream_printf(stream, " Status  = %08x   ", coprocessor_0_status);
+  stream_printf(stream, "HI      = %08x  ", MULTIPLY_DIVIDE_HIGH);
+  stream_printf(stream, " LO      = %08x\n", MULTIPLY_DIVIDE_LOW);
 
   const char* const general_register_format =
       print_general_purpose_registers_hex ? "R%-2d (%2s) = %08x" : "R%-2d (%2s) = %-10d";
@@ -51,18 +51,18 @@ void format_registers(str_stream* stream, bool print_general_purpose_registers_h
 
   stream_printf(stream, "\t\t\t\t General Registers\n");
   for (i = 0; i < 8; i++) {
-    stream_printf(stream, general_register_format, i, int_reg_names[i], gpr[i]);
+    stream_printf(stream, general_register_format, i, integer_register_names[i], general_purpose_registers[i]);
     stream_printf(stream, "%s", general_register_padding);
-    stream_printf(stream, general_register_format, i + 8, int_reg_names[i + 8], gpr[i + 8]);
+    stream_printf(stream, general_register_format, i + 8, integer_register_names[i + 8], general_purpose_registers[i + 8]);
     stream_printf(stream, "%s", general_register_padding);
-    stream_printf(stream, general_register_format, i + 16, int_reg_names[i + 16], gpr[i + 16]);
+    stream_printf(stream, general_register_format, i + 16, integer_register_names[i + 16], general_purpose_registers[i + 16]);
     stream_printf(stream, "%s", general_register_padding);
-    stream_printf(stream, general_register_format, i + 24, int_reg_names[i + 24], gpr[i + 24]);
+    stream_printf(stream, general_register_format, i + 24, integer_register_names[i + 24], general_purpose_registers[i + 24]);
     stream_printf(stream, "\n");
   }
 
-  stream_printf(stream, "\n FIR    = %08x   ", FIR);
-  stream_printf(stream, " FCSR    = %08x   ", FCSR);
+  stream_printf(stream, "\n FIR    = %08x   ", floating_point_implementation_register);
+  stream_printf(stream, " FCSR    = %08x   ", floating_point_control_status_register);
 
   stream_printf(stream, "\t\t\t      Double Floating Point Registers\n");
 
@@ -73,31 +73,31 @@ void format_registers(str_stream* stream, bool print_general_purpose_registers_h
     for (i = 0; i < 4; i += 1) {
       int32_t w[2];
 
-      double_words(fp_double_view[i], w);
+      double_words(floating_point_double_view[i], w);
       stream_printf(stream, floating_point_format, 2 * i, w[0], w[1]);
       stream_printf(stream, "%s", floating_point_padding);
 
-      double_words(fp_double_view[i + 4], w);
+      double_words(floating_point_double_view[i + 4], w);
       stream_printf(stream, floating_point_format, 2 * i + 8, w[0], w[1]);
       stream_printf(stream, "%s", floating_point_padding);
 
-      double_words(fp_double_view[i + 8], w);
+      double_words(floating_point_double_view[i + 8], w);
       stream_printf(stream, floating_point_format, 2 * i + 16, w[0], w[1]);
       stream_printf(stream, "%s", floating_point_padding);
 
-      double_words(fp_double_view[i + 12], w);
+      double_words(floating_point_double_view[i + 12], w);
       stream_printf(stream, floating_point_format, 2 * i + 24, w[0], w[1]);
       stream_printf(stream, "\n");
     }
   else
     for (i = 0; i < 4; i += 1) {
-      stream_printf(stream, floating_point_format, 2 * i, fp_double_view[i]);
+      stream_printf(stream, floating_point_format, 2 * i, floating_point_double_view[i]);
       stream_printf(stream, "%s", floating_point_padding);
-      stream_printf(stream, floating_point_format, 2 * i + 8, fp_double_view[i + 4]);
+      stream_printf(stream, floating_point_format, 2 * i + 8, floating_point_double_view[i + 4]);
       stream_printf(stream, "%s", floating_point_padding);
-      stream_printf(stream, floating_point_format, 2 * i + 16, fp_double_view[i + 8]);
+      stream_printf(stream, floating_point_format, 2 * i + 16, floating_point_double_view[i + 8]);
       stream_printf(stream, "%s", floating_point_padding);
-      stream_printf(stream, floating_point_format, 2 * i + 24, fp_double_view[i + 12]);
+      stream_printf(stream, floating_point_format, 2 * i + 24, floating_point_double_view[i + 12]);
       stream_printf(stream, "\n");
     }
 
@@ -109,27 +109,27 @@ void format_registers(str_stream* stream, bool print_general_purpose_registers_h
     for (i = 0; i < 8; i += 1) {
       /* Use pointers to cast to ints without invoking float->int conversion
          so we can just print the bits. */
-      stream_printf(stream, floating_point_format, i, float_bits(FPR_S(i)));
+      stream_printf(stream, floating_point_format, i, float_bits(FLOATING_POINT_REGISTER_SINGLE(i)));
       stream_printf(stream, "%s", floating_point_padding);
 
-      stream_printf(stream, floating_point_format, i + 8, float_bits(FPR_S(i + 8)));
+      stream_printf(stream, floating_point_format, i + 8, float_bits(FLOATING_POINT_REGISTER_SINGLE(i + 8)));
       stream_printf(stream, "%s", floating_point_padding);
 
-      stream_printf(stream, floating_point_format, i + 16, float_bits(FPR_S(i + 16)));
+      stream_printf(stream, floating_point_format, i + 16, float_bits(FLOATING_POINT_REGISTER_SINGLE(i + 16)));
       stream_printf(stream, "%s", floating_point_padding);
 
-      stream_printf(stream, floating_point_format, i + 24, float_bits(FPR_S(i + 24)));
+      stream_printf(stream, floating_point_format, i + 24, float_bits(FLOATING_POINT_REGISTER_SINGLE(i + 24)));
       stream_printf(stream, "\n");
     }
   else
     for (i = 0; i < 8; i += 1) {
-      stream_printf(stream, floating_point_format, i, FPR_S(i));
+      stream_printf(stream, floating_point_format, i, FLOATING_POINT_REGISTER_SINGLE(i));
       stream_printf(stream, "%s", floating_point_padding);
-      stream_printf(stream, floating_point_format, i + 8, FPR_S(i + 8));
+      stream_printf(stream, floating_point_format, i + 8, FLOATING_POINT_REGISTER_SINGLE(i + 8));
       stream_printf(stream, "%s", floating_point_padding);
-      stream_printf(stream, floating_point_format, i + 16, FPR_S(i + 16));
+      stream_printf(stream, floating_point_format, i + 16, FLOATING_POINT_REGISTER_SINGLE(i + 16));
       stream_printf(stream, "%s", floating_point_padding);
-      stream_printf(stream, floating_point_format, i + 24, FPR_S(i + 24));
+      stream_printf(stream, floating_point_format, i + 24, FLOATING_POINT_REGISTER_SINGLE(i + 24));
       stream_printf(stream, "\n");
     }
 }
@@ -137,8 +137,8 @@ void format_registers(str_stream* stream, bool print_general_purpose_registers_h
 /* Write to the stream a printable representation of the instructions in
    memory addresses: FROM...TO. */
 
-void format_instructions(str_stream* stream, mem_addr from, mem_addr to) {
-  for (mem_addr i = from; i < to; i += 4) {
+void format_instructions(string_stream* stream, memory_address from, memory_address to) {
+  for (memory_address i = from; i < to; i += 4) {
     mips_instruction* const instruction = memory_read_instruction(i);
     if (instruction != nullptr) {
       format_an_instruction(stream, instruction, i);
@@ -155,9 +155,9 @@ void format_instructions(str_stream* stream, mem_addr from, mem_addr to) {
    assemble-time event trace, a different feature.) */
 
 void print_text_listing(void) {
-  static str_stream stream;
+  static string_stream stream;
   stream_clear(&stream);
-  format_instructions(&stream, TEXT_BOT, text_top);
+  format_instructions(&stream, TEXT_BOTTOM, text_top);
 
   char* const text = stream_to_string(&stream);
   if (*text == '\0') {
@@ -171,15 +171,15 @@ void print_text_listing(void) {
 /* Write to the stream a printable representation of the data and stack
    segments. */
 
-void format_data_segments(str_stream* stream) {
+void format_data_segments(string_stream* stream) {
   stream_printf(stream, "\tDATA\n");
-  format_memory(stream, DATA_BOT, data_top);
+  format_memory(stream, DATA_BOTTOM, data_top);
 
   stream_printf(stream, "\n\tSTACK\n");
-  format_memory(stream, (mem_addr)ROUND_DOWN(gpr[29], BYTES_PER_WORD), STACK_TOP);
+  format_memory(stream, (memory_address)ROUND_DOWN(general_purpose_registers[29], BYTES_PER_WORD), STACK_TOP);
 
   stream_printf(stream, "\n\tKERNEL DATA\n");
-  format_memory(stream, K_DATA_BOT, k_data_top);
+  format_memory(stream, KERNEL_DATA_BOTTOM, kernel_data_top);
 }
 
 constexpr int BYTES_PER_LINE = 4 * BYTES_PER_WORD;
@@ -187,9 +187,9 @@ constexpr int BYTES_PER_LINE = 4 * BYTES_PER_WORD;
 /* Write to the stream a printable representation of the data in memory
    address: FROM...TO. */
 
-void format_memory(str_stream* stream, mem_addr from, mem_addr to) {
-  mem_word value;
-  mem_addr i = ROUND_UP(from, BYTES_PER_WORD);
+void format_memory(string_stream* stream, memory_address from, memory_address to) {
+  memory_word value;
+  memory_address i = ROUND_UP(from, BYTES_PER_WORD);
   int j;
 
   i = format_partial_line(stream, i);
@@ -227,12 +227,12 @@ void format_memory(str_stream* stream, mem_addr from, mem_addr to) {
 /* Write to the stream a text line containing a fraction of a
    quadword. Return the address after the last one written.  */
 
-static mem_addr format_partial_line(str_stream* stream, mem_addr address) {
+static memory_address format_partial_line(string_stream* stream, memory_address address) {
   if ((address % BYTES_PER_LINE) != 0) {
     stream_printf(stream, "[0x%08x]		      ", address);
 
     for (; (address % BYTES_PER_LINE) != 0; address += BYTES_PER_WORD) {
-      const mem_word value = memory_read_word(address);
+      const memory_word value = memory_read_word(address);
       stream_printf(stream, "  0x%08x", (unsigned int)value);
     }
 

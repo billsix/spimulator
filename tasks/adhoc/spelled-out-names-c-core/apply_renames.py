@@ -10,7 +10,8 @@ skipped; they are regenerated from the renamed ``.tsv`` files):
    follows its referenced declaration's decision by clang's declaration id. So two
    declarations spelled alike can get different new names, or one can keep its name.
 2. **By token**, for what the JSON AST has no reference positions for: typedef names, struct,
-   union and enum tags, macros, and a renamed field written in a designator chain
+   union and enum tags, macros, enum constants and file-scope variables used as an array size
+   or array designator, and a renamed field written in a designator chain
    (``.old =``, ``.old.inner =``) or in ``offsetof``. String and character literals are never changed; comments change only for
    names that are clearly identifiers (they contain ``_``, or mix or are all upper case).
 
@@ -401,11 +402,23 @@ def token_edits(
     Returns:
         dict[tuple[str, int], tuple[str, str]]: (path, offset) to (old, new).
     """
+    located_olds: set[str] = {rule.old for rule in renames if rule.location != "*"}
+    # Enum constants and file-scope variables also appear where the JSON AST has no reference
+    # (an array size, an array designator), so the token pass renames them too. A name that is
+    # also a parameter, or has a per-declaration row, is left to the AST pass.
+    constant_like: bool = bool(kinds & {"enum", "global"})
     by_token: dict[str, str] = {
         rule.old: rule.new
         for rule in renames
         if rule.location == "*"
-        and any(TOKEN_KINDS.get(kind) in kinds for kind in rule.kinds)
+        and (
+            any(TOKEN_KINDS.get(kind) in kinds for kind in rule.kinds)
+            or (
+                constant_like
+                and rule.old not in located_olds
+                and rule.kinds <= {"EnumConstantDecl", "VarDecl"}
+            )
+        )
     }
     fields: dict[str, str] = {
         rule.old: rule.new

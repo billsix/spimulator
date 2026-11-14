@@ -19,7 +19,7 @@
 
 static void get_hash(const char* name, int* slot_no, label** entry);
 static void resolve_a_label_subtract(const label* symbol, mips_instruction* instruction,
-                                mem_addr program_counter);
+                                memory_address program_counter);
 
 /* Keep track of the memory location that a label represents.  If we
    see a reference to a label that is not yet defined, then record the
@@ -31,7 +31,7 @@ static void resolve_a_label_subtract(const label* symbol, mips_instruction* inst
 
 static label* local_labels = nullptr; /* Labels local to current file. */
 
-constexpr int HASHBITS = 30;
+constexpr int HASH_BITS = 30;
 
 constexpr int LABEL_HASH_TABLE_SIZE = 8191;
 
@@ -69,7 +69,7 @@ static void get_hash(const char* name, int* slot_no, label** entry) {
   unsigned high = (unsigned int)length;
   for (int i = 0; i < length; i++) high = ((high * 613) + (unsigned)(name[i]));
 
-  high &= (1 << HASHBITS) - 1;
+  high &= (1 << HASH_BITS) - 1;
   high %= LABEL_HASH_TABLE_SIZE;
 
   *slot_no = (int)high;
@@ -116,7 +116,7 @@ label* lookup_label(const char* name) {
 /* Record that the label named NAME refers to ADDRESS.	If RESOLVE_USES is
    true, resolve all references to it.  Return the label structure. */
 
-label* record_label(const char* name, mem_addr address, bool resolve_uses) {
+label* record_label(const char* name, memory_address address, bool resolve_uses) {
   label* l = lookup_label(name);
 
   if (!l->global_pointer_flag) {
@@ -154,7 +154,7 @@ label* make_label_global(const char* name) {
 void record_instruction_uses_symbol(mips_instruction* instruction, label* symbol) {
   label_use* u = (label_use*)allocate_or_exit(sizeof(label_use));
 
-  if (data_dir) /* Want to free up original instruction */
+  if (data_directive) /* Want to free up original instruction */
     *u = (label_use){.instruction = copy_instruction(instruction),
                      .address = current_data_location(),
                      .next = symbol->uses};
@@ -169,7 +169,7 @@ void record_instruction_uses_symbol(mips_instruction* instruction, label* symbol
 /* Record that the WIDTH-byte datum at memory LOCATION holds the as-yet
    undefined SYMBOL plus OFFSET. */
 
-void record_data_uses_symbol(mem_addr location, label* symbol, int32_t offset,
+void record_data_uses_symbol(memory_address location, label* symbol, int32_t offset,
                              int width) {
   label_use* u = (label_use*)allocate_or_exit(sizeof(label_use));
 
@@ -183,15 +183,15 @@ void record_data_uses_symbol(mem_addr location, label* symbol, int32_t offset,
    time, as store_byte/store_half/store_word laid them down (AT need not be
    aligned). */
 
-static void write_data_value(mem_addr at, int32_t value, int width) {
+static void write_data_value(memory_address at, int32_t value, int width) {
   for (int i = 0; i < width; i++) {
 #ifdef SPIM_BIGENDIAN
     int shift = 8 * (width - 1 - i);
 #else
     const int shift = 8 * i;
 #endif
-    memory_write_byte(at + (mem_addr)i,
-                   (reg_word)(((uint32_t)value >> shift) & 0xffu));
+    memory_write_byte(at + (memory_address)i,
+                   (register_word)(((uint32_t)value >> shift) & 0xffu));
   }
 }
 
@@ -206,8 +206,8 @@ void resolve_label_uses(label* symbol) {
       write_data_value(use->address, (int32_t)symbol->address + use->offset, use->width);
     else
       resolve_a_label_subtract(symbol, use->instruction, use->address);
-    if (use->instruction != nullptr && use->address >= DATA_BOT &&
-        use->address < stack_bot) {
+    if (use->instruction != nullptr && use->address >= DATA_BOTTOM &&
+        use->address < stack_bottom) {
       memory_write_word(use->address, instruction_encode(use->instruction));
       free_instruction(use->instruction);
     }
@@ -222,29 +222,29 @@ void resolve_label_uses(label* symbol) {
 
 void resolve_a_label(label* symbol, mips_instruction* instruction) {
   resolve_a_label_subtract(symbol, instruction,
-                      (data_dir ? current_data_location() : current_text_location()));
+                      (data_directive ? current_data_location() : current_text_location()));
 }
 
 static void resolve_a_label_subtract(const label* symbol, mips_instruction* instruction,
-                                mem_addr program_counter) {
+                                memory_address program_counter) {
   if (instruction == nullptr) {
     /* Memory data: */
-    memory_write_word(program_counter, (reg_word)symbol->address);
+    memory_write_word(program_counter, (register_word)symbol->address);
   } else {
     /* Instruction: */
-    if (EXPR(instruction)->program_counter_relative)
-      EXPR(instruction)->offset =
+    if (EXPRESSION(instruction)->program_counter_relative)
+      EXPRESSION(instruction)->offset =
           (int32_t)(0 - program_counter); /* Instruction may have moved */
 
-    if (EXPR(instruction)->symbol == nullptr ||
-        SYMBOL_IS_DEFINED(EXPR(instruction)->symbol)) {
+    if (EXPRESSION(instruction)->symbol == nullptr ||
+        SYMBOL_IS_DEFINED(EXPRESSION(instruction)->symbol)) {
       int32_t value;
       int32_t field_mask;
 
       if (opcode_is_branch(OPCODE(instruction))) {
         /* The full 32-bit byte offset: the expression asks for its low 16
            bits, which would truncate a branch more than 32 KB away. */
-        imm_expr whole = *EXPR(instruction);
+        immediate_expression whole = *EXPRESSION(instruction);
         whole.bits = 0;
         const int32_t byte_offset = evaluate_immediate_expression(&whole);
         /* Drop low two bits since instructions are on word boundaries. */
@@ -260,7 +260,7 @@ static void resolve_a_label_subtract(const label* symbol, mips_instruction* inst
         value = (int32_t)((uint32_t)word_offset & 0xffffu);
         field_mask = 0xffff;
       } else if (opcode_is_jump(OPCODE(instruction))) {
-        value = evaluate_immediate_expression(EXPR(instruction));
+        value = evaluate_immediate_expression(EXPRESSION(instruction));
         if (((unsigned int)value & 0xf0000000) != (program_counter & 0xf0000000)) {
           error(
               "Target of jump differs in high-order 4 bits from instruction pc "
@@ -274,7 +274,7 @@ static void resolve_a_label_subtract(const label* symbol, mips_instruction* inst
                                              instruction */
       } else if (opcode_is_load_store(OPCODE(instruction))) {
         /* Label's location is an address */
-        value = evaluate_immediate_expression(EXPR(instruction));
+        value = evaluate_immediate_expression(EXPRESSION(instruction));
         field_mask = 0xffff;
 
         if (value & 0x8000) {
@@ -284,27 +284,27 @@ static void resolve_a_label_subtract(const label* symbol, mips_instruction* inst
           mips_instruction* previous_previous_instruction =
               memory_read_instruction(program_counter - 2 * BYTES_PER_WORD);
 
-          if (previous_instruction != nullptr && OPCODE(previous_instruction) == TOK_LUI_OPCODE &&
-              EXPR(instruction)->symbol == EXPR(previous_instruction)->symbol &&
-              IMM(previous_instruction) == 0) {
+          if (previous_instruction != nullptr && OPCODE(previous_instruction) == TOKEN_LUI_OPCODE &&
+              EXPRESSION(instruction)->symbol == EXPRESSION(previous_instruction)->symbol &&
+              IMMEDIATE(previous_instruction) == 0) {
             /* Check that previous instruction was LUI and it has no immediate,
                otherwise it will have compensated for sign-extension */
-            EXPR(previous_instruction)->offset += 0x10000;
+            EXPRESSION(previous_instruction)->offset += 0x10000;
           }
           /* There is an ADDU instruction before the LUI if the
              LW/SW instruction uses an index register: skip over the ADDU. */
           else if (previous_previous_instruction != nullptr &&
-                   OPCODE(previous_previous_instruction) == TOK_LUI_OPCODE &&
-                   EXPR(instruction)->symbol == EXPR(previous_previous_instruction)->symbol &&
-                   IMM(previous_previous_instruction) == 0) {
-            EXPR(previous_previous_instruction)->offset += 0x10000;
+                   OPCODE(previous_previous_instruction) == TOKEN_LUI_OPCODE &&
+                   EXPRESSION(instruction)->symbol == EXPRESSION(previous_previous_instruction)->symbol &&
+                   IMMEDIATE(previous_previous_instruction) == 0) {
+            EXPRESSION(previous_previous_instruction)->offset += 0x10000;
           } else {
             /* No matching LUI without an immediate: nothing to compensate. */
           }
         }
       } else {
         /* Label's location is a value */
-        value = evaluate_immediate_expression(EXPR(instruction));
+        value = evaluate_immediate_expression(EXPRESSION(instruction));
         field_mask = 0xffff;
       }
 
@@ -316,13 +316,13 @@ static void resolve_a_label_subtract(const label* symbol, mips_instruction* inst
       if (opcode_is_jump(OPCODE(instruction)))
         SET_TARGET(instruction, value); /* Don't mask so it is sign-extended */
       else
-        SET_IMM(instruction, value); /* Ditto */
+        SET_IMMEDIATE(instruction, value); /* Ditto */
       SET_ENCODING(instruction, instruction_encode(instruction));
     } else
       error("Resolving undefined symbol: %s\n",
-            (EXPR(instruction)->symbol == nullptr)
+            (EXPRESSION(instruction)->symbol == nullptr)
                 ? ""
-                : EXPR(instruction)->symbol->name);
+                : EXPRESSION(instruction)->symbol->name);
   }
 }
 
@@ -353,13 +353,13 @@ void flush_local_labels(bool issue_undefined_warnings) {
 
 /* Return the address of SYMBOL or 0 if it is undefined. */
 
-mem_addr find_symbol_address(const char* symbol) {
+memory_address find_symbol_address(const char* symbol) {
   label* const l = lookup_label(symbol);
 
   if (l == nullptr || l->address == 0)
     return 0;
   else
-    return ((mem_addr)l->address);
+    return ((memory_address)l->address);
 }
 
 /* Print all symbols in the table. */
@@ -373,7 +373,7 @@ void print_symbols(void) {
 
 /* Iterate over every currently-defined symbol in the table. */
 
-void for_each_label(void (*callback)(const label* l, void* ctx), void* context) {
+void for_each_label(void (*callback)(const label* l, void* context), void* context) {
   for (int i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
     for (label* l = label_hash_table[i]; l != nullptr; l = l->next)
       if (SYMBOL_IS_DEFINED(l)) callback(l, context);

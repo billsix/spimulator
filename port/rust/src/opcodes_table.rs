@@ -12,738 +12,738 @@ use crate::opcodes::OpcodeRow;
 /// token of row `i` is `FIRST_KEYWORD_TOKEN + i`, as in `tokens.h`.
 #[rustfmt::skip]
 pub const OPCODE_ROWS: [OpcodeRow; 365] = [
-    OpcodeRow { name: ".alias", token: 264, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".align", token: 265, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".ascii", token: 266, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".asciiz", token: 267, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".asm0", token: 268, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".bgnb", token: 269, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".byte", token: 270, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".comm", token: 271, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".data", token: 272, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".double", token: 273, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".end", token: 274, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".endb", token: 275, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".endr", token: 276, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".ent", token: 277, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".err", token: 278, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".extern", token: 279, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".file", token: 280, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".float", token: 281, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".fmask", token: 282, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".frame", token: 283, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".globl", token: 284, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".half", token: 285, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".kdata", token: 286, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".ktext", token: 287, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".lab", token: 288, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".lcomm", token: 289, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".livereg", token: 290, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".loc", token: 291, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".mask", token: 292, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".noalias", token: 293, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".option", token: 294, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".rdata", token: 295, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".repeat", token: 296, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".sdata", token: 297, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".set", token: 298, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".space", token: 299, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".struct", token: 300, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".text", token: 301, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".verstamp", token: 302, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".vreg", token: 303, op_type: OpType::AsmDir, encoding: -1 },
-    OpcodeRow { name: ".word", token: 304, op_type: OpType::AsmDir, encoding: -1 },
+    OpcodeRow { name: ".alias", token: 264, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".align", token: 265, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".ascii", token: 266, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".asciiz", token: 267, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".asm0", token: 268, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".bgnb", token: 269, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".byte", token: 270, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".comm", token: 271, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".data", token: 272, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".double", token: 273, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".end", token: 274, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".endb", token: 275, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".endr", token: 276, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".ent", token: 277, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".err", token: 278, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".extern", token: 279, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".file", token: 280, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".float", token: 281, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".fmask", token: 282, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".frame", token: 283, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".globl", token: 284, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".half", token: 285, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".kdata", token: 286, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".ktext", token: 287, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".lab", token: 288, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".lcomm", token: 289, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".livereg", token: 290, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".loc", token: 291, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".mask", token: 292, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".noalias", token: 293, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".option", token: 294, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".rdata", token: 295, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".repeat", token: 296, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".sdata", token: 297, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".set", token: 298, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".space", token: 299, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".struct", token: 300, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".text", token: 301, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".verstamp", token: 302, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".vreg", token: 303, op_type: OpType::AssemblerDirective, encoding: -1 },
+    OpcodeRow { name: ".word", token: 304, op_type: OpType::AssemblerDirective, encoding: -1 },
     OpcodeRow { name: "abs", token: 305, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "abs.d", token: 306, op_type: OpType::FpFdFsInst, encoding: 1176502277 },
-    OpcodeRow { name: "abs.ps", token: 307, op_type: OpType::FpFdFsInst, encoding: 1180696581 },
-    OpcodeRow { name: "abs.s", token: 308, op_type: OpType::FpFdFsInst, encoding: 1174405125 },
-    OpcodeRow { name: "add", token: 309, op_type: OpType::RdRsRtInst, encoding: 32 },
-    OpcodeRow { name: "add.d", token: 310, op_type: OpType::FpFdFsFtInst, encoding: 1176502272 },
-    OpcodeRow { name: "add.ps", token: 311, op_type: OpType::FpFdFsFtInst, encoding: 1180696576 },
-    OpcodeRow { name: "add.s", token: 312, op_type: OpType::FpFdFsFtInst, encoding: 1174405120 },
-    OpcodeRow { name: "addi", token: 313, op_type: OpType::RtRsImmInst, encoding: 536870912 },
-    OpcodeRow { name: "addiu", token: 314, op_type: OpType::RtRsImmInst, encoding: 603979776 },
-    OpcodeRow { name: "addu", token: 315, op_type: OpType::RdRsRtInst, encoding: 33 },
-    OpcodeRow { name: "alnv.ps", token: 316, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068446 },
-    OpcodeRow { name: "and", token: 317, op_type: OpType::RdRsRtInst, encoding: 36 },
-    OpcodeRow { name: "andi", token: 318, op_type: OpType::RtRsImmInst, encoding: 805306368 },
+    OpcodeRow { name: "abs.d", token: 306, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1176502277 },
+    OpcodeRow { name: "abs.ps", token: 307, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1180696581 },
+    OpcodeRow { name: "abs.s", token: 308, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1174405125 },
+    OpcodeRow { name: "add", token: 309, op_type: OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction, encoding: 32 },
+    OpcodeRow { name: "add.d", token: 310, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1176502272 },
+    OpcodeRow { name: "add.ps", token: 311, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1180696576 },
+    OpcodeRow { name: "add.s", token: 312, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1174405120 },
+    OpcodeRow { name: "addi", token: 313, op_type: OpType::TargetRegisterSourceRegisterImmediateInstruction, encoding: 536870912 },
+    OpcodeRow { name: "addiu", token: 314, op_type: OpType::TargetRegisterSourceRegisterImmediateInstruction, encoding: 603979776 },
+    OpcodeRow { name: "addu", token: 315, op_type: OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction, encoding: 33 },
+    OpcodeRow { name: "alnv.ps", token: 316, op_type: OpType::FloatingPointDestinationAddendSourceTargetInstruction, encoding: 1275068446 },
+    OpcodeRow { name: "and", token: 317, op_type: OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction, encoding: 36 },
+    OpcodeRow { name: "andi", token: 318, op_type: OpType::TargetRegisterSourceRegisterImmediateInstruction, encoding: 805306368 },
     OpcodeRow { name: "b", token: 319, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "bal", token: 320, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "bc1f", token: 321, op_type: OpType::BranchCoprocCondInst, encoding: 1157627904 },
-    OpcodeRow { name: "bc1fl", token: 322, op_type: OpType::BranchCoprocCondInst, encoding: 1157758976 },
-    OpcodeRow { name: "bc1t", token: 323, op_type: OpType::BranchCoprocCondInst, encoding: 1157693440 },
-    OpcodeRow { name: "bc1tl", token: 324, op_type: OpType::BranchCoprocCondInst, encoding: 1157824512 },
-    OpcodeRow { name: "bc2f", token: 325, op_type: OpType::BranchCoprocCondInst, encoding: 1224736768 },
-    OpcodeRow { name: "bc2fl", token: 326, op_type: OpType::BranchCoprocCondInst, encoding: 1224867840 },
-    OpcodeRow { name: "bc2t", token: 327, op_type: OpType::BranchCoprocCondInst, encoding: 1224802304 },
-    OpcodeRow { name: "bc2tl", token: 328, op_type: OpType::BranchCoprocCondInst, encoding: 1224933376 },
-    OpcodeRow { name: "beq", token: 329, op_type: OpType::BranchRsRtLabelInst, encoding: 268435456 },
-    OpcodeRow { name: "beql", token: 330, op_type: OpType::BranchRsRtLabelInst, encoding: 1342177280 },
+    OpcodeRow { name: "bc1f", token: 321, op_type: OpType::BranchCoprocessorConditionInstruction, encoding: 1157627904 },
+    OpcodeRow { name: "bc1fl", token: 322, op_type: OpType::BranchCoprocessorConditionInstruction, encoding: 1157758976 },
+    OpcodeRow { name: "bc1t", token: 323, op_type: OpType::BranchCoprocessorConditionInstruction, encoding: 1157693440 },
+    OpcodeRow { name: "bc1tl", token: 324, op_type: OpType::BranchCoprocessorConditionInstruction, encoding: 1157824512 },
+    OpcodeRow { name: "bc2f", token: 325, op_type: OpType::BranchCoprocessorConditionInstruction, encoding: 1224736768 },
+    OpcodeRow { name: "bc2fl", token: 326, op_type: OpType::BranchCoprocessorConditionInstruction, encoding: 1224867840 },
+    OpcodeRow { name: "bc2t", token: 327, op_type: OpType::BranchCoprocessorConditionInstruction, encoding: 1224802304 },
+    OpcodeRow { name: "bc2tl", token: 328, op_type: OpType::BranchCoprocessorConditionInstruction, encoding: 1224933376 },
+    OpcodeRow { name: "beq", token: 329, op_type: OpType::BranchSourceRegisterTargetRegisterLabelInstruction, encoding: 268435456 },
+    OpcodeRow { name: "beql", token: 330, op_type: OpType::BranchSourceRegisterTargetRegisterLabelInstruction, encoding: 1342177280 },
     OpcodeRow { name: "beqz", token: 331, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "bge", token: 332, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "bgeu", token: 333, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "bgez", token: 334, op_type: OpType::BranchRsLabelInst, encoding: 67174400 },
-    OpcodeRow { name: "bgezal", token: 335, op_type: OpType::BranchRsLabelInst, encoding: 68222976 },
-    OpcodeRow { name: "bgezall", token: 336, op_type: OpType::BranchRsLabelInst, encoding: 68354048 },
-    OpcodeRow { name: "bgezl", token: 337, op_type: OpType::BranchRsLabelInst, encoding: 67305472 },
+    OpcodeRow { name: "bgez", token: 334, op_type: OpType::BranchSourceRegisterLabelInstruction, encoding: 67174400 },
+    OpcodeRow { name: "bgezal", token: 335, op_type: OpType::BranchSourceRegisterLabelInstruction, encoding: 68222976 },
+    OpcodeRow { name: "bgezall", token: 336, op_type: OpType::BranchSourceRegisterLabelInstruction, encoding: 68354048 },
+    OpcodeRow { name: "bgezl", token: 337, op_type: OpType::BranchSourceRegisterLabelInstruction, encoding: 67305472 },
     OpcodeRow { name: "bgt", token: 338, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "bgtu", token: 339, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "bgtz", token: 340, op_type: OpType::BranchRsLabelInst, encoding: 469762048 },
-    OpcodeRow { name: "bgtzl", token: 341, op_type: OpType::BranchRsLabelInst, encoding: 1543503872 },
+    OpcodeRow { name: "bgtz", token: 340, op_type: OpType::BranchSourceRegisterLabelInstruction, encoding: 469762048 },
+    OpcodeRow { name: "bgtzl", token: 341, op_type: OpType::BranchSourceRegisterLabelInstruction, encoding: 1543503872 },
     OpcodeRow { name: "ble", token: 342, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "bleu", token: 343, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "blez", token: 344, op_type: OpType::BranchRsLabelInst, encoding: 402653184 },
-    OpcodeRow { name: "blezl", token: 345, op_type: OpType::BranchRsLabelInst, encoding: 1476395008 },
+    OpcodeRow { name: "blez", token: 344, op_type: OpType::BranchSourceRegisterLabelInstruction, encoding: 402653184 },
+    OpcodeRow { name: "blezl", token: 345, op_type: OpType::BranchSourceRegisterLabelInstruction, encoding: 1476395008 },
     OpcodeRow { name: "blt", token: 346, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "bltu", token: 347, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "bltz", token: 348, op_type: OpType::BranchRsLabelInst, encoding: 67108864 },
-    OpcodeRow { name: "bltzal", token: 349, op_type: OpType::BranchRsLabelInst, encoding: 68157440 },
-    OpcodeRow { name: "bltzall", token: 350, op_type: OpType::BranchRsLabelInst, encoding: 68288512 },
-    OpcodeRow { name: "bltzl", token: 351, op_type: OpType::BranchRsLabelInst, encoding: 67239936 },
-    OpcodeRow { name: "bne", token: 352, op_type: OpType::BranchRsRtLabelInst, encoding: 335544320 },
-    OpcodeRow { name: "bnel", token: 353, op_type: OpType::BranchRsRtLabelInst, encoding: 1409286144 },
+    OpcodeRow { name: "bltz", token: 348, op_type: OpType::BranchSourceRegisterLabelInstruction, encoding: 67108864 },
+    OpcodeRow { name: "bltzal", token: 349, op_type: OpType::BranchSourceRegisterLabelInstruction, encoding: 68157440 },
+    OpcodeRow { name: "bltzall", token: 350, op_type: OpType::BranchSourceRegisterLabelInstruction, encoding: 68288512 },
+    OpcodeRow { name: "bltzl", token: 351, op_type: OpType::BranchSourceRegisterLabelInstruction, encoding: 67239936 },
+    OpcodeRow { name: "bne", token: 352, op_type: OpType::BranchSourceRegisterTargetRegisterLabelInstruction, encoding: 335544320 },
+    OpcodeRow { name: "bnel", token: 353, op_type: OpType::BranchSourceRegisterTargetRegisterLabelInstruction, encoding: 1409286144 },
     OpcodeRow { name: "bnez", token: 354, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "break", token: 355, op_type: OpType::NoargTypeInst, encoding: 13 },
-    OpcodeRow { name: "c.eq.d", token: 356, op_type: OpType::FpCmpFsFtInst, encoding: 1176502322 },
-    OpcodeRow { name: "c.eq.s", token: 357, op_type: OpType::FpCmpFsFtInst, encoding: 1174405170 },
-    OpcodeRow { name: "c.f.d", token: 358, op_type: OpType::FpCmpFsFtInst, encoding: 1176502320 },
-    OpcodeRow { name: "c.f.s", token: 359, op_type: OpType::FpCmpFsFtInst, encoding: 1174405168 },
-    OpcodeRow { name: "c.le.d", token: 360, op_type: OpType::FpCmpFsFtInst, encoding: 1176502334 },
-    OpcodeRow { name: "c.le.s", token: 361, op_type: OpType::FpCmpFsFtInst, encoding: 1174405182 },
-    OpcodeRow { name: "c.lt.d", token: 362, op_type: OpType::FpCmpFsFtInst, encoding: 1176502332 },
-    OpcodeRow { name: "c.lt.s", token: 363, op_type: OpType::FpCmpFsFtInst, encoding: 1174405180 },
-    OpcodeRow { name: "c.nge.d", token: 364, op_type: OpType::FpCmpFsFtInst, encoding: 1176502333 },
-    OpcodeRow { name: "c.nge.s", token: 365, op_type: OpType::FpCmpFsFtInst, encoding: 1174405181 },
-    OpcodeRow { name: "c.ngl.d", token: 366, op_type: OpType::FpCmpFsFtInst, encoding: 1176502331 },
-    OpcodeRow { name: "c.ngl.s", token: 367, op_type: OpType::FpCmpFsFtInst, encoding: 1174405179 },
-    OpcodeRow { name: "c.ngle.d", token: 368, op_type: OpType::FpCmpFsFtInst, encoding: 1176502329 },
-    OpcodeRow { name: "c.ngle.s", token: 369, op_type: OpType::FpCmpFsFtInst, encoding: 1174405177 },
-    OpcodeRow { name: "c.ngt.d", token: 370, op_type: OpType::FpCmpFsFtInst, encoding: 1176502335 },
-    OpcodeRow { name: "c.ngt.s", token: 371, op_type: OpType::FpCmpFsFtInst, encoding: 1174405183 },
-    OpcodeRow { name: "c.ole.d", token: 372, op_type: OpType::FpCmpFsFtInst, encoding: 1176502326 },
-    OpcodeRow { name: "c.ole.s", token: 373, op_type: OpType::FpCmpFsFtInst, encoding: 1174405174 },
-    OpcodeRow { name: "c.olt.d", token: 374, op_type: OpType::FpCmpFsFtInst, encoding: 1176502324 },
-    OpcodeRow { name: "c.olt.s", token: 375, op_type: OpType::FpCmpFsFtInst, encoding: 1174405172 },
-    OpcodeRow { name: "c.seq.d", token: 376, op_type: OpType::FpCmpFsFtInst, encoding: 1176502330 },
-    OpcodeRow { name: "c.seq.s", token: 377, op_type: OpType::FpCmpFsFtInst, encoding: 1174405178 },
-    OpcodeRow { name: "c.sf.d", token: 378, op_type: OpType::FpCmpFsFtInst, encoding: 1176502328 },
-    OpcodeRow { name: "c.sf.s", token: 379, op_type: OpType::FpCmpFsFtInst, encoding: 1174405176 },
-    OpcodeRow { name: "c.ueq.d", token: 380, op_type: OpType::FpCmpFsFtInst, encoding: 1176502323 },
-    OpcodeRow { name: "c.ueq.s", token: 381, op_type: OpType::FpCmpFsFtInst, encoding: 1174405171 },
-    OpcodeRow { name: "c.ule.d", token: 382, op_type: OpType::FpCmpFsFtInst, encoding: 1176502327 },
-    OpcodeRow { name: "c.ule.s", token: 383, op_type: OpType::FpCmpFsFtInst, encoding: 1174405175 },
-    OpcodeRow { name: "c.ult.d", token: 384, op_type: OpType::FpCmpFsFtInst, encoding: 1176502325 },
-    OpcodeRow { name: "c.ult.s", token: 385, op_type: OpType::FpCmpFsFtInst, encoding: 1174405173 },
-    OpcodeRow { name: "c.un.d", token: 386, op_type: OpType::FpCmpFsFtInst, encoding: 1176502321 },
-    OpcodeRow { name: "c.un.s", token: 387, op_type: OpType::FpCmpFsFtInst, encoding: 1174405169 },
-    OpcodeRow { name: "cache", token: 388, op_type: OpType::RtRsImmInst, encoding: -1140850688 },
-    OpcodeRow { name: "ceil.l.d", token: 389, op_type: OpType::FpFdFsInst, encoding: 1176502282 },
-    OpcodeRow { name: "ceil.l.s", token: 390, op_type: OpType::FpFdFsInst, encoding: 1174405130 },
-    OpcodeRow { name: "ceil.w.d", token: 391, op_type: OpType::FpFdFsInst, encoding: 1176502286 },
-    OpcodeRow { name: "ceil.w.s", token: 392, op_type: OpType::FpFdFsInst, encoding: 1174405134 },
-    OpcodeRow { name: "cfc0", token: 393, op_type: OpType::FpRtCopregInst, encoding: 1077936128 },
-    OpcodeRow { name: "cfc1", token: 394, op_type: OpType::FpRtCopregInst, encoding: 1145044992 },
-    OpcodeRow { name: "cfc2", token: 395, op_type: OpType::FpRtCopregInst, encoding: 1212153856 },
-    OpcodeRow { name: "clo", token: 396, op_type: OpType::RdRsRtInst, encoding: 1879048225 },
-    OpcodeRow { name: "clz", token: 397, op_type: OpType::RdRsRtInst, encoding: 1879048224 },
-    OpcodeRow { name: "cop2", token: 398, op_type: OpType::JTypeInst, encoding: 1241513984 },
-    OpcodeRow { name: "ctc0", token: 399, op_type: OpType::FpRtCopregInst, encoding: 1086324736 },
-    OpcodeRow { name: "ctc1", token: 400, op_type: OpType::FpRtCopregInst, encoding: 1153433600 },
-    OpcodeRow { name: "ctc2", token: 401, op_type: OpType::FpRtCopregInst, encoding: 1220542464 },
-    OpcodeRow { name: "cvt.d.l", token: 402, op_type: OpType::FpFdFsInst, encoding: 1185939489 },
-    OpcodeRow { name: "cvt.d.s", token: 403, op_type: OpType::FpFdFsInst, encoding: 1174405153 },
-    OpcodeRow { name: "cvt.d.w", token: 404, op_type: OpType::FpFdFsInst, encoding: 1176502305 },
-    OpcodeRow { name: "cvt.l.d", token: 405, op_type: OpType::FpFdFsInst, encoding: 1176502309 },
-    OpcodeRow { name: "cvt.l.s", token: 406, op_type: OpType::FpFdFsInst, encoding: 1174405157 },
-    OpcodeRow { name: "cvt.ps.s", token: 407, op_type: OpType::FpFdFsInst, encoding: 1174405158 },
-    OpcodeRow { name: "cvt.s.d", token: 408, op_type: OpType::FpFdFsInst, encoding: 1176502304 },
-    OpcodeRow { name: "cvt.s.l", token: 409, op_type: OpType::FpFdFsInst, encoding: 1185939488 },
-    OpcodeRow { name: "cvt.s.pl", token: 410, op_type: OpType::FpFdFsInst, encoding: 1186988068 },
-    OpcodeRow { name: "cvt.s.pu", token: 411, op_type: OpType::FpFdFsInst, encoding: 1186988064 },
-    OpcodeRow { name: "cvt.s.w", token: 412, op_type: OpType::FpFdFsInst, encoding: 1182793760 },
-    OpcodeRow { name: "cvt.w.d", token: 413, op_type: OpType::FpFdFsInst, encoding: 1176502308 },
-    OpcodeRow { name: "cvt.w.s", token: 414, op_type: OpType::FpFdFsInst, encoding: 1174405156 },
-    OpcodeRow { name: "deret", token: 415, op_type: OpType::NoargTypeInst, encoding: 1107296287 },
-    OpcodeRow { name: "di", token: 416, op_type: OpType::RtImmInst, encoding: 1096835072 },
-    OpcodeRow { name: "div", token: 417, op_type: OpType::RsRtInst, encoding: 26 },
-    OpcodeRow { name: "div.d", token: 418, op_type: OpType::FpFdFsFtInst, encoding: 1176502275 },
-    OpcodeRow { name: "div.s", token: 419, op_type: OpType::FpFdFsFtInst, encoding: 1174405123 },
-    OpcodeRow { name: "divu", token: 420, op_type: OpType::RsRtInst, encoding: 27 },
-    OpcodeRow { name: "ehb", token: 421, op_type: OpType::NoargTypeInst, encoding: 192 },
-    OpcodeRow { name: "ei", token: 422, op_type: OpType::RtImmInst, encoding: 1096835104 },
-    OpcodeRow { name: "eret", token: 423, op_type: OpType::NoargTypeInst, encoding: 1107296280 },
-    OpcodeRow { name: "ext", token: 424, op_type: OpType::FpFdFsInst, encoding: 2080374784 },
-    OpcodeRow { name: "floor.l.d", token: 425, op_type: OpType::FpFdFsInst, encoding: 1176502283 },
-    OpcodeRow { name: "floor.l.s", token: 426, op_type: OpType::FpFdFsInst, encoding: 1174405131 },
-    OpcodeRow { name: "floor.w.d", token: 427, op_type: OpType::FpFdFsInst, encoding: 1176502287 },
-    OpcodeRow { name: "floor.w.s", token: 428, op_type: OpType::FpFdFsInst, encoding: 1174405135 },
-    OpcodeRow { name: "ins", token: 429, op_type: OpType::FpFdFsInst, encoding: 2080374788 },
-    OpcodeRow { name: "j", token: 430, op_type: OpType::JTypeInst, encoding: 134217728 },
-    OpcodeRow { name: "jal", token: 431, op_type: OpType::JTypeInst, encoding: 201326592 },
-    OpcodeRow { name: "jalr", token: 432, op_type: OpType::RdRsInst, encoding: 9 },
-    OpcodeRow { name: "jalr.hb", token: 433, op_type: OpType::RdRsInst, encoding: 1033 },
-    OpcodeRow { name: "jr", token: 434, op_type: OpType::RsInst, encoding: 8 },
-    OpcodeRow { name: "jr.hb", token: 435, op_type: OpType::RsInst, encoding: 1032 },
+    OpcodeRow { name: "break", token: 355, op_type: OpType::NoArgumentTypeInstruction, encoding: 13 },
+    OpcodeRow { name: "c.eq.d", token: 356, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1176502322 },
+    OpcodeRow { name: "c.eq.s", token: 357, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1174405170 },
+    OpcodeRow { name: "c.f.d", token: 358, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1176502320 },
+    OpcodeRow { name: "c.f.s", token: 359, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1174405168 },
+    OpcodeRow { name: "c.le.d", token: 360, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1176502334 },
+    OpcodeRow { name: "c.le.s", token: 361, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1174405182 },
+    OpcodeRow { name: "c.lt.d", token: 362, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1176502332 },
+    OpcodeRow { name: "c.lt.s", token: 363, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1174405180 },
+    OpcodeRow { name: "c.nge.d", token: 364, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1176502333 },
+    OpcodeRow { name: "c.nge.s", token: 365, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1174405181 },
+    OpcodeRow { name: "c.ngl.d", token: 366, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1176502331 },
+    OpcodeRow { name: "c.ngl.s", token: 367, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1174405179 },
+    OpcodeRow { name: "c.ngle.d", token: 368, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1176502329 },
+    OpcodeRow { name: "c.ngle.s", token: 369, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1174405177 },
+    OpcodeRow { name: "c.ngt.d", token: 370, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1176502335 },
+    OpcodeRow { name: "c.ngt.s", token: 371, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1174405183 },
+    OpcodeRow { name: "c.ole.d", token: 372, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1176502326 },
+    OpcodeRow { name: "c.ole.s", token: 373, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1174405174 },
+    OpcodeRow { name: "c.olt.d", token: 374, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1176502324 },
+    OpcodeRow { name: "c.olt.s", token: 375, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1174405172 },
+    OpcodeRow { name: "c.seq.d", token: 376, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1176502330 },
+    OpcodeRow { name: "c.seq.s", token: 377, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1174405178 },
+    OpcodeRow { name: "c.sf.d", token: 378, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1176502328 },
+    OpcodeRow { name: "c.sf.s", token: 379, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1174405176 },
+    OpcodeRow { name: "c.ueq.d", token: 380, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1176502323 },
+    OpcodeRow { name: "c.ueq.s", token: 381, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1174405171 },
+    OpcodeRow { name: "c.ule.d", token: 382, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1176502327 },
+    OpcodeRow { name: "c.ule.s", token: 383, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1174405175 },
+    OpcodeRow { name: "c.ult.d", token: 384, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1176502325 },
+    OpcodeRow { name: "c.ult.s", token: 385, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1174405173 },
+    OpcodeRow { name: "c.un.d", token: 386, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1176502321 },
+    OpcodeRow { name: "c.un.s", token: 387, op_type: OpType::FloatingPointCompareSourceTargetInstruction, encoding: 1174405169 },
+    OpcodeRow { name: "cache", token: 388, op_type: OpType::TargetRegisterSourceRegisterImmediateInstruction, encoding: -1140850688 },
+    OpcodeRow { name: "ceil.l.d", token: 389, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1176502282 },
+    OpcodeRow { name: "ceil.l.s", token: 390, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1174405130 },
+    OpcodeRow { name: "ceil.w.d", token: 391, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1176502286 },
+    OpcodeRow { name: "ceil.w.s", token: 392, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1174405134 },
+    OpcodeRow { name: "cfc0", token: 393, op_type: OpType::FloatingPointTargetRegisterCoprocessorRegisterInstruction, encoding: 1077936128 },
+    OpcodeRow { name: "cfc1", token: 394, op_type: OpType::FloatingPointTargetRegisterCoprocessorRegisterInstruction, encoding: 1145044992 },
+    OpcodeRow { name: "cfc2", token: 395, op_type: OpType::FloatingPointTargetRegisterCoprocessorRegisterInstruction, encoding: 1212153856 },
+    OpcodeRow { name: "clo", token: 396, op_type: OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction, encoding: 1879048225 },
+    OpcodeRow { name: "clz", token: 397, op_type: OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction, encoding: 1879048224 },
+    OpcodeRow { name: "cop2", token: 398, op_type: OpType::JTypeInstruction, encoding: 1241513984 },
+    OpcodeRow { name: "ctc0", token: 399, op_type: OpType::FloatingPointTargetRegisterCoprocessorRegisterInstruction, encoding: 1086324736 },
+    OpcodeRow { name: "ctc1", token: 400, op_type: OpType::FloatingPointTargetRegisterCoprocessorRegisterInstruction, encoding: 1153433600 },
+    OpcodeRow { name: "ctc2", token: 401, op_type: OpType::FloatingPointTargetRegisterCoprocessorRegisterInstruction, encoding: 1220542464 },
+    OpcodeRow { name: "cvt.d.l", token: 402, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1185939489 },
+    OpcodeRow { name: "cvt.d.s", token: 403, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1174405153 },
+    OpcodeRow { name: "cvt.d.w", token: 404, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1176502305 },
+    OpcodeRow { name: "cvt.l.d", token: 405, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1176502309 },
+    OpcodeRow { name: "cvt.l.s", token: 406, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1174405157 },
+    OpcodeRow { name: "cvt.ps.s", token: 407, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1174405158 },
+    OpcodeRow { name: "cvt.s.d", token: 408, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1176502304 },
+    OpcodeRow { name: "cvt.s.l", token: 409, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1185939488 },
+    OpcodeRow { name: "cvt.s.pl", token: 410, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1186988068 },
+    OpcodeRow { name: "cvt.s.pu", token: 411, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1186988064 },
+    OpcodeRow { name: "cvt.s.w", token: 412, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1182793760 },
+    OpcodeRow { name: "cvt.w.d", token: 413, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1176502308 },
+    OpcodeRow { name: "cvt.w.s", token: 414, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1174405156 },
+    OpcodeRow { name: "deret", token: 415, op_type: OpType::NoArgumentTypeInstruction, encoding: 1107296287 },
+    OpcodeRow { name: "di", token: 416, op_type: OpType::TargetRegisterImmediateInstruction, encoding: 1096835072 },
+    OpcodeRow { name: "div", token: 417, op_type: OpType::SourceRegisterTargetRegisterInstruction, encoding: 26 },
+    OpcodeRow { name: "div.d", token: 418, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1176502275 },
+    OpcodeRow { name: "div.s", token: 419, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1174405123 },
+    OpcodeRow { name: "divu", token: 420, op_type: OpType::SourceRegisterTargetRegisterInstruction, encoding: 27 },
+    OpcodeRow { name: "ehb", token: 421, op_type: OpType::NoArgumentTypeInstruction, encoding: 192 },
+    OpcodeRow { name: "ei", token: 422, op_type: OpType::TargetRegisterImmediateInstruction, encoding: 1096835104 },
+    OpcodeRow { name: "eret", token: 423, op_type: OpType::NoArgumentTypeInstruction, encoding: 1107296280 },
+    OpcodeRow { name: "ext", token: 424, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 2080374784 },
+    OpcodeRow { name: "floor.l.d", token: 425, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1176502283 },
+    OpcodeRow { name: "floor.l.s", token: 426, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1174405131 },
+    OpcodeRow { name: "floor.w.d", token: 427, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1176502287 },
+    OpcodeRow { name: "floor.w.s", token: 428, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1174405135 },
+    OpcodeRow { name: "ins", token: 429, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 2080374788 },
+    OpcodeRow { name: "j", token: 430, op_type: OpType::JTypeInstruction, encoding: 134217728 },
+    OpcodeRow { name: "jal", token: 431, op_type: OpType::JTypeInstruction, encoding: 201326592 },
+    OpcodeRow { name: "jalr", token: 432, op_type: OpType::DestinationRegisterSourceRegisterInstruction, encoding: 9 },
+    OpcodeRow { name: "jalr.hb", token: 433, op_type: OpType::DestinationRegisterSourceRegisterInstruction, encoding: 1033 },
+    OpcodeRow { name: "jr", token: 434, op_type: OpType::SourceRegisterInstruction, encoding: 8 },
+    OpcodeRow { name: "jr.hb", token: 435, op_type: OpType::SourceRegisterInstruction, encoding: 1032 },
     OpcodeRow { name: "l.d", token: 436, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "l.s", token: 437, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "la", token: 438, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "lb", token: 439, op_type: OpType::RtAddrInst, encoding: -2147483648 },
-    OpcodeRow { name: "lbu", token: 440, op_type: OpType::RtAddrInst, encoding: -1879048192 },
+    OpcodeRow { name: "lb", token: 439, op_type: OpType::TargetRegisterAddressInstruction, encoding: -2147483648 },
+    OpcodeRow { name: "lbu", token: 440, op_type: OpType::TargetRegisterAddressInstruction, encoding: -1879048192 },
     OpcodeRow { name: "ld", token: 441, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "ldc1", token: 442, op_type: OpType::FpFtAddrInst, encoding: -738197504 },
-    OpcodeRow { name: "ldc2", token: 443, op_type: OpType::RtAddrInst, encoding: -671088640 },
-    OpcodeRow { name: "ldxc1", token: 444, op_type: OpType::FpFdFsFtInst, encoding: 1275068417 },
-    OpcodeRow { name: "lh", token: 445, op_type: OpType::RtAddrInst, encoding: -2080374784 },
-    OpcodeRow { name: "lhu", token: 446, op_type: OpType::RtAddrInst, encoding: -1811939328 },
+    OpcodeRow { name: "ldc1", token: 442, op_type: OpType::FloatingPointTargetAddressInstruction, encoding: -738197504 },
+    OpcodeRow { name: "ldc2", token: 443, op_type: OpType::TargetRegisterAddressInstruction, encoding: -671088640 },
+    OpcodeRow { name: "ldxc1", token: 444, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1275068417 },
+    OpcodeRow { name: "lh", token: 445, op_type: OpType::TargetRegisterAddressInstruction, encoding: -2080374784 },
+    OpcodeRow { name: "lhu", token: 446, op_type: OpType::TargetRegisterAddressInstruction, encoding: -1811939328 },
     OpcodeRow { name: "li", token: 447, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "li.d", token: 448, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "li.s", token: 449, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "ll", token: 450, op_type: OpType::RtAddrInst, encoding: -1073741824 },
-    OpcodeRow { name: "lui", token: 451, op_type: OpType::RtImmInst, encoding: 1006632960 },
-    OpcodeRow { name: "luxc1", token: 452, op_type: OpType::FpFdFsFtInst, encoding: 1275068421 },
-    OpcodeRow { name: "lw", token: 453, op_type: OpType::RtAddrInst, encoding: -1946157056 },
-    OpcodeRow { name: "lwc1", token: 454, op_type: OpType::FpFtAddrInst, encoding: -1006632960 },
-    OpcodeRow { name: "lwc2", token: 455, op_type: OpType::RtAddrInst, encoding: -939524096 },
-    OpcodeRow { name: "lwl", token: 456, op_type: OpType::RtAddrInst, encoding: -2013265920 },
-    OpcodeRow { name: "lwr", token: 457, op_type: OpType::RtAddrInst, encoding: -1744830464 },
-    OpcodeRow { name: "lwxc1", token: 458, op_type: OpType::FpFdFsFtInst, encoding: 1275068416 },
-    OpcodeRow { name: "madd", token: 459, op_type: OpType::RsRtInst, encoding: 1879048192 },
-    OpcodeRow { name: "madd.d", token: 460, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068449 },
-    OpcodeRow { name: "madd.ps", token: 461, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068454 },
-    OpcodeRow { name: "madd.s", token: 462, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068448 },
-    OpcodeRow { name: "maddu", token: 463, op_type: OpType::RsRtInst, encoding: 1879048193 },
-    OpcodeRow { name: "mfc0", token: 464, op_type: OpType::RtCopregInst, encoding: 1073741824 },
-    OpcodeRow { name: "mfc1", token: 465, op_type: OpType::FpRtCopregInst, encoding: 1140850688 },
+    OpcodeRow { name: "ll", token: 450, op_type: OpType::TargetRegisterAddressInstruction, encoding: -1073741824 },
+    OpcodeRow { name: "lui", token: 451, op_type: OpType::TargetRegisterImmediateInstruction, encoding: 1006632960 },
+    OpcodeRow { name: "luxc1", token: 452, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1275068421 },
+    OpcodeRow { name: "lw", token: 453, op_type: OpType::TargetRegisterAddressInstruction, encoding: -1946157056 },
+    OpcodeRow { name: "lwc1", token: 454, op_type: OpType::FloatingPointTargetAddressInstruction, encoding: -1006632960 },
+    OpcodeRow { name: "lwc2", token: 455, op_type: OpType::TargetRegisterAddressInstruction, encoding: -939524096 },
+    OpcodeRow { name: "lwl", token: 456, op_type: OpType::TargetRegisterAddressInstruction, encoding: -2013265920 },
+    OpcodeRow { name: "lwr", token: 457, op_type: OpType::TargetRegisterAddressInstruction, encoding: -1744830464 },
+    OpcodeRow { name: "lwxc1", token: 458, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1275068416 },
+    OpcodeRow { name: "madd", token: 459, op_type: OpType::SourceRegisterTargetRegisterInstruction, encoding: 1879048192 },
+    OpcodeRow { name: "madd.d", token: 460, op_type: OpType::FloatingPointDestinationAddendSourceTargetInstruction, encoding: 1275068449 },
+    OpcodeRow { name: "madd.ps", token: 461, op_type: OpType::FloatingPointDestinationAddendSourceTargetInstruction, encoding: 1275068454 },
+    OpcodeRow { name: "madd.s", token: 462, op_type: OpType::FloatingPointDestinationAddendSourceTargetInstruction, encoding: 1275068448 },
+    OpcodeRow { name: "maddu", token: 463, op_type: OpType::SourceRegisterTargetRegisterInstruction, encoding: 1879048193 },
+    OpcodeRow { name: "mfc0", token: 464, op_type: OpType::TargetRegisterCoprocessorRegisterInstruction, encoding: 1073741824 },
+    OpcodeRow { name: "mfc1", token: 465, op_type: OpType::FloatingPointTargetRegisterCoprocessorRegisterInstruction, encoding: 1140850688 },
     OpcodeRow { name: "mfc1.d", token: 466, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "mfc2", token: 467, op_type: OpType::RtCopregInst, encoding: 1207959552 },
-    OpcodeRow { name: "mfhc1", token: 468, op_type: OpType::FpRtCopregInst, encoding: 1147142144 },
-    OpcodeRow { name: "mfhc2", token: 469, op_type: OpType::RtCopregInst, encoding: 1214251008 },
-    OpcodeRow { name: "mfhi", token: 470, op_type: OpType::RdInst, encoding: 16 },
-    OpcodeRow { name: "mflo", token: 471, op_type: OpType::RdInst, encoding: 18 },
-    OpcodeRow { name: "mov.d", token: 472, op_type: OpType::FpFdFsInst, encoding: 1176502278 },
-    OpcodeRow { name: "mov.ps", token: 473, op_type: OpType::FpFdFsInst, encoding: 1186988038 },
-    OpcodeRow { name: "mov.s", token: 474, op_type: OpType::FpFdFsInst, encoding: 1174405126 },
+    OpcodeRow { name: "mfc2", token: 467, op_type: OpType::TargetRegisterCoprocessorRegisterInstruction, encoding: 1207959552 },
+    OpcodeRow { name: "mfhc1", token: 468, op_type: OpType::FloatingPointTargetRegisterCoprocessorRegisterInstruction, encoding: 1147142144 },
+    OpcodeRow { name: "mfhc2", token: 469, op_type: OpType::TargetRegisterCoprocessorRegisterInstruction, encoding: 1214251008 },
+    OpcodeRow { name: "mfhi", token: 470, op_type: OpType::DestinationRegisterInstruction, encoding: 16 },
+    OpcodeRow { name: "mflo", token: 471, op_type: OpType::DestinationRegisterInstruction, encoding: 18 },
+    OpcodeRow { name: "mov.d", token: 472, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1176502278 },
+    OpcodeRow { name: "mov.ps", token: 473, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1186988038 },
+    OpcodeRow { name: "mov.s", token: 474, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1174405126 },
     OpcodeRow { name: "move", token: 475, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "movf", token: 476, op_type: OpType::MovcTypeInst, encoding: 1 },
-    OpcodeRow { name: "movf.d", token: 477, op_type: OpType::FpMovcTypeInst, encoding: 1176502289 },
-    OpcodeRow { name: "movf.ps", token: 478, op_type: OpType::FpMovcTypeInst, encoding: 1186988049 },
-    OpcodeRow { name: "movf.s", token: 479, op_type: OpType::FpMovcTypeInst, encoding: 1174405137 },
-    OpcodeRow { name: "movn", token: 480, op_type: OpType::RdRsRtInst, encoding: 11 },
-    OpcodeRow { name: "movn.d", token: 481, op_type: OpType::FpMovcTypeInst, encoding: 1176502291 },
-    OpcodeRow { name: "movn.ps", token: 482, op_type: OpType::FpMovcTypeInst, encoding: 1186988051 },
-    OpcodeRow { name: "movn.s", token: 483, op_type: OpType::FpMovcTypeInst, encoding: 1174405139 },
-    OpcodeRow { name: "movt", token: 484, op_type: OpType::MovcTypeInst, encoding: 65537 },
-    OpcodeRow { name: "movt.d", token: 485, op_type: OpType::FpMovcTypeInst, encoding: 1176567825 },
-    OpcodeRow { name: "movt.ps", token: 486, op_type: OpType::FpMovcTypeInst, encoding: 1187053585 },
-    OpcodeRow { name: "movt.s", token: 487, op_type: OpType::FpMovcTypeInst, encoding: 1174470673 },
-    OpcodeRow { name: "movz", token: 488, op_type: OpType::RdRsRtInst, encoding: 10 },
-    OpcodeRow { name: "movz.d", token: 489, op_type: OpType::FpMovcTypeInst, encoding: 1176502290 },
-    OpcodeRow { name: "movz.ps", token: 490, op_type: OpType::FpMovcTypeInst, encoding: 1186988050 },
-    OpcodeRow { name: "movz.s", token: 491, op_type: OpType::FpMovcTypeInst, encoding: 1174405138 },
-    OpcodeRow { name: "msub", token: 492, op_type: OpType::RsRtInst, encoding: 1879048196 },
-    OpcodeRow { name: "msub.d", token: 493, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068457 },
-    OpcodeRow { name: "msub.ps", token: 494, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068462 },
-    OpcodeRow { name: "msub.s", token: 495, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068456 },
-    OpcodeRow { name: "msubu", token: 496, op_type: OpType::RsRtInst, encoding: 1879048197 },
-    OpcodeRow { name: "mtc0", token: 497, op_type: OpType::RtCopregInst, encoding: 1082130432 },
-    OpcodeRow { name: "mtc1", token: 498, op_type: OpType::FpRtCopregInst, encoding: 1149239296 },
+    OpcodeRow { name: "movf", token: 476, op_type: OpType::MoveConditionalTypeInstruction, encoding: 1 },
+    OpcodeRow { name: "movf.d", token: 477, op_type: OpType::FloatingPointMoveConditionalTypeInstruction, encoding: 1176502289 },
+    OpcodeRow { name: "movf.ps", token: 478, op_type: OpType::FloatingPointMoveConditionalTypeInstruction, encoding: 1186988049 },
+    OpcodeRow { name: "movf.s", token: 479, op_type: OpType::FloatingPointMoveConditionalTypeInstruction, encoding: 1174405137 },
+    OpcodeRow { name: "movn", token: 480, op_type: OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction, encoding: 11 },
+    OpcodeRow { name: "movn.d", token: 481, op_type: OpType::FloatingPointMoveConditionalTypeInstruction, encoding: 1176502291 },
+    OpcodeRow { name: "movn.ps", token: 482, op_type: OpType::FloatingPointMoveConditionalTypeInstruction, encoding: 1186988051 },
+    OpcodeRow { name: "movn.s", token: 483, op_type: OpType::FloatingPointMoveConditionalTypeInstruction, encoding: 1174405139 },
+    OpcodeRow { name: "movt", token: 484, op_type: OpType::MoveConditionalTypeInstruction, encoding: 65537 },
+    OpcodeRow { name: "movt.d", token: 485, op_type: OpType::FloatingPointMoveConditionalTypeInstruction, encoding: 1176567825 },
+    OpcodeRow { name: "movt.ps", token: 486, op_type: OpType::FloatingPointMoveConditionalTypeInstruction, encoding: 1187053585 },
+    OpcodeRow { name: "movt.s", token: 487, op_type: OpType::FloatingPointMoveConditionalTypeInstruction, encoding: 1174470673 },
+    OpcodeRow { name: "movz", token: 488, op_type: OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction, encoding: 10 },
+    OpcodeRow { name: "movz.d", token: 489, op_type: OpType::FloatingPointMoveConditionalTypeInstruction, encoding: 1176502290 },
+    OpcodeRow { name: "movz.ps", token: 490, op_type: OpType::FloatingPointMoveConditionalTypeInstruction, encoding: 1186988050 },
+    OpcodeRow { name: "movz.s", token: 491, op_type: OpType::FloatingPointMoveConditionalTypeInstruction, encoding: 1174405138 },
+    OpcodeRow { name: "msub", token: 492, op_type: OpType::SourceRegisterTargetRegisterInstruction, encoding: 1879048196 },
+    OpcodeRow { name: "msub.d", token: 493, op_type: OpType::FloatingPointDestinationAddendSourceTargetInstruction, encoding: 1275068457 },
+    OpcodeRow { name: "msub.ps", token: 494, op_type: OpType::FloatingPointDestinationAddendSourceTargetInstruction, encoding: 1275068462 },
+    OpcodeRow { name: "msub.s", token: 495, op_type: OpType::FloatingPointDestinationAddendSourceTargetInstruction, encoding: 1275068456 },
+    OpcodeRow { name: "msubu", token: 496, op_type: OpType::SourceRegisterTargetRegisterInstruction, encoding: 1879048197 },
+    OpcodeRow { name: "mtc0", token: 497, op_type: OpType::TargetRegisterCoprocessorRegisterInstruction, encoding: 1082130432 },
+    OpcodeRow { name: "mtc1", token: 498, op_type: OpType::FloatingPointTargetRegisterCoprocessorRegisterInstruction, encoding: 1149239296 },
     OpcodeRow { name: "mtc1.d", token: 499, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "mtc2", token: 500, op_type: OpType::RtCopregInst, encoding: 1216348160 },
-    OpcodeRow { name: "mthc1", token: 501, op_type: OpType::FpRtCopregInst, encoding: 1155530752 },
-    OpcodeRow { name: "mthc2", token: 502, op_type: OpType::RtCopregInst, encoding: 1222639616 },
-    OpcodeRow { name: "mthi", token: 503, op_type: OpType::RsInst, encoding: 17 },
-    OpcodeRow { name: "mtlo", token: 504, op_type: OpType::RsInst, encoding: 19 },
-    OpcodeRow { name: "mul", token: 505, op_type: OpType::RdRsRtInst, encoding: 1879048194 },
-    OpcodeRow { name: "mul.d", token: 506, op_type: OpType::FpFdFsFtInst, encoding: 1176502274 },
-    OpcodeRow { name: "mul.ps", token: 507, op_type: OpType::FpFdFsFtInst, encoding: 1186988034 },
-    OpcodeRow { name: "mul.s", token: 508, op_type: OpType::FpFdFsFtInst, encoding: 1174405122 },
+    OpcodeRow { name: "mtc2", token: 500, op_type: OpType::TargetRegisterCoprocessorRegisterInstruction, encoding: 1216348160 },
+    OpcodeRow { name: "mthc1", token: 501, op_type: OpType::FloatingPointTargetRegisterCoprocessorRegisterInstruction, encoding: 1155530752 },
+    OpcodeRow { name: "mthc2", token: 502, op_type: OpType::TargetRegisterCoprocessorRegisterInstruction, encoding: 1222639616 },
+    OpcodeRow { name: "mthi", token: 503, op_type: OpType::SourceRegisterInstruction, encoding: 17 },
+    OpcodeRow { name: "mtlo", token: 504, op_type: OpType::SourceRegisterInstruction, encoding: 19 },
+    OpcodeRow { name: "mul", token: 505, op_type: OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction, encoding: 1879048194 },
+    OpcodeRow { name: "mul.d", token: 506, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1176502274 },
+    OpcodeRow { name: "mul.ps", token: 507, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1186988034 },
+    OpcodeRow { name: "mul.s", token: 508, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1174405122 },
     OpcodeRow { name: "mulo", token: 509, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "mulou", token: 510, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "mult", token: 511, op_type: OpType::RsRtInst, encoding: 24 },
-    OpcodeRow { name: "multu", token: 512, op_type: OpType::RsRtInst, encoding: 25 },
+    OpcodeRow { name: "mult", token: 511, op_type: OpType::SourceRegisterTargetRegisterInstruction, encoding: 24 },
+    OpcodeRow { name: "multu", token: 512, op_type: OpType::SourceRegisterTargetRegisterInstruction, encoding: 25 },
     OpcodeRow { name: "neg", token: 513, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "neg.d", token: 514, op_type: OpType::FpFdFsInst, encoding: 1176502279 },
-    OpcodeRow { name: "neg.ps", token: 515, op_type: OpType::FpFdFsInst, encoding: 1186988039 },
-    OpcodeRow { name: "neg.s", token: 516, op_type: OpType::FpFdFsInst, encoding: 1174405127 },
+    OpcodeRow { name: "neg.d", token: 514, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1176502279 },
+    OpcodeRow { name: "neg.ps", token: 515, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1186988039 },
+    OpcodeRow { name: "neg.s", token: 516, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1174405127 },
     OpcodeRow { name: "negu", token: 517, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "nmadd.d", token: 518, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068465 },
-    OpcodeRow { name: "nmadd.ps", token: 519, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068470 },
-    OpcodeRow { name: "nmadd.s", token: 520, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068464 },
-    OpcodeRow { name: "nmsub.d", token: 521, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068473 },
-    OpcodeRow { name: "nmsub.ps", token: 522, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068478 },
-    OpcodeRow { name: "nmsub.s", token: 523, op_type: OpType::FpFdFrFsFtInst, encoding: 1275068472 },
+    OpcodeRow { name: "nmadd.d", token: 518, op_type: OpType::FloatingPointDestinationAddendSourceTargetInstruction, encoding: 1275068465 },
+    OpcodeRow { name: "nmadd.ps", token: 519, op_type: OpType::FloatingPointDestinationAddendSourceTargetInstruction, encoding: 1275068470 },
+    OpcodeRow { name: "nmadd.s", token: 520, op_type: OpType::FloatingPointDestinationAddendSourceTargetInstruction, encoding: 1275068464 },
+    OpcodeRow { name: "nmsub.d", token: 521, op_type: OpType::FloatingPointDestinationAddendSourceTargetInstruction, encoding: 1275068473 },
+    OpcodeRow { name: "nmsub.ps", token: 522, op_type: OpType::FloatingPointDestinationAddendSourceTargetInstruction, encoding: 1275068478 },
+    OpcodeRow { name: "nmsub.s", token: 523, op_type: OpType::FloatingPointDestinationAddendSourceTargetInstruction, encoding: 1275068472 },
     OpcodeRow { name: "nop", token: 524, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "nor", token: 525, op_type: OpType::RdRsRtInst, encoding: 39 },
+    OpcodeRow { name: "nor", token: 525, op_type: OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction, encoding: 39 },
     OpcodeRow { name: "not", token: 526, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "or", token: 527, op_type: OpType::RdRsRtInst, encoding: 37 },
-    OpcodeRow { name: "ori", token: 528, op_type: OpType::RtRsImmInst, encoding: 872415232 },
-    OpcodeRow { name: "pll.ps", token: 529, op_type: OpType::FpFdFsFtInst, encoding: 1186988076 },
-    OpcodeRow { name: "plu.ps", token: 530, op_type: OpType::FpFdFsFtInst, encoding: 1186988077 },
-    OpcodeRow { name: "pref", token: 531, op_type: OpType::RtRsImmInst, encoding: -872415232 },
-    OpcodeRow { name: "prefx", token: 532, op_type: OpType::RsRtInst, encoding: 1275068431 },
-    OpcodeRow { name: "pul.ps", token: 533, op_type: OpType::FpFdFsFtInst, encoding: 1186988078 },
-    OpcodeRow { name: "puu.ps", token: 534, op_type: OpType::FpFdFsFtInst, encoding: 1186988079 },
-    OpcodeRow { name: "rdhwr", token: 535, op_type: OpType::RdRsRtInst, encoding: 2080374843 },
-    OpcodeRow { name: "rdpgpr", token: 536, op_type: OpType::RtCopregInst, encoding: 1094713344 },
-    OpcodeRow { name: "recip.d", token: 537, op_type: OpType::FpFdFsInst, encoding: 1176502293 },
-    OpcodeRow { name: "recip.s", token: 538, op_type: OpType::FpFdFsInst, encoding: 1174405141 },
+    OpcodeRow { name: "or", token: 527, op_type: OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction, encoding: 37 },
+    OpcodeRow { name: "ori", token: 528, op_type: OpType::TargetRegisterSourceRegisterImmediateInstruction, encoding: 872415232 },
+    OpcodeRow { name: "pll.ps", token: 529, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1186988076 },
+    OpcodeRow { name: "plu.ps", token: 530, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1186988077 },
+    OpcodeRow { name: "pref", token: 531, op_type: OpType::TargetRegisterSourceRegisterImmediateInstruction, encoding: -872415232 },
+    OpcodeRow { name: "prefx", token: 532, op_type: OpType::SourceRegisterTargetRegisterInstruction, encoding: 1275068431 },
+    OpcodeRow { name: "pul.ps", token: 533, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1186988078 },
+    OpcodeRow { name: "puu.ps", token: 534, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1186988079 },
+    OpcodeRow { name: "rdhwr", token: 535, op_type: OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction, encoding: 2080374843 },
+    OpcodeRow { name: "rdpgpr", token: 536, op_type: OpType::TargetRegisterCoprocessorRegisterInstruction, encoding: 1094713344 },
+    OpcodeRow { name: "recip.d", token: 537, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1176502293 },
+    OpcodeRow { name: "recip.s", token: 538, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1174405141 },
     OpcodeRow { name: "rem", token: 539, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "remu", token: 540, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "rfe", token: 541, op_type: OpType::NoargTypeInst, encoding: 1107296272 },
+    OpcodeRow { name: "rfe", token: 541, op_type: OpType::NoArgumentTypeInstruction, encoding: 1107296272 },
     OpcodeRow { name: "rol", token: 542, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "ror", token: 543, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "rotr", token: 544, op_type: OpType::RdRtShamtInst, encoding: 2097154 },
-    OpcodeRow { name: "rotrv", token: 545, op_type: OpType::RdRtShamtInst, encoding: 2097155 },
-    OpcodeRow { name: "round.l.d", token: 546, op_type: OpType::FpFdFsInst, encoding: 1176502280 },
-    OpcodeRow { name: "round.l.s", token: 547, op_type: OpType::FpFdFsInst, encoding: 1174405128 },
-    OpcodeRow { name: "round.w.d", token: 548, op_type: OpType::FpFdFsInst, encoding: 1176502284 },
-    OpcodeRow { name: "round.w.s", token: 549, op_type: OpType::FpFdFsInst, encoding: 1174405132 },
-    OpcodeRow { name: "rsqrt.d", token: 550, op_type: OpType::FpFdFsInst, encoding: 1176502294 },
-    OpcodeRow { name: "rsqrt.s", token: 551, op_type: OpType::FpFdFsInst, encoding: 1174405142 },
+    OpcodeRow { name: "rotr", token: 544, op_type: OpType::DestinationRegisterTargetRegisterShiftAmountInstruction, encoding: 2097154 },
+    OpcodeRow { name: "rotrv", token: 545, op_type: OpType::DestinationRegisterTargetRegisterShiftAmountInstruction, encoding: 2097155 },
+    OpcodeRow { name: "round.l.d", token: 546, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1176502280 },
+    OpcodeRow { name: "round.l.s", token: 547, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1174405128 },
+    OpcodeRow { name: "round.w.d", token: 548, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1176502284 },
+    OpcodeRow { name: "round.w.s", token: 549, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1174405132 },
+    OpcodeRow { name: "rsqrt.d", token: 550, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1176502294 },
+    OpcodeRow { name: "rsqrt.s", token: 551, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1174405142 },
     OpcodeRow { name: "s.d", token: 552, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "s.s", token: 553, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "sb", token: 554, op_type: OpType::RtAddrInst, encoding: -1610612736 },
-    OpcodeRow { name: "sc", token: 555, op_type: OpType::RtAddrInst, encoding: -536870912 },
+    OpcodeRow { name: "sb", token: 554, op_type: OpType::TargetRegisterAddressInstruction, encoding: -1610612736 },
+    OpcodeRow { name: "sc", token: 555, op_type: OpType::TargetRegisterAddressInstruction, encoding: -536870912 },
     OpcodeRow { name: "sd", token: 556, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "sdbbp", token: 557, op_type: OpType::NoargTypeInst, encoding: 1879048255 },
-    OpcodeRow { name: "sdc1", token: 558, op_type: OpType::FpFtAddrInst, encoding: -201326592 },
-    OpcodeRow { name: "sdc2", token: 559, op_type: OpType::RtAddrInst, encoding: -134217728 },
-    OpcodeRow { name: "sdxc1", token: 560, op_type: OpType::FpFdFsFtInst, encoding: 1275068425 },
-    OpcodeRow { name: "seb", token: 561, op_type: OpType::RtCopregInst, encoding: 2080375840 },
-    OpcodeRow { name: "seh", token: 562, op_type: OpType::RtCopregInst, encoding: 2080376352 },
+    OpcodeRow { name: "sdbbp", token: 557, op_type: OpType::NoArgumentTypeInstruction, encoding: 1879048255 },
+    OpcodeRow { name: "sdc1", token: 558, op_type: OpType::FloatingPointTargetAddressInstruction, encoding: -201326592 },
+    OpcodeRow { name: "sdc2", token: 559, op_type: OpType::TargetRegisterAddressInstruction, encoding: -134217728 },
+    OpcodeRow { name: "sdxc1", token: 560, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1275068425 },
+    OpcodeRow { name: "seb", token: 561, op_type: OpType::TargetRegisterCoprocessorRegisterInstruction, encoding: 2080375840 },
+    OpcodeRow { name: "seh", token: 562, op_type: OpType::TargetRegisterCoprocessorRegisterInstruction, encoding: 2080376352 },
     OpcodeRow { name: "seq", token: 563, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "sge", token: 564, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "sgeu", token: 565, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "sgt", token: 566, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "sgtu", token: 567, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "sh", token: 568, op_type: OpType::RtAddrInst, encoding: -1543503872 },
+    OpcodeRow { name: "sh", token: 568, op_type: OpType::TargetRegisterAddressInstruction, encoding: -1543503872 },
     OpcodeRow { name: "sle", token: 569, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "sleu", token: 570, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "sll", token: 571, op_type: OpType::RdRtShamtInst, encoding: 0 },
-    OpcodeRow { name: "sllv", token: 572, op_type: OpType::RdRtRsInst, encoding: 4 },
-    OpcodeRow { name: "slt", token: 573, op_type: OpType::RdRsRtInst, encoding: 42 },
-    OpcodeRow { name: "slti", token: 574, op_type: OpType::RtRsImmInst, encoding: 671088640 },
-    OpcodeRow { name: "sltiu", token: 575, op_type: OpType::RtRsImmInst, encoding: 738197504 },
-    OpcodeRow { name: "sltu", token: 576, op_type: OpType::RdRsRtInst, encoding: 43 },
+    OpcodeRow { name: "sll", token: 571, op_type: OpType::DestinationRegisterTargetRegisterShiftAmountInstruction, encoding: 0 },
+    OpcodeRow { name: "sllv", token: 572, op_type: OpType::DestinationRegisterTargetRegisterSourceRegisterInstruction, encoding: 4 },
+    OpcodeRow { name: "slt", token: 573, op_type: OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction, encoding: 42 },
+    OpcodeRow { name: "slti", token: 574, op_type: OpType::TargetRegisterSourceRegisterImmediateInstruction, encoding: 671088640 },
+    OpcodeRow { name: "sltiu", token: 575, op_type: OpType::TargetRegisterSourceRegisterImmediateInstruction, encoding: 738197504 },
+    OpcodeRow { name: "sltu", token: 576, op_type: OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction, encoding: 43 },
     OpcodeRow { name: "sne", token: 577, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "sqrt.d", token: 578, op_type: OpType::FpFdFsInst, encoding: 1176502276 },
-    OpcodeRow { name: "sqrt.s", token: 579, op_type: OpType::FpFdFsInst, encoding: 1174405124 },
-    OpcodeRow { name: "sra", token: 580, op_type: OpType::RdRtShamtInst, encoding: 3 },
-    OpcodeRow { name: "srav", token: 581, op_type: OpType::RdRtRsInst, encoding: 7 },
-    OpcodeRow { name: "srl", token: 582, op_type: OpType::RdRtShamtInst, encoding: 2 },
-    OpcodeRow { name: "srlv", token: 583, op_type: OpType::RdRtRsInst, encoding: 6 },
-    OpcodeRow { name: "ssnop", token: 584, op_type: OpType::RdRtShamtInst, encoding: 64 },
-    OpcodeRow { name: "sub", token: 585, op_type: OpType::RdRsRtInst, encoding: 34 },
-    OpcodeRow { name: "sub.d", token: 586, op_type: OpType::FpFdFsFtInst, encoding: 1176502273 },
-    OpcodeRow { name: "sub.ps", token: 587, op_type: OpType::FpFdFsFtInst, encoding: 1180696577 },
-    OpcodeRow { name: "sub.s", token: 588, op_type: OpType::FpFdFsFtInst, encoding: 1174405121 },
-    OpcodeRow { name: "subu", token: 589, op_type: OpType::RdRsRtInst, encoding: 35 },
-    OpcodeRow { name: "suxc1", token: 590, op_type: OpType::FpFdFsFtInst, encoding: 1275068429 },
-    OpcodeRow { name: "sw", token: 591, op_type: OpType::RtAddrInst, encoding: -1409286144 },
-    OpcodeRow { name: "swc1", token: 592, op_type: OpType::FpFtAddrInst, encoding: -469762048 },
-    OpcodeRow { name: "swc2", token: 593, op_type: OpType::RtAddrInst, encoding: -402653184 },
-    OpcodeRow { name: "swl", token: 594, op_type: OpType::RtAddrInst, encoding: -1476395008 },
-    OpcodeRow { name: "swr", token: 595, op_type: OpType::RtAddrInst, encoding: -1207959552 },
-    OpcodeRow { name: "swxc1", token: 596, op_type: OpType::FpFdFsFtInst, encoding: 1275068424 },
-    OpcodeRow { name: "sync", token: 597, op_type: OpType::NoargTypeInst, encoding: 15 },
-    OpcodeRow { name: "synci", token: 598, op_type: OpType::RtRsImmInst, encoding: 68419584 },
-    OpcodeRow { name: "syscall", token: 599, op_type: OpType::NoargTypeInst, encoding: 12 },
-    OpcodeRow { name: "teq", token: 600, op_type: OpType::RsRtInst, encoding: 52 },
-    OpcodeRow { name: "teqi", token: 601, op_type: OpType::RsImmInst, encoding: 67895296 },
-    OpcodeRow { name: "tge", token: 602, op_type: OpType::RsRtInst, encoding: 48 },
-    OpcodeRow { name: "tgei", token: 603, op_type: OpType::RsImmInst, encoding: 67633152 },
-    OpcodeRow { name: "tgeiu", token: 604, op_type: OpType::RsImmInst, encoding: 67698688 },
-    OpcodeRow { name: "tgeu", token: 605, op_type: OpType::RsRtInst, encoding: 49 },
-    OpcodeRow { name: "tlbp", token: 606, op_type: OpType::NoargTypeInst, encoding: 1107296264 },
-    OpcodeRow { name: "tlbr", token: 607, op_type: OpType::NoargTypeInst, encoding: 1107296257 },
-    OpcodeRow { name: "tlbwi", token: 608, op_type: OpType::NoargTypeInst, encoding: 1107296258 },
-    OpcodeRow { name: "tlbwr", token: 609, op_type: OpType::NoargTypeInst, encoding: 1107296262 },
-    OpcodeRow { name: "tlt", token: 610, op_type: OpType::RsRtInst, encoding: 50 },
-    OpcodeRow { name: "tlti", token: 611, op_type: OpType::RsImmInst, encoding: 67764224 },
-    OpcodeRow { name: "tltiu", token: 612, op_type: OpType::RsImmInst, encoding: 67829760 },
-    OpcodeRow { name: "tltu", token: 613, op_type: OpType::RsRtInst, encoding: 51 },
-    OpcodeRow { name: "tne", token: 614, op_type: OpType::RsRtInst, encoding: 54 },
-    OpcodeRow { name: "tnei", token: 615, op_type: OpType::RsImmInst, encoding: 68026368 },
-    OpcodeRow { name: "trunc.l.d", token: 616, op_type: OpType::FpFdFsInst, encoding: 1176502281 },
-    OpcodeRow { name: "trunc.l.s", token: 617, op_type: OpType::FpFdFsInst, encoding: 1174405129 },
-    OpcodeRow { name: "trunc.w.d", token: 618, op_type: OpType::FpFdFsInst, encoding: 1176502285 },
-    OpcodeRow { name: "trunc.w.s", token: 619, op_type: OpType::FpFdFsInst, encoding: 1174405133 },
+    OpcodeRow { name: "sqrt.d", token: 578, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1176502276 },
+    OpcodeRow { name: "sqrt.s", token: 579, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1174405124 },
+    OpcodeRow { name: "sra", token: 580, op_type: OpType::DestinationRegisterTargetRegisterShiftAmountInstruction, encoding: 3 },
+    OpcodeRow { name: "srav", token: 581, op_type: OpType::DestinationRegisterTargetRegisterSourceRegisterInstruction, encoding: 7 },
+    OpcodeRow { name: "srl", token: 582, op_type: OpType::DestinationRegisterTargetRegisterShiftAmountInstruction, encoding: 2 },
+    OpcodeRow { name: "srlv", token: 583, op_type: OpType::DestinationRegisterTargetRegisterSourceRegisterInstruction, encoding: 6 },
+    OpcodeRow { name: "ssnop", token: 584, op_type: OpType::DestinationRegisterTargetRegisterShiftAmountInstruction, encoding: 64 },
+    OpcodeRow { name: "sub", token: 585, op_type: OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction, encoding: 34 },
+    OpcodeRow { name: "sub.d", token: 586, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1176502273 },
+    OpcodeRow { name: "sub.ps", token: 587, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1180696577 },
+    OpcodeRow { name: "sub.s", token: 588, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1174405121 },
+    OpcodeRow { name: "subu", token: 589, op_type: OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction, encoding: 35 },
+    OpcodeRow { name: "suxc1", token: 590, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1275068429 },
+    OpcodeRow { name: "sw", token: 591, op_type: OpType::TargetRegisterAddressInstruction, encoding: -1409286144 },
+    OpcodeRow { name: "swc1", token: 592, op_type: OpType::FloatingPointTargetAddressInstruction, encoding: -469762048 },
+    OpcodeRow { name: "swc2", token: 593, op_type: OpType::TargetRegisterAddressInstruction, encoding: -402653184 },
+    OpcodeRow { name: "swl", token: 594, op_type: OpType::TargetRegisterAddressInstruction, encoding: -1476395008 },
+    OpcodeRow { name: "swr", token: 595, op_type: OpType::TargetRegisterAddressInstruction, encoding: -1207959552 },
+    OpcodeRow { name: "swxc1", token: 596, op_type: OpType::FloatingPointDestinationSourceTargetInstruction, encoding: 1275068424 },
+    OpcodeRow { name: "sync", token: 597, op_type: OpType::NoArgumentTypeInstruction, encoding: 15 },
+    OpcodeRow { name: "synci", token: 598, op_type: OpType::TargetRegisterSourceRegisterImmediateInstruction, encoding: 68419584 },
+    OpcodeRow { name: "syscall", token: 599, op_type: OpType::NoArgumentTypeInstruction, encoding: 12 },
+    OpcodeRow { name: "teq", token: 600, op_type: OpType::SourceRegisterTargetRegisterInstruction, encoding: 52 },
+    OpcodeRow { name: "teqi", token: 601, op_type: OpType::SourceRegisterImmediateInstruction, encoding: 67895296 },
+    OpcodeRow { name: "tge", token: 602, op_type: OpType::SourceRegisterTargetRegisterInstruction, encoding: 48 },
+    OpcodeRow { name: "tgei", token: 603, op_type: OpType::SourceRegisterImmediateInstruction, encoding: 67633152 },
+    OpcodeRow { name: "tgeiu", token: 604, op_type: OpType::SourceRegisterImmediateInstruction, encoding: 67698688 },
+    OpcodeRow { name: "tgeu", token: 605, op_type: OpType::SourceRegisterTargetRegisterInstruction, encoding: 49 },
+    OpcodeRow { name: "tlbp", token: 606, op_type: OpType::NoArgumentTypeInstruction, encoding: 1107296264 },
+    OpcodeRow { name: "tlbr", token: 607, op_type: OpType::NoArgumentTypeInstruction, encoding: 1107296257 },
+    OpcodeRow { name: "tlbwi", token: 608, op_type: OpType::NoArgumentTypeInstruction, encoding: 1107296258 },
+    OpcodeRow { name: "tlbwr", token: 609, op_type: OpType::NoArgumentTypeInstruction, encoding: 1107296262 },
+    OpcodeRow { name: "tlt", token: 610, op_type: OpType::SourceRegisterTargetRegisterInstruction, encoding: 50 },
+    OpcodeRow { name: "tlti", token: 611, op_type: OpType::SourceRegisterImmediateInstruction, encoding: 67764224 },
+    OpcodeRow { name: "tltiu", token: 612, op_type: OpType::SourceRegisterImmediateInstruction, encoding: 67829760 },
+    OpcodeRow { name: "tltu", token: 613, op_type: OpType::SourceRegisterTargetRegisterInstruction, encoding: 51 },
+    OpcodeRow { name: "tne", token: 614, op_type: OpType::SourceRegisterTargetRegisterInstruction, encoding: 54 },
+    OpcodeRow { name: "tnei", token: 615, op_type: OpType::SourceRegisterImmediateInstruction, encoding: 68026368 },
+    OpcodeRow { name: "trunc.l.d", token: 616, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1176502281 },
+    OpcodeRow { name: "trunc.l.s", token: 617, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1174405129 },
+    OpcodeRow { name: "trunc.w.d", token: 618, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1176502285 },
+    OpcodeRow { name: "trunc.w.s", token: 619, op_type: OpType::FloatingPointDestinationSourceInstruction, encoding: 1174405133 },
     OpcodeRow { name: "ulh", token: 620, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "ulhu", token: 621, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "ulw", token: 622, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "ush", token: 623, op_type: OpType::PseudoOp, encoding: -1 },
     OpcodeRow { name: "usw", token: 624, op_type: OpType::PseudoOp, encoding: -1 },
-    OpcodeRow { name: "wrpgpr", token: 625, op_type: OpType::RtCopregInst, encoding: 1103101952 },
-    OpcodeRow { name: "wsbh", token: 626, op_type: OpType::RtCopregInst, encoding: 2080374944 },
-    OpcodeRow { name: "xor", token: 627, op_type: OpType::RdRsRtInst, encoding: 38 },
-    OpcodeRow { name: "xori", token: 628, op_type: OpType::RtRsImmInst, encoding: 939524096 },
+    OpcodeRow { name: "wrpgpr", token: 625, op_type: OpType::TargetRegisterCoprocessorRegisterInstruction, encoding: 1103101952 },
+    OpcodeRow { name: "wsbh", token: 626, op_type: OpType::TargetRegisterCoprocessorRegisterInstruction, encoding: 2080374944 },
+    OpcodeRow { name: "xor", token: 627, op_type: OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction, encoding: 38 },
+    OpcodeRow { name: "xori", token: 628, op_type: OpType::TargetRegisterSourceRegisterImmediateInstruction, encoding: 939524096 },
 ];
 
-pub const TOK_ALIAS_DIRECTIVE: i32 = 264;
-pub const TOK_ALIGN_DIRECTIVE: i32 = 265;
-pub const TOK_ASCII_DIRECTIVE: i32 = 266;
-pub const TOK_ASCIIZ_DIRECTIVE: i32 = 267;
-pub const TOK_ASM0_DIRECTIVE: i32 = 268;
-pub const TOK_BGNB_DIRECTIVE: i32 = 269;
-pub const TOK_BYTE_DIRECTIVE: i32 = 270;
-pub const TOK_COMM_DIRECTIVE: i32 = 271;
-pub const TOK_DATA_DIRECTIVE: i32 = 272;
-pub const TOK_DOUBLE_DIRECTIVE: i32 = 273;
-pub const TOK_END_DIRECTIVE: i32 = 274;
-pub const TOK_ENDB_DIRECTIVE: i32 = 275;
-pub const TOK_ENDR_DIRECTIVE: i32 = 276;
-pub const TOK_ENT_DIRECTIVE: i32 = 277;
-pub const TOK_ERR_DIRECTIVE: i32 = 278;
-pub const TOK_EXTERN_DIRECTIVE: i32 = 279;
-pub const TOK_FILE_DIRECTIVE: i32 = 280;
-pub const TOK_FLOAT_DIRECTIVE: i32 = 281;
-pub const TOK_FMASK_DIRECTIVE: i32 = 282;
-pub const TOK_FRAME_DIRECTIVE: i32 = 283;
-pub const TOK_GLOBAL_DIRECTIVE: i32 = 284;
-pub const TOK_HALF_DIRECTIVE: i32 = 285;
-pub const TOK_K_DATA_DIRECTIVE: i32 = 286;
-pub const TOK_K_TEXT_DIRECTIVE: i32 = 287;
-pub const TOK_LABEL_DIRECTIVE: i32 = 288;
-pub const TOK_LCOMM_DIRECTIVE: i32 = 289;
-pub const TOK_LIVEREG_DIRECTIVE: i32 = 290;
-pub const TOK_LOC_DIRECTIVE: i32 = 291;
-pub const TOK_MASK_DIRECTIVE: i32 = 292;
-pub const TOK_NOALIAS_DIRECTIVE: i32 = 293;
-pub const TOK_OPTIONS_DIRECTIVE: i32 = 294;
-pub const TOK_RDATA_DIRECTIVE: i32 = 295;
-pub const TOK_REPEAT_DIRECTIVE: i32 = 296;
-pub const TOK_SDATA_DIRECTIVE: i32 = 297;
-pub const TOK_SET_DIRECTIVE: i32 = 298;
-pub const TOK_SPACE_DIRECTIVE: i32 = 299;
-pub const TOK_STRUCT_DIRECTIVE: i32 = 300;
-pub const TOK_TEXT_DIRECTIVE: i32 = 301;
-pub const TOK_VERSTAMP_DIRECTIVE: i32 = 302;
-pub const TOK_VREG_DIRECTIVE: i32 = 303;
-pub const TOK_WORD_DIRECTIVE: i32 = 304;
-pub const TOK_ABS_PSEUDO_OP: i32 = 305;
-pub const TOK_ABS_D_OPCODE: i32 = 306;
-pub const TOK_ABS_PS_OPCODE: i32 = 307;
-pub const TOK_ABS_S_OPCODE: i32 = 308;
-pub const TOK_ADD_OPCODE: i32 = 309;
-pub const TOK_ADD_D_OPCODE: i32 = 310;
-pub const TOK_ADD_PS_OPCODE: i32 = 311;
-pub const TOK_ADD_S_OPCODE: i32 = 312;
-pub const TOK_ADDI_OPCODE: i32 = 313;
-pub const TOK_ADDIU_OPCODE: i32 = 314;
-pub const TOK_ADDU_OPCODE: i32 = 315;
-pub const TOK_ALNV_PS_OPCODE: i32 = 316;
-pub const TOK_AND_OPCODE: i32 = 317;
-pub const TOK_ANDI_OPCODE: i32 = 318;
-pub const TOK_B_PSEUDO_OP: i32 = 319;
-pub const TOK_BAL_PSEUDO_OP: i32 = 320;
-pub const TOK_BC1F_OPCODE: i32 = 321;
-pub const TOK_BC1FL_OPCODE: i32 = 322;
-pub const TOK_BC1T_OPCODE: i32 = 323;
-pub const TOK_BC1TL_OPCODE: i32 = 324;
-pub const TOK_BC2F_OPCODE: i32 = 325;
-pub const TOK_BC2FL_OPCODE: i32 = 326;
-pub const TOK_BC2T_OPCODE: i32 = 327;
-pub const TOK_BC2TL_OPCODE: i32 = 328;
-pub const TOK_BEQ_OPCODE: i32 = 329;
-pub const TOK_BEQL_OPCODE: i32 = 330;
-pub const TOK_BEQZ_PSEUDO_OP: i32 = 331;
-pub const TOK_BGE_PSEUDO_OP: i32 = 332;
-pub const TOK_BGEU_PSEUDO_OP: i32 = 333;
-pub const TOK_BGEZ_OPCODE: i32 = 334;
-pub const TOK_BGEZAL_OPCODE: i32 = 335;
-pub const TOK_BGEZALL_OPCODE: i32 = 336;
-pub const TOK_BGEZL_OPCODE: i32 = 337;
-pub const TOK_BGT_PSEUDO_OP: i32 = 338;
-pub const TOK_BGTU_PSEUDO_OP: i32 = 339;
-pub const TOK_BGTZ_OPCODE: i32 = 340;
-pub const TOK_BGTZL_OPCODE: i32 = 341;
-pub const TOK_BLE_PSEUDO_OP: i32 = 342;
-pub const TOK_BLEU_PSEUDO_OP: i32 = 343;
-pub const TOK_BLEZ_OPCODE: i32 = 344;
-pub const TOK_BLEZL_OPCODE: i32 = 345;
-pub const TOK_BLT_PSEUDO_OP: i32 = 346;
-pub const TOK_BLTU_PSEUDO_OP: i32 = 347;
-pub const TOK_BLTZ_OPCODE: i32 = 348;
-pub const TOK_BLTZAL_OPCODE: i32 = 349;
-pub const TOK_BLTZALL_OPCODE: i32 = 350;
-pub const TOK_BLTZL_OPCODE: i32 = 351;
-pub const TOK_BNE_OPCODE: i32 = 352;
-pub const TOK_BNEL_OPCODE: i32 = 353;
-pub const TOK_BNEZ_PSEUDO_OP: i32 = 354;
-pub const TOK_BREAK_OPCODE: i32 = 355;
-pub const TOK_C_EQ_D_OPCODE: i32 = 356;
-pub const TOK_C_EQ_S_OPCODE: i32 = 357;
-pub const TOK_C_F_D_OPCODE: i32 = 358;
-pub const TOK_C_F_S_OPCODE: i32 = 359;
-pub const TOK_C_LE_D_OPCODE: i32 = 360;
-pub const TOK_C_LE_S_OPCODE: i32 = 361;
-pub const TOK_C_LT_D_OPCODE: i32 = 362;
-pub const TOK_C_LT_S_OPCODE: i32 = 363;
-pub const TOK_C_NGE_D_OPCODE: i32 = 364;
-pub const TOK_C_NGE_S_OPCODE: i32 = 365;
-pub const TOK_C_NGL_D_OPCODE: i32 = 366;
-pub const TOK_C_NGL_S_OPCODE: i32 = 367;
-pub const TOK_C_NGLE_D_OPCODE: i32 = 368;
-pub const TOK_C_NGLE_S_OPCODE: i32 = 369;
-pub const TOK_C_NGT_D_OPCODE: i32 = 370;
-pub const TOK_C_NGT_S_OPCODE: i32 = 371;
-pub const TOK_C_OLE_D_OPCODE: i32 = 372;
-pub const TOK_C_OLE_S_OPCODE: i32 = 373;
-pub const TOK_C_OLT_D_OPCODE: i32 = 374;
-pub const TOK_C_OLT_S_OPCODE: i32 = 375;
-pub const TOK_C_SEQ_D_OPCODE: i32 = 376;
-pub const TOK_C_SEQ_S_OPCODE: i32 = 377;
-pub const TOK_C_SF_D_OPCODE: i32 = 378;
-pub const TOK_C_SF_S_OPCODE: i32 = 379;
-pub const TOK_C_UEQ_D_OPCODE: i32 = 380;
-pub const TOK_C_UEQ_S_OPCODE: i32 = 381;
-pub const TOK_C_ULE_D_OPCODE: i32 = 382;
-pub const TOK_C_ULE_S_OPCODE: i32 = 383;
-pub const TOK_C_ULT_D_OPCODE: i32 = 384;
-pub const TOK_C_ULT_S_OPCODE: i32 = 385;
-pub const TOK_C_UN_D_OPCODE: i32 = 386;
-pub const TOK_C_UN_S_OPCODE: i32 = 387;
-pub const TOK_CACHE_OPCODE: i32 = 388;
-pub const TOK_CEIL_L_D_OPCODE: i32 = 389;
-pub const TOK_CEIL_L_S_OPCODE: i32 = 390;
-pub const TOK_CEIL_W_D_OPCODE: i32 = 391;
-pub const TOK_CEIL_W_S_OPCODE: i32 = 392;
-pub const TOK_CFC0_OPCODE: i32 = 393;
-pub const TOK_CFC1_OPCODE: i32 = 394;
-pub const TOK_CFC2_OPCODE: i32 = 395;
-pub const TOK_CLO_OPCODE: i32 = 396;
-pub const TOK_CLZ_OPCODE: i32 = 397;
-pub const TOK_COP2_OPCODE: i32 = 398;
-pub const TOK_CTC0_OPCODE: i32 = 399;
-pub const TOK_CTC1_OPCODE: i32 = 400;
-pub const TOK_CTC2_OPCODE: i32 = 401;
-pub const TOK_CVT_D_L_OPCODE: i32 = 402;
-pub const TOK_CVT_D_S_OPCODE: i32 = 403;
-pub const TOK_CVT_D_W_OPCODE: i32 = 404;
-pub const TOK_CVT_L_D_OPCODE: i32 = 405;
-pub const TOK_CVT_L_S_OPCODE: i32 = 406;
-pub const TOK_CVT_PS_S_OPCODE: i32 = 407;
-pub const TOK_CVT_S_D_OPCODE: i32 = 408;
-pub const TOK_CVT_S_L_OPCODE: i32 = 409;
-pub const TOK_CVT_S_PL_OPCODE: i32 = 410;
-pub const TOK_CVT_S_PU_OPCODE: i32 = 411;
-pub const TOK_CVT_S_W_OPCODE: i32 = 412;
-pub const TOK_CVT_W_D_OPCODE: i32 = 413;
-pub const TOK_CVT_W_S_OPCODE: i32 = 414;
-pub const TOK_DERET_OPCODE: i32 = 415;
-pub const TOK_DI_OPCODE: i32 = 416;
-pub const TOK_DIV_OPCODE: i32 = 417;
-pub const TOK_DIV_D_OPCODE: i32 = 418;
-pub const TOK_DIV_S_OPCODE: i32 = 419;
-pub const TOK_DIVU_OPCODE: i32 = 420;
-pub const TOK_EHB_OPCODE: i32 = 421;
-pub const TOK_EI_OPCODE: i32 = 422;
-pub const TOK_ERET_OPCODE: i32 = 423;
-pub const TOK_EXT_OPCODE: i32 = 424;
-pub const TOK_FLOOR_L_D_OPCODE: i32 = 425;
-pub const TOK_FLOOR_L_S_OPCODE: i32 = 426;
-pub const TOK_FLOOR_W_D_OPCODE: i32 = 427;
-pub const TOK_FLOOR_W_S_OPCODE: i32 = 428;
-pub const TOK_INS_OPCODE: i32 = 429;
-pub const TOK_J_OPCODE: i32 = 430;
-pub const TOK_JAL_OPCODE: i32 = 431;
-pub const TOK_JALR_OPCODE: i32 = 432;
-pub const TOK_JALR_HB_OPCODE: i32 = 433;
-pub const TOK_JR_OPCODE: i32 = 434;
-pub const TOK_JR_HB_OPCODE: i32 = 435;
-pub const TOK_L_D_PSEUDO_OP: i32 = 436;
-pub const TOK_L_S_PSEUDO_OP: i32 = 437;
-pub const TOK_LA_PSEUDO_OP: i32 = 438;
-pub const TOK_LB_OPCODE: i32 = 439;
-pub const TOK_LBU_OPCODE: i32 = 440;
-pub const TOK_LD_PSEUDO_OP: i32 = 441;
-pub const TOK_LDC1_OPCODE: i32 = 442;
-pub const TOK_LDC2_OPCODE: i32 = 443;
-pub const TOK_LDXC1_OPCODE: i32 = 444;
-pub const TOK_LH_OPCODE: i32 = 445;
-pub const TOK_LHU_OPCODE: i32 = 446;
-pub const TOK_LI_PSEUDO_OP: i32 = 447;
-pub const TOK_LI_D_PSEUDO_OP: i32 = 448;
-pub const TOK_LI_S_PSEUDO_OP: i32 = 449;
-pub const TOK_LL_OPCODE: i32 = 450;
-pub const TOK_LUI_OPCODE: i32 = 451;
-pub const TOK_LUXC1_OPCODE: i32 = 452;
-pub const TOK_LW_OPCODE: i32 = 453;
-pub const TOK_LWC1_OPCODE: i32 = 454;
-pub const TOK_LWC2_OPCODE: i32 = 455;
-pub const TOK_LWL_OPCODE: i32 = 456;
-pub const TOK_LWR_OPCODE: i32 = 457;
-pub const TOK_LWXC1_OPCODE: i32 = 458;
-pub const TOK_MADD_OPCODE: i32 = 459;
-pub const TOK_MADD_D_OPCODE: i32 = 460;
-pub const TOK_MADD_PS_OPCODE: i32 = 461;
-pub const TOK_MADD_S_OPCODE: i32 = 462;
-pub const TOK_MADDU_OPCODE: i32 = 463;
-pub const TOK_MFC0_OPCODE: i32 = 464;
-pub const TOK_MFC1_OPCODE: i32 = 465;
-pub const TOK_MFC1_D_PSEUDO_OP: i32 = 466;
-pub const TOK_MFC2_OPCODE: i32 = 467;
-pub const TOK_MFHC1_OPCODE: i32 = 468;
-pub const TOK_MFHC2_OPCODE: i32 = 469;
-pub const TOK_MFHI_OPCODE: i32 = 470;
-pub const TOK_MFLO_OPCODE: i32 = 471;
-pub const TOK_MOV_D_OPCODE: i32 = 472;
-pub const TOK_MOV_PS_OPCODE: i32 = 473;
-pub const TOK_MOV_S_OPCODE: i32 = 474;
-pub const TOK_MOVE_PSEUDO_OP: i32 = 475;
-pub const TOK_MOVF_OPCODE: i32 = 476;
-pub const TOK_MOVF_D_OPCODE: i32 = 477;
-pub const TOK_MOVF_PS_OPCODE: i32 = 478;
-pub const TOK_MOVF_S_OPCODE: i32 = 479;
-pub const TOK_MOVN_OPCODE: i32 = 480;
-pub const TOK_MOVN_D_OPCODE: i32 = 481;
-pub const TOK_MOVN_PS_OPCODE: i32 = 482;
-pub const TOK_MOVN_S_OPCODE: i32 = 483;
-pub const TOK_MOVT_OPCODE: i32 = 484;
-pub const TOK_MOVT_D_OPCODE: i32 = 485;
-pub const TOK_MOVT_PS_OPCODE: i32 = 486;
-pub const TOK_MOVT_S_OPCODE: i32 = 487;
-pub const TOK_MOVZ_OPCODE: i32 = 488;
-pub const TOK_MOVZ_D_OPCODE: i32 = 489;
-pub const TOK_MOVZ_PS_OPCODE: i32 = 490;
-pub const TOK_MOVZ_S_OPCODE: i32 = 491;
-pub const TOK_MSUB_OPCODE: i32 = 492;
-pub const TOK_MSUB_D_OPCODE: i32 = 493;
-pub const TOK_MSUB_PS_OPCODE: i32 = 494;
-pub const TOK_MSUB_S_OPCODE: i32 = 495;
-pub const TOK_MSUBU_OPCODE: i32 = 496;
-pub const TOK_MTC0_OPCODE: i32 = 497;
-pub const TOK_MTC1_OPCODE: i32 = 498;
-pub const TOK_MTC1_D_PSEUDO_OP: i32 = 499;
-pub const TOK_MTC2_OPCODE: i32 = 500;
-pub const TOK_MTHC1_OPCODE: i32 = 501;
-pub const TOK_MTHC2_OPCODE: i32 = 502;
-pub const TOK_MTHI_OPCODE: i32 = 503;
-pub const TOK_MTLO_OPCODE: i32 = 504;
-pub const TOK_MUL_OPCODE: i32 = 505;
-pub const TOK_MUL_D_OPCODE: i32 = 506;
-pub const TOK_MUL_PS_OPCODE: i32 = 507;
-pub const TOK_MUL_S_OPCODE: i32 = 508;
-pub const TOK_MULO_PSEUDO_OP: i32 = 509;
-pub const TOK_MULOU_PSEUDO_OP: i32 = 510;
-pub const TOK_MULT_OPCODE: i32 = 511;
-pub const TOK_MULTU_OPCODE: i32 = 512;
-pub const TOK_NEG_PSEUDO_OP: i32 = 513;
-pub const TOK_NEG_D_OPCODE: i32 = 514;
-pub const TOK_NEG_PS_OPCODE: i32 = 515;
-pub const TOK_NEG_S_OPCODE: i32 = 516;
-pub const TOK_NEGU_PSEUDO_OP: i32 = 517;
-pub const TOK_NMADD_D_OPCODE: i32 = 518;
-pub const TOK_NMADD_PS_OPCODE: i32 = 519;
-pub const TOK_NMADD_S_OPCODE: i32 = 520;
-pub const TOK_NMSUB_D_OPCODE: i32 = 521;
-pub const TOK_NMSUB_PS_OPCODE: i32 = 522;
-pub const TOK_NMSUB_S_OPCODE: i32 = 523;
-pub const TOK_NOP_PSEUDO_OP: i32 = 524;
-pub const TOK_NOR_OPCODE: i32 = 525;
-pub const TOK_NOT_PSEUDO_OP: i32 = 526;
-pub const TOK_OR_OPCODE: i32 = 527;
-pub const TOK_ORI_OPCODE: i32 = 528;
-pub const TOK_PLL_PS_OPCODE: i32 = 529;
-pub const TOK_PLU_PS_OPCODE: i32 = 530;
-pub const TOK_PREF_OPCODE: i32 = 531;
-pub const TOK_PREFX_OPCODE: i32 = 532;
-pub const TOK_PUL_PS_OPCODE: i32 = 533;
-pub const TOK_PUU_PS_OPCODE: i32 = 534;
-pub const TOK_RDHWR_OPCODE: i32 = 535;
-pub const TOK_RDPGPR_OPCODE: i32 = 536;
-pub const TOK_RECIP_D_OPCODE: i32 = 537;
-pub const TOK_RECIP_S_OPCODE: i32 = 538;
-pub const TOK_REM_PSEUDO_OP: i32 = 539;
-pub const TOK_REMU_PSEUDO_OP: i32 = 540;
-pub const TOK_RFE_OPCODE: i32 = 541;
-pub const TOK_ROL_PSEUDO_OP: i32 = 542;
-pub const TOK_ROR_PSEUDO_OP: i32 = 543;
-pub const TOK_ROTR_OPCODE: i32 = 544;
-pub const TOK_ROTRV_OPCODE: i32 = 545;
-pub const TOK_ROUND_L_D_OPCODE: i32 = 546;
-pub const TOK_ROUND_L_S_OPCODE: i32 = 547;
-pub const TOK_ROUND_W_D_OPCODE: i32 = 548;
-pub const TOK_ROUND_W_S_OPCODE: i32 = 549;
-pub const TOK_RSQRT_D_OPCODE: i32 = 550;
-pub const TOK_RSQRT_S_OPCODE: i32 = 551;
-pub const TOK_S_D_PSEUDO_OP: i32 = 552;
-pub const TOK_S_S_PSEUDO_OP: i32 = 553;
-pub const TOK_SB_OPCODE: i32 = 554;
-pub const TOK_SC_OPCODE: i32 = 555;
-pub const TOK_SD_PSEUDO_OP: i32 = 556;
-pub const TOK_SDBBP_OPCODE: i32 = 557;
-pub const TOK_SDC1_OPCODE: i32 = 558;
-pub const TOK_SDC2_OPCODE: i32 = 559;
-pub const TOK_SDXC1_OPCODE: i32 = 560;
-pub const TOK_SEB_OPCODE: i32 = 561;
-pub const TOK_SEH_OPCODE: i32 = 562;
-pub const TOK_SEQ_PSEUDO_OP: i32 = 563;
-pub const TOK_SGE_PSEUDO_OP: i32 = 564;
-pub const TOK_SGEU_PSEUDO_OP: i32 = 565;
-pub const TOK_SGT_PSEUDO_OP: i32 = 566;
-pub const TOK_SGTU_PSEUDO_OP: i32 = 567;
-pub const TOK_SH_OPCODE: i32 = 568;
-pub const TOK_SLE_PSEUDO_OP: i32 = 569;
-pub const TOK_SLEU_PSEUDO_OP: i32 = 570;
-pub const TOK_SLL_OPCODE: i32 = 571;
-pub const TOK_SLLV_OPCODE: i32 = 572;
-pub const TOK_SLT_OPCODE: i32 = 573;
-pub const TOK_SLTI_OPCODE: i32 = 574;
-pub const TOK_SLTIU_OPCODE: i32 = 575;
-pub const TOK_SLTU_OPCODE: i32 = 576;
-pub const TOK_SNE_PSEUDO_OP: i32 = 577;
-pub const TOK_SQRT_D_OPCODE: i32 = 578;
-pub const TOK_SQRT_S_OPCODE: i32 = 579;
-pub const TOK_SRA_OPCODE: i32 = 580;
-pub const TOK_SRAV_OPCODE: i32 = 581;
-pub const TOK_SRL_OPCODE: i32 = 582;
-pub const TOK_SRLV_OPCODE: i32 = 583;
-pub const TOK_SSNOP_OPCODE: i32 = 584;
-pub const TOK_SUB_OPCODE: i32 = 585;
-pub const TOK_SUB_D_OPCODE: i32 = 586;
-pub const TOK_SUB_PS_OPCODE: i32 = 587;
-pub const TOK_SUB_S_OPCODE: i32 = 588;
-pub const TOK_SUBU_OPCODE: i32 = 589;
-pub const TOK_SUXC1_OPCODE: i32 = 590;
-pub const TOK_SW_OPCODE: i32 = 591;
-pub const TOK_SWC1_OPCODE: i32 = 592;
-pub const TOK_SWC2_OPCODE: i32 = 593;
-pub const TOK_SWL_OPCODE: i32 = 594;
-pub const TOK_SWR_OPCODE: i32 = 595;
-pub const TOK_SWXC1_OPCODE: i32 = 596;
-pub const TOK_SYNC_OPCODE: i32 = 597;
-pub const TOK_SYNCI_OPCODE: i32 = 598;
-pub const TOK_SYSCALL_OPCODE: i32 = 599;
-pub const TOK_TEQ_OPCODE: i32 = 600;
-pub const TOK_TEQI_OPCODE: i32 = 601;
-pub const TOK_TGE_OPCODE: i32 = 602;
-pub const TOK_TGEI_OPCODE: i32 = 603;
-pub const TOK_TGEIU_OPCODE: i32 = 604;
-pub const TOK_TGEU_OPCODE: i32 = 605;
-pub const TOK_TLBP_OPCODE: i32 = 606;
-pub const TOK_TLBR_OPCODE: i32 = 607;
-pub const TOK_TLBWI_OPCODE: i32 = 608;
-pub const TOK_TLBWR_OPCODE: i32 = 609;
-pub const TOK_TLT_OPCODE: i32 = 610;
-pub const TOK_TLTI_OPCODE: i32 = 611;
-pub const TOK_TLTIU_OPCODE: i32 = 612;
-pub const TOK_TLTU_OPCODE: i32 = 613;
-pub const TOK_TNE_OPCODE: i32 = 614;
-pub const TOK_TNEI_OPCODE: i32 = 615;
-pub const TOK_TRUNC_L_D_OPCODE: i32 = 616;
-pub const TOK_TRUNC_L_S_OPCODE: i32 = 617;
-pub const TOK_TRUNC_W_D_OPCODE: i32 = 618;
-pub const TOK_TRUNC_W_S_OPCODE: i32 = 619;
-pub const TOK_ULH_PSEUDO_OP: i32 = 620;
-pub const TOK_ULHU_PSEUDO_OP: i32 = 621;
-pub const TOK_ULW_PSEUDO_OP: i32 = 622;
-pub const TOK_USH_PSEUDO_OP: i32 = 623;
-pub const TOK_USW_PSEUDO_OP: i32 = 624;
-pub const TOK_WRPGPR_OPCODE: i32 = 625;
-pub const TOK_WSBH_OPCODE: i32 = 626;
-pub const TOK_XOR_OPCODE: i32 = 627;
-pub const TOK_XORI_OPCODE: i32 = 628;
+pub const TOKEN_ALIAS_DIRECTIVE: i32 = 264;
+pub const TOKEN_ALIGN_DIRECTIVE: i32 = 265;
+pub const TOKEN_ASCII_DIRECTIVE: i32 = 266;
+pub const TOKEN_ASCIIZ_DIRECTIVE: i32 = 267;
+pub const TOKEN_ASM0_DIRECTIVE: i32 = 268;
+pub const TOKEN_BGNB_DIRECTIVE: i32 = 269;
+pub const TOKEN_BYTE_DIRECTIVE: i32 = 270;
+pub const TOKEN_COMM_DIRECTIVE: i32 = 271;
+pub const TOKEN_DATA_DIRECTIVE: i32 = 272;
+pub const TOKEN_DOUBLE_DIRECTIVE: i32 = 273;
+pub const TOKEN_END_DIRECTIVE: i32 = 274;
+pub const TOKEN_ENDB_DIRECTIVE: i32 = 275;
+pub const TOKEN_ENDR_DIRECTIVE: i32 = 276;
+pub const TOKEN_ENT_DIRECTIVE: i32 = 277;
+pub const TOKEN_ERR_DIRECTIVE: i32 = 278;
+pub const TOKEN_EXTERN_DIRECTIVE: i32 = 279;
+pub const TOKEN_FILE_DIRECTIVE: i32 = 280;
+pub const TOKEN_FLOAT_DIRECTIVE: i32 = 281;
+pub const TOKEN_FMASK_DIRECTIVE: i32 = 282;
+pub const TOKEN_FRAME_DIRECTIVE: i32 = 283;
+pub const TOKEN_GLOBAL_DIRECTIVE: i32 = 284;
+pub const TOKEN_HALF_DIRECTIVE: i32 = 285;
+pub const TOKEN_K_DATA_DIRECTIVE: i32 = 286;
+pub const TOKEN_K_TEXT_DIRECTIVE: i32 = 287;
+pub const TOKEN_LABEL_DIRECTIVE: i32 = 288;
+pub const TOKEN_LCOMM_DIRECTIVE: i32 = 289;
+pub const TOKEN_LIVEREG_DIRECTIVE: i32 = 290;
+pub const TOKEN_LOC_DIRECTIVE: i32 = 291;
+pub const TOKEN_MASK_DIRECTIVE: i32 = 292;
+pub const TOKEN_NOALIAS_DIRECTIVE: i32 = 293;
+pub const TOKEN_OPTIONS_DIRECTIVE: i32 = 294;
+pub const TOKEN_RDATA_DIRECTIVE: i32 = 295;
+pub const TOKEN_REPEAT_DIRECTIVE: i32 = 296;
+pub const TOKEN_SDATA_DIRECTIVE: i32 = 297;
+pub const TOKEN_SET_DIRECTIVE: i32 = 298;
+pub const TOKEN_SPACE_DIRECTIVE: i32 = 299;
+pub const TOKEN_STRUCT_DIRECTIVE: i32 = 300;
+pub const TOKEN_TEXT_DIRECTIVE: i32 = 301;
+pub const TOKEN_VERSTAMP_DIRECTIVE: i32 = 302;
+pub const TOKEN_VREG_DIRECTIVE: i32 = 303;
+pub const TOKEN_WORD_DIRECTIVE: i32 = 304;
+pub const TOKEN_ABS_PSEUDO_OP: i32 = 305;
+pub const TOKEN_ABS_D_OPCODE: i32 = 306;
+pub const TOKEN_ABS_PS_OPCODE: i32 = 307;
+pub const TOKEN_ABS_S_OPCODE: i32 = 308;
+pub const TOKEN_ADD_OPCODE: i32 = 309;
+pub const TOKEN_ADD_D_OPCODE: i32 = 310;
+pub const TOKEN_ADD_PS_OPCODE: i32 = 311;
+pub const TOKEN_ADD_S_OPCODE: i32 = 312;
+pub const TOKEN_ADDI_OPCODE: i32 = 313;
+pub const TOKEN_ADDIU_OPCODE: i32 = 314;
+pub const TOKEN_ADDU_OPCODE: i32 = 315;
+pub const TOKEN_ALNV_PS_OPCODE: i32 = 316;
+pub const TOKEN_AND_OPCODE: i32 = 317;
+pub const TOKEN_ANDI_OPCODE: i32 = 318;
+pub const TOKEN_B_PSEUDO_OP: i32 = 319;
+pub const TOKEN_BAL_PSEUDO_OP: i32 = 320;
+pub const TOKEN_BC1F_OPCODE: i32 = 321;
+pub const TOKEN_BC1FL_OPCODE: i32 = 322;
+pub const TOKEN_BC1T_OPCODE: i32 = 323;
+pub const TOKEN_BC1TL_OPCODE: i32 = 324;
+pub const TOKEN_BC2F_OPCODE: i32 = 325;
+pub const TOKEN_BC2FL_OPCODE: i32 = 326;
+pub const TOKEN_BC2T_OPCODE: i32 = 327;
+pub const TOKEN_BC2TL_OPCODE: i32 = 328;
+pub const TOKEN_BEQ_OPCODE: i32 = 329;
+pub const TOKEN_BEQL_OPCODE: i32 = 330;
+pub const TOKEN_BEQZ_PSEUDO_OP: i32 = 331;
+pub const TOKEN_BGE_PSEUDO_OP: i32 = 332;
+pub const TOKEN_BGEU_PSEUDO_OP: i32 = 333;
+pub const TOKEN_BGEZ_OPCODE: i32 = 334;
+pub const TOKEN_BGEZAL_OPCODE: i32 = 335;
+pub const TOKEN_BGEZALL_OPCODE: i32 = 336;
+pub const TOKEN_BGEZL_OPCODE: i32 = 337;
+pub const TOKEN_BGT_PSEUDO_OP: i32 = 338;
+pub const TOKEN_BGTU_PSEUDO_OP: i32 = 339;
+pub const TOKEN_BGTZ_OPCODE: i32 = 340;
+pub const TOKEN_BGTZL_OPCODE: i32 = 341;
+pub const TOKEN_BLE_PSEUDO_OP: i32 = 342;
+pub const TOKEN_BLEU_PSEUDO_OP: i32 = 343;
+pub const TOKEN_BLEZ_OPCODE: i32 = 344;
+pub const TOKEN_BLEZL_OPCODE: i32 = 345;
+pub const TOKEN_BLT_PSEUDO_OP: i32 = 346;
+pub const TOKEN_BLTU_PSEUDO_OP: i32 = 347;
+pub const TOKEN_BLTZ_OPCODE: i32 = 348;
+pub const TOKEN_BLTZAL_OPCODE: i32 = 349;
+pub const TOKEN_BLTZALL_OPCODE: i32 = 350;
+pub const TOKEN_BLTZL_OPCODE: i32 = 351;
+pub const TOKEN_BNE_OPCODE: i32 = 352;
+pub const TOKEN_BNEL_OPCODE: i32 = 353;
+pub const TOKEN_BNEZ_PSEUDO_OP: i32 = 354;
+pub const TOKEN_BREAK_OPCODE: i32 = 355;
+pub const TOKEN_C_EQ_D_OPCODE: i32 = 356;
+pub const TOKEN_C_EQ_S_OPCODE: i32 = 357;
+pub const TOKEN_C_F_D_OPCODE: i32 = 358;
+pub const TOKEN_C_F_S_OPCODE: i32 = 359;
+pub const TOKEN_C_LE_D_OPCODE: i32 = 360;
+pub const TOKEN_C_LE_S_OPCODE: i32 = 361;
+pub const TOKEN_C_LT_D_OPCODE: i32 = 362;
+pub const TOKEN_C_LT_S_OPCODE: i32 = 363;
+pub const TOKEN_C_NGE_D_OPCODE: i32 = 364;
+pub const TOKEN_C_NGE_S_OPCODE: i32 = 365;
+pub const TOKEN_C_NGL_D_OPCODE: i32 = 366;
+pub const TOKEN_C_NGL_S_OPCODE: i32 = 367;
+pub const TOKEN_C_NGLE_D_OPCODE: i32 = 368;
+pub const TOKEN_C_NGLE_S_OPCODE: i32 = 369;
+pub const TOKEN_C_NGT_D_OPCODE: i32 = 370;
+pub const TOKEN_C_NGT_S_OPCODE: i32 = 371;
+pub const TOKEN_C_OLE_D_OPCODE: i32 = 372;
+pub const TOKEN_C_OLE_S_OPCODE: i32 = 373;
+pub const TOKEN_C_OLT_D_OPCODE: i32 = 374;
+pub const TOKEN_C_OLT_S_OPCODE: i32 = 375;
+pub const TOKEN_C_SEQ_D_OPCODE: i32 = 376;
+pub const TOKEN_C_SEQ_S_OPCODE: i32 = 377;
+pub const TOKEN_C_SF_D_OPCODE: i32 = 378;
+pub const TOKEN_C_SF_S_OPCODE: i32 = 379;
+pub const TOKEN_C_UEQ_D_OPCODE: i32 = 380;
+pub const TOKEN_C_UEQ_S_OPCODE: i32 = 381;
+pub const TOKEN_C_ULE_D_OPCODE: i32 = 382;
+pub const TOKEN_C_ULE_S_OPCODE: i32 = 383;
+pub const TOKEN_C_ULT_D_OPCODE: i32 = 384;
+pub const TOKEN_C_ULT_S_OPCODE: i32 = 385;
+pub const TOKEN_C_UN_D_OPCODE: i32 = 386;
+pub const TOKEN_C_UN_S_OPCODE: i32 = 387;
+pub const TOKEN_CACHE_OPCODE: i32 = 388;
+pub const TOKEN_CEIL_L_D_OPCODE: i32 = 389;
+pub const TOKEN_CEIL_L_S_OPCODE: i32 = 390;
+pub const TOKEN_CEIL_W_D_OPCODE: i32 = 391;
+pub const TOKEN_CEIL_W_S_OPCODE: i32 = 392;
+pub const TOKEN_CFC0_OPCODE: i32 = 393;
+pub const TOKEN_CFC1_OPCODE: i32 = 394;
+pub const TOKEN_CFC2_OPCODE: i32 = 395;
+pub const TOKEN_CLO_OPCODE: i32 = 396;
+pub const TOKEN_CLZ_OPCODE: i32 = 397;
+pub const TOKEN_COP2_OPCODE: i32 = 398;
+pub const TOKEN_CTC0_OPCODE: i32 = 399;
+pub const TOKEN_CTC1_OPCODE: i32 = 400;
+pub const TOKEN_CTC2_OPCODE: i32 = 401;
+pub const TOKEN_CVT_D_L_OPCODE: i32 = 402;
+pub const TOKEN_CVT_D_S_OPCODE: i32 = 403;
+pub const TOKEN_CVT_D_W_OPCODE: i32 = 404;
+pub const TOKEN_CVT_L_D_OPCODE: i32 = 405;
+pub const TOKEN_CVT_L_S_OPCODE: i32 = 406;
+pub const TOKEN_CVT_PS_S_OPCODE: i32 = 407;
+pub const TOKEN_CVT_S_D_OPCODE: i32 = 408;
+pub const TOKEN_CVT_S_L_OPCODE: i32 = 409;
+pub const TOKEN_CVT_S_PL_OPCODE: i32 = 410;
+pub const TOKEN_CVT_S_PU_OPCODE: i32 = 411;
+pub const TOKEN_CVT_S_W_OPCODE: i32 = 412;
+pub const TOKEN_CVT_W_D_OPCODE: i32 = 413;
+pub const TOKEN_CVT_W_S_OPCODE: i32 = 414;
+pub const TOKEN_DERET_OPCODE: i32 = 415;
+pub const TOKEN_DI_OPCODE: i32 = 416;
+pub const TOKEN_DIV_OPCODE: i32 = 417;
+pub const TOKEN_DIV_D_OPCODE: i32 = 418;
+pub const TOKEN_DIV_S_OPCODE: i32 = 419;
+pub const TOKEN_DIVU_OPCODE: i32 = 420;
+pub const TOKEN_EHB_OPCODE: i32 = 421;
+pub const TOKEN_EI_OPCODE: i32 = 422;
+pub const TOKEN_ERET_OPCODE: i32 = 423;
+pub const TOKEN_EXT_OPCODE: i32 = 424;
+pub const TOKEN_FLOOR_L_D_OPCODE: i32 = 425;
+pub const TOKEN_FLOOR_L_S_OPCODE: i32 = 426;
+pub const TOKEN_FLOOR_W_D_OPCODE: i32 = 427;
+pub const TOKEN_FLOOR_W_S_OPCODE: i32 = 428;
+pub const TOKEN_INS_OPCODE: i32 = 429;
+pub const TOKEN_J_OPCODE: i32 = 430;
+pub const TOKEN_JAL_OPCODE: i32 = 431;
+pub const TOKEN_JALR_OPCODE: i32 = 432;
+pub const TOKEN_JALR_HB_OPCODE: i32 = 433;
+pub const TOKEN_JR_OPCODE: i32 = 434;
+pub const TOKEN_JR_HB_OPCODE: i32 = 435;
+pub const TOKEN_L_D_PSEUDO_OP: i32 = 436;
+pub const TOKEN_L_S_PSEUDO_OP: i32 = 437;
+pub const TOKEN_LA_PSEUDO_OP: i32 = 438;
+pub const TOKEN_LB_OPCODE: i32 = 439;
+pub const TOKEN_LBU_OPCODE: i32 = 440;
+pub const TOKEN_LD_PSEUDO_OP: i32 = 441;
+pub const TOKEN_LDC1_OPCODE: i32 = 442;
+pub const TOKEN_LDC2_OPCODE: i32 = 443;
+pub const TOKEN_LDXC1_OPCODE: i32 = 444;
+pub const TOKEN_LH_OPCODE: i32 = 445;
+pub const TOKEN_LHU_OPCODE: i32 = 446;
+pub const TOKEN_LI_PSEUDO_OP: i32 = 447;
+pub const TOKEN_LI_D_PSEUDO_OP: i32 = 448;
+pub const TOKEN_LI_S_PSEUDO_OP: i32 = 449;
+pub const TOKEN_LL_OPCODE: i32 = 450;
+pub const TOKEN_LUI_OPCODE: i32 = 451;
+pub const TOKEN_LUXC1_OPCODE: i32 = 452;
+pub const TOKEN_LW_OPCODE: i32 = 453;
+pub const TOKEN_LWC1_OPCODE: i32 = 454;
+pub const TOKEN_LWC2_OPCODE: i32 = 455;
+pub const TOKEN_LWL_OPCODE: i32 = 456;
+pub const TOKEN_LWR_OPCODE: i32 = 457;
+pub const TOKEN_LWXC1_OPCODE: i32 = 458;
+pub const TOKEN_MADD_OPCODE: i32 = 459;
+pub const TOKEN_MADD_D_OPCODE: i32 = 460;
+pub const TOKEN_MADD_PS_OPCODE: i32 = 461;
+pub const TOKEN_MADD_S_OPCODE: i32 = 462;
+pub const TOKEN_MADDU_OPCODE: i32 = 463;
+pub const TOKEN_MFC0_OPCODE: i32 = 464;
+pub const TOKEN_MFC1_OPCODE: i32 = 465;
+pub const TOKEN_MFC1_D_PSEUDO_OP: i32 = 466;
+pub const TOKEN_MFC2_OPCODE: i32 = 467;
+pub const TOKEN_MFHC1_OPCODE: i32 = 468;
+pub const TOKEN_MFHC2_OPCODE: i32 = 469;
+pub const TOKEN_MFHI_OPCODE: i32 = 470;
+pub const TOKEN_MFLO_OPCODE: i32 = 471;
+pub const TOKEN_MOV_D_OPCODE: i32 = 472;
+pub const TOKEN_MOV_PS_OPCODE: i32 = 473;
+pub const TOKEN_MOV_S_OPCODE: i32 = 474;
+pub const TOKEN_MOVE_PSEUDO_OP: i32 = 475;
+pub const TOKEN_MOVF_OPCODE: i32 = 476;
+pub const TOKEN_MOVF_D_OPCODE: i32 = 477;
+pub const TOKEN_MOVF_PS_OPCODE: i32 = 478;
+pub const TOKEN_MOVF_S_OPCODE: i32 = 479;
+pub const TOKEN_MOVN_OPCODE: i32 = 480;
+pub const TOKEN_MOVN_D_OPCODE: i32 = 481;
+pub const TOKEN_MOVN_PS_OPCODE: i32 = 482;
+pub const TOKEN_MOVN_S_OPCODE: i32 = 483;
+pub const TOKEN_MOVT_OPCODE: i32 = 484;
+pub const TOKEN_MOVT_D_OPCODE: i32 = 485;
+pub const TOKEN_MOVT_PS_OPCODE: i32 = 486;
+pub const TOKEN_MOVT_S_OPCODE: i32 = 487;
+pub const TOKEN_MOVZ_OPCODE: i32 = 488;
+pub const TOKEN_MOVZ_D_OPCODE: i32 = 489;
+pub const TOKEN_MOVZ_PS_OPCODE: i32 = 490;
+pub const TOKEN_MOVZ_S_OPCODE: i32 = 491;
+pub const TOKEN_MSUB_OPCODE: i32 = 492;
+pub const TOKEN_MSUB_D_OPCODE: i32 = 493;
+pub const TOKEN_MSUB_PS_OPCODE: i32 = 494;
+pub const TOKEN_MSUB_S_OPCODE: i32 = 495;
+pub const TOKEN_MSUBU_OPCODE: i32 = 496;
+pub const TOKEN_MTC0_OPCODE: i32 = 497;
+pub const TOKEN_MTC1_OPCODE: i32 = 498;
+pub const TOKEN_MTC1_D_PSEUDO_OP: i32 = 499;
+pub const TOKEN_MTC2_OPCODE: i32 = 500;
+pub const TOKEN_MTHC1_OPCODE: i32 = 501;
+pub const TOKEN_MTHC2_OPCODE: i32 = 502;
+pub const TOKEN_MTHI_OPCODE: i32 = 503;
+pub const TOKEN_MTLO_OPCODE: i32 = 504;
+pub const TOKEN_MUL_OPCODE: i32 = 505;
+pub const TOKEN_MUL_D_OPCODE: i32 = 506;
+pub const TOKEN_MUL_PS_OPCODE: i32 = 507;
+pub const TOKEN_MUL_S_OPCODE: i32 = 508;
+pub const TOKEN_MULO_PSEUDO_OP: i32 = 509;
+pub const TOKEN_MULOU_PSEUDO_OP: i32 = 510;
+pub const TOKEN_MULT_OPCODE: i32 = 511;
+pub const TOKEN_MULTU_OPCODE: i32 = 512;
+pub const TOKEN_NEG_PSEUDO_OP: i32 = 513;
+pub const TOKEN_NEG_D_OPCODE: i32 = 514;
+pub const TOKEN_NEG_PS_OPCODE: i32 = 515;
+pub const TOKEN_NEG_S_OPCODE: i32 = 516;
+pub const TOKEN_NEGU_PSEUDO_OP: i32 = 517;
+pub const TOKEN_NMADD_D_OPCODE: i32 = 518;
+pub const TOKEN_NMADD_PS_OPCODE: i32 = 519;
+pub const TOKEN_NMADD_S_OPCODE: i32 = 520;
+pub const TOKEN_NMSUB_D_OPCODE: i32 = 521;
+pub const TOKEN_NMSUB_PS_OPCODE: i32 = 522;
+pub const TOKEN_NMSUB_S_OPCODE: i32 = 523;
+pub const TOKEN_NOP_PSEUDO_OP: i32 = 524;
+pub const TOKEN_NOR_OPCODE: i32 = 525;
+pub const TOKEN_NOT_PSEUDO_OP: i32 = 526;
+pub const TOKEN_OR_OPCODE: i32 = 527;
+pub const TOKEN_ORI_OPCODE: i32 = 528;
+pub const TOKEN_PLL_PS_OPCODE: i32 = 529;
+pub const TOKEN_PLU_PS_OPCODE: i32 = 530;
+pub const TOKEN_PREF_OPCODE: i32 = 531;
+pub const TOKEN_PREFX_OPCODE: i32 = 532;
+pub const TOKEN_PUL_PS_OPCODE: i32 = 533;
+pub const TOKEN_PUU_PS_OPCODE: i32 = 534;
+pub const TOKEN_RDHWR_OPCODE: i32 = 535;
+pub const TOKEN_RDPGPR_OPCODE: i32 = 536;
+pub const TOKEN_RECIP_D_OPCODE: i32 = 537;
+pub const TOKEN_RECIP_S_OPCODE: i32 = 538;
+pub const TOKEN_REM_PSEUDO_OP: i32 = 539;
+pub const TOKEN_REMU_PSEUDO_OP: i32 = 540;
+pub const TOKEN_RFE_OPCODE: i32 = 541;
+pub const TOKEN_ROL_PSEUDO_OP: i32 = 542;
+pub const TOKEN_ROR_PSEUDO_OP: i32 = 543;
+pub const TOKEN_ROTR_OPCODE: i32 = 544;
+pub const TOKEN_ROTRV_OPCODE: i32 = 545;
+pub const TOKEN_ROUND_L_D_OPCODE: i32 = 546;
+pub const TOKEN_ROUND_L_S_OPCODE: i32 = 547;
+pub const TOKEN_ROUND_W_D_OPCODE: i32 = 548;
+pub const TOKEN_ROUND_W_S_OPCODE: i32 = 549;
+pub const TOKEN_RSQRT_D_OPCODE: i32 = 550;
+pub const TOKEN_RSQRT_S_OPCODE: i32 = 551;
+pub const TOKEN_S_D_PSEUDO_OP: i32 = 552;
+pub const TOKEN_S_S_PSEUDO_OP: i32 = 553;
+pub const TOKEN_SB_OPCODE: i32 = 554;
+pub const TOKEN_SC_OPCODE: i32 = 555;
+pub const TOKEN_SD_PSEUDO_OP: i32 = 556;
+pub const TOKEN_SDBBP_OPCODE: i32 = 557;
+pub const TOKEN_SDC1_OPCODE: i32 = 558;
+pub const TOKEN_SDC2_OPCODE: i32 = 559;
+pub const TOKEN_SDXC1_OPCODE: i32 = 560;
+pub const TOKEN_SEB_OPCODE: i32 = 561;
+pub const TOKEN_SEH_OPCODE: i32 = 562;
+pub const TOKEN_SEQ_PSEUDO_OP: i32 = 563;
+pub const TOKEN_SGE_PSEUDO_OP: i32 = 564;
+pub const TOKEN_SGEU_PSEUDO_OP: i32 = 565;
+pub const TOKEN_SGT_PSEUDO_OP: i32 = 566;
+pub const TOKEN_SGTU_PSEUDO_OP: i32 = 567;
+pub const TOKEN_SH_OPCODE: i32 = 568;
+pub const TOKEN_SLE_PSEUDO_OP: i32 = 569;
+pub const TOKEN_SLEU_PSEUDO_OP: i32 = 570;
+pub const TOKEN_SLL_OPCODE: i32 = 571;
+pub const TOKEN_SLLV_OPCODE: i32 = 572;
+pub const TOKEN_SLT_OPCODE: i32 = 573;
+pub const TOKEN_SLTI_OPCODE: i32 = 574;
+pub const TOKEN_SLTIU_OPCODE: i32 = 575;
+pub const TOKEN_SLTU_OPCODE: i32 = 576;
+pub const TOKEN_SNE_PSEUDO_OP: i32 = 577;
+pub const TOKEN_SQRT_D_OPCODE: i32 = 578;
+pub const TOKEN_SQRT_S_OPCODE: i32 = 579;
+pub const TOKEN_SRA_OPCODE: i32 = 580;
+pub const TOKEN_SRAV_OPCODE: i32 = 581;
+pub const TOKEN_SRL_OPCODE: i32 = 582;
+pub const TOKEN_SRLV_OPCODE: i32 = 583;
+pub const TOKEN_SSNOP_OPCODE: i32 = 584;
+pub const TOKEN_SUB_OPCODE: i32 = 585;
+pub const TOKEN_SUB_D_OPCODE: i32 = 586;
+pub const TOKEN_SUB_PS_OPCODE: i32 = 587;
+pub const TOKEN_SUB_S_OPCODE: i32 = 588;
+pub const TOKEN_SUBU_OPCODE: i32 = 589;
+pub const TOKEN_SUXC1_OPCODE: i32 = 590;
+pub const TOKEN_SW_OPCODE: i32 = 591;
+pub const TOKEN_SWC1_OPCODE: i32 = 592;
+pub const TOKEN_SWC2_OPCODE: i32 = 593;
+pub const TOKEN_SWL_OPCODE: i32 = 594;
+pub const TOKEN_SWR_OPCODE: i32 = 595;
+pub const TOKEN_SWXC1_OPCODE: i32 = 596;
+pub const TOKEN_SYNC_OPCODE: i32 = 597;
+pub const TOKEN_SYNCI_OPCODE: i32 = 598;
+pub const TOKEN_SYSCALL_OPCODE: i32 = 599;
+pub const TOKEN_TEQ_OPCODE: i32 = 600;
+pub const TOKEN_TEQI_OPCODE: i32 = 601;
+pub const TOKEN_TGE_OPCODE: i32 = 602;
+pub const TOKEN_TGEI_OPCODE: i32 = 603;
+pub const TOKEN_TGEIU_OPCODE: i32 = 604;
+pub const TOKEN_TGEU_OPCODE: i32 = 605;
+pub const TOKEN_TLBP_OPCODE: i32 = 606;
+pub const TOKEN_TLBR_OPCODE: i32 = 607;
+pub const TOKEN_TLBWI_OPCODE: i32 = 608;
+pub const TOKEN_TLBWR_OPCODE: i32 = 609;
+pub const TOKEN_TLT_OPCODE: i32 = 610;
+pub const TOKEN_TLTI_OPCODE: i32 = 611;
+pub const TOKEN_TLTIU_OPCODE: i32 = 612;
+pub const TOKEN_TLTU_OPCODE: i32 = 613;
+pub const TOKEN_TNE_OPCODE: i32 = 614;
+pub const TOKEN_TNEI_OPCODE: i32 = 615;
+pub const TOKEN_TRUNC_L_D_OPCODE: i32 = 616;
+pub const TOKEN_TRUNC_L_S_OPCODE: i32 = 617;
+pub const TOKEN_TRUNC_W_D_OPCODE: i32 = 618;
+pub const TOKEN_TRUNC_W_S_OPCODE: i32 = 619;
+pub const TOKEN_ULH_PSEUDO_OP: i32 = 620;
+pub const TOKEN_ULHU_PSEUDO_OP: i32 = 621;
+pub const TOKEN_ULW_PSEUDO_OP: i32 = 622;
+pub const TOKEN_USH_PSEUDO_OP: i32 = 623;
+pub const TOKEN_USW_PSEUDO_OP: i32 = 624;
+pub const TOKEN_WRPGPR_OPCODE: i32 = 625;
+pub const TOKEN_WSBH_OPCODE: i32 = 626;
+pub const TOKEN_XOR_OPCODE: i32 = 627;
+pub const TOKEN_XORI_OPCODE: i32 = 628;
 
 /// Binary encoding -> token, one entry per encoding, sorted by encoding.
 /// Where several rows share an encoding, the entry is the row

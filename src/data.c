@@ -20,17 +20,17 @@
    middle of the segment, so we can use the full offset field in an
    instruction. */
 
-static mem_addr next_data_pc; /* Location for next datum in user process */
+static memory_address next_data_location; /* Location for next datum in user process */
 
-static mem_addr next_k_data_pc; /* Location for next datum in kernel */
+static memory_address next_kernel_data_location; /* Location for next datum in kernel */
 
 static bool in_kernel = false; /* => data goes to kdata, not data */
 
-static inline mem_addr data_location(void) {
-  return in_kernel ? next_k_data_pc : next_data_pc;
+static inline memory_address data_location(void) {
+  return in_kernel ? next_kernel_data_location : next_data_location;
 }
 
-static mem_addr next_gp_item_addr; /* Address of next item accessed off $gp */
+static memory_address next_global_pointer_item_address; /* Address of next item accessed off $gp */
 
 static bool enable_data_auto_alignment =
     true; /* => align literal to natural bound */
@@ -50,21 +50,21 @@ void end_of_assembly_file(void) {
    64K.	 The 64K increment allocates an area pointed to by register
    $gp, which is initialized. */
 
-void data_begins_at_point(mem_addr address) {
+void data_begins_at_point(memory_address address) {
   if (bare_machine)
-    next_data_pc = address;
+    next_data_location = address;
   else {
-    next_gp_item_addr = address;
-    gp_midpoint = address + 32 * kilo;
-    gpr[REG_GP] = (reg_word)gp_midpoint;
-    next_data_pc = address + 64 * kilo;
+    next_global_pointer_item_address = address;
+    global_pointer_midpoint = address + 32 * kilo;
+    general_purpose_registers[GLOBAL_POINTER_REGISTER] = (register_word)global_pointer_midpoint;
+    next_data_location = address + 64 * kilo;
   }
 }
 
 /* Set the point at which the first datum is stored in the kernel's
    data segment. */
 
-void kernel_data_begins_at_point(mem_addr address) { next_k_data_pc = address; }
+void kernel_data_begins_at_point(memory_address address) { next_kernel_data_location = address; }
 
 /* Arrange that the next datum is stored on a memory boundary with its
    low ALIGNMENT bits equal to 0.  If argument is 0, disable automatic
@@ -74,13 +74,13 @@ void align_data(int alignment) {
   if (alignment == 0)
     enable_data_auto_alignment = false;
   else if (in_kernel) {
-    next_k_data_pc =
-        (next_k_data_pc + (1u << alignment) - 1) & (0xffffffff << alignment);
-    fix_current_label_address(next_k_data_pc);
+    next_kernel_data_location =
+        (next_kernel_data_location + (1u << alignment) - 1) & (0xffffffff << alignment);
+    fix_current_label_address(next_kernel_data_location);
   } else {
-    next_data_pc =
-        (next_data_pc + (1u << alignment) - 1) & (0xffffffff << alignment);
-    fix_current_label_address(next_data_pc);
+    next_data_location =
+        (next_data_location + (1u << alignment) - 1) & (0xffffffff << alignment);
+    fix_current_label_address(next_data_location);
   }
 }
 
@@ -92,29 +92,29 @@ void enable_data_alignment(void) { enable_data_auto_alignment = true; }
 
 /* Set the location (in user or kernel data space) for the next datum. */
 
-void set_data_location(mem_addr address) {
+void set_data_location(memory_address address) {
   if (in_kernel)
-    next_k_data_pc = address;
+    next_kernel_data_location = address;
   else
-    next_data_pc = address;
+    next_data_location = address;
 }
 
 /* Return the address at which the next datum will be stored.  */
 
-mem_addr current_data_location(void) { return (data_location()); }
+memory_address current_data_location(void) { return (data_location()); }
 
 /* Bump the address at which the next data will be stored by DELTA
    bytes. */
 
 void increment_data_location(int delta) {
   if (in_kernel) {
-    next_k_data_pc += (mem_addr)delta;
-    if (k_data_top <= next_k_data_pc)
-      expand_kernel_data((int)ROUND_UP(next_k_data_pc - k_data_top + 1, 64 * kilo));
+    next_kernel_data_location += (memory_address)delta;
+    if (kernel_data_top <= next_kernel_data_location)
+      expand_kernel_data((int)ROUND_UP(next_kernel_data_location - kernel_data_top + 1, 64 * kilo));
   } else {
-    next_data_pc += (mem_addr)delta;
-    if (data_top <= next_data_pc)
-      expand_data((int)ROUND_UP(next_data_pc - data_top + 1, 64 * kilo));
+    next_data_location += (memory_address)delta;
+    if (data_top <= next_data_location)
+      expand_data((int)ROUND_UP(next_data_location - data_top + 1, 64 * kilo));
   }
 }
 
@@ -124,26 +124,26 @@ void extern_directive(const char* name, int size) {
   label* symbol = make_label_global(name);
 
   if (!bare_machine && !symbol->global_pointer_flag  // Not already a global symbol
-      && size > 0 && size <= SMALL_DATA_SEG_MAX_SIZE &&
-      next_gp_item_addr + (mem_addr)size < gp_midpoint + 32 * kilo) {
+      && size > 0 && size <= SMALL_DATA_SEGMENT_MAX_SIZE &&
+      next_global_pointer_item_address + (memory_address)size < global_pointer_midpoint + 32 * kilo) {
     symbol->global_pointer_flag = true;
-    symbol->address = next_gp_item_addr;
-    next_gp_item_addr += (mem_addr)size;
+    symbol->address = next_global_pointer_item_address;
+    next_global_pointer_item_address += (memory_address)size;
   }
 }
 
 /* Process a .lcomm NAME SIZE directive. */
 
 void lcomm_directive(const char* name, int size) {
-  if (!bare_machine && size > 0 && size <= SMALL_DATA_SEG_MAX_SIZE &&
-      next_gp_item_addr + (mem_addr)size < gp_midpoint + 32 * kilo) {
-    label* symbol = record_label(name, next_gp_item_addr, true);
+  if (!bare_machine && size > 0 && size <= SMALL_DATA_SEGMENT_MAX_SIZE &&
+      next_global_pointer_item_address + (memory_address)size < global_pointer_midpoint + 32 * kilo) {
+    label* symbol = record_label(name, next_global_pointer_item_address, true);
     symbol->global_pointer_flag = true;
 
-    next_gp_item_addr += (mem_addr)size;
+    next_global_pointer_item_address += (memory_address)size;
     /* Don't need to initialize since memory starts with 0's */
   } else {
-    (void)record_label(name, next_data_pc, true);
+    (void)record_label(name, next_data_location, true);
 
     for (; size > 0; size--) {
       store_byte(0);
@@ -159,7 +159,7 @@ static int data_store_depth = 0;
 /* Process a .ascii STRING or .asciiz STRING directive. */
 
 void store_string(char* string, int length, bool null_terminate) {
-  const mem_addr at = data_location();
+  const memory_address at = data_location();
   const char* const original = string;
   const int original_length = length;
   data_store_depth++;
@@ -174,19 +174,19 @@ void store_string(char* string, int length, bool null_terminate) {
     assembler_fire_data_string(at, original, original_length, null_terminate);
 }
 
-/* Process a .byte EXPR directive. */
+/* Process a .byte EXPRESSION directive. */
 
 void store_byte(int value) {
-  const mem_addr at = data_location();
+  const memory_address at = data_location();
   memory_write_byte(at, value);
   increment_data_location(1);
   if (data_store_depth == 0) assembler_fire_data_byte(at, value);
 }
 
-/* Process a .half EXPR directive. */
+/* Process a .half EXPRESSION directive. */
 
 void store_half(int value) {
-  const mem_addr at = data_location();
+  const memory_address at = data_location();
   const bool outer = (data_store_depth == 0);
   data_store_depth++;
   if ((data_location() & 0x1) != 0) {
@@ -205,10 +205,10 @@ void store_half(int value) {
   if (outer) assembler_fire_data_half(at, value);
 }
 
-/* Process a .word EXPR directive. */
+/* Process a .word EXPRESSION directive. */
 
 void store_word(int value) {
-  const mem_addr at = data_location();
+  const memory_address at = data_location();
   const bool outer = (data_store_depth == 0);
   data_store_depth++;
   if ((data_location() & 0x3) != 0) {
@@ -227,13 +227,13 @@ void store_word(int value) {
   if (outer) assembler_fire_data_word(at, value);
 }
 
-/* Process a .double EXPR directive. */
+/* Process a .double EXPRESSION directive. */
 
 void store_double(double* value) {
-  const mem_addr at = data_location();
+  const memory_address at = data_location();
   const bool outer = (data_store_depth == 0);
   data_store_depth++;
-  mem_word words[2]; /* the double's two words, in host order */
+  memory_word words[2]; /* the double's two words, in host order */
   memcpy(words, value, sizeof words);
   if ((data_location() & 0x7) != 0) {
     store_word(words[0]);
@@ -248,11 +248,11 @@ void store_double(double* value) {
   if (outer) assembler_fire_data_double(at, *value);
 }
 
-/* Process a .float EXPR directive. */
+/* Process a .float EXPRESSION directive. */
 
 void store_float(double* value) {
   float float_value = (float)*value;
-  mem_word bits; /* the float's bit pattern, not its value */
+  memory_word bits; /* the float's bit pattern, not its value */
   memcpy(&bits, &float_value, sizeof bits);
 
   if ((data_location() & 0x3) != 0) {

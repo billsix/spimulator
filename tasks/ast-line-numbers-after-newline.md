@@ -28,7 +28,7 @@ regression test, and the student-facing sample output in
   ```
 
 - The same slip was fixed for error messages in the 2026-11-11 batch: the parser captures
-  `line_no` before parsing the operands (`check_imm_range`'s `line` parameter, and
+  `line_no` before parsing the operands (`check_immediate_range`'s `line` parameter, and
   `parse_error_on_line` in `src/parser.c`; `tasks/archive/2026/11/11/c-undefined-behavior-fixes-then-ports.md`).
   The AST node constructors (`new_node` in `src/ast.c`, called from the parser's `emit_*` helpers)
   still read the live `line_no`.

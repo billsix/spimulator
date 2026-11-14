@@ -473,7 +473,7 @@ def r_cond_type(opcode: int, fs: int, ft: int, cc: int) -> None:
     inst: Instruction = _make_r_type(opcode, fs, 0, ft)
     inst.set_shamt(cc << 2)
     if opcode not in _COMPARE_CONDITIONS:
-        # Never reached: only FP_CMP_FS_FT_INST rows reach here, and the table holds all 32
+        # Never reached: only FLOATING_POINT_COMPARE_SOURCE_TARGET_INSTRUCTION rows reach here, and the table holds all 32
         # of them (16 conditions, .s and .d).
         raise console.fatal_error(
             f"internal error: r_cond_type: not an FP compare: {opcode}\n"
@@ -532,35 +532,45 @@ def inst_encode(inst: Instruction | None) -> int:
     imm: int = inst.imm & 0xFFFF
     word: int
     match kind:
-        case OpType.BRANCH_COPROC_COND_INST:
+        case OpType.BRANCH_COPROCESSOR_CONDITION_INSTRUCTION:
             word = a | _regs((inst.rt >> 2) << 2, 16) | imm
-        case OpType.BRANCH_RS_LABEL_INST | OpType.RS_IMM_INST:
+        case (
+            OpType.BRANCH_SOURCE_REGISTER_LABEL_INSTRUCTION
+            | OpType.SOURCE_REGISTER_IMMEDIATE_INSTRUCTION
+        ):
             word = a | _regs(inst.rs, 21) | imm
         case (
-            OpType.RT_IMM_INST
-            | OpType.RT_RS_IMM_INST
-            | OpType.BRANCH_RS_RT_LABEL_INST
-            | OpType.RT_ADDR_INST
-            | OpType.FP_FT_ADDR_INST
+            OpType.TARGET_REGISTER_IMMEDIATE_INSTRUCTION
+            | OpType.TARGET_REGISTER_SOURCE_REGISTER_IMMEDIATE_INSTRUCTION
+            | OpType.BRANCH_SOURCE_REGISTER_TARGET_REGISTER_LABEL_INSTRUCTION
+            | OpType.TARGET_REGISTER_ADDRESS_INSTRUCTION
+            | OpType.FLOATING_POINT_TARGET_ADDRESS_INSTRUCTION
         ):
             word = a | _regs(inst.rs, 21) | _regs(inst.rt, 16) | imm
-        case OpType.RS_INST:
+        case OpType.SOURCE_REGISTER_INSTRUCTION:
             word = a | _regs(inst.rs, 21)
-        case OpType.RD_INST:
+        case OpType.DESTINATION_REGISTER_INSTRUCTION:
             word = a | _regs(inst.rd, 11)
-        case OpType.RT_COPREG_INST | OpType.FP_RT_COPREG_INST:
+        case (
+            OpType.TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION
+            | OpType.FLOATING_POINT_TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION
+        ):
             word = a | _regs(inst.rt, 16) | _regs(inst.rd, 11)
-        case OpType.RS_RT_INST:
+        case OpType.SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION:
             word = a | _regs(inst.rs, 21) | _regs(inst.rt, 16)
-        case OpType.RD_RS_INST:
+        case OpType.DESTINATION_REGISTER_SOURCE_REGISTER_INSTRUCTION:
             word = a | _regs(inst.rs, 21) | _regs(inst.rd, 11)
-        case OpType.RD_RT_SHAMT_INST:
+        case OpType.DESTINATION_REGISTER_TARGET_REGISTER_SHIFT_AMOUNT_INSTRUCTION:
             word = a | _regs(inst.rt, 16) | _regs(inst.rd, 11) | _regs(inst.shamt, 6)
-        case OpType.RD_RS_RT_INST | OpType.RD_RT_RS_INST | OpType.MOVC_TYPE_INST:
+        case (
+            OpType.DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION
+            | OpType.DESTINATION_REGISTER_TARGET_REGISTER_SOURCE_REGISTER_INSTRUCTION
+            | OpType.MOVE_CONDITIONAL_TYPE_INSTRUCTION
+        ):
             word = a | _regs(inst.rs, 21) | _regs(inst.rt, 16) | _regs(inst.rd, 11)
-        case OpType.FP_FD_FS_INST:
+        case OpType.FLOATING_POINT_DESTINATION_SOURCE_INSTRUCTION:
             word = a | _regs(inst.rd, 11) | _regs(inst.shamt, 6)
-        case OpType.FP_CMP_FS_FT_INST:
+        case OpType.FLOATING_POINT_COMPARE_SOURCE_TARGET_INSTRUCTION:
             word = (
                 a
                 | _regs(inst.rt, 16)
@@ -568,12 +578,15 @@ def inst_encode(inst: Instruction | None) -> int:
                 | _regs(inst.shamt, 6)
                 | inst.rs
             )
-        case OpType.FP_FD_FS_FT_INST | OpType.FP_MOVC_TYPE_INST:
+        case (
+            OpType.FLOATING_POINT_DESTINATION_SOURCE_TARGET_INSTRUCTION
+            | OpType.FLOATING_POINT_MOVE_CONDITIONAL_TYPE_INSTRUCTION
+        ):
             # For movf/movt the rt byte is cc<<2; their tf bit is in a already.
             word = a | _regs(inst.rt, 16) | _regs(inst.rd, 11) | _regs(inst.shamt, 6)
-        case OpType.J_TYPE_INST:
+        case OpType.J_TYPE_INSTRUCTION:
             word = machine.u32(a) | inst.target
-        case OpType.NOARG_TYPE_INST:
+        case OpType.NO_ARGUMENT_TYPE_INSTRUCTION:
             word = a
         case _:
             raise console.fatal_error("Unknown instruction type in inst_encoding\n")
@@ -632,34 +645,47 @@ def inst_decode(word: int) -> Instruction:
     imm: int = val & 0xFFFF
     kind: int | None = kind_of(token)
     match kind:
-        case OpType.BRANCH_COPROC_COND_INST | OpType.RT_IMM_INST | OpType.RT_RS_IMM_INST | OpType.BRANCH_RS_RT_LABEL_INST | OpType.RT_ADDR_INST | OpType.FP_FT_ADDR_INST:  # fmt: skip
+        case OpType.BRANCH_COPROCESSOR_CONDITION_INSTRUCTION | OpType.TARGET_REGISTER_IMMEDIATE_INSTRUCTION | OpType.TARGET_REGISTER_SOURCE_REGISTER_IMMEDIATE_INSTRUCTION | OpType.BRANCH_SOURCE_REGISTER_TARGET_REGISTER_LABEL_INSTRUCTION | OpType.TARGET_REGISTER_ADDRESS_INSTRUCTION | OpType.FLOATING_POINT_TARGET_ADDRESS_INSTRUCTION:  # fmt: skip
             return _mk_inst(val, token, rs, rt, imm & 0xFF, imm >> 8)
-        case OpType.BRANCH_RS_LABEL_INST | OpType.RS_IMM_INST:
+        case (
+            OpType.BRANCH_SOURCE_REGISTER_LABEL_INSTRUCTION
+            | OpType.SOURCE_REGISTER_IMMEDIATE_INSTRUCTION
+        ):
             return _mk_inst(val, token, rs, 0, imm & 0xFF, imm >> 8)
-        case OpType.RS_INST:
+        case OpType.SOURCE_REGISTER_INSTRUCTION:
             return _mk_inst(val, token, rs)
-        case OpType.RD_INST:
+        case OpType.DESTINATION_REGISTER_INSTRUCTION:
             return _mk_inst(val, token, rd=rd)
-        case OpType.RT_COPREG_INST | OpType.FP_RT_COPREG_INST:
+        case (
+            OpType.TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION
+            | OpType.FLOATING_POINT_TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION
+        ):
             return _mk_inst(val, token, rt=rt, rd=rd)
-        case OpType.RS_RT_INST:
+        case OpType.SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION:
             return _mk_inst(val, token, rs, rt)
-        case OpType.RD_RS_INST:
+        case OpType.DESTINATION_REGISTER_SOURCE_REGISTER_INSTRUCTION:
             return _mk_inst(val, token, rs, rd=rd)
-        case OpType.RD_RT_SHAMT_INST:
+        case OpType.DESTINATION_REGISTER_TARGET_REGISTER_SHIFT_AMOUNT_INSTRUCTION:
             return _mk_inst(val, token, 0, rt, rd, sh)
-        case OpType.RD_RS_RT_INST | OpType.RD_RT_RS_INST | OpType.MOVC_TYPE_INST:
+        case (
+            OpType.DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION
+            | OpType.DESTINATION_REGISTER_TARGET_REGISTER_SOURCE_REGISTER_INSTRUCTION
+            | OpType.MOVE_CONDITIONAL_TYPE_INSTRUCTION
+        ):
             return _mk_inst(val, token, rs, rt, rd)
-        case OpType.FP_FD_FS_INST:
+        case OpType.FLOATING_POINT_DESTINATION_SOURCE_INSTRUCTION:
             return _mk_inst(val, token, 0, 0, rd, sh)
-        case OpType.FP_CMP_FS_FT_INST:
+        case OpType.FLOATING_POINT_COMPARE_SOURCE_TARGET_INSTRUCTION:
             return _mk_inst(val, token, val & 0xF, rt, rd, sh)
-        case OpType.FP_FD_FS_FT_INST | OpType.FP_MOVC_TYPE_INST:
+        case (
+            OpType.FLOATING_POINT_DESTINATION_SOURCE_TARGET_INSTRUCTION
+            | OpType.FLOATING_POINT_MOVE_CONDITIONAL_TYPE_INSTRUCTION
+        ):
             return _mk_inst(val, token, 0, rt, rd, sh)
-        case OpType.J_TYPE_INST:
+        case OpType.J_TYPE_INSTRUCTION:
             target: int = val & 0x3FFFFFF
             return _mk_inst(val, token, target, target >> 8, target >> 16, target >> 24)
-        case OpType.NOARG_TYPE_INST:
+        case OpType.NO_ARGUMENT_TYPE_INSTRUCTION:
             return _mk_inst(val, token)
         case _:
             return _mk_inst(val, 0)
@@ -698,57 +724,57 @@ def _operands(inst: Instruction, kind: int) -> str:
     """The operand text of inst for its operand shape (format_an_inst)."""
     branch_offset: int = machine.s32(machine.s16(inst.imm) << 2)
     match kind:
-        case OpType.BRANCH_COPROC_COND_INST:
+        case OpType.BRANCH_COPROCESSOR_CONDITION_INSTRUCTION:
             return f"{inst.rt >> 2} {branch_offset}"
-        case OpType.BRANCH_RS_LABEL_INST:
+        case OpType.BRANCH_SOURCE_REGISTER_LABEL_INSTRUCTION:
             return f" ${_reg(inst.rs)} {branch_offset}"
-        case OpType.RS_IMM_INST:
+        case OpType.SOURCE_REGISTER_IMMEDIATE_INSTRUCTION:
             return f" ${_reg(inst.rs)}, {inst.imm}"
-        case OpType.RT_IMM_INST:
+        case OpType.TARGET_REGISTER_IMMEDIATE_INSTRUCTION:
             return f" ${_reg(inst.rt)}, {inst.imm}"
-        case OpType.RT_RS_IMM_INST:
+        case OpType.TARGET_REGISTER_SOURCE_REGISTER_IMMEDIATE_INSTRUCTION:
             return f" ${_reg(inst.rt)}, ${_reg(inst.rs)}, {inst.imm}"
-        case OpType.BRANCH_RS_RT_LABEL_INST:
+        case OpType.BRANCH_SOURCE_REGISTER_TARGET_REGISTER_LABEL_INSTRUCTION:
             return f" ${_reg(inst.rs)}, ${_reg(inst.rt)}, {branch_offset}"
-        case OpType.RT_ADDR_INST:
+        case OpType.TARGET_REGISTER_ADDRESS_INSTRUCTION:
             return f" ${_reg(inst.rt)}, {inst.imm}(${_reg(inst.rs)})"
-        case OpType.RS_INST:
+        case OpType.SOURCE_REGISTER_INSTRUCTION:
             return f" ${_reg(inst.rs)}"
-        case OpType.RD_INST:
+        case OpType.DESTINATION_REGISTER_INSTRUCTION:
             return f" ${_reg(inst.rd)}"
-        case OpType.RT_COPREG_INST:
+        case OpType.TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION:
             return f" ${_reg(inst.rt)}, ${_reg(inst.rd)}"
-        case OpType.RS_RT_INST:
+        case OpType.SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION:
             return f" ${_reg(inst.rs)}, ${_reg(inst.rt)}"
-        case OpType.RD_RS_INST:
+        case OpType.DESTINATION_REGISTER_SOURCE_REGISTER_INSTRUCTION:
             return f" ${_reg(inst.rd)}, ${_reg(inst.rs)}"
-        case OpType.RD_RT_SHAMT_INST:
+        case OpType.DESTINATION_REGISTER_TARGET_REGISTER_SHIFT_AMOUNT_INSTRUCTION:
             return f" ${_reg(inst.rd)}, ${_reg(inst.rt)}, {inst.shamt}"
-        case OpType.RD_RS_RT_INST:
+        case OpType.DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION:
             return f" ${_reg(inst.rd)}, ${_reg(inst.rs)}, ${_reg(inst.rt)}"
-        case OpType.RD_RT_RS_INST:
+        case OpType.DESTINATION_REGISTER_TARGET_REGISTER_SOURCE_REGISTER_INSTRUCTION:
             return f" ${_reg(inst.rd)}, ${_reg(inst.rt)}, ${_reg(inst.rs)}"
-        case OpType.FP_FT_ADDR_INST:
+        case OpType.FLOATING_POINT_TARGET_ADDRESS_INSTRUCTION:
             return f" $f{inst.rt}, {inst.imm}(${_reg(inst.rs)})"
-        case OpType.FP_FD_FS_INST:
+        case OpType.FLOATING_POINT_DESTINATION_SOURCE_INSTRUCTION:
             return f" $f{inst.shamt}, $f{inst.rd}"
-        case OpType.FP_RT_COPREG_INST:
+        case OpType.FLOATING_POINT_TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION:
             return f" ${_reg(inst.rt)}, $f{inst.rd}"
-        case OpType.FP_CMP_FS_FT_INST:
+        case OpType.FLOATING_POINT_COMPARE_SOURCE_TARGET_INSTRUCTION:
             if inst.shamt == 0:
                 return f" $f{inst.rd}, $f{inst.rt}"
             return f" {inst.shamt >> 2}, $f{inst.rd}, $f{inst.rt}"
-        case OpType.FP_FD_FS_FT_INST:
+        case OpType.FLOATING_POINT_DESTINATION_SOURCE_TARGET_INSTRUCTION:
             return f" $f{inst.shamt}, $f{inst.rd}, $f{inst.rt}"
-        case OpType.MOVC_TYPE_INST:
+        case OpType.MOVE_CONDITIONAL_TYPE_INSTRUCTION:
             return f" ${_reg(inst.rd)}, ${_reg(inst.rs)}, {inst.rt >> 2}"
-        case OpType.FP_MOVC_TYPE_INST:
+        case OpType.FLOATING_POINT_MOVE_CONDITIONAL_TYPE_INSTRUCTION:
             if inst.opcode in _FP_MOVE_ON_GPR:
                 return f" $f{inst.shamt}, $f{inst.rd}, ${_reg(inst.rt)}"
             return f" $f{inst.shamt}, $f{inst.rd}, {inst.rt >> 2}"
-        case OpType.J_TYPE_INST:
+        case OpType.J_TYPE_INSTRUCTION:
             return f" 0x{(inst.target << 2) & 0xFFFFFFFF:08x}"
-        case OpType.NOARG_TYPE_INST:
+        case OpType.NO_ARGUMENT_TYPE_INSTRUCTION:
             return ""
         case _:
             raise console.fatal_error("Unknown instruction type in print_inst\n")
@@ -773,7 +799,7 @@ def format_an_inst(inst: Instruction | None, addr: int) -> str:
         return line + f"<unknown instruction {machine.s16(inst.opcode)}>\n"
     line += f"0x{machine.u32(inst.encoding):08x}  {row.name}"
     if (
-        row.kind == OpType.RD_RT_SHAMT_INST
+        row.kind == OpType.DESTINATION_REGISTER_TARGET_REGISTER_SHIFT_AMOUNT_INSTRUCTION
         and inst.rd == 0
         and inst.rt == 0
         and inst.shamt == 0

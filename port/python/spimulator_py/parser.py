@@ -534,7 +534,7 @@ def _parse_j(op: int) -> None:
     """``j``/``jal``/``jr``/``jalr``/``jalr.hb`` with a label or register(s); ``cop2`` is an error.
 
     ``jalr.hb`` keeps its own opcode (``jalr`` with the hazard-barrier bit) and takes registers
-    only. ``cop2`` shares ``J_TYPE_INST``, but spim has no coprocessor 2.
+    only. ``cop2`` shares ``J_TYPE_INSTRUCTION``, but spim has no coprocessor 2.
     """
     if op == Tok.COP2_OPCODE:
         _parse_error_at("cop2 is not supported: spim has no coprocessor 2")
@@ -552,7 +552,7 @@ def _parse_j(op: int) -> None:
                 case Tok.JALR_HB_OPCODE:
                     emit_r(Tok.JALR_HB_OPCODE, r1, r2, 0)
                 case _:
-                    # Never reached: only J_TYPE_INST and RD_RS_INST opcodes come here.
+                    # Never reached: only J_TYPE_INSTRUCTION and DESTINATION_REGISTER_SOURCE_REGISTER_INSTRUCTION opcodes come here.
                     raise console.fatal_error(
                         f"internal error: parse_j: unexpected opcode {op}\n"
                     )
@@ -635,49 +635,58 @@ def _parse_asm_code() -> None:
     op: int = scanner.advance()
     kind: int | None = instruction.kind_of(op)
     match kind:
-        case OpType.NOARG_TYPE_INST:
+        case OpType.NO_ARGUMENT_TYPE_INSTRUCTION:
             _parse_noarg(op)
-        case OpType.RD_RS_RT_INST:
+        case OpType.DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION:
             _parse_r3(op)
-        case OpType.RD_RT_SHAMT_INST:
+        case OpType.DESTINATION_REGISTER_TARGET_REGISTER_SHIFT_AMOUNT_INSTRUCTION:
             _parse_r2sh(op)
-        case OpType.RS_INST:
+        case OpType.SOURCE_REGISTER_INSTRUCTION:
             emit_r(op, 0, _parse_register(), 0)
-        case OpType.RT_RS_IMM_INST:
+        case OpType.TARGET_REGISTER_SOURCE_REGISTER_IMMEDIATE_INSTRUCTION:
             _parse_i2(op)
-        case OpType.RT_IMM_INST:
+        case OpType.TARGET_REGISTER_IMMEDIATE_INSTRUCTION:
             rt: int = _parse_register()
             emit_i(op, rt, 0, _parse_uimm16())
-        case OpType.RT_ADDR_INST | OpType.FP_FT_ADDR_INST:
+        case (
+            OpType.TARGET_REGISTER_ADDRESS_INSTRUCTION
+            | OpType.FLOATING_POINT_TARGET_ADDRESS_INSTRUCTION
+        ):
             reg: int = (
                 _parse_register()
-                if kind == OpType.RT_ADDR_INST
+                if kind == OpType.TARGET_REGISTER_ADDRESS_INSTRUCTION
                 else _parse_fp_register()
             )
             address: AddrExpr = _parse_address()
             emit_i(op, reg, address.reg_no, address.imm)
-        case OpType.BRANCH_RS_RT_LABEL_INST:
+        case OpType.BRANCH_SOURCE_REGISTER_TARGET_REGISTER_LABEL_INSTRUCTION:
             _parse_b2(op)
-        case OpType.BRANCH_RS_LABEL_INST:
+        case OpType.BRANCH_SOURCE_REGISTER_LABEL_INSTRUCTION:
             rs: int = _parse_register()
             emit_i(op, 0, rs, _parse_label())
-        case OpType.J_TYPE_INST | OpType.RD_RS_INST:
+        case (
+            OpType.J_TYPE_INSTRUCTION
+            | OpType.DESTINATION_REGISTER_SOURCE_REGISTER_INSTRUCTION
+        ):
             _parse_j(op)
         case opcodes.PSEUDO_OP:
             _parse_pseudo(op)
-        case OpType.RT_COPREG_INST | OpType.FP_RT_COPREG_INST:
+        case (
+            OpType.TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION
+            | OpType.FLOATING_POINT_TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION
+        ):
             reg = _parse_register()
             emit_fp_r(op, 0, _parse_copreg_operand(), reg)
-        case OpType.RS_RT_INST:
+        case OpType.SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION:
             _parse_rs_rt(op)
-        case OpType.RD_INST:
+        case OpType.DESTINATION_REGISTER_INSTRUCTION:
             emit_r(op, _parse_register(), 0, 0)
-        case OpType.RD_RT_RS_INST:
+        case OpType.DESTINATION_REGISTER_TARGET_REGISTER_SOURCE_REGISTER_INSTRUCTION:
             _parse_variable_shift(op)
-        case OpType.RS_IMM_INST:
+        case OpType.SOURCE_REGISTER_IMMEDIATE_INSTRUCTION:
             rs = _parse_register()
             emit_i(op, 0, rs, _parse_imm16())
-        case OpType.BRANCH_COPROC_COND_INST:
+        case OpType.BRANCH_COPROCESSOR_CONDITION_INSTRUCTION:
             nd: int = 1 if instruction.opcode_is_nullified_branch(op) else 0
             tf: int = 1 if instruction.opcode_is_true_branch(op) else 0
             cc: int = 0
@@ -686,7 +695,7 @@ def _parse_asm_code() -> None:
                 cc = _int_value()
             target: ImmExpr = _parse_label()
             emit_i(op, (cc << 2) | (nd << 1) | tf, 0, target)
-        case OpType.MOVC_TYPE_INST:
+        case OpType.MOVE_CONDITIONAL_TYPE_INSTRUCTION:
             rd: int = _parse_register()
             rs = _parse_register()
             cc = 0
@@ -694,21 +703,21 @@ def _parse_asm_code() -> None:
                 scanner.advance()
                 cc = _int_value()
             emit_r(op, rd, rs, (cc & 7) << 2)
-        case OpType.FP_FD_FS_INST:
+        case OpType.FLOATING_POINT_DESTINATION_SOURCE_INSTRUCTION:
             fd: int = _parse_fp_register()
             emit_fp_r(op, fd, _parse_fp_register(), 0)
-        case OpType.FP_FD_FS_FT_INST:
+        case OpType.FLOATING_POINT_DESTINATION_SOURCE_TARGET_INSTRUCTION:
             fd = _parse_fp_register()
             fs: int = _parse_fp_register()
             emit_fp_r(op, fd, fs, _parse_fp_register())
-        case OpType.FP_CMP_FS_FT_INST:
+        case OpType.FLOATING_POINT_COMPARE_SOURCE_TARGET_INSTRUCTION:
             cc = 0
             if scanner.peek() == TOK_INT:
                 scanner.advance()
                 cc = _int_value()
             fs = _parse_fp_register()
             emit_fp_compare(op, fs, _parse_fp_register(), cc)
-        case OpType.FP_MOVC_TYPE_INST:
+        case OpType.FLOATING_POINT_MOVE_CONDITIONAL_TYPE_INSTRUCTION:
             fd = _parse_fp_register()
             fs = _parse_fp_register()
             if scanner.peek() == TOK_REG:
@@ -1248,7 +1257,7 @@ def _parse_line() -> None:
         elif token == TOK_EOF:
             return
         else:
-            if instruction.kind_of(token) == opcodes.ASM_DIR:
+            if instruction.kind_of(token) == opcodes.ASSEMBLER_DIRECTIVE:
                 _parse_directive(scanner.advance())
             else:
                 _parse_asm_code()

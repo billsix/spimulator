@@ -89,7 +89,7 @@ impl ImmExpr {
 /// `ft` is `rt`, `fd` is `shamt`.
 #[derive(Clone, Debug, Default)]
 pub struct Instruction {
-    /// The opcode token (`TOK_ADD_OPCODE`, ...), or 0 for a word that
+    /// The opcode token (`TOKEN_ADD_OPCODE`, ...), or 0 for a word that
     /// decodes to no instruction.
     pub opcode: i32,
     /// The four bytes `rs`, `rt`, `rd`, `shamt` (or the immediate in the
@@ -200,40 +200,57 @@ impl Instruction {
         let reg = |value: usize, shift: u32| -> i32 { ((value & 0x1f) << shift) as i32 };
         let imm16: i32 = i32::from(self.imm()) & 0xffff;
         match row.op_type {
-            OpType::BranchCoprocCondInst => a_opcode | reg((self.cc() as usize) << 2, 16) | imm16,
-            OpType::BranchRsLabelInst | OpType::RsImmInst => a_opcode | reg(self.rs(), 21) | imm16,
-            OpType::RtImmInst
-            | OpType::RtRsImmInst
-            | OpType::BranchRsRtLabelInst
-            | OpType::RtAddrInst
-            | OpType::FpFtAddrInst => a_opcode | reg(self.rs(), 21) | reg(self.rt(), 16) | imm16,
-            OpType::RsInst => a_opcode | reg(self.rs(), 21),
-            OpType::RdInst => a_opcode | reg(self.rd(), 11),
-            OpType::RtCopregInst | OpType::FpRtCopregInst => {
+            OpType::BranchCoprocessorConditionInstruction => {
+                a_opcode | reg((self.cc() as usize) << 2, 16) | imm16
+            }
+            OpType::BranchSourceRegisterLabelInstruction
+            | OpType::SourceRegisterImmediateInstruction => a_opcode | reg(self.rs(), 21) | imm16,
+            OpType::TargetRegisterImmediateInstruction
+            | OpType::TargetRegisterSourceRegisterImmediateInstruction
+            | OpType::BranchSourceRegisterTargetRegisterLabelInstruction
+            | OpType::TargetRegisterAddressInstruction
+            | OpType::FloatingPointTargetAddressInstruction => {
+                a_opcode | reg(self.rs(), 21) | reg(self.rt(), 16) | imm16
+            }
+            OpType::SourceRegisterInstruction => a_opcode | reg(self.rs(), 21),
+            OpType::DestinationRegisterInstruction => a_opcode | reg(self.rd(), 11),
+            OpType::TargetRegisterCoprocessorRegisterInstruction
+            | OpType::FloatingPointTargetRegisterCoprocessorRegisterInstruction => {
                 a_opcode | reg(self.rt(), 16) | reg(self.rd(), 11)
             }
-            OpType::RsRtInst => a_opcode | reg(self.rs(), 21) | reg(self.rt(), 16),
-            OpType::RdRsInst => a_opcode | reg(self.rs(), 21) | reg(self.rd(), 11),
-            OpType::RdRtShamtInst => {
+            OpType::SourceRegisterTargetRegisterInstruction => {
+                a_opcode | reg(self.rs(), 21) | reg(self.rt(), 16)
+            }
+            OpType::DestinationRegisterSourceRegisterInstruction => {
+                a_opcode | reg(self.rs(), 21) | reg(self.rd(), 11)
+            }
+            OpType::DestinationRegisterTargetRegisterShiftAmountInstruction => {
                 a_opcode | reg(self.rt(), 16) | reg(self.rd(), 11) | reg(self.shamt(), 6)
             }
-            OpType::RdRsRtInst | OpType::RdRtRsInst | OpType::MovcTypeInst => {
+            OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction
+            | OpType::DestinationRegisterTargetRegisterSourceRegisterInstruction
+            | OpType::MoveConditionalTypeInstruction => {
                 a_opcode | reg(self.rs(), 21) | reg(self.rt(), 16) | reg(self.rd(), 11)
             }
-            OpType::FpFdFsInst => a_opcode | reg(self.fs(), 11) | reg(self.fd(), 6),
-            OpType::FpCmpFsFtInst => {
+            OpType::FloatingPointDestinationSourceInstruction => {
+                a_opcode | reg(self.fs(), 11) | reg(self.fd(), 6)
+            }
+            OpType::FloatingPointCompareSourceTargetInstruction => {
                 a_opcode
                     | reg(self.ft(), 16)
                     | reg(self.fs(), 11)
                     | reg(self.fd(), 6)
                     | self.rs() as i32
             }
-            OpType::FpFdFsFtInst | OpType::FpMovcTypeInst => {
+            OpType::FloatingPointDestinationSourceTargetInstruction
+            | OpType::FloatingPointMoveConditionalTypeInstruction => {
                 a_opcode | reg(self.ft(), 16) | reg(self.fs(), 11) | reg(self.fd(), 6)
             }
-            OpType::JTypeInst => (a_opcode as u32 | self.target()) as i32,
-            OpType::NoargTypeInst => a_opcode,
-            OpType::AsmDir | OpType::PseudoOp | OpType::FpFdFrFsFtInst => {
+            OpType::JTypeInstruction => (a_opcode as u32 | self.target()) as i32,
+            OpType::NoArgumentTypeInstruction => a_opcode,
+            OpType::AssemblerDirective
+            | OpType::PseudoOp
+            | OpType::FloatingPointDestinationAddendSourceTargetInstruction => {
                 crate::machine::fatal_error("Unknown instruction type in inst_encoding\n")
             }
         }
@@ -275,44 +292,59 @@ impl Instruction {
             return invalid;
         };
         match op_type {
-            OpType::BranchCoprocCondInst
-            | OpType::RtImmInst
-            | OpType::RtRsImmInst
-            | OpType::BranchRsRtLabelInst
-            | OpType::RtAddrInst
-            | OpType::FpFtAddrInst => Self::make_i(value, token, rs, rt, low16),
-            OpType::BranchRsLabelInst | OpType::RsImmInst => {
+            OpType::BranchCoprocessorConditionInstruction
+            | OpType::TargetRegisterImmediateInstruction
+            | OpType::TargetRegisterSourceRegisterImmediateInstruction
+            | OpType::BranchSourceRegisterTargetRegisterLabelInstruction
+            | OpType::TargetRegisterAddressInstruction
+            | OpType::FloatingPointTargetAddressInstruction => {
+                Self::make_i(value, token, rs, rt, low16)
+            }
+            OpType::BranchSourceRegisterLabelInstruction
+            | OpType::SourceRegisterImmediateInstruction => {
                 Self::make_i(value, token, rs, 0, low16)
             }
-            OpType::RsInst => Self::make_r(value, token, rs, 0, 0, 0),
-            OpType::RdInst => Self::make_r(value, token, 0, 0, rd, 0),
-            OpType::RtCopregInst | OpType::FpRtCopregInst => {
+            OpType::SourceRegisterInstruction => Self::make_r(value, token, rs, 0, 0, 0),
+            OpType::DestinationRegisterInstruction => Self::make_r(value, token, 0, 0, rd, 0),
+            OpType::TargetRegisterCoprocessorRegisterInstruction
+            | OpType::FloatingPointTargetRegisterCoprocessorRegisterInstruction => {
                 Self::make_r(value, token, 0, rt, rd, 0)
             }
-            OpType::RsRtInst => Self::make_r(value, token, rs, rt, 0, 0),
-            OpType::RdRsInst => Self::make_r(value, token, rs, 0, rd, 0),
-            OpType::RdRtShamtInst => Self::make_r(value, token, 0, rt, rd, shamt),
-            OpType::RdRsRtInst | OpType::RdRtRsInst | OpType::MovcTypeInst => {
-                Self::make_r(value, token, rs, rt, rd, 0)
+            OpType::SourceRegisterTargetRegisterInstruction => {
+                Self::make_r(value, token, rs, rt, 0, 0)
             }
-            OpType::FpFdFsInst => Self::make_co_r(value, token, rd, 0, shamt),
-            OpType::FpCmpFsFtInst => {
+            OpType::DestinationRegisterSourceRegisterInstruction => {
+                Self::make_r(value, token, rs, 0, rd, 0)
+            }
+            OpType::DestinationRegisterTargetRegisterShiftAmountInstruction => {
+                Self::make_r(value, token, 0, rt, rd, shamt)
+            }
+            OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction
+            | OpType::DestinationRegisterTargetRegisterSourceRegisterInstruction
+            | OpType::MoveConditionalTypeInstruction => Self::make_r(value, token, rs, rt, rd, 0),
+            OpType::FloatingPointDestinationSourceInstruction => {
+                Self::make_co_r(value, token, rd, 0, shamt)
+            }
+            OpType::FloatingPointCompareSourceTargetInstruction => {
                 // fs lives in the rd slot; the condition goes in the rs slot.
                 let mut instruction: Instruction = Self::make_co_r(value, token, rd, rt, shamt);
                 instruction.set_rs(value & 0xf);
                 instruction
             }
-            OpType::FpFdFsFtInst | OpType::FpMovcTypeInst => {
+            OpType::FloatingPointDestinationSourceTargetInstruction
+            | OpType::FloatingPointMoveConditionalTypeInstruction => {
                 Self::make_co_r(value, token, rd, rt, shamt)
             }
-            OpType::JTypeInst => {
+            OpType::JTypeInstruction => {
                 let mut instruction: Instruction = Instruction::new(token);
                 instruction.set_target(word & 0x03ff_ffff);
                 instruction.encoding = value;
                 instruction
             }
-            OpType::NoargTypeInst => Self::make_r(value, token, 0, 0, 0, 0),
-            OpType::AsmDir | OpType::PseudoOp | OpType::FpFdFrFsFtInst => invalid,
+            OpType::NoArgumentTypeInstruction => Self::make_r(value, token, 0, 0, 0, 0),
+            OpType::AssemblerDirective
+            | OpType::PseudoOp
+            | OpType::FloatingPointDestinationAddendSourceTargetInstruction => invalid,
         }
     }
 
@@ -362,40 +394,40 @@ impl Instruction {
 pub fn opcode_is_branch(opcode: i32) -> bool {
     matches!(
         opcode,
-        TOK_BC1F_OPCODE
-            | TOK_BC1FL_OPCODE
-            | TOK_BC1T_OPCODE
-            | TOK_BC1TL_OPCODE
-            | TOK_BC2F_OPCODE
-            | TOK_BC2FL_OPCODE
-            | TOK_BC2T_OPCODE
-            | TOK_BC2TL_OPCODE
-            | TOK_BEQ_OPCODE
-            | TOK_BEQL_OPCODE
-            | TOK_BEQZ_PSEUDO_OP
-            | TOK_BGE_PSEUDO_OP
-            | TOK_BGEU_PSEUDO_OP
-            | TOK_BGEZ_OPCODE
-            | TOK_BGEZAL_OPCODE
-            | TOK_BGEZALL_OPCODE
-            | TOK_BGEZL_OPCODE
-            | TOK_BGT_PSEUDO_OP
-            | TOK_BGTU_PSEUDO_OP
-            | TOK_BGTZ_OPCODE
-            | TOK_BGTZL_OPCODE
-            | TOK_BLE_PSEUDO_OP
-            | TOK_BLEU_PSEUDO_OP
-            | TOK_BLEZ_OPCODE
-            | TOK_BLEZL_OPCODE
-            | TOK_BLT_PSEUDO_OP
-            | TOK_BLTU_PSEUDO_OP
-            | TOK_BLTZ_OPCODE
-            | TOK_BLTZAL_OPCODE
-            | TOK_BLTZALL_OPCODE
-            | TOK_BLTZL_OPCODE
-            | TOK_BNE_OPCODE
-            | TOK_BNEL_OPCODE
-            | TOK_BNEZ_PSEUDO_OP
+        TOKEN_BC1F_OPCODE
+            | TOKEN_BC1FL_OPCODE
+            | TOKEN_BC1T_OPCODE
+            | TOKEN_BC1TL_OPCODE
+            | TOKEN_BC2F_OPCODE
+            | TOKEN_BC2FL_OPCODE
+            | TOKEN_BC2T_OPCODE
+            | TOKEN_BC2TL_OPCODE
+            | TOKEN_BEQ_OPCODE
+            | TOKEN_BEQL_OPCODE
+            | TOKEN_BEQZ_PSEUDO_OP
+            | TOKEN_BGE_PSEUDO_OP
+            | TOKEN_BGEU_PSEUDO_OP
+            | TOKEN_BGEZ_OPCODE
+            | TOKEN_BGEZAL_OPCODE
+            | TOKEN_BGEZALL_OPCODE
+            | TOKEN_BGEZL_OPCODE
+            | TOKEN_BGT_PSEUDO_OP
+            | TOKEN_BGTU_PSEUDO_OP
+            | TOKEN_BGTZ_OPCODE
+            | TOKEN_BGTZL_OPCODE
+            | TOKEN_BLE_PSEUDO_OP
+            | TOKEN_BLEU_PSEUDO_OP
+            | TOKEN_BLEZ_OPCODE
+            | TOKEN_BLEZL_OPCODE
+            | TOKEN_BLT_PSEUDO_OP
+            | TOKEN_BLTU_PSEUDO_OP
+            | TOKEN_BLTZ_OPCODE
+            | TOKEN_BLTZAL_OPCODE
+            | TOKEN_BLTZALL_OPCODE
+            | TOKEN_BLTZL_OPCODE
+            | TOKEN_BNE_OPCODE
+            | TOKEN_BNEL_OPCODE
+            | TOKEN_BNEZ_PSEUDO_OP
     )
 }
 
@@ -404,18 +436,18 @@ pub fn opcode_is_branch(opcode: i32) -> bool {
 pub fn opcode_is_nullified_branch(opcode: i32) -> bool {
     matches!(
         opcode,
-        TOK_BC1FL_OPCODE
-            | TOK_BC1TL_OPCODE
-            | TOK_BC2FL_OPCODE
-            | TOK_BC2TL_OPCODE
-            | TOK_BEQL_OPCODE
-            | TOK_BGEZALL_OPCODE
-            | TOK_BGEZL_OPCODE
-            | TOK_BGTZL_OPCODE
-            | TOK_BLEZL_OPCODE
-            | TOK_BLTZALL_OPCODE
-            | TOK_BLTZL_OPCODE
-            | TOK_BNEL_OPCODE
+        TOKEN_BC1FL_OPCODE
+            | TOKEN_BC1TL_OPCODE
+            | TOKEN_BC2FL_OPCODE
+            | TOKEN_BC2TL_OPCODE
+            | TOKEN_BEQL_OPCODE
+            | TOKEN_BGEZALL_OPCODE
+            | TOKEN_BGEZL_OPCODE
+            | TOKEN_BGTZL_OPCODE
+            | TOKEN_BLEZL_OPCODE
+            | TOKEN_BLTZALL_OPCODE
+            | TOKEN_BLTZL_OPCODE
+            | TOKEN_BNEL_OPCODE
     )
 }
 
@@ -423,41 +455,41 @@ pub fn opcode_is_nullified_branch(opcode: i32) -> bool {
 pub fn opcode_is_true_branch(opcode: i32) -> bool {
     matches!(
         opcode,
-        TOK_BC1T_OPCODE | TOK_BC1TL_OPCODE | TOK_BC2T_OPCODE | TOK_BC2TL_OPCODE
+        TOKEN_BC1T_OPCODE | TOKEN_BC1TL_OPCODE | TOKEN_BC2T_OPCODE | TOKEN_BC2TL_OPCODE
     )
 }
 
 /// True for `j` and `jal`.
 pub fn opcode_is_jump(opcode: i32) -> bool {
-    matches!(opcode, TOK_J_OPCODE | TOK_JAL_OPCODE)
+    matches!(opcode, TOKEN_J_OPCODE | TOKEN_JAL_OPCODE)
 }
 
 /// True for the loads and stores.
 pub fn opcode_is_load_store(opcode: i32) -> bool {
     matches!(
         opcode,
-        TOK_LB_OPCODE
-            | TOK_LBU_OPCODE
-            | TOK_LH_OPCODE
-            | TOK_LHU_OPCODE
-            | TOK_LL_OPCODE
-            | TOK_LDC1_OPCODE
-            | TOK_LDC2_OPCODE
-            | TOK_LW_OPCODE
-            | TOK_LWC1_OPCODE
-            | TOK_LWC2_OPCODE
-            | TOK_LWL_OPCODE
-            | TOK_LWR_OPCODE
-            | TOK_SB_OPCODE
-            | TOK_SC_OPCODE
-            | TOK_SH_OPCODE
-            | TOK_SDC1_OPCODE
-            | TOK_SDC2_OPCODE
-            | TOK_SW_OPCODE
-            | TOK_SWC1_OPCODE
-            | TOK_SWC2_OPCODE
-            | TOK_SWL_OPCODE
-            | TOK_SWR_OPCODE
+        TOKEN_LB_OPCODE
+            | TOKEN_LBU_OPCODE
+            | TOKEN_LH_OPCODE
+            | TOKEN_LHU_OPCODE
+            | TOKEN_LL_OPCODE
+            | TOKEN_LDC1_OPCODE
+            | TOKEN_LDC2_OPCODE
+            | TOKEN_LW_OPCODE
+            | TOKEN_LWC1_OPCODE
+            | TOKEN_LWC2_OPCODE
+            | TOKEN_LWL_OPCODE
+            | TOKEN_LWR_OPCODE
+            | TOKEN_SB_OPCODE
+            | TOKEN_SC_OPCODE
+            | TOKEN_SH_OPCODE
+            | TOKEN_SDC1_OPCODE
+            | TOKEN_SDC2_OPCODE
+            | TOKEN_SW_OPCODE
+            | TOKEN_SWC1_OPCODE
+            | TOKEN_SWC2_OPCODE
+            | TOKEN_SWL_OPCODE
+            | TOKEN_SWR_OPCODE
     )
 }
 
@@ -466,16 +498,16 @@ pub fn opcode_is_load_store(opcode: i32) -> bool {
 fn is_sign_extended_immediate(opcode: i32, expr: &ImmExpr) -> bool {
     matches!(
         opcode,
-        TOK_ADDI_OPCODE
-            | TOK_ADDIU_OPCODE
-            | TOK_SLTI_OPCODE
-            | TOK_SLTIU_OPCODE
-            | TOK_TEQI_OPCODE
-            | TOK_TGEI_OPCODE
-            | TOK_TGEIU_OPCODE
-            | TOK_TLTI_OPCODE
-            | TOK_TLTIU_OPCODE
-            | TOK_TNEI_OPCODE
+        TOKEN_ADDI_OPCODE
+            | TOKEN_ADDIU_OPCODE
+            | TOKEN_SLTI_OPCODE
+            | TOKEN_SLTIU_OPCODE
+            | TOKEN_TEQI_OPCODE
+            | TOKEN_TGEI_OPCODE
+            | TOKEN_TGEIU_OPCODE
+            | TOKEN_TLTI_OPCODE
+            | TOKEN_TLTIU_OPCODE
+            | TOKEN_TNEI_OPCODE
     ) || (opcode_is_load_store(opcode) && expr.bits == 0)
 }
 
@@ -679,9 +711,9 @@ impl Machine {
                         // The load sign-extends the low half; compensate.
                         high += 1;
                     }
-                    self.i_type(TOK_LUI_OPCODE, 1, 0, &ImmExpr::constant(high));
+                    self.i_type(TOKEN_LUI_OPCODE, 1, 0, &ImmExpr::constant(high));
                     if rs != 0 {
-                        self.r_type(TOK_ADDU_OPCODE, 1, 1, rs);
+                        self.r_type(TOKEN_ADDU_OPCODE, 1, 1, rs);
                     }
                     self.i_type(opcode, rt, 1, &ImmExpr::constant(low).lower_bits());
                 } else {
@@ -689,9 +721,9 @@ impl Machine {
                     self.i_type(opcode, rt, rs, &ImmExpr::constant(low));
                 }
             } else {
-                self.i_type(TOK_LUI_OPCODE, 1, 0, &expr.upper_bits());
+                self.i_type(TOKEN_LUI_OPCODE, 1, 0, &expr.upper_bits());
                 if rs != 0 {
-                    self.r_type(TOK_ADDU_OPCODE, 1, 1, rs);
+                    self.r_type(TOKEN_ADDU_OPCODE, 1, 1, rs);
                 }
                 self.i_type(opcode, rt, 1, &expr.lower_bits());
             }
@@ -699,15 +731,15 @@ impl Machine {
             // This only allows branches +/- 32K, which is not correct!
             self.i_type(opcode, rt, rs, &expr.lower_bits());
         } else if let Some(offset) = gp_offset {
-            let op: i32 = if opcode == TOK_LUI_OPCODE {
-                TOK_ADDIU_OPCODE
+            let op: i32 = if opcode == TOKEN_LUI_OPCODE {
+                TOKEN_ADDIU_OPCODE
             } else {
                 opcode
             };
             self.i_type(op, rt, REG_GP as i32, &ImmExpr::constant(offset));
         } else if matches!(
             opcode,
-            TOK_ORI_OPCODE | TOK_ADDI_OPCODE | TOK_ADDIU_OPCODE | TOK_LUI_OPCODE
+            TOKEN_ORI_OPCODE | TOKEN_ADDI_OPCODE | TOKEN_ADDIU_OPCODE | TOKEN_LUI_OPCODE
         ) && rs == 0
         {
             self.produce_immediate(expr, rt, value_known, value);
@@ -733,12 +765,12 @@ impl Machine {
     /// (`produce_immediate`).
     fn produce_immediate(&mut self, expr: &ImmExpr, rt: i32, value_known: bool, value: i32) {
         if value_known && value & 0xffff == 0 {
-            self.i_type(TOK_LUI_OPCODE, rt, 0, &expr.upper_bits());
+            self.i_type(TOKEN_LUI_OPCODE, rt, 0, &expr.upper_bits());
         } else if value_known && value as u32 & 0xffff_0000 == 0 {
-            self.i_type(TOK_ORI_OPCODE, rt, 0, &expr.lower_bits());
+            self.i_type(TOKEN_ORI_OPCODE, rt, 0, &expr.lower_bits());
         } else {
-            self.i_type(TOK_LUI_OPCODE, 1, 0, &expr.upper_bits());
-            self.i_type(TOK_ORI_OPCODE, rt, 1, &expr.lower_bits());
+            self.i_type(TOKEN_LUI_OPCODE, 1, 0, &expr.upper_bits());
+            self.i_type(TOKEN_ORI_OPCODE, rt, 1, &expr.lower_bits());
         }
     }
 
@@ -791,22 +823,22 @@ impl Machine {
         let mut instruction: Instruction = Instruction::r_type(opcode, fs, 0, ft);
         instruction.set_shamt(cc << 2);
         let cond: i32 = match opcode {
-            TOK_C_EQ_D_OPCODE | TOK_C_EQ_S_OPCODE => EQ,
-            TOK_C_LE_D_OPCODE | TOK_C_LE_S_OPCODE => IN | LT | EQ,
-            TOK_C_LT_D_OPCODE | TOK_C_LT_S_OPCODE => IN | LT,
-            TOK_C_NGE_D_OPCODE | TOK_C_NGE_S_OPCODE => IN | LT | UN,
-            TOK_C_NGLE_D_OPCODE | TOK_C_NGLE_S_OPCODE => IN | UN,
-            TOK_C_NGL_D_OPCODE | TOK_C_NGL_S_OPCODE => IN | EQ | UN,
-            TOK_C_NGT_D_OPCODE | TOK_C_NGT_S_OPCODE => IN | LT | EQ | UN,
-            TOK_C_OLT_D_OPCODE | TOK_C_OLT_S_OPCODE => LT,
-            TOK_C_OLE_D_OPCODE | TOK_C_OLE_S_OPCODE => LT | EQ,
-            TOK_C_SEQ_D_OPCODE | TOK_C_SEQ_S_OPCODE => IN | EQ,
-            TOK_C_SF_D_OPCODE | TOK_C_SF_S_OPCODE => IN,
-            TOK_C_F_D_OPCODE | TOK_C_F_S_OPCODE => 0,
-            TOK_C_UEQ_D_OPCODE | TOK_C_UEQ_S_OPCODE => EQ | UN,
-            TOK_C_ULT_D_OPCODE | TOK_C_ULT_S_OPCODE => LT | UN,
-            TOK_C_ULE_D_OPCODE | TOK_C_ULE_S_OPCODE => LT | EQ | UN,
-            TOK_C_UN_D_OPCODE | TOK_C_UN_S_OPCODE => UN,
+            TOKEN_C_EQ_D_OPCODE | TOKEN_C_EQ_S_OPCODE => EQ,
+            TOKEN_C_LE_D_OPCODE | TOKEN_C_LE_S_OPCODE => IN | LT | EQ,
+            TOKEN_C_LT_D_OPCODE | TOKEN_C_LT_S_OPCODE => IN | LT,
+            TOKEN_C_NGE_D_OPCODE | TOKEN_C_NGE_S_OPCODE => IN | LT | UN,
+            TOKEN_C_NGLE_D_OPCODE | TOKEN_C_NGLE_S_OPCODE => IN | UN,
+            TOKEN_C_NGL_D_OPCODE | TOKEN_C_NGL_S_OPCODE => IN | EQ | UN,
+            TOKEN_C_NGT_D_OPCODE | TOKEN_C_NGT_S_OPCODE => IN | LT | EQ | UN,
+            TOKEN_C_OLT_D_OPCODE | TOKEN_C_OLT_S_OPCODE => LT,
+            TOKEN_C_OLE_D_OPCODE | TOKEN_C_OLE_S_OPCODE => LT | EQ,
+            TOKEN_C_SEQ_D_OPCODE | TOKEN_C_SEQ_S_OPCODE => IN | EQ,
+            TOKEN_C_SF_D_OPCODE | TOKEN_C_SF_S_OPCODE => IN,
+            TOKEN_C_F_D_OPCODE | TOKEN_C_F_S_OPCODE => 0,
+            TOKEN_C_UEQ_D_OPCODE | TOKEN_C_UEQ_S_OPCODE => EQ | UN,
+            TOKEN_C_ULT_D_OPCODE | TOKEN_C_ULT_S_OPCODE => LT | UN,
+            TOKEN_C_ULE_D_OPCODE | TOKEN_C_ULE_S_OPCODE => LT | EQ | UN,
+            TOKEN_C_UN_D_OPCODE | TOKEN_C_UN_S_OPCODE => UN,
             // Never reached: only FP_CMP_FS_FT_INST rows reach here, and the arms above
             // are all 32 of them (16 conditions, .s and .d).
             _ => crate::machine::fatal_error(&format!(
@@ -906,7 +938,7 @@ impl Machine {
         let is_matching_lui = |candidate: &Option<InstRef>| -> bool {
             candidate.as_ref().is_some_and(|inst: &InstRef| {
                 let inst: Ref<'_, Instruction> = inst.borrow();
-                inst.opcode == TOK_LUI_OPCODE
+                inst.opcode == TOKEN_LUI_OPCODE
                     && inst.expr.map(|e: ImmExpr| e.symbol) == Some(expr.symbol)
                     && inst.imm() == 0
             })
@@ -979,13 +1011,19 @@ impl Machine {
         let reg = |n: usize| -> &'static str { REG_NAMES[n & 0x1f] };
         bprint!(out, "0x{:08x}  {}", inst.encoding as u32, row.name);
         match row.op_type {
-            OpType::BranchCoprocCondInst => bprint!(out, "{} {}", inst.cc(), inst.branch_offset()),
-            OpType::BranchRsLabelInst => {
+            OpType::BranchCoprocessorConditionInstruction => {
+                bprint!(out, "{} {}", inst.cc(), inst.branch_offset())
+            }
+            OpType::BranchSourceRegisterLabelInstruction => {
                 bprint!(out, " ${} {}", reg(inst.rs()), inst.branch_offset())
             }
-            OpType::RsImmInst => bprint!(out, " ${}, {}", reg(inst.rs()), inst.imm()),
-            OpType::RtImmInst => bprint!(out, " ${}, {}", reg(inst.rt()), inst.imm()),
-            OpType::RtRsImmInst => {
+            OpType::SourceRegisterImmediateInstruction => {
+                bprint!(out, " ${}, {}", reg(inst.rs()), inst.imm())
+            }
+            OpType::TargetRegisterImmediateInstruction => {
+                bprint!(out, " ${}, {}", reg(inst.rt()), inst.imm())
+            }
+            OpType::TargetRegisterSourceRegisterImmediateInstruction => {
                 bprint!(
                     out,
                     " ${}, ${}, {}",
@@ -994,14 +1032,14 @@ impl Machine {
                     inst.imm()
                 )
             }
-            OpType::BranchRsRtLabelInst => bprint!(
+            OpType::BranchSourceRegisterTargetRegisterLabelInstruction => bprint!(
                 out,
                 " ${}, ${}, {}",
                 reg(inst.rs()),
                 reg(inst.rt()),
                 inst.branch_offset()
             ),
-            OpType::RtAddrInst => {
+            OpType::TargetRegisterAddressInstruction => {
                 bprint!(
                     out,
                     " ${}, {}(${})",
@@ -1010,12 +1048,18 @@ impl Machine {
                     reg(inst.rs())
                 )
             }
-            OpType::RsInst => bprint!(out, " ${}", reg(inst.rs())),
-            OpType::RdInst => bprint!(out, " ${}", reg(inst.rd())),
-            OpType::RtCopregInst => bprint!(out, " ${}, ${}", reg(inst.rt()), reg(inst.rd())),
-            OpType::RsRtInst => bprint!(out, " ${}, ${}", reg(inst.rs()), reg(inst.rt())),
-            OpType::RdRsInst => bprint!(out, " ${}, ${}", reg(inst.rd()), reg(inst.rs())),
-            OpType::RdRtShamtInst => {
+            OpType::SourceRegisterInstruction => bprint!(out, " ${}", reg(inst.rs())),
+            OpType::DestinationRegisterInstruction => bprint!(out, " ${}", reg(inst.rd())),
+            OpType::TargetRegisterCoprocessorRegisterInstruction => {
+                bprint!(out, " ${}, ${}", reg(inst.rt()), reg(inst.rd()))
+            }
+            OpType::SourceRegisterTargetRegisterInstruction => {
+                bprint!(out, " ${}, ${}", reg(inst.rs()), reg(inst.rt()))
+            }
+            OpType::DestinationRegisterSourceRegisterInstruction => {
+                bprint!(out, " ${}, ${}", reg(inst.rd()), reg(inst.rs()))
+            }
+            OpType::DestinationRegisterTargetRegisterShiftAmountInstruction => {
                 if inst.rd() == 0 && inst.rt() == 0 && inst.shamt() == 0 {
                     // `sll $0, $0, 0` is the canonical nop.
                     out.truncate(out.len() - 3);
@@ -1030,44 +1074,49 @@ impl Machine {
                     );
                 }
             }
-            OpType::RdRsRtInst => bprint!(
+            OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction => bprint!(
                 out,
                 " ${}, ${}, ${}",
                 reg(inst.rd()),
                 reg(inst.rs()),
                 reg(inst.rt())
             ),
-            OpType::RdRtRsInst => bprint!(
+            OpType::DestinationRegisterTargetRegisterSourceRegisterInstruction => bprint!(
                 out,
                 " ${}, ${}, ${}",
                 reg(inst.rd()),
                 reg(inst.rt()),
                 reg(inst.rs())
             ),
-            OpType::FpFtAddrInst => {
+            OpType::FloatingPointTargetAddressInstruction => {
                 bprint!(out, " $f{}, {}(${})", inst.ft(), inst.imm(), reg(inst.rs()))
             }
-            OpType::FpFdFsInst => bprint!(out, " $f{}, $f{}", inst.fd(), inst.fs()),
-            OpType::FpRtCopregInst => bprint!(out, " ${}, $f{}", reg(inst.rt()), inst.fs()),
-            OpType::FpCmpFsFtInst => {
+            OpType::FloatingPointDestinationSourceInstruction => {
+                bprint!(out, " $f{}, $f{}", inst.fd(), inst.fs())
+            }
+            OpType::FloatingPointTargetRegisterCoprocessorRegisterInstruction => {
+                bprint!(out, " ${}, $f{}", reg(inst.rt()), inst.fs())
+            }
+            OpType::FloatingPointCompareSourceTargetInstruction => {
                 if inst.fd() == 0 {
                     bprint!(out, " $f{}, $f{}", inst.fs(), inst.ft());
                 } else {
                     bprint!(out, " {}, $f{}, $f{}", inst.fd() >> 2, inst.fs(), inst.ft());
                 }
             }
-            OpType::FpFdFsFtInst => {
+            OpType::FloatingPointDestinationSourceTargetInstruction => {
                 bprint!(out, " $f{}, $f{}, $f{}", inst.fd(), inst.fs(), inst.ft())
             }
-            OpType::MovcTypeInst => bprint!(
+            OpType::MoveConditionalTypeInstruction => bprint!(
                 out,
                 " ${}, ${}, {}",
                 reg(inst.rd()),
                 reg(inst.rs()),
                 inst.rt() >> 2
             ),
-            OpType::FpMovcTypeInst => match inst.opcode {
-                TOK_MOVN_S_OPCODE | TOK_MOVN_D_OPCODE | TOK_MOVZ_S_OPCODE | TOK_MOVZ_D_OPCODE => {
+            OpType::FloatingPointMoveConditionalTypeInstruction => match inst.opcode {
+                TOKEN_MOVN_S_OPCODE | TOKEN_MOVN_D_OPCODE | TOKEN_MOVZ_S_OPCODE
+                | TOKEN_MOVZ_D_OPCODE => {
                     // movn/movz test a general register.
                     bprint!(
                         out,
@@ -1079,9 +1128,11 @@ impl Machine {
                 }
                 _ => bprint!(out, " $f{}, $f{}, {}", inst.fd(), inst.fs(), inst.cc()),
             },
-            OpType::JTypeInst => bprint!(out, " 0x{:08x}", inst.target().wrapping_shl(2)),
-            OpType::NoargTypeInst => {}
-            OpType::AsmDir | OpType::PseudoOp | OpType::FpFdFrFsFtInst => {
+            OpType::JTypeInstruction => bprint!(out, " 0x{:08x}", inst.target().wrapping_shl(2)),
+            OpType::NoArgumentTypeInstruction => {}
+            OpType::AssemblerDirective
+            | OpType::PseudoOp
+            | OpType::FloatingPointDestinationAddendSourceTargetInstruction => {
                 crate::machine::fatal_error("Unknown instruction type in print_inst\n")
             }
         }

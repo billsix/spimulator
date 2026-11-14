@@ -7,7 +7,7 @@
 #define PARSER_H
 
 #include "spim.h"
-#include "instruction.h" /* for imm_expr in the emit_* signatures */
+#include "instruction.h" /* for immediate_expression in the emit_* signatures */
 
 /* Exported functions. */
 
@@ -54,7 +54,7 @@ void set_input_file_name(char* name);
    Call before parse_file(). */
 void parser_initialize(FILE* input, char* file_name);
 
-void fix_current_label_address(mem_addr new_address);
+void fix_current_label_address(memory_address new_address);
 int immediate_opcode_to_opcode(int opcode);
 void parse_error(const char* s);
 
@@ -71,17 +71,17 @@ char* input_file_name_get(void);
      - emit_j: caller retains ownership. */
 void emit_r(int opcode, int destination_register, int source_register, int target_register);
 void emit_r_shift(int opcode, int destination_register, int target_register, int shift_amount);
-void emit_i(int opcode, int target_register, int source_register, const imm_expr* immediate);
-void emit_i_free(int opcode, int target_register, int source_register, imm_expr* immediate);
-void emit_j(int opcode, const imm_expr* target);
+void emit_i(int opcode, int target_register, int source_register, const immediate_expression* immediate);
+void emit_i_free(int opcode, int target_register, int source_register, immediate_expression* immediate);
+void emit_j(int opcode, const immediate_expression* target);
 void emit_floating_point_r(int opcode, int floating_point_destination, int floating_point_source, int floating_point_target);
 void emit_floating_point_compare(int opcode, int floating_point_source, int floating_point_target, int condition_code);
 
 /* Exported Variables: */
 
-extern bool data_dir; /* => item in data segment */
+extern bool data_directive; /* => item in data segment */
 
-extern bool text_dir; /* => item in text segment */
+extern bool text_directive; /* => item in text segment */
 
 extern bool parse_error_occurred; /* => parse resulted in error */
 

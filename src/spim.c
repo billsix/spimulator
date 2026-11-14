@@ -146,7 +146,7 @@ static bool line_is_file_command(void) {
 
 /* True if the current line begins with a REPL command whose argument
    is a label/address — `breakpoint` and `delete` accept either a hex
-   address (TOK_INT) or a symbol name (TOK_ID); tab-completion offers the
+   address (TOKEN_INTEGER) or a symbol name (TOKEN_IDENTIFIER); tab-completion offers the
    symbol names defined in the loaded program. */
 static bool line_is_label_command(void) {
   static const char* const commands[] = {"breakpoint", "delete", nullptr};
@@ -158,12 +158,12 @@ static bool line_is_label_command(void) {
    but we re-collect on every state==0 call in case the symbol table
    changed (e.g. after `reinit` + `load`). */
 static const char** label_names_cache = nullptr;
-static size_t label_names_cache_n = 0;
+static size_t label_names_cache_count = 0;
 static size_t label_names_cache_cap = 0;
 
 static void label_collect_callback(const label* l, [[maybe_unused]] void* context) {
   if (l == nullptr || l->name == nullptr) return;
-  if (label_names_cache_n >= label_names_cache_cap) {
+  if (label_names_cache_count >= label_names_cache_cap) {
     const size_t new_cap =
         label_names_cache_cap == 0 ? 32 : label_names_cache_cap * 2;
     const char** const new_array =
@@ -172,19 +172,19 @@ static void label_collect_callback(const label* l, [[maybe_unused]] void* contex
     label_names_cache = new_array;
     label_names_cache_cap = new_cap;
   }
-  label_names_cache[label_names_cache_n++] = l->name;
+  label_names_cache[label_names_cache_count++] = l->name;
 }
 
 static char* label_generator(const char* text, int state) {
   static size_t index;
   static size_t text_length;
   if (state == 0) {
-    label_names_cache_n = 0;
+    label_names_cache_count = 0;
     for_each_label(label_collect_callback, nullptr);
     index = 0;
     text_length = strlen(text);
   }
-  while (index < label_names_cache_n) {
+  while (index < label_names_cache_count) {
     const char* const s = label_names_cache[index++];
     if (strncmp(s, text, text_length) == 0) return strdup(s);
   }
@@ -268,7 +268,7 @@ static bool parse_spim_command(bool redo);
 static void print_register(int register_no);
 
 static void print_floating_point_register(int register_no);
-static int print_register_from_string(char* register_number);
+static int print_register_from_string(char* register_name);
 static void print_all_registers(bool hex_flag);
 static int read_assembly_command(void);
 static bool string_prefix(char* s1, char* s2, int min_match);
@@ -281,17 +281,17 @@ static void dump_text_segment(bool kernel_also);
 /* Exported Variables: */
 
 /* Not local, but not export so all files don't need setjmp.h */
-static jmp_buf spim_top_level_env; /* For ^C */
+static jmp_buf spim_top_level_environment; /* For ^C */
 /* True once a setjmp has filled spim_top_level_environment.  Before that (while the
    -f files load in batch mode) there is no top level to return to, so
    run_error and ^C end the run instead of longjmp-ing through an unset
    jmp_buf. */
-static bool top_level_env_ready = false;
+static bool top_level_environment_ready = false;
 
 bool bare_machine = false;       /* => simulate bare machine */
 bool delayed_branches = false;   /* => simulate delayed branches */
 bool delayed_loads = false;      /* => simulate delayed loads */
-bool accept_pseudo_insts = true; /* => parse pseudo instructions  */
+bool accept_pseudo_instructions = true; /* => parse pseudo instructions  */
 bool quiet = false;              /* => no warning messages */
 static bool assemble = false;    /* => assemble, disassemble to file and exit */
 /* Sentinel pointer routes initialize_world to the embedded handler;
@@ -299,7 +299,7 @@ static bool assemble = false;    /* => assemble, disassemble to file and exit */
    replace it with an on-disk path that gets opened with fopen.
    See include/spim-utils.h. */
 char* exception_file_name = SPIM_DEFAULT_EXCEPTIONS_SENTINEL;
-port message_out, console_out, console_in;
+port message_out, console_out, console_input;
 bool mapped_io = false;    /* => activate memory-mapped IO */
 int spim_return_value = 0; /* Value returned when spim exits */
 
@@ -328,81 +328,81 @@ static void close_listing_file(void) {
   }
 }
 
-static const char* segment_name(asm_segment s) {
+static const char* segment_name(assembler_segment s) {
   switch (s) {
-    case ASM_SEG_TEXT:
+    case ASSEMBLER_SEGMENT_TEXT:
       return "text";
-    case ASM_SEG_DATA:
+    case ASSEMBLER_SEGMENT_DATA:
       return "data";
-    case ASM_SEG_KTEXT:
+    case ASSEMBLER_SEGMENT_KERNEL_TEXT:
       return "ktext";
-    case ASM_SEG_KDATA:
+    case ASSEMBLER_SEGMENT_KERNEL_DATA:
       return "kdata";
     default:
-      /* Never reached: the cases above list every asm_segment, and the build's
+      /* Never reached: the cases above list every assembler_segment, and the build's
        * -Wswitch-enum fails if a new one is added without a case. */
       fatal_error("internal error: seg_name: unknown segment %d\n", (int)s);
   }
 }
 
-static void listing_observer(const asm_event* e) {
+static void listing_observer(const assembler_event* e) {
   if (listing_file == nullptr) return;
   switch (e->kind) {
-    case AE_LABEL_DEF:
+    case ASSEMBLER_EVENT_LABEL_DEFINITION:
       fprintf(listing_file, "line %4d  label  %-24s defined at 0x%08x%s\n",
               e->source_line, e->payload.label_definition.name, e->address,
               e->payload.label_definition.global ? "  (global)" : "");
       break;
-    case AE_TEXT_INST: {
+    case ASSEMBLER_EVENT_TEXT_INSTRUCTION: {
       char* const disassembly = instruction_to_string(e->address);
       fprintf(listing_file, "line %4d  text   0x%08x  %-32s  0x%08x\n",
               e->source_line, e->address, disassembly ? disassembly : "",
               e->payload.text_instruction.encoding);
       break;
     }
-    case AE_DATA_BYTE:
+    case ASSEMBLER_EVENT_DATA_BYTE:
       fprintf(listing_file, "line %4d  data   0x%08x  byte    0x%02x\n",
               e->source_line, e->address, e->payload.data_integer.value & 0xff);
       break;
-    case AE_DATA_HALF:
+    case ASSEMBLER_EVENT_DATA_HALF:
       fprintf(listing_file, "line %4d  data   0x%08x  half    0x%04x\n",
               e->source_line, e->address, e->payload.data_integer.value & 0xffff);
       break;
-    case AE_DATA_WORD:
+    case ASSEMBLER_EVENT_DATA_WORD:
       fprintf(listing_file, "line %4d  data   0x%08x  word    0x%08x\n",
               e->source_line, e->address, (uint32_t)e->payload.data_integer.value);
       break;
-    case AE_DATA_DOUBLE:
+    case ASSEMBLER_EVENT_DATA_DOUBLE:
       fprintf(listing_file, "line %4d  data   0x%08x  double  %.18g\n",
               e->source_line, e->address, e->payload.data_double.value);
       break;
-    case AE_DATA_STRING:
+    case ASSEMBLER_EVENT_DATA_STRING:
       fprintf(listing_file, "line %4d  data   0x%08x  string  len=%d%s\n",
               e->source_line, e->address, e->payload.data_string.length,
               e->payload.data_string.null_term ? " (+\\0)" : "");
       break;
-    case AE_ALIGN:
+    case ASSEMBLER_EVENT_ALIGN:
       fprintf(listing_file, "line %4d  align  0x%08x  +%d bytes in %s\n",
               e->source_line, e->address, e->payload.align.new_program_counter_offset,
               segment_name(e->payload.align.segment));
       break;
-    case AE_SEG_CHANGE:
+    case ASSEMBLER_EVENT_SEGMENT_CHANGE:
       fprintf(listing_file, "line %4d  seg    %s  at 0x%08x\n", e->source_line,
               segment_name(e->payload.segment_change.segment), e->address);
       break;
-    case AE_FORWARD_REF:
+    case ASSEMBLER_EVENT_FORWARD_REF:
       fprintf(listing_file,
               "line %4d  fref   0x%08x  uses unresolved symbol '%s'\n",
               e->source_line, e->payload.forward_ref.from, e->payload.forward_ref.symbol);
       break;
-    case AE_FORWARD_RESOLVED:
+    case ASSEMBLER_EVENT_FORWARD_RESOLVED:
       fprintf(listing_file, "line %4d  fres   0x%08x  patched '%s' = 0x%08x\n",
               e->source_line, e->payload.forward_resolved.at,
               e->payload.forward_resolved.symbol,
               (uint32_t)e->payload.forward_resolved.value);
       break;
     default:
-      /* Never reached: the cases above list every asm_event_kind, and the
+      /* Never reached: the cases above list every assembler_event_kind, and the
        * build's -Wswitch-enum fails if a new one is added without a case. */
       fatal_error(
           "internal error: listing_observer: unknown assembler event kind %d\n",
@@ -425,7 +425,7 @@ int main(int argc, char** argv) {
   message_out.file = stderr;
 
   /* Input comes directly (not through stdio): */
-  console_in.descriptor = 0;
+  console_input.descriptor = 0;
 
   if (getenv("SPIM_EXCEPTION_HANDLER") != nullptr)
     exception_file_name = getenv("SPIM_EXCEPTION_HANDLER");
@@ -460,9 +460,9 @@ int main(int argc, char** argv) {
     } else if (strings_equal(argv[i], "-nomapped_io") || strings_equal(argv[i], "-nmio")) {
       mapped_io = false;
     } else if (strings_equal(argv[i], "-pseudo") || strings_equal(argv[i], "-p")) {
-      accept_pseudo_insts = true;
+      accept_pseudo_instructions = true;
     } else if (strings_equal(argv[i], "-nopseudo") || strings_equal(argv[i], "-np")) {
-      accept_pseudo_insts = false;
+      accept_pseudo_instructions = false;
     } else if (strings_equal(argv[i], "-quiet") || strings_equal(argv[i], "-q")) {
       quiet = true;
     } else if (strings_equal(argv[i], "-noquiet") || strings_equal(argv[i], "-nq")) {
@@ -515,7 +515,7 @@ int main(int argc, char** argv) {
       if (flag_value_missing(i, argc, argv))
         print_usage_message = 1;
       else
-        initial_data_limit = (mem_addr)atoi(argv[++i]);
+        initial_data_limit = (memory_address)atoi(argv[++i]);
     } else if (strings_equal(argv[i], "-sstack") || strings_equal(argv[i], "-ss")) {
       if (flag_value_missing(i, argc, argv))
         print_usage_message = 1;
@@ -525,22 +525,22 @@ int main(int argc, char** argv) {
       if (flag_value_missing(i, argc, argv))
         print_usage_message = 1;
       else
-        initial_stack_limit = (mem_addr)atoi(argv[++i]);
+        initial_stack_limit = (memory_address)atoi(argv[++i]);
     } else if (strings_equal(argv[i], "-sktext") || strings_equal(argv[i], "-skt")) {
       if (flag_value_missing(i, argc, argv))
         print_usage_message = 1;
       else
-        initial_k_text_size = atoi(argv[++i]);
+        initial_kernel_text_size = atoi(argv[++i]);
     } else if (strings_equal(argv[i], "-skdata") || strings_equal(argv[i], "-skd")) {
       if (flag_value_missing(i, argc, argv))
         print_usage_message = 1;
       else
-        initial_k_data_size = atoi(argv[++i]);
+        initial_kernel_data_size = atoi(argv[++i]);
     } else if (strings_equal(argv[i], "-lkdata") || strings_equal(argv[i], "-lkd")) {
       if (flag_value_missing(i, argc, argv))
         print_usage_message = 1;
       else
-        initial_k_data_limit = (mem_addr)atoi(argv[++i]);
+        initial_kernel_data_limit = (memory_address)atoi(argv[++i]);
     } else if (((strings_equal(argv[i], "-file") || strings_equal(argv[i], "-f")) &&
                 (i + 1 < argc))
                /* Assume this argument is a program's file name and everything
@@ -730,8 +730,8 @@ int main(int argc, char** argv) {
       bool continuable;
       console_to_program();
       initialize_run_stack(program_argc, program_argv);
-      top_level_env_ready = true;
-      if (!setjmp(spim_top_level_env)) {
+      top_level_environment_ready = true;
+      if (!setjmp(spim_top_level_environment)) {
         char* undefined_labels = undefined_symbol_string();
         if (undefined_labels != nullptr) {
           write_output(message_out, "The following symbols are undefined:\n");
@@ -781,12 +781,12 @@ static char* read_command_line(void) {
     fflush(stdout);
   }
   size_t cap = 128;
-  size_t len = 0;
-  char* line = xmalloc(cap);
+  size_t length = 0;
+  char* line = allocate_or_exit(cap);
   while (true) {
     char c;
     if (read(STDIN_FILENO, &c, 1) <= 0) {
-      if (len == 0) {
+      if (length == 0) {
         free(line);
         return nullptr;
       }
@@ -794,16 +794,16 @@ static char* read_command_line(void) {
     } else if (c == '\n') {
       break;
     } else {
-      if (len + 1 >= cap) {
+      if (length + 1 >= cap) {
         cap *= 2;
         char* const grown = realloc(line, cap);
         if (grown == nullptr) fatal_error("Out of memory reading a command\n");
         line = grown;
       }
-      line[len++] = c;
+      line[length++] = c;
     }
   }
-  line[len] = '\0';
+  line[length] = '\0';
   return line;
 }
 #endif
@@ -822,7 +822,7 @@ static char* read_command_line(void) {
 
 #ifdef HAVE_LIBEDIT
   /* Persistent REPL history at ~/.spimulator_history, the same idiom gdb,
-     sqlite3, and python use. atexit() catches EXIT_CMD's exit(0) too. */
+     sqlite3, and python use. atexit() catches EXIT_COMMAND's exit(0) too. */
   using_history();
   const char* home = getenv("HOME");
   if (home != nullptr) {
@@ -855,8 +855,8 @@ static char* read_command_line(void) {
   volatile bool scanner_pushed = false;
 
   while (true) {
-    top_level_env_ready = true;
-    if (setjmp(spim_top_level_env)) {
+    top_level_environment_ready = true;
+    if (setjmp(spim_top_level_environment)) {
       /* Returned via control_c_seen longjmp. Unwind any in-flight
          scanner state so the flex buffer stack doesn't grow each Ctrl-C. */
       if (scanner_pushed) {
@@ -893,7 +893,7 @@ static char* read_command_line(void) {
       if (*repl_line != '\0') add_history(repl_line);
 #endif
 
-      /* Append '\n' so flex sees TOK_NL exactly once per command, matching
+      /* Append '\n' so flex sees TOKEN_NEWLINE exactly once per command, matching
          the stdin path. Wrap the buffer in a FILE* via fmemopen and reuse
          the existing scanner_push_source mechanism — flex sees a normal input
          source, parse_spim_command is unaware of libedit. */
@@ -941,34 +941,34 @@ static char* read_command_line(void) {
 [[noreturn]] static void control_c_seen([[maybe_unused]] int argument) {
   console_to_spim();
   write_output(message_out, "\nExecution interrupted\n");
-  if (!top_level_env_ready) exit(1);
-  longjmp(spim_top_level_env, 1);
+  if (!top_level_environment_ready) exit(1);
+  longjmp(spim_top_level_environment, 1);
 }
 
 /* SPIM commands */
 
 enum {
-  UNKNOWN_CMD = 0,
-  EXIT_CMD,
-  READ_CMD,
-  RUN_CMD,
-  STEP_CMD,
-  PRINT_CMD,
-  PRINT_SYM_CMD,
-  PRINT_ALL_REGS_CMD,
-  REINITIALIZE_CMD,
-  ASM_CMD,
-  REDO_CMD,
-  NOP_CMD,
-  HELP_CMD,
-  CONTINUE_CMD,
-  SET_BKPT_CMD,
-  DELETE_BKPT_CMD,
-  LIST_BKPT_CMD,
-  DUMPNATIVE_TEXT_CMD,
-  DUMP_TEXT_CMD,
-  DISASM_CMD,
-  ARGS_CMD
+  UNKNOWN_COMMAND = 0,
+  EXIT_COMMAND,
+  READ_COMMAND,
+  RUN_COMMAND,
+  STEP_COMMAND,
+  PRINT_COMMAND,
+  PRINT_SYMBOL_COMMAND,
+  PRINT_ALL_REGISTERS_COMMAND,
+  REINITIALIZE_COMMAND,
+  ASSEMBLE_COMMAND,
+  REDO_COMMAND,
+  NOP_COMMAND,
+  HELP_COMMAND,
+  CONTINUE_COMMAND,
+  SET_BREAKPOINT_COMMAND,
+  DELETE_BREAKPOINT_COMMAND,
+  LIST_BREAKPOINT_COMMAND,
+  DUMP_NATIVE_TEXT_COMMAND,
+  DUMP_TEXT_COMMAND,
+  DISASSEMBLY_COMMAND,
+  ARGUMENTS_COMMAND
 };
 
 /* Parse a SPIM command from the currently open file and execute it.
@@ -977,20 +977,20 @@ enum {
    command. */
 
 static bool parse_spim_command(bool redo) {
-  static int previous_command = NOP_CMD; /* Default redo */
+  static int previous_command = NOP_COMMAND; /* Default redo */
   static int previous_token;
   const int command = redo ? previous_command : read_assembly_command();
 
   switch (command) {
-    case EXIT_CMD:
+    case EXIT_COMMAND:
       console_to_spim();
       exit(0);
 
-    case READ_CMD: {
+    case READ_COMMAND: {
       const int token = (redo ? previous_token : read_token());
 
       if (!redo) flush_to_newline();
-      if (token == TOK_STR) {
+      if (token == TOKEN_STRING) {
         /* Loading a file points the scanner at it; save the command
            input around the load so the next command is read from it. */
         scanner_push_source(nullptr);
@@ -998,15 +998,15 @@ static bool parse_spim_command(bool redo) {
         scanner_pop_source();
       } else
         error("Must supply a filename to read\n");
-      previous_command = READ_CMD;
+      previous_command = READ_COMMAND;
       return (0);
     }
 
-    case RUN_CMD: {
-      static mem_addr address;
+    case RUN_COMMAND: {
+      static memory_address address;
       bool continuable;
 
-      address = (redo ? address : ((mem_addr)get_optional_integer()));
+      address = (redo ? address : ((memory_address)get_optional_integer()));
       if (address == 0) address = starting_address();
 
       initialize_run_stack(program_argc, program_argv);
@@ -1021,72 +1021,72 @@ static bool parse_spim_command(bool redo) {
         }
 
         if (run_program(address, DEFAULT_RUN_STEPS, false, false, &continuable))
-          write_output(message_out, "Breakpoint encountered at 0x%08x\n", PC);
+          write_output(message_out, "Breakpoint encountered at 0x%08x\n", PROGRAM_COUNTER);
       }
       console_to_spim();
 
-      previous_command = RUN_CMD;
+      previous_command = RUN_COMMAND;
       return (0);
     }
 
-    case CONTINUE_CMD: {
-      if (PC != 0) {
+    case CONTINUE_COMMAND: {
+      if (PROGRAM_COUNTER != 0) {
         bool continuable;
         console_to_program();
-        if (run_program(PC, DEFAULT_RUN_STEPS, false, true, &continuable))
-          write_output(message_out, "Breakpoint encountered at 0x%08x\n", PC);
+        if (run_program(PROGRAM_COUNTER, DEFAULT_RUN_STEPS, false, true, &continuable))
+          write_output(message_out, "Breakpoint encountered at 0x%08x\n", PROGRAM_COUNTER);
         console_to_spim();
       }
-      previous_command = CONTINUE_CMD;
+      previous_command = CONTINUE_COMMAND;
       return (0);
     }
 
-    case STEP_CMD: {
+    case STEP_COMMAND: {
       static int steps;
 
       steps = (redo ? steps : get_optional_integer());
-      const mem_addr address = PC == 0 ? starting_address() : PC;
+      const memory_address address = PROGRAM_COUNTER == 0 ? starting_address() : PROGRAM_COUNTER;
 
       if (steps == 0) steps = 1;
       if (address != 0) {
         bool continuable;
         console_to_program();
         if (run_program(address, steps, true, true, &continuable))
-          write_output(message_out, "Breakpoint encountered at 0x%08x\n", PC);
+          write_output(message_out, "Breakpoint encountered at 0x%08x\n", PROGRAM_COUNTER);
         console_to_spim();
       }
 
-      previous_command = STEP_CMD;
+      previous_command = STEP_COMMAND;
       return (0);
     }
 
-    case PRINT_CMD: {
+    case PRINT_COMMAND: {
       const int token = (redo ? previous_token : read_token());
       static int location;
-      /* Set true if we've already consumed TOK_NL while parsing a base+offset
+      /* Set true if we've already consumed TOKEN_NEWLINE while parsing a base+offset
        * suffix, so the trailing flush_to_newline doesn't gobble the next
        * command's tokens. */
       bool consumed_newline = false;
 
       switch (token) {
-        case TOK_REG:
+        case TOKEN_REGISTER:
           if (redo)
             location += 1;
           else
             location = scan_value.integer;
           print_register(location);
           break;
-        case TOK_FP_REG:
+        case TOKEN_FLOATING_POINT_REGISTER:
           if (redo)
             location += 2;
           else
             location = scan_value.integer;
           print_floating_point_register(location);
           break;
-        case TOK_INT: {
+        case TOKEN_INTEGER: {
           if (redo) {
             location += 4;
-            print_memory((mem_addr)location);
+            print_memory((memory_address)location);
           } else {
             const int integer_value = scan_value.integer;
             /* Peek for the N($reg) base+offset form so students can inspect
@@ -1094,26 +1094,26 @@ static bool parse_spim_command(bool redo) {
             const int next = read_token();
             if (next == '(') {
               const int register_token = read_token();
-              const int register_number = (register_token == TOK_REG) ? scan_value.integer : -1;
-              const int close = (register_token == TOK_REG) ? read_token() : 0;
-              if (register_token == TOK_NL || close == TOK_NL) consumed_newline = true;
+              const int register_number = (register_token == TOKEN_REGISTER) ? scan_value.integer : -1;
+              const int close = (register_token == TOKEN_REGISTER) ? read_token() : 0;
+              if (register_token == TOKEN_NEWLINE || close == TOKEN_NEWLINE) consumed_newline = true;
               if (register_number < 0 || close != ')') {
                 error("expected $reg) after '(' in print N($reg) form\n");
               } else {
-                location = gpr[register_number] + integer_value;
-                print_memory((mem_addr)location);
+                location = general_purpose_registers[register_number] + integer_value;
+                print_memory((memory_address)location);
               }
             } else {
               /* Not the base+offset form — treat integer_value as an absolute
                * address (the standard form). */
               location = integer_value;
-              print_memory((mem_addr)location);
-              if (next == TOK_NL) consumed_newline = true;
+              print_memory((memory_address)location);
+              if (next == TOKEN_NEWLINE) consumed_newline = true;
             }
           }
           break;
         }
-        case TOK_ID:
+        case TOKEN_IDENTIFIER:
           if (!print_register_from_string((char*)scan_value.pointer)) {
             if (redo)
               location += 4;
@@ -1121,7 +1121,7 @@ static bool parse_spim_command(bool redo) {
               location = (int)find_symbol_address((char*)scan_value.pointer);
 
             if (location != 0)
-              print_memory((mem_addr)location);
+              print_memory((memory_address)location);
             else
               error("Unknown label: %s\n", (char*)scan_value.pointer);
           }
@@ -1131,30 +1131,30 @@ static bool parse_spim_command(bool redo) {
           break;
       }
       if (!redo && !consumed_newline) flush_to_newline();
-      previous_command = PRINT_CMD;
+      previous_command = PRINT_COMMAND;
       previous_token = token;
       return (0);
     }
 
-    case PRINT_SYM_CMD:
+    case PRINT_SYMBOL_COMMAND:
       print_symbols();
       if (!redo) flush_to_newline();
-      previous_command = NOP_CMD;
+      previous_command = NOP_COMMAND;
       return (0);
 
-    case PRINT_ALL_REGS_CMD: {
+    case PRINT_ALL_REGISTERS_COMMAND: {
       bool hex_flag = false;
       const int token = (redo ? previous_token : read_token());
-      if (token == TOK_ID && strings_equal((char*)scan_value.pointer, "hex")) hex_flag = true;
+      if (token == TOKEN_IDENTIFIER && strings_equal((char*)scan_value.pointer, "hex")) hex_flag = true;
       print_all_registers(hex_flag);
       /* With no operand the token read was the newline itself; flushing
          would read on into the next line. */
-      if (!redo && token != TOK_NL) flush_to_newline();
-      previous_command = NOP_CMD;
+      if (!redo && token != TOKEN_NEWLINE) flush_to_newline();
+      previous_command = NOP_COMMAND;
       return (0);
     }
 
-    case REINITIALIZE_CMD:
+    case REINITIALIZE_COMMAND:
       flush_to_newline();
       initialize_world(load_exception_handler ? exception_file_name : nullptr,
                        !quiet);
@@ -1163,22 +1163,22 @@ static bool parse_spim_command(bool redo) {
       /* Drop stale Tab-completion suggestions from the prior program — the
          memory addresses they reference don't survive the reinit. */
       explain_clear_suggestions();
-      previous_command = NOP_CMD;
+      previous_command = NOP_COMMAND;
       return (0);
 
-    case ASM_CMD:
+    case ASSEMBLE_COMMAND:
       (void)parse_file();
-      previous_command = ASM_CMD;
+      previous_command = ASSEMBLE_COMMAND;
       return (0);
 
-    case REDO_CMD:
+    case REDO_COMMAND:
       return (1);
 
-    case NOP_CMD:
-      previous_command = NOP_CMD;
+    case NOP_COMMAND:
+      previous_command = NOP_COMMAND;
       return (0);
 
-    case ARGS_CMD: {
+    case ARGUMENTS_COMMAND: {
       /* gdb-style `set args`: replace the args the *next* `run` (or
          reinitialize) will pass to the program.  argv[0] is preserved
          as whatever the command-line gave us, so demos that print
@@ -1204,14 +1204,14 @@ static bool parse_spim_command(bool redo) {
 
       int t;
       int cap = 0;
-      while ((t = read_token()) != TOK_NL && t != 0) {
+      while ((t = read_token()) != TOKEN_NEWLINE && t != 0) {
         char* s = nullptr;
         switch (t) {
-          case TOK_STR:
-          case TOK_ID:
+          case TOKEN_STRING:
+          case TOKEN_IDENTIFIER:
             s = strdup((char*)scan_value.pointer);
             break;
-          case TOK_INT: {
+          case TOKEN_INTEGER: {
             char buffer[32];
             snprintf(buffer, sizeof(buffer), "%d", scan_value.integer);
             s = strdup(buffer);
@@ -1235,11 +1235,11 @@ static bool parse_spim_command(bool redo) {
       program_argc = 1 + owned_strings_length;
       program_argv = owned_argv;
 
-      previous_command = ARGS_CMD;
+      previous_command = ARGUMENTS_COMMAND;
       return (0);
     }
 
-    case HELP_CMD:
+    case HELP_COMMAND:
       if (!redo) flush_to_newline();
       write_output(message_out, "\nSPIM is a MIPS32 simulator.\n");
       write_output(message_out, "Its top-level commands are:\n");
@@ -1298,24 +1298,24 @@ static bool parse_spim_command(bool redo) {
           "\nMost commands can be abbreviated to their unique prefix\n");
       write_output(message_out,
                    "e.g., ex(it), re(ad), l(oad), ru(n), s(tep), p(rint)\n\n");
-      previous_command = HELP_CMD;
+      previous_command = HELP_COMMAND;
       return (0);
 
-    case SET_BKPT_CMD:
-    case DELETE_BKPT_CMD: {
+    case SET_BREAKPOINT_COMMAND:
+    case DELETE_BREAKPOINT_COMMAND: {
       const int token = (redo ? previous_token : read_token());
-      static mem_addr address;
+      static memory_address address;
 
-      if (!redo && token != TOK_NL) flush_to_newline();
-      if (token == TOK_INT)
-        address = redo ? address + 4 : (mem_addr)scan_value.integer;
-      else if (token == TOK_ID)
+      if (!redo && token != TOKEN_NEWLINE) flush_to_newline();
+      if (token == TOKEN_INTEGER)
+        address = redo ? address + 4 : (memory_address)scan_value.integer;
+      else if (token == TOKEN_IDENTIFIER)
         address = redo ? address + 4 : find_symbol_address((char*)scan_value.pointer);
       else {
         error("Must supply an address for breakpoint\n");
         return (0);
       }
-      if (command == SET_BKPT_CMD)
+      if (command == SET_BREAKPOINT_COMMAND)
         add_breakpoint(address);
       else
         delete_breakpoint(address);
@@ -1324,25 +1324,25 @@ static bool parse_spim_command(bool redo) {
       return (0);
     }
 
-    case LIST_BKPT_CMD:
+    case LIST_BREAKPOINT_COMMAND:
       if (!redo) flush_to_newline();
       list_breakpoints();
-      previous_command = LIST_BKPT_CMD;
+      previous_command = LIST_BREAKPOINT_COMMAND;
       return (0);
 
-    case DUMPNATIVE_TEXT_CMD:
-    case DUMP_TEXT_CMD: {
+    case DUMP_NATIVE_TEXT_COMMAND:
+    case DUMP_TEXT_COMMAND: {
       const int token = (redo ? previous_token : read_token());
 
       char* filename = nullptr;
 
-      if (token == TOK_STR)
+      if (token == TOKEN_STRING)
         filename = (char*)scan_value.pointer;
-      else if (token == TOK_NL)
+      else if (token == TOKEN_NEWLINE)
         filename = "spim.dump";
       else {
         fprintf(stderr, "usage: %s [ \"filename\" ]\n",
-                (command == DUMP_TEXT_CMD ? "dump" : "dumpnative"));
+                (command == DUMP_TEXT_COMMAND ? "dump" : "dumpnative"));
         return (0);
       }
 
@@ -1353,15 +1353,15 @@ static bool parse_spim_command(bool redo) {
       }
 
       user_kernel_text_segment(false);
-      const mem_addr dump_start =
+      const memory_address dump_start =
           find_symbol_address(END_OF_TRAP_HANDLER_SYMBOL);
-      const mem_addr dump_end = current_text_location();
+      const memory_address dump_end = current_text_location();
 
       int words = 0;
-      for (mem_addr address = dump_start; address < dump_end;
+      for (memory_address address = dump_start; address < dump_end;
            address += BYTES_PER_WORD) {
         int32_t code = instruction_encode(memory_read_instruction(address));
-        if (command == DUMP_TEXT_CMD)
+        if (command == DUMP_TEXT_COMMAND)
           code =
               (int32_t)htonl((uint32_t)code); /* dump in network byte order */
         (void)fwrite(&code, 1, sizeof(code), file);
@@ -1376,14 +1376,14 @@ static bool parse_spim_command(bool redo) {
       return (0);
     }
 
-    case DISASM_CMD:
+    case DISASSEMBLY_COMMAND:
       print_text_listing();
       if (!redo) flush_to_newline();
-      previous_command = NOP_CMD;
+      previous_command = NOP_COMMAND;
       return (0);
 
     default:
-      while (read_token() != TOK_NL) {
+      while (read_token() != TOKEN_NEWLINE) {
       }
       error("Unknown spim command\n");
       return (0);
@@ -1396,57 +1396,57 @@ static bool parse_spim_command(bool redo) {
 static int read_assembly_command(void) {
   const int token = read_token();
 
-  if (token == TOK_NL) /* Blank line means redo */
-    return (REDO_CMD);
-  else if (token != TOK_ID) /* Better be a string */
-    return (UNKNOWN_CMD);
+  if (token == TOKEN_NEWLINE) /* Blank line means redo */
+    return (REDO_COMMAND);
+  else if (token != TOKEN_IDENTIFIER) /* Better be a string */
+    return (UNKNOWN_COMMAND);
   else if (string_prefix((char*)scan_value.pointer, "exit", 2))
-    return (EXIT_CMD);
+    return (EXIT_COMMAND);
   else if (string_prefix((char*)scan_value.pointer, "quit", 2))
-    return (EXIT_CMD);
+    return (EXIT_COMMAND);
   else if (string_prefix((char*)scan_value.pointer, "print", 1))
-    return (PRINT_CMD);
+    return (PRINT_COMMAND);
   else if (string_prefix((char*)scan_value.pointer, "print_symbols", 7))
-    return (PRINT_SYM_CMD);
+    return (PRINT_SYMBOL_COMMAND);
   else if (string_prefix((char*)scan_value.pointer, "print_all_regs", 7))
-    return (PRINT_ALL_REGS_CMD);
+    return (PRINT_ALL_REGISTERS_COMMAND);
   else if (string_prefix((char*)scan_value.pointer, "run", 2))
-    return (RUN_CMD);
+    return (RUN_COMMAND);
   else if (string_prefix((char*)scan_value.pointer, "args", 2))
-    return (ARGS_CMD);
+    return (ARGUMENTS_COMMAND);
   else if (string_prefix((char*)scan_value.pointer, "read", 2))
-    return (READ_CMD);
+    return (READ_COMMAND);
   else if (string_prefix((char*)scan_value.pointer, "load", 2))
-    return (READ_CMD);
+    return (READ_COMMAND);
   else if (string_prefix((char*)scan_value.pointer, "reinitialize", 6))
-    return (REINITIALIZE_CMD);
+    return (REINITIALIZE_COMMAND);
   else if (string_prefix((char*)scan_value.pointer, "step", 1))
-    return (STEP_CMD);
+    return (STEP_COMMAND);
   else if (string_prefix((char*)scan_value.pointer, "help", 1))
-    return (HELP_CMD);
+    return (HELP_COMMAND);
   else if (string_prefix((char*)scan_value.pointer, "continue", 1))
-    return (CONTINUE_CMD);
+    return (CONTINUE_COMMAND);
   else if (string_prefix((char*)scan_value.pointer, "breakpoint", 2))
-    return (SET_BKPT_CMD);
+    return (SET_BREAKPOINT_COMMAND);
   else if (string_prefix((char*)scan_value.pointer, "delete", 1))
-    return (DELETE_BKPT_CMD);
+    return (DELETE_BREAKPOINT_COMMAND);
   else if (string_prefix((char*)scan_value.pointer, "list", 2))
-    return (LIST_BKPT_CMD);
+    return (LIST_BREAKPOINT_COMMAND);
   else if (string_prefix((char*)scan_value.pointer, "dumpnative", 5))
-    return (DUMPNATIVE_TEXT_CMD);
+    return (DUMP_NATIVE_TEXT_COMMAND);
   else if (string_prefix((char*)scan_value.pointer, "dump", 4))
-    return (DUMP_TEXT_CMD);
+    return (DUMP_TEXT_COMMAND);
   /* Min abbreviation is "dis", not "di" — `di` is the MIPS32r2
      disable-interrupts mnemonic, which the scanner tokenizes as an
      opcode before command dispatch ever sees it. */
   else if (string_prefix((char*)scan_value.pointer, "disasm", 3))
-    return (DISASM_CMD);
+    return (DISASSEMBLY_COMMAND);
   else if (*(char*)scan_value.pointer == '?')
-    return (HELP_CMD);
+    return (HELP_COMMAND);
   else if (*(char*)scan_value.pointer == '.')
-    return (ASM_CMD);
+    return (ASSEMBLE_COMMAND);
   else
-    return (UNKNOWN_CMD);
+    return (UNKNOWN_COMMAND);
 }
 
 /* Return true if STRING1 is a prefix of STRING2 at least MIN_MATCH
@@ -1464,10 +1464,10 @@ static bool string_prefix(char* s1, char* s2, int min_match) {
 static int get_optional_integer(void) {
   const int token = read_token();
 
-  if (token == TOK_INT) {
+  if (token == TOKEN_INTEGER) {
     flush_to_newline();
     return (scan_value.integer);
-  } else if (token == TOK_NL)
+  } else if (token == TOKEN_NEWLINE)
     return (0);
   else {
     flush_to_newline();
@@ -1478,30 +1478,30 @@ static int get_optional_integer(void) {
 /* Flush the rest of the input line up to and including the next newline. */
 
 static void flush_to_newline(void) {
-  while (read_token() != TOK_NL) {
+  while (read_token() != TOKEN_NEWLINE) {
   }
 }
 
 /* Print register number N. */
 
 static void print_register(int register_no) {
-  write_output(message_out, "Reg %d = 0x%08x (%d)\n", register_no, gpr[register_no],
-               gpr[register_no]);
+  write_output(message_out, "Reg %d = 0x%08x (%d)\n", register_no, general_purpose_registers[register_no],
+               general_purpose_registers[register_no]);
 }
 
 static void print_floating_point_register(int register_no) {
   if ((register_no & 1) == 0)
     write_output(message_out, "FP reg %d = %g (double)\n", register_no,
-                 FPR_D(register_no));
-  write_output(message_out, "FP reg %d = %g (single)\n", register_no, FPR_S(register_no));
+                 FLOATING_POINT_REGISTER_DOUBLE(register_no));
+  write_output(message_out, "FP reg %d = %g (single)\n", register_no, FLOATING_POINT_REGISTER_SINGLE(register_no));
 }
 
-static int print_register_from_string(char* register_number) {
+static int print_register_from_string(char* register_name) {
   char s[100];
   char* s1 = s;
 
   /* Conver to lower case */
-  while (*register_number != '\0' && s1 - s < 100) *s1++ = (char)tolower(*register_number++);
+  while (*register_name != '\0' && s1 - s < 100) *s1++ = (char)tolower(*register_name++);
   *s1 = '\0';
   /* Drop leading $ */
   if (s[0] == '$')
@@ -1510,22 +1510,22 @@ static int print_register_from_string(char* register_number) {
     s1 = s;
 
   if (strings_equal(s1, "pc"))
-    write_output(message_out, "PC = 0x%08x (%d)\n", PC, PC);
+    write_output(message_out, "PC = 0x%08x (%d)\n", PROGRAM_COUNTER, PROGRAM_COUNTER);
   else if (strings_equal(s1, "hi"))
-    write_output(message_out, "HI = 0x%08x (%d)\n", HI, HI);
+    write_output(message_out, "HI = 0x%08x (%d)\n", MULTIPLY_DIVIDE_HIGH, MULTIPLY_DIVIDE_HIGH);
   else if (strings_equal(s1, "lo"))
-    write_output(message_out, "LO = 0x%08x (%d)\n", LO, LO);
+    write_output(message_out, "LO = 0x%08x (%d)\n", MULTIPLY_DIVIDE_LOW, MULTIPLY_DIVIDE_LOW);
   else if (strings_equal(s1, "fpcond"))
-    write_output(message_out, "FCSR = 0x%08x (%d)\n", FCSR, FCSR);
+    write_output(message_out, "FCSR = 0x%08x (%d)\n", floating_point_control_status_register, floating_point_control_status_register);
   else if (strings_equal(s1, "cause"))
-    write_output(message_out, "Cause = 0x%08x (%d)\n", CP0_Cause, CP0_Cause);
+    write_output(message_out, "Cause = 0x%08x (%d)\n", coprocessor_0_cause, coprocessor_0_cause);
   else if (strings_equal(s1, "epc"))
-    write_output(message_out, "EPC = 0x%08x (%d)\n", CP0_EPC, CP0_EPC);
+    write_output(message_out, "EPC = 0x%08x (%d)\n", coprocessor_0_exception_program_counter, coprocessor_0_exception_program_counter);
   else if (strings_equal(s1, "status"))
-    write_output(message_out, "Status = 0x%08x (%d)\n", CP0_Status, CP0_Status);
+    write_output(message_out, "Status = 0x%08x (%d)\n", coprocessor_0_status, coprocessor_0_status);
   else if (strings_equal(s1, "badvaddr"))
-    write_output(message_out, "BadVAddr = 0x%08x (%d)\n", CP0_BadVAddr,
-                 CP0_BadVAddr);
+    write_output(message_out, "BadVAddr = 0x%08x (%d)\n", coprocessor_0_bad_virtual_address,
+                 coprocessor_0_bad_virtual_address);
   else
     return (0);
 
@@ -1533,7 +1533,7 @@ static int print_register_from_string(char* register_number) {
 }
 
 static void print_all_registers(bool hex_flag) {
-  static str_stream stream;
+  static string_stream stream;
 
   stream_clear(&stream);
   format_registers(&stream, hex_flag, hex_flag);
@@ -1563,11 +1563,11 @@ static bool write_assembled_code(const char* program_name) {
 
   /* dump text segment */
   user_kernel_text_segment(false);
-  mem_addr dump_start = find_symbol_address(END_OF_TRAP_HANDLER_SYMBOL);
-  mem_addr dump_end = current_text_location();
+  memory_address dump_start = find_symbol_address(END_OF_TRAP_HANDLER_SYMBOL);
+  memory_address dump_end = current_text_location();
 
   (void)fprintf(file, ".text # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
-  for (mem_addr address = dump_start; address < dump_end; address += BYTES_PER_WORD) {
+  for (memory_address address = dump_start; address < dump_end; address += BYTES_PER_WORD) {
     const int32_t code = instruction_encode(memory_read_instruction(address));
     /* ", " goes before each word but the first: the segment's end need not
        fall on a word, so "not the last word" can't be tested by address. */
@@ -1580,13 +1580,13 @@ static bool write_assembled_code(const char* program_name) {
   if (bare_machine) {
     dump_start = 0;
   } else {
-    dump_start = DATA_BOT;
+    dump_start = DATA_BOTTOM;
   }
   dump_end = current_data_location();
 
   if (dump_end > dump_start) {
     (void)fprintf(file, ".data # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
-    for (mem_addr address = dump_start; address < dump_end; address += BYTES_PER_WORD) {
+    for (memory_address address = dump_start; address < dump_end; address += BYTES_PER_WORD) {
       const int32_t code = memory_read_word(address);
       (void)fprintf(file, "%s0x%x", address != dump_start ? ", " : "", code);
     }
@@ -1628,8 +1628,8 @@ void fatal_error(const char* format, ...) {
 
   vfprintf(stderr, format, arguments);
   va_end(arguments);
-  if (!top_level_env_ready) exit(1);
-  longjmp(spim_top_level_env, 1);
+  if (!top_level_environment_ready) exit(1);
+  longjmp(spim_top_level_environment, 1);
 }
 
 /* IO facilities: */
@@ -1675,7 +1675,7 @@ int read_input(char* string, int string_size) {
   while (1 < string_size) /* Reserve space for null */
   {
     char buffer[1];
-    if (read((int)console_in.descriptor, buffer, 1) <= 0) /* Not in raw mode! */
+    if (read((int)console_input.descriptor, buffer, 1) <= 0) /* Not in raw mode! */
       break;
 
     *pointer++ = buffer[0];
@@ -1720,13 +1720,13 @@ int read_integer_input(long* value) {
   char c = '\0';
   ssize_t n;
   do {
-    n = read((int)console_in.descriptor, &c, 1);
+    n = read((int)console_input.descriptor, &c, 1);
   } while (n > 0 && (c == ' ' || c == '\t' || c == '\n' || c == '\r'));
 
   long sign = 1;
   if (n > 0 && (c == '-' || c == '+')) {
     if (c == '-') sign = -1;
-    n = read((int)console_in.descriptor, &c, 1);
+    n = read((int)console_input.descriptor, &c, 1);
   }
 
   bool got_digit = false;
@@ -1734,7 +1734,7 @@ int read_integer_input(long* value) {
   while (n > 0 && '0' <= c && c <= '9') {
     got_digit = true;
     v = v * 10 + (c - '0');
-    n = read((int)console_in.descriptor, &c, 1);
+    n = read((int)console_input.descriptor, &c, 1);
   }
 
   if (restore_console_to_program) console_to_program();
@@ -1746,7 +1746,7 @@ int read_integer_input(long* value) {
 
 static void console_to_program(void) {
   if (mapped_io && !console_state_saved) {
-    tcgetattr(console_in.descriptor, &saved_console_state);
+    tcgetattr(console_input.descriptor, &saved_console_state);
     struct termios parameters = saved_console_state;
     parameters.c_iflag &= (tcflag_t) ~(ISTRIP | INLCR | ICRNL | IGNCR | IXON |
                                    IXOFF | INPCK | BRKINT | PARMRK);
@@ -1760,7 +1760,7 @@ static void console_to_program(void) {
     parameters.c_cc[VMIN] = 1;
     parameters.c_cc[VTIME] = 1;
 
-    tcsetattr(console_in.descriptor, TCSANOW, &parameters);
+    tcsetattr(console_input.descriptor, TCSANOW, &parameters);
     console_state_saved = true;
   }
 }
@@ -1769,7 +1769,7 @@ static void console_to_program(void) {
 
 static void console_to_spim(void) {
   if (mapped_io && console_state_saved)
-    tcsetattr(console_in.descriptor, TCSANOW, &saved_console_state);
+    tcsetattr(console_input.descriptor, TCSANOW, &saved_console_state);
   console_state_saved = false;
 }
 
@@ -1778,7 +1778,7 @@ int console_input_available(void) {
     fd_set fdset;
     struct timeval timeout = {}; /* zero timeout: poll, don't block */
     FD_ZERO(&fdset);
-    FD_SET((int)console_in.descriptor, &fdset);
+    FD_SET((int)console_input.descriptor, &fdset);
     return (select(sizeof(fdset) * 8, &fdset, nullptr, nullptr, &timeout));
   } else
     return (0);
@@ -1787,7 +1787,7 @@ int console_input_available(void) {
 char get_console_char(void) {
   char buffer;
 
-  read((int)console_in.descriptor, &buffer, 1);
+  read((int)console_input.descriptor, &buffer, 1);
 
   if (buffer == 3) /* ^C */
     control_c_seen(0);
@@ -1802,7 +1802,7 @@ void put_console_char(char c) {
 static int read_token(void) {
   const int token = scanner_advance();
 
-  if (token == TOK_EOF) {
+  if (token == TOKEN_EOF) {
     console_to_spim();
     exit(0);
   } else {
@@ -1816,14 +1816,14 @@ static int read_token(void) {
  */
 
 static void dump_data_segment(bool kernel_also) {
-  static str_stream stream;
+  static string_stream stream;
   stream_clear(&stream);
 
   if (kernel_also) {
     format_data_segments(&stream);
   } else {
     stream_printf(&stream, "\tDATA\n");
-    format_memory(&stream, DATA_BOT, data_top);
+    format_memory(&stream, DATA_BOTTOM, data_top);
   }
 
   {
@@ -1839,16 +1839,16 @@ static void dump_data_segment(bool kernel_also) {
  */
 
 static void dump_text_segment(bool kernel_also) {
-  static str_stream stream;
+  static string_stream stream;
   stream_clear(&stream);
 
   if (kernel_also) {
-    format_instructions(&stream, TEXT_BOT, text_top);
+    format_instructions(&stream, TEXT_BOTTOM, text_top);
     stream_printf(&stream, "\n\tKERNEL\n");
-    format_instructions(&stream, K_TEXT_BOT, k_text_top);
+    format_instructions(&stream, KERNEL_TEXT_BOTTOM, kernel_text_top);
   } else {
     stream_printf(&stream, "\n\tUSER TEXT SEGMENT\n");
-    format_instructions(&stream, TEXT_BOT, text_top);
+    format_instructions(&stream, TEXT_BOTTOM, text_top);
   }
 
   FILE* const file = fopen("text.asm", "w");

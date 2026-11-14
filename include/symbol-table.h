@@ -11,7 +11,7 @@
 
 typedef struct label_use {
   mips_instruction* instruction; /* nullptr => Data, not code */
-  mem_addr address;
+  memory_address address;
   int32_t offset; /* Data only: the constant added to the label (`lab+4`) */
   int width; /* Data only: bytes stored, 1 (.byte), 2 (.half) or 4 (.word) */
   struct label_use* next;
@@ -34,7 +34,7 @@ typedef struct label {
 
 /* Exported functions: */
 
-mem_addr find_symbol_address(const char* symbol);
+memory_address find_symbol_address(const char* symbol);
 void flush_local_labels(bool issue_undefined_warnings);
 void initialize_symbol_table(void);
 label* label_is_defined(const char* name);
@@ -42,8 +42,8 @@ label* label_is_defined(const char* name);
 label* make_label_global(const char* name);
 void print_symbols(void);
 void print_undefined_symbols(void);
-label* record_label(const char* name, mem_addr address, bool resolve_uses);
-void record_data_uses_symbol(mem_addr location, label* symbol, int32_t offset,
+label* record_label(const char* name, memory_address address, bool resolve_uses);
+void record_data_uses_symbol(memory_address location, label* symbol, int32_t offset,
                              int width);
 void record_instruction_uses_symbol(mips_instruction* instruction, label* symbol);
 [[nodiscard]] char* undefined_symbol_string(void);
@@ -54,6 +54,6 @@ void resolve_label_uses(label* symbol);
    `cb` with each one and the caller-supplied `ctx`. Order is undefined
    (hash-bucket order). Used by the REPL's tab-completion to enumerate
    labels for the `breakpoint` / `delete` commands. */
-void for_each_label(void (*callback)(const label* l, void* ctx), void* context);
+void for_each_label(void (*callback)(const label* l, void* context), void* context);
 
 #endif

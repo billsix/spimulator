@@ -24,7 +24,7 @@ char* source_line(void);
 
 /* Exported Variables: */
 
-typedef intptr_union scan_value_t;
+typedef integer_or_pointer_union scan_value_t;
 extern scan_value_t
     scan_value; /* Value of the last token returned by the scanner. */
 

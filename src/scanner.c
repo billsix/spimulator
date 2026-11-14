@@ -11,13 +11,13 @@
 #include <stdlib.h>
 
 #include "spim.h"
-#include "spim-utils.h"   /* name_val_val, xmalloc */
+#include "spim-utils.h"   /* name_value_value, xmalloc */
 #include "registers.h"    /* GENERAL_PURPOSE_REGISTER_COUNT */
 #include "symbol-table.h" /* label_is_defined */
 #include "scanner.h"      /* scan_value, line_no */
 #include "tokens.h"       /* TOK_* token values */
-#include "opcode-types.h" /* op_type tag enumerators (ASM_DIR, RD_RS_RT_INST, ...) */
-#include "opcode-tables.h" /* opcode_table: keyword -> {token, op_type} */
+#include "opcode-types.h" /* opcode_type tag enumerators (ASSEMBLER_DIRECTIVE, DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION, ...) */
+#include "opcode-tables.h" /* opcode_table: keyword -> {token, opcode_type} */
 
 /* Runtime-visible globals. */
 int line_no = 1;
@@ -26,7 +26,7 @@ scan_value_t scan_value = {};
 /* Register-name → register-number lookup.  Public because instruction.c and
    explain.c also call register_name_to_number, independent of the
    scanner's internal keyword table. */
-static const name_val_val register_tbl[] = {
+static const name_value_value register_table[] = {
     {.name = "a0", .value1 = 4},   {.name = "a1", .value1 = 5},
     {.name = "a2", .value1 = 6},   {.name = "a3", .value1 = 7},
     {.name = "at", .value1 = 1},   {.name = "fp", .value1 = 30},
@@ -57,19 +57,19 @@ int register_name_to_number(const char* name) {
     const long floating_point_register = strtol(name + 1, nullptr, 10);
     return floating_point_register <= 31 ? (int)floating_point_register : -1;
   } else {
-    const name_val_val* const entry = map_string_to_name_value_value(
-        register_tbl, sizeof(register_tbl) / sizeof(name_val_val), name);
+    const name_value_value* const entry = map_string_to_name_value_value(
+        register_table, sizeof(register_table) / sizeof(name_value_value), name);
     return entry ? entry->value1 : -1;
   }
 }
 
 /* --- keyword table ---------------------------------------- */
 /* Keywords are looked up in opcode_table (opcode-tables.h), generated from
-   include/opcodes.tsv and sorted by name: {name, token, op_type}. */
+   include/opcodes.tsv and sorted by name: {name, token, opcode_type}. */
 
 static int check_keyword(const char* identifier, bool allow_pseudo_ops) {
-  const name_val_val* const entry =
-      map_string_to_name_value_value(opcode_tbl, OPCODE_COUNT, identifier);
+  const name_value_value* const entry =
+      map_string_to_name_value_value(opcode_table, OPCODE_COUNT, identifier);
   if (entry == nullptr)
     return 0;
   else if (!allow_pseudo_ops && entry->value2 == PSEUDO_OP)
@@ -84,18 +84,18 @@ static int check_keyword(const char* identifier, bool allow_pseudo_ops) {
    `line_position` within the buffer.  When `line_position` reaches the
    end (or NUL), the next line is read on demand. */
 
-constexpr int LINE_BUF_MAX = 4096;
+constexpr int LINE_BUFFER_MAX = 4096;
 
 static FILE* input_file = nullptr;
-static char line_buf[LINE_BUF_MAX];
-static int line_pos = 0;
-static int line_len = 0;
+static char line_buffer[LINE_BUFFER_MAX];
+static int line_position = 0;
+static int line_length = 0;
 static bool at_eof = false;
 
 /* The text recorded as "current_line" for erroneous_line() —
    a snapshot of the line being parsed when the FIRST token of
    that line was returned.  Reset by scanner_start_line(). */
-static char current_line_buf[LINE_BUF_MAX];
+static char current_line_buffer[LINE_BUFFER_MAX];
 static int current_line_no_saved = 0;
 static bool current_line_saved = false;
 
@@ -109,29 +109,29 @@ typedef struct {
   bool present;
 } scan_token;
 
-static scan_token tok_buf[3];
+static scan_token token_buffer[3];
 
 /* Self-clearing flag: when set, the NEXT identifier token is
-   classified as TOK_ID even if it would otherwise be a keyword. */
-static bool force_id_next = false;
+   classified as TOKEN_IDENTIFIER even if it would otherwise be a keyword. */
+static bool force_identifier_next = false;
 
 /* --- public API ------------------------------------------- */
 
 void scanner_initialize(FILE* input) {
   input_file = input;
-  line_pos = 0;
-  line_len = 0;
+  line_position = 0;
+  line_length = 0;
   at_eof = false;
   line_no = 1;
   current_line_saved = false;
-  force_id_next = false;
-  for (size_t i = 0; i < sizeof tok_buf / sizeof tok_buf[0]; i++)
-    tok_buf[i] = (scan_token){};
+  force_identifier_next = false;
+  for (size_t i = 0; i < sizeof token_buffer / sizeof token_buffer[0]; i++)
+    token_buffer[i] = (scan_token){};
 }
 
 void scanner_start_line(void) { current_line_saved = false; }
 
-void scanner_force_identifier(void) { force_id_next = true; }
+void scanner_force_identifier(void) { force_identifier_next = true; }
 
 /* --- low-level character access --------------------------- */
 
@@ -141,14 +141,14 @@ void scanner_force_identifier(void) { force_id_next = true; }
 static void fill_line_buffer(void) {
   if (at_eof) {
     return;
-  } else if (fgets(line_buf, LINE_BUF_MAX, input_file) == nullptr) {
+  } else if (fgets(line_buffer, LINE_BUFFER_MAX, input_file) == nullptr) {
     at_eof = true;
-    line_len = 0;
-    line_pos = 0;
+    line_length = 0;
+    line_position = 0;
     return;
   } else {
-    line_len = (int)strlen(line_buf);
-    line_pos = 0;
+    line_length = (int)strlen(line_buffer);
+    line_position = 0;
   }
 }
 
@@ -156,18 +156,18 @@ static void fill_line_buffer(void) {
    if at end of buffer (caller should refill if more input is
    expected). */
 static int peek_char(void) {
-  if (line_pos >= line_len) return 0;
-  return (unsigned char)line_buf[line_pos];
+  if (line_position >= line_length) return 0;
+  return (unsigned char)line_buffer[line_position];
 }
 
 static int peek_char2(void) {
-  if (line_pos + 1 >= line_len) return 0;
-  return (unsigned char)line_buf[line_pos + 1];
+  if (line_position + 1 >= line_length) return 0;
+  return (unsigned char)line_buffer[line_position + 1];
 }
 
 static int next_char(void) {
-  if (line_pos >= line_len) return 0;
-  return (unsigned char)line_buf[line_pos++];
+  if (line_position >= line_length) return 0;
+  return (unsigned char)line_buffer[line_position++];
 }
 
 /* Snapshot the current line into current_line_buffer the first
@@ -175,11 +175,11 @@ static int next_char(void) {
 static void maybe_snapshot_line(void) {
   if (!current_line_saved) {
     /* Copy up to (but not including) the trailing newline */
-    int length = line_len;
-    if (length > 0 && line_buf[length - 1] == '\n') length--;
-    if (length >= LINE_BUF_MAX) length = LINE_BUF_MAX - 1;
-    memcpy(current_line_buf, line_buf, (size_t)length);
-    current_line_buf[length] = '\0';
+    int length = line_length;
+    if (length > 0 && line_buffer[length - 1] == '\n') length--;
+    if (length >= LINE_BUFFER_MAX) length = LINE_BUFFER_MAX - 1;
+    memcpy(current_line_buffer, line_buffer, (size_t)length);
+    current_line_buffer[length] = '\0';
     current_line_no_saved = line_no;
     current_line_saved = true;
   }
@@ -197,21 +197,21 @@ static inline int hex_digit_value(int c) {
    vs a plain integer.  Returns the position past the FP-literal
    on success; line_position on no-match.  Does NOT mutate line_position. */
 static int scan_floating_point_check(void) {
-  int p = line_pos;
+  int p = line_position;
   /* digits */
-  if (p >= line_len || !isdigit((unsigned char)line_buf[p])) return line_pos;
-  while (p < line_len && isdigit((unsigned char)line_buf[p])) p++;
+  if (p >= line_length || !isdigit((unsigned char)line_buffer[p])) return line_position;
+  while (p < line_length && isdigit((unsigned char)line_buffer[p])) p++;
   /* the decimal point; `,` separates operands, so `.word 1,2` is two words */
-  if (p >= line_len || line_buf[p] != '.') return line_pos;
+  if (p >= line_length || line_buffer[p] != '.') return line_position;
   p++;
   /* more digits */
-  if (p >= line_len || !isdigit((unsigned char)line_buf[p])) return line_pos;
-  while (p < line_len && isdigit((unsigned char)line_buf[p])) p++;
+  if (p >= line_length || !isdigit((unsigned char)line_buffer[p])) return line_position;
+  while (p < line_length && isdigit((unsigned char)line_buffer[p])) p++;
   /* optional exponent */
-  if (p < line_len && (line_buf[p] == 'e' || line_buf[p] == 'E')) {
+  if (p < line_length && (line_buffer[p] == 'e' || line_buffer[p] == 'E')) {
     p++;
-    if (p < line_len && (line_buf[p] == '+' || line_buf[p] == '-')) p++;
-    while (p < line_len && isdigit((unsigned char)line_buf[p])) p++;
+    if (p < line_length && (line_buffer[p] == '+' || line_buffer[p] == '-')) p++;
+    while (p < line_length && isdigit((unsigned char)line_buffer[p])) p++;
   }
   return p;
 }
@@ -220,19 +220,19 @@ static int scan_floating_point(int sign, int end_position, scan_token* out) {
   static double scratch;
   /* Copy the literal text into a temp buffer for atof. */
   char buffer[64];
-  int length = end_position - line_pos;
+  int length = end_position - line_position;
   if (length >= (int)sizeof(buffer)) length = sizeof(buffer) - 1;
-  memcpy(buffer, line_buf + line_pos, (size_t)length);
+  memcpy(buffer, line_buffer + line_position, (size_t)length);
   buffer[length] = '\0';
   scratch = sign * atof(buffer);
-  line_pos = end_position;
+  line_position = end_position;
   *out =
-      (scan_token){.type = TOK_FP, .value.pointer = (void*)&scratch, .present = true};
-  return TOK_FP;
+      (scan_token){.type = TOKEN_FLOATING_POINT, .value.pointer = (void*)&scratch, .present = true};
+  return TOKEN_FLOATING_POINT;
 }
 
 /* Scan an integer literal (decimal or hex).  Leading optional
-   '-' has already been consumed if signed.  Returns TOK_INT with
+   '-' has already been consumed if signed.  Returns TOKEN_INTEGER with
    scan_value.i set. */
 static int scan_integer(int sign, scan_token* out) {
   /* Accumulate in uint32_t: left-shifting/multiplying a signed int past
@@ -251,10 +251,10 @@ static int scan_integer(int sign, scan_token* out) {
       value = value * 10 + (uint32_t)(next_char() - '0');
     }
   }
-  *out = (scan_token){.type = TOK_INT,
+  *out = (scan_token){.type = TOKEN_INTEGER,
                       .value.integer = (int32_t)((uint32_t)sign * value),
                       .present = true};
-  return TOK_INT;
+  return TOKEN_INTEGER;
 }
 
 /* Decode a backslash escape in a char literal.  `pp` points to the
@@ -398,22 +398,22 @@ static char* decode_string(const char* source, int length) {
 /* Scan an identifier or keyword.  Returns the appropriate token. */
 static int scan_identifier(scan_token* out, bool force_identifier) {
   /* Capture the identifier text. */
-  const int start = line_pos;
+  const int start = line_position;
   while (peek_char() == '_' || peek_char() == '.' || isalnum(peek_char())) {
     next_char();
   }
-  const int end = line_pos;
+  const int end = line_position;
 
   static char identifier_buffer[256];
   int identifier_length = end - start;
   if (identifier_length >= (int)sizeof(identifier_buffer)) identifier_length = sizeof(identifier_buffer) - 1;
-  memcpy(identifier_buffer, line_buf + start, (size_t)identifier_length);
+  memcpy(identifier_buffer, line_buffer + start, (size_t)identifier_length);
   identifier_buffer[identifier_length] = '\0';
 
   /* Keyword lookup (unless force_identifier). */
   if (!force_identifier) {
     const int token =
-        check_keyword(identifier_buffer, !bare_machine && accept_pseudo_insts);
+        check_keyword(identifier_buffer, !bare_machine && accept_pseudo_instructions);
     if (token != 0) {
       *out = (scan_token){.type = token, .value.integer = token, .present = true};
       return token;
@@ -424,59 +424,59 @@ static int scan_identifier(scan_token* out, bool force_identifier) {
   label* const l = label_is_defined(identifier_buffer);
   if (l != nullptr && l->constant_flag) {
     *out =
-        (scan_token){.type = TOK_INT, .value.integer = (int)l->address, .present = true};
-    return TOK_INT;
+        (scan_token){.type = TOKEN_INTEGER, .value.integer = (int)l->address, .present = true};
+    return TOKEN_INTEGER;
   }
 
   /* Otherwise an identifier. */
   *out = (scan_token){
-      .type = TOK_ID, .value.pointer = (void*)strdup(identifier_buffer), .present = true};
-  return TOK_ID;
+      .type = TOKEN_IDENTIFIER, .value.pointer = (void*)strdup(identifier_buffer), .present = true};
+  return TOKEN_IDENTIFIER;
 }
 
 /* Scan a $register reference. */
 static int scan_register(scan_token* out) {
   next_char(); /* skip the $ */
-  const int start = line_pos;
+  const int start = line_position;
   while (peek_char() == '_' || peek_char() == '.' || peek_char() == '$' ||
          isalnum(peek_char())) {
     next_char();
   }
-  const int end = line_pos;
+  const int end = line_position;
 
   static char register_buffer[64];
   int register_name_length = end - start;
   if (register_name_length >= (int)sizeof(register_buffer)) register_name_length = sizeof(register_buffer) - 1;
-  memcpy(register_buffer, line_buf + start, (size_t)register_name_length);
+  memcpy(register_buffer, line_buffer + start, (size_t)register_name_length);
   register_buffer[register_name_length] = '\0';
 
   const int register_no = register_name_to_number(register_buffer);
 
   /* FP register if leading is 'f' and not "fp" */
   if (register_no != -1 && register_buffer[0] == 'f' && register_buffer[1] != 'p') {
-    *out = (scan_token){.type = TOK_FP_REG, .value.integer = register_no, .present = true};
-    return TOK_FP_REG;
-  } else if (register_no >= 0 && register_no < R_LENGTH) {
-    *out = (scan_token){.type = TOK_REG, .value.integer = register_no, .present = true};
-    return TOK_REG;
+    *out = (scan_token){.type = TOKEN_FLOATING_POINT_REGISTER, .value.integer = register_no, .present = true};
+    return TOKEN_FLOATING_POINT_REGISTER;
+  } else if (register_no >= 0 && register_no < GENERAL_PURPOSE_REGISTER_COUNT) {
+    *out = (scan_token){.type = TOKEN_REGISTER, .value.integer = register_no, .present = true};
+    return TOKEN_REGISTER;
   } else {
     /* Fall back to identifier-or-constant-label behavior. */
     label* const l = label_is_defined(register_buffer);
     if (l != nullptr && l->constant_flag)
       *out =
-          (scan_token){.type = TOK_INT, .value.integer = (int)l->address, .present = true};
+          (scan_token){.type = TOKEN_INTEGER, .value.integer = (int)l->address, .present = true};
     else
       *out = (scan_token){
-          .type = TOK_ID, .value.pointer = (void*)strdup(register_buffer), .present = true};
+          .type = TOKEN_IDENTIFIER, .value.pointer = (void*)strdup(register_buffer), .present = true};
     return out->type;
   }
 }
 
-/* Scan a string literal "...".  Returns TOK_STR; scan_value.p is a
+/* Scan a string literal "...".  Returns TOKEN_STRING; scan_value.p is a
    heap-allocated decoded copy. */
 static int scan_string(scan_token* out) {
   next_char(); /* skip opening " */
-  const int start = line_pos;
+  const int start = line_position;
   /* Find closing quote, respecting \" escapes. */
   while (peek_char() != 0 && peek_char() != '"') {
     if (peek_char() == '\\' && peek_char2() != 0) {
@@ -486,17 +486,17 @@ static int scan_string(scan_token* out) {
       next_char();
     }
   }
-  const int end = line_pos;
+  const int end = line_position;
   if (peek_char() == '"') next_char(); /* skip closing " */
 
   *out =
-      (scan_token){.type = TOK_STR,
-                   .value.pointer = (void*)decode_string(line_buf + start, end - start),
+      (scan_token){.type = TOKEN_STRING,
+                   .value.pointer = (void*)decode_string(line_buffer + start, end - start),
                    .present = true};
-  return TOK_STR;
+  return TOKEN_STRING;
 }
 
-/* Scan a char literal '...'.  Returns TOK_INT with the character
+/* Scan a char literal '...'.  Returns TOKEN_INTEGER with the character
    value in scan_value.i. */
 static int scan_char(scan_token* out) {
   next_char(); /* skip opening ' */
@@ -505,37 +505,37 @@ static int scan_char(scan_token* out) {
     next_char(); /* skip backslash */
     /* scan_escape_char wants a pointer that advances; we'll
        use a small staging area. */
-    const char* p = &line_buf[line_pos];
+    const char* p = &line_buffer[line_position];
     const char* const p0 = p;
     v = scan_escape_char(&p);
     /* Advance line_position by however many chars scan_escape_char ate. */
-    line_pos += (int)(p - p0);
+    line_position += (int)(p - p0);
   } else {
     v = next_char();
   }
   if (peek_char() == '\'') next_char(); /* skip closing ' */
-  *out = (scan_token){.type = TOK_INT, .value.integer = v, .present = true};
-  return TOK_INT;
+  *out = (scan_token){.type = TOKEN_INTEGER, .value.integer = v, .present = true};
+  return TOKEN_INTEGER;
 }
 
 /* The main scanner: produce one token into *out.  Skips
    whitespace and comments first. */
 static void scan_one_token(scan_token* out) {
   /* Force-identifier flag is consumed by this call (one-shot). */
-  const bool force_identifier = force_id_next;
-  force_id_next = false;
+  const bool force_identifier = force_identifier_next;
+  force_identifier_next = false;
 
   /* Skip whitespace, comments, and CR.  Stop at NL, ';', or a
    * real token character.  Each iteration may need to refill
    * line_buffer if we've exhausted it without finding a token. */
   while (true) {
     /* If buffer is empty / exhausted, refill — but we report
-       TOK_NL between every line, and TOK_EOF/TOK_EOF only when the
+       TOKEN_NEWLINE between every line, and TOKEN_EOF/TOKEN_EOF only when the
        FILE is actually done.  We treat the trailing newline of
-       a line as the line's terminating TOK_NL, then refill on
+       a line as the line's terminating TOKEN_NEWLINE, then refill on
        the next call. */
 
-    while (line_pos < line_len) {
+    while (line_position < line_length) {
       const int c = peek_char();
       switch (c) {
         case ' ':
@@ -557,12 +557,12 @@ static void scan_one_token(scan_token* out) {
 
     /* Need a new line. */
     if (at_eof) {
-      *out = (scan_token){.type = TOK_EOF, .present = true};
+      *out = (scan_token){.type = TOKEN_EOF, .present = true};
       return;
     }
     fill_line_buffer();
-    if (at_eof && line_len == 0) {
-      *out = (scan_token){.type = TOK_EOF, .present = true};
+    if (at_eof && line_length == 0) {
+      *out = (scan_token){.type = TOKEN_EOF, .present = true};
       return;
     }
     /* current_line snapshot will be re-taken at first token on the new line */
@@ -573,19 +573,19 @@ have_char:
   {
     const int c = peek_char();
 
-    /* Newline: returns TOK_NL.  After we consume it, the line is
+    /* Newline: returns TOKEN_NEWLINE.  After we consume it, the line is
        complete; line_no has already advanced (by fgets reading
        the next chunk later).  Increment line_no here so it
        reflects the line of the NEXT token. */
     if (c == '\n') {
       next_char();
       line_no += 1;
-      *out = (scan_token){.type = TOK_NL, .present = true};
+      *out = (scan_token){.type = TOKEN_NEWLINE, .present = true};
       return;
     } else if (c == ';') {
       /* Semicolon also delimits a "line" for grammar purposes. */
       next_char();
-      *out = (scan_token){.type = TOK_NL, .present = true};
+      *out = (scan_token){.type = TOKEN_NEWLINE, .present = true};
       return;
     } else {
       /* From here, we have a real token char.  Snapshot the
@@ -596,7 +596,7 @@ have_char:
       if (c == '-' && isdigit(peek_char2())) {
         next_char(); /* consume the '-' */
         const int floating_point_end = scan_floating_point_check();
-        if (floating_point_end > line_pos) {
+        if (floating_point_end > line_position) {
           scan_floating_point(-1, floating_point_end, out);
           return;
         }
@@ -605,7 +605,7 @@ have_char:
       } else if (isdigit(c)) {
         /* Positive number — could be int or FP. */
         const int floating_point_end = scan_floating_point_check();
-        if (floating_point_end > line_pos) {
+        if (floating_point_end > line_position) {
           scan_floating_point(1, floating_point_end, out);
           return;
         }
@@ -628,11 +628,11 @@ have_char:
         scan_char(out);
         return;
       } else if (c == '?') {
-        /* `?` returns TOK_ID for the REPL. */
+        /* `?` returns TOKEN_IDENTIFIER for the REPL. */
         next_char();
         static char q[2] = "?";
         *out = (scan_token){
-            .type = TOK_ID, .value.pointer = (void*)strdup(q), .present = true};
+            .type = TOKEN_IDENTIFIER, .value.pointer = (void*)strdup(q), .present = true};
         return;
       } else if (c == '*' || c == '/' || c == ':' || c == '(' || c == ')' ||
                  c == '+' || c == '-' || c == '>' || c == '=') {
@@ -645,7 +645,7 @@ have_char:
         next_char();
         error("Unknown character in source: '%c' (0x%02x)\n", c, c);
         *out = (scan_token){
-            .type = TOK_NL,
+            .type = TOKEN_NEWLINE,
             .present = true}; /* recover by treating as line terminator */
         return;
       }
@@ -658,44 +658,44 @@ have_char:
 static void ensure_filled(int n) {
   /* Make sure token_buffer[0..n-1] are populated. */
   for (int i = 0; i < n; i++) {
-    if (!tok_buf[i].present) {
-      scan_one_token(&tok_buf[i]);
+    if (!token_buffer[i].present) {
+      scan_one_token(&token_buffer[i]);
     }
   }
 }
 
 int scanner_peek(void) {
   ensure_filled(1);
-  return tok_buf[0].type;
+  return token_buffer[0].type;
 }
 
 int scanner_peek2(void) {
   ensure_filled(2);
-  return tok_buf[1].type;
+  return token_buffer[1].type;
 }
 
 int scanner_advance(void) {
   ensure_filled(1);
-  const int t = tok_buf[0].type;
+  const int t = token_buffer[0].type;
   /* Only overwrite scan_value for tokens that actually carry a value.
      Callers like spim.c's flush_to_newline rely on scan_value.p
-     surviving a TOK_NL read after a TOK_STR. */
+     surviving a TOKEN_NEWLINE read after a TOKEN_STRING. */
   switch (t) {
-    case TOK_INT:
-    case TOK_ID:
-    case TOK_REG:
-    case TOK_FP_REG:
-    case TOK_STR:
-    case TOK_FP:
-      scan_value = tok_buf[0].value;
+    case TOKEN_INTEGER:
+    case TOKEN_IDENTIFIER:
+    case TOKEN_REGISTER:
+    case TOKEN_FLOATING_POINT_REGISTER:
+    case TOKEN_STRING:
+    case TOKEN_FLOATING_POINT:
+      scan_value = token_buffer[0].value;
       break;
     default:
       break;
   }
   /* Shift the buffer left by one. */
-  tok_buf[0] = tok_buf[1];
-  tok_buf[1] = tok_buf[2];
-  tok_buf[2].present = false;
+  token_buffer[0] = token_buffer[1];
+  token_buffer[1] = token_buffer[2];
+  token_buffer[2].present = false;
   return t;
 }
 
@@ -710,12 +710,12 @@ int scanner_next(void) { return scanner_advance(); }
 constexpr int SCANNER_STACK_DEPTH = 8;
 typedef struct {
   FILE* input_file;
-  char line_buffer[LINE_BUF_MAX];
+  char line_buffer[LINE_BUFFER_MAX];
   int line_position;
   int line_length;
   bool at_eof;
   int line_no;
-  char current_line_buffer[LINE_BUF_MAX];
+  char current_line_buffer[LINE_BUFFER_MAX];
   int current_line_no_saved;
   bool current_line_saved;
   bool force_identifier_next;
@@ -732,16 +732,16 @@ void scanner_push_source(FILE* input_stream) {
   }
   scanner_snapshot* s = &scanner_stack[scanner_stack_depth++];
   s->input_file = input_file;
-  memcpy(s->line_buffer, line_buf, sizeof(line_buf));
-  s->line_position = line_pos;
-  s->line_length = line_len;
+  memcpy(s->line_buffer, line_buffer, sizeof(line_buffer));
+  s->line_position = line_position;
+  s->line_length = line_length;
   s->at_eof = at_eof;
   s->line_no = line_no;
-  memcpy(s->current_line_buffer, current_line_buf, sizeof(current_line_buf));
+  memcpy(s->current_line_buffer, current_line_buffer, sizeof(current_line_buffer));
   s->current_line_no_saved = current_line_no_saved;
   s->current_line_saved = current_line_saved;
-  s->force_identifier_next = force_id_next;
-  memcpy(s->token_buffer, tok_buf, sizeof(tok_buf));
+  s->force_identifier_next = force_identifier_next;
+  memcpy(s->token_buffer, token_buffer, sizeof(token_buffer));
 
   scanner_initialize(input_stream);
 }
@@ -755,16 +755,16 @@ void scanner_pop_source(void) {
   }
   scanner_snapshot* const s = &scanner_stack[--scanner_stack_depth];
   input_file = s->input_file;
-  memcpy(line_buf, s->line_buffer, sizeof(line_buf));
-  line_pos = s->line_position;
-  line_len = s->line_length;
+  memcpy(line_buffer, s->line_buffer, sizeof(line_buffer));
+  line_position = s->line_position;
+  line_length = s->line_length;
   at_eof = s->at_eof;
   line_no = s->line_no;
-  memcpy(current_line_buf, s->current_line_buffer, sizeof(current_line_buf));
+  memcpy(current_line_buffer, s->current_line_buffer, sizeof(current_line_buffer));
   current_line_no_saved = s->current_line_no_saved;
   current_line_saved = s->current_line_saved;
-  force_id_next = s->force_identifier_next;
-  memcpy(tok_buf, s->token_buffer, sizeof(tok_buf));
+  force_identifier_next = s->force_identifier_next;
+  memcpy(token_buffer, s->token_buffer, sizeof(token_buffer));
 }
 
 /* --- erroneous_line / source_line ------------------------- */
@@ -772,9 +772,9 @@ void scanner_pop_source(void) {
 /* Return a heap-allocated copy of the current source line, tab-
    indented and newline-terminated, for the parse-error printer. */
 char* erroneous_line(void) {
-  const size_t length = strlen(current_line_buf);
+  const size_t length = strlen(current_line_buffer);
   char* const r = (char*)allocate_or_exit(length + 16);
-  snprintf(r, length + 16, "\t  %s\n", current_line_buf);
+  snprintf(r, length + 16, "\t  %s\n", current_line_buffer);
   return r;
 }
 
@@ -783,9 +783,9 @@ char* erroneous_line(void) {
    annotate assembled instructions with their originating source. */
 char* source_line(void) {
   if (!current_line_saved) return nullptr;
-  const size_t length = strlen(current_line_buf);
+  const size_t length = strlen(current_line_buffer);
   /* "NNN: " prefix — up to 10 digits + ": " + line + NUL */
   char* const r = (char*)allocate_or_exit(length + 16);
-  snprintf(r, length + 16, "%d: %s", current_line_no_saved, current_line_buf);
+  snprintf(r, length + 16, "%d: %s", current_line_no_saved, current_line_buffer);
   return r;
 }

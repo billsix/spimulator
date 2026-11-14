@@ -303,91 +303,91 @@ execute s display i = case opcodeOfToken (inOpcode i) of
         else setFcc s cc (result (b less) (b equal) 0) >> ok
     exec :: Opcode -> IO Next
     exec op = case op of
-      TOK_ADD_OPCODE -> do
+      TOKEN_ADD_OPCODE -> do
         a :: Int32 <- r rs
         b :: Int32 <- r rt
         let sum' :: Int32
             sum' = a + b
         if (a >= 0) == (b >= 0) && (sum' >= 0) /= (a >= 0) then raiseOk excOv else w rd sum' >> ok
-      TOK_ADDI_OPCODE -> do
+      TOKEN_ADDI_OPCODE -> do
         a :: Int32 <- r rs
         let sum' :: Int32
             sum' = a + immS
         if (a >= 0) == (immS >= 0) && (sum' >= 0) /= (a >= 0) then raiseOk excOv else w rt sum' >> ok
-      TOK_ADDIU_OPCODE -> r rs >>= \a -> w rt (a + immS) >> ok
-      TOK_ADDU_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; w rd (a + b); ok
-      TOK_AND_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; w rd (a .&. b); ok
-      TOK_ANDI_OPCODE -> r rs >>= \a -> w rt (a .&. (0xffff .&. immS)) >> ok
-      TOK_BC2F_OPCODE -> raiseOk excCpU
-      TOK_BC2FL_OPCODE -> raiseOk excCpU
-      TOK_BC2T_OPCODE -> raiseOk excCpU
-      TOK_BC2TL_OPCODE -> raiseOk excCpU
-      TOK_BEQ_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; branch (a == b) False
-      TOK_BEQL_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; branch (a == b) True
-      TOK_BGEZ_OPCODE -> ru rs >>= \a -> branch (not (signBit a)) False
-      TOK_BGEZL_OPCODE -> ru rs >>= \a -> branch (not (signBit a)) True
-      TOK_BGEZAL_OPCODE -> link 31 >> ru rs >>= \a -> branch (not (signBit a)) False
-      TOK_BGEZALL_OPCODE -> link 31 >> ru rs >>= \a -> branch (not (signBit a)) True
-      TOK_BGTZ_OPCODE -> ru rs >>= \a -> branch (a /= 0 && not (signBit a)) False
-      TOK_BGTZL_OPCODE -> ru rs >>= \a -> branch (a /= 0 && not (signBit a)) True
-      TOK_BLEZ_OPCODE -> ru rs >>= \a -> branch (a == 0 || signBit a) False
-      TOK_BLEZL_OPCODE -> ru rs >>= \a -> branch (a == 0 || signBit a) True
-      TOK_BLTZ_OPCODE -> ru rs >>= \a -> branch (signBit a) False
-      TOK_BLTZL_OPCODE -> ru rs >>= \a -> branch (signBit a) True
-      TOK_BLTZAL_OPCODE -> link 31 >> ru rs >>= \a -> branch (signBit a) False
-      TOK_BLTZALL_OPCODE -> link 31 >> ru rs >>= \a -> branch (signBit a) True
-      TOK_BNE_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; branch (a /= b) False
-      TOK_BNEL_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; branch (a /= b) True
-      TOK_BREAK_OPCODE
+      TOKEN_ADDIU_OPCODE -> r rs >>= \a -> w rt (a + immS) >> ok
+      TOKEN_ADDU_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; w rd (a + b); ok
+      TOKEN_AND_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; w rd (a .&. b); ok
+      TOKEN_ANDI_OPCODE -> r rs >>= \a -> w rt (a .&. (0xffff .&. immS)) >> ok
+      TOKEN_BC2F_OPCODE -> raiseOk excCpU
+      TOKEN_BC2FL_OPCODE -> raiseOk excCpU
+      TOKEN_BC2T_OPCODE -> raiseOk excCpU
+      TOKEN_BC2TL_OPCODE -> raiseOk excCpU
+      TOKEN_BEQ_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; branch (a == b) False
+      TOKEN_BEQL_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; branch (a == b) True
+      TOKEN_BGEZ_OPCODE -> ru rs >>= \a -> branch (not (signBit a)) False
+      TOKEN_BGEZL_OPCODE -> ru rs >>= \a -> branch (not (signBit a)) True
+      TOKEN_BGEZAL_OPCODE -> link 31 >> ru rs >>= \a -> branch (not (signBit a)) False
+      TOKEN_BGEZALL_OPCODE -> link 31 >> ru rs >>= \a -> branch (not (signBit a)) True
+      TOKEN_BGTZ_OPCODE -> ru rs >>= \a -> branch (a /= 0 && not (signBit a)) False
+      TOKEN_BGTZL_OPCODE -> ru rs >>= \a -> branch (a /= 0 && not (signBit a)) True
+      TOKEN_BLEZ_OPCODE -> ru rs >>= \a -> branch (a == 0 || signBit a) False
+      TOKEN_BLEZL_OPCODE -> ru rs >>= \a -> branch (a == 0 || signBit a) True
+      TOKEN_BLTZ_OPCODE -> ru rs >>= \a -> branch (signBit a) False
+      TOKEN_BLTZL_OPCODE -> ru rs >>= \a -> branch (signBit a) True
+      TOKEN_BLTZAL_OPCODE -> link 31 >> ru rs >>= \a -> branch (signBit a) False
+      TOKEN_BLTZALL_OPCODE -> link 31 >> ru rs >>= \a -> branch (signBit a) True
+      TOKEN_BNE_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; branch (a /= b) False
+      TOKEN_BNEL_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; branch (a /= b) True
+      TOKEN_BREAK_OPCODE
         | rd == 1 -> raise excBp >> pure (Return True) -- a debugger breakpoint
         | otherwise -> raiseOk excBp
-      TOK_CACHE_OPCODE -> ok
-      TOK_CFC0_OPCODE -> readCtl rd >>= w rt >> ok
-      TOK_CFC2_OPCODE -> raiseOk excCpU
-      TOK_CLO_OPCODE -> ru rs >>= \a -> w rd (fromIntegral (countLeadingZeros (complement a))) >> ok
-      TOK_CLZ_OPCODE -> ru rs >>= \a -> w rd (fromIntegral (countLeadingZeros a)) >> ok
-      TOK_COP2_OPCODE -> raiseOk excCpU
-      TOK_CTC0_OPCODE -> r rt >>= writeCtl rd >> ok
-      TOK_CTC2_OPCODE -> raiseOk excCpU
-      TOK_DIV_OPCODE -> do
+      TOKEN_CACHE_OPCODE -> ok
+      TOKEN_CFC0_OPCODE -> readCtl rd >>= w rt >> ok
+      TOKEN_CFC2_OPCODE -> raiseOk excCpU
+      TOKEN_CLO_OPCODE -> ru rs >>= \a -> w rd (fromIntegral (countLeadingZeros (complement a))) >> ok
+      TOKEN_CLZ_OPCODE -> ru rs >>= \a -> w rd (fromIntegral (countLeadingZeros a)) >> ok
+      TOKEN_COP2_OPCODE -> raiseOk excCpU
+      TOKEN_CTC0_OPCODE -> r rt >>= writeCtl rd >> ok
+      TOKEN_CTC2_OPCODE -> raiseOk excCpU
+      TOKEN_DIV_OPCODE -> do
         a :: Int32 <- r rs
         b :: Int32 <- r rt
         when (b /= 0 && not (a == minBound && b == -1)) $ do
           set (regLO s) (a `quot` b)
           set (regHI s) (a `rem` b)
         ok
-      TOK_DIVU_OPCODE -> do
+      TOKEN_DIVU_OPCODE -> do
         a :: Word32 <- ru rs
         b :: Word32 <- ru rt
         when (b /= 0) $ do
           set (regLO s) (fromIntegral (a `quot` b))
           set (regHI s) (fromIntegral (a `rem` b))
         ok
-      TOK_ERET_OPCODE -> do
+      TOKEN_ERET_OPCODE -> do
         st :: Int32 <- getCp0 s cp0Status
         setCp0 s cp0Status (st .&. complement (fromIntegral statusEXL))
         getCp0 s cp0Epc >>= jump . fromIntegral
-      TOK_J_OPCODE -> do pc :: Word32 <- get (regPC s); jump ((pc .&. 0xf0000000) .|. (instTarget i `shiftL` 2))
-      TOK_JAL_OPCODE -> do
+      TOKEN_J_OPCODE -> do pc :: Word32 <- get (regPC s); jump ((pc .&. 0xf0000000) .|. (instTarget i `shiftL` 2))
+      TOKEN_JAL_OPCODE -> do
         link 31
         pc :: Word32 <- get (regPC s)
         jump ((pc .&. 0xf0000000) .|. (instTarget i `shiftL` 2))
       -- The hazard-barrier forms (.hb) run as the plain ones: the simulator has no pipeline
       -- hazards for a barrier to clear.
-      TOK_JALR_OPCODE -> jalr
-      TOK_JALR_HB_OPCODE -> jalr
-      TOK_JR_OPCODE -> ru rs >>= jump
-      TOK_JR_HB_OPCODE -> ru rs >>= jump
-      TOK_LB_OPCODE -> address >>= memReadByte s >>= loadInto s (DestGpr rt) >> ok
-      TOK_LBU_OPCODE -> address >>= memReadByte s >>= loadInto s (DestGpr rt) . (.&. 0xff) >> ok
-      TOK_LH_OPCODE -> address >>= memReadHalf s >>= loadInto s (DestGpr rt) >> ok
-      TOK_LHU_OPCODE -> address >>= memReadHalf s >>= loadInto s (DestGpr rt) . (.&. 0xffff) >> ok
-      TOK_LL_OPCODE -> address >>= memReadWord s >>= loadInto s (DestGpr rt) >> ok
-      TOK_LUI_OPCODE -> w rt (fromIntegral ((immU `shiftL` 16) .&. 0xffff0000)) >> ok
-      TOK_LW_OPCODE -> address >>= memReadWord s >>= loadInto s (DestGpr rt) >> ok
-      TOK_LDC2_OPCODE -> raiseOk excCpU
-      TOK_LWC2_OPCODE -> raiseOk excCpU
-      TOK_LWL_OPCODE -> do
+      TOKEN_JALR_OPCODE -> jalr
+      TOKEN_JALR_HB_OPCODE -> jalr
+      TOKEN_JR_OPCODE -> ru rs >>= jump
+      TOKEN_JR_HB_OPCODE -> ru rs >>= jump
+      TOKEN_LB_OPCODE -> address >>= memReadByte s >>= loadInto s (DestGpr rt) >> ok
+      TOKEN_LBU_OPCODE -> address >>= memReadByte s >>= loadInto s (DestGpr rt) . (.&. 0xff) >> ok
+      TOKEN_LH_OPCODE -> address >>= memReadHalf s >>= loadInto s (DestGpr rt) >> ok
+      TOKEN_LHU_OPCODE -> address >>= memReadHalf s >>= loadInto s (DestGpr rt) . (.&. 0xffff) >> ok
+      TOKEN_LL_OPCODE -> address >>= memReadWord s >>= loadInto s (DestGpr rt) >> ok
+      TOKEN_LUI_OPCODE -> w rt (fromIntegral ((immU `shiftL` 16) .&. 0xffff0000)) >> ok
+      TOKEN_LW_OPCODE -> address >>= memReadWord s >>= loadInto s (DestGpr rt) >> ok
+      TOKEN_LDC2_OPCODE -> raiseOk excCpU
+      TOKEN_LWC2_OPCODE -> raiseOk excCpU
+      TOKEN_LWL_OPCODE -> do
         addr :: Word32 <- address
         regVal :: Word32 <- ru rt
         word :: Word32 <- fromIntegral <$> memReadWord s (addr .&. 0xfffffffc) :: IO Word32
@@ -400,7 +400,7 @@ execute s display i = case opcodeOfToken (inOpcode i) of
               _ -> word
         loadInto s (DestGpr rt) (fromIntegral (if exc then word else merged))
         ok
-      TOK_LWR_OPCODE -> do
+      TOKEN_LWR_OPCODE -> do
         addr :: Word32 <- address
         regVal :: Word32 <- ru rt
         word :: Word32 <- fromIntegral <$> memReadWord s (addr .&. 0xfffffffc) :: IO Word32
@@ -413,17 +413,17 @@ execute s display i = case opcodeOfToken (inOpcode i) of
               _ -> (regVal .&. 0xffffff00) .|. ((word .&. 0xff000000) `shiftR` 24)
         loadInto s (DestGpr rt) (fromIntegral (if exc then word else merged))
         ok
-      TOK_MADD_OPCODE -> multiplyAdd signedProduct (+)
-      TOK_MADDU_OPCODE -> multiplyAdd unsignedProduct (+)
-      TOK_MFC0_OPCODE -> getCp0 s fs >>= w rt >> ok
-      TOK_MFC2_OPCODE -> raiseOk excCpU
-      TOK_MFHI_OPCODE -> get (regHI s) >>= w rd >> ok
-      TOK_MFLO_OPCODE -> get (regLO s) >>= w rd >> ok
-      TOK_MOVN_OPCODE -> do c :: Int32 <- r rt; when (c /= 0) (r rs >>= w rd); ok
-      TOK_MOVZ_OPCODE -> do c :: Int32 <- r rt; when (c == 0) (r rs >>= w rd); ok
-      TOK_MSUB_OPCODE -> multiplyAdd signedProduct (-)
-      TOK_MSUBU_OPCODE -> multiplyAdd unsignedProduct (-)
-      TOK_MTC0_OPCODE -> do
+      TOKEN_MADD_OPCODE -> multiplyAdd signedProduct (+)
+      TOKEN_MADDU_OPCODE -> multiplyAdd unsignedProduct (+)
+      TOKEN_MFC0_OPCODE -> getCp0 s fs >>= w rt >> ok
+      TOKEN_MFC2_OPCODE -> raiseOk excCpU
+      TOKEN_MFHI_OPCODE -> get (regHI s) >>= w rd >> ok
+      TOKEN_MFLO_OPCODE -> get (regLO s) >>= w rd >> ok
+      TOKEN_MOVN_OPCODE -> do c :: Int32 <- r rt; when (c /= 0) (r rs >>= w rd); ok
+      TOKEN_MOVZ_OPCODE -> do c :: Int32 <- r rt; when (c == 0) (r rs >>= w rd); ok
+      TOKEN_MSUB_OPCODE -> multiplyAdd signedProduct (-)
+      TOKEN_MSUBU_OPCODE -> multiplyAdd unsignedProduct (-)
+      TOKEN_MTC0_OPCODE -> do
         r rt >>= setCp0 s fs
         let masked :: Word32 -> IO ()
             masked mask = getCp0 s fs >>= \v -> setCp0 s fs (v .&. fromIntegral (mask :: Word32))
@@ -441,46 +441,46 @@ execute s display i = case opcodeOfToken (inOpcode i) of
                   then masked causeMask
                   else when (fs == cp0Config) (masked configMask)
         ok
-      TOK_MTC2_OPCODE -> raiseOk excCpU
-      TOK_MTHI_OPCODE -> r rs >>= set (regHI s) >> ok
-      TOK_MTLO_OPCODE -> r rs >>= set (regLO s) >> ok
-      TOK_MUL_OPCODE -> do
+      TOKEN_MTC2_OPCODE -> raiseOk excCpU
+      TOKEN_MTHI_OPCODE -> r rs >>= set (regHI s) >> ok
+      TOKEN_MTLO_OPCODE -> r rs >>= set (regLO s) >> ok
+      TOKEN_MUL_OPCODE -> do
         a :: Int32 <- r rs
         b :: Int32 <- r rt
         setHiLo (signedProduct a b)
         get (regLO s) >>= w rd
         ok
-      TOK_MULT_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; setHiLo (signedProduct a b); ok
-      TOK_MULTU_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; setHiLo (unsignedProduct a b); ok
-      TOK_NOR_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; w rd (complement (a .|. b)); ok
-      TOK_OR_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; w rd (a .|. b); ok
-      TOK_ORI_OPCODE -> r rs >>= \a -> w rt (a .|. (0xffff .&. immS)) >> ok
-      TOK_PREF_OPCODE -> ok
-      TOK_RFE_OPCODE -> raiseOk excRI
-      TOK_SB_OPCODE -> do a :: Word32 <- address; r rt >>= memWriteByte s a; ok
-      TOK_SC_OPCODE -> do a :: Word32 <- address; r rt >>= memWriteWord s a; ok
-      TOK_SDC2_OPCODE -> raiseOk excCpU
-      TOK_SH_OPCODE -> do a :: Word32 <- address; r rt >>= memWriteHalf s a; ok
-      TOK_SLL_OPCODE -> shiftBy (pure (instShamt i)) (\v n -> fromIntegral ((fromIntegral v :: Word32) `shiftL` n))
-      TOK_SLLV_OPCODE -> shiftBy (shiftReg) (\v n -> fromIntegral ((fromIntegral v :: Word32) `shiftL` n))
-      TOK_SLT_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; w rd (if a < b then 1 else 0); ok
-      TOK_SLTI_OPCODE -> r rs >>= \a -> w rt (if a < immS then 1 else 0) >> ok
-      TOK_SLTIU_OPCODE -> ru rs >>= \a -> w rt (if a < immU then 1 else 0) >> ok
-      TOK_SLTU_OPCODE -> do a :: Word32 <- ru rs; b :: Word32 <- ru rt; w rd (if a < b then 1 else 0); ok
-      TOK_SRA_OPCODE -> shiftBy (pure (instShamt i)) shiftR
-      TOK_SRAV_OPCODE -> shiftBy shiftReg shiftR
-      TOK_SRL_OPCODE -> shiftBy (pure (instShamt i)) (\v n -> fromIntegral ((fromIntegral v :: Word32) `shiftR` n))
-      TOK_SRLV_OPCODE -> shiftBy shiftReg (\v n -> fromIntegral ((fromIntegral v :: Word32) `shiftR` n))
-      TOK_SUB_OPCODE -> do
+      TOKEN_MULT_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; setHiLo (signedProduct a b); ok
+      TOKEN_MULTU_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; setHiLo (unsignedProduct a b); ok
+      TOKEN_NOR_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; w rd (complement (a .|. b)); ok
+      TOKEN_OR_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; w rd (a .|. b); ok
+      TOKEN_ORI_OPCODE -> r rs >>= \a -> w rt (a .|. (0xffff .&. immS)) >> ok
+      TOKEN_PREF_OPCODE -> ok
+      TOKEN_RFE_OPCODE -> raiseOk excRI
+      TOKEN_SB_OPCODE -> do a :: Word32 <- address; r rt >>= memWriteByte s a; ok
+      TOKEN_SC_OPCODE -> do a :: Word32 <- address; r rt >>= memWriteWord s a; ok
+      TOKEN_SDC2_OPCODE -> raiseOk excCpU
+      TOKEN_SH_OPCODE -> do a :: Word32 <- address; r rt >>= memWriteHalf s a; ok
+      TOKEN_SLL_OPCODE -> shiftBy (pure (instShamt i)) (\v n -> fromIntegral ((fromIntegral v :: Word32) `shiftL` n))
+      TOKEN_SLLV_OPCODE -> shiftBy (shiftReg) (\v n -> fromIntegral ((fromIntegral v :: Word32) `shiftL` n))
+      TOKEN_SLT_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; w rd (if a < b then 1 else 0); ok
+      TOKEN_SLTI_OPCODE -> r rs >>= \a -> w rt (if a < immS then 1 else 0) >> ok
+      TOKEN_SLTIU_OPCODE -> ru rs >>= \a -> w rt (if a < immU then 1 else 0) >> ok
+      TOKEN_SLTU_OPCODE -> do a :: Word32 <- ru rs; b :: Word32 <- ru rt; w rd (if a < b then 1 else 0); ok
+      TOKEN_SRA_OPCODE -> shiftBy (pure (instShamt i)) shiftR
+      TOKEN_SRAV_OPCODE -> shiftBy shiftReg shiftR
+      TOKEN_SRL_OPCODE -> shiftBy (pure (instShamt i)) (\v n -> fromIntegral ((fromIntegral v :: Word32) `shiftR` n))
+      TOKEN_SRLV_OPCODE -> shiftBy shiftReg (\v n -> fromIntegral ((fromIntegral v :: Word32) `shiftR` n))
+      TOKEN_SUB_OPCODE -> do
         a :: Int32 <- r rs
         b :: Int32 <- r rt
         let diff :: Int32
             diff = a - b
         if (a >= 0) /= (b >= 0) && (diff >= 0) /= (a >= 0) then raiseOk excOv else w rd diff >> ok
-      TOK_SUBU_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; w rd (a - b); ok
-      TOK_SW_OPCODE -> do a :: Word32 <- address; r rt >>= memWriteWord s a; ok
-      TOK_SWC2_OPCODE -> raiseOk excCpU
-      TOK_SWL_OPCODE -> do
+      TOKEN_SUBU_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; w rd (a - b); ok
+      TOKEN_SW_OPCODE -> do a :: Word32 <- address; r rt >>= memWriteWord s a; ok
+      TOKEN_SWC2_OPCODE -> raiseOk excCpU
+      TOKEN_SWL_OPCODE -> do
         addr :: Word32 <- address
         regVal :: Word32 <- ru rt
         let aligned :: Word32
@@ -494,7 +494,7 @@ execute s display i = case opcodeOfToken (inOpcode i) of
               _ -> regVal
         memWriteWord s aligned (fromIntegral new)
         ok
-      TOK_SWR_OPCODE -> do
+      TOKEN_SWR_OPCODE -> do
         addr :: Word32 <- address
         regVal :: Word32 <- ru rt
         let aligned :: Word32
@@ -508,82 +508,82 @@ execute s display i = case opcodeOfToken (inOpcode i) of
               _ -> ((regVal `shiftL` 24) .&. 0xff000000) .|. (dat .&. 0xffffff)
         memWriteWord s aligned (fromIntegral new)
         ok
-      TOK_SYNC_OPCODE -> ok
-      TOK_SYSCALL_OPCODE -> do
+      TOKEN_SYNC_OPCODE -> ok
+      TOKEN_SYSCALL_OPCODE -> do
         more :: Bool <- doSyscall s
         pure (if more then Continue else Return False)
-      TOK_TEQ_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; trapIf (a == b)
-      TOK_TEQI_OPCODE -> r rs >>= \a -> trapIf (a == immS)
-      TOK_TGE_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; trapIf (a >= b)
-      TOK_TGEI_OPCODE -> r rs >>= \a -> trapIf (a >= immS)
-      TOK_TGEIU_OPCODE -> ru rs >>= \a -> trapIf (a >= immU)
-      TOK_TGEU_OPCODE -> do a :: Word32 <- ru rs; b :: Word32 <- ru rt; trapIf (a >= b)
-      TOK_TLBP_OPCODE -> raiseOk excRI
-      TOK_TLBR_OPCODE -> raiseOk excRI
-      TOK_TLBWI_OPCODE -> raiseOk excRI
-      TOK_TLBWR_OPCODE -> raiseOk excRI
-      TOK_TLT_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; trapIf (a < b)
-      TOK_TLTI_OPCODE -> r rs >>= \a -> trapIf (a < immS)
-      TOK_TLTIU_OPCODE -> ru rs >>= \a -> trapIf (a < immU)
-      TOK_TLTU_OPCODE -> do a :: Word32 <- ru rs; b :: Word32 <- ru rt; trapIf (a < b)
-      TOK_TNE_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; trapIf (a /= b)
-      TOK_TNEI_OPCODE -> r rs >>= \a -> trapIf (a /= immS)
-      TOK_XOR_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; w rd (a `xor` b); ok
-      TOK_XORI_OPCODE -> r rs >>= \a -> w rt (a `xor` (0xffff .&. immS)) >> ok
+      TOKEN_TEQ_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; trapIf (a == b)
+      TOKEN_TEQI_OPCODE -> r rs >>= \a -> trapIf (a == immS)
+      TOKEN_TGE_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; trapIf (a >= b)
+      TOKEN_TGEI_OPCODE -> r rs >>= \a -> trapIf (a >= immS)
+      TOKEN_TGEIU_OPCODE -> ru rs >>= \a -> trapIf (a >= immU)
+      TOKEN_TGEU_OPCODE -> do a :: Word32 <- ru rs; b :: Word32 <- ru rt; trapIf (a >= b)
+      TOKEN_TLBP_OPCODE -> raiseOk excRI
+      TOKEN_TLBR_OPCODE -> raiseOk excRI
+      TOKEN_TLBWI_OPCODE -> raiseOk excRI
+      TOKEN_TLBWR_OPCODE -> raiseOk excRI
+      TOKEN_TLT_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; trapIf (a < b)
+      TOKEN_TLTI_OPCODE -> r rs >>= \a -> trapIf (a < immS)
+      TOKEN_TLTIU_OPCODE -> ru rs >>= \a -> trapIf (a < immU)
+      TOKEN_TLTU_OPCODE -> do a :: Word32 <- ru rs; b :: Word32 <- ru rt; trapIf (a < b)
+      TOKEN_TNE_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; trapIf (a /= b)
+      TOKEN_TNEI_OPCODE -> r rs >>= \a -> trapIf (a /= immS)
+      TOKEN_XOR_OPCODE -> do a :: Int32 <- r rs; b :: Int32 <- r rt; w rd (a `xor` b); ok
+      TOKEN_XORI_OPCODE -> r rs >>= \a -> w rt (a `xor` (0xffff .&. immS)) >> ok
       -- The floating-point unit.
-      TOK_ABS_S_OPCODE -> unaryS (\x -> double2Float (fabsD (float2Double x))) >> ok
-      TOK_ABS_D_OPCODE -> unaryD fabsD >> ok
-      TOK_ADD_S_OPCODE -> binaryS (+) >> ok
-      TOK_ADD_D_OPCODE -> binaryD (+) >> ok
-      TOK_BC1F_OPCODE -> fpBranch
-      TOK_BC1FL_OPCODE -> fpBranch
-      TOK_BC1T_OPCODE -> fpBranch
-      TOK_BC1TL_OPCODE -> fpBranch
-      TOK_CFC1_OPCODE -> getFcr s fs >>= w rt >> ok
-      TOK_CTC1_OPCODE -> do
+      TOKEN_ABS_S_OPCODE -> unaryS (\x -> double2Float (fabsD (float2Double x))) >> ok
+      TOKEN_ABS_D_OPCODE -> unaryD fabsD >> ok
+      TOKEN_ADD_S_OPCODE -> binaryS (+) >> ok
+      TOKEN_ADD_D_OPCODE -> binaryD (+) >> ok
+      TOKEN_BC1F_OPCODE -> fpBranch
+      TOKEN_BC1FL_OPCODE -> fpBranch
+      TOKEN_BC1T_OPCODE -> fpBranch
+      TOKEN_BC1TL_OPCODE -> fpBranch
+      TOKEN_CFC1_OPCODE -> getFcr s fs >>= w rt >> ok
+      TOKEN_CTC1_OPCODE -> do
         v :: Int32 <- r rt
         setFcr s fs v
         if fs == 31 && fromIntegral v .&. complement fcsrMask /= 0 then raiseOk excFPE else ok
-      TOK_CEIL_W_D_OPCODE -> double fs >>= setW fd . toInt32 . cCeil >> ok
-      TOK_CEIL_W_S_OPCODE -> single fs >>= setW fd . toInt32 . cCeil . float2Double >> ok
-      TOK_CVT_D_S_OPCODE -> single fs >>= setD fd . float2Double >> ok
-      TOK_CVT_D_W_OPCODE -> fprWord s fs >>= setD fd . fromIntegral . (fromIntegral :: Word32 -> Int32) >> ok
-      TOK_CVT_S_D_OPCODE -> double fs >>= setS fd . double2Float >> ok
-      TOK_CVT_S_W_OPCODE -> fprWord s fs >>= setS fd . double2Float . fromIntegral . (fromIntegral :: Word32 -> Int32) >> ok
-      TOK_CVT_W_D_OPCODE -> double fs >>= setW fd . toInt32 >> ok
-      TOK_CVT_W_S_OPCODE -> single fs >>= setW fd . toInt32 . float2Double >> ok
-      TOK_DIV_S_OPCODE -> binaryS (/) >> ok
-      TOK_DIV_D_OPCODE -> binaryD (/) >> ok
-      TOK_FLOOR_W_D_OPCODE -> double fs >>= setW fd . toInt32 . cFloor >> ok
-      TOK_FLOOR_W_S_OPCODE -> single fs >>= setW fd . toInt32 . cFloor . float2Double >> ok
-      TOK_LDC1_OPCODE -> do
+      TOKEN_CEIL_W_D_OPCODE -> double fs >>= setW fd . toInt32 . cCeil >> ok
+      TOKEN_CEIL_W_S_OPCODE -> single fs >>= setW fd . toInt32 . cCeil . float2Double >> ok
+      TOKEN_CVT_D_S_OPCODE -> single fs >>= setD fd . float2Double >> ok
+      TOKEN_CVT_D_W_OPCODE -> fprWord s fs >>= setD fd . fromIntegral . (fromIntegral :: Word32 -> Int32) >> ok
+      TOKEN_CVT_S_D_OPCODE -> double fs >>= setS fd . double2Float >> ok
+      TOKEN_CVT_S_W_OPCODE -> fprWord s fs >>= setS fd . double2Float . fromIntegral . (fromIntegral :: Word32 -> Int32) >> ok
+      TOKEN_CVT_W_D_OPCODE -> double fs >>= setW fd . toInt32 >> ok
+      TOKEN_CVT_W_S_OPCODE -> single fs >>= setW fd . toInt32 . float2Double >> ok
+      TOKEN_DIV_S_OPCODE -> binaryS (/) >> ok
+      TOKEN_DIV_D_OPCODE -> binaryD (/) >> ok
+      TOKEN_FLOOR_W_D_OPCODE -> double fs >>= setW fd . toInt32 . cFloor >> ok
+      TOKEN_FLOOR_W_S_OPCODE -> single fs >>= setW fd . toInt32 . cFloor . float2Double >> ok
+      TOKEN_LDC1_OPCODE -> do
         addr :: Word32 <- address
         when (addr .&. 3 /= 0) $ raise excAdEL >> setCp0 s cp0BadVAddr (fromIntegral addr)
         memReadWord s addr >>= loadInto s (DestFpr ft)
         memReadWord s (addr + 4) >>= loadInto s (DestFpr (ft + 1))
         ok
-      TOK_LWC1_OPCODE -> address >>= memReadWord s >>= loadInto s (DestFpr ft) >> ok
-      TOK_MFC1_OPCODE -> fprWord s fs >>= w rt . fromIntegral >> ok
-      TOK_MOV_S_OPCODE -> fprWord s fs >>= setFprWord s fd >> ok
-      TOK_MOV_D_OPCODE -> unaryD id >> ok
-      TOK_MOVF_OPCODE -> do c :: Int <- fcc s (rt `shiftR` 2); when (c == 0) (r rs >>= w rd); ok
-      TOK_MOVF_D_OPCODE -> do c :: Int <- fcc s (rt `shiftR` 2); when (c == 0) (unaryD id); ok
-      TOK_MOVF_S_OPCODE -> do c :: Int <- fcc s (rt `shiftR` 2); when (c == 0) (fprWord s fs >>= setFprWord s fd); ok
-      TOK_MOVN_D_OPCODE -> do c :: Int32 <- r rt; when (c /= 0) (unaryD id); ok
-      TOK_MOVN_S_OPCODE -> do c :: Int32 <- r rt; when (c /= 0) (fprWord s fs >>= setFprWord s fd); ok
-      TOK_MOVT_OPCODE -> do c :: Int <- fcc s (rt `shiftR` 2); when (c /= 0) (r rs >>= w rd); ok
-      TOK_MOVT_D_OPCODE -> do c :: Int <- fcc s (rt `shiftR` 2); when (c /= 0) (unaryD id); ok
-      TOK_MOVT_S_OPCODE -> do c :: Int <- fcc s (rt `shiftR` 2); when (c /= 0) (fprWord s fs >>= setFprWord s fd); ok
-      TOK_MOVZ_D_OPCODE -> do c :: Int32 <- r rt; when (c == 0) (unaryD id); ok
-      TOK_MOVZ_S_OPCODE -> do c :: Int32 <- r rt; when (c == 0) (fprWord s fs >>= setFprWord s fd); ok
-      TOK_MTC1_OPCODE -> r rt >>= setFprWord s fs . fromIntegral >> ok
-      TOK_MUL_S_OPCODE -> binaryS (*) >> ok
-      TOK_MUL_D_OPCODE -> binaryD (*) >> ok
-      TOK_NEG_S_OPCODE -> fprWord s fs >>= setFprWord s fd . xor 0x80000000 >> ok
-      TOK_NEG_D_OPCODE -> unaryD (\x -> castWord64ToDouble (castDoubleToWord64 x `xor` (1 `shiftL` 63))) >> ok
-      TOK_ROUND_W_D_OPCODE -> double fs >>= setW fd . toInt32 . (+ 0.5) >> ok
-      TOK_ROUND_W_S_OPCODE -> single fs >>= setW fd . toInt32 . (+ 0.5) . float2Double >> ok
-      TOK_SDC1_OPCODE -> do
+      TOKEN_LWC1_OPCODE -> address >>= memReadWord s >>= loadInto s (DestFpr ft) >> ok
+      TOKEN_MFC1_OPCODE -> fprWord s fs >>= w rt . fromIntegral >> ok
+      TOKEN_MOV_S_OPCODE -> fprWord s fs >>= setFprWord s fd >> ok
+      TOKEN_MOV_D_OPCODE -> unaryD id >> ok
+      TOKEN_MOVF_OPCODE -> do c :: Int <- fcc s (rt `shiftR` 2); when (c == 0) (r rs >>= w rd); ok
+      TOKEN_MOVF_D_OPCODE -> do c :: Int <- fcc s (rt `shiftR` 2); when (c == 0) (unaryD id); ok
+      TOKEN_MOVF_S_OPCODE -> do c :: Int <- fcc s (rt `shiftR` 2); when (c == 0) (fprWord s fs >>= setFprWord s fd); ok
+      TOKEN_MOVN_D_OPCODE -> do c :: Int32 <- r rt; when (c /= 0) (unaryD id); ok
+      TOKEN_MOVN_S_OPCODE -> do c :: Int32 <- r rt; when (c /= 0) (fprWord s fs >>= setFprWord s fd); ok
+      TOKEN_MOVT_OPCODE -> do c :: Int <- fcc s (rt `shiftR` 2); when (c /= 0) (r rs >>= w rd); ok
+      TOKEN_MOVT_D_OPCODE -> do c :: Int <- fcc s (rt `shiftR` 2); when (c /= 0) (unaryD id); ok
+      TOKEN_MOVT_S_OPCODE -> do c :: Int <- fcc s (rt `shiftR` 2); when (c /= 0) (fprWord s fs >>= setFprWord s fd); ok
+      TOKEN_MOVZ_D_OPCODE -> do c :: Int32 <- r rt; when (c == 0) (unaryD id); ok
+      TOKEN_MOVZ_S_OPCODE -> do c :: Int32 <- r rt; when (c == 0) (fprWord s fs >>= setFprWord s fd); ok
+      TOKEN_MTC1_OPCODE -> r rt >>= setFprWord s fs . fromIntegral >> ok
+      TOKEN_MUL_S_OPCODE -> binaryS (*) >> ok
+      TOKEN_MUL_D_OPCODE -> binaryD (*) >> ok
+      TOKEN_NEG_S_OPCODE -> fprWord s fs >>= setFprWord s fd . xor 0x80000000 >> ok
+      TOKEN_NEG_D_OPCODE -> unaryD (\x -> castWord64ToDouble (castDoubleToWord64 x `xor` (1 `shiftL` 63))) >> ok
+      TOKEN_ROUND_W_D_OPCODE -> double fs >>= setW fd . toInt32 . (+ 0.5) >> ok
+      TOKEN_ROUND_W_S_OPCODE -> single fs >>= setW fd . toInt32 . (+ 0.5) . float2Double >> ok
+      TOKEN_SDC1_OPCODE -> do
         v :: Double <- double rt
         addr :: Word32 <- address
         when (addr .&. 3 /= 0) $ raise excAdEL >> setCp0 s cp0BadVAddr (fromIntegral addr)
@@ -592,17 +592,17 @@ execute s display i = case opcodeOfToken (inOpcode i) of
         memWriteWord s addr (fromIntegral bits)
         memWriteWord s (addr + 4) (fromIntegral (bits `shiftR` 32))
         ok
-      TOK_SQRT_D_OPCODE -> unaryD sqrt >> ok
-      TOK_SQRT_S_OPCODE -> unaryS (\x -> double2Float (sqrt (float2Double x))) >> ok
-      TOK_SUB_S_OPCODE -> binaryS (-) >> ok
-      TOK_SUB_D_OPCODE -> binaryD (-) >> ok
-      TOK_SWC1_OPCODE -> do
+      TOKEN_SQRT_D_OPCODE -> unaryD sqrt >> ok
+      TOKEN_SQRT_S_OPCODE -> unaryS (\x -> double2Float (sqrt (float2Double x))) >> ok
+      TOKEN_SUB_S_OPCODE -> binaryS (-) >> ok
+      TOKEN_SUB_D_OPCODE -> binaryD (-) >> ok
+      TOKEN_SWC1_OPCODE -> do
         bits :: Word32 <- castFloatToWord32 <$> single rt
         a :: Word32 <- address
         memWriteWord s a (fromIntegral bits)
         ok
-      TOK_TRUNC_W_D_OPCODE -> double fs >>= setW fd . toInt32 >> ok
-      TOK_TRUNC_W_S_OPCODE -> single fs >>= setW fd . toInt32 . float2Double >> ok
+      TOKEN_TRUNC_W_D_OPCODE -> double fs >>= setW fd . toInt32 >> ok
+      TOKEN_TRUNC_W_S_OPCODE -> single fs >>= setW fd . toInt32 . float2Double >> ok
       -- The c.cond.fmt compares, here at the end so that no other opcode
       -- pays for the set lookups.
       _
@@ -669,39 +669,39 @@ fcsrMask = 0xfe800000
 singleCompares, doubleCompares :: Set.Set Opcode
 singleCompares =
   Set.fromList
-    [ TOK_C_F_S_OPCODE,
-      TOK_C_UN_S_OPCODE,
-      TOK_C_EQ_S_OPCODE,
-      TOK_C_UEQ_S_OPCODE,
-      TOK_C_OLT_S_OPCODE,
-      TOK_C_OLE_S_OPCODE,
-      TOK_C_ULT_S_OPCODE,
-      TOK_C_ULE_S_OPCODE,
-      TOK_C_SF_S_OPCODE,
-      TOK_C_NGLE_S_OPCODE,
-      TOK_C_SEQ_S_OPCODE,
-      TOK_C_NGL_S_OPCODE,
-      TOK_C_LT_S_OPCODE,
-      TOK_C_NGE_S_OPCODE,
-      TOK_C_LE_S_OPCODE,
-      TOK_C_NGT_S_OPCODE
+    [ TOKEN_C_F_S_OPCODE,
+      TOKEN_C_UN_S_OPCODE,
+      TOKEN_C_EQ_S_OPCODE,
+      TOKEN_C_UEQ_S_OPCODE,
+      TOKEN_C_OLT_S_OPCODE,
+      TOKEN_C_OLE_S_OPCODE,
+      TOKEN_C_ULT_S_OPCODE,
+      TOKEN_C_ULE_S_OPCODE,
+      TOKEN_C_SF_S_OPCODE,
+      TOKEN_C_NGLE_S_OPCODE,
+      TOKEN_C_SEQ_S_OPCODE,
+      TOKEN_C_NGL_S_OPCODE,
+      TOKEN_C_LT_S_OPCODE,
+      TOKEN_C_NGE_S_OPCODE,
+      TOKEN_C_LE_S_OPCODE,
+      TOKEN_C_NGT_S_OPCODE
     ]
 doubleCompares =
   Set.fromList
-    [ TOK_C_F_D_OPCODE,
-      TOK_C_UN_D_OPCODE,
-      TOK_C_EQ_D_OPCODE,
-      TOK_C_UEQ_D_OPCODE,
-      TOK_C_OLT_D_OPCODE,
-      TOK_C_OLE_D_OPCODE,
-      TOK_C_ULT_D_OPCODE,
-      TOK_C_ULE_D_OPCODE,
-      TOK_C_SF_D_OPCODE,
-      TOK_C_NGLE_D_OPCODE,
-      TOK_C_SEQ_D_OPCODE,
-      TOK_C_NGL_D_OPCODE,
-      TOK_C_LT_D_OPCODE,
-      TOK_C_NGE_D_OPCODE,
-      TOK_C_LE_D_OPCODE,
-      TOK_C_NGT_D_OPCODE
+    [ TOKEN_C_F_D_OPCODE,
+      TOKEN_C_UN_D_OPCODE,
+      TOKEN_C_EQ_D_OPCODE,
+      TOKEN_C_UEQ_D_OPCODE,
+      TOKEN_C_OLT_D_OPCODE,
+      TOKEN_C_OLE_D_OPCODE,
+      TOKEN_C_ULT_D_OPCODE,
+      TOKEN_C_ULE_D_OPCODE,
+      TOKEN_C_SF_D_OPCODE,
+      TOKEN_C_NGLE_D_OPCODE,
+      TOKEN_C_SEQ_D_OPCODE,
+      TOKEN_C_NGL_D_OPCODE,
+      TOKEN_C_LT_D_OPCODE,
+      TOKEN_C_NGE_D_OPCODE,
+      TOKEN_C_LE_D_OPCODE,
+      TOKEN_C_NGT_D_OPCODE
     ]
