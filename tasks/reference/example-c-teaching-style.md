@@ -36,6 +36,12 @@ Most idioms the standard calls good actively obscure the C→asm mapping a demo 
 - **Match the asm port and the native build.** The `.c` and its `.asm` sibling are meant to read as
   one lesson, and the C is also compiled freestanding (`-nostdlib`, `-O0`, own `_start`); keep the C
   simple enough that `-O0` output stays a faithful line-by-line image of the source.
+- **Keep it inside the subset the course's own compiler parses.** The example C is the input of
+  `tasks/mini-c-compiler.md`, a small C compiler the students write that targets spim, which only
+  has to accept the constructs the examples use. Every construct a demo adds is one more the
+  compiler must parse, so a new demo uses only what the others already use (today: no `struct`,
+  `typedef`, `enum` or `goto`; declarations first). (William Emerison Six <billsix@gmail.com>,
+  2026-11-14.)
 
 This is the `c-modernization-sweep.md` principle ("opt out in place where the obvious fix destroys
 something valuable") applied at the whole-subtree level: the valuable thing is the C→asm pedagogy.

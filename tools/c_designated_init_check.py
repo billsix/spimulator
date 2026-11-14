@@ -28,8 +28,8 @@ where the initializer's ``{`` is or on the line just above it::
 **What it can't see.** Code that the build's ``#if``/``#ifdef`` leaves out, and translation units
 missing from the compile database. Headers are covered when a parsed ``.c`` file includes them.
 
-Usage, from the project root (the build must be configured with clang, ``CC=clang meson setup``,
-so the compile flags parse)::
+Usage, from the project root (any compiler may configure the build: only its include, define and
+standard flags reach clang, which must be installed)::
 
     python3 tools/c_designated_init_check.py BUILDDIR [SOURCE ...]
 
@@ -51,6 +51,49 @@ Json: typing.TypeAlias = typing.Any
 ACCEPT_MARKER: str = "designated-init-check: ok"
 
 
+# Flags that change what clang parses, written joined (``-Ifoo``) or, for SPLIT_FLAGS, with the
+# value as a separate argument. Every other flag (warnings, optimization, output) is dropped, so a
+# gcc-only warning flag in a gcc-configured build cannot stop clang.
+JOINED_FLAGS: tuple[str, ...] = (
+    "-I",
+    "-D",
+    "-U",
+    "-std=",
+    "-isystem",
+    "-iquote",
+    "-include",
+)
+SPLIT_FLAGS: frozenset[str] = frozenset(
+    {"-I", "-D", "-U", "-isystem", "-iquote", "-include"}
+)
+
+
+def parse_flags(arguments: list[str]) -> list[str]:
+    """Keep the flags of a compile command that change what clang parses.
+
+    Args:
+        arguments: the command's arguments, without the compiler itself.
+
+    Returns:
+        list[str]: the include, define and standard flags, in order.
+    """
+    kept: list[str] = []
+    take_next: bool = False
+    argument: str
+    for argument in arguments:
+        if take_next:
+            kept.append(argument)
+            take_next = False
+        elif argument in SPLIT_FLAGS:
+            kept.append(argument)
+            take_next = True
+        elif argument.startswith(JOINED_FLAGS):
+            kept.append(argument)
+        else:
+            pass  # warnings, optimization, -c, -o and its value
+    return kept
+
+
 def ast_of(entry: dict[str, Json]) -> Json:
     """The JSON AST of one compile-database entry.
 
@@ -63,23 +106,15 @@ def ast_of(entry: dict[str, Json]) -> Json:
     arguments: list[str] = (
         entry["arguments"] if "arguments" in entry else shlex.split(entry["command"])
     )
-    # Drop the output and the compile step; keep every flag that shapes parsing.
-    kept: list[str] = []
-    skip_next: bool = False
-    argument: str
-    for argument in arguments[1:]:
-        if skip_next:
-            skip_next = False
-            continue
-        match argument:
-            case "-o" | "-MF" | "-MQ" | "-MT":
-                skip_next = True
-            case "-c" | "-MD" | "-MMD":
-                pass
-            case _:
-                kept.append(argument)
     completed: subprocess.CompletedProcess[str] = subprocess.run(
-        ["clang", *kept, "-fsyntax-only", "-Xclang", "-ast-dump=json"],
+        [
+            "clang",
+            *parse_flags(arguments[1:]),
+            "-fsyntax-only",
+            "-Xclang",
+            "-ast-dump=json",
+            entry["file"],
+        ],
         cwd=entry["directory"],
         capture_output=True,
         text=True,
