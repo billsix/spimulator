@@ -811,17 +811,17 @@ def opcode_tables_c(table: Table) -> str:
         '#include "opcode-tables.h"\n#include "opcode-types.h"\n#include "tokens.h"\n\n'
         "const name_val_val opcode_tbl[OPCODE_COUNT] = {\n"
         + "".join(
-            f"    {{{quoted(row.name)}, {row.symbol}, {row.type_name}}},\n"
+            f"    {{.name = {quoted(row.name)}, .value1 = {row.symbol}, .value2 = {row.type_name}}},\n"
             for row in table.opcodes
         )
         + "};\n\nconst name_val_val opcode_encoding_tbl[OPCODE_COUNT] = {\n"
         + "".join(
-            f"    {{{quoted(row.name)}, {row.symbol}, {c_encoding(row)}}},\n"
+            f"    {{.name = {quoted(row.name)}, .value1 = {row.symbol}, .value2 = {c_encoding(row)}}},\n"
             for row in table.opcodes
         )
         + "};\n\nconst name_val_val opcode_decode_tbl[OPCODE_DECODE_COUNT] = {\n"
         + "".join(
-            f"    {{{quoted(row.name)}, {c_encoding(row)}, {row.symbol}}},\n"
+            f"    {{.name = {quoted(row.name)}, .value1 = {c_encoding(row)}, .value2 = {row.symbol}}},\n"
             for row in table.decode_rows()
         )
         + "};\n"
