@@ -1,0 +1,84 @@
+# The Rust port's hand-decided names: old <TAB> new (new == old keeps the name).
+#
+# Words with more than one meaning, decided as in the C core.
+AsmState	AssemblerState
+CP0_BADVADDR	COPROCESSOR_0_BAD_VIRTUAL_ADDRESS
+FIR_W_D_S	FLOATING_POINT_IMPLEMENTATION_HAS_WORD_DOUBLE_SINGLE
+INT_ENABLE	INTERRUPT_ENABLE
+REG_RA	RETURN_ADDRESS_REGISTER
+Gpr	GeneralPurposeRegister
+Fpr	FloatingPointRegister
+LoadDest	LoadDestination
+add_op	add_opcode
+double_op	double_operation
+buf_at	buffer_at
+cp0	coprocessor_0
+move_to_cp0	move_to_coprocessor_0
+set_cp0	set_coprocessor_0
+poll_cp0_timer	poll_coprocessor_0_timer
+gp_offset	global_pointer_offset
+gp_relative_offset	global_pointer_relative_offset
+join_hi_lo	join_multiply_divide
+split_hi_lo	split_multiply_divide
+k_data	kernel_data
+k_text	kernel_text
+k_text_slots	kernel_text_slots
+k_top	kernel_top
+make_co_r	make_coprocessor_r
+value_int	value_integer
+print_loc	print_location
+read_le32	read_little_endian_32
+#
+# The exception-code variants share spellings with other enums' variants (Int is also a
+# ScanValue), so the token pass keeps them and fix_rust_after_apply.py renames ExceptionCode::<v>.
+Int	Int
+Mod	Mod
+Tlbl	Tlbl
+Tlbs	Tlbs
+AdEL	AdEL
+AdES	AdES
+Ibe	Ibe
+Dbe	Dbe
+Sys	Sys
+Bp	Bp
+Ri	Ri
+CpU	CpU
+Ov	Ov
+Tr	Tr
+Fpe	Fpe
+#
+# Kept: English words, the R/I/J formats, the grammar shapes, file descriptors (libc's pollfd),
+# the syscall names (print_int, read_int), numeric helpers.
+PollFd	PollFd
+allow_pseudo_ops	allow_pseudo_ops
+at_eof	at_eof
+close_fd	close_fd
+read_fd	read_fd
+write_fd	write_fd
+data_begins_at_point	data_begins_at_point
+text_begins_at_point	text_begins_at_point
+data_in_kernel	data_in_kernel
+text_in_kernel	text_in_kernel
+running_in_delay_slot	running_in_delay_slot
+in_table_order	in_table_order
+emit_i	emit_i
+emit_r	emit_r
+emit_r_shift	emit_r_shift
+make_i	make_i
+make_r	make_r
+i_type	i_type
+i_type_full_word	i_type_full_word
+r_type	r_type
+parse_b2	parse_b2
+parse_i2	parse_i2
+parse_i2a	parse_i2a
+parse_r3	parse_r3
+parse_error_at	parse_error_at
+print_at	print_at
+string_at	string_at
+scan_token_at_char	scan_token_at_char
+print_int	print_int
+read_int	read_int
+exponent_i32	exponent_i32
+precision_i32	precision_i32
+round_64k	round_64k

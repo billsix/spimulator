@@ -302,6 +302,181 @@ def haskell_declared(paths: list[pathlib.Path]) -> set[str]:
     return tokens - external - HASKELL_KEYWORDS - modules
 
 
+RUST_KEYWORDS: frozenset[str] = frozenset(
+    [
+        "as",
+        "async",
+        "await",
+        "break",
+        "const",
+        "continue",
+        "crate",
+        "dyn",
+        "else",
+        "enum",
+        "extern",
+        "false",
+        "fn",
+        "for",
+        "if",
+        "impl",
+        "in",
+        "let",
+        "loop",
+        "match",
+        "mod",
+        "move",
+        "mut",
+        "pub",
+        "ref",
+        "return",
+        "self",
+        "Self",
+        "static",
+        "struct",
+        "super",
+        "trait",
+        "true",
+        "type",
+        "unsafe",
+        "use",
+        "where",
+        "while",
+    ]
+)
+RUST_STD: frozenset[str] = frozenset(
+    [
+        "bool",
+        "char",
+        "str",
+        "u8",
+        "u16",
+        "u32",
+        "u64",
+        "u128",
+        "usize",
+        "i8",
+        "i16",
+        "i32",
+        "i64",
+        "i128",
+        "isize",
+        "f32",
+        "f64",
+        "Option",
+        "Some",
+        "None",
+        "Result",
+        "Ok",
+        "Err",
+        "Vec",
+        "String",
+        "Box",
+        "ToString",
+        "Default",
+        "Clone",
+        "Copy",
+        "Debug",
+        "Display",
+        "Iterator",
+        "IntoIterator",
+        "From",
+        "Into",
+        "AsRef",
+        "PartialEq",
+        "Eq",
+        "PartialOrd",
+        "Ord",
+        "Hash",
+        "Send",
+        "Sync",
+        "Sized",
+        "Drop",
+        "Fn",
+        "FnMut",
+        "FnOnce",
+        # macro_rules! fragment specifiers
+        "expr",
+        "ident",
+        "ty",
+        "tt",
+        "pat",
+        "literal",
+        "block",
+        "stmt",
+        "item",
+        "meta",
+        "vis",
+        "std",
+        "core",
+        "alloc",
+        "mem",
+        "fmt",
+        "io",
+        "env",
+        "process",
+        "fs",
+        "ptr",
+        "cmp",
+        "ops",
+        "iter",
+        "time",
+        "path",
+    ]
+)
+
+
+def rust_external(paths: list[pathlib.Path]) -> set[str]:
+    """The Rust names the port does not own: the language's, std's, and every module name.
+
+    Every name a ``use`` imports is external unless the path starts with ``crate`` or
+    ``super``, and so is every name after ``std::`` or ``core::``. A module name of the port is
+    a file name, so it stays too.
+
+    Args:
+        paths: the sources.
+
+    Returns:
+        set[str]: the names never to rename.
+    """
+    external: set[str] = set(RUST_KEYWORDS | RUST_STD)
+    path: pathlib.Path
+    for path in paths:
+        text: str = path.read_text()
+        external.add(path.stem)
+        statement: str
+        for statement in re.findall(r"\buse\s+([^;]+);", text):
+            if not statement.lstrip().startswith(("crate", "super", "self")):
+                external.update(re.findall(r"[A-Za-z_]\w*", statement))
+        external.update(re.findall(r"\b(?:std|core)::(?:\w+::)*(\w+)", text))
+        external.update(re.findall(r"\bmod\s+([a-z_]\w*)", text))
+    return external
+
+
+def rust_members(paths: list[pathlib.Path]) -> set[str]:
+    """The functions and struct fields the Rust port declares, which may follow a ``.``.
+
+    Args:
+        paths: the sources.
+
+    Returns:
+        set[str]: the names.
+    """
+    members: set[str] = set()
+    path: pathlib.Path
+    for path in paths:
+        text: str = path.read_text()
+        members.update(re.findall(r"\bfn\s+([a-z_]\w*)", text))
+        members.update(
+            re.findall(
+                r"^\s*(?:pub(?:\([a-z]+\))?\s+)?([a-z_]\w*)\s*:\s*[^:]",
+                text,
+                re.MULTILINE,
+            )
+        )
+    return members
+
+
 def regex_declared(port: str, paths: list[pathlib.Path]) -> set[str]:
     """Names a Haskell or Rust source declares, found by declaration patterns.
 
@@ -362,7 +537,7 @@ def discover(port: str) -> int:
         case "haskell":
             declared = haskell_declared(paths)
         case _:
-            declared = regex_declared(port, paths)
+            declared = regex_declared(port, paths) - rust_external(paths)
     mirrors: dict[tuple[str, ...], list[str]] = c_mirrors()
     spelled: dict[str, list[str]] = glossary()
     manual_path: pathlib.Path = HERE / "data" / f"{port}.manual.tsv"
@@ -489,6 +664,19 @@ def spans(port: str, text: str) -> list[tuple[int, int, bool]]:
                 found.append(
                     (match.start() + word.start(), match.start() + word.end(), True)
                 )
+        elif port == "rust" and match.group("string") is not None:
+            # A format string's inline argument ("{fd}", "{value:08x}") names a variable.
+            argument: re.Match[str]
+            for argument in re.finditer(
+                r"(?<!\{)\{([A-Za-z_]\w*)(?=[}:])", match.group("string")
+            ):
+                found.append(
+                    (
+                        match.start() + argument.start(1),
+                        match.start() + argument.end(1),
+                        False,
+                    )
+                )
         else:
             pass  # a string, character or lifetime: never renamed
     return found
@@ -573,6 +761,7 @@ def apply(port: str) -> int:
         sys.stderr.write(f"{len(ambiguous)} ambiguous names need a manual row\n")
         return 1
     changed: int = 0
+    members: set[str] = rust_members(port_files(port)) if port == "rust" else set()
     path: pathlib.Path
     for path in port_files(port):
         text: str = path.read_text()
@@ -583,7 +772,15 @@ def apply(port: str) -> int:
         in_comment: bool
         for start, end, in_comment in spans(port, text):
             name: str = text[start:end]
-            if name in table and (not in_comment or comment_safe(name)):
+            line_start: int = text.rfind("\n", 0, start) + 1
+            after_dot: bool = port == "rust" and (
+                re.search(r"(?<!\.)\.[ \t]*$", text[line_start:start]) is not None
+            )
+            if (
+                name in table
+                and (not in_comment or comment_safe(name))
+                and (not after_dot or name in members or in_comment)
+            ):
                 pieces.append(text[cursor:start])
                 pieces.append(table[name])
                 cursor = end

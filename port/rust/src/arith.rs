@@ -73,12 +73,12 @@ pub fn unsigned_product(a: i32, b: i32) -> (i32, i32) {
 }
 
 /// HI:LO as one 64-bit value (`madd` and `msub` add to it).
-pub fn join_hi_lo(hi: i32, lo: i32) -> u64 {
+pub fn join_multiply_divide(hi: i32, lo: i32) -> u64 {
     (u64::from(hi as u32) << 32) | u64::from(lo as u32)
 }
 
 /// Split a 64-bit value into `(hi, lo)` words.
-pub fn split_hi_lo(value: u64) -> (i32, i32) {
+pub fn split_multiply_divide(value: u64) -> (i32, i32) {
     ((value >> 32) as i32, value as i32)
 }
 

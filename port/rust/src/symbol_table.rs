@@ -13,7 +13,7 @@
 
 use crate::instruction::{InstRef, Instruction};
 use crate::machine::Machine;
-use crate::memory::DATA_BOT;
+use crate::memory::DATA_BOTTOM;
 
 /// An index into [`SymbolTable::labels`].  Labels are never freed while a
 /// program is loaded (instructions keep referring to them), so an index
@@ -37,7 +37,7 @@ pub enum UseSite {
     /// An instruction whose immediate or target field needs the label.
     /// It is shared with the text segment, so patching it here patches
     /// the instruction in memory.
-    Inst(InstRef),
+    Instruction(InstRef),
 }
 
 /// One forward reference (`label_use`).
@@ -46,7 +46,7 @@ pub struct LabelUse {
     /// What to patch.
     pub site: UseSite,
     /// The address of the instruction or datum.
-    pub addr: u32,
+    pub address: u32,
 }
 
 /// A label (`struct label`).
@@ -56,7 +56,7 @@ pub struct Label {
     pub name: String,
     /// Its address, or 0 while it is undefined.  For a constant
     /// (`X = 5`), its value.
-    pub addr: i64,
+    pub address: i64,
     /// Declared with `.globl`: visible to the files loaded after this one.
     pub global: bool,
     /// Placed in the small data area addressed off `$gp` (`.extern`).
@@ -70,7 +70,7 @@ pub struct Label {
 impl Label {
     /// True once the label has an address (`SYMBOL_IS_DEFINED`).
     pub fn is_defined(&self) -> bool {
-        self.addr != 0
+        self.address != 0
     }
 }
 
@@ -170,15 +170,15 @@ impl Machine {
     pub fn record_label(&mut self, name: &str, address: u32, resolve_uses: bool) -> LabelId {
         let id: LabelId = self.symbols.lookup(name);
         if !self.symbols.label(id).gp {
-            if self.symbols.label(id).addr != 0 {
+            if self.symbols.label(id).address != 0 {
                 self.parse_error("Label is defined for the second time");
                 return id;
             }
-            self.symbols.label_mut(id).addr = i64::from(address);
+            self.symbols.label_mut(id).address = i64::from(address);
         }
         let global: bool = self.symbols.label(id).global;
         let label_name: String = self.symbols.label(id).name.clone();
-        self.listing_label_def(address, &label_name, global);
+        self.listing_label_definition(address, &label_name, global);
         if resolve_uses {
             self.resolve_label_uses(id);
         }
@@ -203,19 +203,19 @@ impl Machine {
         let lab_use: LabelUse = if self.asm.data_dir {
             let copy: Instruction = instruction.borrow().clone();
             LabelUse {
-                site: UseSite::Inst(copy.into_ref()),
-                addr: self.current_data_pc(),
+                site: UseSite::Instruction(copy.into_ref()),
+                address: self.current_data_location(),
             }
         } else {
             LabelUse {
-                site: UseSite::Inst(instruction.clone()),
-                addr: self.current_text_pc(),
+                site: UseSite::Instruction(instruction.clone()),
+                address: self.current_text_location(),
             }
         };
-        let addr: u32 = lab_use.addr;
+        let address: u32 = lab_use.address;
         self.symbols.label_mut(id).uses.push(lab_use);
         let name: String = self.symbols.label(id).name.clone();
-        self.listing_forward_ref(addr, &name);
+        self.listing_forward_ref(address, &name);
     }
 
     /// Record that the `width`-byte datum at `location` holds the undefined
@@ -223,7 +223,7 @@ impl Machine {
     pub fn record_data_uses_symbol(&mut self, location: u32, id: LabelId, offset: i32, width: i32) {
         self.symbols.label_mut(id).uses.push(LabelUse {
             site: UseSite::Data { offset, width },
-            addr: location,
+            address: location,
         });
         let name: String = self.symbols.label(id).name.clone();
         self.listing_forward_ref(location, &name);
@@ -233,24 +233,24 @@ impl Machine {
     /// (`resolve_label_uses`), most recent first.
     pub fn resolve_label_uses(&mut self, id: LabelId) {
         let uses: Vec<LabelUse> = std::mem::take(&mut self.symbols.label_mut(id).uses);
-        let label_addr: i64 = self.symbols.label(id).addr;
+        let label_address: i64 = self.symbols.label(id).address;
         for lab_use in uses.into_iter().rev() {
             match &lab_use.site {
                 UseSite::Data { offset, width } => {
-                    let value: i32 = (label_addr as i32).wrapping_add(*offset);
-                    self.write_data_value(lab_use.addr, value, *width);
+                    let value: i32 = (label_address as i32).wrapping_add(*offset);
+                    self.write_data_value(lab_use.address, value, *width);
                 }
-                UseSite::Inst(instruction) => {
-                    self.resolve_a_label_sub(instruction, lab_use.addr);
-                    if lab_use.addr >= DATA_BOT && lab_use.addr < self.mem.stack_bot {
+                UseSite::Instruction(instruction) => {
+                    self.resolve_a_label_subtract(instruction, lab_use.address);
+                    if lab_use.address >= DATA_BOTTOM && lab_use.address < self.mem.stack_bottom {
                         let encoding: i32 = instruction.borrow().encode();
-                        self.mem_write_word(lab_use.addr, encoding);
+                        self.memory_write_word(lab_use.address, encoding);
                     }
                 }
             }
             let name: String = self.symbols.label(id).name.clone();
-            let value: i32 = self.symbols.label(id).addr as i32;
-            self.listing_forward_resolved(lab_use.addr, &name, value);
+            let value: i32 = self.symbols.label(id).address as i32;
+            self.listing_forward_resolved(lab_use.address, &name, value);
         }
     }
 
@@ -259,7 +259,7 @@ impl Machine {
     fn write_data_value(&mut self, at: u32, value: i32, width: i32) {
         for i in 0..width {
             let byte: i32 = ((value as u32 >> (8 * i)) & 0xff) as i32;
-            self.mem_write_byte(at.wrapping_add(i as u32), byte);
+            self.memory_write_byte(at.wrapping_add(i as u32), byte);
         }
     }
 
@@ -277,7 +277,7 @@ impl Machine {
             if let Some(position) = chain.iter().position(|x: &LabelId| *x == entry) {
                 chain.remove(position);
                 let label: &Label = self.symbols.label(entry);
-                if warn_undefined && label.addr == 0 && !label.constant {
+                if warn_undefined && label.address == 0 && !label.constant {
                     crate::machine::error(&format!(
                         "Warning: local symbol {} was not defined\n",
                         label.name
@@ -292,7 +292,7 @@ impl Machine {
     /// if it did not exist.
     pub fn find_symbol_address(&mut self, symbol: &str) -> u32 {
         let id: LabelId = self.symbols.lookup(symbol);
-        self.symbols.label(id).addr as u32
+        self.symbols.label(id).address as u32
     }
 
     /// Print every label (`print_symbols`), in table order.
@@ -303,7 +303,7 @@ impl Machine {
             let prefix: &str = if label.global { "g\t" } else { "\t" };
             text.push_str(&format!(
                 "{prefix}{} at 0x{:08x}\n",
-                label.name, label.addr as u32
+                label.name, label.address as u32
             ));
         }
         crate::machine::error(&text);
@@ -315,7 +315,7 @@ impl Machine {
         let mut text: String = String::new();
         for id in self.symbols.in_table_order() {
             let label: &Label = self.symbols.label(id);
-            if label.addr == 0 {
+            if label.address == 0 {
                 text.push_str(&label.name);
                 text.push('\n');
             }

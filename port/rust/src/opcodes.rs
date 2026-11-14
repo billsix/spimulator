@@ -30,21 +30,21 @@ pub struct OpcodeRow {
 // (`'+' as i32`).
 
 /// End of input.
-pub const TOK_EOF: i32 = 256;
+pub const TOKEN_EOF: i32 = 256;
 /// End of a statement: a newline or a `;`.
-pub const TOK_NL: i32 = 257;
+pub const TOKEN_NEWLINE: i32 = 257;
 /// An integer (or a character literal, or a defined constant).
-pub const TOK_INT: i32 = 258;
+pub const TOKEN_INTEGER: i32 = 258;
 /// An identifier (a label name, or a REPL command word).
-pub const TOK_ID: i32 = 259;
+pub const TOKEN_IDENTIFIER: i32 = 259;
 /// A general register, `$t0` or `$8`.
-pub const TOK_REG: i32 = 260;
+pub const TOKEN_REGISTER: i32 = 260;
 /// A floating-point register, `$f2`.
-pub const TOK_FP_REG: i32 = 261;
+pub const TOKEN_FLOATING_POINT_REGISTER: i32 = 261;
 /// A string literal.
-pub const TOK_STR: i32 = 262;
+pub const TOKEN_STRING: i32 = 262;
 /// A floating-point literal, `3.25`.
-pub const TOK_FP: i32 = 263;
+pub const TOKEN_FLOATING_POINT: i32 = 263;
 /// The token of the first row of the opcode table.
 pub const FIRST_KEYWORD_TOKEN: i32 = 264;
 
@@ -114,11 +114,11 @@ pub fn token_type(token: i32) -> Option<OpType> {
     token_row(token).map(|row: &OpcodeRow| row.op_type)
 }
 
-/// The instruction token whose fixed bits are `a_opcode`, as the C
+/// The instruction token whose fixed bits are `table_opcode`, as the C
 /// engine's decoder resolves it (see `DECODE_TABLE`).
-pub fn decode_token(a_opcode: i32) -> Option<i32> {
+pub fn decode_token(table_opcode: i32) -> Option<i32> {
     DECODE_TABLE
-        .binary_search_by(|entry: &(i32, i32)| entry.0.cmp(&a_opcode))
+        .binary_search_by(|entry: &(i32, i32)| entry.0.cmp(&table_opcode))
         .ok()
         .map(|i: usize| DECODE_TABLE[i].1)
 }
