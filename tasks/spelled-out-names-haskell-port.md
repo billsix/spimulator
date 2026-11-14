@@ -1,63 +1,80 @@
 # Spell out the abbreviated names in the Haskell port (`port/haskell/`)
 
-**Status:** proposed — needs go-ahead
-**Priority:** 6
-**Difficulty:** 5
 **Created:** 2026-11-14 (William Emerison Six <billsix@gmail.com>)
-**Depends on:** `tasks/archive/2026/11/14/spelled-out-names-c-core.md` (done; its glossary is this task's input)
+**Done:** 2026-11-14, on branch `spelled-out-names-c-core` (commit `b24dcd3`)
+**Depended on:** `tasks/archive/2026/11/14/spelled-out-names-c-core.md`
 
-## BLUF
+## Summary
 
-Apply the C core's spelled-out names to the Haskell engine port, so that a student reading the
-port next to the C sees the same names in the same places. Done means every name the glossary
-renames is renamed in the port, using Haskell's casing, plus any abbreviation that exists only
-in the port. The port's parity and lint gates must pass.
+The Haskell port's own names were spelled out to match the C core's, in Haskell's camelCase and
+CamelCase: 441 names and 4,680 tokens. `gpr` became `generalPurposeRegisters`, `ImmExpr` became
+`ImmediateExpression`, and `ssRest` became `scanStateRest`.
+
+- The build is clean under `-Wall -Werror`.
+- ormolu was applied.
+- hlint's advisory count is unchanged at 47.
+- All 88 port-haskell meson tests pass, including the parity runs against the C engine and
+  `haskell-annotations`.
 
 ## Request (William Emerison Six <billsix@gmail.com>, 2026-11-14)
 
 "Once that's done for the C task, I want a follow up task for the python port, haskell port, and
-rust port to do the same."
+rust port to do the same." The go-ahead to run the ports with no stop for review: "you should
+be able to start on the ports without asking me anything".
 
-## Context
+## How
 
-- The C task is done: `tasks/archive/2026/11/14/spelled-out-names-c-core.md`. Its glossary,
-  `tasks/reference/spelled-out-names-glossary.md`, holds each abbreviated word, its spelling, the
-  conventions, and the exemptions with their reasons. Reuse it. Don't re-derive it. The per-name
-  table is `tasks/adhoc/spelled-out-names-c-core/data/renames.tsv` (old, new, kinds, source,
-  location), which maps each C name to its new spelling.
-- **Already done by the C task:** the names `tools/gen_opcodes.py` generates for the port (the
-  token and operand-shape names of its opcode tables) were renamed with the C, and the port's
-  references to them followed. This task renames the port's own names.
-- The last of the three port tasks to be archived `git rm`s
-  `tasks/adhoc/spelled-out-names-c-core/` in its archive commit, since the ports were the reason
-  to keep it.
-- The ports mirror the C engine's names on purpose (`tasks/reference/engine-ports-design.md`), so a
-  C rename maps to a port rename, with the casing changed to `camelCase` for values and functions
-  and `CapWords` for types and constructors.
-- Scope: `port/haskell/` (about 9,200 lines of Haskell). Coding standard: the shared
-  `haskell-coding-standard.md` (github.com/billsix/runClaudeInContainer `tasks/reference/`).
-- The same exemptions apply: externally defined names (`base` and library names, record fields a
-  library dictates), text the program prints or reads (the goldens must stay byte-identical), and
-  the tight-scope and familiar-acronym names the C task's review kept.
+- The shared tool is `tasks/adhoc/spelled-out-names-python-port/port_names.py` (see
+  `tasks/archive/2026/11/14/spelled-out-names-python-port.md`).
+- **The port's own names** are every identifier of `src/` and `tests/` except:
+  - the names the imported libraries export (`haskell_external.sh` runs ghci's `:browse` on
+    each imported module, into `data/haskell.external.txt`);
+  - the keywords;
+  - the module names, which are file names;
+  - the generated `Opcodes.hs` and `OpcodeTypes.hs`.
+- Names of one or two letters stay (pattern and tight-scope variables), except the register
+  fields (`rs`, `rt`, `rd`, `fs`, `ft`, `fd`, `fr`, `cc`, `pc`).
+- A lowercase one-word name is recased to camelCase (`epc` became `exceptionProgramCounter`),
+  primes are kept (`cur'` became `current'`), and familiar acronyms stay upper case
+  (`instructionEncodeIO`).
+- `port/haskell/tools/` (the annotation checker, written against the GHC API) was left as it is.
 
-## Plan
+## Port-only decisions (`data/haskell.manual.tsv`)
 
-1. **Discover the port's names mechanically:** GHC's `.hie` files (`-fwrite-ide-info`), the same
-   source the `haskell-annotations` check reads, listing every binder. Save the command as
-   `tasks/adhoc/spelled-out-names-haskell-port/discover.sh` and the result as a worklog under its
-   `data/`.
-2. **Map them through the glossary.** Each name is (a) a mirror of a renamed C name, renamed the
-   same way, (b) a port-only abbreviation, added to the glossary with its meaning before renaming,
-   or (c) exempt, with the reason recorded.
-3. **Stop for the maintainer's review** of the port-only abbreviations and any new exemption.
-4. **Rename in batches, one glossary word per commit:** the haskell-language-server rename over LSP,
-   or a `.hie`-located rewrite; then `-Wall -Werror` confirms nothing dangles. Add each commit to
-   `.git-blame-ignore-revs`.
-5. **Gate every batch** with the port's suites from `port/README.md`: the regression and examples
-   runs, `port/harness/compare_engines.py`, `compare_all_programs.py` and `compare_repl.py`, the
-   float-format checks, and `port-haskell-hlint` (advisory) and `haskell-annotations`.
-6. **Harvest:** add the port-only words to `tasks/reference/spelled-out-names-glossary.md`.
+- **Record prefixes** that the glossary would read differently:
 
-## Open questions
+  | Prefix | Record | Spelled as |
+  | --- | --- | --- |
+  | `ss` | `ScanState`, not C's string stream | `scanState` |
+  | `ie` | `ImmExpr`, not the interrupt-enable bit | `immediateExpression` |
+  | `in` | `Instruction` fields | `instruction` |
+  | `lbl` | `Label` | `label` |
+  | `opt` | the options | `option` |
+  | `Ev` | assembler events | `Event` |
+  | `V` | token values | `Value` |
 
-None yet. Step 3 settles the port-only cases.
+  The register file's `regHI`/`regLO`/`regPC` became `registerMultiplyDivideHigh`,
+  `registerMultiplyDivideLow` and `registerProgramCounter` (C decision 2).
+- **Singular where the C name is plural:** `getGpr`/`setGpr` (one register) became
+  `getGeneralPurposeRegister`/`setGeneralPurposeRegister`. `DestGpr`/`DestFpr` became
+  `DestinationGeneralPurposeRegister`/`DestinationFloatingPointRegister`.
+- **The `-Wall -Werror` build found these collisions:**
+  - `len` became `byteLength`, and `err` became `errorOccurred`, because `length` and `error`
+    would shadow Prelude.
+  - `breakInst` (the cached break instruction) became `cachedBreakInstruction`.
+  - The effective-address action `address` became `effectiveAddress`, freeing `address` for the
+    old `addr` locals.
+  - `copreg` became `coprocessorOperand`, since `coprocessorRegister` is a function.
+- **`Output.hs`'s `fd`** stays a POSIX file descriptor; everywhere else `fd` is the
+  floating-point destination field.
+- **Kept:**
+  - the R/I/J format letters (`iType`, `emitR`);
+  - the grammar shapes (`parseB2`, `parseR3`);
+  - the single/double helper suffixes (`binaryS`, `setS`);
+  - English-word names (`atLine`, `inSlot`, `dataInKernel`);
+  - `writeFd` and the numeric helpers.
+
+## Follow-ups
+
+None for this port. The Rust task is the last of the three; its archive removes
+`tasks/adhoc/spelled-out-names-python-port/` and `tasks/adhoc/spelled-out-names-c-core/`.

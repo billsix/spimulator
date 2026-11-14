@@ -3,7 +3,8 @@
 **Reference document.** Read it before naming anything new in `src/` or `include/`, and before
 the port tasks that carry the same names into `port/python`, `port/haskell` and `port/rust`
 (`tasks/archive/2026/11/14/spelled-out-names-python-port.md`,
-`tasks/spelled-out-names-haskell-port.md`, `tasks/spelled-out-names-rust-port.md`). Update it in place when a name is added or a decision
+`tasks/archive/2026/11/14/spelled-out-names-haskell-port.md`,
+`tasks/spelled-out-names-rust-port.md`). Update it in place when a name is added or a decision
 changes. Written 2026-11-14 (William Emerison Six <billsix@gmail.com>) by the rename recorded in
 `tasks/archive/2026/11/14/spelled-out-names-c-core.md`.
 
@@ -75,6 +76,12 @@ The ports carry the same names in their own casing (`general_purpose_registers` 
   - the `instruction` module is imported as `instruction_module`;
   - `console.py`'s `fd` is a file descriptor and stays;
   - `Kind` members print the C engine's spelling through `printed_name`.
+- **Haskell** (`tasks/archive/2026/11/14/spelled-out-names-haskell-port.md`):
+  - the record prefixes are spelled out by their record: `scanState` (not C's string stream),
+    `immediateExpression`, `instruction`, `label`, `option`, `Event` and `Value`;
+  - `len` and `err` are `byteLength` and `errorOccurred`, since `length` and `error` are
+    Prelude's;
+  - `Output.hs`'s `fd` is a file descriptor and stays.
 
 The decisions are in the archived task's Decisions section. The full per-name table is
 `tasks/adhoc/spelled-out-names-c-core/data/renames.tsv` until the port tasks are done.
