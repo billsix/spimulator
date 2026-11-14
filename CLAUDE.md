@@ -147,7 +147,10 @@ not spim's intentional exit-time leaks) + the integer-UB primer:
   `github.com/billsix/runClaudeInContainer:tasks/reference/c_dispatch_check.py`, kept byte-identical). Struct and union
   initializers are designated (`{.name = …}`); `python3 tools/c_designated_init_check.py BUILDDIR src
   include` lists any positional one (the meson test `designated_init_check` runs it; vendored the same way;
-  `tasks/archive/2026/11/14/c23-designated-initializers.md`). `include/opcodes.tsv` is the single source of truth for
+  `tasks/archive/2026/11/14/c23-designated-initializers.md`). Names in the core are spelled out
+  (`general_purpose_registers`, not `gpr`), with the MIPS manual's name or the typed register name
+  in a comment at the definition; the vocabulary, what stays short and why, is
+  `tasks/reference/spelled-out-names-glossary.md`. `include/opcodes.tsv` is the single source of truth for
   the simulator, the ports and the tree-sitter grammar; edit it and run `make generate`, never the
   generated tables. **Any change to `opcodes.tsv` (or `opcode-types.tsv`) must be gated with
   `BUILD_TREE_SITTER=1`**: `grammar.js` builds its keyword rules from the generated

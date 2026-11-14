@@ -4,7 +4,7 @@
 **Priority:** 6
 **Difficulty:** 5
 **Created:** 2026-11-14 (William Emerison Six <billsix@gmail.com>)
-**Depends on:** `tasks/spelled-out-names-c-core.md` (its glossary is this task's input)
+**Depends on:** `tasks/archive/2026/11/14/spelled-out-names-c-core.md` (done; its glossary is this task's input)
 
 ## BLUF
 
@@ -20,9 +20,17 @@ rust port to do the same."
 
 ## Context
 
-- Start only after `tasks/spelled-out-names-c-core.md` is archived. Its harvested glossary,
-  `tasks/reference/spelled-out-names-glossary.md`, is the rename table: each abbreviated word, its
-  spelling, and the exemptions with their reasons. Reuse it. Don't re-derive it.
+- The C task is done: `tasks/archive/2026/11/14/spelled-out-names-c-core.md`. Its glossary,
+  `tasks/reference/spelled-out-names-glossary.md`, holds each abbreviated word, its spelling, the
+  conventions, and the exemptions with their reasons. Reuse it. Don't re-derive it. The per-name
+  table is `tasks/adhoc/spelled-out-names-c-core/data/renames.tsv` (old, new, kinds, source,
+  location), which maps each C name to its new spelling.
+- **Already done by the C task:** the names `tools/gen_opcodes.py` generates for the port (the
+  token and operand-shape names of its opcode tables) were renamed with the C, and the port's
+  references to them followed. This task renames the port's own names.
+- The last of the three port tasks to be archived `git rm`s
+  `tasks/adhoc/spelled-out-names-c-core/` in its archive commit, since the ports were the reason
+  to keep it.
 - The ports mirror the C engine's names on purpose (`tasks/reference/engine-ports-design.md`), so a
   C rename maps to a port rename, with the casing changed to `snake_case` (already C's casing) and
   `CapWords` for classes.

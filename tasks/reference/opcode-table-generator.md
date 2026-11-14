@@ -25,16 +25,19 @@ in a preprocessing stage and fails, with a diff, if anything committed differs. 
   group (kept as a blank line in the C output). The columns:
   - `name`: the mnemonic as written (`add`, `.word`, `li`).
   - `token`: the C token name (`TOKEN_ADD_OPCODE`). Tokens are numbered `264 + row index`, after
-    eight structural tokens from 256 (`TOKEN_EOF` … `TOKEN_FLOATING_POINT`). `-print-ast` prints these numbers, so
-    every engine uses the same ones.
+    eight structural tokens from 256 (`TOKEN_EOF` … `TOKEN_FLOATING_POINT`). `-print-ast` prints
+    these numbers, so every engine uses the same ones.
   - `type`: an operand-shape tag from `opcode-types.tsv`.
   - `encoding`: the instruction's fixed bits, as the C source writes them (`0x00000020`), or `-1`
     for a directive or pseudo-instruction.
   - `decode`: `*` on the one row a binary word decodes to, when several rows share its encoding;
     empty otherwise.
   - `comment`: an optional note, kept as a C comment.
-- **`include/opcode-types.tsv`**: `name`, `value` (0..42, a `uint8_t`) and `comment` (an example of
-  the operand list, padded in the C output so the closing `*/` lines up).
+- **`include/opcode-types.tsv`**: `name`, `value` (0..42, a `uint8_t`), `comment` (an example of
+  the operand list, padded in the C output so the closing `*/` lines up) and `category` (the
+  tree-sitter grammar's keyword category, `KEYWORDS.<category>` in `tree-sitter/grammar.js`). The
+  category keeps the manual's field spelling (`RT_ADDR` for `TARGET_REGISTER_ADDRESS_INSTRUCTION`),
+  so spelling out the C tags left the grammar and its generated parser unchanged.
 - **Rules the generator enforces** (it refuses to write anything otherwise):
   - names in strictly increasing byte order, because the C scanner finds keywords with `bsearch`;
   - no repeated token or tag;
@@ -70,8 +73,10 @@ a binary word decodes to.
 
 How each output is produced:
 - C output goes through `clang-format` with the repo's `.clang-format`, run from the repo root.
-- Every other output is written in its final form, with no formatter. The Python module is what
-  `ruff format` would write.
+- The Python module goes through `ruff format` (run in `port/python`, so its `pyproject.toml`
+  applies) and the Rust modules through `rustfmt` (run in `port/rust`). The spelled-out
+  operand-shape names are too long for a hand-built shape to stay formatter-clean.
+- The Haskell modules and the tree-sitter keyword lists are written in their final form.
 - Every output starts with a "GENERATED … do not edit" header.
 - The output is deterministic: the same data gives the same bytes.
 
@@ -86,7 +91,7 @@ How each output is produced:
   files in the bind-mounted tree. It deliberately doesn't depend on `make image`: after a `.tsv` edit
   the image build's check fails, so rebuilding first would stop the generator from ever running. The
   host fallback is `python3 tools/gen_opcodes.py`, which needs a `clang-format` of the image's major
-  version. The steps are in `README.md`, "Changing the opcode table".
+  version, `ruff` and `rustfmt`. The steps are in `README.md`, "Changing the opcode table".
 - **Rejected alternatives** (`tasks/archive/2026/11/11/opcodes-x-macro-redesign.md`, Decisions):
   - a checksum manifest: a hand-edited committed file would pass it;
   - git hooks: the image build is the gate.
@@ -103,10 +108,12 @@ hand-written copy.
    - It should give the decode table from `table.decode_rows()`, already sorted with one row per
      encoding.
    - It should give the operand-shape tags from `table.types`.
-   - Use the C names (`TOKEN_ADD_OPCODE`, `DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION`), or a mechanical spelling of them such as
-     Rust's `RdRsRtInst`, so the sources can be read side by side.
+   - Use the C names (`TOKEN_ADD_OPCODE`, `TARGET_REGISTER_ADDRESS_INSTRUCTION`), or a mechanical
+     spelling of them such as Rust's `TargetRegisterAddressInstruction`, so the sources can be read
+     side by side.
    - Write the file in final form if you can. If it must go through a formatter, the formatter has
-     to be installed in the image, as `clang-format` is.
+     to be installed in the image before the Dockerfile's check stage, as `clang-format`, `ruff`
+     and `rustfmt` are.
 2. **Register the output** in `OUTPUTS`. The Dockerfile check and the meson test cover it from then
    on.
 3. **Have the port read the generated module** for every lookup the C engine does on these tables:

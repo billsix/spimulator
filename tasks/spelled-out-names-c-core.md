@@ -1,20 +1,20 @@
 # Spell out the abbreviated names in the C core (`src/`, `include/`)
 
-**Status:** in progress — phase 1 (investigate) done and the policy questions answered, on
-branch `spelled-out-names-c-core`; phase 2 (the rename table) is next, on go-ahead
-**Priority:** 5
-**Difficulty:** 7
 **Created:** 2026-11-14 (William Emerison Six <billsix@gmail.com>)
+**Done:** 2026-11-14, on branch `spelled-out-names-c-core`
 
-## BLUF
+## Summary
 
-Find every abbreviated or acronym name in `src/` and `include/`: variables, functions, parameters,
-struct and union tags and fields, typedefs, enum constants and macros. Write each one out in full so
-a new student can read the code without a decoder ring. An example is `gpr`, which becomes
-`general_purpose_registers`. The task runs in three phases: investigate (an inventory with each
-name's meaning), plan (a reviewed rename table and an order to apply it), and rename (in batches,
-each gated). Done means the inventory's approved renames are applied, the gates pass, and the
-glossary in `tasks/reference/` records every name that was kept and why.
+Every abbreviated or acronym name in `src/` and `include/` was spelled out: variables, parameters,
+struct and union fields, functions, enum constants, typedefs, tags and macros. That came to 1,237
+renames, for example `gpr` to `general_purpose_registers` and `imm_expr` to
+`immediate_expression`. Architecture names carry the MIPS manual's name, or the register name a
+student types, in a comment at the definition.
+
+The machine code is unchanged: `.text` and `.rodata` of all 17 core objects are byte-identical
+to before. All 349 meson tests pass: regression, the examples, and the Python, Rust and Haskell
+ports. The vocabulary, and what stayed short and why, is in
+`tasks/reference/spelled-out-names-glossary.md`.
 
 ## Request (William Emerison Six <billsix@gmail.com>, 2026-11-14)
 
@@ -22,231 +22,170 @@ glossary in `tasks/reference/` records every name that was kept and why.
 names, struct names, all names that could be written out more explicitly, to help the new student.
 As an example, gpr, means 'general_purpose_register'. Perhaps these were useful back in the day,
 when people had to type code all in themselves, no autocomplete, no llms. That day is not today."
-The request includes investigating which names are acronyms or abbreviations, searching online for
-any whose meaning the context doesn't give, and making a plan to fix them systematically.
+The request included investigating which names are acronyms or abbreviations, searching online for
+any whose meaning the context didn't give, and planning the fix systematically.
 
-## Context
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-14)
 
-- Scope: the 43 files in `src/` and `include/`, about 18,600 lines. A sample of what is there
-  (`include/registers.h`, `include/spim.h`): `gpr`, `reg_word`, `u_reg_word`, `mem_addr`,
-  `int_reg_names`, `fp_double_view`, `FPR_S`/`FPR_D`/`FPR_W`, `FCR`/`FIR`/`FCSR`, `CP0_EPC`,
-  `CP0_BadVAddr`, `accept_pseudo_insts`, and the field macros `RS`/`RT`/`RD`/`IOFFSET`/`BASE`.
-- Much of the naming comes from upstream SPIM (James Larus), from an era when short names saved
-  typing. This repo has no upstream SPIM remote and takes no merges from it, so renames cost no
-  merge pain.
-- Conventions to follow: the project `CLAUDE.md` › Conventions, and the shared C standard
-  (github.com/billsix/runClaudeInContainer `tasks/reference/c-coding-standard.md`, "Naming and
-  comments").
-- **Generated code:** `src/opcode-tables.c` is generated from `include/opcodes.tsv` by
-  `tools/gen_opcodes.py` (`tasks/reference/opcode-table-generator.md`). Rename there by changing the
-  generator or the TSV, then regenerate. Never hand-edit the output.
-- **The ports mirror the C engine's names** (`tasks/reference/engine-ports-design.md`), so the
-  glossary this task writes is the input to the three port follow-ups:
-  `tasks/spelled-out-names-python-port.md`, `tasks/spelled-out-names-haskell-port.md`,
-  `tasks/spelled-out-names-rust-port.md`.
-- Out of scope: `examples/` and `pgu/` (teaching C in the course compiler's subset,
-  `tasks/reference/example-c-teaching-style.md`), the tree-sitter grammar, and the ports.
+1. **The CP0 prefix is spelled out**, with the manual's name in a comment:
+   `CP0_Status` became `coprocessor_0_status`, under a `/* CP0 Status register: */` header.
+2. **Register names are spelled out by meaning**, with the name a student types in a comment:
+   `REG_SP` became `STACK_POINTER_REGISTER /* $sp */`. The same applies to `REG_GP`,
+   `REG_A0`..`REG_A3`, `REG_FA0`, `REG_RES`/`REG_FRES` and `HI`/`LO`.
+3. **Familiar acronyms stayed**: `AST`, `ASCII`, `ASAN`, `EOF`, `IO`, `JSON`, `MIPS`, `SPIM`,
+   `REPL`, `ms` and `syscall`.
+4. **The allocation wrappers were renamed**: `xmalloc`, `xrealloc` and `zmalloc` became
+   `allocate_or_exit`, `reallocate_or_exit` and `allocate_zeroed_or_exit`, with the GNU-style
+   names in a comment above the prototypes.
+5. **The math-style names of `unsigned_multiply`** (`src/run.c`) stayed: `a`, `b`, `c`, `d`,
+   `ac`, `ad`, `cb`, `bd` and `mid`.
+6. **The assembler's location counters became `..._location`**, not `..._program_counter`
+   (`current_data_location`, `next_text_location`). They hold the address where the next datum
+   or instruction is placed (`src/data.c`: "Location for next datum in user process"). The CPU's
+   program counter is `PROGRAM_COUNTER`, so naming both "program counter" would invite
+   confusion. The maintainer asked about it and left the choice to the agent's recommendation.
+7. **"Do the work" replaced the planned stop for review.** The task's plan had a stop to review
+   the rename table before any rename. The maintainer's go-ahead ("do the work for the c
+   renaming of stuff, commiting incrementally, archive when done") replaced it. The table's
+   policy cases were settled by decisions 1 to 5.
 
-## What counts, and what is exempt
+## Phase 1: the inventory
 
-A name is a **candidate** if a student would have to look a part of it up or guess it: a shortened
-word (`reg`, `mem`, `addr`, `insts`, `fp`), an initialism (`gpr`, `epc`, `fcsr`), or a single
-letter outside a tight scope.
+- clang's JSON AST of the 103 translation units listed 4,133 declarations, with 1,812 distinct
+  names; `git grep` listed 125 macros. Splitting them gave 922 words, of which hunspell's en_US
+  dictionary rejected 369.
+- 207 of the words occur only inside the generated assembler-keyword tokens (`TOK_ADDIU_OPCODE`),
+  which spell what a student types, so they stayed.
+- A hand review of every short dictionary word found the abbreviations hunspell accepts: `reg`,
+  `inst`, `val`, `op`, `rt`, `rd`, `enc`, `cur`, `err`.
+- The research result is `tasks/adhoc/spelled-out-names-c-core/data/glossary.tsv`: 253 words,
+  each with its meaning, spelling, category and source.
 
-Exempt, recorded in the glossary with the reason:
+## How the rename was done
 
-- **Externally defined names** (the shared rule, `CLAUDE.md` › "An externally-defined name always
-  wins"): libc/POSIX and libedit API names, `main`'s `argc`/`argv`, names a tool looks up, CLI
-  flags, and anything the tree-sitter or meson tooling dictates.
-- **Text the program prints or reads.** This task renames identifiers only. Messages, teaching-mode
-  output, assembler directives, register names in assembly (`$sp`, `$ra`), instruction mnemonics and
-  syscall names as the user types them all stay as they are. So the regression and explain goldens
-  must not change at all, and that is one of the checks.
-- **Tight-scope conventional names:** a loop index `i`, a file descriptor `fd`, and the like, where
-  the short form is the common word. The plan lists each kept one.
-- **Acronyms more familiar than their expansion**, which are names in their own right: `MIPS`,
-  `ASCII`, `IEEE`, `UTF8`. The plan lists each kept one.
+- **The rename table.** `rename_map.py` derived `data/renames.tsv` from the glossary: words
+  spelled out by rule, keyword tokens losing only their `TOK` prefix.
+  `data/renames.manual.tsv` (341 rows) holds the hand-decided names:
+  - words with more than one meaning;
+  - mixed-case architecture names;
+  - per-declaration renames, for one spelling with different meanings;
+  - the collisions the build found.
+- **Applying it.** `apply_renames.py` ran in batches by declaration kind.
+  - Variables, parameters, fields, functions and enum constants were renamed at the positions in
+    clang's AST, so each reference follows its own declaration.
+  - Typedefs, tags, macros, designated-initializer field names, and enum constants used as array
+    sizes or designators were renamed by token. String and character literals were never
+    touched.
+- **The safety net was the build.** A missed reference fails to compile, and the core builds with
+  `-Werror -Wshadow`, which turned four same-scope collisions into errors.
+- **The generator.** `rename_generator_inputs.py` renamed the token and type columns of
+  `include/opcodes.tsv`, the tags of `include/opcode-types.tsv`, and the C that
+  `tools/gen_opcodes.py` emits.
+  - `opcode-types.tsv` gained a `category` column holding the old short category names, so
+    `tree-sitter/grammar.js` and its generated parser are unchanged.
+  - The generator now runs `ruff` and `rustfmt` on the Python and Rust tables it writes, since the
+    longer names broke the hand-built formatting.
+- **The ports.** The ports get their opcode tables from the generator, so
+  `rename_port_generated_refs.py` renamed the ports' references to the generated names (Haskell
+  constructors, Rust constants and variants, Python `OpType` members). The ports' own names are
+  the port tasks' work.
+- **The docs.** `rename_doc_references.py` renamed the identifiers cited in the open docs' code
+  spans, leaving prose alone.
+- **The comments.** `annotate_manual_names.py` added the manual or typed name beside each
+  architecture definition (decisions 1, 2 and 4).
 
-**Architecture vocabulary is spelled out** in identifiers, following the maintainer's own `gpr`
-example. The MIPS manual's term goes in a comment at the definition so a student can find it in the
-manual: `general_purpose_registers /* the ISA's GPRs */`, `exception_program_counter /* CP0 EPC */`.
+## Commits
 
-## Plan
+| Commit | What |
+| --- | --- |
+| `f08bd1e` | phase 1 inventory |
+| `7c957d0` | the policy decisions and online sources |
+| `7ed399f` | the rename table and the apply tool |
+| `dfcc03d` | batch 1: locals and parameters |
+| `3db0b22` | batch 2: struct and union fields |
+| `c20664a` | batch 3: functions |
+| `443122a` | batch 4: globals, constants, types, macros, the generator and the ports' generated-name references |
+| `804f8ac` | clang-format |
+| `4e7f939` | `.git-blame-ignore-revs` |
+| `4b52fe0` | the manual-name comments |
 
-### Phase 1 — investigate: the inventory
+## Verification
 
-1. **List every declared name** mechanically, never by reading files front to back.
-   - Declarations: clang's JSON AST through a clang-configured compile database (the same approach
-     as `tools/c_dispatch_check.py`). Collect `VarDecl`, `ParmVarDecl`, `FunctionDecl`,
-     `FieldDecl`, `RecordDecl`, `TypedefDecl`, `EnumDecl` and `EnumConstantDecl` whose location is
-     in `src/` or `include/`.
-   - Macros: `#define` names, discovered with `git grep -n -E '^\s*#\s*define'` over `src` and
-     `include`. The AST does not show macros.
-   - Save the scripts as `tasks/adhoc/spelled-out-names-c-core/discover.sh` (plus a Python helper
-     for the AST walk) and the result as a worklog in `tasks/adhoc/spelled-out-names-c-core/data/`.
-2. **Split each name into words** (on `_` and case changes) and flag the words not found in an
-   English word list (`/usr/share/dict/words`, or hunspell's `en_US` dictionary; install it if
-   missing). Flagged words, plus a short hand-review of the rest (`sub`, `rest` and `base` are real
-   words that can still be abbreviations), make the candidate list.
-3. **Find what each candidate means.** Use the code (its use sites, comments and the upstream SPIM
-   documentation in `Documentation/`) first. Then use the MIPS32 architecture manuals and the SPIM
-   documentation online for architecture terms. Record the source for every non-obvious meaning.
-4. **Write the inventory** as a table in this doc (or a linked `data/` file if it is long), one row
-   per distinct abbreviated *word*, not per name, since one word (`reg`) appears in dozens of names:
-   word → meaning → proposed spelling → names affected (count) → exempt? and why.
+- `compare_code.sh` compared the `.text` and `.rodata` bytes of every core object with a
+  baseline saved before batch 1. They were identical after every batch, after the format pass and
+  after the comments.
+- **The regression suite** passed after every batch. The full meson run (349 tests) passed after
+  batch 4.
+  - The first full run showed the Rust port not compiling. Its generated table also defines a
+    named constant per keyword, which the first version of the port codemod missed.
+  - The Python port's lint also failed on long lines. Both were fixed before the commit.
+- **Code the build never compiles** (the `SPIM_BIGENDIAN` branches, the no-libedit input path)
+  was renamed by hand from `apply_renames.py --residue`. It was compile-checked with
+  `-DSPIM_BIGENDIAN`, and without `HAVE_LIBEDIT`. The only residue left is the kept `cb` of
+  `unsigned_multiply`.
+- `tools/gen_opcodes.py --check`, `dispatch_check` and `designated_init_check` pass.
 
-### Phase 2 — plan: the rename table, for review
+## Exceptions and hand fixes
 
-5. **Derive the rename table** from the word table: every affected name, old → new. Check each new
-   name for a collision with an existing name, a C keyword or a libc name, and for line-length
-   fallout (clang-format reflows code; comments need hand reflow, per the shared rule).
-6. **Pick the batches.** One batch is one word or a tight family (all the `reg` names), applied
-   across the whole tree in one commit, so each commit is one reviewable idea. Order them from least
-   to most entangled: locals and parameters first, then file-static names, then the names exported
-   from `include/` and the generated tables.
-7. **Stop for the maintainer's review of the word table and the exemptions** before any rename.
-   That review settles the policy cases (each kept short name, each kept acronym).
+- **Hand fixes:**
+  - Ten designated initializers whose field name means two things (`.value.i`, the explain
+    snapshot's `.hi`/`.lo`).
+  - A value-holding `reg` in `src/run.c` that the generic rule had named `register_number`; it
+    became `register_value`.
+  - `print_register_from_string`'s parameter became `register_name`.
+- **Inherited comment orphans** (a lone word on the last line of a wrapped comment, all present
+  before this task) were left as they are; the one this task created was fixed.
+- **Lowercase prose words in comments** (`inst`, `addr`) were not renamed. The comment pass only
+  renamed words that are clearly identifiers.
+- **Out of scope:** `examples/` and `pgu/` (teaching C in the course compiler's subset), the
+  tree-sitter grammar, and the ports' own names.
 
-### Phase 3 — rename, batch by batch
-
-8. **Rename by AST, not text,** wherever the AST sees the name: rewrite the declaration and every
-   reference at the offsets the clang AST gives. Check first whether `clangd`'s rename (over LSP,
-   or `clangd --check`) can do it in batch. `clang-rename` was reportedly removed in LLVM 20, so
-   verify before relying on it. Macros and names inside macro bodies are renamed textually with
-   word-boundary matches and re-grepped to zero. A generated name changes in
-   `tools/gen_opcodes.py` or `include/opcodes.tsv`, and then the output is regenerated.
-9. **Gate every batch:** `make image MINIMAL_IMAGE=1 RUN_SANITIZERS=1` (or its `podman run` line
-   against the existing image), which runs the `-Werror` build, the meson suites including
-   `dispatch_check` and `designated_init_check`, and the regression suite under UBSan and ASan. Add
-   `tools/gen_opcodes.py --check`. **The goldens must be byte-identical**, because identifiers never
-   reach the output. Also confirm the ports' parity tests still pass (they compare against the C
-   engine's behaviour, not its names).
-10. **Add each batch commit to `.git-blame-ignore-revs`**, since a pure rename buries blame.
-11. **Docs move with the names:** `CLAUDE.md`, `tasks/reference/*` and the man page wherever they
-    cite a renamed identifier (`git grep -w` each old name over the docs).
-
-### Afterwards
-
-12. **Harvest the glossary** into `tasks/reference/spelled-out-names-glossary.md`: each abbreviated
-    word and its spelling, the architecture terms with their manual names, and each exemption with
-    its reason. The port tasks and any later C code read it.
-13. **Harvest the method into the shared layer**, so the maintainer can ask for the same sweep in
-    another repo in one line (request, William Emerison Six <billsix@gmail.com>, 2026-11-14). This
-    happens after this task and its port follow-ups, so the method is written from what actually
-    worked. The likely shape is a language-agnostic reference doc in
-    github.com/billsix/runClaudeInContainer `tasks/reference/` (mirrored, with its baked copy, in
-    runCrushInContainer) plus a command that scaffolds this task for the current repo. The
-    maintainer decides that shape at the time. The doc must make a new task **check the repo's
-    situation before planning**. The maintainer named the first example, and this task met the
-    rest:
-    - **Upstream merges:** does the repo take merges from an upstream it forked (an upstream remote,
-      vendored or imported code)? Renames make every later merge conflict, so such code is left
-      alone or the cost is surfaced first. This repo has no upstream SPIM remote, so there is no
-      cost here.
-    - **Generated code:** rename in the generator or its input, never in the output.
-    - **Externally defined names**, and text the program prints or reads, are exempt, so goldens
-      stay byte-identical.
-    - **Mirrors:** ports, bindings or a second implementation that share the names need follow-up
-      tasks fed by the glossary.
-    - **Code held to another contract:** teaching code in a restricted subset, or code meant to go
-      back upstream as patches, is out of scope.
-    - **Consumers:** a renamed public name in a library others pin is a breaking change, so it needs
-      a version bump and a changelog entry. This repo exports no library API.
-    - **Mechanics:** rename by AST or LSP rather than by text where the language allows it, batch
-      by word, add the commits to `.git-blame-ignore-revs`, and reflow comments by hand.
-
-## Phase 1 results (2026-11-14)
-
-The inventory is in `tasks/adhoc/spelled-out-names-c-core/data/`. It stays until the port
-follow-ups are done, because they reuse it. To regenerate the first three files, run
-`tasks/adhoc/spelled-out-names-c-core/discover.sh BUILDDIR` (any configured meson build; it needs
-clang and hunspell). A gcc-configured build gives byte-identical output. `glossary.tsv` is
-written by hand.
-
-- `names.tsv`: 4,133 declarations (1,812 distinct names), from clang's AST of the 103 translation
-  units. Columns: kind, name, path, line.
-- `macros.tsv`: 125 `#define` names, from `git grep`.
-- `words.tsv`: 922 distinct words. Columns: word, whether hunspell's en_US dictionary has it,
-  distinct names containing it, identifier uses in `src/` and `include/`, kinds, example names,
-  and `keyword_only`. 369 words are not in the dictionary.
-- `glossary.tsv`: **the research result**, 253 rows. Columns: word, meaning, proposed spelling,
-  category, and source or note. The categories:
-  - `spell-out` (148): a shortened word or initialism, such as `addr`, `reg`, `inst`, `imm`,
-    `expr`, `tok`, `buf`, `seg` and `ss` (string stream).
-  - `architecture` (54): a MIPS manual term, spelled out with the manual's name kept in a comment.
-    These are the instruction fields `rs`/`rt`/`rd`/`shamt`/`funct`/`fs`/`ft`/`fd`/`fr`, plus
-    `gpr`, `pc`, `epc`, `fcsr` and `fir`. Then come the Status/Cause/Config bit fields (`EXL`,
-    `IE`, `IM`, `UM`, `CU`, `BD`, `IP`, `BE`, `AT`, `AR`, `MT`) and the exception codes (`AdEL`,
-    `AdES`, `IBE`, `DBE`, `RI`, `CpU`, `Ov`, `Tr`, `Sys`, `Bp`).
-  - `keyword` (14): assembly text a student types, either a directive (`.globl`, `.asciiz`,
-    `.ktext`) or a register name (`$sp`, `$gp`). Kept.
-  - `familiar` (15), `external` (6), `math` (2) and `not-abbreviation` (5): kept, each with its
-    reason.
-  - A few words have more than one meaning. They carry a split category and are decided per name:
-    `fd` (the floating-point destination field, or a POSIX file descriptor), `fp` (floating point,
-    `$fp`, or a `FILE*`), and `op` (opcode or operation).
-- **207 words occur only inside the generated assembler-keyword tokens** (`TOK_ADDIU_OPCODE`,
-  `TOK_LI_PSEUDO_OP`, `TOK_ASCIIZ_DIRECTIVE`). They are the instruction mnemonics and directives,
-  which a student types. So the keyword part is kept and only `TOK` is spelled out
-  (`TOKEN_ADDIU_OPCODE`), in `tools/gen_opcodes.py`.
-- **How the candidates were found:** a word was a candidate if hunspell rejected it. A hand review
-  also covered every dictionary word of five letters or fewer that occurs outside the keyword
-  tokens, because hunspell accepts `reg`, `inst`, `val`, `op`, `rt`, `rd`, `enc`, `cur`, `err` and
-  most single letters. Longer dictionary words were taken as real words.
-- **The meanings** come from the declarations and their comments, and each row cites a file. The
-  CP0 and FPU field meanings were checked against NetBSD's `mipsNN.h` header and the register
-  descriptions in the MIPS32 manuals.
-- **Not yet in the glossary: names that are only one or two letters long.** The most common are
-  `rt` (96 declarations), `rs` (81), `op` (71), `i` (43), `ss` (35), `n` (35) and `s` (28). The
-  architecture ones follow the glossary. The rest (loop indices, `n`, `s`, `p`) depend on scope,
-  so phase 2 decides each one from `names.tsv` under the tight-scope exemption.
-- The scripts are `discover.sh`, `list_names.py`, `split_words.py` and `classify_words.py`. They
-  are candidates for promotion to a shared tool at the end (step 13).
-
-### Sources for the architecture meanings
+## Sources for the architecture meanings
 
 The online sources checked on 2026-11-14 for the `architecture` rows of `glossary.tsv`:
 
 - CP0 Config fields `MT`, `AR` and `AT`, with their bit positions and encodings: NetBSD's
   `mipsNN.h`, which mirrors the MIPS32 privileged-resource spec,
   <https://nxr.netbsd.org/xref/src/sys/arch/mips/include/mipsNN.h?r=1.14>.
-- Cause `ExcCode` names and numbers (`Int`, `Mod`, `TLBL`, `TLBS`, `AdEL`, `AdES`, `IBE`, `DBE`,
-  `Sys`, `Bp`, `RI`, `CpU`, `Ov`, `Tr`, `FPE`):
+- Cause `ExcCode` names and numbers:
   - Imperial College lecture notes on MIPS exceptions,
     <https://www.doc.ic.ac.uk/~wl/teachlocal/arch/HP05/exceptions.pdf>.
-  - The Rust `mips` crate's Cause register, which is also the only source found for `MDMX` as
-    code 22, <https://docs.rs/crate/mips/latest/source/src/registers/cp0/cause.rs>.
-- FCSR condition-code (`FCC`) layout, and the `ND`/`TF` bits of the floating-point branches: the
-  GDB MIPS simulator's `cp1.h`,
+  - The Rust `mips` crate's Cause register, the only source found for `MDMX` as code 22,
+    <https://docs.rs/crate/mips/latest/source/src/registers/cp0/cause.rs>.
+- The FCSR condition-code (`FCC`) layout, and the `ND`/`TF` bits of the floating-point branches:
+  the GDB MIPS simulator's `cp1.h`,
   <https://gnu.googlesource.com/binutils-gdb/+/2e917d2873a4ebffb1b7e8a8c043af65dfb5b708/sim/mips/cp1.h>.
+- Not confirmed online:
+  - The Config `BE` bit (bit 15, big-endian) comes from general knowledge of the spec.
+  - `ND`/`TF` were found only in simulator code. The MIPS32 Architecture for Programmers volumes
+    (II for BC1F/BC1T and MADD.fmt, III for CP0) are the authority for both.
 
-Not confirmed online:
-- **Config `BE`** (big-endian, bit 15) comes from general knowledge of the spec.
-- **`ND`/`TF`** were found only in simulator code (gem5's MIPS decoder, GDB's `cp1.h`), not in the
-  manual text.
+## Follow-ups
 
-The authoritative references for both are the MIPS32 Architecture for Programmers volumes: Volume
-II for the BC1F/BC1T and MADD.fmt pages, and Volume III for the CP0 registers. Check them before
-renaming the `be`, `nd` and `tf` rows.
-
-## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-14)
-
-These settle the policy cases. The `glossary.tsv` rows they affect cite them as "decision N".
-
-1. **The CP0 prefix is spelled out**, with the manual's name in a comment:
-   `CP0_Status` becomes `coprocessor_0_status /* CP0 Status */`, as with `gpr`.
-2. **Register names are spelled out by meaning**, with the name a student types in a comment:
-   `REG_SP` becomes `stack_pointer_register /* $sp */`. The same goes for `REG_GP`, `REG_A0` to
-   `REG_A3`, `REG_FA0`, `REG_RES`/`REG_FRES`, and `HI`/`LO`. This follows decision 1.
-3. **These familiar acronyms stay as they are:** `AST`, `ASCII`, `ASAN`, `EOF`, `IO`, `JSON`,
-   `MIPS`, `SPIM`, `REPL`, `ms` and `syscall`.
-4. **The allocation wrappers are renamed**: `xmalloc` becomes `allocate_or_exit`, `xrealloc`
-   becomes `reallocate_or_exit`, and `zmalloc` becomes `allocate_zeroed_or_exit`. A comment beside
-   each definition gives the old GNU-style name (`/* xmalloc in GNU style */`), so a reader who
-   knows the idiom can find it.
-5. **The math-style names in `unsigned_multiply` (`src/run.c`) stay**: the 16-bit halves `a`,
-   `b`, `c` and `d`, their products `ac`, `ad`, `cb` and `bd`, and `mid`.
-
-## Open questions
-
-None. Phase 2 still ends with a review of the rename table (step 7).
+- The port tasks: `tasks/spelled-out-names-python-port.md`,
+  `tasks/spelled-out-names-haskell-port.md` and `tasks/spelled-out-names-rust-port.md`. They read the glossary doc and
+  `tasks/adhoc/spelled-out-names-c-core/data/renames.tsv`, so that directory stays until the last
+  port task is archived; that task `git rm`s it.
+- **Harvesting the method into the shared layer.** The maintainer asked that the sweep be
+  something to request for another repo in one line, through
+  github.com/billsix/runClaudeInContainer (and runCrushInContainer). This happens after the port
+  tasks, so the method is written from what worked. The doc must make a new task check the
+  repo's situation before planning:
+  - **Upstream merges** (the maintainer's first example): does the repo take merges from an
+    upstream it forked? Renames make every later merge conflict. This repo takes none.
+  - **Generated code:** rename the generator's input, never the output. Also check what else the
+    generator feeds (here the three ports' tables and the tree-sitter keyword lists).
+  - **Code the build doesn't compile:** `#if` branches and other configurations; list them from
+    the residue and compile-check each.
+  - **Exemptions:** names defined outside the code; text the program prints or reads, so the
+    goldens stay byte-identical; what the user types (mnemonics, register names).
+  - **Mirrors:** ports or bindings that share the names.
+  - **Code held to another contract:** a teaching subset, or code meant to go upstream as patches.
+  - **Consumers:** a renamed public name of a pinned library is a breaking change.
+  - **Mechanics:**
+    - rename by AST or LSP position;
+    - batch by declaration kind, building and testing each batch;
+    - prove a pure rename by comparing code bytes;
+    - add the commits to `.git-blame-ignore-revs`;
+    - format once at the end;
+    - fix comment orphans by hand.
