@@ -484,7 +484,7 @@ void* allocate_or_exit(size_t size) {
   return (x);
 }
 
-/* Resize a block of storage; out of memory is fatal, as in xmalloc. */
+/* Resize a block of storage; out of memory is fatal, as in allocate_or_exit. */
 
 void* reallocate_or_exit(void* block, size_t size) {
   void* const x = realloc(block, size);

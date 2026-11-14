@@ -73,35 +73,43 @@ typedef struct mips_instruction_struct {
 #define OPCODE(INST) (INST)->opcode
 #define SET_OPCODE(INST, VAL) (INST)->opcode = (int16_t)(VAL)
 
+/* rs */
 #define SOURCE_REGISTER(INST) (INST)->fields.registers.source_register
 #define SET_SOURCE_REGISTER(INST, VAL) \
   (INST)->fields.registers.source_register = (uint8_t)(VAL)
 
+/* rt */
 #define TARGET_REGISTER(INST) (INST)->fields.registers.target_register
 #define SET_TARGET_REGISTER(INST, VAL) \
   (INST)->fields.registers.target_register = (uint8_t)(VAL)
 
+/* rd */
 #define DESTINATION_REGISTER(INST) \
   (INST)->fields.registers.immediate_or_r_type.r_type.destination_register
 #define SET_DESTINATION_REGISTER(INST, VAL)                                  \
   (INST)->fields.registers.immediate_or_r_type.r_type.destination_register = \
       (uint8_t)(VAL)
 
+/* fs */
 #define FLOATING_POINT_SOURCE(INST) DESTINATION_REGISTER(INST)
 #define SET_FLOATING_POINT_SOURCE(INST, VAL) SET_DESTINATION_REGISTER(INST, VAL)
 
+/* ft */
 #define FLOATING_POINT_TARGET(INST) TARGET_REGISTER(INST)
 #define SET_FLOATING_POINT_TARGET(INST, VAL) SET_TARGET_REGISTER(INST, VAL)
 
+/* fd */
 #define FLOATING_POINT_DESTINATION(INST) SHIFT_AMOUNT(INST)
 #define SET_FLOATING_POINT_DESTINATION(INST, VAL) SET_SHIFT_AMOUNT(INST, VAL)
 
+/* shamt */
 #define SHIFT_AMOUNT(INST) \
   (INST)->fields.registers.immediate_or_r_type.r_type.shift_amount
 #define SET_SHIFT_AMOUNT(INST, VAL)                                  \
   (INST)->fields.registers.immediate_or_r_type.r_type.shift_amount = \
       (uint8_t)(VAL)
 
+/* imm */
 #define IMMEDIATE(INST) (INST)->fields.registers.immediate_or_r_type.immediate
 #define SET_IMMEDIATE(INST, VAL) \
   (INST)->fields.registers.immediate_or_r_type.immediate = (int16_t)(VAL)
@@ -127,10 +135,13 @@ typedef struct mips_instruction_struct {
 #define NULLIFY_DELAY(INST) ((TARGET_REGISTER(INST) & 0x2) >> 1)
 #define TRUE_FALSE(INST) (TARGET_REGISTER(INST) & 0x1)
 
+/* cc */
 #define FLOATING_POINT_CONDITION_CODE(INST) \
   (FLOATING_POINT_DESTINATION(INST) >> 2)
+/* nd */
 #define FLOATING_POINT_NULLIFY_DELAY(INST) \
   ((FLOATING_POINT_DESTINATION(INST) & 0x2) >> 1)
+/* tf */
 #define FLOATING_POINT_TRUE_FALSE(INST) (FLOATING_POINT_DESTINATION(INST) & 0x1)
 
 #define TARGET(INST) (INST)->fields.target
@@ -195,30 +206,32 @@ extern int first_bad_exception;
 /* Recognized exceptions.  Values from the MIPS32 Cause register's
    ExcCode field, sparse 0..30.  uint8_t-backed since values fit. */
 typedef enum mips_exception_code : uint8_t {
-  EXCEPTION_CODE_INTERRUPT = 0, /* Interrupt */
+  EXCEPTION_CODE_INTERRUPT = 0, /* Int: Interrupt */
   EXCEPTION_CODE_TRANSLATION_LOOKASIDE_BUFFER_MODIFIED =
-      1, /* TLB modification (not implemented) */
+      1, /* Mod: TLB modification (not implemented) */
   EXCEPTION_CODE_TRANSLATION_LOOKASIDE_BUFFER_LOAD =
-      2, /* TLB exception (not implemented) */
+      2, /* TLBL: TLB exception (not implemented) */
   EXCEPTION_CODE_TRANSLATION_LOOKASIDE_BUFFER_STORE =
-      3,                                  /* TLB exception (not implemented) */
-  EXCEPTION_CODE_ADDRESS_ERROR_LOAD = 4,  /* Address error (load/fetch) */
-  EXCEPTION_CODE_ADDRESS_ERROR_STORE = 5, /* Address error (store) */
-  EXCEPTION_CODE_INSTRUCTION_BUS_ERROR = 6, /* Bus error, instruction fetch */
-  EXCEPTION_CODE_DATA_BUS_ERROR = 7,        /* Bus error, data reference */
-  EXCEPTION_CODE_SYSTEM_CALL = 8,           /* Syscall exception */
-  EXCEPTION_CODE_BREAKPOINT = 9,            /* Breakpoint exception */
-  EXCEPTION_CODE_RESERVED_INSTRUCTION = 10, /* Reserve instruction */
-  EXCEPTION_CODE_COPROCESSOR_UNUSABLE = 11, /* Coprocessor unusable */
-  EXCEPTION_CODE_ARITHMETIC_OVERFLOW = 12,  /* Arithmetic overflow */
-  EXCEPTION_CODE_TRAP = 13,                 /* Trap */
-  EXCEPTION_CODE_FLOATING_POINT_EXCEPTION = 15, /* Floating point */
+      3, /* TLBS: TLB exception (not implemented) */
+  EXCEPTION_CODE_ADDRESS_ERROR_LOAD = 4,  /* AdEL: Address error (load/fetch) */
+  EXCEPTION_CODE_ADDRESS_ERROR_STORE = 5, /* AdES: Address error (store) */
+  EXCEPTION_CODE_INSTRUCTION_BUS_ERROR =
+      6,                             /* IBE: Bus error, instruction fetch */
+  EXCEPTION_CODE_DATA_BUS_ERROR = 7, /* DBE: Bus error, data reference */
+  EXCEPTION_CODE_SYSTEM_CALL = 8,    /* Sys: Syscall exception */
+  EXCEPTION_CODE_BREAKPOINT = 9,     /* Bp: Breakpoint exception */
+  EXCEPTION_CODE_RESERVED_INSTRUCTION = 10,     /* RI: Reserve instruction */
+  EXCEPTION_CODE_COPROCESSOR_UNUSABLE = 11,     /* CpU: Coprocessor unusable */
+  EXCEPTION_CODE_ARITHMETIC_OVERFLOW = 12,      /* Ov: Arithmetic overflow */
+  EXCEPTION_CODE_TRAP = 13,                     /* Tr: Trap */
+  EXCEPTION_CODE_FLOATING_POINT_EXCEPTION = 15, /* FPE: Floating point */
   EXCEPTION_CODE_COPROCESSOR_2_EXCEPTION =
-      18,                            /* Coprocessor 2 (not implemented) */
-  EXCEPTION_CODE_MDMX = 22,          /* MDMX unusable (not implemented) */
-  EXCEPTION_CODE_WATCH = 23,         /* Reference to Watch (not implemented) */
-  EXCEPTION_CODE_MACHINE_CHECK = 24, /* Machine check (not implemented) */
-  EXCEPTION_CODE_CACHE_ERROR = 30,   /* Cache error (not implemented) */
+      18,                    /* C2E: Coprocessor 2 (not implemented) */
+  EXCEPTION_CODE_MDMX = 22,  /* MDMX unusable (not implemented) */
+  EXCEPTION_CODE_WATCH = 23, /* WATCH: Reference to Watch (not implemented) */
+  EXCEPTION_CODE_MACHINE_CHECK =
+      24,                          /* MCheck: Machine check (not implemented) */
+  EXCEPTION_CODE_CACHE_ERROR = 30, /* CacheErr: Cache error (not implemented) */
 } mips_exception_code;
 
 /* Fields in binary representation of instructions: */

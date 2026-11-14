@@ -11,7 +11,7 @@
 #include <stdlib.h>
 
 #include "spim.h"
-#include "spim-utils.h"    /* name_value_value, xmalloc */
+#include "spim-utils.h"    /* name_value_value, allocate_or_exit */
 #include "registers.h"     /* GENERAL_PURPOSE_REGISTER_COUNT */
 #include "symbol-table.h"  /* label_is_defined */
 #include "scanner.h"       /* scan_value, line_no */

@@ -1527,11 +1527,13 @@ mips_instruction* instruction_decode(int32_t value) {
   }
 }
 
-/* The decode constructors below keep zmalloc + the SET_* accessors rather
-   than a designated initializer: the accessors are the one place that maps
-   MIPS field names onto mips_instruction's overlapping unions (FS lives in
-   the rd slot, FD in shamt, IMMEDIATE_OFFSET in imm), and an initializer would
-   restate that mapping at every site.  zmalloc supplies the zero fill. */
+/* The decode constructors below keep allocate_zeroed_or_exit + the SET_*
+   accessors rather than a designated initializer: the accessors are the one
+   place that maps MIPS field names onto mips_instruction's overlapping unions
+   (FLOATING_POINT_SOURCE lives in the rd slot, FLOATING_POINT_DESTINATION in
+   shamt, IMMEDIATE_OFFSET in imm), and an
+   initializer would restate that mapping at every site. allocate_zeroed_or_exit
+   supplies the zero fill. */
 
 static mips_instruction* make_r_instruction(int32_t value, int opcode,
                                             int source_register,

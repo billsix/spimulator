@@ -20,7 +20,7 @@
 #include <string.h>
 
 #include "ast.h"
-#include "spim-utils.h"   /* xmalloc                    */
+#include "spim-utils.h"   /* allocate_or_exit                    */
 #include "scanner.h"      /* line_no                      */
 #include "spim.h"         /* fatal_error                  */
 #include "symbol-table.h" /* struct label definition      */

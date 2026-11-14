@@ -57,6 +57,8 @@ memory_address starting_address(void);
    ExcCode of the first runtime fault when that value is 0. */
 int program_exit_status(void);
 void write_startup_message(void);
+/* malloc, realloc and calloc that exit on failure: the GNU-style xmalloc,
+   xrealloc and zmalloc (a zero-filled xmalloc). */
 [[nodiscard]] void* allocate_or_exit(size_t);
 [[nodiscard]] void* reallocate_or_exit(void*, size_t);
 [[nodiscard]] void* allocate_zeroed_or_exit(size_t);
