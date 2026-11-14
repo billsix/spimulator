@@ -97,23 +97,23 @@ typedef void (*asm_event_observer)(const asm_event* e);
 
 /* Install (or clear, with NULL) the global observer.  Returns the
    previous observer so callers can chain or restore. */
-asm_event_observer asm_set_observer(asm_event_observer obs);
+asm_event_observer asm_set_observer(asm_event_observer observer);
 
 /* Fire helpers — called by the action functions in instruction.c, data.c,
    sym-tbl.c.  Each is a thin wrapper that builds the event struct
    from the current line_no / input_file_name_get() and the per-kind
    payload, then calls the installed observer (no-op fast path if
    none). */
-void asm_fire_label_def(mem_addr addr, const char* name, bool global);
-void asm_fire_text_inst(mem_addr addr, uint32_t encoding);
-void asm_fire_data_byte(mem_addr addr, int value);
-void asm_fire_data_half(mem_addr addr, int value);
-void asm_fire_data_word(mem_addr addr, int value);
-void asm_fire_data_double(mem_addr addr, double value);
-void asm_fire_data_string(mem_addr addr, const char* s, int length,
+void asm_fire_label_def(mem_addr address, const char* name, bool global);
+void asm_fire_text_inst(mem_addr address, uint32_t encoding);
+void asm_fire_data_byte(mem_addr address, int value);
+void asm_fire_data_half(mem_addr address, int value);
+void asm_fire_data_word(mem_addr address, int value);
+void asm_fire_data_double(mem_addr address, double value);
+void asm_fire_data_string(mem_addr address, const char* s, int length,
                           bool null_term);
-void asm_fire_align(mem_addr addr, int low_bits, int offset, asm_segment seg);
-void asm_fire_seg_change(asm_segment seg, mem_addr addr);
+void asm_fire_align(mem_addr address, int low_bits, int offset, asm_segment segment);
+void asm_fire_seg_change(asm_segment segment, mem_addr address);
 void asm_fire_forward_ref(mem_addr from, const char* symbol);
 void asm_fire_forward_resolved(mem_addr at, const char* symbol, int32_t value);
 

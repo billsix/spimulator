@@ -91,8 +91,8 @@ void nop_inst(void) {
 
 void trap_inst(void) { emit_r(TOK_BREAK_OPCODE, 0, 0, 0); }
 
-imm_expr* branch_offset(int n_inst) {
-  return const_imm_expr(n_inst << 2); /* later shifted right 2 by the encoder */
+imm_expr* branch_offset(int instruction_count) {
+  return const_imm_expr(instruction_count << 2); /* later shifted right 2 by the encoder */
 }
 
 int op_to_imm_op(int opcode) {
@@ -123,118 +123,118 @@ int op_to_imm_op(int opcode) {
   }
 }
 
-void div_inst(int op, int rd, int rs, int rt, int const_divisor) {
-  if (rd != 0 && !const_divisor) {
-    emit_i_free(TOK_BNE_OPCODE, 0, rt, branch_offset(3));
+void div_inst(int opcode, int destination_register, int source_register, int target_register, int constant_divisor) {
+  if (destination_register != 0 && !constant_divisor) {
+    emit_i_free(TOK_BNE_OPCODE, 0, target_register, branch_offset(3));
     nop_inst();
     trap_inst();
   }
 
-  if (op == TOK_DIV_OPCODE || op == TOK_REM_PSEUDO_OP)
-    emit_r(TOK_DIV_OPCODE, 0, rs, rt);
+  if (opcode == TOK_DIV_OPCODE || opcode == TOK_REM_PSEUDO_OP)
+    emit_r(TOK_DIV_OPCODE, 0, source_register, target_register);
   else
-    emit_r(TOK_DIVU_OPCODE, 0, rs, rt);
+    emit_r(TOK_DIVU_OPCODE, 0, source_register, target_register);
 
-  if (rd != 0) {
-    if (op == TOK_DIV_OPCODE || op == TOK_DIVU_OPCODE) /* Quotient */
-      emit_r(TOK_MFLO_OPCODE, rd, 0, 0);
+  if (destination_register != 0) {
+    if (opcode == TOK_DIV_OPCODE || opcode == TOK_DIVU_OPCODE) /* Quotient */
+      emit_r(TOK_MFLO_OPCODE, destination_register, 0, 0);
     else
       /* Remainder */
-      emit_r(TOK_MFHI_OPCODE, rd, 0, 0);
+      emit_r(TOK_MFHI_OPCODE, destination_register, 0, 0);
   }
 }
 
-void mult_inst(int op, int rd, int rs, int rt) {
-  if (op == TOK_MULOU_PSEUDO_OP)
-    emit_r(TOK_MULTU_OPCODE, 0, rs, rt);
+void mult_inst(int opcode, int destination_register, int source_register, int target_register) {
+  if (opcode == TOK_MULOU_PSEUDO_OP)
+    emit_r(TOK_MULTU_OPCODE, 0, source_register, target_register);
   else
-    emit_r(TOK_MULT_OPCODE, 0, rs, rt);
+    emit_r(TOK_MULT_OPCODE, 0, source_register, target_register);
 
-  if (op == TOK_MULOU_PSEUDO_OP && rd != 0) {
+  if (opcode == TOK_MULOU_PSEUDO_OP && destination_register != 0) {
     emit_r(TOK_MFHI_OPCODE, 1, 0, 0); /* Use $at */
     emit_i_free(TOK_BEQ_OPCODE, 0, 1, branch_offset(3));
     nop_inst();
     trap_inst();
-  } else if (op == TOK_MULO_PSEUDO_OP && rd != 0) {
+  } else if (opcode == TOK_MULO_PSEUDO_OP && destination_register != 0) {
     emit_r(TOK_MFHI_OPCODE, 1, 0, 0); /* use $at */
-    emit_r(TOK_MFLO_OPCODE, rd, 0, 0);
-    emit_r_shift(TOK_SRA_OPCODE, rd, rd, 31);
-    emit_i_free(TOK_BEQ_OPCODE, rd, 1, branch_offset(3));
+    emit_r(TOK_MFLO_OPCODE, destination_register, 0, 0);
+    emit_r_shift(TOK_SRA_OPCODE, destination_register, destination_register, 31);
+    emit_i_free(TOK_BEQ_OPCODE, destination_register, 1, branch_offset(3));
     nop_inst();
     trap_inst();
   } else {
     /* Any other op, or a result into $zero: no overflow check. */
   }
-  if (rd != 0) emit_r(TOK_MFLO_OPCODE, rd, 0, 0);
+  if (destination_register != 0) emit_r(TOK_MFLO_OPCODE, destination_register, 0, 0);
 }
 
-void set_le_inst(int op, int rd, int rs, int rt) {
-  emit_i_free(TOK_BNE_OPCODE, rs, rt, branch_offset(3));
-  emit_i_free(TOK_ORI_OPCODE, rd, 0, const_imm_expr(1));
+void set_le_inst(int opcode, int destination_register, int source_register, int target_register) {
+  emit_i_free(TOK_BNE_OPCODE, source_register, target_register, branch_offset(3));
+  emit_i_free(TOK_ORI_OPCODE, destination_register, 0, const_imm_expr(1));
   emit_i_free(TOK_BEQ_OPCODE, 0, 0, branch_offset(3));
   nop_inst();
-  emit_r((op == TOK_SLE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE), rd, rs,
-         rt);
+  emit_r((opcode == TOK_SLE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE), destination_register, source_register,
+         target_register);
 }
 
-void set_gt_inst(int op, int rd, int rs, int rt) {
-  emit_r(op == TOK_SGT_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, rd, rt,
-         rs);
+void set_gt_inst(int opcode, int destination_register, int source_register, int target_register) {
+  emit_r(opcode == TOK_SGT_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, destination_register, target_register,
+         source_register);
 }
 
-void set_ge_inst(int op, int rd, int rs, int rt) {
-  emit_i_free(TOK_BNE_OPCODE, rs, rt, branch_offset(3));
-  emit_i_free(TOK_ORI_OPCODE, rd, 0, const_imm_expr(1));
+void set_ge_inst(int opcode, int destination_register, int source_register, int target_register) {
+  emit_i_free(TOK_BNE_OPCODE, source_register, target_register, branch_offset(3));
+  emit_i_free(TOK_ORI_OPCODE, destination_register, 0, const_imm_expr(1));
   emit_i_free(TOK_BEQ_OPCODE, 0, 0, branch_offset(3));
   nop_inst();
-  emit_r(op == TOK_SGE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, rd, rt,
-         rs);
+  emit_r(opcode == TOK_SGE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, destination_register, target_register,
+         source_register);
 }
 
-void set_eq_inst(int op, int rd, int rs, int rt) {
-  imm_expr *if_eq, *if_neq;
+void set_eq_inst(int opcode, int destination_register, int source_register, int target_register) {
+  imm_expr *if_equal, *if_not_equal;
 
-  if (op == TOK_SEQ_PSEUDO_OP) {
-    if_eq = const_imm_expr(1);
-    if_neq = const_imm_expr(0);
+  if (opcode == TOK_SEQ_PSEUDO_OP) {
+    if_equal = const_imm_expr(1);
+    if_not_equal = const_imm_expr(0);
   } else {
-    if_eq = const_imm_expr(0);
-    if_neq = const_imm_expr(1);
+    if_equal = const_imm_expr(0);
+    if_not_equal = const_imm_expr(1);
   }
 
-  emit_i_free(TOK_BEQ_OPCODE, rs, rt, branch_offset(3));
+  emit_i_free(TOK_BEQ_OPCODE, source_register, target_register, branch_offset(3));
   /* RD <- 0 (if not equal) */
-  emit_i_free(TOK_ORI_OPCODE, rd, 0, if_neq);
+  emit_i_free(TOK_ORI_OPCODE, destination_register, 0, if_not_equal);
   emit_i_free(TOK_BEQ_OPCODE, 0, 0, branch_offset(3)); /* Branch always */
   nop_inst();
   /* RD <- 1 */
-  emit_i_free(TOK_ORI_OPCODE, rd, 0, if_eq);
+  emit_i_free(TOK_ORI_OPCODE, destination_register, 0, if_equal);
 }
 
-void check_imm_range(const imm_expr* expr, int32_t min, int32_t max, int line) {
-  if (expr->symbol == nullptr || SYMBOL_IS_DEFINED(expr->symbol)) {
+void check_imm_range(const imm_expr* expression, int32_t min, int32_t max, int line) {
+  if (expression->symbol == nullptr || SYMBOL_IS_DEFINED(expression->symbol)) {
     /* If expression can be evaluated, compare against limits. */
-    const int32_t value = eval_imm_expr(expr);
+    const int32_t value = eval_imm_expr(expression);
 
     if (value < min || max < value) {
-      char str[200];
-      snprintf(str, sizeof str, "immediate value (%d) out of range (%d .. %d)",
+      char string[200];
+      snprintf(string, sizeof string, "immediate value (%d) out of range (%d .. %d)",
                value, min, max);
-      error("spim: (parser) %s on line %d\n", str, line);
+      error("spim: (parser) %s on line %d\n", string, line);
     }
   }
 }
 
-void check_uimm_range(const imm_expr* expr, uint32_t min, uint32_t max,
+void check_uimm_range(const imm_expr* expression, uint32_t min, uint32_t max,
                       int line) {
-  if (expr->symbol == nullptr || SYMBOL_IS_DEFINED(expr->symbol)) {
-    const uint32_t value = (uint32_t)eval_imm_expr(expr);
+  if (expression->symbol == nullptr || SYMBOL_IS_DEFINED(expression->symbol)) {
+    const uint32_t value = (uint32_t)eval_imm_expr(expression);
 
     if (value < min || max < value) {
-      char str[200];
-      snprintf(str, sizeof str, "immediate value (%d) out of range (%d .. %d)",
+      char string[200];
+      snprintf(string, sizeof string, "immediate value (%d) out of range (%d .. %d)",
                (int32_t)value, (int32_t)min, (int32_t)max);
-      error("spim: (parser) %s on line %d\n", str, line);
+      error("spim: (parser) %s on line %d\n", string, line);
     }
   }
 }

@@ -161,16 +161,16 @@ typedef union {
 /* Exported functions (from spim.c or xspim.c): */
 
 int console_input_available(void);
-[[gnu::format(printf, 1, 2)]] void error(const char* fmt, ...);
-[[noreturn, gnu::format(printf, 1, 2)]] void fatal_error(const char* fmt, ...);
+[[gnu::format(printf, 1, 2)]] void error(const char* format, ...);
+[[noreturn, gnu::format(printf, 1, 2)]] void fatal_error(const char* format, ...);
 char get_console_char(void);
 void put_console_char(char c);
-int read_input(char* str, int n); /* Returns bytes read (0 on EOF). */
+int read_input(char* string, int n); /* Returns bytes read (0 on EOF). */
 [[nodiscard]] int read_int_input(
     long* value); /* Scanf-style int read for syscall 5.
        Returns 1 on success, 0 on EOF/garbage. */
-[[noreturn, gnu::format(printf, 1, 2)]] void run_error(const char* fmt, ...);
-[[gnu::format(printf, 2, 3)]] void write_output(port, const char* fmt, ...);
+[[noreturn, gnu::format(printf, 1, 2)]] void run_error(const char* format, ...);
+[[gnu::format(printf, 2, 3)]] void write_output(port, const char* format, ...);
 
 /* Exported variables: */
 

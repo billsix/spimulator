@@ -30,7 +30,7 @@ constexpr int REG_A3 = 7;
 constexpr int REG_FA0 = 12;
 constexpr int REG_SP = 29;
 
-/* Result registers (REG_RES aliases REG_V0; REG_FRES is $f0). */
+/* Result registers (RESULT_REGISTER aliases VALUE_REGISTER_0; FLOATING_POINT_RESULT_REGISTER is $f0). */
 constexpr int REG_RES = 2;
 constexpr int REG_FRES = 0;
 

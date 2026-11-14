@@ -32,9 +32,9 @@ bool do_syscall(void) {
       break;
 
     case PRINT_FLOAT_SYSCALL: {
-      const float val = FPR_S(REG_FA0);
+      const float value = FPR_S(REG_FA0);
 
-      write_output(console_out, "%.8f", val);
+      write_output(console_out, "%.8f", value);
       break;
     }
 
@@ -60,18 +60,18 @@ bool do_syscall(void) {
     }
 
     case READ_FLOAT_SYSCALL: {
-      static char str[256];
+      static char string[256];
 
-      read_input(str, 256);
-      FPR_S(REG_FRES) = (float)atof(str);
+      read_input(string, 256);
+      FPR_S(REG_FRES) = (float)atof(string);
       break;
     }
 
     case READ_DOUBLE_SYSCALL: {
-      static char str[256];
+      static char string[256];
 
-      read_input(str, 256);
-      fp_double_view[REG_FRES] = atof(str);
+      read_input(string, 256);
+      fp_double_view[REG_FRES] = atof(string);
       break;
     }
 
@@ -96,15 +96,15 @@ bool do_syscall(void) {
       break;
 
     case READ_CHARACTER_SYSCALL: {
-      static char str[2];
+      static char string[2];
 
-      const int n = read_input(str, 2);
+      const int n = read_input(string, 2);
       if (n == 0) {
         gpr[REG_RES] = -1; /* EOF -- matches getchar()'s convention */
       } else {
         /* Treat the byte as unsigned (0..255) so bytes >= 0x80 don't
            alias with the -1 EOF sentinel via sign extension. */
-        gpr[REG_RES] = (reg_word)(unsigned char)str[0];
+        gpr[REG_RES] = (reg_word)(unsigned char)string[0];
       }
       break;
     }

@@ -28,25 +28,25 @@ extern char SPIM_DEFAULT_EXCEPTIONS_SENTINEL[];
 
 /* Exported functions: */
 
-void add_breakpoint(mem_addr addr);
-void delete_breakpoint(mem_addr addr);
-void format_data_segs(str_stream* ss);
-void format_insts(str_stream* ss, mem_addr from, mem_addr to);
-void format_mem(str_stream* ss, mem_addr from, mem_addr to);
+void add_breakpoint(mem_addr address);
+void delete_breakpoint(mem_addr address);
+void format_data_segs(str_stream* stream);
+void format_insts(str_stream* stream, mem_addr from, mem_addr to);
+void format_mem(str_stream* stream, mem_addr from, mem_addr to);
 void print_text_listing(void);
-void format_registers(str_stream* ss, bool print_gpr_hex, bool print_fpr_hex);
+void format_registers(str_stream* stream, bool print_general_purpose_registers_hex, bool print_floating_point_register_hex);
 void initialize_registers(void);
 void initialize_stack(const char* command_line);
 void initialize_run_stack(int argc, char** argv);
 void initialize_world(const char* exception_file_names, bool print_message);
 void list_breakpoints(void);
-const name_val_val* map_int_to_name_val_val(const name_val_val tbl[],
-                                            int tbl_len, int num);
-const name_val_val* map_string_to_name_val_val(const name_val_val tbl[],
-                                               int tbl_len, const char* id);
+const name_val_val* map_int_to_name_val_val(const name_val_val table[],
+                                            int table_length, int number);
+const name_val_val* map_string_to_name_val_val(const name_val_val table[],
+                                               int table_length, const char* identifier);
 [[nodiscard]] bool read_assembly_file(char* name);
-[[nodiscard]] bool run_program(mem_addr pc, int steps, bool display,
-                               bool cont_bkpt, bool* continuable);
+[[nodiscard]] bool run_program(mem_addr program_counter, int steps, bool display,
+                               bool continue_breakpoint, bool* continuable);
 mem_addr starting_address(void);
 /* The status the program exits with: its exit/exit2 value, or 128 + the
    ExcCode of the first runtime fault when that value is 0. */

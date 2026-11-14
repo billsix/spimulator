@@ -18,7 +18,7 @@ extern int explain_level;
 
 /* Called before the dispatch switch in run_spim. Snapshots register state and
    prints a description of the upcoming instruction. */
-void explain_before(const mips_instruction* instruction, mem_addr addr);
+void explain_before(const mips_instruction* instruction, mem_addr address);
 
 /* Called after the dispatch switch. Prints a diff of register/PC state vs
    the snapshot taken in explain_before. */
@@ -30,7 +30,7 @@ void explain_after(const mips_instruction* instruction);
    of its body, and by the default step display in run.c so the
    no-explain step output has the same shape as the explain-mode
    header. Level-independent — `instruction` is the instruction at `pc`. */
-void explain_print_step_header(mem_addr pc,
+void explain_print_step_header(mem_addr program_counter,
                                const mips_instruction* instruction);
 
 /* Tab-completion candidates for the most recent instruction's "Try it

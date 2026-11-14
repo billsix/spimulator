@@ -76,14 +76,15 @@ SPLIT_FLAGS: frozenset[str] = frozenset(
     {"-I", "-D", "-U", "-isystem", "-iquote", "-include"}
 )
 # A C token stream, coarse but literal-safe: comments, string and character literals, and
-# identifiers; everything else passes through.
-LEXEME: re.Pattern[str] = re.compile(
-    r"""(?P<comment>/\*.*?\*/|//[^\n]*)"""
-    r"""|(?P<string>"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*')"""
-    r"""|(?P<identifier>[A-Za-z_][A-Za-z0-9_]*)""",
+# identifiers; everything else passes through. It runs on bytes, because clang's offsets are
+# byte offsets and the sources hold UTF-8 (em dashes in comments).
+LEXEME: re.Pattern[bytes] = re.compile(
+    rb"""(?P<comment>/\*.*?\*/|//[^\n]*)"""
+    rb"""|(?P<string>"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*')"""
+    rb"""|(?P<identifier>[A-Za-z_][A-Za-z0-9_]*)""",
     re.DOTALL,
 )
-IDENTIFIER: re.Pattern[str] = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+IDENTIFIER: re.Pattern[bytes] = re.compile(rb"[A-Za-z_][A-Za-z0-9_]*")
 
 
 class Rename(typing.NamedTuple):
@@ -415,13 +416,21 @@ def token_edits(
     path: pathlib.Path
     for path in core_files(root):
         relative: str = str(path.relative_to(root))
-        text: str = path.read_text()
-        match: re.Match[str]
+        text: bytes = path.read_bytes()
+        match: re.Match[bytes]
         for match in LEXEME.finditer(text):
             if match.group("identifier") is not None:
-                token: str = match.group("identifier")
-                before: str = text[: match.start()].rstrip()
-                after: str = text[match.end() :].lstrip()
+                token: str = match.group("identifier").decode()
+                before: str = (
+                    text[max(0, match.start() - 200) : match.start()]
+                    .decode(errors="replace")
+                    .rstrip()
+                )
+                after: str = (
+                    text[match.end() : match.end() + 4]
+                    .decode(errors="replace")
+                    .lstrip()
+                )
                 if token in by_token:
                     edits[(relative, match.start())] = (token, by_token[token])
                 elif token in fields and (
@@ -432,10 +441,10 @@ def token_edits(
                 else:
                     pass
             elif match.group("comment") is not None:
-                comment: str = match.group("comment")
-                word: re.Match[str]
+                comment: bytes = match.group("comment")
+                word: re.Match[bytes]
                 for word in IDENTIFIER.finditer(comment):
-                    name: str = word.group(0)
+                    name: str = word.group(0).decode()
                     new: str | None = comment_rename(name, renames, kinds)
                     if new is not None:
                         edits[(relative, match.start() + word.start())] = (name, new)
@@ -521,19 +530,19 @@ def apply(root: pathlib.Path, edits: dict[tuple[str, int], tuple[str, str]]) -> 
             by_path[path].append((offset, old, new))
     changed: int = 0
     for path, items in by_path.items():
-        text: str = (root / path).read_text()
-        pieces: list[str] = []
+        text: bytes = (root / path).read_bytes()
+        pieces: list[bytes] = []
         cursor: int = 0
         for offset, old, new in sorted(items):
-            if text[offset : offset + len(old)] != old or offset < cursor:
+            if text[offset : offset + len(old)] != old.encode() or offset < cursor:
                 sys.stderr.write(f"{path}@{offset}: expected {old!r}\n")
                 raise SystemExit(1)
             pieces.append(text[cursor:offset])
-            pieces.append(new)
+            pieces.append(new.encode())
             cursor = offset + len(old)
             changed += 1
         pieces.append(text[cursor:])
-        (root / path).write_text("".join(pieces))
+        (root / path).write_bytes(b"".join(pieces))
     return changed
 
 
@@ -551,12 +560,13 @@ def residue(root: pathlib.Path, renames: list[Rename]) -> int:
     count: int = 0
     path: pathlib.Path
     for path in core_files(root):
-        text: str = path.read_text()
-        match: re.Match[str]
+        text: bytes = path.read_bytes()
+        match: re.Match[bytes]
         for match in LEXEME.finditer(text):
-            token: str | None = match.group("identifier")
+            identifier: bytes | None = match.group("identifier")
+            token: str | None = None if identifier is None else identifier.decode()
             if token in olds:
-                line: int = text.count("\n", 0, match.start()) + 1
+                line: int = text.count(b"\n", 0, match.start()) + 1
                 print(f"{path.relative_to(root)}:{line}: {token}")
                 count += 1
     return count

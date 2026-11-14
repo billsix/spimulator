@@ -15,10 +15,10 @@
 
 static asm_event_observer current_observer = nullptr;
 
-asm_event_observer asm_set_observer(asm_event_observer obs) {
-  const asm_event_observer prev = current_observer;
-  current_observer = obs;
-  return prev;
+asm_event_observer asm_set_observer(asm_event_observer observer) {
+  const asm_event_observer previous = current_observer;
+  current_observer = observer;
+  return previous;
 }
 
 /* Stamp the source position every event carries, then hand the event
@@ -30,69 +30,69 @@ static void fire(asm_event e) {
   current_observer(&e);
 }
 
-void asm_fire_label_def(mem_addr addr, const char* name, bool global) {
+void asm_fire_label_def(mem_addr address, const char* name, bool global) {
   if (current_observer == nullptr) return;
   fire((asm_event){.kind = AE_LABEL_DEF,
-                   .addr = addr,
+                   .addr = address,
                    .u.label_def = {.name = name, .global = global}});
 }
 
-void asm_fire_text_inst(mem_addr addr, uint32_t encoding) {
+void asm_fire_text_inst(mem_addr address, uint32_t encoding) {
   if (current_observer == nullptr) return;
   fire((asm_event){.kind = AE_TEXT_INST,
-                   .addr = addr,
+                   .addr = address,
                    .u.text_inst = {.encoding = encoding}});
 }
 
-void asm_fire_data_byte(mem_addr addr, int value) {
+void asm_fire_data_byte(mem_addr address, int value) {
   if (current_observer == nullptr) return;
   fire((asm_event){
-      .kind = AE_DATA_BYTE, .addr = addr, .u.data_int = {.value = value}});
+      .kind = AE_DATA_BYTE, .addr = address, .u.data_int = {.value = value}});
 }
 
-void asm_fire_data_half(mem_addr addr, int value) {
+void asm_fire_data_half(mem_addr address, int value) {
   if (current_observer == nullptr) return;
   fire((asm_event){
-      .kind = AE_DATA_HALF, .addr = addr, .u.data_int = {.value = value}});
+      .kind = AE_DATA_HALF, .addr = address, .u.data_int = {.value = value}});
 }
 
-void asm_fire_data_word(mem_addr addr, int value) {
+void asm_fire_data_word(mem_addr address, int value) {
   if (current_observer == nullptr) return;
   fire((asm_event){
-      .kind = AE_DATA_WORD, .addr = addr, .u.data_int = {.value = value}});
+      .kind = AE_DATA_WORD, .addr = address, .u.data_int = {.value = value}});
 }
 
-void asm_fire_data_double(mem_addr addr, double value) {
+void asm_fire_data_double(mem_addr address, double value) {
   if (current_observer == nullptr) return;
   fire((asm_event){
-      .kind = AE_DATA_DOUBLE, .addr = addr, .u.data_double = {.value = value}});
+      .kind = AE_DATA_DOUBLE, .addr = address, .u.data_double = {.value = value}});
 }
 
-void asm_fire_data_string(mem_addr addr, const char* s, int length,
+void asm_fire_data_string(mem_addr address, const char* s, int length,
                           bool null_term) {
   if (current_observer == nullptr) return;
   fire((asm_event){
       .kind = AE_DATA_STRING,
-      .addr = addr,
+      .addr = address,
       .u.data_string = {.string = s, .length = length, .null_term = null_term},
   });
 }
 
-void asm_fire_align(mem_addr addr, int low_bits, int offset, asm_segment seg) {
+void asm_fire_align(mem_addr address, int low_bits, int offset, asm_segment segment) {
   if (current_observer == nullptr) return;
   fire((asm_event){
       .kind = AE_ALIGN,
-      .addr = addr,
+      .addr = address,
       .u.align = {.new_pc_low_bits = low_bits,
                   .new_pc_offset = offset,
-                  .seg = seg},
+                  .seg = segment},
   });
 }
 
-void asm_fire_seg_change(asm_segment seg, mem_addr addr) {
+void asm_fire_seg_change(asm_segment segment, mem_addr address) {
   if (current_observer == nullptr) return;
   fire((asm_event){
-      .kind = AE_SEG_CHANGE, .addr = addr, .u.seg_change = {.seg = seg}});
+      .kind = AE_SEG_CHANGE, .addr = address, .u.seg_change = {.seg = segment}});
 }
 
 void asm_fire_forward_ref(mem_addr from, const char* symbol) {

@@ -16,55 +16,55 @@
    malloc'd buffer.  fflush publishes the buffer/size; fclose hands
    the buffer to the caller. */
 
-static void ss_lazy_init(str_stream* ss) {
-  if (ss->stream == nullptr) {
-    *ss = (str_stream){};
-    ss->stream = open_memstream(&ss->buf, &ss->size);
-    if (ss->stream == nullptr) fatal_error("open_memstream failed\n");
+static void ss_lazy_init(str_stream* stream) {
+  if (stream->stream == nullptr) {
+    *stream = (str_stream){};
+    stream->stream = open_memstream(&stream->buf, &stream->size);
+    if (stream->stream == nullptr) fatal_error("open_memstream failed\n");
   }
 }
 
-void ss_init(str_stream* ss) {
+void ss_init(str_stream* stream) {
   /* Historical contract: unconditionally start a fresh stream.  Local
      (stack) str_streams are ss_init'ed without being zeroed first, so
      no prior field value may be read here. */
-  *ss = (str_stream){};
-  ss_lazy_init(ss);
+  *stream = (str_stream){};
+  ss_lazy_init(stream);
 }
 
-void ss_clear(str_stream* ss) {
+void ss_clear(str_stream* stream) {
   /* Start over with an empty stream.  Rewinding is not enough: a memstream
      keeps what was written past the new position, so a shorter text written
      after the rewind would end in the old text's tail. */
-  if (ss->stream != nullptr) {
-    fclose(ss->stream);
-    free(ss->buf);
+  if (stream->stream != nullptr) {
+    fclose(stream->stream);
+    free(stream->buf);
   }
-  *ss = (str_stream){};
-  ss_lazy_init(ss);
+  *stream = (str_stream){};
+  ss_lazy_init(stream);
 }
 
-void ss_erase(str_stream* ss, int n) {
-  ss_lazy_init(ss);
-  long pos = ftell(ss->stream);
-  if (pos < 0) pos = 0;
-  fseek(ss->stream, (pos > n) ? pos - n : 0, SEEK_SET);
+void ss_erase(str_stream* stream, int n) {
+  ss_lazy_init(stream);
+  long position = ftell(stream->stream);
+  if (position < 0) position = 0;
+  fseek(stream->stream, (position > n) ? position - n : 0, SEEK_SET);
 }
 
-int ss_length(str_stream* ss) {
-  ss_lazy_init(ss);
-  fflush(ss->stream);
-  return (int)ss->size;
+int ss_length(str_stream* stream) {
+  ss_lazy_init(stream);
+  fflush(stream->stream);
+  return (int)stream->size;
 }
 
 /* Borrow the current contents.  The pointer remains owned by the
    stream: valid until the next ss_* call, do not free.  fflush
    NUL-terminates the buffer at the current position. */
 
-char* ss_to_string(str_stream* ss) {
-  ss_lazy_init(ss);
-  fflush(ss->stream);
-  return ss->buf;
+char* ss_to_string(str_stream* stream) {
+  ss_lazy_init(stream);
+  fflush(stream->stream);
+  return stream->buf;
 }
 
 /* Take ownership of the contents: closes the stream and returns the
@@ -72,21 +72,21 @@ char* ss_to_string(str_stream* ss) {
    str_stream itself is reset and may be reused (a fresh stream is
    created on its next use). */
 
-char* ss_take_string(str_stream* ss) {
-  ss_lazy_init(ss);
-  fclose(ss->stream);
-  ss->stream = nullptr;
-  char* const buf = ss->buf;
-  ss->buf = nullptr;
-  ss->size = 0;
-  return buf;
+char* ss_take_string(str_stream* stream) {
+  ss_lazy_init(stream);
+  fclose(stream->stream);
+  stream->stream = nullptr;
+  char* const buffer = stream->buf;
+  stream->buf = nullptr;
+  stream->size = 0;
+  return buffer;
 }
 
-void ss_printf(str_stream* ss, const char* fmt, ...) {
-  va_list args;
+void ss_printf(str_stream* stream, const char* format, ...) {
+  va_list arguments;
 
-  va_start(args, fmt);
-  ss_lazy_init(ss);
-  vfprintf(ss->stream, fmt, args);
-  va_end(args);
+  va_start(arguments, format);
+  ss_lazy_init(stream);
+  vfprintf(stream->stream, format, arguments);
+  va_end(arguments);
 }

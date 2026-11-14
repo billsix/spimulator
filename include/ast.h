@@ -216,22 +216,22 @@ struct ast_node {
 /* source_line is captured from the scanner's global at call time.    */
 
 /* Instructions */
-[[nodiscard]] ast_node* ast_make_inst_r(int op, int rd, int rs, int rt);
-[[nodiscard]] ast_node* ast_make_inst_r_shift(int op, int rd, int rt,
-                                              int shamt);
-[[nodiscard]] ast_node* ast_make_inst_i(int op, int rt, int rs, imm_expr* imm);
-[[nodiscard]] ast_node* ast_make_inst_j(int op, imm_expr* target);
-[[nodiscard]] ast_node* ast_make_inst_fp_r(int op, int fd, int fs, int ft);
-[[nodiscard]] ast_node* ast_make_inst_fp_compare(int op, int fs, int ft,
-                                                 int cc);
+[[nodiscard]] ast_node* ast_make_inst_r(int opcode, int destination_register, int source_register, int target_register);
+[[nodiscard]] ast_node* ast_make_inst_r_shift(int opcode, int destination_register, int target_register,
+                                              int shift_amount);
+[[nodiscard]] ast_node* ast_make_inst_i(int opcode, int target_register, int source_register, imm_expr* immediate);
+[[nodiscard]] ast_node* ast_make_inst_j(int opcode, imm_expr* target);
+[[nodiscard]] ast_node* ast_make_inst_fp_r(int opcode, int floating_point_destination, int floating_point_source, int floating_point_target);
+[[nodiscard]] ast_node* ast_make_inst_fp_compare(int opcode, int floating_point_source, int floating_point_target,
+                                                 int condition_code);
 [[nodiscard]] ast_node* ast_make_pseudo(
     const char* mnemonic); /* mnemonic dup'd */
 
 /* Data */
 [[nodiscard]] ast_node* ast_make_data_byte(
-    int count, imm_expr** exprs); /* takes ownership */
-[[nodiscard]] ast_node* ast_make_data_half(int count, imm_expr** exprs);
-[[nodiscard]] ast_node* ast_make_data_word(int count, imm_expr** exprs);
+    int count, imm_expr** expressions); /* takes ownership */
+[[nodiscard]] ast_node* ast_make_data_half(int count, imm_expr** expressions);
+[[nodiscard]] ast_node* ast_make_data_word(int count, imm_expr** expressions);
 [[nodiscard]] ast_node* ast_make_data_float(
     int count, double* values); /* takes ownership */
 [[nodiscard]] ast_node* ast_make_data_double(int count, double* values);
@@ -239,14 +239,14 @@ struct ast_node {
                                              bool null_term);
 
 /* Segment + layout */
-[[nodiscard]] ast_node* ast_make_dir_text(bool has_start_addr,
-                                          mem_addr start_addr);
-[[nodiscard]] ast_node* ast_make_dir_data(bool has_start_addr,
-                                          mem_addr start_addr);
-[[nodiscard]] ast_node* ast_make_dir_ktext(bool has_start_addr,
-                                           mem_addr start_addr);
-[[nodiscard]] ast_node* ast_make_dir_kdata(bool has_start_addr,
-                                           mem_addr start_addr);
+[[nodiscard]] ast_node* ast_make_dir_text(bool has_start_address,
+                                          mem_addr start_address);
+[[nodiscard]] ast_node* ast_make_dir_data(bool has_start_address,
+                                          mem_addr start_address);
+[[nodiscard]] ast_node* ast_make_dir_ktext(bool has_start_address,
+                                           mem_addr start_address);
+[[nodiscard]] ast_node* ast_make_dir_kdata(bool has_start_address,
+                                           mem_addr start_address);
 [[nodiscard]] ast_node* ast_make_dir_align(int n);
 [[nodiscard]] ast_node* ast_make_dir_space(int size);
 [[nodiscard]] ast_node* ast_make_dir_globl(const char* name); /* name dup'd */
@@ -270,7 +270,7 @@ struct ast_node {
 /* Append `stmt` to the end of `file`'s child chain.  O(N) per append;
    if this turns into a hotspot the parser can maintain its own tail
    pointer.  Returns `file` for chaining. */
-ast_node* ast_file_append(ast_node* file, ast_node* stmt);
+ast_node* ast_file_append(ast_node* file, ast_node* statement);
 
 /* Append `child` to the end of a pseudo wrapper's child chain. */
 ast_node* ast_pseudo_append(ast_node* pseudo, ast_node* child);

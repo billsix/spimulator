@@ -204,7 +204,6 @@ def main() -> int:
     located: list[tuple[str, str, str]] = [
         (row[0], row[1], row[2]) for row in manual_rows if len(row) == 3
     ]
-    located_names: set[str] = {old for old, _, _ in located}
     renames: dict[str, tuple[str, str]] = {}
     needed: list[str] = []
     old: str
@@ -215,8 +214,6 @@ def main() -> int:
         mixed_case: bool = name.lower() != name and name.upper() != name
         if name in EXTERNAL or name.startswith("_"):
             continue  # the runtime's, or a macro's internal temporary
-        elif name in located_names and name not in manual:
-            continue  # only its located declarations change
         elif KEYWORD_TOKEN.match(name):
             renames[name] = ("TOKEN_" + name.removeprefix("TOK_"), "auto")
         elif name in manual:

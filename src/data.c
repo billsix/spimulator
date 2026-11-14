@@ -50,21 +50,21 @@ void end_of_assembly_file(void) {
    64K.	 The 64K increment allocates an area pointed to by register
    $gp, which is initialized. */
 
-void data_begins_at_point(mem_addr addr) {
+void data_begins_at_point(mem_addr address) {
   if (bare_machine)
-    next_data_pc = addr;
+    next_data_pc = address;
   else {
-    next_gp_item_addr = addr;
-    gp_midpoint = addr + 32 * kilo;
+    next_gp_item_addr = address;
+    gp_midpoint = address + 32 * kilo;
     gpr[REG_GP] = (reg_word)gp_midpoint;
-    next_data_pc = addr + 64 * kilo;
+    next_data_pc = address + 64 * kilo;
   }
 }
 
 /* Set the point at which the first datum is stored in the kernel's
    data segment. */
 
-void k_data_begins_at_point(mem_addr addr) { next_k_data_pc = addr; }
+void k_data_begins_at_point(mem_addr address) { next_k_data_pc = address; }
 
 /* Arrange that the next datum is stored on a memory boundary with its
    low ALIGNMENT bits equal to 0.  If argument is 0, disable automatic
@@ -92,11 +92,11 @@ void enable_data_alignment(void) { enable_data_auto_alignment = true; }
 
 /* Set the location (in user or kernel data space) for the next datum. */
 
-void set_data_pc(mem_addr addr) {
+void set_data_pc(mem_addr address) {
   if (in_kernel)
-    next_k_data_pc = addr;
+    next_k_data_pc = address;
   else
-    next_data_pc = addr;
+    next_data_pc = address;
 }
 
 /* Return the address at which the next datum will be stored.  */
@@ -121,13 +121,13 @@ void increment_data_pc(int delta) {
 /* Process a .extern NAME SIZE directive. */
 
 void extern_directive(const char* name, int size) {
-  label* sym = make_label_global(name);
+  label* symbol = make_label_global(name);
 
-  if (!bare_machine && !sym->gp_flag  // Not already a global symbol
+  if (!bare_machine && !symbol->gp_flag  // Not already a global symbol
       && size > 0 && size <= SMALL_DATA_SEG_MAX_SIZE &&
       next_gp_item_addr + (mem_addr)size < gp_midpoint + 32 * kilo) {
-    sym->gp_flag = true;
-    sym->addr = next_gp_item_addr;
+    symbol->gp_flag = true;
+    symbol->addr = next_gp_item_addr;
     next_gp_item_addr += (mem_addr)size;
   }
 }
@@ -137,8 +137,8 @@ void extern_directive(const char* name, int size) {
 void lcomm_directive(const char* name, int size) {
   if (!bare_machine && size > 0 && size <= SMALL_DATA_SEG_MAX_SIZE &&
       next_gp_item_addr + (mem_addr)size < gp_midpoint + 32 * kilo) {
-    label* sym = record_label(name, next_gp_item_addr, true);
-    sym->gp_flag = true;
+    label* symbol = record_label(name, next_gp_item_addr, true);
+    symbol->gp_flag = true;
 
     next_gp_item_addr += (mem_addr)size;
     /* Don't need to initialize since memory starts with 0's */
@@ -160,8 +160,8 @@ static int data_store_depth = 0;
 
 void store_string(char* string, int length, bool null_terminate) {
   const mem_addr at = data_pc();
-  const char* const orig = string;
-  const int orig_len = length;
+  const char* const original = string;
+  const int original_length = length;
   data_store_depth++;
   for (; length > 0; string++, length--) {
     store_byte(*string);
@@ -171,7 +171,7 @@ void store_string(char* string, int length, bool null_terminate) {
   }
   data_store_depth--;
   if (data_store_depth == 0)
-    asm_fire_data_string(at, orig, orig_len, null_terminate);
+    asm_fire_data_string(at, original, original_length, null_terminate);
 }
 
 /* Process a .byte EXPR directive. */
@@ -251,9 +251,9 @@ void store_double(double* value) {
 /* Process a .float EXPR directive. */
 
 void store_float(double* value) {
-  float val = (float)*value;
+  float float_value = (float)*value;
   mem_word bits; /* the float's bit pattern, not its value */
-  memcpy(&bits, &val, sizeof bits);
+  memcpy(&bits, &float_value, sizeof bits);
 
   if ((data_pc() & 0x3) != 0) {
     store_half(bits & 0xffff);

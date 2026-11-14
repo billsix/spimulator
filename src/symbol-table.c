@@ -18,8 +18,8 @@
 /* Local functions: */
 
 static void get_hash(const char* name, int* slot_no, label** entry);
-static void resolve_a_label_sub(const label* sym, mips_instruction* instruction,
-                                mem_addr pc);
+static void resolve_a_label_sub(const label* symbol, mips_instruction* instruction,
+                                mem_addr program_counter);
 
 /* Keep track of the memory location that a label represents.  If we
    see a reference to a label that is not yet defined, then record the
@@ -62,19 +62,19 @@ void initialize_symbol_table(void) {
    set ENTRY to be nullptr. */
 
 static void get_hash(const char* name, int* slot_no, label** entry) {
-  const int len = (int)strlen(name);
+  const int length = (int)strlen(name);
 
   /* Compute hash code.  (unsigned)(name[i]) sign-extends a negative
      plain char first; the symbol dump order depends on it. */
-  unsigned hi = (unsigned int)len;
-  for (int i = 0; i < len; i++) hi = ((hi * 613) + (unsigned)(name[i]));
+  unsigned high = (unsigned int)length;
+  for (int i = 0; i < length; i++) high = ((high * 613) + (unsigned)(name[i]));
 
-  hi &= (1 << HASHBITS) - 1;
-  hi %= LABEL_HASH_TABLE_SIZE;
+  high &= (1 << HASHBITS) - 1;
+  high %= LABEL_HASH_TABLE_SIZE;
 
-  *slot_no = (int)hi;
+  *slot_no = (int)high;
   /* Search table for entry */
-  for (label* cursor = label_hash_table[hi]; cursor; cursor = cursor->next)
+  for (label* cursor = label_hash_table[high]; cursor; cursor = cursor->next)
     if (streq(cursor->name, name)) {
       *entry = cursor; /* <-- return if found */
       return;
@@ -86,10 +86,10 @@ static void get_hash(const char* name, int* slot_no, label** entry) {
    if it is not in the table. */
 
 label* label_is_defined(const char* name) {
-  int hi;
+  int high;
   label* entry;
 
-  get_hash(name, &hi, &entry);
+  get_hash(name, &high, &entry);
 
   return (entry);
 }
@@ -98,18 +98,18 @@ label* label_is_defined(const char* name) {
    previously been looked-up, the same node is returned this time.  */
 
 label* lookup_label(const char* name) {
-  int hi;
+  int high;
   label* entry;
 
-  get_hash(name, &hi, &entry);
+  get_hash(name, &high, &entry);
 
   if (entry != nullptr) return (entry);
 
   /* Not found: create an undefined (addr 0), flagless label at the head
      of its hash chain. */
   label* new_entry = (label*)xmalloc(sizeof(label));
-  *new_entry = (label){.name = strdup(name), .next = label_hash_table[hi]};
-  label_hash_table[hi] = new_entry;
+  *new_entry = (label){.name = strdup(name), .next = label_hash_table[high]};
+  label_hash_table[high] = new_entry;
   return new_entry; /* <-- return if created */
 }
 
@@ -151,32 +151,32 @@ label* make_label_global(const char* name) {
 
 /* Record that an INSTRUCTION uses the as-yet undefined SYMBOL. */
 
-void record_inst_uses_symbol(mips_instruction* instruction, label* sym) {
+void record_inst_uses_symbol(mips_instruction* instruction, label* symbol) {
   label_use* u = (label_use*)xmalloc(sizeof(label_use));
 
   if (data_dir) /* Want to free up original instruction */
     *u = (label_use){.instruction = copy_inst(instruction),
                      .addr = current_data_pc(),
-                     .next = sym->uses};
+                     .next = symbol->uses};
   else
     *u = (label_use){.instruction = instruction,
                      .addr = current_text_pc(),
-                     .next = sym->uses};
-  sym->uses = u;
-  asm_fire_forward_ref(u->addr, sym->name);
+                     .next = symbol->uses};
+  symbol->uses = u;
+  asm_fire_forward_ref(u->addr, symbol->name);
 }
 
 /* Record that the WIDTH-byte datum at memory LOCATION holds the as-yet
    undefined SYMBOL plus OFFSET. */
 
-void record_data_uses_symbol(mem_addr location, label* sym, int32_t offset,
+void record_data_uses_symbol(mem_addr location, label* symbol, int32_t offset,
                              int width) {
   label_use* u = (label_use*)xmalloc(sizeof(label_use));
 
   *u = (label_use){
-      .addr = location, .offset = offset, .width = width, .next = sym->uses};
-  sym->uses = u;
-  asm_fire_forward_ref(location, sym->name);
+      .addr = location, .offset = offset, .width = width, .next = symbol->uses};
+  symbol->uses = u;
+  asm_fire_forward_ref(location, symbol->name);
 }
 
 /* Store the low WIDTH bytes of VALUE at AT in target byte order, one byte at a
@@ -198,43 +198,43 @@ static void write_data_value(mem_addr at, int32_t value, int width) {
 /* Given a newly-defined LABEL, resolve the previously encountered
    instructions and data locations that refer to the label. */
 
-void resolve_label_uses(label* sym) {
+void resolve_label_uses(label* symbol) {
   label_use* next_use;
 
-  for (label_use* use = sym->uses; use != nullptr; use = next_use) {
+  for (label_use* use = symbol->uses; use != nullptr; use = next_use) {
     if (use->instruction == nullptr)
-      write_data_value(use->addr, (int32_t)sym->addr + use->offset, use->width);
+      write_data_value(use->addr, (int32_t)symbol->addr + use->offset, use->width);
     else
-      resolve_a_label_sub(sym, use->instruction, use->addr);
+      resolve_a_label_sub(symbol, use->instruction, use->addr);
     if (use->instruction != nullptr && use->addr >= DATA_BOT &&
         use->addr < stack_bot) {
       mem_write_word(use->addr, inst_encode(use->instruction));
       free_inst(use->instruction);
     }
-    asm_fire_forward_resolved(use->addr, sym->name, (int32_t)sym->addr);
+    asm_fire_forward_resolved(use->addr, symbol->name, (int32_t)symbol->addr);
     next_use = use->next;
     free(use);
   }
-  sym->uses = nullptr;
+  symbol->uses = nullptr;
 }
 
 /* Resolve the newly-defined label in INSTRUCTION. */
 
-void resolve_a_label(label* sym, mips_instruction* instruction) {
-  resolve_a_label_sub(sym, instruction,
+void resolve_a_label(label* symbol, mips_instruction* instruction) {
+  resolve_a_label_sub(symbol, instruction,
                       (data_dir ? current_data_pc() : current_text_pc()));
 }
 
-static void resolve_a_label_sub(const label* sym, mips_instruction* instruction,
-                                mem_addr pc) {
+static void resolve_a_label_sub(const label* symbol, mips_instruction* instruction,
+                                mem_addr program_counter) {
   if (instruction == nullptr) {
     /* Memory data: */
-    mem_write_word(pc, (reg_word)sym->addr);
+    mem_write_word(program_counter, (reg_word)symbol->addr);
   } else {
     /* Instruction: */
     if (EXPR(instruction)->pc_relative)
       EXPR(instruction)->offset =
-          (int32_t)(0 - pc); /* Instruction may have moved */
+          (int32_t)(0 - program_counter); /* Instruction may have moved */
 
     if (EXPR(instruction)->symbol == nullptr ||
         SYMBOL_IS_DEFINED(EXPR(instruction)->symbol)) {
@@ -255,17 +255,17 @@ static void resolve_a_label_sub(const label* sym, mips_instruction* instruction,
           error(
               "Branch target is out of range (more than 128 KB away) at pc "
               "0x%x\n",
-              pc);
+              program_counter);
 
         value = (int32_t)((uint32_t)word_offset & 0xffffu);
         field_mask = 0xffff;
       } else if (opcode_is_jump(OPCODE(instruction))) {
         value = eval_imm_expr(EXPR(instruction));
-        if (((unsigned int)value & 0xf0000000) != (pc & 0xf0000000)) {
+        if (((unsigned int)value & 0xf0000000) != (program_counter & 0xf0000000)) {
           error(
               "Target of jump differs in high-order 4 bits from instruction pc "
               "0x%x\n",
-              pc);
+              program_counter);
         }
         /* Drop high four bits, since they come from the PC and the
                low two bits since instructions are on word boundaries. */
@@ -280,24 +280,24 @@ static void resolve_a_label_sub(const label* sym, mips_instruction* instruction,
         if (value & 0x8000) {
           /* LW/SW sign extends offset. Compensate by adding 1 to high 16 bits.
            */
-          mips_instruction* prev_inst = mem_read_inst(pc - BYTES_PER_WORD);
-          mips_instruction* prev_prev_inst =
-              mem_read_inst(pc - 2 * BYTES_PER_WORD);
+          mips_instruction* previous_instruction = mem_read_inst(program_counter - BYTES_PER_WORD);
+          mips_instruction* previous_previous_instruction =
+              mem_read_inst(program_counter - 2 * BYTES_PER_WORD);
 
-          if (prev_inst != nullptr && OPCODE(prev_inst) == TOK_LUI_OPCODE &&
-              EXPR(instruction)->symbol == EXPR(prev_inst)->symbol &&
-              IMM(prev_inst) == 0) {
+          if (previous_instruction != nullptr && OPCODE(previous_instruction) == TOK_LUI_OPCODE &&
+              EXPR(instruction)->symbol == EXPR(previous_instruction)->symbol &&
+              IMM(previous_instruction) == 0) {
             /* Check that previous instruction was LUI and it has no immediate,
                otherwise it will have compensated for sign-extension */
-            EXPR(prev_inst)->offset += 0x10000;
+            EXPR(previous_instruction)->offset += 0x10000;
           }
           /* There is an ADDU instruction before the LUI if the
              LW/SW instruction uses an index register: skip over the ADDU. */
-          else if (prev_prev_inst != nullptr &&
-                   OPCODE(prev_prev_inst) == TOK_LUI_OPCODE &&
-                   EXPR(instruction)->symbol == EXPR(prev_prev_inst)->symbol &&
-                   IMM(prev_prev_inst) == 0) {
-            EXPR(prev_prev_inst)->offset += 0x10000;
+          else if (previous_previous_instruction != nullptr &&
+                   OPCODE(previous_previous_instruction) == TOK_LUI_OPCODE &&
+                   EXPR(instruction)->symbol == EXPR(previous_previous_instruction)->symbol &&
+                   IMM(previous_previous_instruction) == 0) {
+            EXPR(previous_previous_instruction)->offset += 0x10000;
           } else {
             /* No matching LUI without an immediate: nothing to compensate. */
           }
@@ -311,7 +311,7 @@ static void resolve_a_label_sub(const label* sym, mips_instruction* instruction,
       if ((value & ~field_mask) != (int32_t)0 &&
           (value & ~field_mask) != (int32_t)0xffff0000) {
         error("Immediate value is too large for field: ");
-        print_inst(pc);
+        print_inst(program_counter);
       }
       if (opcode_is_jump(OPCODE(instruction)))
         SET_TARGET(instruction, value); /* Don't mask so it is sign-extended */
@@ -328,21 +328,21 @@ static void resolve_a_label_sub(const label* sym, mips_instruction* instruction,
 
 /* Remove all local (non-global) label from the table. */
 
-void flush_local_labels(bool issue_undef_warnings) {
+void flush_local_labels(bool issue_undefined_warnings) {
   for (label* l = local_labels; l != nullptr; l = l->next_local) {
-    int hi;
-    label *entry, *cursor, *prev;
+    int high;
+    label *entry, *cursor, *previous;
 
-    get_hash(l->name, &hi, &entry);
+    get_hash(l->name, &high, &entry);
 
-    for (cursor = label_hash_table[hi], prev = nullptr; cursor;
-         prev = cursor, cursor = cursor->next)
+    for (cursor = label_hash_table[high], previous = nullptr; cursor;
+         previous = cursor, cursor = cursor->next)
       if (cursor == entry) {
-        if (prev == nullptr)
-          label_hash_table[hi] = cursor->next;
+        if (previous == nullptr)
+          label_hash_table[high] = cursor->next;
         else
-          prev->next = cursor->next;
-        if (issue_undef_warnings && entry->addr == 0 && !entry->const_flag)
+          previous->next = cursor->next;
+        if (issue_undefined_warnings && entry->addr == 0 && !entry->const_flag)
           error("Warning: local symbol %s was not defined\n", entry->name);
         /* Can't free label since IMM_EXPR's still reference it */
         break;
@@ -373,10 +373,10 @@ void print_symbols(void) {
 
 /* Iterate over every currently-defined symbol in the table. */
 
-void for_each_label(void (*cb)(const label* l, void* ctx), void* ctx) {
+void for_each_label(void (*callback)(const label* l, void* ctx), void* context) {
   for (int i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
     for (label* l = label_hash_table[i]; l != nullptr; l = l->next)
-      if (SYMBOL_IS_DEFINED(l)) cb(l, ctx);
+      if (SYMBOL_IS_DEFINED(l)) callback(l, context);
 }
 
 /* Print all undefined symbols in the table. */

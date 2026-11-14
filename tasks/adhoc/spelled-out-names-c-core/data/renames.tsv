@@ -672,7 +672,7 @@ UK26	UNKNOWN26	VarDecl	auto	*
 UK5	UNKNOWN5	VarDecl	auto	*
 UK6	UNKNOWN6	VarDecl	auto	*
 UNKNOWN_CMD	UNKNOWN_COMMAND	EnumConstantDecl	auto	*
-a_opcode	lookup_opcode	VarDecl	manual	*
+a_opcode	table_opcode	VarDecl	manual	*
 absoff	absolute_offset	VarDecl	auto	*
 accept_pseudo_insts	accept_pseudo_instructions	VarDecl	auto	*
 addl_bytes	additional_bytes	ParmVarDecl	auto	*
@@ -765,7 +765,7 @@ cur	current	VarDecl	auto	*
 current_data_pc	current_data_location	FunctionDecl	manual	*
 current_line_buf	current_line_buffer	FieldDecl,VarDecl	auto	*
 current_text_pc	current_text_location	FunctionDecl	manual	*
-dasm	disassembly	VarDecl	auto	*
+dasm	disassembly_text	VarDecl	manual	*
 data_dir	data_directive	VarDecl	auto	*
 data_fp	data_floating_point	FieldDecl	manual	*
 data_fp_begin	data_floating_point_begin	FunctionDecl	manual	*
@@ -878,7 +878,7 @@ has_mem	has_memory	FieldDecl	auto	*
 has_start_addr	has_start_address	FieldDecl,ParmVarDecl	auto	*
 hi	high	FieldDecl,ParmVarDecl,VarDecl	manual	*
 hr	horizontal_rule	FunctionDecl	auto	*
-i_opcode	lookup_opcode	VarDecl	manual	*
+i_opcode	instruction_opcode	VarDecl	manual	*
 id	identifier	ParmVarDecl	manual	*
 id_buf	identifier_buffer	VarDecl	manual	*
 idlen	identifier_length	VarDecl	auto	*
@@ -895,7 +895,7 @@ imm_signed	immediate_signed	ParmVarDecl	auto	*
 imm_u	immediate_unsigned	VarDecl	manual	*
 immexpr	immediate_expression	RecordDecl	auto	*
 in	input	ParmVarDecl	manual	*
-in_file	input_file	ParmVarDecl	manual	*
+in_file	input_stream	ParmVarDecl	manual	*
 incr_expr_offset	increment_expression_offset	FunctionDecl	auto	*
 increment_data_pc	increment_data_location	FunctionDecl	manual	*
 increment_text_pc	increment_text_location	FunctionDecl	manual	*
@@ -1234,3 +1234,4 @@ r_i	registers	FieldDecl	manual	include/instruction.h:51
 r_t	fields	FieldDecl	manual	include/instruction.h:55
 u	payload	FieldDecl,VarDecl	manual	include/assembler-event.h:90
 u	payload	FieldDecl,VarDecl	manual	include/ast.h:209
+val	float_value	FieldDecl,ParmVarDecl,VarDecl	manual	src/data.c:254

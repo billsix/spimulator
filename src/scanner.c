@@ -12,12 +12,12 @@
 
 #include "spim.h"
 #include "spim-utils.h"   /* name_val_val, xmalloc */
-#include "registers.h"    /* R_LENGTH */
+#include "registers.h"    /* GENERAL_PURPOSE_REGISTER_COUNT */
 #include "symbol-table.h" /* label_is_defined */
 #include "scanner.h"      /* scan_value, line_no */
 #include "tokens.h"       /* TOK_* token values */
 #include "opcode-types.h" /* op_type tag enumerators (ASM_DIR, RD_RS_RT_INST, ...) */
-#include "opcode-tables.h" /* opcode_tbl: keyword -> {token, op_type} */
+#include "opcode-tables.h" /* opcode_table: keyword -> {token, op_type} */
 
 /* Runtime-visible globals. */
 int line_no = 1;
@@ -54,8 +54,8 @@ int register_name_to_number(const char* name) {
   } else if (c1 == 'f' && c2 >= '0' && c2 <= '9') {
     /* $f0..$f31; a larger number is not a register (and atoi would
        overflow on a long one). */
-    const long fp_reg = strtol(name + 1, nullptr, 10);
-    return fp_reg <= 31 ? (int)fp_reg : -1;
+    const long floating_point_register = strtol(name + 1, nullptr, 10);
+    return floating_point_register <= 31 ? (int)floating_point_register : -1;
   } else {
     const name_val_val* const entry = map_string_to_name_val_val(
         register_tbl, sizeof(register_tbl) / sizeof(name_val_val), name);
@@ -64,12 +64,12 @@ int register_name_to_number(const char* name) {
 }
 
 /* --- keyword table ---------------------------------------- */
-/* Keywords are looked up in opcode_tbl (opcode-tables.h), generated from
+/* Keywords are looked up in opcode_table (opcode-tables.h), generated from
    include/opcodes.tsv and sorted by name: {name, token, op_type}. */
 
-static int check_keyword(const char* id, bool allow_pseudo_ops) {
+static int check_keyword(const char* identifier, bool allow_pseudo_ops) {
   const name_val_val* const entry =
-      map_string_to_name_val_val(opcode_tbl, OPCODE_COUNT, id);
+      map_string_to_name_val_val(opcode_tbl, OPCODE_COUNT, identifier);
   if (entry == nullptr)
     return 0;
   else if (!allow_pseudo_ops && entry->value2 == PSEUDO_OP)
@@ -80,8 +80,8 @@ static int check_keyword(const char* id, bool allow_pseudo_ops) {
 
 /* --- input buffering -------------------------------------- */
 /* The scanner reads one line at a time from `input_file` into
-   `line_buf`.  Tokens are scanned by character-walking
-   `line_pos` within the buffer.  When `line_pos` reaches the
+   `line_buffer`.  Tokens are scanned by character-walking
+   `line_position` within the buffer.  When `line_position` reaches the
    end (or NUL), the next line is read on demand. */
 
 constexpr int LINE_BUF_MAX = 4096;
@@ -117,8 +117,8 @@ static bool force_id_next = false;
 
 /* --- public API ------------------------------------------- */
 
-void scanner_init(FILE* in) {
-  input_file = in;
+void scanner_init(FILE* input) {
+  input_file = input;
   line_pos = 0;
   line_len = 0;
   at_eof = false;
@@ -135,7 +135,7 @@ void scanner_force_identifier(void) { force_id_next = true; }
 
 /* --- low-level character access --------------------------- */
 
-/* Read the next line from input_file into line_buf.  Sets at_eof
+/* Read the next line from input_file into line_buffer.  Sets at_eof
    if the read returns 0 bytes.  Includes the trailing newline
    (if present) so newline-tokenization sees it. */
 static void fill_line_buf(void) {
@@ -170,16 +170,16 @@ static int next_char(void) {
   return (unsigned char)line_buf[line_pos++];
 }
 
-/* Snapshot the current line into current_line_buf the first
+/* Snapshot the current line into current_line_buffer the first
    time a non-whitespace token is encountered on a given line. */
 static void maybe_snapshot_line(void) {
   if (!current_line_saved) {
     /* Copy up to (but not including) the trailing newline */
-    int len = line_len;
-    if (len > 0 && line_buf[len - 1] == '\n') len--;
-    if (len >= LINE_BUF_MAX) len = LINE_BUF_MAX - 1;
-    memcpy(current_line_buf, line_buf, (size_t)len);
-    current_line_buf[len] = '\0';
+    int length = line_len;
+    if (length > 0 && line_buf[length - 1] == '\n') length--;
+    if (length >= LINE_BUF_MAX) length = LINE_BUF_MAX - 1;
+    memcpy(current_line_buf, line_buf, (size_t)length);
+    current_line_buf[length] = '\0';
     current_line_no_saved = line_no;
     current_line_saved = true;
   }
@@ -192,10 +192,10 @@ static inline int hex_digit_value(int c) {
   return c <= '9' ? c - '0' : (c <= 'F' ? c - 'A' + 10 : c - 'a' + 10);
 }
 
-/* Look-ahead: starting from line_pos, decide if the next token
+/* Look-ahead: starting from line_position, decide if the next token
    is a floating-point literal (matches `[0-9]+[.][0-9]+(e[+-]?[0-9]+)?`)
    vs a plain integer.  Returns the position past the FP-literal
-   on success; line_pos on no-match.  Does NOT mutate line_pos. */
+   on success; line_position on no-match.  Does NOT mutate line_position. */
 static int scan_fp_check(void) {
   int p = line_pos;
   /* digits */
@@ -216,16 +216,16 @@ static int scan_fp_check(void) {
   return p;
 }
 
-static int scan_fp(int sign, int end_pos, scan_token* out) {
+static int scan_fp(int sign, int end_position, scan_token* out) {
   static double scratch;
   /* Copy the literal text into a temp buffer for atof. */
-  char buf[64];
-  int len = end_pos - line_pos;
-  if (len >= (int)sizeof(buf)) len = sizeof(buf) - 1;
-  memcpy(buf, line_buf + line_pos, (size_t)len);
-  buf[len] = '\0';
-  scratch = sign * atof(buf);
-  line_pos = end_pos;
+  char buffer[64];
+  int length = end_position - line_pos;
+  if (length >= (int)sizeof(buffer)) length = sizeof(buffer) - 1;
+  memcpy(buffer, line_buf + line_pos, (size_t)length);
+  buffer[length] = '\0';
+  scratch = sign * atof(buffer);
+  line_pos = end_position;
   *out =
       (scan_token){.type = TOK_FP, .val.p = (void*)&scratch, .present = true};
   return TOK_FP;
@@ -259,9 +259,9 @@ static int scan_int(int sign, scan_token* out) {
 
 /* Decode a backslash escape in a char literal.  `pp` points to the
    char AFTER the backslash; it's advanced past the consumed escape. */
-static int scan_escape_char(const char** pp) {
-  const char first = **pp;
-  (*pp)++;
+static int scan_escape_char(const char** cursor) {
+  const char first = **cursor;
+  (*cursor)++;
   switch (first) {
     case 'a':
       return '\a';
@@ -283,19 +283,19 @@ static int scan_escape_char(const char** pp) {
       return '\'';
     case 'X':
     case 'x': {
-      const int hi = **pp, lo = *(*pp + 1);
+      const int high = **cursor, low = *(*cursor + 1);
       int v = 0;
-      if (isxdigit(hi))
-        v = hex_digit_value(hi) << 4;
+      if (isxdigit(high))
+        v = hex_digit_value(high) << 4;
       else {
         error("Bad character in \\X construct in char literal\n");
       }
-      if (isxdigit(lo))
-        v |= hex_digit_value(lo);
+      if (isxdigit(low))
+        v |= hex_digit_value(low);
       else {
         error("Bad character in \\X construct in char literal\n");
       }
-      *pp += 2;
+      *cursor += 2;
       return v;
     }
     default:
@@ -306,11 +306,11 @@ static int scan_escape_char(const char** pp) {
 
 /* Decode a string literal — produces a fresh heap-allocated
    NUL-terminated decoded buffer. */
-static char* decode_string(const char* src, int len) {
-  char* const dst = (char*)xmalloc((size_t)(len + 1));
-  char* d = dst;
-  const char* s = src;
-  const char* const end = src + len;
+static char* decode_string(const char* source, int length) {
+  char* const destination = (char*)xmalloc((size_t)(length + 1));
+  char* d = destination;
+  const char* s = source;
+  const char* const end = source + length;
   while (s < end) {
     if (*s != '\\') {
       *d++ = *s++;
@@ -392,11 +392,11 @@ static char* decode_string(const char* src, int len) {
     }
   }
   *d = '\0';
-  return dst;
+  return destination;
 }
 
 /* Scan an identifier or keyword.  Returns the appropriate token. */
-static int scan_identifier(scan_token* out, bool force_id) {
+static int scan_identifier(scan_token* out, bool force_identifier) {
   /* Capture the identifier text. */
   const int start = line_pos;
   while (peek_char() == '_' || peek_char() == '.' || isalnum(peek_char())) {
@@ -404,16 +404,16 @@ static int scan_identifier(scan_token* out, bool force_id) {
   }
   const int end = line_pos;
 
-  static char id_buf[256];
-  int idlen = end - start;
-  if (idlen >= (int)sizeof(id_buf)) idlen = sizeof(id_buf) - 1;
-  memcpy(id_buf, line_buf + start, (size_t)idlen);
-  id_buf[idlen] = '\0';
+  static char identifier_buffer[256];
+  int identifier_length = end - start;
+  if (identifier_length >= (int)sizeof(identifier_buffer)) identifier_length = sizeof(identifier_buffer) - 1;
+  memcpy(identifier_buffer, line_buf + start, (size_t)identifier_length);
+  identifier_buffer[identifier_length] = '\0';
 
-  /* Keyword lookup (unless force_id). */
-  if (!force_id) {
+  /* Keyword lookup (unless force_identifier). */
+  if (!force_identifier) {
     const int token =
-        check_keyword(id_buf, !bare_machine && accept_pseudo_insts);
+        check_keyword(identifier_buffer, !bare_machine && accept_pseudo_insts);
     if (token != 0) {
       *out = (scan_token){.type = token, .val.i = token, .present = true};
       return token;
@@ -421,7 +421,7 @@ static int scan_identifier(scan_token* out, bool force_id) {
   }
 
   /* Defined-constant label? */
-  label* const l = label_is_defined(id_buf);
+  label* const l = label_is_defined(identifier_buffer);
   if (l != nullptr && l->const_flag) {
     *out =
         (scan_token){.type = TOK_INT, .val.i = (int)l->addr, .present = true};
@@ -430,7 +430,7 @@ static int scan_identifier(scan_token* out, bool force_id) {
 
   /* Otherwise an identifier. */
   *out = (scan_token){
-      .type = TOK_ID, .val.p = (void*)strdup(id_buf), .present = true};
+      .type = TOK_ID, .val.p = (void*)strdup(identifier_buffer), .present = true};
   return TOK_ID;
 }
 
@@ -444,30 +444,30 @@ static int scan_register(scan_token* out) {
   }
   const int end = line_pos;
 
-  static char reg_buf[64];
-  int reglen = end - start;
-  if (reglen >= (int)sizeof(reg_buf)) reglen = sizeof(reg_buf) - 1;
-  memcpy(reg_buf, line_buf + start, (size_t)reglen);
-  reg_buf[reglen] = '\0';
+  static char register_buffer[64];
+  int register_name_length = end - start;
+  if (register_name_length >= (int)sizeof(register_buffer)) register_name_length = sizeof(register_buffer) - 1;
+  memcpy(register_buffer, line_buf + start, (size_t)register_name_length);
+  register_buffer[register_name_length] = '\0';
 
-  const int reg_no = register_name_to_number(reg_buf);
+  const int register_no = register_name_to_number(register_buffer);
 
   /* FP register if leading is 'f' and not "fp" */
-  if (reg_no != -1 && reg_buf[0] == 'f' && reg_buf[1] != 'p') {
-    *out = (scan_token){.type = TOK_FP_REG, .val.i = reg_no, .present = true};
+  if (register_no != -1 && register_buffer[0] == 'f' && register_buffer[1] != 'p') {
+    *out = (scan_token){.type = TOK_FP_REG, .val.i = register_no, .present = true};
     return TOK_FP_REG;
-  } else if (reg_no >= 0 && reg_no < R_LENGTH) {
-    *out = (scan_token){.type = TOK_REG, .val.i = reg_no, .present = true};
+  } else if (register_no >= 0 && register_no < R_LENGTH) {
+    *out = (scan_token){.type = TOK_REG, .val.i = register_no, .present = true};
     return TOK_REG;
   } else {
     /* Fall back to identifier-or-constant-label behavior. */
-    label* const l = label_is_defined(reg_buf);
+    label* const l = label_is_defined(register_buffer);
     if (l != nullptr && l->const_flag)
       *out =
           (scan_token){.type = TOK_INT, .val.i = (int)l->addr, .present = true};
     else
       *out = (scan_token){
-          .type = TOK_ID, .val.p = (void*)strdup(reg_buf), .present = true};
+          .type = TOK_ID, .val.p = (void*)strdup(register_buffer), .present = true};
     return out->type;
   }
 }
@@ -508,7 +508,7 @@ static int scan_char(scan_token* out) {
     const char* p = &line_buf[line_pos];
     const char* const p0 = p;
     v = scan_escape_char(&p);
-    /* Advance line_pos by however many chars scan_escape_char ate. */
+    /* Advance line_position by however many chars scan_escape_char ate. */
     line_pos += (int)(p - p0);
   } else {
     v = next_char();
@@ -522,12 +522,12 @@ static int scan_char(scan_token* out) {
    whitespace and comments first. */
 static void scan_one_token(scan_token* out) {
   /* Force-identifier flag is consumed by this call (one-shot). */
-  const bool force_id = force_id_next;
+  const bool force_identifier = force_id_next;
   force_id_next = false;
 
   /* Skip whitespace, comments, and CR.  Stop at NL, ';', or a
    * real token character.  Each iteration may need to refill
-   * line_buf if we've exhausted it without finding a token. */
+   * line_buffer if we've exhausted it without finding a token. */
   while (true) {
     /* If buffer is empty / exhausted, refill — but we report
        TOK_NL between every line, and TOK_EOF/TOK_EOF only when the
@@ -595,25 +595,25 @@ have_char:
       /* Negative integer or FP? */
       if (c == '-' && isdigit(peek_char2())) {
         next_char(); /* consume the '-' */
-        const int fp_end = scan_fp_check();
-        if (fp_end > line_pos) {
-          scan_fp(-1, fp_end, out);
+        const int floating_point_end = scan_fp_check();
+        if (floating_point_end > line_pos) {
+          scan_fp(-1, floating_point_end, out);
           return;
         }
         scan_int(-1, out);
         return;
       } else if (isdigit(c)) {
         /* Positive number — could be int or FP. */
-        const int fp_end = scan_fp_check();
-        if (fp_end > line_pos) {
-          scan_fp(1, fp_end, out);
+        const int floating_point_end = scan_fp_check();
+        if (floating_point_end > line_pos) {
+          scan_fp(1, floating_point_end, out);
           return;
         }
         scan_int(1, out);
         return;
       } else if (c == '_' || c == '.' || isalpha(c)) {
         /* Identifier or keyword? */
-        scan_identifier(out, force_id);
+        scan_identifier(out, force_identifier);
         return;
       } else if (c == '$') {
         /* Register? */
@@ -656,7 +656,7 @@ have_char:
 /* --- token-buffer machinery ------------------------------- */
 
 static void ensure_filled(int n) {
-  /* Make sure tok_buf[0..n-1] are populated. */
+  /* Make sure token_buffer[0..n-1] are populated. */
   for (int i = 0; i < n; i++) {
     if (!tok_buf[i].present) {
       scan_one_token(&tok_buf[i]);
@@ -725,7 +725,7 @@ typedef struct {
 static scanner_snapshot scanner_stack[SCANNER_STACK_DEPTH];
 static int scanner_stack_depth = 0;
 
-void scanner_push_source(FILE* in_file) {
+void scanner_push_source(FILE* input_stream) {
   if (scanner_stack_depth >= SCANNER_STACK_DEPTH) {
     fatal_error("scanner_push_source: nested scanner stack overflow\n");
     return;
@@ -743,7 +743,7 @@ void scanner_push_source(FILE* in_file) {
   s->force_id_next = force_id_next;
   memcpy(s->tok_buf, tok_buf, sizeof(tok_buf));
 
-  scanner_init(in_file);
+  scanner_init(input_stream);
 }
 
 void scanner_pop_source(void) {
@@ -772,9 +772,9 @@ void scanner_pop_source(void) {
 /* Return a heap-allocated copy of the current source line, tab-
    indented and newline-terminated, for the parse-error printer. */
 char* erroneous_line(void) {
-  const size_t len = strlen(current_line_buf);
-  char* const r = (char*)xmalloc(len + 16);
-  snprintf(r, len + 16, "\t  %s\n", current_line_buf);
+  const size_t length = strlen(current_line_buf);
+  char* const r = (char*)xmalloc(length + 16);
+  snprintf(r, length + 16, "\t  %s\n", current_line_buf);
   return r;
 }
 
@@ -783,9 +783,9 @@ char* erroneous_line(void) {
    annotate assembled instructions with their originating source. */
 char* source_line(void) {
   if (!current_line_saved) return nullptr;
-  const size_t len = strlen(current_line_buf);
+  const size_t length = strlen(current_line_buf);
   /* "NNN: " prefix — up to 10 digits + ": " + line + NUL */
-  char* const r = (char*)xmalloc(len + 16);
-  snprintf(r, len + 16, "%d: %s", current_line_no_saved, current_line_buf);
+  char* const r = (char*)xmalloc(length + 16);
+  snprintf(r, length + 16, "%d: %s", current_line_no_saved, current_line_buf);
   return r;
 }

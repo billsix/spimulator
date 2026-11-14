@@ -224,22 +224,22 @@ void initialize_stack(const char* command_line) {
   int argc = 0;
   char* argv[MAX_ARGS];
   char* a;
-  char* args = strdup((char*)command_line); /* Destructively modify string */
-  char* const orig_args = args;
+  char* arguments = strdup((char*)command_line); /* Destructively modify string */
+  char* const original_arguments = arguments;
 
-  while (*args != '\0') {
+  while (*arguments != '\0') {
     /* Skip leading blanks */
-    while (*args == ' ' || *args == '\t') args++;
+    while (*arguments == ' ' || *arguments == '\t') arguments++;
 
     /* First non-blank char */
-    a = args;
+    a = arguments;
 
     /* Last non-blank, non-null char */
-    while (*args != ' ' && *args != '\t' && *args != '\0') args++;
+    while (*arguments != ' ' && *arguments != '\t' && *arguments != '\0') arguments++;
 
     /* Terminate word */
-    if (a != args) {
-      if (*args != '\0') *args++ = '\0'; /* Null terminate */
+    if (a != arguments) {
+      if (*arguments != '\0') *arguments++ = '\0'; /* Null terminate */
 
       argv[argc++] = a;
 
@@ -250,7 +250,7 @@ void initialize_stack(const char* command_line) {
   }
 
   initialize_run_stack(argc, argv);
-  free(orig_args);
+  free(original_arguments);
 }
 
 /* Initialize the SPIM stack with ARGC, ARGV, and ENVP data. */
@@ -258,18 +258,18 @@ void initialize_stack(const char* command_line) {
 void initialize_run_stack(int argc, char** argv) {
   char** p;
   extern char** environ;
-  int i, j = 0, env_j;
-  mem_addr addrs[10000];
+  int i, j = 0, environment_count;
+  mem_addr addresses[10000];
 
   gpr[REG_SP] = STACK_TOP - 1; /* Initialize $sp */
 
   /* Put strings on stack: */
   /* env: */
-  for (p = environ; *p != nullptr; p++) addrs[j++] = copy_str_to_stack(*p);
-  env_j = j;
+  for (p = environ; *p != nullptr; p++) addresses[j++] = copy_str_to_stack(*p);
+  environment_count = j;
 
   /* argv; */
-  for (i = 0; i < argc; i++) addrs[j++] = copy_str_to_stack(argv[i]);
+  for (i = 0; i < argc; i++) addresses[j++] = copy_str_to_stack(argv[i]);
 
   /* Align stack pointer for word-size data */
   gpr[REG_SP] = gpr[REG_SP] & ~3; /* Round down to nearest word */
@@ -279,13 +279,13 @@ void initialize_run_stack(int argc, char** argv) {
   /* Build vectors on stack: */
   /* env: */
   (void)copy_int_to_stack(0); /* Null-terminate vector */
-  for (i = env_j - 1; i >= 0; i--)
-    gpr[REG_A2] = (reg_word)copy_int_to_stack((int)addrs[i]);
+  for (i = environment_count - 1; i >= 0; i--)
+    gpr[REG_A2] = (reg_word)copy_int_to_stack((int)addresses[i]);
 
   /* argv: */
   (void)copy_int_to_stack(0); /* Null-terminate vector */
-  for (i = j - 1; i >= env_j; i--)
-    gpr[REG_A1] = (reg_word)copy_int_to_stack((int)addrs[i]);
+  for (i = j - 1; i >= environment_count; i--)
+    gpr[REG_A1] = (reg_word)copy_int_to_stack((int)addresses[i]);
 
   /* argc: */
   gpr[REG_A0] = argc;
@@ -313,21 +313,21 @@ static mem_addr copy_int_to_stack(int n) {
    true, then step through a breakpoint. CONTINUABLE is true if
    execution can continue. Return true if breakpoint is encountered. */
 
-bool run_program(mem_addr pc, int steps, bool display, bool cont_bkpt,
+bool run_program(mem_addr program_counter, int steps, bool display, bool continue_breakpoint,
                  bool* continuable) {
-  if (cont_bkpt && inst_is_breakpoint(pc)) {
-    const mem_addr addr = PC == 0 ? pc : PC;
+  if (continue_breakpoint && inst_is_breakpoint(program_counter)) {
+    const mem_addr address = PC == 0 ? program_counter : PC;
 
-    delete_breakpoint(addr);
+    delete_breakpoint(address);
     exception_occurred = false;
-    *continuable = run_spim(addr, 1, display);
-    add_breakpoint(addr);
+    *continuable = run_spim(address, 1, display);
+    add_breakpoint(address);
     steps -= 1;
-    pc = PC;
+    program_counter = PC;
   }
 
   exception_occurred = false;
-  *continuable = run_spim(pc, steps, display);
+  *continuable = run_spim(program_counter, steps, display);
   if (exception_occurred && (uint32_t)CP0_ExCode == ExcCode_Bp) {
     /* Turn off EXL bit, so subsequent interrupts set EPC since the break is
     handled by SPIM code, not MIPS code. */
@@ -350,31 +350,31 @@ static bkpt* bkpts = nullptr;
 
 /* Set a breakpoint at memory location ADDR. */
 
-void add_breakpoint(mem_addr addr) {
-  bkpt* rec = (bkpt*)xmalloc(sizeof(bkpt));
-  *rec =
-      (bkpt){.addr = addr, .instruction = set_breakpoint(addr), .next = bkpts};
+void add_breakpoint(mem_addr address) {
+  bkpt* record = (bkpt*)xmalloc(sizeof(bkpt));
+  *record =
+      (bkpt){.addr = address, .instruction = set_breakpoint(address), .next = bkpts};
 
-  if (rec->instruction != nullptr)
-    bkpts = rec;
+  if (record->instruction != nullptr)
+    bkpts = record;
   else {
     if (exception_occurred)
-      error("Cannot put a breakpoint at address 0x%08x\n", addr);
+      error("Cannot put a breakpoint at address 0x%08x\n", address);
     else
-      error("No instruction to breakpoint at address 0x%08x\n", addr);
-    free(rec);
+      error("No instruction to breakpoint at address 0x%08x\n", address);
+    free(record);
   }
 }
 
 /* Delete all breakpoints at memory location ADDR. */
 
-void delete_breakpoint(mem_addr addr) {
+void delete_breakpoint(mem_addr address) {
   bkpt *p, *b;
   bool deleted_one = false;
 
   for (p = nullptr, b = bkpts; b != nullptr;)
-    if (b->addr == addr) {
-      mem_write_inst(addr, b->instruction);
+    if (b->addr == address) {
+      mem_write_inst(address, b->instruction);
       if (p == nullptr)
         bkpts = b->next;
       else
@@ -385,7 +385,7 @@ void delete_breakpoint(mem_addr addr) {
       deleted_one = true;
     } else
       p = b, b = b->next;
-  if (!deleted_one) error("No breakpoint to delete at 0x%08x\n", addr);
+  if (!deleted_one) error("No breakpoint to delete at 0x%08x\n", address);
 }
 
 static void delete_all_breakpoints(void) {
@@ -419,9 +419,9 @@ static int cmp_key_to_name(const void* key, const void* elem) {
   return strcmp((const char*)key, ((const name_val_val*)elem)->name);
 }
 
-const name_val_val* map_string_to_name_val_val(const name_val_val tbl[],
-                                               int tbl_len, const char* id) {
-  return bsearch(id, tbl, (size_t)tbl_len, sizeof(name_val_val),
+const name_val_val* map_string_to_name_val_val(const name_val_val table[],
+                                               int table_length, const char* identifier) {
+  return bsearch(identifier, table, (size_t)table_length, sizeof(name_val_val),
                  cmp_key_to_name);
 }
 
@@ -436,9 +436,9 @@ static int cmp_key_to_value1(const void* key, const void* elem) {
   return (k > v) - (k < v);
 }
 
-const name_val_val* map_int_to_name_val_val(const name_val_val tbl[],
-                                            int tbl_len, int num) {
-  return bsearch(&num, tbl, (size_t)tbl_len, sizeof(name_val_val),
+const name_val_val* map_int_to_name_val_val(const name_val_val table[],
+                                            int table_length, int number) {
+  return bsearch(&number, table, (size_t)table_length, sizeof(name_val_val),
                  cmp_key_to_value1);
 }
 

@@ -302,7 +302,7 @@ id_buf	identifier_buffer
 force_id	force_identifier
 force_id_next	force_identifier_next
 in	input
-in_file	input_file
+in_file	input_stream
 console_in	console_input
 null_term_in	add_null_terminator
 cb	callback
@@ -380,8 +380,8 @@ file_i	file_index
 last_file_i	last_file_index
 is_explicit_f	is_explicit_file
 env_j	environment_count
-a_opcode	lookup_opcode
-i_opcode	lookup_opcode
+a_opcode	table_opcode
+i_opcode	instruction_opcode
 inst_s	mips_instruction_struct
 #
 # The assembler's location counters (where the next datum or instruction goes), not the CPU's PC.
@@ -400,3 +400,7 @@ set_text_pc	set_text_location
 # Two spellings meant the same thing; the merged name needs one row (parse_expr parses a sum).
 parse_expr	parse_sum_of_terms
 reg	register_number
+#
+# Collisions the -Werror build found: names already taken in the same scope.
+val	float_value	src/data.c:254
+dasm	disassembly_text

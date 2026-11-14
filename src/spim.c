@@ -80,29 +80,29 @@ static const char* const spim_commands[] = {
     "reinitialize",   "run",           "step",       nullptr};
 
 static char* command_generator(const char* text, int state) {
-  static size_t idx;
-  static size_t text_len;
+  static size_t index;
+  static size_t text_length;
   if (state == 0) {
-    idx = 0;
-    text_len = strlen(text);
+    index = 0;
+    text_length = strlen(text);
   }
-  while (spim_commands[idx] != nullptr) {
-    const char* const s = spim_commands[idx++];
-    if (strncmp(s, text, text_len) == 0) return strdup(s);
+  while (spim_commands[index] != nullptr) {
+    const char* const s = spim_commands[index++];
+    if (strncmp(s, text, text_length) == 0) return strdup(s);
   }
   return nullptr;
 }
 
 static char* suggestion_generator(const char* text, int state) {
-  static size_t idx;
-  static size_t text_len;
+  static size_t index;
+  static size_t text_length;
   if (state == 0) {
-    idx = 0;
-    text_len = strlen(text);
+    index = 0;
+    text_length = strlen(text);
   }
   const size_t n = explain_suggestion_count();
-  while (idx < n) {
-    const char* const s = explain_suggestion(idx++);
+  while (index < n) {
+    const char* const s = explain_suggestion(index++);
     if (s == nullptr) continue;
     /* Suggestions are stored as full commands ("print $a0"). When the
        student has already typed `print ` and hits Tab, libedit passes
@@ -113,7 +113,7 @@ static char* suggestion_generator(const char* text, int state) {
     const char* tail = s;
     const char* const space = strchr(s, ' ');
     if (space != nullptr) tail = space + 1;
-    if (strncmp(tail, text, text_len) == 0) return strdup(tail);
+    if (strncmp(tail, text, text_length) == 0) return strdup(tail);
   }
   return nullptr;
 }
@@ -121,14 +121,14 @@ static char* suggestion_generator(const char* text, int state) {
 /* Helper used by line_is_file_command / line_is_label_command. True if
    the current line starts with any of the given command names followed
    by whitespace. */
-static bool line_starts_with_cmd(const char* const* cmds) {
+static bool line_starts_with_cmd(const char* const* commands) {
   const char* line = rl_line_buffer;
   if (line == nullptr) return false;
   while (*line == ' ' || *line == '\t') line++;
-  for (size_t i = 0; cmds[i] != nullptr; i++) {
-    const size_t len = strlen(cmds[i]);
-    if (strncmp(line, cmds[i], len) == 0 &&
-        (line[len] == ' ' || line[len] == '\t')) {
+  for (size_t i = 0; commands[i] != nullptr; i++) {
+    const size_t length = strlen(commands[i]);
+    if (strncmp(line, commands[i], length) == 0 &&
+        (line[length] == ' ' || line[length] == '\t')) {
       return true;
     }
   }
@@ -139,9 +139,9 @@ static bool line_starts_with_cmd(const char* const* cmds) {
    followed by whitespace — those are the prompts where the student
    expects libedit's default filename completion to kick in. */
 static bool line_is_file_command(void) {
-  static const char* const cmds[] = {"load", "read", "dump", "dumpnative",
+  static const char* const commands[] = {"load", "read", "dump", "dumpnative",
                                      nullptr};
-  return line_starts_with_cmd(cmds);
+  return line_starts_with_cmd(commands);
 }
 
 /* True if the current line begins with a REPL command whose argument
@@ -149,8 +149,8 @@ static bool line_is_file_command(void) {
    address (TOK_INT) or a symbol name (TOK_ID); tab-completion offers the
    symbol names defined in the loaded program. */
 static bool line_is_label_command(void) {
-  static const char* const cmds[] = {"breakpoint", "delete", nullptr};
-  return line_starts_with_cmd(cmds);
+  static const char* const commands[] = {"breakpoint", "delete", nullptr};
+  return line_starts_with_cmd(commands);
 }
 
 /* Snapshot of label names taken on each Tab. The pointers point into
@@ -161,32 +161,32 @@ static const char** label_names_cache = nullptr;
 static size_t label_names_cache_n = 0;
 static size_t label_names_cache_cap = 0;
 
-static void label_collect_cb(const label* l, [[maybe_unused]] void* ctx) {
+static void label_collect_cb(const label* l, [[maybe_unused]] void* context) {
   if (l == nullptr || l->name == nullptr) return;
   if (label_names_cache_n >= label_names_cache_cap) {
     const size_t new_cap =
         label_names_cache_cap == 0 ? 32 : label_names_cache_cap * 2;
-    const char** const new_arr =
+    const char** const new_array =
         realloc(label_names_cache, new_cap * sizeof(*label_names_cache));
-    if (new_arr == nullptr) return;
-    label_names_cache = new_arr;
+    if (new_array == nullptr) return;
+    label_names_cache = new_array;
     label_names_cache_cap = new_cap;
   }
   label_names_cache[label_names_cache_n++] = l->name;
 }
 
 static char* label_generator(const char* text, int state) {
-  static size_t idx;
-  static size_t text_len;
+  static size_t index;
+  static size_t text_length;
   if (state == 0) {
     label_names_cache_n = 0;
     for_each_label(label_collect_cb, nullptr);
-    idx = 0;
-    text_len = strlen(text);
+    index = 0;
+    text_length = strlen(text);
   }
-  while (idx < label_names_cache_n) {
-    const char* const s = label_names_cache[idx++];
-    if (strncmp(s, text, text_len) == 0) return strdup(s);
+  while (index < label_names_cache_n) {
+    const char* const s = label_names_cache[index++];
+    if (strncmp(s, text, text_length) == 0) return strdup(s);
   }
   return nullptr;
 }
@@ -253,7 +253,7 @@ static char** spim_completion(const char* text, int start,
 
 static void console_to_program(void);
 static void console_to_spim(void);
-[[noreturn]] static void control_c_seen(int arg);
+[[noreturn]] static void control_c_seen(int argument);
 /* True, after reporting it, if flag argv[i] -- one that takes a value -- is the
    last argument, so there is no value to read. */
 static bool flag_value_missing(int i, int argc, char** argv) {
@@ -265,10 +265,10 @@ static bool flag_value_missing(int i, int argc, char** argv) {
 static void flush_to_newline(void);
 static int get_opt_int(void);
 static bool parse_spim_command(bool redo);
-static void print_reg(int reg_no);
+static void print_reg(int register_no);
 
-static void print_fp_reg(int reg_no);
-static int print_reg_from_string(char* reg);
+static void print_fp_reg(int register_no);
+static int print_reg_from_string(char* register_number);
 static void print_all_regs(bool hex_flag);
 static int read_assembly_command(void);
 static bool str_prefix(char* s1, char* s2, int min_match);
@@ -282,7 +282,7 @@ static void dump_text_seg(bool kernel_also);
 
 /* Not local, but not export so all files don't need setjmp.h */
 static jmp_buf spim_top_level_env; /* For ^C */
-/* True once a setjmp has filled spim_top_level_env.  Before that (while the
+/* True once a setjmp has filled spim_top_level_environment.  Before that (while the
    -f files load in batch mode) there is no top level to return to, so
    run_error and ^C end the run instead of longjmp-ing through an unset
    jmp_buf. */
@@ -354,9 +354,9 @@ static void listing_observer(const asm_event* e) {
               e->u.label_def.global ? "  (global)" : "");
       break;
     case AE_TEXT_INST: {
-      char* const disasm = inst_to_string(e->addr);
+      char* const disassembly = inst_to_string(e->addr);
       fprintf(listing_file, "line %4d  text   0x%08x  %-32s  0x%08x\n",
-              e->source_line, e->addr, disasm ? disasm : "",
+              e->source_line, e->addr, disassembly ? disassembly : "",
               e->u.text_inst.encoding);
       break;
     }
@@ -418,8 +418,8 @@ int main(int argc, char** argv) {
   bool assembly_file_attempted =
       false;                      /* -file was given (even if load failed) */
   bool world_initialized = false; /* initialize_world() called yet? */
-  int last_file_i = -1;           /* argv index of the last loaded -f file */
-  int print_usage_msg = 0;
+  int last_file_index = -1;           /* argv index of the last loaded -f file */
+  int print_usage_message = 0;
 
   console_out.f = stdout;
   message_out.f = stderr;
@@ -450,7 +450,7 @@ int main(int argc, char** argv) {
       load_exception_handler = false;
     } else if (streq(argv[i], "-exception_file") || streq(argv[i], "-ef")) {
       if (flag_value_missing(i, argc, argv))
-        print_usage_msg = 1;
+        print_usage_message = 1;
       else {
         exception_file_name = argv[++i];
         load_exception_handler = true;
@@ -477,7 +477,7 @@ int main(int argc, char** argv) {
         explain_level = v[0] - '0';
       } else {
         fprintf(stderr, "spimulator: %s requires a level in 0..4\n", argv[i]);
-        print_usage_msg = 1;
+        print_usage_message = 1;
       }
     } else if (streq(argv[i], "-explain") || streq(argv[i], "-x")) {
       /* Bare -explain / -x defaults to level 3 (full output — the
@@ -496,49 +496,49 @@ int main(int argc, char** argv) {
       load_exception_handler = false;
     } else if (streq(argv[i], "-trap_file") || streq(argv[i], "-tf")) {
       if (flag_value_missing(i, argc, argv))
-        print_usage_msg = 1;
+        print_usage_message = 1;
       else {
         exception_file_name = argv[++i];
         load_exception_handler = true;
       }
     } else if (streq(argv[i], "-stext") || streq(argv[i], "-st")) {
       if (flag_value_missing(i, argc, argv))
-        print_usage_msg = 1;
+        print_usage_message = 1;
       else
         initial_text_size = atoi(argv[++i]);
     } else if (streq(argv[i], "-sdata") || streq(argv[i], "-sd")) {
       if (flag_value_missing(i, argc, argv))
-        print_usage_msg = 1;
+        print_usage_message = 1;
       else
         initial_data_size = atoi(argv[++i]);
     } else if (streq(argv[i], "-ldata") || streq(argv[i], "-ld")) {
       if (flag_value_missing(i, argc, argv))
-        print_usage_msg = 1;
+        print_usage_message = 1;
       else
         initial_data_limit = (mem_addr)atoi(argv[++i]);
     } else if (streq(argv[i], "-sstack") || streq(argv[i], "-ss")) {
       if (flag_value_missing(i, argc, argv))
-        print_usage_msg = 1;
+        print_usage_message = 1;
       else
         initial_stack_size = atoi(argv[++i]);
     } else if (streq(argv[i], "-lstack") || streq(argv[i], "-ls")) {
       if (flag_value_missing(i, argc, argv))
-        print_usage_msg = 1;
+        print_usage_message = 1;
       else
         initial_stack_limit = (mem_addr)atoi(argv[++i]);
     } else if (streq(argv[i], "-sktext") || streq(argv[i], "-skt")) {
       if (flag_value_missing(i, argc, argv))
-        print_usage_msg = 1;
+        print_usage_message = 1;
       else
         initial_k_text_size = atoi(argv[++i]);
     } else if (streq(argv[i], "-skdata") || streq(argv[i], "-skd")) {
       if (flag_value_missing(i, argc, argv))
-        print_usage_msg = 1;
+        print_usage_message = 1;
       else
         initial_k_data_size = atoi(argv[++i]);
     } else if (streq(argv[i], "-lkdata") || streq(argv[i], "-lkd")) {
       if (flag_value_missing(i, argc, argv))
-        print_usage_msg = 1;
+        print_usage_message = 1;
       else
         initial_k_data_limit = (mem_addr)atoi(argv[++i]);
     } else if (((streq(argv[i], "-file") || streq(argv[i], "-f")) &&
@@ -552,17 +552,17 @@ int main(int argc, char** argv) {
          - positional bare-arg shortcut (`spim main.asm args...`):
            one-shot — the bare arg is both the file and argv[0],
            subsequent bare args become program argv. */
-      bool is_explicit_f = (argv[i][0] == '-');
+      bool is_explicit_file = (argv[i][0] == '-');
 
       /* If a file already loaded and we hit a bare arg, that bare arg
          starts the program's argv — stop parsing spim flags.  Also
          catches the single-positional-shortcut case via the break
          below (we won't return here). */
-      if (!is_explicit_f && assembly_file_loaded) {
+      if (!is_explicit_file && assembly_file_loaded) {
         break;
       }
 
-      int file_i = is_explicit_f ? (i + 1) : i;
+      int file_index = is_explicit_file ? (i + 1) : i;
 
       /* Lazy-init the simulator world the first time we load a file.
          Multiple loads accumulate into the same world. */
@@ -573,25 +573,25 @@ int main(int argc, char** argv) {
       }
 
       assembly_file_attempted = true;
-      if (!read_assembly_file(argv[file_i])) {
+      if (!read_assembly_file(argv[file_index])) {
         /* fopen failure (error already printed by read_assembly_file).
            Leave assembly_file_loaded false so the post-loop check
            returns non-zero. */
         break;
       }
       assembly_file_loaded = true;
-      last_file_i = file_i;
+      last_file_index = file_index;
 
-      if (is_explicit_f) {
+      if (is_explicit_file) {
         /* Skip past the filename arg; the for-loop's i++ then advances
            to the token after it. */
-        i = file_i;
+        i = file_index;
         continue;
       } else {
-        /* Positional shortcut: argv[file_i] is both the file and
+        /* Positional shortcut: argv[file_index] is both the file and
            argv[0]; everything after is program argv. */
-        program_argc = argc - file_i;
-        program_argv = &argv[file_i];
+        program_argc = argc - file_index;
+        program_argv = &argv[file_index];
         break;
       }
     } else if (streq(argv[i], "-assemble")) {
@@ -616,7 +616,7 @@ int main(int argc, char** argv) {
     } else if (streq(argv[i], "-listing")) {
       if (i + 1 >= argc) {
         error("\n-listing requires a filename argument\n");
-        print_usage_msg = 1;
+        print_usage_message = 1;
         continue;
       }
       const char* path = argv[++i];
@@ -626,7 +626,7 @@ int main(int argc, char** argv) {
         listing_file = fopen(path, "w");
         if (listing_file == nullptr) {
           error("\nCannot open listing file '%s'\n", path);
-          print_usage_msg = 1;
+          print_usage_message = 1;
           continue;
         }
       }
@@ -638,7 +638,7 @@ int main(int argc, char** argv) {
       dump_all_segments = true;
     } else {
       error("\nUnknown argument: %s (ignored)\n", argv[i]);
-      print_usage_msg = 1;
+      print_usage_message = 1;
     }
   }
 
@@ -647,11 +647,11 @@ int main(int argc, char** argv) {
      last loaded file by convention.  (Positional-shortcut case
      already set program_argc/argv inside the loop.) */
   if (assembly_file_loaded && program_argc == 0) {
-    program_argc = argc - last_file_i;
-    program_argv = &argv[last_file_i];
+    program_argc = argc - last_file_index;
+    program_argv = &argv[last_file_index];
   }
 
-  if (print_usage_msg) {
+  if (print_usage_message) {
     error(
         "Usage: spimulator [option ...] [-file] file [-file file ...] [program arguments]\n\
 	-asm, -a		Extended machine (pseudo-ops, no delayed branches and loads) (default)\n\
@@ -732,12 +732,12 @@ int main(int argc, char** argv) {
       initialize_run_stack(program_argc, program_argv);
       top_level_env_ready = true;
       if (!setjmp(spim_top_level_env)) {
-        char* undefs = undefined_symbol_string();
-        if (undefs != nullptr) {
+        char* undefined_labels = undefined_symbol_string();
+        if (undefined_labels != nullptr) {
           write_output(message_out, "The following symbols are undefined:\n");
-          write_output(message_out, "%s", undefs);
+          write_output(message_out, "%s", undefined_labels);
           write_output(message_out, "\n");
-          free(undefs);
+          free(undefined_labels);
           /* Linker-equivalent failure.  Skip the run; jumping into undefined
              memory would just emit a runtime-error message and exit 0. */
           console_to_spim();
@@ -850,8 +850,8 @@ static char* read_command_line(void) {
   /* Per-iteration scratch — declared outside so the setjmp landing pad can
      unwind them if a SIGINT longjmps us out of parse_spim_command mid-line. */
   char* volatile repl_line = nullptr;
-  char* volatile repl_buf = nullptr;
-  FILE* volatile repl_fp = nullptr;
+  char* volatile repl_buffer = nullptr;
+  FILE* volatile repl_file = nullptr;
   volatile bool scanner_pushed = false;
 
   while (true) {
@@ -863,12 +863,12 @@ static char* read_command_line(void) {
         scanner_pop_source();
         scanner_pushed = false;
       }
-      if (repl_fp) {
-        fclose(repl_fp);
-        repl_fp = nullptr;
+      if (repl_file) {
+        fclose(repl_file);
+        repl_file = nullptr;
       }
-      free(repl_buf);
-      repl_buf = nullptr;
+      free(repl_buffer);
+      repl_buffer = nullptr;
       free(repl_line);
       repl_line = nullptr;
       redo = false;
@@ -897,25 +897,25 @@ static char* read_command_line(void) {
          the stdin path. Wrap the buffer in a FILE* via fmemopen and reuse
          the existing scanner_push_source mechanism — flex sees a normal input
          source, parse_spim_command is unaware of libedit. */
-      size_t len = strlen(repl_line);
-      repl_buf = malloc(len + 2);
-      if (repl_buf == nullptr) {
+      size_t length = strlen(repl_line);
+      repl_buffer = malloc(length + 2);
+      if (repl_buffer == nullptr) {
         free(repl_line);
         repl_line = nullptr;
         continue;
       }
-      memcpy(repl_buf, repl_line, len);
-      repl_buf[len] = '\n';
-      repl_buf[len + 1] = '\0';
-      repl_fp = fmemopen(repl_buf, len + 1, "r");
-      if (repl_fp == nullptr) {
-        free(repl_buf);
-        repl_buf = nullptr;
+      memcpy(repl_buffer, repl_line, length);
+      repl_buffer[length] = '\n';
+      repl_buffer[length + 1] = '\0';
+      repl_file = fmemopen(repl_buffer, length + 1, "r");
+      if (repl_file == nullptr) {
+        free(repl_buffer);
+        repl_buffer = nullptr;
         free(repl_line);
         repl_line = nullptr;
         continue;
       }
-      scanner_push_source(repl_fp);
+      scanner_push_source(repl_file);
       scanner_pushed = true;
     }
 
@@ -925,12 +925,12 @@ static char* read_command_line(void) {
       scanner_pop_source();
       scanner_pushed = false;
     }
-    if (repl_fp) {
-      fclose(repl_fp);
-      repl_fp = nullptr;
+    if (repl_file) {
+      fclose(repl_file);
+      repl_file = nullptr;
     }
-    free(repl_buf);
-    repl_buf = nullptr;
+    free(repl_buffer);
+    repl_buffer = nullptr;
     free(repl_line);
     repl_line = nullptr;
     fflush(stdout);
@@ -938,7 +938,7 @@ static char* read_command_line(void) {
   }
 }
 
-[[noreturn]] static void control_c_seen([[maybe_unused]] int arg) {
+[[noreturn]] static void control_c_seen([[maybe_unused]] int argument) {
   console_to_spim();
   write_output(message_out, "\nExecution interrupted\n");
   if (!top_level_env_ready) exit(1);
@@ -977,17 +977,17 @@ enum {
    command. */
 
 static bool parse_spim_command(bool redo) {
-  static int prev_cmd = NOP_CMD; /* Default redo */
-  static int prev_token;
-  const int cmd = redo ? prev_cmd : read_assembly_command();
+  static int previous_command = NOP_CMD; /* Default redo */
+  static int previous_token;
+  const int command = redo ? previous_command : read_assembly_command();
 
-  switch (cmd) {
+  switch (command) {
     case EXIT_CMD:
       console_to_spim();
       exit(0);
 
     case READ_CMD: {
-      const int token = (redo ? prev_token : read_token());
+      const int token = (redo ? previous_token : read_token());
 
       if (!redo) flush_to_newline();
       if (token == TOK_STR) {
@@ -998,34 +998,34 @@ static bool parse_spim_command(bool redo) {
         scanner_pop_source();
       } else
         error("Must supply a filename to read\n");
-      prev_cmd = READ_CMD;
+      previous_command = READ_CMD;
       return (0);
     }
 
     case RUN_CMD: {
-      static mem_addr addr;
+      static mem_addr address;
       bool continuable;
 
-      addr = (redo ? addr : ((mem_addr)get_opt_int()));
-      if (addr == 0) addr = starting_address();
+      address = (redo ? address : ((mem_addr)get_opt_int()));
+      if (address == 0) address = starting_address();
 
       initialize_run_stack(program_argc, program_argv);
       console_to_program();
-      if (addr != 0) {
-        char* const undefs = undefined_symbol_string();
-        if (undefs != nullptr) {
+      if (address != 0) {
+        char* const undefined_labels = undefined_symbol_string();
+        if (undefined_labels != nullptr) {
           write_output(message_out, "The following symbols are undefined:\n");
-          write_output(message_out, "%s", undefs);
+          write_output(message_out, "%s", undefined_labels);
           write_output(message_out, "\n");
-          free(undefs);
+          free(undefined_labels);
         }
 
-        if (run_program(addr, DEFAULT_RUN_STEPS, false, false, &continuable))
+        if (run_program(address, DEFAULT_RUN_STEPS, false, false, &continuable))
           write_output(message_out, "Breakpoint encountered at 0x%08x\n", PC);
       }
       console_to_spim();
 
-      prev_cmd = RUN_CMD;
+      previous_command = RUN_CMD;
       return (0);
     }
 
@@ -1037,7 +1037,7 @@ static bool parse_spim_command(bool redo) {
           write_output(message_out, "Breakpoint encountered at 0x%08x\n", PC);
         console_to_spim();
       }
-      prev_cmd = CONTINUE_CMD;
+      previous_command = CONTINUE_CMD;
       return (0);
     }
 
@@ -1045,70 +1045,70 @@ static bool parse_spim_command(bool redo) {
       static int steps;
 
       steps = (redo ? steps : get_opt_int());
-      const mem_addr addr = PC == 0 ? starting_address() : PC;
+      const mem_addr address = PC == 0 ? starting_address() : PC;
 
       if (steps == 0) steps = 1;
-      if (addr != 0) {
+      if (address != 0) {
         bool continuable;
         console_to_program();
-        if (run_program(addr, steps, true, true, &continuable))
+        if (run_program(address, steps, true, true, &continuable))
           write_output(message_out, "Breakpoint encountered at 0x%08x\n", PC);
         console_to_spim();
       }
 
-      prev_cmd = STEP_CMD;
+      previous_command = STEP_CMD;
       return (0);
     }
 
     case PRINT_CMD: {
-      const int token = (redo ? prev_token : read_token());
-      static int loc;
+      const int token = (redo ? previous_token : read_token());
+      static int location;
       /* Set true if we've already consumed TOK_NL while parsing a base+offset
        * suffix, so the trailing flush_to_newline doesn't gobble the next
        * command's tokens. */
-      bool consumed_nl = false;
+      bool consumed_newline = false;
 
       switch (token) {
         case TOK_REG:
           if (redo)
-            loc += 1;
+            location += 1;
           else
-            loc = scan_value.i;
-          print_reg(loc);
+            location = scan_value.i;
+          print_reg(location);
           break;
         case TOK_FP_REG:
           if (redo)
-            loc += 2;
+            location += 2;
           else
-            loc = scan_value.i;
-          print_fp_reg(loc);
+            location = scan_value.i;
+          print_fp_reg(location);
           break;
         case TOK_INT: {
           if (redo) {
-            loc += 4;
-            print_mem((mem_addr)loc);
+            location += 4;
+            print_mem((mem_addr)location);
           } else {
-            const int int_val = scan_value.i;
+            const int integer_value = scan_value.i;
             /* Peek for the N($reg) base+offset form so students can inspect
              * memory using the same syntax they wrote in load/store ops. */
             const int next = read_token();
             if (next == '(') {
-              const int reg_tok = read_token();
-              const int reg = (reg_tok == TOK_REG) ? scan_value.i : -1;
-              const int close = (reg_tok == TOK_REG) ? read_token() : 0;
-              if (reg_tok == TOK_NL || close == TOK_NL) consumed_nl = true;
-              if (reg < 0 || close != ')') {
+              const int register_token = read_token();
+              const int register_number = (register_token == TOK_REG) ? scan_value.i : -1;
+              const int close = (register_token == TOK_REG) ? read_token() : 0;
+              if (register_token == TOK_NL || close == TOK_NL) consumed_newline = true;
+              if (register_number < 0 || close != ')') {
                 error("expected $reg) after '(' in print N($reg) form\n");
               } else {
-                loc = gpr[reg] + int_val;
-                print_mem((mem_addr)loc);
+                location = gpr[register_number] + integer_value;
+                print_mem((mem_addr)location);
               }
             } else {
-              /* Not the base+offset form — treat int_val as an absolute
+              /* Not the base+offset form — treat integer_value as an absolute
                * address (the standard form). */
-              loc = int_val;
-              print_mem((mem_addr)loc);
-              if (next == TOK_NL) consumed_nl = true;
+              location = integer_value;
+              print_mem((mem_addr)location);
+              if (next == TOK_NL) consumed_newline = true;
             }
           }
           break;
@@ -1116,12 +1116,12 @@ static bool parse_spim_command(bool redo) {
         case TOK_ID:
           if (!print_reg_from_string((char*)scan_value.p)) {
             if (redo)
-              loc += 4;
+              location += 4;
             else
-              loc = (int)find_symbol_address((char*)scan_value.p);
+              location = (int)find_symbol_address((char*)scan_value.p);
 
-            if (loc != 0)
-              print_mem((mem_addr)loc);
+            if (location != 0)
+              print_mem((mem_addr)location);
             else
               error("Unknown label: %s\n", (char*)scan_value.p);
           }
@@ -1130,27 +1130,27 @@ static bool parse_spim_command(bool redo) {
           error("Print what?\n");
           break;
       }
-      if (!redo && !consumed_nl) flush_to_newline();
-      prev_cmd = PRINT_CMD;
-      prev_token = token;
+      if (!redo && !consumed_newline) flush_to_newline();
+      previous_command = PRINT_CMD;
+      previous_token = token;
       return (0);
     }
 
     case PRINT_SYM_CMD:
       print_symbols();
       if (!redo) flush_to_newline();
-      prev_cmd = NOP_CMD;
+      previous_command = NOP_CMD;
       return (0);
 
     case PRINT_ALL_REGS_CMD: {
       bool hex_flag = false;
-      const int token = (redo ? prev_token : read_token());
+      const int token = (redo ? previous_token : read_token());
       if (token == TOK_ID && streq((char*)scan_value.p, "hex")) hex_flag = true;
       print_all_regs(hex_flag);
       /* With no operand the token read was the newline itself; flushing
          would read on into the next line. */
       if (!redo && token != TOK_NL) flush_to_newline();
-      prev_cmd = NOP_CMD;
+      previous_command = NOP_CMD;
       return (0);
     }
 
@@ -1163,19 +1163,19 @@ static bool parse_spim_command(bool redo) {
       /* Drop stale Tab-completion suggestions from the prior program — the
          memory addresses they reference don't survive the reinit. */
       explain_clear_suggestions();
-      prev_cmd = NOP_CMD;
+      previous_command = NOP_CMD;
       return (0);
 
     case ASM_CMD:
       (void)parse_file();
-      prev_cmd = ASM_CMD;
+      previous_command = ASM_CMD;
       return (0);
 
     case REDO_CMD:
       return (1);
 
     case NOP_CMD:
-      prev_cmd = NOP_CMD;
+      previous_command = NOP_CMD;
       return (0);
 
     case ARGS_CMD: {
@@ -1184,8 +1184,8 @@ static bool parse_spim_command(bool redo) {
          as whatever the command-line gave us, so demos that print
          their own program name still work. */
       static char** owned_argv = nullptr;
-      static char** owned_strs = nullptr;
-      static int owned_strs_len = 0;
+      static char** owned_strings = nullptr;
+      static int owned_strings_length = 0;
 
       /* Stash argv[0] before freeing the prior vector — program_argv
          may point into the prior owned_argv. */
@@ -1193,11 +1193,11 @@ static bool parse_spim_command(bool redo) {
                               ? program_argv[0]
                               : (char*)"<repl>";
 
-      if (owned_strs != nullptr) {
-        for (int i = 0; i < owned_strs_len; i++) free(owned_strs[i]);
-        free(owned_strs);
-        owned_strs = nullptr;
-        owned_strs_len = 0;
+      if (owned_strings != nullptr) {
+        for (int i = 0; i < owned_strings_length; i++) free(owned_strings[i]);
+        free(owned_strings);
+        owned_strings = nullptr;
+        owned_strings_length = 0;
       }
       free(owned_argv);
       owned_argv = nullptr;
@@ -1212,30 +1212,30 @@ static bool parse_spim_command(bool redo) {
             s = strdup((char*)scan_value.p);
             break;
           case TOK_INT: {
-            char buf[32];
-            snprintf(buf, sizeof(buf), "%d", scan_value.i);
-            s = strdup(buf);
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%d", scan_value.i);
+            s = strdup(buffer);
             break;
           }
           default:
             /* Any other token is not an argument: skip it. */
             continue;
         }
-        if (owned_strs_len + 1 > cap) {
+        if (owned_strings_length + 1 > cap) {
           cap = cap == 0 ? 4 : cap * 2;
-          owned_strs = xrealloc(owned_strs, (size_t)cap * sizeof(char*));
+          owned_strings = xrealloc(owned_strings, (size_t)cap * sizeof(char*));
         }
-        owned_strs[owned_strs_len++] = s;
+        owned_strings[owned_strings_length++] = s;
       }
 
-      owned_argv = xmalloc((size_t)(owned_strs_len + 1) * sizeof(char*));
+      owned_argv = xmalloc((size_t)(owned_strings_length + 1) * sizeof(char*));
       owned_argv[0] = argv0;
-      for (int i = 0; i < owned_strs_len; i++)
-        owned_argv[1 + i] = owned_strs[i];
-      program_argc = 1 + owned_strs_len;
+      for (int i = 0; i < owned_strings_length; i++)
+        owned_argv[1 + i] = owned_strings[i];
+      program_argc = 1 + owned_strings_length;
       program_argv = owned_argv;
 
-      prev_cmd = ARGS_CMD;
+      previous_command = ARGS_CMD;
       return (0);
     }
 
@@ -1298,28 +1298,28 @@ static bool parse_spim_command(bool redo) {
           "\nMost commands can be abbreviated to their unique prefix\n");
       write_output(message_out,
                    "e.g., ex(it), re(ad), l(oad), ru(n), s(tep), p(rint)\n\n");
-      prev_cmd = HELP_CMD;
+      previous_command = HELP_CMD;
       return (0);
 
     case SET_BKPT_CMD:
     case DELETE_BKPT_CMD: {
-      const int token = (redo ? prev_token : read_token());
-      static mem_addr addr;
+      const int token = (redo ? previous_token : read_token());
+      static mem_addr address;
 
       if (!redo && token != TOK_NL) flush_to_newline();
       if (token == TOK_INT)
-        addr = redo ? addr + 4 : (mem_addr)scan_value.i;
+        address = redo ? address + 4 : (mem_addr)scan_value.i;
       else if (token == TOK_ID)
-        addr = redo ? addr + 4 : find_symbol_address((char*)scan_value.p);
+        address = redo ? address + 4 : find_symbol_address((char*)scan_value.p);
       else {
         error("Must supply an address for breakpoint\n");
         return (0);
       }
-      if (cmd == SET_BKPT_CMD)
-        add_breakpoint(addr);
+      if (command == SET_BKPT_CMD)
+        add_breakpoint(address);
       else
-        delete_breakpoint(addr);
-      prev_cmd = cmd;
+        delete_breakpoint(address);
+      previous_command = command;
 
       return (0);
     }
@@ -1327,12 +1327,12 @@ static bool parse_spim_command(bool redo) {
     case LIST_BKPT_CMD:
       if (!redo) flush_to_newline();
       list_breakpoints();
-      prev_cmd = LIST_BKPT_CMD;
+      previous_command = LIST_BKPT_CMD;
       return (0);
 
     case DUMPNATIVE_TEXT_CMD:
     case DUMP_TEXT_CMD: {
-      const int token = (redo ? prev_token : read_token());
+      const int token = (redo ? previous_token : read_token());
 
       char* filename = nullptr;
 
@@ -1342,12 +1342,12 @@ static bool parse_spim_command(bool redo) {
         filename = "spim.dump";
       else {
         fprintf(stderr, "usage: %s [ \"filename\" ]\n",
-                (cmd == DUMP_TEXT_CMD ? "dump" : "dumpnative"));
+                (command == DUMP_TEXT_CMD ? "dump" : "dumpnative"));
         return (0);
       }
 
-      FILE* const fp = fopen(filename, "wbt");
-      if (fp == nullptr) {
+      FILE* const file = fopen(filename, "wbt");
+      if (file == nullptr) {
         perror(filename);
         return (0);
       }
@@ -1358,28 +1358,28 @@ static bool parse_spim_command(bool redo) {
       const mem_addr dump_end = current_text_pc();
 
       int words = 0;
-      for (mem_addr addr = dump_start; addr < dump_end;
-           addr += BYTES_PER_WORD) {
-        int32_t code = inst_encode(mem_read_inst(addr));
-        if (cmd == DUMP_TEXT_CMD)
+      for (mem_addr address = dump_start; address < dump_end;
+           address += BYTES_PER_WORD) {
+        int32_t code = inst_encode(mem_read_inst(address));
+        if (command == DUMP_TEXT_CMD)
           code =
               (int32_t)htonl((uint32_t)code); /* dump in network byte order */
-        (void)fwrite(&code, 1, sizeof(code), fp);
+        (void)fwrite(&code, 1, sizeof(code), file);
         words += 1;
       }
 
-      fclose(fp);
+      fclose(file);
       fprintf(stderr, "Dumped %d words starting at 0x%08x to file %s\n", words,
               (unsigned int)dump_start, filename);
 
-      prev_cmd = cmd;
+      previous_command = command;
       return (0);
     }
 
     case DISASM_CMD:
       print_text_listing();
       if (!redo) flush_to_newline();
-      prev_cmd = NOP_CMD;
+      previous_command = NOP_CMD;
       return (0);
 
     default:
@@ -1484,24 +1484,24 @@ static void flush_to_newline(void) {
 
 /* Print register number N. */
 
-static void print_reg(int reg_no) {
-  write_output(message_out, "Reg %d = 0x%08x (%d)\n", reg_no, gpr[reg_no],
-               gpr[reg_no]);
+static void print_reg(int register_no) {
+  write_output(message_out, "Reg %d = 0x%08x (%d)\n", register_no, gpr[register_no],
+               gpr[register_no]);
 }
 
-static void print_fp_reg(int reg_no) {
-  if ((reg_no & 1) == 0)
-    write_output(message_out, "FP reg %d = %g (double)\n", reg_no,
-                 FPR_D(reg_no));
-  write_output(message_out, "FP reg %d = %g (single)\n", reg_no, FPR_S(reg_no));
+static void print_fp_reg(int register_no) {
+  if ((register_no & 1) == 0)
+    write_output(message_out, "FP reg %d = %g (double)\n", register_no,
+                 FPR_D(register_no));
+  write_output(message_out, "FP reg %d = %g (single)\n", register_no, FPR_S(register_no));
 }
 
-static int print_reg_from_string(char* reg_num) {
+static int print_reg_from_string(char* register_number) {
   char s[100];
   char* s1 = s;
 
   /* Conver to lower case */
-  while (*reg_num != '\0' && s1 - s < 100) *s1++ = (char)tolower(*reg_num++);
+  while (*register_number != '\0' && s1 - s < 100) *s1++ = (char)tolower(*register_number++);
   *s1 = '\0';
   /* Drop leading $ */
   if (s[0] == '$')
@@ -1533,11 +1533,11 @@ static int print_reg_from_string(char* reg_num) {
 }
 
 static void print_all_regs(bool hex_flag) {
-  static str_stream ss;
+  static str_stream stream;
 
-  ss_clear(&ss);
-  format_registers(&ss, hex_flag, hex_flag);
-  write_output(message_out, "%s\n", ss_to_string(&ss));
+  ss_clear(&stream);
+  format_registers(&stream, hex_flag, hex_flag);
+  write_output(message_out, "%s\n", ss_to_string(&stream));
 }
 
 static bool write_assembled_code(const char* program_name) {
@@ -1545,15 +1545,15 @@ static bool write_assembled_code(const char* program_name) {
     return (parse_error_occurred);
   }
 
-  FILE* fp = nullptr;
+  FILE* file = nullptr;
   {
-    const unsigned long filename_len = strlen(program_name) + 5;
-    char* const filename = (char*)xmalloc(filename_len);
-    strlcpy(filename, program_name, filename_len);
-    strlcat(filename, ".out", filename_len);
+    const unsigned long filename_length = strlen(program_name) + 5;
+    char* const filename = (char*)xmalloc(filename_length);
+    strlcpy(filename, program_name, filename_length);
+    strlcat(filename, ".out", filename_length);
 
-    fp = fopen(filename, "wt");
-    if (fp == nullptr) {
+    file = fopen(filename, "wt");
+    if (file == nullptr) {
       perror(filename);
       free(filename);
       return (true);
@@ -1566,14 +1566,14 @@ static bool write_assembled_code(const char* program_name) {
   mem_addr dump_start = find_symbol_address(END_OF_TRAP_HANDLER_SYMBOL);
   mem_addr dump_end = current_text_pc();
 
-  (void)fprintf(fp, ".text # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
-  for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
-    const int32_t code = inst_encode(mem_read_inst(addr));
+  (void)fprintf(file, ".text # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
+  for (mem_addr address = dump_start; address < dump_end; address += BYTES_PER_WORD) {
+    const int32_t code = inst_encode(mem_read_inst(address));
     /* ", " goes before each word but the first: the segment's end need not
        fall on a word, so "not the last word" can't be tested by address. */
-    (void)fprintf(fp, "%s0x%x", addr != dump_start ? ", " : "", code);
+    (void)fprintf(file, "%s0x%x", address != dump_start ? ", " : "", code);
   }
-  (void)fprintf(fp, "\n");
+  (void)fprintf(file, "\n");
 
   /* dump data segment */
   user_kernel_data_segment(false);
@@ -1585,70 +1585,70 @@ static bool write_assembled_code(const char* program_name) {
   dump_end = current_data_pc();
 
   if (dump_end > dump_start) {
-    (void)fprintf(fp, ".data # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
-    for (mem_addr addr = dump_start; addr < dump_end; addr += BYTES_PER_WORD) {
-      const int32_t code = mem_read_word(addr);
-      (void)fprintf(fp, "%s0x%x", addr != dump_start ? ", " : "", code);
+    (void)fprintf(file, ".data # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
+    for (mem_addr address = dump_start; address < dump_end; address += BYTES_PER_WORD) {
+      const int32_t code = mem_read_word(address);
+      (void)fprintf(file, "%s0x%x", address != dump_start ? ", " : "", code);
     }
-    (void)fprintf(fp, "\n");
+    (void)fprintf(file, "\n");
   }
 
-  fclose(fp);
+  fclose(file);
   return (false);
 }
 
 /* Print an error message. */
 
-void error(const char* fmt, ...) {
-  va_list args;
+void error(const char* format, ...) {
+  va_list arguments;
 
-  va_start(args, fmt);
-  vfprintf(stderr, fmt, args);
-  va_end(args);
+  va_start(arguments, format);
+  vfprintf(stderr, format, arguments);
+  va_end(arguments);
 }
 
 /* Print the error message then exit. */
 
-void fatal_error(const char* fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
-  vfprintf(stderr, fmt, args);
-  va_end(args);
+void fatal_error(const char* format, ...) {
+  va_list arguments;
+  va_start(arguments, format);
+  vfprintf(stderr, format, arguments);
+  va_end(arguments);
   exit(-1);
 }
 
 /* Print an error message and return to top level. */
 
-[[noreturn]] void run_error(const char* fmt, ...) {
-  va_list args;
+[[noreturn]] void run_error(const char* format, ...) {
+  va_list arguments;
 
-  va_start(args, fmt);
+  va_start(arguments, format);
 
   console_to_spim();
 
-  vfprintf(stderr, fmt, args);
-  va_end(args);
+  vfprintf(stderr, format, arguments);
+  va_end(arguments);
   if (!top_level_env_ready) exit(1);
   longjmp(spim_top_level_env, 1);
 }
 
 /* IO facilities: */
 
-void write_output(port fp, const char* fmt, ...) {
-  va_list args;
-  FILE* const f = fp.f != nullptr ? fp.f : stdout;
+void write_output(port file, const char* format, ...) {
+  va_list arguments;
+  FILE* const f = file.f != nullptr ? file.f : stdout;
   bool restore_console_to_program = false;
 
-  va_start(args, fmt);
+  va_start(arguments, format);
 
   if (console_state_saved) {
     restore_console_to_program = true;
     console_to_spim();
   }
 
-  vfprintf(f, fmt, args);
+  vfprintf(f, format, arguments);
   fflush(f);
-  va_end(args);
+  va_end(arguments);
 
   if (restore_console_to_program) console_to_program();
 }
@@ -1661,7 +1661,7 @@ void write_output(port fp, const char* fmt, ...) {
  * read — callers use this to set $a3 / return -1 to user code.
  */
 
-int read_input(char* str, int str_size) {
+int read_input(char* string, int string_size) {
   bool restore_console_to_program = false;
   int count = 0;
 
@@ -1670,22 +1670,22 @@ int read_input(char* str, int str_size) {
     console_to_spim();
   }
 
-  char* ptr = str;
+  char* pointer = string;
 
-  while (1 < str_size) /* Reserve space for null */
+  while (1 < string_size) /* Reserve space for null */
   {
-    char buf[1];
-    if (read((int)console_in.i, buf, 1) <= 0) /* Not in raw mode! */
+    char buffer[1];
+    if (read((int)console_in.i, buffer, 1) <= 0) /* Not in raw mode! */
       break;
 
-    *ptr++ = buf[0];
-    str_size -= 1;
+    *pointer++ = buffer[0];
+    string_size -= 1;
     count += 1;
 
-    if (buf[0] == '\n') break;
+    if (buffer[0] == '\n') break;
   }
 
-  if (0 < str_size) *ptr = '\0'; /* Null terminate input */
+  if (0 < string_size) *pointer = '\0'; /* Null terminate input */
 
   if (restore_console_to_program) console_to_program();
   return count;
@@ -1747,20 +1747,20 @@ int read_int_input(long* value) {
 static void console_to_program(void) {
   if (mapped_io && !console_state_saved) {
     tcgetattr(console_in.i, &saved_console_state);
-    struct termios params = saved_console_state;
-    params.c_iflag &= (tcflag_t) ~(ISTRIP | INLCR | ICRNL | IGNCR | IXON |
+    struct termios parameters = saved_console_state;
+    parameters.c_iflag &= (tcflag_t) ~(ISTRIP | INLCR | ICRNL | IGNCR | IXON |
                                    IXOFF | INPCK | BRKINT | PARMRK);
 
     /* Translate CR -> NL to canonicalize input. */
-    params.c_iflag |= IGNBRK | IGNPAR | ICRNL;
-    params.c_oflag = OPOST | ONLCR;
-    params.c_cflag &= (tcflag_t)~PARENB;
-    params.c_cflag |= CREAD | CS8;
-    params.c_lflag = 0;
-    params.c_cc[VMIN] = 1;
-    params.c_cc[VTIME] = 1;
+    parameters.c_iflag |= IGNBRK | IGNPAR | ICRNL;
+    parameters.c_oflag = OPOST | ONLCR;
+    parameters.c_cflag &= (tcflag_t)~PARENB;
+    parameters.c_cflag |= CREAD | CS8;
+    parameters.c_lflag = 0;
+    parameters.c_cc[VMIN] = 1;
+    parameters.c_cc[VTIME] = 1;
 
-    tcsetattr(console_in.i, TCSANOW, &params);
+    tcsetattr(console_in.i, TCSANOW, &parameters);
     console_state_saved = true;
   }
 }
@@ -1785,13 +1785,13 @@ int console_input_available(void) {
 }
 
 char get_console_char(void) {
-  char buf;
+  char buffer;
 
-  read((int)console_in.i, &buf, 1);
+  read((int)console_in.i, &buffer, 1);
 
-  if (buf == 3) /* ^C */
+  if (buffer == 3) /* ^C */
     control_c_seen(0);
-  return (buf);
+  return (buffer);
 }
 
 void put_console_char(char c) {
@@ -1816,20 +1816,20 @@ static int read_token(void) {
  */
 
 static void dump_data_seg(bool kernel_also) {
-  static str_stream ss;
-  ss_clear(&ss);
+  static str_stream stream;
+  ss_clear(&stream);
 
   if (kernel_also) {
-    format_data_segs(&ss);
+    format_data_segs(&stream);
   } else {
-    ss_printf(&ss, "\tDATA\n");
-    format_mem(&ss, DATA_BOT, data_top);
+    ss_printf(&stream, "\tDATA\n");
+    format_mem(&stream, DATA_BOT, data_top);
   }
 
   {
-    FILE* const fp = fopen("data.asm", "w");
-    fprintf(fp, "%s", ss_to_string(&ss));
-    fclose(fp);
+    FILE* const file = fopen("data.asm", "w");
+    fprintf(file, "%s", ss_to_string(&stream));
+    fclose(file);
   }
 }
 
@@ -1839,19 +1839,19 @@ static void dump_data_seg(bool kernel_also) {
  */
 
 static void dump_text_seg(bool kernel_also) {
-  static str_stream ss;
-  ss_clear(&ss);
+  static str_stream stream;
+  ss_clear(&stream);
 
   if (kernel_also) {
-    format_insts(&ss, TEXT_BOT, text_top);
-    ss_printf(&ss, "\n\tKERNEL\n");
-    format_insts(&ss, K_TEXT_BOT, k_text_top);
+    format_insts(&stream, TEXT_BOT, text_top);
+    ss_printf(&stream, "\n\tKERNEL\n");
+    format_insts(&stream, K_TEXT_BOT, k_text_top);
   } else {
-    ss_printf(&ss, "\n\tUSER TEXT SEGMENT\n");
-    format_insts(&ss, TEXT_BOT, text_top);
+    ss_printf(&stream, "\n\tUSER TEXT SEGMENT\n");
+    format_insts(&stream, TEXT_BOT, text_top);
   }
 
-  FILE* const fp = fopen("text.asm", "w");
-  fprintf(fp, "%s", ss_to_string(&ss));
-  fclose(fp);
+  FILE* const file = fopen("text.asm", "w");
+  fprintf(file, "%s", ss_to_string(&stream));
+  fclose(file);
 }

@@ -18,13 +18,13 @@ typedef struct str_stm {
   size_t size;  /* bytes written, updated on flush */
 } str_stream;
 
-void ss_init(str_stream* ss);
-void ss_clear(str_stream* ss);
-void ss_erase(str_stream* ss, int n);
-int ss_length(str_stream* ss);
-[[nodiscard]] char* ss_to_string(str_stream* ss);
-[[nodiscard]] char* ss_take_string(str_stream* ss);
-[[gnu::format(printf, 2, 3)]] void ss_printf(str_stream* ss, const char* fmt,
+void ss_init(str_stream* stream);
+void ss_clear(str_stream* stream);
+void ss_erase(str_stream* stream, int n);
+int ss_length(str_stream* stream);
+[[nodiscard]] char* ss_to_string(str_stream* stream);
+[[nodiscard]] char* ss_take_string(str_stream* stream);
+[[gnu::format(printf, 2, 3)]] void ss_printf(str_stream* stream, const char* format,
                                              ...);
 
 #endif
