@@ -1,7 +1,7 @@
 word	meaning	proposed_spelling	category	source_or_note
 abs	absolute value	absolute	spell-out	outside the abs.s/abs.d mnemonics
 absoff	absolute value of an offset	absolute_offset	spell-out	src/explain.c say_effective_address
-ac	high*high partial product (a*c) in the long-hand 32x32 multiply	keep	math	src/run.c unsigned_multiply: a,b,c,d are the 16-bit halves and ac/ad/cb/bd their products; renaming the halves (high1, low1, ...) is the alternative — question 5
+ac	high*high partial product (a*c) in the long-hand 32x32 multiply	keep	math	src/run.c unsigned_multiply: a,b,c,d are the 16-bit halves and ac/ad/cb/bd their products; renaming the halves (high1, low1, ...) is the alternative (decision 5)
 ad	(1) high*low partial product a*d; (2) AdEL/AdES: "address error"	(1) keep; (2) see el/es	math/architecture	src/run.c; include/instruction.h
 addl	additional	additional	spell-out	addl_bytes (include/memory.h)
 addr	address	address	spell-out	mem_addr, addr_expr; 1207 uses
@@ -16,11 +16,11 @@ args	arguments	arguments	spell-out	except main's argv (external)
 argv	argument vector	keep	external	main's parameter; program_argv and owned_argv keep the argv word
 arith	arithmetic	arithmetic	spell-out	tpl_r3_arith
 arr	array	array	spell-out	src/ast.c free_imm_array
-asan	AddressSanitizer	address_sanitizer	spell-out	SPIM_ASAN_BUILD; or keep as the tool's own name — question 3
+asan	AddressSanitizer	keep	familiar	SPIM_ASAN_BUILD; the tool's own name (decision 3)
 ascii	ASCII	keep	familiar	also the .ascii directive
 asciiz	the .asciiz directive	keep	keyword	
 asm	assembly / assembler	assembler or assembly per name	spell-out	ASM_DIR, asm_event; each name says which
-ast	abstract syntax tree	keep	familiar	ast_node, AST_* — question 3
+ast	abstract syntax tree	keep	familiar	ast_node, AST_* (decision 3)
 at	AT: Config architecture type (bits 14:13)	architecture_type	architecture	CP0_Config_AT; also the preposition and $at
 bd	(1) BD: Cause "branch delay" bit; (2) low*low partial product b*d	(1) branch_delay; (2) keep	architecture/math	CP0_Cause_BD; src/run.c
 be	BE: Config big-endian bit (bit 15)	big_endian	architecture	CP0_Config_BE
@@ -52,7 +52,7 @@ cop	COP0/COP2 mnemonic	keep	keyword
 copreg	coprocessor register	coprocessor_register	spell-out	RT_COPREG_INST, copreg
 coproc	coprocessor	coprocessor	spell-out	BRANCH_COPROC_COND_INST
 coprocessor	coprocessor	keep	not-abbreviation	hunspell lacks it
-cp	CP0/CP1: coprocessor 0/1	coprocessor_0, coprocessor_1	architecture	CP0_Status, CP0_EPC; "CP0" is the manual's name — question 1
+cp	CP0/CP1: coprocessor 0/1	coprocessor_0, coprocessor_1	architecture	CP0_Status -> coprocessor_0_status /* CP0 Status */ (decision 1)
 cpu	CpU: coprocessor-unusable exception code	coprocessor_unusable	architecture	ExcCode_CpU
 ctrl	control	control	spell-out	RECV_CTRL_ADDR, TRANS_CTRL_ADDR
 ctx	context	context	spell-out	include/symbol-table.h for_each_label
@@ -78,7 +78,7 @@ el	AdEL: address error on a load or fetch	address_error_load	architecture	ExcCod
 enc	encoding (the 32-bit instruction word)	encoding	spell-out	src/explain.c
 env	environment	environment	spell-out	spim_top_level_env (a jmp_buf)
 environ	the POSIX environment array	keep	external	
-eof	end of file	keep	familiar	TOK_EOF, at_eof — question 3
+eof	end of file	keep	familiar	TOK_EOF, at_eof (decision 3)
 epc	EPC: exception program counter	exception_program_counter	architecture	CP0_EPC
 eq	equal	equal	spell-out	COND_EQ, if_eq; outside the c.eq mnemonic
 err	error	error	spell-out	
@@ -91,7 +91,7 @@ expr	expression	expression	spell-out	imm_expr, addr_expr; 551 uses
 exprs	expressions	expressions	spell-out	
 ext	extension	extension	spell-out	outside the ext mnemonic
 extern	the .extern directive	keep	keyword	
-fa	$fa0: the first floating-point argument register (convention)	floating_point_argument	architecture	REG_FA0 = $f12 — question 2
+fa	$fa0: the first floating-point argument register (convention)	floating_point_argument_register	architecture	REG_FA0 = $f12 -> floating_point_argument_register_0 /* $f12 */ (decision 2)
 fcc	floating-point condition code(s) in FCSR	floating_point_condition_code	architecture	FCSR_FCC, set_fcc; MIPS32 Vol. I FCSR
 fcr	FCR: floating-point control register	floating_point_control_register	architecture	FCR macro
 fcsr	FCSR: floating-point control and status register	floating_point_control_status_register	architecture	FCSR_*; MIPS32 Vol. I
@@ -111,21 +111,21 @@ fpr	floating-point register	floating_point_register	architecture	FPR_S/FPR_D/FPR
 fpstr	format string for a floating-point register line	floating_point_format	spell-out	src/display-utils.c
 fpu	floating-point unit	floating_point_unit	spell-out	set_fpu_cc
 fr	fr: the extra source register field of madd.fmt	floating_point_addend	architecture	FP_FD_FR_FS_FT_INST; MIPS32 Vol. II madd.fmt
-fres	the floating-point result register ($f0)	floating_point_result	spell-out	REG_FRES — question 2
+fres	the floating-point result register ($f0)	floating_point_result_register	architecture	REG_FRES = $f0 -> floating_point_result_register /* $f0 */ (decision 2)
 fs	fs: floating-point source register field	floating_point_source	architecture	FS(INST), FP_*_FS_*
 ft	ft: floating-point target (second source) register field	floating_point_target	architecture	FT(INST)
 funct	funct: the function field of an R-type instruction	function_field	architecture	special_funct_to_name
 fval	float value	float_value	spell-out	src/parser.c
 ge	greater than or equal	greater_or_equal	spell-out	set_ge_inst; outside mnemonics
 globl	the .globl directive	keep	keyword	
-gp	(1) $gp the global pointer; (2) "global pointer" area	(1) keep; (2) global_pointer	keyword/spell-out	REG_GP; gp_flag, gp_midpoint — question 2
+gp	(1) $gp the global pointer; (2) "global pointer" area	global_pointer	architecture	REG_GP -> global_pointer_register /* $gp */; gp_flag, gp_midpoint (decision 2)
 gpr	general-purpose register(s)	general_purpose_registers	architecture	the maintainer's example; 297 uses
 grfill	padding after a general register in the register display	general_register_padding	spell-out	src/display-utils.c
 grstr	format string for a general register line	general_register_format	spell-out	src/display-utils.c
 gt	greater than	greater_than	spell-out	set_gt_inst
 halfword	half-word	keep	not-abbreviation	the manual's term
 hashbits	number of hash bits	hash_bits	spell-out	HASHBITS
-hi	HI: the multiply/divide high-result register	keep	architecture	the register's own name — question 2
+hi	HI: the multiply/divide high-result register	multiply_divide_high	architecture	HI -> multiply_divide_high_register /* HI */ (decision 2)
 hr	horizontal rule (a separator line)	horizontal_rule	spell-out	src/explain.c static void hr(void)
 ibe	IBE: bus error on an instruction fetch	instruction_bus_error	architecture	ExcCode_IBE
 id	identifier	identifier	spell-out	TOK_ID; also "id" as an index
@@ -142,7 +142,7 @@ inst	instruction	instruction	spell-out	*_INST enum, mem_read_inst; 1150 uses
 insts	instructions	instructions	spell-out	accept_pseudo_insts
 int	(1) Int: interrupt exception code; (2) integer	(1) interrupt; (2) integer	architecture/spell-out	ExcCode_Int; int_reg_names, TOK_INT
 intptr	integer or pointer	integer_or_pointer	spell-out	intptr_union (include/spim.h)
-io	input/output	keep	familiar	mapped_io, MM_IO_BOT — question 3
+io	input/output	keep	familiar	mapped_io, MM_IO_BOT (decision 3)
 ioffset	immediate offset field (the 16-bit offset of a load/store)	immediate_offset	architecture	IOFFSET(INST), SET_IOFFSET
 ip	IP: Cause interrupts-pending bits	interrupts_pending	architecture	CP0_Cause_IP
 json	JSON	keep	familiar	
@@ -153,7 +153,7 @@ lcomm	the .lcomm directive	keep	keyword
 le	less than or equal	less_or_equal	spell-out	set_le_inst
 len	length	length	spell-out	line_len, text_len
 littlendian	little-endian	little_endian	spell-out	SPIM_LITTLENDIAN (also misspelled)
-lo	LO: the multiply/divide low-result register	keep	architecture	the register's own name — question 2
+lo	LO: the multiply/divide low-result register	multiply_divide_low	architecture	LO -> multiply_divide_low_register /* LO */ (decision 2)
 loc	(1) location; (2) the .loc directive	(1) location; (2) keep	spell-out/keyword	
 lt	less than	less_than	spell-out	COND_LT
 mdmx	MDMX: MIPS Digital Media eXtension exception code	keep	architecture	ExcCode_MDMX; the extension's own name
@@ -202,8 +202,8 @@ reg	register	register	spell-out	reg_word, reg_num, TOK_REG; 762 uses
 regimm	REGIMM: the opcode class whose rt field selects the instruction	register_immediate	architecture	regimm_rt_to_name; MIPS32 Vol. II opcode table
 reglen	register-name length	register_name_length	spell-out	src/scanner.c
 regs	registers	registers	spell-out	
-repl	read-eval-print loop	repl	familiar	repl_line, repl_buf; or read_eval_print_loop — question 3
-res	result	result	spell-out	REG_RES — question 2
+repl	read-eval-print loop	keep	familiar	repl_line, repl_buf (decision 3)
+res	result	result_register	architecture	REG_RES = $v0 -> result_register /* $v0 */ (decision 2)
 ri	RI: reserved-instruction exception code	reserved_instruction	architecture	ExcCode_RI
 rs	rs: the source register field	source_register	architecture	RS(INST), rs; 714 uses
 rt	rt: the target (second source, or load destination) register field	target_register	architecture	RT(INST), rt; 836 uses
@@ -215,7 +215,7 @@ sep	separator	separator	spell-out
 sh	shift amount field	shift_amount	spell-out	r_sh_type, fld_sh
 shamt	shamt: the shift-amount field	shift_amount	architecture	SHAMT(INST), shamt
 snap	snapshot	snapshot	spell-out	snap_R, snap_mem_addr (src/explain.c)
-sp	$sp: the stack pointer	keep	keyword	REG_SP — question 2
+sp	$sp: the stack pointer	stack_pointer	architecture	REG_SP -> stack_pointer_register /* $sp */ (decision 2)
 spim	SPIM, the simulator	keep	familiar	
 src	source	source	spell-out	src, src1, src2
 ss	string stream	stream	spell-out	str_stream* ss, ss_printf, ss_init; 364 uses
@@ -249,6 +249,6 @@ uncond	unconditional	unconditional	spell-out	CAT_UNCOND_JUMP
 undef	undefined	undefined	spell-out	issue_undef_warnings
 undefs	undefined labels	undefined_labels	spell-out	
 val	value	value	spell-out	val; 263 uses
-xmalloc	malloc that exits on failure	allocate_or_exit	familiar	the GNU x-prefix idiom; xrealloc, zmalloc (zeroed) likewise — question 4
-xrealloc	realloc that exits on failure	reallocate_or_exit	familiar	see xmalloc
-zmalloc	zero-filling malloc that exits on failure	allocate_zeroed_or_exit	familiar	see xmalloc
+xmalloc	malloc that exits on failure	allocate_or_exit	spell-out	the GNU x-prefix idiom; the old name goes in a comment beside the definition (decision 4)
+xrealloc	realloc that exits on failure	reallocate_or_exit	spell-out	see xmalloc; old name in a comment (decision 4)
+zmalloc	zero-filling malloc that exits on failure	allocate_zeroed_or_exit	spell-out	see xmalloc; old name in a comment (decision 4)

@@ -1,7 +1,7 @@
 # Spell out the abbreviated names in the C core (`src/`, `include/`)
 
-**Status:** in progress — phase 1 (investigate) done on branch `spelled-out-names-c-core`;
-the open questions below block phase 2
+**Status:** in progress — phase 1 (investigate) done and the policy questions answered, on
+branch `spelled-out-names-c-core`; phase 2 (the rename table) is next, on go-ahead
 **Priority:** 5
 **Difficulty:** 7
 **Created:** 2026-11-14 (William Emerison Six <billsix@gmail.com>)
@@ -203,23 +203,50 @@ written by hand.
 - The scripts are `discover.sh`, `list_names.py`, `split_words.py` and `classify_words.py`. They
   are candidates for promotion to a shared tool at the end (step 13).
 
+### Sources for the architecture meanings
+
+The online sources checked on 2026-11-14 for the `architecture` rows of `glossary.tsv`:
+
+- CP0 Config fields `MT`, `AR` and `AT`, with their bit positions and encodings: NetBSD's
+  `mipsNN.h`, which mirrors the MIPS32 privileged-resource spec,
+  <https://nxr.netbsd.org/xref/src/sys/arch/mips/include/mipsNN.h?r=1.14>.
+- Cause `ExcCode` names and numbers (`Int`, `Mod`, `TLBL`, `TLBS`, `AdEL`, `AdES`, `IBE`, `DBE`,
+  `Sys`, `Bp`, `RI`, `CpU`, `Ov`, `Tr`, `FPE`):
+  - Imperial College lecture notes on MIPS exceptions,
+    <https://www.doc.ic.ac.uk/~wl/teachlocal/arch/HP05/exceptions.pdf>.
+  - The Rust `mips` crate's Cause register, which is also the only source found for `MDMX` as
+    code 22, <https://docs.rs/crate/mips/latest/source/src/registers/cp0/cause.rs>.
+- FCSR condition-code (`FCC`) layout, and the `ND`/`TF` bits of the floating-point branches: the
+  GDB MIPS simulator's `cp1.h`,
+  <https://gnu.googlesource.com/binutils-gdb/+/2e917d2873a4ebffb1b7e8a8c043af65dfb5b708/sim/mips/cp1.h>.
+
+Not confirmed online:
+- **Config `BE`** (big-endian, bit 15) comes from general knowledge of the spec.
+- **`ND`/`TF`** were found only in simulator code (gem5's MIPS decoder, GDB's `cp1.h`), not in the
+  manual text.
+
+The authoritative references for both are the MIPS32 Architecture for Programmers volumes: Volume
+II for the BC1F/BC1T and MADD.fmt pages, and Volume III for the CP0 registers. Check them before
+renaming the `be`, `nd` and `tf` rows.
+
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-14)
+
+These settle the policy cases. The `glossary.tsv` rows they affect cite them as "decision N".
+
+1. **The CP0 prefix is spelled out**, with the manual's name in a comment:
+   `CP0_Status` becomes `coprocessor_0_status /* CP0 Status */`, as with `gpr`.
+2. **Register names are spelled out by meaning**, with the name a student types in a comment:
+   `REG_SP` becomes `stack_pointer_register /* $sp */`. The same goes for `REG_GP`, `REG_A0` to
+   `REG_A3`, `REG_FA0`, `REG_RES`/`REG_FRES`, and `HI`/`LO`. This follows decision 1.
+3. **These familiar acronyms stay as they are:** `AST`, `ASCII`, `ASAN`, `EOF`, `IO`, `JSON`,
+   `MIPS`, `SPIM`, `REPL`, `ms` and `syscall`.
+4. **The allocation wrappers are renamed**: `xmalloc` becomes `allocate_or_exit`, `xrealloc`
+   becomes `reallocate_or_exit`, and `zmalloc` becomes `allocate_zeroed_or_exit`. A comment beside
+   each definition gives the old GNU-style name (`/* xmalloc in GNU style */`), so a reader who
+   knows the idiom can find it.
+5. **The math-style names in `unsigned_multiply` (`src/run.c`) stay**: the 16-bit halves `a`,
+   `b`, `c` and `d`, their products `ac`, `ad`, `cb` and `bd`, and `mid`.
+
 ## Open questions
 
-These settle the policy cases. Each row of `glossary.tsv` that depends on one of them cites its
-number.
-
-1. The CP0 prefix (`CP0_Status`, `CP0_EPC`, `CP0_Cause_BD`): (a) spell it out
-   (`coprocessor_0_status`, with "CP0 Status" in a comment), as with `gpr` (recommended), or
-   (b) keep `CP0`, the manual's name for the unit?
-2. Names of registers a student types in assembly: `REG_SP` is `$sp`, and likewise `REG_GP`,
-   `REG_A0` to `REG_A3`, `REG_FA0`, `REG_RES`/`REG_FRES`, and `HI`/`LO`. (a) Spell out the meaning
-   (`stack_pointer_register /* $sp */`) (recommended), or (b) keep the typed name
-   (`register_sp`)?
-3. Keep these familiar acronyms as they are: `AST`, `ASCII`, `ASAN`, `EOF`, `IO`, `JSON`, `MIPS`,
-   `SPIM`, `REPL`, `ms` and `syscall`? Recommended: yes.
-4. Rename the allocation wrappers `xmalloc`, `xrealloc` and `zmalloc` to `allocate_or_exit`,
-   `reallocate_or_exit` and `allocate_zeroed_or_exit`? The x-prefix is an old GNU idiom that a new
-   student won't know. Recommended: yes.
-5. Keep the math-style names in `unsigned_multiply` (`src/run.c`)? These are the 16-bit halves
-   `a`, `b`, `c` and `d`, their products `ac`, `ad`, `cb` and `bd`, and `mid`. They read like the
-   long-hand multiplication they implement. Recommended: yes.
+None. Phase 2 still ends with a review of the rename table (step 7).
