@@ -9,30 +9,30 @@
 -- data.
 module Types
   ( Instruction (..),
-    InstRef,
+    InstructionRef,
     emptyInstruction,
-    ImmExpr (..),
+    ImmediateExpression (..),
     Label (..),
     LabelUse (..),
 
     -- * The instruction's overlapping fields
-    instRs,
-    instRt,
-    instRd,
-    instShamt,
-    instImm,
-    instTarget,
-    setRs,
-    setRt,
-    setRd,
-    setShamt,
-    setImm,
+    instructionSourceRegister,
+    instructionTargetRegister,
+    instructionDestinationRegister,
+    instructionShiftAmount,
+    instructionImmediate,
+    instructionTarget,
+    setSourceRegister,
+    setTargetRegister,
+    setDestinationRegister,
+    setShiftAmount,
+    setImmediate,
     setTarget,
-    instFs,
-    instFt,
-    instFd,
-    instBase,
-    instCond,
+    instructionFloatingPointSource,
+    instructionFloatingPointTarget,
+    instructionFloatingPointDestination,
+    instructionBase,
+    instructionCondition,
     branchOffset,
   )
 where
@@ -44,15 +44,15 @@ import Data.Word (Word32, Word8)
 
 -- | An immediate expression: @symbol + offset@, either part optional
 -- (C: @imm_expr@).
-data ImmExpr = ImmExpr
+data ImmediateExpression = ImmediateExpression
   { -- | offset from the symbol
-    ieOffset :: Int32,
+    immediateExpressionOffset :: Int32,
     -- | the label, if any
-    ieSymbol :: Maybe Label,
+    immediateExpressionSymbol :: Maybe Label,
     -- | > 0: use bits 31..16; < 0: bits 15..0; 0: all
-    ieBits :: Int16,
+    immediateExpressionBits :: Int16,
     -- | an offset from the instruction's own address
-    iePcRelative :: Bool
+    immediateExpressionProgramCounterRelative :: Bool
   }
 
 -- | One assembled instruction (C: @mips_instruction@).
@@ -71,20 +71,20 @@ data ImmExpr = ImmExpr
 -- word and the accessors below read and write its bytes.
 data Instruction = Instruction
   { -- | the C token number of the opcode (0: invalid)
-    inOpcode :: Int,
+    instructionOpcode :: Int,
     -- | the overlapping register/immediate/target fields
-    inFields :: Word32,
+    instructionFields :: Word32,
     -- | the 32-bit binary encoding
-    inEncoding :: Int32,
+    instructionEncoding :: Int32,
     -- | the symbolic immediate, if any
-    inExpr :: Maybe ImmExpr,
+    instructionExpression :: Maybe ImmediateExpression,
     -- | the source line it came from, for listings
-    inSource :: Maybe String
+    instructionSource :: Maybe String
   }
 
 -- | A shared, changeable instruction: the text segment holds these, and a
 -- forward reference to a label patches one in place.
-type InstRef = IORef Instruction
+type InstructionRef = IORef Instruction
 
 -- | An instruction with every field zero (C: @zmalloc@).
 emptyInstruction :: Int -> Instruction
@@ -97,71 +97,71 @@ setByteAt :: Int -> Word8 -> Word32 -> Word32
 setByteAt n b w =
   (w .&. complement (0xff `shiftL` (8 * n))) .|. (fromIntegral b `shiftL` (8 * n))
 
-instRs, instRt, instRd, instShamt :: Instruction -> Int
-instRs = fromIntegral . byteAt 0 . inFields
-instRt = fromIntegral . byteAt 1 . inFields
-instRd = fromIntegral . byteAt 2 . inFields
-instShamt = fromIntegral . byteAt 3 . inFields
+instructionSourceRegister, instructionTargetRegister, instructionDestinationRegister, instructionShiftAmount :: Instruction -> Int
+instructionSourceRegister = fromIntegral . byteAt 0 . instructionFields
+instructionTargetRegister = fromIntegral . byteAt 1 . instructionFields
+instructionDestinationRegister = fromIntegral . byteAt 2 . instructionFields
+instructionShiftAmount = fromIntegral . byteAt 3 . instructionFields
 
 -- | The 16-bit immediate (bytes 2 and 3), signed.
-instImm :: Instruction -> Int16
-instImm i = fromIntegral (inFields i `shiftR` 16)
+instructionImmediate :: Instruction -> Int16
+instructionImmediate i = fromIntegral (instructionFields i `shiftR` 16)
 
 -- | The 32-bit jump target (all four bytes).
-instTarget :: Instruction -> Word32
-instTarget = inFields
+instructionTarget :: Instruction -> Word32
+instructionTarget = instructionFields
 
 -- | The C engine's setters cast to @uint8_t@ / @int16_t@, keeping the low bits.
-setRs, setRt, setRd, setShamt :: Int -> Instruction -> Instruction
-setRs v i = i {inFields = setByteAt 0 (fromIntegral v) (inFields i)}
-setRt v i = i {inFields = setByteAt 1 (fromIntegral v) (inFields i)}
-setRd v i = i {inFields = setByteAt 2 (fromIntegral v) (inFields i)}
-setShamt v i = i {inFields = setByteAt 3 (fromIntegral v) (inFields i)}
+setSourceRegister, setTargetRegister, setDestinationRegister, setShiftAmount :: Int -> Instruction -> Instruction
+setSourceRegister v i = i {instructionFields = setByteAt 0 (fromIntegral v) (instructionFields i)}
+setTargetRegister v i = i {instructionFields = setByteAt 1 (fromIntegral v) (instructionFields i)}
+setDestinationRegister v i = i {instructionFields = setByteAt 2 (fromIntegral v) (instructionFields i)}
+setShiftAmount v i = i {instructionFields = setByteAt 3 (fromIntegral v) (instructionFields i)}
 
-setImm :: Int32 -> Instruction -> Instruction
-setImm v i =
-  i {inFields = (inFields i .&. 0xffff) .|. ((fromIntegral v .&. 0xffff) `shiftL` 16)}
+setImmediate :: Int32 -> Instruction -> Instruction
+setImmediate v i =
+  i {instructionFields = (instructionFields i .&. 0xffff) .|. ((fromIntegral v .&. 0xffff) `shiftL` 16)}
 
 setTarget :: Word32 -> Instruction -> Instruction
-setTarget v i = i {inFields = v}
+setTarget v i = i {instructionFields = v}
 
 -- | The FP and other aliases of the same fields (instruction.h).
-instFs, instFt, instFd, instBase, instCond :: Instruction -> Int
-instFs = instRd
-instFt = instRt
-instFd = instShamt
-instBase = instRs
-instCond = instRs
+instructionFloatingPointSource, instructionFloatingPointTarget, instructionFloatingPointDestination, instructionBase, instructionCondition :: Instruction -> Int
+instructionFloatingPointSource = instructionDestinationRegister
+instructionFloatingPointTarget = instructionTargetRegister
+instructionFloatingPointDestination = instructionShiftAmount
+instructionBase = instructionSourceRegister
+instructionCondition = instructionSourceRegister
 
 -- | The branch displacement in bytes: the 16-bit word offset,
 -- sign-extended, times four.
 branchOffset :: Instruction -> Int32
-branchOffset i = fromIntegral (instImm i) * 4
+branchOffset i = fromIntegral (instructionImmediate i) * 4
 
 -- | A label in the symbol table (C: @label@).  The changeable parts are
 -- references; 'lblId' gives each label an identity, like the C pointer.
 data Label = Label
-  { lblId :: Int,
-    lblName :: String,
+  { labelIdentifier :: Int,
+    labelName :: String,
     -- | its address (or constant value); 0 if undefined
-    lblAddr :: IORef Word32,
+    labelAddress :: IORef Word32,
     -- | declared @.globl@
-    lblGlobal :: IORef Bool,
+    labelGlobal :: IORef Bool,
     -- | lives in the small data area off @$gp@
-    lblGp :: IORef Bool,
+    labelGlobalPointer :: IORef Bool,
     -- | a constant (@name = value@)
-    lblConst :: IORef Bool,
+    labelConstant :: IORef Bool,
     -- | uses waiting for the label to be defined
-    lblUses :: IORef [LabelUse]
+    labelUses :: IORef [LabelUse]
   }
 
 instance Eq Label where
-  a == b = lblId a == lblId b
+  a == b = labelIdentifier a == labelIdentifier b
 
 -- | A place that used a label before it was defined (C: @label_use@).
 data LabelUse
   = -- | an instruction, and the address it was assembled at
-    UseInst InstRef Word32
+    UseInstruction InstructionRef Word32
   | -- | a data item: its address, the constant added to the label, and its
     -- width in bytes (1 for .byte, 2 for .half, 4 for .word)
     UseData Word32 Int32 Int

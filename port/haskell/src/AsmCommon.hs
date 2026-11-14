@@ -6,8 +6,8 @@
 -- scanner.c and assembler-event.c; collecting them here lets the larger
 -- modules depend on them without depending on each other.
 module AsmCommon
-  ( currentTextPc,
-    currentDataPc,
+  ( currentTextLocation,
+    currentDataLocation,
     parseError,
     parseWarn,
     erroneousLine,
@@ -25,29 +25,29 @@ import State
 import Types
 
 -- | Where the next instruction goes (C: @current_text_pc@).
-currentTextPc :: Spim -> IO Word32
-currentTextPc s = do
+currentTextLocation :: Spim -> IO Word32
+currentTextLocation s = do
   k :: Bool <- get (textInKernel s)
-  get (if k then nextKTextPc s else nextTextPc s)
+  get (if k then nextKernelTextLocation s else nextTextLocation s)
 
 -- | Where the next datum goes (C: @current_data_pc@).
-currentDataPc :: Spim -> IO Word32
-currentDataPc s = do
+currentDataLocation :: Spim -> IO Word32
+currentDataLocation s = do
   k :: Bool <- get (dataInKernel s)
-  get (if k then nextKDataPc s else nextDataPc s)
+  get (if k then nextKernelDataLocation s else nextDataLocation s)
 
 -- | The scanner's line number (C: @line_no@).
 lineNo :: Spim -> IO Int
-lineNo s = ssLineNo <$> get (scanner s)
+lineNo s = scanStateLineNo <$> get (scanner s)
 
 setLineNo :: Spim -> Int -> IO ()
-setLineNo s n = modify (scanner s) (\st -> st {ssLineNo = n})
+setLineNo s n = modify (scanner s) (\st -> st {scanStateLineNo = n})
 
 -- | The line being parsed, for an error message (C: @erroneous_line@).
 erroneousLine :: Spim -> IO String
 erroneousLine s = do
   st :: ScanState <- get (scanner s)
-  pure ("\t  " ++ ssSnapshot st ++ "\n")
+  pure ("\t  " ++ scanStateSnapshot st ++ "\n")
 
 -- | The line being parsed as "NNN: text", if a token of it has been read
 -- (C: @source_line@).
@@ -55,36 +55,36 @@ sourceLine :: Spim -> IO (Maybe String)
 sourceLine s = do
   st :: ScanState <- get (scanner s)
   pure $
-    if ssSnapshotSaved st
-      then Just (show (ssSnapshotLineNo st) ++ ": " ++ ssSnapshot st)
+    if scanStateSnapshotSaved st
+      then Just (show (scanStateSnapshotLineNo st) ++ ": " ++ scanStateSnapshot st)
       else Nothing
 
 -- | A warning with the line it is about (C: @parse_warn@).
 parseWarn :: Spim -> String -> IO ()
-parseWarn s msg = do
+parseWarn s message = do
   n :: Int <- lineNo s
   file :: Maybe String <- get (inputFileName s)
   line :: String <- erroneousLine s
-  cError ("spim: (parser) " ++ msg ++ " on line " ++ show n ++ " of file " ++ maybe "(input)" id file ++ "\n" ++ line)
+  cError ("spim: (parser) " ++ message ++ " on line " ++ show n ++ " of file " ++ maybe "(input)" id file ++ "\n" ++ line)
 
 -- | An error found while assembling (C: @parse_error@, pseudo-op.c).
 parseError :: Spim -> String -> IO ()
-parseError s msg = do
+parseError s message = do
   set (parseErrorOccurred s) True
   modify (parseErrorsSeen s) (+ 1)
-  parseWarn s msg
+  parseWarn s message
 
 -- | Report an event to the @-listing@ observer, if there is one.
-fire :: Spim -> AsmEvent -> IO ()
+fire :: Spim -> AssemblerEvent -> IO ()
 fire s ev = do
-  obs :: Maybe (AsmEvent -> Int -> IO ()) <- get (asmObserver s)
-  case obs of
+  observer :: Maybe (AssemblerEvent -> Int -> IO ()) <- get (assemblerObserver s)
+  case observer of
     Nothing -> pure ()
     Just f -> lineNo s >>= f ev
 
 -- | Move the labels defined on this line to a new address, when alignment
 -- moved the location counter past them (C: @fix_current_label_address@).
 fixCurrentLabelAddress :: Spim -> Word32 -> IO ()
-fixCurrentLabelAddress s addr = do
+fixCurrentLabelAddress s address = do
   ls :: [Label] <- get (thisLineLabels s)
-  mapM_ (\l -> set (lblAddr l) addr) ls
+  mapM_ (\l -> set (labelAddress l) address) ls

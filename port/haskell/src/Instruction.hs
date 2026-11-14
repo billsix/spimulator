@@ -4,20 +4,20 @@
 -- Everything here is a pure function: an instruction record in, a 32-bit
 -- word out ('instEncode'), or the other way around ('instDecode').
 module Instruction
-  ( instEncode,
-    instEncodeIO,
-    instDecode,
+  ( instructionEncode,
+    instructionEncodeIO,
+    instructionDecode,
     opcodeIsBranch,
     opcodeIsNullifiedBranch,
     opcodeIsTrueBranch,
     opcodeIsJump,
     opcodeIsLoadStore,
-    tok,
-    isTok,
-    binRs,
-    binRt,
-    binRd,
-    binShamt,
+    token,
+    isToken,
+    binarySourceRegister,
+    binaryTargetRegister,
+    binaryDestinationRegister,
+    binaryShiftAmount,
   )
 where
 
@@ -31,117 +31,117 @@ import Output (fatalError)
 import Types
 
 -- | The token number of an opcode (a short name for 'opcodeToken').
-tok :: Opcode -> Int
-tok = opcodeToken
+token :: Opcode -> Int
+token = opcodeToken
 
 -- | Is the instruction's opcode token this opcode?
-isTok :: Opcode -> Int -> Bool
-isTok op t = t == tok op
+isToken :: Opcode -> Int -> Bool
+isToken op t = t == token op
 
 -- | @REGS(R, O)@: a 5-bit register field placed at bit O.
-regs :: Int -> Int -> Int32
-regs r o = fromIntegral ((r .&. 0x1f) `shiftL` o)
+registers :: Int -> Int -> Int32
+registers r o = fromIntegral ((r .&. 0x1f) `shiftL` o)
 
 low16 :: Instruction -> Int32
-low16 i = fromIntegral (instImm i) .&. 0xffff
+low16 i = fromIntegral (instructionImmediate i) .&. 0xffff
 
 -- | The binary encoding, or Nothing for a row with no encoding rule (the C
 -- engine stops with "Unknown instruction type in inst_encoding").
-instEncode :: Instruction -> Maybe Int32
-instEncode i = case lookupByValue iOpcodeTable (inOpcode i) of
+instructionEncode :: Instruction -> Maybe Int32
+instructionEncode i = case lookupByValue iOpcodeTable (instructionOpcode i) of
   Nothing -> Just 0
   Just entry ->
     let a :: Int32
         a = nvvValue2 entry
-        rs :: Int
-        rs = instRs i
-        rt :: Int
-        rt = instRt i
-        rd :: Int
-        rd = instRd i
-     in case opcodeTypeOfToken (inOpcode i) of
-          Just BRANCH_COPROCESSOR_CONDITION_INSTRUCTION -> Just (a .|. regs ((rt `shiftR` 2) `shiftL` 2) 16 .|. low16 i)
-          Just BRANCH_SOURCE_REGISTER_LABEL_INSTRUCTION -> Just (a .|. regs rs 21 .|. low16 i)
-          Just SOURCE_REGISTER_IMMEDIATE_INSTRUCTION -> Just (a .|. regs rs 21 .|. low16 i)
-          Just TARGET_REGISTER_IMMEDIATE_INSTRUCTION -> Just (a .|. regs rs 21 .|. regs rt 16 .|. low16 i)
-          Just TARGET_REGISTER_SOURCE_REGISTER_IMMEDIATE_INSTRUCTION -> Just (a .|. regs rs 21 .|. regs rt 16 .|. low16 i)
-          Just BRANCH_SOURCE_REGISTER_TARGET_REGISTER_LABEL_INSTRUCTION -> Just (a .|. regs rs 21 .|. regs rt 16 .|. low16 i)
-          Just TARGET_REGISTER_ADDRESS_INSTRUCTION -> Just (a .|. regs rs 21 .|. regs rt 16 .|. low16 i)
-          Just SOURCE_REGISTER_INSTRUCTION -> Just (a .|. regs rs 21)
-          Just DESTINATION_REGISTER_INSTRUCTION -> Just (a .|. regs rd 11)
-          Just TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION -> Just (a .|. regs rt 16 .|. regs rd 11)
-          Just SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION -> Just (a .|. regs rs 21 .|. regs rt 16)
-          Just DESTINATION_REGISTER_SOURCE_REGISTER_INSTRUCTION -> Just (a .|. regs rs 21 .|. regs rd 11)
-          Just DESTINATION_REGISTER_TARGET_REGISTER_SHIFT_AMOUNT_INSTRUCTION -> Just (a .|. regs rt 16 .|. regs rd 11 .|. regs (instShamt i) 6)
-          Just DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION -> Just (a .|. regs rs 21 .|. regs rt 16 .|. regs rd 11)
-          Just DESTINATION_REGISTER_TARGET_REGISTER_SOURCE_REGISTER_INSTRUCTION -> Just (a .|. regs rs 21 .|. regs rt 16 .|. regs rd 11)
-          Just FLOATING_POINT_TARGET_ADDRESS_INSTRUCTION -> Just (a .|. regs rs 21 .|. regs rt 16 .|. low16 i)
-          Just FLOATING_POINT_DESTINATION_SOURCE_INSTRUCTION -> Just (a .|. regs (instFs i) 11 .|. regs (instFd i) 6)
-          Just FLOATING_POINT_TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION -> Just (a .|. regs rt 16 .|. regs (instFs i) 11)
+        sourceRegister :: Int
+        sourceRegister = instructionSourceRegister i
+        targetRegister :: Int
+        targetRegister = instructionTargetRegister i
+        destinationRegister :: Int
+        destinationRegister = instructionDestinationRegister i
+     in case opcodeTypeOfToken (instructionOpcode i) of
+          Just BRANCH_COPROCESSOR_CONDITION_INSTRUCTION -> Just (a .|. registers ((targetRegister `shiftR` 2) `shiftL` 2) 16 .|. low16 i)
+          Just BRANCH_SOURCE_REGISTER_LABEL_INSTRUCTION -> Just (a .|. registers sourceRegister 21 .|. low16 i)
+          Just SOURCE_REGISTER_IMMEDIATE_INSTRUCTION -> Just (a .|. registers sourceRegister 21 .|. low16 i)
+          Just TARGET_REGISTER_IMMEDIATE_INSTRUCTION -> Just (a .|. registers sourceRegister 21 .|. registers targetRegister 16 .|. low16 i)
+          Just TARGET_REGISTER_SOURCE_REGISTER_IMMEDIATE_INSTRUCTION -> Just (a .|. registers sourceRegister 21 .|. registers targetRegister 16 .|. low16 i)
+          Just BRANCH_SOURCE_REGISTER_TARGET_REGISTER_LABEL_INSTRUCTION -> Just (a .|. registers sourceRegister 21 .|. registers targetRegister 16 .|. low16 i)
+          Just TARGET_REGISTER_ADDRESS_INSTRUCTION -> Just (a .|. registers sourceRegister 21 .|. registers targetRegister 16 .|. low16 i)
+          Just SOURCE_REGISTER_INSTRUCTION -> Just (a .|. registers sourceRegister 21)
+          Just DESTINATION_REGISTER_INSTRUCTION -> Just (a .|. registers destinationRegister 11)
+          Just TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION -> Just (a .|. registers targetRegister 16 .|. registers destinationRegister 11)
+          Just SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION -> Just (a .|. registers sourceRegister 21 .|. registers targetRegister 16)
+          Just DESTINATION_REGISTER_SOURCE_REGISTER_INSTRUCTION -> Just (a .|. registers sourceRegister 21 .|. registers destinationRegister 11)
+          Just DESTINATION_REGISTER_TARGET_REGISTER_SHIFT_AMOUNT_INSTRUCTION -> Just (a .|. registers targetRegister 16 .|. registers destinationRegister 11 .|. registers (instructionShiftAmount i) 6)
+          Just DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION -> Just (a .|. registers sourceRegister 21 .|. registers targetRegister 16 .|. registers destinationRegister 11)
+          Just DESTINATION_REGISTER_TARGET_REGISTER_SOURCE_REGISTER_INSTRUCTION -> Just (a .|. registers sourceRegister 21 .|. registers targetRegister 16 .|. registers destinationRegister 11)
+          Just FLOATING_POINT_TARGET_ADDRESS_INSTRUCTION -> Just (a .|. registers sourceRegister 21 .|. registers targetRegister 16 .|. low16 i)
+          Just FLOATING_POINT_DESTINATION_SOURCE_INSTRUCTION -> Just (a .|. registers (instructionFloatingPointSource i) 11 .|. registers (instructionFloatingPointDestination i) 6)
+          Just FLOATING_POINT_TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION -> Just (a .|. registers targetRegister 16 .|. registers (instructionFloatingPointSource i) 11)
           Just FLOATING_POINT_COMPARE_SOURCE_TARGET_INSTRUCTION ->
-            Just (a .|. regs (instFt i) 16 .|. regs (instFs i) 11 .|. regs (instFd i) 6 .|. fromIntegral (instCond i))
-          Just FLOATING_POINT_DESTINATION_SOURCE_TARGET_INSTRUCTION -> Just (a .|. regs (instFt i) 16 .|. regs (instFs i) 11 .|. regs (instFd i) 6)
-          Just MOVE_CONDITIONAL_TYPE_INSTRUCTION -> Just (a .|. regs rs 21 .|. regs rt 16 .|. regs rd 11)
-          Just FLOATING_POINT_MOVE_CONDITIONAL_TYPE_INSTRUCTION -> Just (a .|. regs rt 16 .|. regs (instFs i) 11 .|. regs (instFd i) 6)
-          Just J_TYPE_INSTRUCTION -> Just (fromIntegral (fromIntegral a .|. instTarget i :: Word32))
+            Just (a .|. registers (instructionFloatingPointTarget i) 16 .|. registers (instructionFloatingPointSource i) 11 .|. registers (instructionFloatingPointDestination i) 6 .|. fromIntegral (instructionCondition i))
+          Just FLOATING_POINT_DESTINATION_SOURCE_TARGET_INSTRUCTION -> Just (a .|. registers (instructionFloatingPointTarget i) 16 .|. registers (instructionFloatingPointSource i) 11 .|. registers (instructionFloatingPointDestination i) 6)
+          Just MOVE_CONDITIONAL_TYPE_INSTRUCTION -> Just (a .|. registers sourceRegister 21 .|. registers targetRegister 16 .|. registers destinationRegister 11)
+          Just FLOATING_POINT_MOVE_CONDITIONAL_TYPE_INSTRUCTION -> Just (a .|. registers targetRegister 16 .|. registers (instructionFloatingPointSource i) 11 .|. registers (instructionFloatingPointDestination i) 6)
+          Just J_TYPE_INSTRUCTION -> Just (fromIntegral (fromIntegral a .|. instructionTarget i :: Word32))
           Just NO_ARGUMENT_TYPE_INSTRUCTION -> Just a
           _ -> Nothing
 
 -- | 'instEncode', stopping the engine as C does when there is no rule.
-instEncodeIO :: Instruction -> IO Int32
-instEncodeIO i = maybe (fatalError "Unknown instruction type in inst_encoding\n") pure (instEncode i)
+instructionEncodeIO :: Instruction -> IO Int32
+instructionEncodeIO i = maybe (fatalError "Unknown instruction type in inst_encoding\n") pure (instructionEncode i)
 
 -- | The fields of a binary instruction (C: @BIN_RS@ and friends).
-binRs, binRt, binRd, binShamt :: Int32 -> Int
-binRs v = fromIntegral ((v `shiftR` 21) .&. 0x1f)
-binRt v = fromIntegral ((v `shiftR` 16) .&. 0x1f)
-binRd v = fromIntegral ((v `shiftR` 11) .&. 0x1f)
-binShamt v = fromIntegral ((v `shiftR` 6) .&. 0x1f)
+binarySourceRegister, binaryTargetRegister, binaryDestinationRegister, binaryShiftAmount :: Int32 -> Int
+binarySourceRegister v = fromIntegral ((v `shiftR` 21) .&. 0x1f)
+binaryTargetRegister v = fromIntegral ((v `shiftR` 16) .&. 0x1f)
+binaryDestinationRegister v = fromIntegral ((v `shiftR` 11) .&. 0x1f)
+binaryShiftAmount v = fromIntegral ((v `shiftR` 6) .&. 0x1f)
 
 -- | Turn a 32-bit word back into an instruction (C: @inst_decode@).  A word
 -- that is no instruction decodes to opcode 0, which the disassembler shows
 -- as @<unknown instruction 0>@.
-instDecode :: Int32 -> Instruction
-instDecode val =
-  case lookupByValue aOpcodeTable (fromIntegral aOpcode) of
+instructionDecode :: Int32 -> Instruction
+instructionDecode value =
+  case lookupByValue aOpcodeTable (fromIntegral tableOpcode) of
     Nothing -> invalid
     Just entry ->
       let op :: Int
           op = nvvValue2 entry
        in case opcodeTypeOfToken op of
-            Just BRANCH_COPROCESSOR_CONDITION_INSTRUCTION -> mkI op (binRs val) (binRt val)
-            Just BRANCH_SOURCE_REGISTER_LABEL_INSTRUCTION -> mkI op (binRs val) 0
-            Just SOURCE_REGISTER_IMMEDIATE_INSTRUCTION -> mkI op (binRs val) 0
-            Just TARGET_REGISTER_IMMEDIATE_INSTRUCTION -> mkI op (binRs val) (binRt val)
-            Just TARGET_REGISTER_SOURCE_REGISTER_IMMEDIATE_INSTRUCTION -> mkI op (binRs val) (binRt val)
-            Just BRANCH_SOURCE_REGISTER_TARGET_REGISTER_LABEL_INSTRUCTION -> mkI op (binRs val) (binRt val)
-            Just TARGET_REGISTER_ADDRESS_INSTRUCTION -> mkI op (binRs val) (binRt val)
-            Just SOURCE_REGISTER_INSTRUCTION -> mkR op (binRs val) 0 0 0
-            Just DESTINATION_REGISTER_INSTRUCTION -> mkR op 0 0 (binRd val) 0
-            Just TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION -> mkR op 0 (binRt val) (binRd val) 0
-            Just SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION -> mkR op (binRs val) (binRt val) 0 0
-            Just DESTINATION_REGISTER_SOURCE_REGISTER_INSTRUCTION -> mkR op (binRs val) 0 (binRd val) 0
-            Just DESTINATION_REGISTER_TARGET_REGISTER_SHIFT_AMOUNT_INSTRUCTION -> mkR op 0 (binRt val) (binRd val) (binShamt val)
-            Just DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION -> mkR op (binRs val) (binRt val) (binRd val) 0
-            Just DESTINATION_REGISTER_TARGET_REGISTER_SOURCE_REGISTER_INSTRUCTION -> mkR op (binRs val) (binRt val) (binRd val) 0
-            Just FLOATING_POINT_TARGET_ADDRESS_INSTRUCTION -> mkI op (binRs val) (binRt val)
-            Just FLOATING_POINT_DESTINATION_SOURCE_INSTRUCTION -> mkCoR op (binRd val) 0 (binShamt val)
-            Just FLOATING_POINT_TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION -> mkR op 0 (binRt val) (binRd val) 0
+            Just BRANCH_COPROCESSOR_CONDITION_INSTRUCTION -> makeI op (binarySourceRegister value) (binaryTargetRegister value)
+            Just BRANCH_SOURCE_REGISTER_LABEL_INSTRUCTION -> makeI op (binarySourceRegister value) 0
+            Just SOURCE_REGISTER_IMMEDIATE_INSTRUCTION -> makeI op (binarySourceRegister value) 0
+            Just TARGET_REGISTER_IMMEDIATE_INSTRUCTION -> makeI op (binarySourceRegister value) (binaryTargetRegister value)
+            Just TARGET_REGISTER_SOURCE_REGISTER_IMMEDIATE_INSTRUCTION -> makeI op (binarySourceRegister value) (binaryTargetRegister value)
+            Just BRANCH_SOURCE_REGISTER_TARGET_REGISTER_LABEL_INSTRUCTION -> makeI op (binarySourceRegister value) (binaryTargetRegister value)
+            Just TARGET_REGISTER_ADDRESS_INSTRUCTION -> makeI op (binarySourceRegister value) (binaryTargetRegister value)
+            Just SOURCE_REGISTER_INSTRUCTION -> makeR op (binarySourceRegister value) 0 0 0
+            Just DESTINATION_REGISTER_INSTRUCTION -> makeR op 0 0 (binaryDestinationRegister value) 0
+            Just TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION -> makeR op 0 (binaryTargetRegister value) (binaryDestinationRegister value) 0
+            Just SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION -> makeR op (binarySourceRegister value) (binaryTargetRegister value) 0 0
+            Just DESTINATION_REGISTER_SOURCE_REGISTER_INSTRUCTION -> makeR op (binarySourceRegister value) 0 (binaryDestinationRegister value) 0
+            Just DESTINATION_REGISTER_TARGET_REGISTER_SHIFT_AMOUNT_INSTRUCTION -> makeR op 0 (binaryTargetRegister value) (binaryDestinationRegister value) (binaryShiftAmount value)
+            Just DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION -> makeR op (binarySourceRegister value) (binaryTargetRegister value) (binaryDestinationRegister value) 0
+            Just DESTINATION_REGISTER_TARGET_REGISTER_SOURCE_REGISTER_INSTRUCTION -> makeR op (binarySourceRegister value) (binaryTargetRegister value) (binaryDestinationRegister value) 0
+            Just FLOATING_POINT_TARGET_ADDRESS_INSTRUCTION -> makeI op (binarySourceRegister value) (binaryTargetRegister value)
+            Just FLOATING_POINT_DESTINATION_SOURCE_INSTRUCTION -> makeCoprocessorR op (binaryDestinationRegister value) 0 (binaryShiftAmount value)
+            Just FLOATING_POINT_TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION -> makeR op 0 (binaryTargetRegister value) (binaryDestinationRegister value) 0
             Just FLOATING_POINT_COMPARE_SOURCE_TARGET_INSTRUCTION ->
-              setRs (fromIntegral (val .&. 0xf)) (mkCoR op (binRd val) (binRt val) (binShamt val))
-            Just FLOATING_POINT_DESTINATION_SOURCE_TARGET_INSTRUCTION -> mkCoR op (binRd val) (binRt val) (binShamt val)
-            Just MOVE_CONDITIONAL_TYPE_INSTRUCTION -> mkR op (binRs val) (binRt val) (binRd val) 0
-            Just FLOATING_POINT_MOVE_CONDITIONAL_TYPE_INSTRUCTION -> mkCoR op (binRd val) (binRt val) (binShamt val)
-            Just J_TYPE_INSTRUCTION -> setTarget (fromIntegral (val .&. 0x3ffffff)) (base op)
-            Just NO_ARGUMENT_TYPE_INSTRUCTION -> mkR op 0 0 0 0
+              setSourceRegister (fromIntegral (value .&. 0xf)) (makeCoprocessorR op (binaryDestinationRegister value) (binaryTargetRegister value) (binaryShiftAmount value))
+            Just FLOATING_POINT_DESTINATION_SOURCE_TARGET_INSTRUCTION -> makeCoprocessorR op (binaryDestinationRegister value) (binaryTargetRegister value) (binaryShiftAmount value)
+            Just MOVE_CONDITIONAL_TYPE_INSTRUCTION -> makeR op (binarySourceRegister value) (binaryTargetRegister value) (binaryDestinationRegister value) 0
+            Just FLOATING_POINT_MOVE_CONDITIONAL_TYPE_INSTRUCTION -> makeCoprocessorR op (binaryDestinationRegister value) (binaryTargetRegister value) (binaryShiftAmount value)
+            Just J_TYPE_INSTRUCTION -> setTarget (fromIntegral (value .&. 0x3ffffff)) (base op)
+            Just NO_ARGUMENT_TYPE_INSTRUCTION -> makeR op 0 0 0 0
             _ -> invalid
   where
     top :: Word32
-    top = fromIntegral val .&. 0xfc000000 :: Word32
+    top = fromIntegral value .&. 0xfc000000 :: Word32
     v :: Word32
-    v = fromIntegral val :: Word32
-    aOpcode :: Int32
-    aOpcode = fromIntegral (group top)
+    v = fromIntegral value :: Word32
+    tableOpcode :: Int32
+    tableOpcode = fromIntegral (group top)
     group :: Word32 -> Word32
     group t
       | t == 0 || t == 0x70000000 = t .|. (v .&. 0x3f) -- SPECIAL, SPECIAL2
@@ -154,15 +154,15 @@ instDecode val =
       | t == 0x4c000000 = t .|. (v .&. 0x3f) -- COP1X: the funct field
       | otherwise = t
     base :: Int -> Instruction
-    base op = (emptyInstruction op) {inEncoding = val}
+    base op = (emptyInstruction op) {instructionEncoding = value}
     invalid :: Instruction
     invalid = base 0
-    mkR :: Int -> Int -> Int -> Int -> Int -> Instruction
-    mkR op rs rt rd sh = setShamt sh (setRd rd (setRt rt (setRs rs (base op))))
-    mkCoR :: Int -> Int -> Int -> Int -> Instruction
-    mkCoR op fs ft fd = setShamt fd (setRt ft (setRd fs (base op)))
-    mkI :: Int -> Int -> Int -> Instruction
-    mkI op rs rt = setImm (val .&. 0xffff) (setRt rt (setRs rs (base op)))
+    makeR :: Int -> Int -> Int -> Int -> Int -> Instruction
+    makeR op sourceRegister targetRegister destinationRegister sh = setShiftAmount sh (setDestinationRegister destinationRegister (setTargetRegister targetRegister (setSourceRegister sourceRegister (base op))))
+    makeCoprocessorR :: Int -> Int -> Int -> Int -> Instruction
+    makeCoprocessorR op floatingPointSource floatingPointTarget floatingPointDestination = setShiftAmount floatingPointDestination (setTargetRegister floatingPointTarget (setDestinationRegister floatingPointSource (base op)))
+    makeI :: Int -> Int -> Int -> Instruction
+    makeI op sourceRegister targetRegister = setImmediate (value .&. 0xffff) (setTargetRegister targetRegister (setSourceRegister sourceRegister (base op)))
 
 -- | A conditional branch, including the branch pseudo-instructions
 -- (C: @opcode_is_branch@).
@@ -231,7 +231,7 @@ opcodeIsTrueBranch op = op `elem` [TOKEN_BC1T_OPCODE, TOKEN_BC1TL_OPCODE, TOKEN_
 
 -- | @j@ or @jal@.
 opcodeIsJump :: Int -> Bool
-opcodeIsJump t = t == tok TOKEN_J_OPCODE || t == tok TOKEN_JAL_OPCODE
+opcodeIsJump t = t == token TOKEN_J_OPCODE || t == token TOKEN_JAL_OPCODE
 
 -- | A load or a store.
 opcodeIsLoadStore :: Int -> Bool

@@ -2,9 +2,9 @@
 -- disassembly listing (C: src/display-utils.c).
 module DisplayUtils
   ( formatRegisters,
-    formatInsts,
-    formatMem,
-    formatDataSegs,
+    formatInstructions,
+    formatMemory,
+    formatDataSegments,
     printTextListing,
   )
 where
@@ -16,13 +16,13 @@ import Data.Int (Int32)
 import Data.List (intercalate, transpose)
 import Data.Word (Word32)
 import GHC.Float (float2Double)
-import InstFormat (formatAnInst)
+import InstFormat (formatAnInstruction)
 import Memory
-import Output (writeErr)
+import Output (writeError)
 import Registers
 import State
 import Text.Printf (printf)
-import Types (InstRef)
+import Types (InstructionRef)
 
 hex :: Int32 -> Word32
 hex = fromIntegral
@@ -31,20 +31,20 @@ hex = fromIntegral
 -- shows every register in hexadecimal.
 formatRegisters :: Spim -> Bool -> IO String
 formatRegisters s hexFlag = do
-  pc :: Word32 <- get (regPC s)
-  epc :: Int32 <- getCp0 s cp0Epc
-  cause :: Int32 <- getCp0 s cp0Cause
-  bad :: Int32 <- getCp0 s cp0BadVAddr
-  status :: Int32 <- getCp0 s cp0Status
-  hi :: Int32 <- get (regHI s)
-  lo :: Int32 <- get (regLO s)
-  regs :: [Int32] <- mapM (getGpr s) [0 .. 31]
-  fir :: Int32 <- getFcr s 0
-  fcsr :: Int32 <- getFcr s 31
+  programCounter :: Word32 <- get (registerProgramCounter s)
+  exceptionProgramCounter :: Int32 <- getCoprocessor0 s coprocessor0ExceptionProgramCounter
+  cause :: Int32 <- getCoprocessor0 s coprocessor0Cause
+  bad :: Int32 <- getCoprocessor0 s coprocessor0BadVirtualAddress
+  status :: Int32 <- getCoprocessor0 s coprocessor0Status
+  hi :: Int32 <- get (registerMultiplyDivideHigh s)
+  lo :: Int32 <- get (registerMultiplyDivideLow s)
+  registers :: [Int32] <- mapM (getGeneralPurposeRegister s) [0 .. 31]
+  floatingPointImplementationRegister :: Int32 <- getFloatingPointControlRegister s 0
+  floatingPointControlStatusRegister :: Int32 <- getFloatingPointControlRegister s 31
   doubles :: [Double] <- mapM (\k -> doubleWords s (2 * k)) [0 .. 15]
-  wordPairs :: [(Word32, Word32)] <- mapM (\k -> (,) <$> fprWord s (2 * k) <*> fprWord s (2 * k + 1)) [0 .. 15]
-  words' :: [Word32] <- mapM (fprWord s) [0 .. 31]
-  singles :: [Float] <- mapM (fprSingle s) [0 .. 31]
+  wordPairs :: [(Word32, Word32)] <- mapM (\k -> (,) <$> floatingPointRegisterWord s (2 * k) <*> floatingPointRegisterWord s (2 * k + 1)) [0 .. 15]
+  words' :: [Word32] <- mapM (floatingPointRegisterWord s) [0 .. 31]
+  singles :: [Float] <- mapM (floatingPointRegisterSingle s) [0 .. 31]
   let gr :: Int -> String -> Int32 -> String
       gr n name v =
         if hexFlag
@@ -52,54 +52,54 @@ formatRegisters s hexFlag = do
           else printf "R%-2d (%2s) = %-10d" n name v
       grFill :: String
       grFill = if hexFlag then "  " else " "
-      fpVal :: Double -> String
-      fpVal d = leftIn 13 (formatGAlt True 6 d)
+      floatingPointValue :: Double -> String
+      floatingPointValue d = leftIn 13 (formatGAlt True 6 d)
       doubleCell :: Int -> Double -> (Word32, Word32) -> String
       doubleCell k d (w0, w1) =
         if hexFlag
           then printf "FP%-2d=%08x,%08x" (2 * k) w0 w1
-          else printf "FP%-2d = %s" (2 * k) (fpVal d)
+          else printf "FP%-2d = %s" (2 * k) (floatingPointValue d)
       singleCell :: Int -> Word32 -> Float -> String
       singleCell k v f =
         if hexFlag
           then printf "FP%-2d=%08x" k v
-          else printf "FP%-2d = %s" k (fpVal (float2Double f))
+          else printf "FP%-2d = %s" k (floatingPointValue (float2Double f))
       -- The cells in rows of four, laid out down the columns: with n rows,
       -- row k holds cells k, k + n, k + 2n and k + 3n.
       table :: String -> Int -> [String] -> String
       table fill n cells = concatMap (\row -> intercalate fill row ++ "\n") (transpose (chunksOf n cells))
   pure $
-    printf " PC      = %08x   " pc
-      ++ printf "EPC     = %08x  " (hex epc)
+    printf " PC      = %08x   " programCounter
+      ++ printf "EPC     = %08x  " (hex exceptionProgramCounter)
       ++ printf " Cause   = %08x  " (hex cause)
       ++ printf " BadVAddr= %08x\n" (hex bad)
       ++ printf " Status  = %08x   " (hex status)
       ++ printf "HI      = %08x  " (hex hi)
       ++ printf " LO      = %08x\n" (hex lo)
       ++ "\t\t\t\t General Registers\n"
-      ++ table grFill 8 (zipWith3 gr [0 ..] regNames regs)
-      ++ printf "\n FIR    = %08x   " (hex fir)
-      ++ printf " FCSR    = %08x   " (hex fcsr)
+      ++ table grFill 8 (zipWith3 gr [0 ..] registerNames registers)
+      ++ printf "\n FIR    = %08x   " (hex floatingPointImplementationRegister)
+      ++ printf " FCSR    = %08x   " (hex floatingPointControlStatusRegister)
       ++ "\t\t\t      Double Floating Point Registers\n"
       ++ table " " 4 (zipWith3 doubleCell [0 ..] doubles wordPairs)
       ++ "\t\t\t      Single Floating Point Registers\n"
       ++ table " " 8 (zipWith3 singleCell [0 ..] words' singles)
 
 -- | Disassemble the instructions in [from, to) (C: @format_insts@).
-formatInsts :: Spim -> Word32 -> Word32 -> IO String
-formatInsts s from to = concat <$> forM (takeWhile (< to) [from, from + 4 ..]) line
+formatInstructions :: Spim -> Word32 -> Word32 -> IO String
+formatInstructions s from to = concat <$> forM (takeWhile (< to) [from, from + 4 ..]) line
   where
     line :: Word32 -> IO String
     line a = do
-      inst :: Maybe InstRef <- memReadInst s a
-      case inst of
+      instruction :: Maybe InstructionRef <- memoryReadInstruction s a
+      case instruction of
         Nothing -> pure ""
-        Just _ -> formatAnInst s inst a
+        Just _ -> formatAnInstruction s instruction a
 
 -- | Dump the words in [from, to), four to a line, collapsing runs of four
 -- or more zero words (C: @format_mem@).
-formatMem :: Spim -> Word32 -> Word32 -> IO String
-formatMem s from to = do
+formatMemory :: Spim -> Word32 -> Word32 -> IO String
+formatMemory s from to = do
   let start :: Word32
       start = (from + 3) .&. complement 3
   (first, i0) :: (String, Word32) <- partialLine s start
@@ -128,32 +128,32 @@ formatMem s from to = do
     zeroRun i j
       | i + fromIntegral j * 4 >= to = pure j
       | otherwise = do
-          v :: Int32 <- memReadWord s (i + fromIntegral j * 4)
+          v :: Int32 <- memoryReadWord s (i + fromIntegral j * 4)
           if v /= 0 then pure j else zeroRun i (j + 1)
     -- do { print a word } while (not at a 16-byte boundary)
     wordsToLineEnd :: Word32 -> Bool -> IO (String, Word32)
     wordsToLineEnd i firstOne
       | not firstOne && i `rem` 16 == 0 = pure ("", i)
       | otherwise = do
-          v :: Int32 <- memReadWord s i
+          v :: Int32 <- memoryReadWord s i
           (more, i') :: (String, Word32) <- wordsToLineEnd (i + 4) False
           pure (printf "  0x%08x" (hex v) ++ more, i')
 
 -- | The words up to the next 16-byte boundary, if not on one
 -- (C: @format_partial_line@).
 partialLine :: Spim -> Word32 -> IO (String, Word32)
-partialLine s addr
-  | addr `rem` 16 == 0 = pure ("", addr)
+partialLine s address
+  | address `rem` 16 == 0 = pure ("", address)
   | otherwise = do
       -- The words that start before the next boundary.  For a word-aligned
       -- address the last one ends on it; an unaligned one (the C engine
       -- never stops on it) ends past it.
       let count :: Word32
-          count = (16 - addr `rem` 16 + 3) `quot` 4
-          addrs :: [Word32]
-          addrs = [addr + 4 * k | k <- [0 .. count - 1]]
-      cells :: [String] <- mapM (\a -> printf "  0x%08x" . hex <$> memReadWord s a) addrs
-      pure (printf "[0x%08x]\t\t      " addr ++ concat cells ++ "\n", addr + 4 * count)
+          count = (16 - address `rem` 16 + 3) `quot` 4
+          addresses :: [Word32]
+          addresses = [address + 4 * k | k <- [0 .. count - 1]]
+      cells :: [String] <- mapM (\a -> printf "  0x%08x" . hex <$> memoryReadWord s a) addresses
+      pure (printf "[0x%08x]\t\t      " address ++ concat cells ++ "\n", address + 4 * count)
 
 -- | A list cut into pieces of n elements (the last may be shorter).
 chunksOf :: forall x. Int -> [x] -> [[x]]
@@ -165,21 +165,21 @@ chunksOf n xs = piece : chunksOf n rest
     (piece, rest) = splitAt n xs
 
 -- | The data, stack and kernel data segments (C: @format_data_segs@).
-formatDataSegs :: Spim -> IO String
-formatDataSegs s = do
+formatDataSegments :: Spim -> IO String
+formatDataSegments s = do
   dtop :: Word32 <- get (dataTop s)
-  sp :: Word32 <- fromIntegral <$> getGpr s 29 :: IO Word32
-  kdtop :: Word32 <- get (kDataTop s)
-  d :: String <- formatMem s dataBot dtop
-  st :: String <- formatMem s (sp .&. complement 3) stackTop
-  k :: String <- formatMem s kDataBot kdtop
+  sp :: Word32 <- fromIntegral <$> getGeneralPurposeRegister s 29 :: IO Word32
+  kdtop :: Word32 <- get (kernelDataTop s)
+  d :: String <- formatMemory s dataBottom dtop
+  st :: String <- formatMemory s (sp .&. complement 3) stackTop
+  k :: String <- formatMemory s kernelDataBottom kdtop
   pure ("\tDATA\n" ++ d ++ "\n\tSTACK\n" ++ st ++ "\n\tKERNEL DATA\n" ++ k)
 
 -- | The REPL's @disasm@ (C: @print_text_listing@).
 printTextListing :: Spim -> IO ()
 printTextListing s = do
   ttop :: Word32 <- get (textTop s)
-  text :: String <- formatInsts s textBot ttop
+  text :: String <- formatInstructions s textBottom ttop
   if null text
-    then writeErr "No program loaded.\n"
-    else writeErr ("\n\tUSER TEXT SEGMENT\n" ++ text ++ "\n")
+    then writeError "No program loaded.\n"
+    else writeError ("\n\tUSER TEXT SEGMENT\n" ++ text ++ "\n")

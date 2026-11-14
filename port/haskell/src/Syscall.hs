@@ -48,8 +48,8 @@ readInput size = go size
 -- | Read an integer the way @scanf("%d")@ would, for read_int: skip white
 -- space, an optional sign, then digits.  The byte after the digits is
 -- consumed (C: @read_int_input@).
-readIntInput :: IO (Maybe Int)
-readIntInput = do
+readIntegerInput :: IO (Maybe Int)
+readIntegerInput = do
   c0 :: Maybe Word8 <- skipSpace
   (sign, c1) :: (Int, Maybe Word8) <- case c0 of
     Just 45 -> (,) (-1) <$> readByte
@@ -72,14 +72,14 @@ readIntInput = do
 -- (C: @do_syscall@).
 doSyscall :: Spim -> IO Bool
 doSyscall s = do
-  v0 :: Int32 <- getGpr s 2
-  a0 :: Int32 <- getGpr s 4
-  a1 :: Int32 <- getGpr s 5
-  a2 :: Int32 <- getGpr s 6
+  v0 :: Int32 <- getGeneralPurposeRegister s 2
+  a0 :: Int32 <- getGeneralPurposeRegister s 4
+  a1 :: Int32 <- getGeneralPurposeRegister s 5
+  a2 :: Int32 <- getGeneralPurposeRegister s 6
   case v0 of
     1 -> writeOut (show a0) >> continue
     2 -> do
-      f :: Float <- fprSingle s 12
+      f :: Float <- floatingPointRegisterSingle s 12
       writeOut (formatF 8 (float2Double f))
       continue
     3 -> do
@@ -88,60 +88,60 @@ doSyscall s = do
       continue
     4 -> readCString s (fromIntegral a0) >>= writeOut >> continue
     5 -> do
-      r :: Maybe Int <- readIntInput
-      setGpr s 2 (maybe 0 fromIntegral r)
-      setGpr s 7 (maybe 1 (const 0) r)
+      r :: Maybe Int <- readIntegerInput
+      setGeneralPurposeRegister s 2 (maybe 0 fromIntegral r)
+      setGeneralPurposeRegister s 7 (maybe 1 (const 0) r)
       continue
     6 -> do
-      str :: String <- readInput 256
-      setFprSingle s 0 (double2Float (cStrtod str))
+      string :: String <- readInput 256
+      setFloatingPointRegisterSingle s 0 (double2Float (cStrtod string))
       continue
     7 -> do
-      str :: String <- readInput 256
-      setFprDouble s 0 (cStrtod str)
+      string :: String <- readInput 256
+      setFloatingPointRegisterDouble s 0 (cStrtod string)
       continue
     8 -> do
-      ref :: Maybe SegmentRef <- memReference s (fromIntegral a0)
-      str :: String <- readInput (fromIntegral a1)
+      ref :: Maybe SegmentRef <- memoryReference s (fromIntegral a0)
+      string :: String <- readInput (fromIntegral a1)
       case ref of
         Nothing -> pure ()
-        Just (arr, off, hi) -> do
+        Just (array, offset, hi) -> do
           let bytes :: [(Int, Word8)]
-              bytes = zip [off ..] (map (fromIntegral . fromEnum) str ++ [0 | fromIntegral a1 - length str > 0])
-          forM_ bytes $ \(i, b) -> when (i <= hi) (writeArray arr i b)
-      setGpr s 7 (if null str then 1 else 0)
+              bytes = zip [offset ..] (map (fromIntegral . fromEnum) string ++ [0 | fromIntegral a1 - length string > 0])
+          forM_ bytes $ \(i, b) -> when (i <= hi) (writeArray array i b)
+      setGeneralPurposeRegister s 7 (if null string then 1 else 0)
       continue
     9 -> do
       top :: Word32 <- get (dataTop s)
       expandData s (fromIntegral a0)
-      setGpr s 2 (fromIntegral top)
+      setGeneralPurposeRegister s 2 (fromIntegral top)
       continue
     10 -> set (spimReturnValue s) 0 >> pure False
     11 -> writeOut [chr (fromIntegral (fromIntegral a0 :: Word8))] >> continue
     12 -> do
-      str :: String <- readInput 2
-      setGpr s 2 (case str of (c : _) -> fromIntegral (fromEnum c); [] -> -1)
+      string :: String <- readInput 2
+      setGeneralPurposeRegister s 2 (case string of (c : _) -> fromIntegral (fromEnum c); [] -> -1)
       continue
     13 -> do
       path :: String <- readCString s (fromIntegral a0)
-      fd :: CInt <- withCString path $ \p -> cOpen p (fromIntegral a1) (fromIntegral a2)
-      setGpr s 2 (fromIntegral fd)
+      floatingPointDestination :: CInt <- withCString path $ \p -> cOpen p (fromIntegral a1) (fromIntegral a2)
+      setGeneralPurposeRegister s 2 (fromIntegral floatingPointDestination)
       continue
     14 -> do
-      _ <- memReference s (fromIntegral (a1 + a2 - 1))
-      ref :: Maybe SegmentRef <- memReference s (fromIntegral a1)
-      n :: Int32 <- transfer ref (fromIntegral a2) $ \p len -> cRead (fromIntegral a0) p len
-      setGpr s 2 n
+      _ <- memoryReference s (fromIntegral (a1 + a2 - 1))
+      ref :: Maybe SegmentRef <- memoryReference s (fromIntegral a1)
+      n :: Int32 <- transfer ref (fromIntegral a2) $ \p byteLength -> cRead (fromIntegral a0) p byteLength
+      setGeneralPurposeRegister s 2 n
       continue
     15 -> do
-      _ <- memReference s (fromIntegral (a1 + a2 - 1))
-      ref :: Maybe SegmentRef <- memReference s (fromIntegral a1)
-      n :: Int32 <- transferOut ref (fromIntegral a2) $ \p len -> cWrite (fromIntegral a0) p len
-      setGpr s 2 n
+      _ <- memoryReference s (fromIntegral (a1 + a2 - 1))
+      ref :: Maybe SegmentRef <- memoryReference s (fromIntegral a1)
+      n :: Int32 <- transferOut ref (fromIntegral a2) $ \p byteLength -> cWrite (fromIntegral a0) p byteLength
+      setGeneralPurposeRegister s 2 n
       continue
     16 -> do
       r :: CInt <- cClose (fromIntegral a0)
-      setGpr s 2 (fromIntegral r)
+      setGeneralPurposeRegister s 2 (fromIntegral r)
       continue
     17 -> set (spimReturnValue s) a0 >> pure False
     _ -> runError (printf "Unknown system call: %d\n" v0)
@@ -150,24 +150,24 @@ doSyscall s = do
     continue = pure True
     -- read(2) into simulated memory: through a host buffer, then copied in.
     transfer :: Maybe SegmentRef -> Int -> (Ptr Word8 -> CSize -> IO CInt) -> IO Int32
-    transfer ref len act = case ref of
+    transfer ref byteLength act = case ref of
       Nothing -> pure (-1)
-      Just (arr, off, hi) -> do
+      Just (array, offset, hi) -> do
         let room :: Int
-            room = max 0 (min len (hi - off + 1))
-        allocaBytes (max 1 len) $ \p -> do
-          n :: CInt <- act p (fromIntegral len)
-          forM_ [0 .. min (fromIntegral n) room - 1] $ \i -> peekByteOff p i >>= writeArray arr (off + i)
+            room = max 0 (min byteLength (hi - offset + 1))
+        allocaBytes (max 1 byteLength) $ \p -> do
+          n :: CInt <- act p (fromIntegral byteLength)
+          forM_ [0 .. min (fromIntegral n) room - 1] $ \i -> peekByteOff p i >>= writeArray array (offset + i)
           pure (fromIntegral n :: Int32)
     -- write(2) from simulated memory: copied into a host buffer first.
     transferOut :: Maybe SegmentRef -> Int -> (Ptr Word8 -> CSize -> IO CInt) -> IO Int32
-    transferOut ref len act = case ref of
+    transferOut ref byteLength act = case ref of
       Nothing -> pure (-1)
-      Just (arr, off, hi) -> do
+      Just (array, offset, hi) -> do
         let room :: Int
-            room = max 0 (min len (hi - off + 1))
-        allocaBytes (max 1 len) $ \p -> do
-          forM_ [0 .. room - 1] $ \i -> readArray arr (off + i) >>= (pokeByteOff p i :: Word8 -> IO ())
+            room = max 0 (min byteLength (hi - offset + 1))
+        allocaBytes (max 1 byteLength) $ \p -> do
+          forM_ [0 .. room - 1] $ \i -> readArray array (offset + i) >>= (pokeByteOff p i :: Word8 -> IO ())
           n :: CInt <- act (p `plusPtr` 0) (fromIntegral room)
           pure (fromIntegral n :: Int32)
 
@@ -175,17 +175,17 @@ doSyscall s = do
 -- (C: @handle_exception@).
 handleException :: Spim -> IO ()
 handleException s = do
-  quiet :: Bool <- get (optQuiet s)
+  quiet :: Bool <- get (optionQuiet s)
   code :: Int <- exceptionCode s
-  epc :: Int32 <- getCp0 s cp0Epc
-  bad :: Int32 <- getCp0 s cp0BadVAddr
+  exceptionProgramCounter :: Int32 <- getCoprocessor0 s coprocessor0ExceptionProgramCounter
+  bad :: Int32 <- getCoprocessor0 s coprocessor0BadVirtualAddress
   let say :: String -> IO ()
-      say msg = when (not quiet) (cError msg)
+      say message = when (not quiet) (cError message)
       hex32 :: Int32 -> Word32
       hex32 = fromIntegral
-  when (not quiet && code /= excInt) $ cError (printf "Exception occurred at PC=0x%08x\n" (hex32 epc))
+  when (not quiet && code /= exceptionInterrupt) $ cError (printf "Exception occurred at PC=0x%08x\n" (hex32 exceptionProgramCounter))
   set (exceptionOccurred s) False
-  set (regPC s) exceptionAddr
+  set (registerProgramCounter s) exceptionAddress
   case code of
     0 -> pure ()
     4 -> say (printf "  Unaligned address in instruction/data fetch: 0x%08x\n" (hex32 bad))

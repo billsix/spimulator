@@ -54,6 +54,11 @@ GENERATED: frozenset[str] = frozenset(
     }
 )
 WORD: re.Pattern[str] = re.compile(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+|[0-9]+")
+# The MIPS register fields: renamed even as two-letter names (the C core renamed them), where
+# every other name of one or two letters is a tight-scope local or pattern variable and stays.
+ARCHITECTURE_FIELDS: frozenset[str] = frozenset(
+    {"rs", "rt", "rd", "fs", "ft", "fd", "fr", "cc", "pc", "ea"}
+)
 # Words whose glossary spelling depends on the name they are in; the C rename decided them per
 # name, and a port name with one of them needs a manual row unless it mirrors a C name.
 AMBIGUOUS: frozenset[str] = frozenset(
@@ -113,27 +118,42 @@ def words_of(name: str) -> list[str]:
     return [word.lower() for word in WORD.findall(name)]
 
 
-def recase(words: list[str], like: str) -> str:
+# Acronyms more familiar than their expansion (decision 3 of the C task) stay upper case
+# inside a CamelCase or camelCase name: ``instructionEncodeIO``, ``TokenEOF``.
+FAMILIAR: frozenset[str] = frozenset(
+    {"io", "eof", "json", "ast", "ascii", "asan", "mips", "spim", "repl", "mdmx"}
+)
+
+
+def recase(words: list[str], like: str, port: str = "python") -> str:
     """Join words in the casing of an existing identifier.
 
     Args:
         words: lower-case words.
         like: the identifier whose style to copy (``snake``, ``SCREAMING``, ``CamelCase``,
-            ``camelCase``).
+            ``camelCase``); its leading underscores and trailing primes are kept.
+        port: the language; a one-word lower-case Haskell name is camelCase, not snake.
 
     Returns:
         str: the new identifier.
     """
+
+    def capital(word: str) -> str:
+        return word.upper() if word in FAMILIAR else word.capitalize()
+
     leading: str = like[: len(like) - len(like.lstrip("_"))]
-    body: str = like.lstrip("_")
+    trailing: str = like[len(like.rstrip("'")) :]
+    body: str = like.strip("_").rstrip("'")
+    joined: str
     if body.upper() == body and body.lower() != body:
-        return leading + "_".join(words).upper()
-    elif "_" in body or body.lower() == body:
-        return leading + "_".join(words)
+        joined = "_".join(words).upper()
+    elif "_" in body or (body.lower() == body and port != "haskell"):
+        joined = "_".join(words)
     elif body[0].isupper():
-        return leading + "".join(word.capitalize() for word in words)
+        joined = "".join(capital(word) for word in words)
     else:
-        return leading + words[0] + "".join(word.capitalize() for word in words[1:])
+        joined = words[0] + "".join(capital(word) for word in words[1:])
+    return leading + joined + trailing
 
 
 def c_mirrors() -> dict[tuple[str, ...], list[str]]:
@@ -193,7 +213,9 @@ def port_files(port: str) -> list[pathlib.Path]:
     return [
         pathlib.Path(name)
         for name in listed
-        if name.endswith(suffixes) and name not in GENERATED
+        if name.endswith(suffixes)
+        and name not in GENERATED
+        and not name.startswith("port/haskell/tools/")
     ]
 
 
@@ -225,6 +247,59 @@ def python_declared(paths: list[pathlib.Path]) -> set[str]:
                 case _:
                     pass
     return declared
+
+
+HASKELL_KEYWORDS: frozenset[str] = frozenset(
+    {
+        "case",
+        "class",
+        "data",
+        "default",
+        "deriving",
+        "do",
+        "else",
+        "foreign",
+        "if",
+        "import",
+    }
+    | {
+        "in",
+        "infix",
+        "infixl",
+        "infixr",
+        "instance",
+        "let",
+        "module",
+        "newtype",
+        "of",
+        "then",
+    }
+    | {"type", "where", "forall", "qualified", "as", "hiding", "family", "pattern"}
+)
+
+
+def haskell_declared(paths: list[pathlib.Path]) -> set[str]:
+    """Every identifier of the Haskell sources that is not a library's, a keyword or a module.
+
+    The libraries' names come from ``haskell_external.sh`` (``data/haskell.external.txt``,
+    ghci's ``:browse`` of each imported module). A module name is a file name, so it stays.
+
+    Args:
+        paths: the sources.
+
+    Returns:
+        set[str]: the port's own identifiers.
+    """
+    external: set[str] = set(
+        (HERE / "data" / "haskell.external.txt").read_text().split()
+    )
+    modules: set[str] = {path.stem for path in paths}
+    tokens: set[str] = {
+        token
+        for path in paths
+        for token in identifiers("haskell", path.read_text(), code=True)
+    }
+    return tokens - external - HASKELL_KEYWORDS - modules
 
 
 def regex_declared(port: str, paths: list[pathlib.Path]) -> set[str]:
@@ -281,9 +356,13 @@ def discover(port: str) -> int:
         int: 0.
     """
     paths: list[pathlib.Path] = port_files(port)
-    declared: set[str] = (
-        python_declared(paths) if port == "python" else regex_declared(port, paths)
-    )
+    match port:
+        case "python":
+            declared: set[str] = python_declared(paths)
+        case "haskell":
+            declared = haskell_declared(paths)
+        case _:
+            declared = regex_declared(port, paths)
     mirrors: dict[tuple[str, ...], list[str]] = c_mirrors()
     spelled: dict[str, list[str]] = glossary()
     manual_path: pathlib.Path = HERE / "data" / f"{port}.manual.tsv"
@@ -296,6 +375,12 @@ def discover(port: str) -> int:
         if manual_path.exists()
         else {}
     )
+    generated_names: set[str] = {
+        token
+        for path_name in GENERATED
+        if path_name.startswith(PORTS[port][0])
+        for token in identifiers(port, pathlib.Path(path_name).read_text(), code=True)
+    }
     uses: collections.Counter[str] = collections.Counter(
         token for path in paths for token in identifiers(port, path.read_text())
     )
@@ -306,15 +391,22 @@ def discover(port: str) -> int:
         if (
             not words
             or name in EXTERNAL[port]
+            or name in generated_names
             or (name.startswith("__") and name.endswith("__"))
         ):
             continue  # the language's or its library's name, not the port's
+        if (
+            name not in manual
+            and len(name.strip("_'")) <= 2
+            and name.lower().strip("_'") not in ARCHITECTURE_FIELDS
+        ):
+            continue  # a tight-scope local or pattern variable
         new: str
         source: str
         if name in manual:
             new, source = manual[name], "manual"
         elif tuple(words) in mirrors and mirrors[tuple(words)] != words:
-            new, source = recase(mirrors[tuple(words)], name), "mirror"
+            new, source = recase(mirrors[tuple(words)], name, port), "mirror"
         elif any(word in AMBIGUOUS for word in words) and len(name) > 1:
             if any(word in spelled for word in words) or len(words) > 1:
                 new, source = name, "ambiguous"
@@ -326,7 +418,7 @@ def discover(port: str) -> int:
             ]
             if spelled_words == words:
                 continue
-            new, source = recase(spelled_words, name), "glossary"
+            new, source = recase(spelled_words, name, port), "glossary"
         if new != name or source == "ambiguous":
             rows.append(f"{name}\t{new}\t{source}\t{uses[name]}\n")
     (HERE / "data").mkdir(parents=True, exist_ok=True)
@@ -338,17 +430,22 @@ def discover(port: str) -> int:
     return 0
 
 
-def identifiers(port: str, text: str) -> list[str]:
+def identifiers(port: str, text: str, code: bool = False) -> list[str]:
     """Every identifier token of a source, outside string literals.
 
     Args:
         port: the language.
         text: the source.
+        code: leave out the words of comments.
 
     Returns:
         list[str]: the identifiers, in order.
     """
-    return [text[start:end] for start, end, _ in spans(port, text)]
+    return [
+        text[start:end]
+        for start, end, in_comment in spans(port, text)
+        if not (code and in_comment)
+    ]
 
 
 def spans(port: str, text: str) -> list[tuple[int, int, bool]]:
