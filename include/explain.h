@@ -18,7 +18,8 @@ extern int explain_level;
 
 /* Called before the dispatch switch in run_spim. Snapshots register state and
    prints a description of the upcoming instruction. */
-void explain_before(const mips_instruction* instruction, memory_address address);
+void explain_before(const mips_instruction* instruction,
+                    memory_address address);
 
 /* Called after the dispatch switch. Prints a diff of register/PC state vs
    the snapshot taken in explain_before. */

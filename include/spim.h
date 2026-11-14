@@ -93,14 +93,14 @@ constexpr int BYTES_PER_WORD = 4; /* On the MIPS processor */
 
 /* Sizes of memory segments. */
 
-constexpr int TEXT_SIZE = 256 * kilo;  /* Initial text segment.  1/4 MB */
+constexpr int TEXT_SIZE = 256 * kilo;       /* Initial text segment.  1/4 MB */
 constexpr int KERNEL_TEXT_SIZE = 64 * kilo; /* Initial k_text segment.  64 KB */
 
 /* The data segment must be larger than 64K since we immediately grab
    64K for the small data segment pointed to by $gp. The data segment is
    expanded by an sbrk system call. */
-constexpr int DATA_SIZE = 256 * kilo;  /* Initial data segment.  1/4 MB */
-constexpr int DATA_LIMIT = mega;       /* Max data segment.  1 MB */
+constexpr int DATA_SIZE = 256 * kilo;       /* Initial data segment.  1/4 MB */
+constexpr int DATA_LIMIT = mega;            /* Max data segment.  1 MB */
 constexpr int KERNEL_DATA_SIZE = 64 * kilo; /* Initial k_data segment.  64 KB */
 constexpr int KERNEL_DATA_LIMIT = mega;     /* Max k_data segment.  1 MB */
 
@@ -162,7 +162,8 @@ typedef union {
 
 int console_input_available(void);
 [[gnu::format(printf, 1, 2)]] void error(const char* format, ...);
-[[noreturn, gnu::format(printf, 1, 2)]] void fatal_error(const char* format, ...);
+[[noreturn, gnu::format(printf, 1, 2)]] void fatal_error(const char* format,
+                                                         ...);
 char get_console_char(void);
 void put_console_char(char c);
 int read_input(char* string, int n); /* Returns bytes read (0 on EOF). */
@@ -174,14 +175,14 @@ int read_input(char* string, int n); /* Returns bytes read (0 on EOF). */
 
 /* Exported variables: */
 
-extern bool bare_machine;         /* => simulate bare machine */
-extern bool accept_pseudo_instructions;  /* => parse pseudo instructions  */
-extern bool delayed_branches;     /* => simulate delayed branches */
-extern bool delayed_loads;        /* => simulate delayed loads */
-extern bool quiet;                /* => no warning messages */
-extern char* exception_file_name; /* File containing exception handler */
-extern bool force_break;          /* => stop interpreter loop  */
-extern int spim_return_value;     /* Value returned when spim exits */
+extern bool bare_machine;               /* => simulate bare machine */
+extern bool accept_pseudo_instructions; /* => parse pseudo instructions  */
+extern bool delayed_branches;           /* => simulate delayed branches */
+extern bool delayed_loads;              /* => simulate delayed loads */
+extern bool quiet;                      /* => no warning messages */
+extern char* exception_file_name;       /* File containing exception handler */
+extern bool force_break;                /* => stop interpreter loop  */
+extern int spim_return_value;           /* Value returned when spim exits */
 /* Actual type of structure pointed to depends on X/terminal interface */
 extern port message_out, console_out, console_input;
 extern bool mapped_io; /* => activate memory-mapped IO */

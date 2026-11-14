@@ -14,7 +14,7 @@
    lazily creates the stream on first use. */
 typedef struct string_stream {
   FILE* stream; /* nullptr until first use */
-  char* buffer;    /* owned by the stream until stream_take_string */
+  char* buffer; /* owned by the stream until stream_take_string */
   size_t size;  /* bytes written, updated on flush */
 } string_stream;
 
@@ -24,7 +24,7 @@ void stream_erase(string_stream* stream, int n);
 int stream_length(string_stream* stream);
 [[nodiscard]] char* stream_to_string(string_stream* stream);
 [[nodiscard]] char* stream_take_string(string_stream* stream);
-[[gnu::format(printf, 2, 3)]] void stream_printf(string_stream* stream, const char* format,
-                                             ...);
+[[gnu::format(printf, 2, 3)]] void stream_printf(string_stream* stream,
+                                                 const char* format, ...);
 
 #endif

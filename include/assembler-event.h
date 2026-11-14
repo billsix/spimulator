@@ -18,17 +18,20 @@
 #include "spim.h"
 
 typedef enum : uint8_t {
-  ASSEMBLER_EVENT_LABEL_DEFINITION,        /* a label became defined at addr */
-  ASSEMBLER_EVENT_TEXT_INSTRUCTION,        /* an instruction was stored at addr (text seg) */
+  ASSEMBLER_EVENT_LABEL_DEFINITION, /* a label became defined at addr */
+  ASSEMBLER_EVENT_TEXT_INSTRUCTION, /* an instruction was stored at addr (text
+                                       seg) */
   ASSEMBLER_EVENT_DATA_BYTE,        /* .byte EXPRESSION */
   ASSEMBLER_EVENT_DATA_HALF,        /* .half EXPRESSION */
   ASSEMBLER_EVENT_DATA_WORD,        /* .word EXPRESSION */
   ASSEMBLER_EVENT_DATA_DOUBLE,      /* .double EXPRESSION */
   ASSEMBLER_EVENT_DATA_STRING,      /* .ascii / .asciiz STRING */
   ASSEMBLER_EVENT_ALIGN,            /* PC advanced for alignment */
-  ASSEMBLER_EVENT_SEGMENT_CHANGE,       /* .text / .data / .ktext / .kdata */
-  ASSEMBLER_EVENT_FORWARD_REF,      /* instruction or word referenced an unresolved sym */
-  ASSEMBLER_EVENT_FORWARD_RESOLVED, /* forward reference got patched at label-def time */
+  ASSEMBLER_EVENT_SEGMENT_CHANGE,   /* .text / .data / .ktext / .kdata */
+  ASSEMBLER_EVENT_FORWARD_REF, /* instruction or word referenced an unresolved
+                                  sym */
+  ASSEMBLER_EVENT_FORWARD_RESOLVED, /* forward reference got patched at
+                                       label-def time */
 } assembler_event_kind;
 
 typedef enum : uint8_t {
@@ -42,7 +45,7 @@ typedef struct assembler_event {
   assembler_event_kind kind;
   int source_line;         /* line_no at fire time; 0 if N/A */
   const char* source_file; /* input_file_name_get(); may be null */
-  memory_address address;           /* the memory address the event touches */
+  memory_address address;  /* the memory address the event touches */
   union {
     struct {
       const char* name; /* label name (not owned) */
@@ -54,8 +57,8 @@ typedef struct assembler_event {
     } text_instruction;
 
     struct {
-      int value; /* sign-extended for byte/half, raw for word */
-    } data_integer;  /* used for ASSEMBLER_EVENT_DATA_BYTE/HALF/WORD */
+      int value;    /* sign-extended for byte/half, raw for word */
+    } data_integer; /* used for ASSEMBLER_EVENT_DATA_BYTE/HALF/WORD */
 
     struct {
       double value;
@@ -78,13 +81,13 @@ typedef struct assembler_event {
     } segment_change;
 
     struct {
-      const char* symbol; /* not owned */
-      memory_address from;      /* address of the use site */
+      const char* symbol;  /* not owned */
+      memory_address from; /* address of the use site */
     } forward_ref;
 
     struct {
       const char* symbol; /* not owned */
-      memory_address at;        /* the use-site address that got patched */
+      memory_address at;  /* the use-site address that got patched */
       int32_t value;      /* the resolved value written there */
     } forward_resolved;
   } payload;
@@ -97,24 +100,29 @@ typedef void (*assembler_event_observer)(const assembler_event* e);
 
 /* Install (or clear, with NULL) the global observer.  Returns the
    previous observer so callers can chain or restore. */
-assembler_event_observer assembler_set_observer(assembler_event_observer observer);
+assembler_event_observer assembler_set_observer(
+    assembler_event_observer observer);
 
 /* Fire helpers — called by the action functions in instruction.c, data.c,
    sym-tbl.c.  Each is a thin wrapper that builds the event struct
    from the current line_no / input_file_name_get() and the per-kind
    payload, then calls the installed observer (no-op fast path if
    none). */
-void assembler_fire_label_definition(memory_address address, const char* name, bool global);
+void assembler_fire_label_definition(memory_address address, const char* name,
+                                     bool global);
 void assembler_fire_text_instruction(memory_address address, uint32_t encoding);
 void assembler_fire_data_byte(memory_address address, int value);
 void assembler_fire_data_half(memory_address address, int value);
 void assembler_fire_data_word(memory_address address, int value);
 void assembler_fire_data_double(memory_address address, double value);
-void assembler_fire_data_string(memory_address address, const char* s, int length,
-                          bool null_term);
-void assembler_fire_align(memory_address address, int low_bits, int offset, assembler_segment segment);
-void assembler_fire_segment_change(assembler_segment segment, memory_address address);
+void assembler_fire_data_string(memory_address address, const char* s,
+                                int length, bool null_term);
+void assembler_fire_align(memory_address address, int low_bits, int offset,
+                          assembler_segment segment);
+void assembler_fire_segment_change(assembler_segment segment,
+                                   memory_address address);
 void assembler_fire_forward_reference(memory_address from, const char* symbol);
-void assembler_fire_forward_resolved(memory_address at, const char* symbol, int32_t value);
+void assembler_fire_forward_resolved(memory_address at, const char* symbol,
+                                     int32_t value);
 
 #endif

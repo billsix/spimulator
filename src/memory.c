@@ -16,23 +16,24 @@ register_word general_purpose_registers[GENERAL_PURPOSE_REGISTER_COUNT];
 register_word MULTIPLY_DIVIDE_HIGH, MULTIPLY_DIVIDE_LOW;
 int multiply_divide_high_present, multiply_divide_low_present;
 memory_address PROGRAM_COUNTER, next_program_counter;
-double* floating_point_double_view; /* Dynamically allocate so overlay */
-float* floating_point_single_view;  /* is possible */
-int32_t* floating_point_integer_view;   /* is possible */
-register_word coprocessor_control_registers[4][32], coprocessor_registers[4][32];
+double* floating_point_double_view;   /* Dynamically allocate so overlay */
+float* floating_point_single_view;    /* is possible */
+int32_t* floating_point_integer_view; /* is possible */
+register_word coprocessor_control_registers[4][32],
+    coprocessor_registers[4][32];
 
 mips_instruction** text_segment;
 bool text_modified; /* => text segment was written */
 memory_address text_top;
 memory_word* data_segment;
-bool data_modified; /* => a data segment was written */
-short* data_segment_halfwords;  /* Points to same vector as DATA_SEG */
-int8_t* data_segment_bytes; /* Ditto */
+bool data_modified;            /* => a data segment was written */
+short* data_segment_halfwords; /* Points to same vector as DATA_SEG */
+int8_t* data_segment_bytes;    /* Ditto */
 memory_address data_top;
 memory_address global_pointer_midpoint; /* Middle of $gp area */
 memory_word* stack_segment;
-short* stack_segment_halfwords;  /* Points to same vector as STACK_SEG */
-int8_t* stack_segment_bytes; /* Ditto */
+short* stack_segment_halfwords; /* Points to same vector as STACK_SEG */
+int8_t* stack_segment_bytes;    /* Ditto */
 memory_address stack_bottom;
 mips_instruction** kernel_text_segment;
 memory_address kernel_text_top;
@@ -44,9 +45,11 @@ memory_address kernel_data_top;
 /* Local functions: */
 
 static memory_word bad_memory_read(memory_address address, int mask);
-static void bad_memory_write(memory_address address, memory_word value, int mask);
+static void bad_memory_write(memory_address address, memory_word value,
+                             int mask);
 static mips_instruction* bad_text_read(memory_address address);
-static void bad_text_write(memory_address address, const mips_instruction* instruction);
+static void bad_text_write(memory_address address,
+                           const mips_instruction* instruction);
 static void free_instructions(mips_instruction** instruction, int n);
 static memory_word read_memory_mapped_IO(memory_address address);
 static void write_memory_mapped_IO(memory_address address, memory_word value);
@@ -96,7 +99,8 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
     fatal_error(
         "-stext %d: the text segment needs at least one word (4 bytes)\n",
         text_size);
-  if (kernel_text_size < (int)(EXCEPTION_ADDRESS - KERNEL_TEXT_BOTTOM) + BYTES_PER_WORD)
+  if (kernel_text_size <
+      (int)(EXCEPTION_ADDRESS - KERNEL_TEXT_BOTTOM) + BYTES_PER_WORD)
     fatal_error(
         "-sktext %d: the kernel text segment must hold the exception handler "
         "at 0x80000180 (at least 388 bytes)\n",
@@ -105,11 +109,13 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   data_size = ROUND_UP(data_size, BYTES_PER_WORD); /* Keep word aligned */
 
   if (text_segment == nullptr)
-    text_segment = (mips_instruction**)allocate_or_exit(BYTES_TO_INSTRUCTION((size_t)text_size));
+    text_segment = (mips_instruction**)allocate_or_exit(
+        BYTES_TO_INSTRUCTION((size_t)text_size));
   else {
-    free_instructions(text_segment, (int)((text_top - TEXT_BOTTOM) / BYTES_PER_WORD));
-    text_segment = (mips_instruction**)reallocate_or_exit(text_segment,
-                                            BYTES_TO_INSTRUCTION((size_t)text_size));
+    free_instructions(text_segment,
+                      (int)((text_top - TEXT_BOTTOM) / BYTES_PER_WORD));
+    text_segment = (mips_instruction**)reallocate_or_exit(
+        text_segment, BYTES_TO_INSTRUCTION((size_t)text_size));
   }
   memset(text_segment, 0, BYTES_TO_INSTRUCTION((size_t)text_size));
   text_top = TEXT_BOTTOM + (memory_address)text_size;
@@ -118,7 +124,8 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   if (data_segment == nullptr)
     data_segment = (memory_word*)allocate_or_exit((size_t)data_size);
   else
-    data_segment = (memory_word*)reallocate_or_exit(data_segment, (size_t)data_size);
+    data_segment =
+        (memory_word*)reallocate_or_exit(data_segment, (size_t)data_size);
   memset(data_segment, 0, (size_t)data_size);
   data_segment_bytes = (int8_t*)data_segment;
   data_segment_halfwords = (short*)data_segment;
@@ -129,7 +136,8 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   if (stack_segment == nullptr)
     stack_segment = (memory_word*)allocate_or_exit((size_t)stack_size);
   else
-    stack_segment = (memory_word*)reallocate_or_exit(stack_segment, (size_t)stack_size);
+    stack_segment =
+        (memory_word*)reallocate_or_exit(stack_segment, (size_t)stack_size);
   memset(stack_segment, 0, (size_t)stack_size);
   stack_segment_bytes = (int8_t*)stack_segment;
   stack_segment_halfwords = (short*)stack_segment;
@@ -137,22 +145,27 @@ void make_memory(int text_size, int data_size, int data_limit, int stack_size,
   stack_size_limit = stack_limit;
 
   if (kernel_text_segment == nullptr)
-    kernel_text_segment =
-        (mips_instruction**)allocate_or_exit(BYTES_TO_INSTRUCTION((size_t)kernel_text_size));
+    kernel_text_segment = (mips_instruction**)allocate_or_exit(
+        BYTES_TO_INSTRUCTION((size_t)kernel_text_size));
   else {
-    free_instructions(kernel_text_segment,
-                      (int)((kernel_text_top - KERNEL_TEXT_BOTTOM) / BYTES_PER_WORD));
+    free_instructions(
+        kernel_text_segment,
+        (int)((kernel_text_top - KERNEL_TEXT_BOTTOM) / BYTES_PER_WORD));
     kernel_text_segment = (mips_instruction**)reallocate_or_exit(
         kernel_text_segment, BYTES_TO_INSTRUCTION((size_t)kernel_text_size));
   }
-  memset(kernel_text_segment, 0, BYTES_TO_INSTRUCTION((size_t)kernel_text_size));
+  memset(kernel_text_segment, 0,
+         BYTES_TO_INSTRUCTION((size_t)kernel_text_size));
   kernel_text_top = KERNEL_TEXT_BOTTOM + (memory_address)kernel_text_size;
 
-  kernel_data_size = ROUND_UP(kernel_data_size, BYTES_PER_WORD); /* Keep word aligned */
+  kernel_data_size =
+      ROUND_UP(kernel_data_size, BYTES_PER_WORD); /* Keep word aligned */
   if (kernel_data_segment == nullptr)
-    kernel_data_segment = (memory_word*)allocate_or_exit((size_t)kernel_data_size);
+    kernel_data_segment =
+        (memory_word*)allocate_or_exit((size_t)kernel_data_size);
   else
-    kernel_data_segment = (memory_word*)reallocate_or_exit(kernel_data_segment, (size_t)kernel_data_size);
+    kernel_data_segment = (memory_word*)reallocate_or_exit(
+        kernel_data_segment, (size_t)kernel_data_size);
   memset(kernel_data_segment, 0, (size_t)kernel_data_size);
   kernel_data_segment_bytes = (int8_t*)kernel_data_segment;
   kernel_data_segment_halfwords = (short*)kernel_data_segment;
@@ -179,8 +192,8 @@ void expand_data(int additional_bytes) {
   const int new_size = old_size + delta;
 
   if ((additional_bytes < 0) || (new_size > data_size_limit)) {
-    error("Can't expand data segment by %d bytes to %d bytes\n", additional_bytes,
-          new_size);
+    error("Can't expand data segment by %d bytes to %d bytes\n",
+          additional_bytes, new_size);
     run_error("Use -ldata # with # > %d\n", new_size);
   }
   data_segment = (memory_word*)realloc(data_segment, (size_t)new_size);
@@ -191,7 +204,9 @@ void expand_data(int additional_bytes) {
   data_top += (memory_address)delta;
 
   /* Zero new memory */
-  for (int8_t* p = data_segment_bytes + old_size; p < data_segment_bytes + new_size;) *p++ = 0;
+  for (int8_t* p = data_segment_bytes + old_size;
+       p < data_segment_bytes + new_size;)
+    *p++ = 0;
 }
 
 /* Expand the stack segment by adding N bytes.  Can't use REALLOC
@@ -242,8 +257,10 @@ void expand_kernel_data(int additional_bytes) {
         "-lkdata # with # > %d\n",
         additional_bytes, new_size, new_size);
   }
-  kernel_data_segment = (memory_word*)realloc(kernel_data_segment, (size_t)new_size);
-  if (kernel_data_segment == nullptr) fatal_error("realloc failed in expand_k_data\n");
+  kernel_data_segment =
+      (memory_word*)realloc(kernel_data_segment, (size_t)new_size);
+  if (kernel_data_segment == nullptr)
+    fatal_error("realloc failed in expand_k_data\n");
 
   kernel_data_segment_bytes = (int8_t*)kernel_data_segment;
   kernel_data_segment_halfwords = (short*)kernel_data_segment;
@@ -251,7 +268,9 @@ void expand_kernel_data(int additional_bytes) {
 
   /* Zero new memory.  p is a byte pointer, so the sizes are byte offsets
      (as in expand_data). */
-  for (p = kernel_data_segment_bytes + old_size; p < kernel_data_segment_bytes + new_size;) *p++ = 0;
+  for (p = kernel_data_segment_bytes + old_size;
+       p < kernel_data_segment_bytes + new_size;)
+    *p++ = 0;
 }
 
 /* Access memory */
@@ -276,7 +295,8 @@ void* memory_reference(memory_address address) {
 mips_instruction* memory_read_instruction(memory_address address) {
   if ((address >= TEXT_BOTTOM) && (address < text_top) && !(address & 0x3))
     return text_segment[(address - TEXT_BOTTOM) >> 2];
-  else if ((address >= KERNEL_TEXT_BOTTOM) && (address < kernel_text_top) && !(address & 0x3))
+  else if ((address >= KERNEL_TEXT_BOTTOM) && (address < kernel_text_top) &&
+           !(address & 0x3))
     return kernel_text_segment[(address - KERNEL_TEXT_BOTTOM) >> 2];
   else
     return bad_text_read(address);
@@ -296,9 +316,11 @@ register_word memory_read_byte(memory_address address) {
 register_word memory_read_half(memory_address address) {
   if ((address >= DATA_BOTTOM) && (address < data_top) && !(address & 0x1))
     return data_segment_halfwords[(address - DATA_BOTTOM) >> 1];
-  else if ((address >= stack_bottom) && (address < STACK_TOP) && !(address & 0x1))
+  else if ((address >= stack_bottom) && (address < STACK_TOP) &&
+           !(address & 0x1))
     return stack_segment_halfwords[(address - stack_bottom) >> 1];
-  else if ((address >= KERNEL_DATA_BOTTOM) && (address < kernel_data_top) && !(address & 0x1))
+  else if ((address >= KERNEL_DATA_BOTTOM) && (address < kernel_data_top) &&
+           !(address & 0x1))
     return kernel_data_segment_halfwords[(address - KERNEL_DATA_BOTTOM) >> 1];
   else
     return bad_memory_read(address, 0x1);
@@ -307,9 +329,11 @@ register_word memory_read_half(memory_address address) {
 register_word memory_read_word(memory_address address) {
   if ((address >= DATA_BOTTOM) && (address < data_top) && !(address & 0x3))
     return data_segment[(address - DATA_BOTTOM) >> 2];
-  else if ((address >= stack_bottom) && (address < STACK_TOP) && !(address & 0x3))
+  else if ((address >= stack_bottom) && (address < STACK_TOP) &&
+           !(address & 0x3))
     return stack_segment[(address - stack_bottom) >> 2];
-  else if ((address >= KERNEL_DATA_BOTTOM) && (address < kernel_data_top) && !(address & 0x3))
+  else if ((address >= KERNEL_DATA_BOTTOM) && (address < kernel_data_top) &&
+           !(address & 0x3))
     return kernel_data_segment[(address - KERNEL_DATA_BOTTOM) >> 2];
   else
     return bad_memory_read(address, 0x3);
@@ -360,11 +384,13 @@ bool memory_peek(memory_address address, int mask, register_word* out) {
   }
 }
 
-void memory_write_instruction(memory_address address, mips_instruction* instruction) {
+void memory_write_instruction(memory_address address,
+                              mips_instruction* instruction) {
   text_modified = true;
   if ((address >= TEXT_BOTTOM) && (address < text_top) && !(address & 0x3))
     text_segment[(address - TEXT_BOTTOM) >> 2] = instruction;
-  else if ((address >= KERNEL_TEXT_BOTTOM) && (address < kernel_text_top) && !(address & 0x3))
+  else if ((address >= KERNEL_TEXT_BOTTOM) && (address < kernel_text_top) &&
+           !(address & 0x3))
     kernel_text_segment[(address - KERNEL_TEXT_BOTTOM) >> 2] = instruction;
   else
     bad_text_write(address, instruction);
@@ -386,10 +412,13 @@ void memory_write_half(memory_address address, register_word value) {
   data_modified = true;
   if ((address >= DATA_BOTTOM) && (address < data_top) && !(address & 0x1))
     data_segment_halfwords[(address - DATA_BOTTOM) >> 1] = (short)value;
-  else if ((address >= stack_bottom) && (address < STACK_TOP) && !(address & 0x1))
+  else if ((address >= stack_bottom) && (address < STACK_TOP) &&
+           !(address & 0x1))
     stack_segment_halfwords[(address - stack_bottom) >> 1] = (short)value;
-  else if ((address >= KERNEL_DATA_BOTTOM) && (address < kernel_data_top) && !(address & 0x1))
-    kernel_data_segment_halfwords[(address - KERNEL_DATA_BOTTOM) >> 1] = (short)value;
+  else if ((address >= KERNEL_DATA_BOTTOM) && (address < kernel_data_top) &&
+           !(address & 0x1))
+    kernel_data_segment_halfwords[(address - KERNEL_DATA_BOTTOM) >> 1] =
+        (short)value;
   else
     bad_memory_write(address, value, 0x1);
 }
@@ -398,10 +427,13 @@ void memory_write_word(memory_address address, register_word value) {
   data_modified = true;
   if ((address >= DATA_BOTTOM) && (address < data_top) && !(address & 0x3))
     data_segment[(address - DATA_BOTTOM) >> 2] = (memory_word)value;
-  else if ((address >= stack_bottom) && (address < STACK_TOP) && !(address & 0x3))
+  else if ((address >= stack_bottom) && (address < STACK_TOP) &&
+           !(address & 0x3))
     stack_segment[(address - stack_bottom) >> 2] = (memory_word)value;
-  else if ((address >= KERNEL_DATA_BOTTOM) && (address < kernel_data_top) && !(address & 0x3))
-    kernel_data_segment[(address - KERNEL_DATA_BOTTOM) >> 2] = (memory_word)value;
+  else if ((address >= KERNEL_DATA_BOTTOM) && (address < kernel_data_top) &&
+           !(address & 0x3))
+    kernel_data_segment[(address - KERNEL_DATA_BOTTOM) >> 2] =
+        (memory_word)value;
   else
     bad_memory_write(address, value, 0x3);
 }
@@ -409,19 +441,23 @@ void memory_write_word(memory_address address, register_word value) {
 /* Handle the infrequent and erroneous cases in memory accesses. */
 
 static mips_instruction* bad_text_read(memory_address address) {
-  RAISE_EXCEPTION(EXCEPTION_CODE_INSTRUCTION_BUS_ERROR, coprocessor_0_bad_virtual_address = (register_word)address);
+  RAISE_EXCEPTION(EXCEPTION_CODE_INSTRUCTION_BUS_ERROR,
+                  coprocessor_0_bad_virtual_address = (register_word)address);
   return (instruction_decode(0));
 }
 
-static void bad_text_write(memory_address address, const mips_instruction* instruction) {
-  RAISE_EXCEPTION(EXCEPTION_CODE_INSTRUCTION_BUS_ERROR, coprocessor_0_bad_virtual_address = (register_word)address);
+static void bad_text_write(memory_address address,
+                           const mips_instruction* instruction) {
+  RAISE_EXCEPTION(EXCEPTION_CODE_INSTRUCTION_BUS_ERROR,
+                  coprocessor_0_bad_virtual_address = (register_word)address);
   memory_write_word(address, ENCODING(instruction));
 }
 
 /* The encoding of the user-text word holding ADDR, or 0 for a word no
    instruction was stored in (as a word load of it reads). */
 static memory_word text_word_at(memory_address address) {
-  mips_instruction* const instruction = text_segment[(address - TEXT_BOTTOM) >> 2];
+  mips_instruction* const instruction =
+      text_segment[(address - TEXT_BOTTOM) >> 2];
   return instruction == nullptr ? 0 : ENCODING(instruction);
 }
 
@@ -429,7 +465,8 @@ static memory_word bad_memory_read(memory_address address, int mask) {
   memory_word temporary;
 
   if ((address & (memory_address)mask) != 0)
-    RAISE_EXCEPTION(EXCEPTION_CODE_ADDRESS_ERROR_LOAD, coprocessor_0_bad_virtual_address = (register_word)address)
+    RAISE_EXCEPTION(EXCEPTION_CODE_ADDRESS_ERROR_LOAD,
+                    coprocessor_0_bad_virtual_address = (register_word)address)
   else if (address >= TEXT_BOTTOM && address < text_top)
     switch (mask) {
       case 0x0:
@@ -451,7 +488,8 @@ static memory_word bad_memory_read(memory_address address, int mask) {
         return (0xffff & temporary);
 
       case 0x3: {
-        mips_instruction* const instruction = text_segment[(address - TEXT_BOTTOM) >> 2];
+        mips_instruction* const instruction =
+            text_segment[(address - TEXT_BOTTOM) >> 2];
         if (instruction == nullptr)
           return 0;
         else
@@ -468,19 +506,23 @@ static memory_word bad_memory_read(memory_address address, int mask) {
     /* Grow stack segment */
     expand_stack((int)(stack_bottom - address + 4));
     return (0);
-  } else if (MEMORY_MAPPED_IO_BOTTOM <= address && address <= MEMORY_MAPPED_IO_TOP)
+  } else if (MEMORY_MAPPED_IO_BOTTOM <= address &&
+             address <= MEMORY_MAPPED_IO_TOP)
     return (read_memory_mapped_IO(address));
   else
     /* Address out of range */
-    RAISE_EXCEPTION(EXCEPTION_CODE_DATA_BUS_ERROR, coprocessor_0_bad_virtual_address = (register_word)address)
+    RAISE_EXCEPTION(EXCEPTION_CODE_DATA_BUS_ERROR,
+                    coprocessor_0_bad_virtual_address = (register_word)address)
   return (0);
 }
 
-static void bad_memory_write(memory_address address, memory_word value, int mask) {
+static void bad_memory_write(memory_address address, memory_word value,
+                             int mask) {
   memory_word temporary;
 
   if ((address & (memory_address)mask) != 0) /* Unaligned address fault */
-    RAISE_EXCEPTION(EXCEPTION_CODE_ADDRESS_ERROR_STORE, coprocessor_0_bad_virtual_address = (register_word)address)
+    RAISE_EXCEPTION(EXCEPTION_CODE_ADDRESS_ERROR_STORE,
+                    coprocessor_0_bad_virtual_address = (register_word)address)
   else if (address >= TEXT_BOTTOM && address < text_top) {
     if (text_segment[(address - TEXT_BOTTOM) >> 2] == nullptr) {
       /* No instruction at address. Only create instruction from
@@ -491,26 +533,31 @@ static void bad_memory_write(memory_address address, memory_word value, int mask
         case 0x0:
           temporary = ENCODING(text_segment[(address - TEXT_BOTTOM) >> 2]);
 #ifdef SPIM_BIGENDIAN
+          temporary = (memory_word)(((uint32_t)temporary &
+                                     ~(0xffu << (8 * (3 - (address & 0x3))))) |
+                                    ((uint32_t)value & 0xffu)
+                                        << (8 * (3 - (address & 0x3))));
+#else
           temporary =
               (memory_word)(((uint32_t)temporary &
-                          ~(0xffu << (8 * (3 - (address & 0x3))))) |
-                         ((uint32_t)value & 0xffu) << (8 * (3 - (address & 0x3))));
-#else
-          temporary = (memory_word)(((uint32_t)temporary & ~(0xffu << (8 * (address & 0x3)))) |
-                           ((uint32_t)value & 0xffu) << (8 * (address & 0x3)));
+                             ~(0xffu << (8 * (address & 0x3)))) |
+                            ((uint32_t)value & 0xffu) << (8 * (address & 0x3)));
 #endif
           break;
 
         case 0x1:
           temporary = ENCODING(text_segment[(address - TEXT_BOTTOM) >> 2]);
 #ifdef SPIM_BIGENDIAN
-          temporary = (memory_word)(((uint32_t)temporary &
-                            ~(0xffffu << (8 * (2 - (address & 0x2))))) |
-                           ((uint32_t)value & 0xffffu)
-                               << (8 * (2 - (address & 0x2))));
+          temporary =
+              (memory_word)(((uint32_t)temporary &
+                             ~(0xffffu << (8 * (2 - (address & 0x2))))) |
+                            ((uint32_t)value & 0xffffu)
+                                << (8 * (2 - (address & 0x2))));
 #else
-          temporary = (memory_word)(((uint32_t)temporary & ~(0xffffu << (8 * (address & 0x2)))) |
-                           ((uint32_t)value & 0xffffu) << (8 * (address & 0x2)));
+          temporary = (memory_word)(((uint32_t)temporary &
+                                     ~(0xffffu << (8 * (address & 0x2)))) |
+                                    ((uint32_t)value & 0xffffu)
+                                        << (8 * (address & 0x2)));
 #endif
           break;
 
@@ -541,14 +588,18 @@ static void bad_memory_write(memory_address address, memory_word value, int mask
       else
         stack_segment[(address - stack_bottom) >> 2] = value;
     } else
-      RAISE_EXCEPTION(EXCEPTION_CODE_DATA_BUS_ERROR, coprocessor_0_bad_virtual_address = (register_word)address)
+      RAISE_EXCEPTION(
+          EXCEPTION_CODE_DATA_BUS_ERROR,
+          coprocessor_0_bad_virtual_address = (register_word)address)
 
     data_modified = true;
-  } else if (MEMORY_MAPPED_IO_BOTTOM <= address && address <= MEMORY_MAPPED_IO_TOP)
+  } else if (MEMORY_MAPPED_IO_BOTTOM <= address &&
+             address <= MEMORY_MAPPED_IO_TOP)
     write_memory_mapped_IO(address, value);
   else
     /* Address out of range */
-    RAISE_EXCEPTION(EXCEPTION_CODE_DATA_BUS_ERROR, coprocessor_0_bad_virtual_address = (register_word)address)
+    RAISE_EXCEPTION(EXCEPTION_CODE_DATA_BUS_ERROR,
+                    coprocessor_0_bad_virtual_address = (register_word)address)
 }
 
 /* Memory-mapped IO routines. */
@@ -614,7 +665,8 @@ static void write_memory_mapped_IO(memory_address address, memory_word value) {
       } else {
         /* Disable interrupts: */
         transmitter_control &= ~TRANSMITTER_INTERRUPT_ENABLE;
-        CLEAR_INTERRUPT(TRANSMITTER_INTERRUPT_LEVEL); /* Clear IP bit in Cause */
+        CLEAR_INTERRUPT(
+            TRANSMITTER_INTERRUPT_LEVEL); /* Clear IP bit in Cause */
       }
       break;
 
@@ -627,7 +679,8 @@ static void write_memory_mapped_IO(memory_address address, memory_word value) {
         /* Device is busy for a while: */
         transmitter_control &= ~TRANSMITTER_READY;
         transmitter_buffer_full_timer = TRANSMITTER_LATENCY;
-        CLEAR_INTERRUPT(TRANSMITTER_INTERRUPT_LEVEL); /* Clear IP bit in Cause */
+        CLEAR_INTERRUPT(
+            TRANSMITTER_INTERRUPT_LEVEL); /* Clear IP bit in Cause */
       }
       break;
 
@@ -697,8 +750,8 @@ void print_memory(memory_address address) {
                  address, value, value);
   } else if (stack_bottom <= address && address < STACK_TOP) {
     value = memory_read_word(address);
-    write_output(message_out, "Stack seg @ 0x%08x (%d) = 0x%08x (%d)\n", address,
-                 address, value, value);
+    write_output(message_out, "Stack seg @ 0x%08x (%d) = 0x%08x (%d)\n",
+                 address, address, value, value);
   } else if (KERNEL_TEXT_BOTTOM <= address && address < kernel_text_top)
     print_instruction(address);
   else if (KERNEL_DATA_BOTTOM <= address && address < kernel_data_top) {
@@ -706,5 +759,6 @@ void print_memory(memory_address address) {
     write_output(message_out, "Kernel Data seg @ 0x%08x (%d) = 0x%08x (%d)\n",
                  address, address, value, value);
   } else
-    error("Address 0x%08x (%d) to print_mem is out of bounds\n", address, address);
+    error("Address 0x%08x (%d) to print_mem is out of bounds\n", address,
+          address);
 }

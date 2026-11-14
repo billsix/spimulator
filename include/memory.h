@@ -121,11 +121,14 @@ register_word memory_read_word(memory_address address);
 /* Side-effect-free reads, for code that only shows memory (the teaching
    mode, the disassembler).  They raise no exception, grow no segment and
    touch no memory-mapped IO register.  Each returns false when ADDR is not
-   an aligned location in a segment; memory_peek_instruction then leaves *OUT alone,
-   and memory_peek sets *OUT to 0.  MASK is 0, 1 or 3 for a byte, half or word. */
-[[nodiscard]] bool memory_peek_instruction(memory_address address, mips_instruction** out);
+   an aligned location in a segment; memory_peek_instruction then leaves *OUT
+   alone, and memory_peek sets *OUT to 0.  MASK is 0, 1 or 3 for a byte, half or
+   word. */
+[[nodiscard]] bool memory_peek_instruction(memory_address address,
+                                           mips_instruction** out);
 bool memory_peek(memory_address address, int mask, register_word* out);
-void memory_write_instruction(memory_address address, mips_instruction* instruction);
+void memory_write_instruction(memory_address address,
+                              mips_instruction* instruction);
 void memory_write_byte(memory_address address, register_word value);
 void memory_write_half(memory_address address, register_word value);
 void memory_write_word(memory_address address, register_word value);

@@ -69,13 +69,20 @@ char* input_file_name_get(void);
      - emit_i: caller retains ownership of `imm` (mirrors i_type).
      - emit_i_free: caller transfers ownership (mirrors i_type_free).
      - emit_j: caller retains ownership. */
-void emit_r(int opcode, int destination_register, int source_register, int target_register);
-void emit_r_shift(int opcode, int destination_register, int target_register, int shift_amount);
-void emit_i(int opcode, int target_register, int source_register, const immediate_expression* immediate);
-void emit_i_free(int opcode, int target_register, int source_register, immediate_expression* immediate);
+void emit_r(int opcode, int destination_register, int source_register,
+            int target_register);
+void emit_r_shift(int opcode, int destination_register, int target_register,
+                  int shift_amount);
+void emit_i(int opcode, int target_register, int source_register,
+            const immediate_expression* immediate);
+void emit_i_free(int opcode, int target_register, int source_register,
+                 immediate_expression* immediate);
 void emit_j(int opcode, const immediate_expression* target);
-void emit_floating_point_r(int opcode, int floating_point_destination, int floating_point_source, int floating_point_target);
-void emit_floating_point_compare(int opcode, int floating_point_source, int floating_point_target, int condition_code);
+void emit_floating_point_r(int opcode, int floating_point_destination,
+                           int floating_point_source,
+                           int floating_point_target);
+void emit_floating_point_compare(int opcode, int floating_point_source,
+                                 int floating_point_target, int condition_code);
 
 /* Exported Variables: */
 

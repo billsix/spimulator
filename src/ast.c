@@ -24,7 +24,7 @@
 #include "scanner.h"      /* line_no                      */
 #include "spim.h"         /* fatal_error                  */
 #include "symbol-table.h" /* struct label definition      */
-#include "tokens.h"       /* TOK_*_OP names for ast_print */
+#include "tokens.h"       /* TOKEN_*_OPCODE names for ast_print */
 
 /* ------------------------------------------------------------------ */
 /* Internal node allocator                                             */
@@ -46,24 +46,38 @@ static ast_node* new_node(ast_node initialize) {
 /* Instruction constructors                                            */
 /* ------------------------------------------------------------------ */
 
-ast_node* ast_make_instruction_r(int opcode, int destination_register, int source_register, int target_register) {
+ast_node* ast_make_instruction_r(int opcode, int destination_register,
+                                 int source_register, int target_register) {
   return new_node((ast_node){
       .kind = AST_INSTRUCTION_R,
-      .payload.instruction_r = {.opcode = opcode, .destination_register = destination_register, .source_register = source_register, .target_register = target_register},
+      .payload.instruction_r = {.opcode = opcode,
+                                .destination_register = destination_register,
+                                .source_register = source_register,
+                                .target_register = target_register},
   });
 }
 
-ast_node* ast_make_instruction_r_shift(int opcode, int destination_register, int target_register, int shift_amount) {
+ast_node* ast_make_instruction_r_shift(int opcode, int destination_register,
+                                       int target_register, int shift_amount) {
   return new_node((ast_node){
       .kind = AST_INSTRUCTION_R_SHIFT,
-      .payload.instruction_r_shift = {.opcode = opcode, .destination_register = destination_register, .target_register = target_register, .shift_amount = shift_amount},
+      .payload.instruction_r_shift = {.opcode = opcode,
+                                      .destination_register =
+                                          destination_register,
+                                      .target_register = target_register,
+                                      .shift_amount = shift_amount},
   });
 }
 
-ast_node* ast_make_instruction_i(int opcode, int target_register, int source_register, immediate_expression* immediate) {
+ast_node* ast_make_instruction_i(int opcode, int target_register,
+                                 int source_register,
+                                 immediate_expression* immediate) {
   return new_node((ast_node){
       .kind = AST_INSTRUCTION_I,
-      .payload.instruction_i = {.opcode = opcode, .target_register = target_register, .source_register = source_register, .immediate = immediate},
+      .payload.instruction_i = {.opcode = opcode,
+                                .target_register = target_register,
+                                .source_register = source_register,
+                                .immediate = immediate},
   });
 }
 
@@ -74,17 +88,31 @@ ast_node* ast_make_instruction_j(int opcode, immediate_expression* target) {
   });
 }
 
-ast_node* ast_make_instruction_floating_point_r(int opcode, int floating_point_destination, int floating_point_source, int floating_point_target) {
+ast_node* ast_make_instruction_floating_point_r(int opcode,
+                                                int floating_point_destination,
+                                                int floating_point_source,
+                                                int floating_point_target) {
   return new_node((ast_node){
       .kind = AST_INSTRUCTION_FLOATING_POINT_R,
-      .payload.instruction_floating_point_r = {.opcode = opcode, .floating_point_destination = floating_point_destination, .floating_point_source = floating_point_source, .floating_point_target = floating_point_target},
+      .payload.instruction_floating_point_r =
+          {.opcode = opcode,
+           .floating_point_destination = floating_point_destination,
+           .floating_point_source = floating_point_source,
+           .floating_point_target = floating_point_target},
   });
 }
 
-ast_node* ast_make_instruction_floating_point_compare(int opcode, int floating_point_source, int floating_point_target, int condition_code) {
+ast_node* ast_make_instruction_floating_point_compare(int opcode,
+                                                      int floating_point_source,
+                                                      int floating_point_target,
+                                                      int condition_code) {
   return new_node((ast_node){
       .kind = AST_INSTRUCTION_FLOATING_POINT_COMPARE,
-      .payload.instruction_floating_point_compare = {.opcode = opcode, .floating_point_source = floating_point_source, .floating_point_target = floating_point_target, .condition_code = condition_code},
+      .payload.instruction_floating_point_compare =
+          {.opcode = opcode,
+           .floating_point_source = floating_point_source,
+           .floating_point_target = floating_point_target,
+           .condition_code = condition_code},
   });
 }
 
@@ -99,7 +127,8 @@ ast_node* ast_make_pseudo(const char* mnemonic) {
 /* Data constructors                                                   */
 /* ------------------------------------------------------------------ */
 
-static ast_node* make_data_integer(ast_kind kind, int count, immediate_expression** expressions) {
+static ast_node* make_data_integer(ast_kind kind, int count,
+                                   immediate_expression** expressions) {
   return new_node((ast_node){
       .kind = kind,
       .payload.data_integer = {.count = count, .expressions = expressions},
@@ -118,7 +147,8 @@ ast_node* ast_make_data_word(int count, immediate_expression** expressions) {
   return make_data_integer(AST_DATA_WORD, count, expressions);
 }
 
-static ast_node* make_data_floating_point(ast_kind kind, int count, double* values) {
+static ast_node* make_data_floating_point(ast_kind kind, int count,
+                                          double* values) {
   return new_node((ast_node){
       .kind = kind,
       .payload.data_floating_point = {.count = count, .values = values},
@@ -142,8 +172,8 @@ ast_node* ast_make_data_string(const char* bytes, int length, bool null_term) {
   return new_node((ast_node){
       .kind = AST_DATA_STRING,
       .payload.data_string = {.bytes = buffer,
-                        .length = length,
-                        .null_terminate = null_term},
+                              .length = length,
+                              .null_terminate = null_term},
   });
 }
 
@@ -151,27 +181,37 @@ ast_node* ast_make_data_string(const char* bytes, int length, bool null_term) {
 /* Directive constructors                                              */
 /* ------------------------------------------------------------------ */
 
-static ast_node* make_directive_segment(ast_kind kind, bool has, memory_address address) {
+static ast_node* make_directive_segment(ast_kind kind, bool has,
+                                        memory_address address) {
   return new_node((ast_node){
       .kind = kind,
-      .payload.directive_segment = {.has_start_address = has, .start_address = address},
+      .payload.directive_segment = {.has_start_address = has,
+                                    .start_address = address},
   });
 }
 
-ast_node* ast_make_directive_text(bool has_start_address, memory_address start_address) {
-  return make_directive_segment(AST_DIRECTIVE_TEXT, has_start_address, start_address);
+ast_node* ast_make_directive_text(bool has_start_address,
+                                  memory_address start_address) {
+  return make_directive_segment(AST_DIRECTIVE_TEXT, has_start_address,
+                                start_address);
 }
 
-ast_node* ast_make_directive_data(bool has_start_address, memory_address start_address) {
-  return make_directive_segment(AST_DIRECTIVE_DATA, has_start_address, start_address);
+ast_node* ast_make_directive_data(bool has_start_address,
+                                  memory_address start_address) {
+  return make_directive_segment(AST_DIRECTIVE_DATA, has_start_address,
+                                start_address);
 }
 
-ast_node* ast_make_directive_ktext(bool has_start_address, memory_address start_address) {
-  return make_directive_segment(AST_DIRECTIVE_KTEXT, has_start_address, start_address);
+ast_node* ast_make_directive_ktext(bool has_start_address,
+                                   memory_address start_address) {
+  return make_directive_segment(AST_DIRECTIVE_KTEXT, has_start_address,
+                                start_address);
 }
 
-ast_node* ast_make_directive_kdata(bool has_start_address, memory_address start_address) {
-  return make_directive_segment(AST_DIRECTIVE_KDATA, has_start_address, start_address);
+ast_node* ast_make_directive_kdata(bool has_start_address,
+                                   memory_address start_address) {
+  return make_directive_segment(AST_DIRECTIVE_KDATA, has_start_address,
+                                start_address);
 }
 
 ast_node* ast_make_directive_align(int n_) {
@@ -217,7 +257,8 @@ ast_node* ast_make_directive_comm(const char* name, int size) {
 ast_node* ast_make_label_normal(const char* name) {
   return new_node((ast_node){
       .kind = AST_LABEL_DEFINITION,
-      .payload.label_definition = {.kind = AST_LABEL_NORMAL, .name = strdup(name)},
+      .payload.label_definition = {.kind = AST_LABEL_NORMAL,
+                                   .name = strdup(name)},
   });
 }
 
@@ -225,8 +266,8 @@ ast_node* ast_make_label_constant(const char* name, int32_t value) {
   return new_node((ast_node){
       .kind = AST_LABEL_DEFINITION,
       .payload.label_definition = {.kind = AST_LABEL_CONSTANT,
-                      .name = strdup(name),
-                      .value = value},
+                                   .name = strdup(name),
+                                   .value = value},
   });
 }
 
@@ -237,7 +278,8 @@ ast_node* ast_make_label_constant(const char* name, int32_t value) {
 ast_node* ast_make_file(const char* source_file) {
   return new_node((ast_node){
       .kind = AST_FILE,
-      .payload.file = {.source_file = source_file ? strdup(source_file) : nullptr},
+      .payload.file = {.source_file =
+                           source_file ? strdup(source_file) : nullptr},
   });
 }
 
@@ -303,11 +345,13 @@ void ast_free(ast_node* node) {
         break; /* nothing owned */
 
       case AST_INSTRUCTION_I:
-        if (node->payload.instruction_i.immediate) free(node->payload.instruction_i.immediate);
+        if (node->payload.instruction_i.immediate)
+          free(node->payload.instruction_i.immediate);
         break;
 
       case AST_INSTRUCTION_J:
-        if (node->payload.instruction_j.target) free(node->payload.instruction_j.target);
+        if (node->payload.instruction_j.target)
+          free(node->payload.instruction_j.target);
         break;
 
       case AST_PSEUDO:
@@ -318,7 +362,8 @@ void ast_free(ast_node* node) {
       case AST_DATA_BYTE:
       case AST_DATA_HALF:
       case AST_DATA_WORD:
-        free_immediate_array(node->payload.data_integer.expressions, node->payload.data_integer.count);
+        free_immediate_array(node->payload.data_integer.expressions,
+                             node->payload.data_integer.count);
         break;
 
       case AST_DATA_FLOAT:
@@ -414,46 +459,60 @@ static void print_node(const ast_node* node, FILE* out, int depth) {
   switch (node->kind) {
     case AST_FILE:
       fprintf(out, "FILE source=%s\n",
-              node->payload.file.source_file ? node->payload.file.source_file : "(stdin)");
+              node->payload.file.source_file ? node->payload.file.source_file
+                                             : "(stdin)");
       print_chain(node->payload.file.child, out, depth + 1);
       return;
 
     case AST_INSTRUCTION_R:
       fprintf(out, "INST_R op=%s rd=%d rs=%d rt=%d\n",
-              opcode_token_name(node->payload.instruction_r.opcode), node->payload.instruction_r.destination_register,
-              node->payload.instruction_r.source_register, node->payload.instruction_r.target_register);
+              opcode_token_name(node->payload.instruction_r.opcode),
+              node->payload.instruction_r.destination_register,
+              node->payload.instruction_r.source_register,
+              node->payload.instruction_r.target_register);
       return;
 
     case AST_INSTRUCTION_R_SHIFT:
       fprintf(out, "INST_R_SHIFT op=%s rd=%d rt=%d shamt=%d\n",
-              opcode_token_name(node->payload.instruction_r_shift.opcode), node->payload.instruction_r_shift.destination_register,
-              node->payload.instruction_r_shift.target_register, node->payload.instruction_r_shift.shift_amount);
+              opcode_token_name(node->payload.instruction_r_shift.opcode),
+              node->payload.instruction_r_shift.destination_register,
+              node->payload.instruction_r_shift.target_register,
+              node->payload.instruction_r_shift.shift_amount);
       return;
 
     case AST_INSTRUCTION_I:
-      fprintf(out,
-              "INST_I op=%s rt=%d rs=%d imm=", opcode_token_name(node->payload.instruction_i.opcode),
-              node->payload.instruction_i.target_register, node->payload.instruction_i.source_register);
+      fprintf(out, "INST_I op=%s rt=%d rs=%d imm=",
+              opcode_token_name(node->payload.instruction_i.opcode),
+              node->payload.instruction_i.target_register,
+              node->payload.instruction_i.source_register);
       print_immediate(node->payload.instruction_i.immediate, out);
       fputc('\n', out);
       return;
 
     case AST_INSTRUCTION_J:
-      fprintf(out, "INST_J op=%s target=", opcode_token_name(node->payload.instruction_j.opcode));
+      fprintf(out, "INST_J op=%s target=",
+              opcode_token_name(node->payload.instruction_j.opcode));
       print_immediate(node->payload.instruction_j.target, out);
       fputc('\n', out);
       return;
 
     case AST_INSTRUCTION_FLOATING_POINT_R:
-      fprintf(out, "INST_FP_R op=%s fd=%d fs=%d ft=%d\n",
-              opcode_token_name(node->payload.instruction_floating_point_r.opcode), node->payload.instruction_floating_point_r.floating_point_destination,
-              node->payload.instruction_floating_point_r.floating_point_source, node->payload.instruction_floating_point_r.floating_point_target);
+      fprintf(
+          out, "INST_FP_R op=%s fd=%d fs=%d ft=%d\n",
+          opcode_token_name(node->payload.instruction_floating_point_r.opcode),
+          node->payload.instruction_floating_point_r.floating_point_destination,
+          node->payload.instruction_floating_point_r.floating_point_source,
+          node->payload.instruction_floating_point_r.floating_point_target);
       return;
 
     case AST_INSTRUCTION_FLOATING_POINT_COMPARE:
       fprintf(out, "INST_FP_COMPARE op=%s fs=%d ft=%d cc=%d\n",
-              opcode_token_name(node->payload.instruction_floating_point_compare.opcode),
-              node->payload.instruction_floating_point_compare.floating_point_source, node->payload.instruction_floating_point_compare.floating_point_target,
+              opcode_token_name(
+                  node->payload.instruction_floating_point_compare.opcode),
+              node->payload.instruction_floating_point_compare
+                  .floating_point_source,
+              node->payload.instruction_floating_point_compare
+                  .floating_point_target,
               node->payload.instruction_floating_point_compare.condition_code);
       return;
 
@@ -468,7 +527,8 @@ static void print_node(const ast_node* node, FILE* out, int depth) {
       const char* const tag = node->kind == AST_DATA_BYTE   ? "DATA_BYTE"
                               : node->kind == AST_DATA_HALF ? "DATA_HALF"
                                                             : "DATA_WORD";
-      fprintf(out, "%s count=%d values=[", tag, node->payload.data_integer.count);
+      fprintf(out, "%s count=%d values=[", tag,
+              node->payload.data_integer.count);
       for (int i = 0; i < node->payload.data_integer.count; i++) {
         if (i > 0) fputs(", ", out);
         print_immediate(node->payload.data_integer.expressions[i], out);
@@ -481,7 +541,8 @@ static void print_node(const ast_node* node, FILE* out, int depth) {
     case AST_DATA_DOUBLE: {
       const char* const tag =
           node->kind == AST_DATA_FLOAT ? "DATA_FLOAT" : "DATA_DOUBLE";
-      fprintf(out, "%s count=%d values=[", tag, node->payload.data_floating_point.count);
+      fprintf(out, "%s count=%d values=[", tag,
+              node->payload.data_floating_point.count);
       for (int i = 0; i < node->payload.data_floating_point.count; i++) {
         if (i > 0) fputs(", ", out);
         fprintf(out, "%g", node->payload.data_floating_point.values[i]);
@@ -495,7 +556,8 @@ static void print_node(const ast_node* node, FILE* out, int depth) {
               node->payload.data_string.length,
               node->payload.data_string.null_terminate ? "yes" : "no");
       for (int i = 0; i < node->payload.data_string.length; i++) {
-        const unsigned char c = (unsigned char)node->payload.data_string.bytes[i];
+        const unsigned char c =
+            (unsigned char)node->payload.data_string.bytes[i];
         if (c == '\n')
           fputs("\\n", out);
         else if (c == '\t')
@@ -517,16 +579,18 @@ static void print_node(const ast_node* node, FILE* out, int depth) {
       const char* const tag = node->kind == AST_DIRECTIVE_TEXT    ? "DIR_TEXT"
                               : node->kind == AST_DIRECTIVE_DATA  ? "DIR_DATA"
                               : node->kind == AST_DIRECTIVE_KTEXT ? "DIR_KTEXT"
-                                                            : "DIR_KDATA";
+                                                                  : "DIR_KDATA";
       if (node->payload.directive_segment.has_start_address)
-        fprintf(out, "%s start=0x%08x\n", tag, node->payload.directive_segment.start_address);
+        fprintf(out, "%s start=0x%08x\n", tag,
+                node->payload.directive_segment.start_address);
       else
         fprintf(out, "%s\n", tag);
       return;
     }
 
     case AST_DIRECTIVE_ALIGN:
-      fprintf(out, "DIR_ALIGN n=%d\n", node->payload.directive_align.alignment_power);
+      fprintf(out, "DIR_ALIGN n=%d\n",
+              node->payload.directive_align.alignment_power);
       return;
 
     case AST_DIRECTIVE_SPACE:
@@ -541,22 +605,26 @@ static void print_node(const ast_node* node, FILE* out, int depth) {
     case AST_DIRECTIVE_COMM: {
       const char* const tag =
           node->kind == AST_DIRECTIVE_EXTERN ? "DIR_EXTERN" : "DIR_COMM";
-      fprintf(out, "%s name=%s size=%d\n", tag, node->payload.directive_named_size.name,
+      fprintf(out, "%s name=%s size=%d\n", tag,
+              node->payload.directive_named_size.name,
               node->payload.directive_named_size.size);
       return;
     }
 
     case AST_LABEL_DEFINITION:
       if (node->payload.label_definition.kind == AST_LABEL_NORMAL)
-        fprintf(out, "LABEL_DEF name=%s (placement)\n", node->payload.label_definition.name);
+        fprintf(out, "LABEL_DEF name=%s (placement)\n",
+                node->payload.label_definition.name);
       else
         fprintf(out, "LABEL_DEF name=%s = %d (constant)\n",
-                node->payload.label_definition.name, node->payload.label_definition.value);
+                node->payload.label_definition.name,
+                node->payload.label_definition.value);
       return;
 
     case AST_ERROR:
       fprintf(out, "ERROR %s\n",
-              node->payload.error.message ? node->payload.error.message : "(no message)");
+              node->payload.error.message ? node->payload.error.message
+                                          : "(no message)");
       return;
     default:
       /* Never reached: the cases above list every ast_kind, and the build's
@@ -745,7 +813,8 @@ static void json_chain(const ast_node* head, FILE* out) {
   fputc(']', out);
 }
 
-static void json_immediate_array(immediate_expression* const* array, int n, FILE* out) {
+static void json_immediate_array(immediate_expression* const* array, int n,
+                                 FILE* out) {
   fputc('[', out);
   for (int i = 0; i < n; i++) {
     if (i > 0) fputc(',', out);
@@ -772,46 +841,73 @@ static void json_node(const ast_node* node, FILE* out) {
       break;
 
     case AST_INSTRUCTION_R:
-      fprintf(out, ",\"op\":%d,\"mnemonic\":", node->payload.instruction_r.opcode);
-      json_escape_string(opcode_token_name(node->payload.instruction_r.opcode), -1, out);
-      fprintf(out, ",\"rd\":%d,\"rs\":%d,\"rt\":%d", node->payload.instruction_r.destination_register,
-              node->payload.instruction_r.source_register, node->payload.instruction_r.target_register);
+      fprintf(out,
+              ",\"op\":%d,\"mnemonic\":", node->payload.instruction_r.opcode);
+      json_escape_string(opcode_token_name(node->payload.instruction_r.opcode),
+                         -1, out);
+      fprintf(out, ",\"rd\":%d,\"rs\":%d,\"rt\":%d",
+              node->payload.instruction_r.destination_register,
+              node->payload.instruction_r.source_register,
+              node->payload.instruction_r.target_register);
       break;
 
     case AST_INSTRUCTION_R_SHIFT:
-      fprintf(out, ",\"op\":%d,\"mnemonic\":", node->payload.instruction_r_shift.opcode);
-      json_escape_string(opcode_token_name(node->payload.instruction_r_shift.opcode), -1, out);
-      fprintf(out, ",\"rd\":%d,\"rt\":%d,\"shamt\":%d", node->payload.instruction_r_shift.destination_register,
-              node->payload.instruction_r_shift.target_register, node->payload.instruction_r_shift.shift_amount);
+      fprintf(out, ",\"op\":%d,\"mnemonic\":",
+              node->payload.instruction_r_shift.opcode);
+      json_escape_string(
+          opcode_token_name(node->payload.instruction_r_shift.opcode), -1, out);
+      fprintf(out, ",\"rd\":%d,\"rt\":%d,\"shamt\":%d",
+              node->payload.instruction_r_shift.destination_register,
+              node->payload.instruction_r_shift.target_register,
+              node->payload.instruction_r_shift.shift_amount);
       break;
 
     case AST_INSTRUCTION_I:
-      fprintf(out, ",\"op\":%d,\"mnemonic\":", node->payload.instruction_i.opcode);
-      json_escape_string(opcode_token_name(node->payload.instruction_i.opcode), -1, out);
-      fprintf(out, ",\"rt\":%d,\"rs\":%d,\"imm\":", node->payload.instruction_i.target_register,
+      fprintf(out,
+              ",\"op\":%d,\"mnemonic\":", node->payload.instruction_i.opcode);
+      json_escape_string(opcode_token_name(node->payload.instruction_i.opcode),
+                         -1, out);
+      fprintf(out, ",\"rt\":%d,\"rs\":%d,\"imm\":",
+              node->payload.instruction_i.target_register,
               node->payload.instruction_i.source_register);
       json_immediate(node->payload.instruction_i.immediate, out);
       break;
 
     case AST_INSTRUCTION_J:
-      fprintf(out, ",\"op\":%d,\"mnemonic\":", node->payload.instruction_j.opcode);
-      json_escape_string(opcode_token_name(node->payload.instruction_j.opcode), -1, out);
+      fprintf(out,
+              ",\"op\":%d,\"mnemonic\":", node->payload.instruction_j.opcode);
+      json_escape_string(opcode_token_name(node->payload.instruction_j.opcode),
+                         -1, out);
       fputs(",\"target\":", out);
       json_immediate(node->payload.instruction_j.target, out);
       break;
 
     case AST_INSTRUCTION_FLOATING_POINT_R:
-      fprintf(out, ",\"op\":%d,\"mnemonic\":", node->payload.instruction_floating_point_r.opcode);
-      json_escape_string(opcode_token_name(node->payload.instruction_floating_point_r.opcode), -1, out);
-      fprintf(out, ",\"fd\":%d,\"fs\":%d,\"ft\":%d", node->payload.instruction_floating_point_r.floating_point_destination,
-              node->payload.instruction_floating_point_r.floating_point_source, node->payload.instruction_floating_point_r.floating_point_target);
+      fprintf(out, ",\"op\":%d,\"mnemonic\":",
+              node->payload.instruction_floating_point_r.opcode);
+      json_escape_string(
+          opcode_token_name(node->payload.instruction_floating_point_r.opcode),
+          -1, out);
+      fprintf(
+          out, ",\"fd\":%d,\"fs\":%d,\"ft\":%d",
+          node->payload.instruction_floating_point_r.floating_point_destination,
+          node->payload.instruction_floating_point_r.floating_point_source,
+          node->payload.instruction_floating_point_r.floating_point_target);
       break;
 
     case AST_INSTRUCTION_FLOATING_POINT_COMPARE:
-      fprintf(out, ",\"op\":%d,\"mnemonic\":", node->payload.instruction_floating_point_compare.opcode);
-      json_escape_string(opcode_token_name(node->payload.instruction_floating_point_compare.opcode), -1, out);
-      fprintf(out, ",\"fs\":%d,\"ft\":%d,\"cc\":%d", node->payload.instruction_floating_point_compare.floating_point_source,
-              node->payload.instruction_floating_point_compare.floating_point_target, node->payload.instruction_floating_point_compare.condition_code);
+      fprintf(out, ",\"op\":%d,\"mnemonic\":",
+              node->payload.instruction_floating_point_compare.opcode);
+      json_escape_string(
+          opcode_token_name(
+              node->payload.instruction_floating_point_compare.opcode),
+          -1, out);
+      fprintf(out, ",\"fs\":%d,\"ft\":%d,\"cc\":%d",
+              node->payload.instruction_floating_point_compare
+                  .floating_point_source,
+              node->payload.instruction_floating_point_compare
+                  .floating_point_target,
+              node->payload.instruction_floating_point_compare.condition_code);
       break;
 
     case AST_PSEUDO:
@@ -824,13 +920,16 @@ static void json_node(const ast_node* node, FILE* out) {
     case AST_DATA_BYTE:
     case AST_DATA_HALF:
     case AST_DATA_WORD:
-      fprintf(out, ",\"count\":%d,\"values\":", node->payload.data_integer.count);
-      json_immediate_array(node->payload.data_integer.expressions, node->payload.data_integer.count, out);
+      fprintf(out,
+              ",\"count\":%d,\"values\":", node->payload.data_integer.count);
+      json_immediate_array(node->payload.data_integer.expressions,
+                           node->payload.data_integer.count, out);
       break;
 
     case AST_DATA_FLOAT:
     case AST_DATA_DOUBLE: {
-      fprintf(out, ",\"count\":%d,\"values\":[", node->payload.data_floating_point.count);
+      fprintf(out, ",\"count\":%d,\"values\":[",
+              node->payload.data_floating_point.count);
       for (int i = 0; i < node->payload.data_floating_point.count; i++) {
         if (i > 0) fputc(',', out);
         fprintf(out, "%.17g", node->payload.data_floating_point.values[i]);
@@ -843,8 +942,8 @@ static void json_node(const ast_node* node, FILE* out) {
       fprintf(out, ",\"length\":%d,\"null_terminate\":%s,\"value\":",
               node->payload.data_string.length,
               node->payload.data_string.null_terminate ? "true" : "false");
-      json_escape_string(node->payload.data_string.bytes, node->payload.data_string.length,
-                         out);
+      json_escape_string(node->payload.data_string.bytes,
+                         node->payload.data_string.length, out);
       break;
 
     case AST_DIRECTIVE_TEXT:
@@ -881,9 +980,10 @@ static void json_node(const ast_node* node, FILE* out) {
       fputs(",\"name\":", out);
       json_escape_string(node->payload.label_definition.name, -1, out);
       fputs(",\"label_kind\":\"", out);
-      fputs(
-          node->payload.label_definition.kind == AST_LABEL_NORMAL ? "placement" : "constant",
-          out);
+      fputs(node->payload.label_definition.kind == AST_LABEL_NORMAL
+                ? "placement"
+                : "constant",
+            out);
       fputc('"', out);
       if (node->payload.label_definition.kind == AST_LABEL_CONSTANT) {
         fprintf(out, ",\"value\":%d", node->payload.label_definition.value);
@@ -892,8 +992,9 @@ static void json_node(const ast_node* node, FILE* out) {
 
     case AST_ERROR:
       fputs(",\"message\":", out);
-      json_escape_string(node->payload.error.message ? node->payload.error.message : "", -1,
-                         out);
+      json_escape_string(
+          node->payload.error.message ? node->payload.error.message : "", -1,
+          out);
       break;
     default:
       /* Never reached: the cases above list every ast_kind, and the build's

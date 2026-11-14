@@ -20,15 +20,15 @@ typedef struct label_use {
 /* Symbol table information on a label. */
 
 typedef struct label {
-  char* name;               /* Name of label */
-  long address;                /* Address of label or 0 if not yet defined */
-  bool global_flag : 1;     /* => declared global */
-  bool global_pointer_flag : 1;         /* => referenced off gp */
-  bool constant_flag : 1;      /* => constant value (in addr) */
-  struct label* next;       /* Hash table link */
-  struct label* next_local; /* Link in list of local labels */
-  label_use* uses;          /* List of instructions that reference */
-} label;                    /* label that has not yet been defined */
+  char* name;                   /* Name of label */
+  long address;                 /* Address of label or 0 if not yet defined */
+  bool global_flag : 1;         /* => declared global */
+  bool global_pointer_flag : 1; /* => referenced off gp */
+  bool constant_flag : 1;       /* => constant value (in addr) */
+  struct label* next;           /* Hash table link */
+  struct label* next_local;     /* Link in list of local labels */
+  label_use* uses;              /* List of instructions that reference */
+} label;                        /* label that has not yet been defined */
 
 #define SYMBOL_IS_DEFINED(SYM) ((SYM)->address != 0)
 
@@ -42,10 +42,12 @@ label* label_is_defined(const char* name);
 label* make_label_global(const char* name);
 void print_symbols(void);
 void print_undefined_symbols(void);
-label* record_label(const char* name, memory_address address, bool resolve_uses);
-void record_data_uses_symbol(memory_address location, label* symbol, int32_t offset,
-                             int width);
-void record_instruction_uses_symbol(mips_instruction* instruction, label* symbol);
+label* record_label(const char* name, memory_address address,
+                    bool resolve_uses);
+void record_data_uses_symbol(memory_address location, label* symbol,
+                             int32_t offset, int width);
+void record_instruction_uses_symbol(mips_instruction* instruction,
+                                    label* symbol);
 [[nodiscard]] char* undefined_symbol_string(void);
 void resolve_a_label(label* symbol, mips_instruction* instruction);
 void resolve_label_uses(label* symbol);
@@ -54,6 +56,7 @@ void resolve_label_uses(label* symbol);
    `cb` with each one and the caller-supplied `ctx`. Order is undefined
    (hash-bucket order). Used by the REPL's tab-completion to enumerate
    labels for the `breakpoint` / `delete` commands. */
-void for_each_label(void (*callback)(const label* l, void* context), void* context);
+void for_each_label(void (*callback)(const label* l, void* context),
+                    void* context);
 
 #endif

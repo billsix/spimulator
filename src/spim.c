@@ -140,14 +140,14 @@ static bool line_starts_with_command(const char* const* commands) {
    expects libedit's default filename completion to kick in. */
 static bool line_is_file_command(void) {
   static const char* const commands[] = {"load", "read", "dump", "dumpnative",
-                                     nullptr};
+                                         nullptr};
   return line_starts_with_command(commands);
 }
 
 /* True if the current line begins with a REPL command whose argument
    is a label/address — `breakpoint` and `delete` accept either a hex
-   address (TOKEN_INTEGER) or a symbol name (TOKEN_IDENTIFIER); tab-completion offers the
-   symbol names defined in the loaded program. */
+   address (TOKEN_INTEGER) or a symbol name (TOKEN_IDENTIFIER); tab-completion
+   offers the symbol names defined in the loaded program. */
 static bool line_is_label_command(void) {
   static const char* const commands[] = {"breakpoint", "delete", nullptr};
   return line_starts_with_command(commands);
@@ -161,7 +161,8 @@ static const char** label_names_cache = nullptr;
 static size_t label_names_cache_count = 0;
 static size_t label_names_cache_cap = 0;
 
-static void label_collect_callback(const label* l, [[maybe_unused]] void* context) {
+static void label_collect_callback(const label* l,
+                                   [[maybe_unused]] void* context) {
   if (l == nullptr || l->name == nullptr) return;
   if (label_names_cache_count >= label_names_cache_cap) {
     const size_t new_cap =
@@ -282,18 +283,18 @@ static void dump_text_segment(bool kernel_also);
 
 /* Not local, but not export so all files don't need setjmp.h */
 static jmp_buf spim_top_level_environment; /* For ^C */
-/* True once a setjmp has filled spim_top_level_environment.  Before that (while the
-   -f files load in batch mode) there is no top level to return to, so
+/* True once a setjmp has filled spim_top_level_environment.  Before that (while
+   the -f files load in batch mode) there is no top level to return to, so
    run_error and ^C end the run instead of longjmp-ing through an unset
    jmp_buf. */
 static bool top_level_environment_ready = false;
 
-bool bare_machine = false;       /* => simulate bare machine */
-bool delayed_branches = false;   /* => simulate delayed branches */
-bool delayed_loads = false;      /* => simulate delayed loads */
+bool bare_machine = false;              /* => simulate bare machine */
+bool delayed_branches = false;          /* => simulate delayed branches */
+bool delayed_loads = false;             /* => simulate delayed loads */
 bool accept_pseudo_instructions = true; /* => parse pseudo instructions  */
-bool quiet = false;              /* => no warning messages */
-static bool assemble = false;    /* => assemble, disassemble to file and exit */
+bool quiet = false;                     /* => no warning messages */
+static bool assemble = false; /* => assemble, disassemble to file and exit */
 /* Sentinel pointer routes initialize_world to the embedded handler;
    the SPIM_EXCEPTION_HANDLER env var or -exception_file CLI flag
    replace it with an on-disk path that gets opened with fopen.
@@ -339,8 +340,8 @@ static const char* segment_name(assembler_segment s) {
     case ASSEMBLER_SEGMENT_KERNEL_DATA:
       return "kdata";
     default:
-      /* Never reached: the cases above list every assembler_segment, and the build's
-       * -Wswitch-enum fails if a new one is added without a case. */
+      /* Never reached: the cases above list every assembler_segment, and the
+       * build's -Wswitch-enum fails if a new one is added without a case. */
       fatal_error("internal error: seg_name: unknown segment %d\n", (int)s);
   }
 }
@@ -366,11 +367,13 @@ static void listing_observer(const assembler_event* e) {
       break;
     case ASSEMBLER_EVENT_DATA_HALF:
       fprintf(listing_file, "line %4d  data   0x%08x  half    0x%04x\n",
-              e->source_line, e->address, e->payload.data_integer.value & 0xffff);
+              e->source_line, e->address,
+              e->payload.data_integer.value & 0xffff);
       break;
     case ASSEMBLER_EVENT_DATA_WORD:
       fprintf(listing_file, "line %4d  data   0x%08x  word    0x%08x\n",
-              e->source_line, e->address, (uint32_t)e->payload.data_integer.value);
+              e->source_line, e->address,
+              (uint32_t)e->payload.data_integer.value);
       break;
     case ASSEMBLER_EVENT_DATA_DOUBLE:
       fprintf(listing_file, "line %4d  data   0x%08x  double  %.18g\n",
@@ -383,7 +386,8 @@ static void listing_observer(const assembler_event* e) {
       break;
     case ASSEMBLER_EVENT_ALIGN:
       fprintf(listing_file, "line %4d  align  0x%08x  +%d bytes in %s\n",
-              e->source_line, e->address, e->payload.align.new_program_counter_offset,
+              e->source_line, e->address,
+              e->payload.align.new_program_counter_offset,
               segment_name(e->payload.align.segment));
       break;
     case ASSEMBLER_EVENT_SEGMENT_CHANGE:
@@ -393,7 +397,8 @@ static void listing_observer(const assembler_event* e) {
     case ASSEMBLER_EVENT_FORWARD_REF:
       fprintf(listing_file,
               "line %4d  fref   0x%08x  uses unresolved symbol '%s'\n",
-              e->source_line, e->payload.forward_ref.from, e->payload.forward_ref.symbol);
+              e->source_line, e->payload.forward_ref.from,
+              e->payload.forward_ref.symbol);
       break;
     case ASSEMBLER_EVENT_FORWARD_RESOLVED:
       fprintf(listing_file, "line %4d  fres   0x%08x  patched '%s' = 0x%08x\n",
@@ -418,7 +423,7 @@ int main(int argc, char** argv) {
   bool assembly_file_attempted =
       false;                      /* -file was given (even if load failed) */
   bool world_initialized = false; /* initialize_world() called yet? */
-  int last_file_index = -1;           /* argv index of the last loaded -f file */
+  int last_file_index = -1;       /* argv index of the last loaded -f file */
   int print_usage_message = 0;
 
   console_out.file = stdout;
@@ -435,39 +440,52 @@ int main(int argc, char** argv) {
       bare_machine = false;
       delayed_branches = false;
       delayed_loads = false;
-    } else if (strings_equal(argv[i], "-bare") || strings_equal(argv[i], "-b")) {
+    } else if (strings_equal(argv[i], "-bare") ||
+               strings_equal(argv[i], "-b")) {
       bare_machine = true;
       delayed_branches = true;
       delayed_loads = true;
       quiet = true;
-    } else if (strings_equal(argv[i], "-delayed_branches") || strings_equal(argv[i], "-db")) {
+    } else if (strings_equal(argv[i], "-delayed_branches") ||
+               strings_equal(argv[i], "-db")) {
       delayed_branches = true;
-    } else if (strings_equal(argv[i], "-delayed_loads") || strings_equal(argv[i], "-dl")) {
+    } else if (strings_equal(argv[i], "-delayed_loads") ||
+               strings_equal(argv[i], "-dl")) {
       delayed_loads = true;
-    } else if (strings_equal(argv[i], "-exception") || strings_equal(argv[i], "-e")) {
+    } else if (strings_equal(argv[i], "-exception") ||
+               strings_equal(argv[i], "-e")) {
       load_exception_handler = true;
-    } else if (strings_equal(argv[i], "-noexception") || strings_equal(argv[i], "-ne")) {
+    } else if (strings_equal(argv[i], "-noexception") ||
+               strings_equal(argv[i], "-ne")) {
       load_exception_handler = false;
-    } else if (strings_equal(argv[i], "-exception_file") || strings_equal(argv[i], "-ef")) {
+    } else if (strings_equal(argv[i], "-exception_file") ||
+               strings_equal(argv[i], "-ef")) {
       if (flag_value_missing(i, argc, argv))
         print_usage_message = 1;
       else {
         exception_file_name = argv[++i];
         load_exception_handler = true;
       }
-    } else if (strings_equal(argv[i], "-mapped_io") || strings_equal(argv[i], "-mio")) {
+    } else if (strings_equal(argv[i], "-mapped_io") ||
+               strings_equal(argv[i], "-mio")) {
       mapped_io = true;
-    } else if (strings_equal(argv[i], "-nomapped_io") || strings_equal(argv[i], "-nmio")) {
+    } else if (strings_equal(argv[i], "-nomapped_io") ||
+               strings_equal(argv[i], "-nmio")) {
       mapped_io = false;
-    } else if (strings_equal(argv[i], "-pseudo") || strings_equal(argv[i], "-p")) {
+    } else if (strings_equal(argv[i], "-pseudo") ||
+               strings_equal(argv[i], "-p")) {
       accept_pseudo_instructions = true;
-    } else if (strings_equal(argv[i], "-nopseudo") || strings_equal(argv[i], "-np")) {
+    } else if (strings_equal(argv[i], "-nopseudo") ||
+               strings_equal(argv[i], "-np")) {
       accept_pseudo_instructions = false;
-    } else if (strings_equal(argv[i], "-quiet") || strings_equal(argv[i], "-q")) {
+    } else if (strings_equal(argv[i], "-quiet") ||
+               strings_equal(argv[i], "-q")) {
       quiet = true;
-    } else if (strings_equal(argv[i], "-noquiet") || strings_equal(argv[i], "-nq")) {
+    } else if (strings_equal(argv[i], "-noquiet") ||
+               strings_equal(argv[i], "-nq")) {
       quiet = false;
-    } else if (strings_equal(argv[i], "-noexplain") || strings_equal(argv[i], "-nx")) {
+    } else if (strings_equal(argv[i], "-noexplain") ||
+               strings_equal(argv[i], "-nx")) {
       explain_level = 0;
     } else if (strncmp(argv[i], "-explain=", 9) == 0 ||
                strncmp(argv[i], "-x=", 3) == 0) {
@@ -479,7 +497,8 @@ int main(int argc, char** argv) {
         fprintf(stderr, "spimulator: %s requires a level in 0..4\n", argv[i]);
         print_usage_message = 1;
       }
-    } else if (strings_equal(argv[i], "-explain") || strings_equal(argv[i], "-x")) {
+    } else if (strings_equal(argv[i], "-explain") ||
+               strings_equal(argv[i], "-x")) {
       /* Bare -explain / -x defaults to level 3 (full output — the
          historical -explain behavior). An optional next arg can set
          a different level: `-explain 2` shows L2 detail. */
@@ -490,58 +509,70 @@ int main(int argc, char** argv) {
       } else {
         explain_level = 3;
       }
-    } else if (strings_equal(argv[i], "-trap") || strings_equal(argv[i], "-t")) {
+    } else if (strings_equal(argv[i], "-trap") ||
+               strings_equal(argv[i], "-t")) {
       load_exception_handler = true;
-    } else if (strings_equal(argv[i], "-notrap") || strings_equal(argv[i], "-nt")) {
+    } else if (strings_equal(argv[i], "-notrap") ||
+               strings_equal(argv[i], "-nt")) {
       load_exception_handler = false;
-    } else if (strings_equal(argv[i], "-trap_file") || strings_equal(argv[i], "-tf")) {
+    } else if (strings_equal(argv[i], "-trap_file") ||
+               strings_equal(argv[i], "-tf")) {
       if (flag_value_missing(i, argc, argv))
         print_usage_message = 1;
       else {
         exception_file_name = argv[++i];
         load_exception_handler = true;
       }
-    } else if (strings_equal(argv[i], "-stext") || strings_equal(argv[i], "-st")) {
+    } else if (strings_equal(argv[i], "-stext") ||
+               strings_equal(argv[i], "-st")) {
       if (flag_value_missing(i, argc, argv))
         print_usage_message = 1;
       else
         initial_text_size = atoi(argv[++i]);
-    } else if (strings_equal(argv[i], "-sdata") || strings_equal(argv[i], "-sd")) {
+    } else if (strings_equal(argv[i], "-sdata") ||
+               strings_equal(argv[i], "-sd")) {
       if (flag_value_missing(i, argc, argv))
         print_usage_message = 1;
       else
         initial_data_size = atoi(argv[++i]);
-    } else if (strings_equal(argv[i], "-ldata") || strings_equal(argv[i], "-ld")) {
+    } else if (strings_equal(argv[i], "-ldata") ||
+               strings_equal(argv[i], "-ld")) {
       if (flag_value_missing(i, argc, argv))
         print_usage_message = 1;
       else
         initial_data_limit = (memory_address)atoi(argv[++i]);
-    } else if (strings_equal(argv[i], "-sstack") || strings_equal(argv[i], "-ss")) {
+    } else if (strings_equal(argv[i], "-sstack") ||
+               strings_equal(argv[i], "-ss")) {
       if (flag_value_missing(i, argc, argv))
         print_usage_message = 1;
       else
         initial_stack_size = atoi(argv[++i]);
-    } else if (strings_equal(argv[i], "-lstack") || strings_equal(argv[i], "-ls")) {
+    } else if (strings_equal(argv[i], "-lstack") ||
+               strings_equal(argv[i], "-ls")) {
       if (flag_value_missing(i, argc, argv))
         print_usage_message = 1;
       else
         initial_stack_limit = (memory_address)atoi(argv[++i]);
-    } else if (strings_equal(argv[i], "-sktext") || strings_equal(argv[i], "-skt")) {
+    } else if (strings_equal(argv[i], "-sktext") ||
+               strings_equal(argv[i], "-skt")) {
       if (flag_value_missing(i, argc, argv))
         print_usage_message = 1;
       else
         initial_kernel_text_size = atoi(argv[++i]);
-    } else if (strings_equal(argv[i], "-skdata") || strings_equal(argv[i], "-skd")) {
+    } else if (strings_equal(argv[i], "-skdata") ||
+               strings_equal(argv[i], "-skd")) {
       if (flag_value_missing(i, argc, argv))
         print_usage_message = 1;
       else
         initial_kernel_data_size = atoi(argv[++i]);
-    } else if (strings_equal(argv[i], "-lkdata") || strings_equal(argv[i], "-lkd")) {
+    } else if (strings_equal(argv[i], "-lkdata") ||
+               strings_equal(argv[i], "-lkd")) {
       if (flag_value_missing(i, argc, argv))
         print_usage_message = 1;
       else
         initial_kernel_data_limit = (memory_address)atoi(argv[++i]);
-    } else if (((strings_equal(argv[i], "-file") || strings_equal(argv[i], "-f")) &&
+    } else if (((strings_equal(argv[i], "-file") ||
+                 strings_equal(argv[i], "-f")) &&
                 (i + 1 < argc))
                /* Assume this argument is a program's file name and everything
                   following are arguments to the program */
@@ -893,10 +924,10 @@ static char* read_command_line(void) {
       if (*repl_line != '\0') add_history(repl_line);
 #endif
 
-      /* Append '\n' so flex sees TOKEN_NEWLINE exactly once per command, matching
-         the stdin path. Wrap the buffer in a FILE* via fmemopen and reuse
-         the existing scanner_push_source mechanism — flex sees a normal input
-         source, parse_spim_command is unaware of libedit. */
+      /* Append '\n' so flex sees TOKEN_NEWLINE exactly once per command,
+         matching the stdin path. Wrap the buffer in a FILE* via fmemopen and
+         reuse the existing scanner_push_source mechanism — flex sees a normal
+         input source, parse_spim_command is unaware of libedit. */
       size_t length = strlen(repl_line);
       repl_buffer = malloc(length + 2);
       if (repl_buffer == nullptr) {
@@ -1021,7 +1052,8 @@ static bool parse_spim_command(bool redo) {
         }
 
         if (run_program(address, DEFAULT_RUN_STEPS, false, false, &continuable))
-          write_output(message_out, "Breakpoint encountered at 0x%08x\n", PROGRAM_COUNTER);
+          write_output(message_out, "Breakpoint encountered at 0x%08x\n",
+                       PROGRAM_COUNTER);
       }
       console_to_spim();
 
@@ -1033,8 +1065,10 @@ static bool parse_spim_command(bool redo) {
       if (PROGRAM_COUNTER != 0) {
         bool continuable;
         console_to_program();
-        if (run_program(PROGRAM_COUNTER, DEFAULT_RUN_STEPS, false, true, &continuable))
-          write_output(message_out, "Breakpoint encountered at 0x%08x\n", PROGRAM_COUNTER);
+        if (run_program(PROGRAM_COUNTER, DEFAULT_RUN_STEPS, false, true,
+                        &continuable))
+          write_output(message_out, "Breakpoint encountered at 0x%08x\n",
+                       PROGRAM_COUNTER);
         console_to_spim();
       }
       previous_command = CONTINUE_COMMAND;
@@ -1045,14 +1079,16 @@ static bool parse_spim_command(bool redo) {
       static int steps;
 
       steps = (redo ? steps : get_optional_integer());
-      const memory_address address = PROGRAM_COUNTER == 0 ? starting_address() : PROGRAM_COUNTER;
+      const memory_address address =
+          PROGRAM_COUNTER == 0 ? starting_address() : PROGRAM_COUNTER;
 
       if (steps == 0) steps = 1;
       if (address != 0) {
         bool continuable;
         console_to_program();
         if (run_program(address, steps, true, true, &continuable))
-          write_output(message_out, "Breakpoint encountered at 0x%08x\n", PROGRAM_COUNTER);
+          write_output(message_out, "Breakpoint encountered at 0x%08x\n",
+                       PROGRAM_COUNTER);
         console_to_spim();
       }
 
@@ -1063,9 +1099,9 @@ static bool parse_spim_command(bool redo) {
     case PRINT_COMMAND: {
       const int token = (redo ? previous_token : read_token());
       static int location;
-      /* Set true if we've already consumed TOKEN_NEWLINE while parsing a base+offset
-       * suffix, so the trailing flush_to_newline doesn't gobble the next
-       * command's tokens. */
+      /* Set true if we've already consumed TOKEN_NEWLINE while parsing a
+       * base+offset suffix, so the trailing flush_to_newline doesn't gobble the
+       * next command's tokens. */
       bool consumed_newline = false;
 
       switch (token) {
@@ -1094,13 +1130,17 @@ static bool parse_spim_command(bool redo) {
             const int next = read_token();
             if (next == '(') {
               const int register_token = read_token();
-              const int register_number = (register_token == TOKEN_REGISTER) ? scan_value.integer : -1;
-              const int close = (register_token == TOKEN_REGISTER) ? read_token() : 0;
-              if (register_token == TOKEN_NEWLINE || close == TOKEN_NEWLINE) consumed_newline = true;
+              const int register_number =
+                  (register_token == TOKEN_REGISTER) ? scan_value.integer : -1;
+              const int close =
+                  (register_token == TOKEN_REGISTER) ? read_token() : 0;
+              if (register_token == TOKEN_NEWLINE || close == TOKEN_NEWLINE)
+                consumed_newline = true;
               if (register_number < 0 || close != ')') {
                 error("expected $reg) after '(' in print N($reg) form\n");
               } else {
-                location = general_purpose_registers[register_number] + integer_value;
+                location =
+                    general_purpose_registers[register_number] + integer_value;
                 print_memory((memory_address)location);
               }
             } else {
@@ -1145,7 +1185,9 @@ static bool parse_spim_command(bool redo) {
     case PRINT_ALL_REGISTERS_COMMAND: {
       bool hex_flag = false;
       const int token = (redo ? previous_token : read_token());
-      if (token == TOKEN_IDENTIFIER && strings_equal((char*)scan_value.pointer, "hex")) hex_flag = true;
+      if (token == TOKEN_IDENTIFIER &&
+          strings_equal((char*)scan_value.pointer, "hex"))
+        hex_flag = true;
       print_all_registers(hex_flag);
       /* With no operand the token read was the newline itself; flushing
          would read on into the next line. */
@@ -1223,12 +1265,14 @@ static bool parse_spim_command(bool redo) {
         }
         if (owned_strings_length + 1 > cap) {
           cap = cap == 0 ? 4 : cap * 2;
-          owned_strings = reallocate_or_exit(owned_strings, (size_t)cap * sizeof(char*));
+          owned_strings =
+              reallocate_or_exit(owned_strings, (size_t)cap * sizeof(char*));
         }
         owned_strings[owned_strings_length++] = s;
       }
 
-      owned_argv = allocate_or_exit((size_t)(owned_strings_length + 1) * sizeof(char*));
+      owned_argv =
+          allocate_or_exit((size_t)(owned_strings_length + 1) * sizeof(char*));
       owned_argv[0] = argv0;
       for (int i = 0; i < owned_strings_length; i++)
         owned_argv[1 + i] = owned_strings[i];
@@ -1310,7 +1354,8 @@ static bool parse_spim_command(bool redo) {
       if (token == TOKEN_INTEGER)
         address = redo ? address + 4 : (memory_address)scan_value.integer;
       else if (token == TOKEN_IDENTIFIER)
-        address = redo ? address + 4 : find_symbol_address((char*)scan_value.pointer);
+        address =
+            redo ? address + 4 : find_symbol_address((char*)scan_value.pointer);
       else {
         error("Must supply an address for breakpoint\n");
         return (0);
@@ -1485,7 +1530,8 @@ static void flush_to_newline(void) {
 /* Print register number N. */
 
 static void print_register(int register_no) {
-  write_output(message_out, "Reg %d = 0x%08x (%d)\n", register_no, general_purpose_registers[register_no],
+  write_output(message_out, "Reg %d = 0x%08x (%d)\n", register_no,
+               general_purpose_registers[register_no],
                general_purpose_registers[register_no]);
 }
 
@@ -1493,7 +1539,8 @@ static void print_floating_point_register(int register_no) {
   if ((register_no & 1) == 0)
     write_output(message_out, "FP reg %d = %g (double)\n", register_no,
                  FLOATING_POINT_REGISTER_DOUBLE(register_no));
-  write_output(message_out, "FP reg %d = %g (single)\n", register_no, FLOATING_POINT_REGISTER_SINGLE(register_no));
+  write_output(message_out, "FP reg %d = %g (single)\n", register_no,
+               FLOATING_POINT_REGISTER_SINGLE(register_no));
 }
 
 static int print_register_from_string(char* register_name) {
@@ -1501,7 +1548,8 @@ static int print_register_from_string(char* register_name) {
   char* s1 = s;
 
   /* Conver to lower case */
-  while (*register_name != '\0' && s1 - s < 100) *s1++ = (char)tolower(*register_name++);
+  while (*register_name != '\0' && s1 - s < 100)
+    *s1++ = (char)tolower(*register_name++);
   *s1 = '\0';
   /* Drop leading $ */
   if (s[0] == '$')
@@ -1510,21 +1558,31 @@ static int print_register_from_string(char* register_name) {
     s1 = s;
 
   if (strings_equal(s1, "pc"))
-    write_output(message_out, "PC = 0x%08x (%d)\n", PROGRAM_COUNTER, PROGRAM_COUNTER);
+    write_output(message_out, "PC = 0x%08x (%d)\n", PROGRAM_COUNTER,
+                 PROGRAM_COUNTER);
   else if (strings_equal(s1, "hi"))
-    write_output(message_out, "HI = 0x%08x (%d)\n", MULTIPLY_DIVIDE_HIGH, MULTIPLY_DIVIDE_HIGH);
+    write_output(message_out, "HI = 0x%08x (%d)\n", MULTIPLY_DIVIDE_HIGH,
+                 MULTIPLY_DIVIDE_HIGH);
   else if (strings_equal(s1, "lo"))
-    write_output(message_out, "LO = 0x%08x (%d)\n", MULTIPLY_DIVIDE_LOW, MULTIPLY_DIVIDE_LOW);
+    write_output(message_out, "LO = 0x%08x (%d)\n", MULTIPLY_DIVIDE_LOW,
+                 MULTIPLY_DIVIDE_LOW);
   else if (strings_equal(s1, "fpcond"))
-    write_output(message_out, "FCSR = 0x%08x (%d)\n", floating_point_control_status_register, floating_point_control_status_register);
+    write_output(message_out, "FCSR = 0x%08x (%d)\n",
+                 floating_point_control_status_register,
+                 floating_point_control_status_register);
   else if (strings_equal(s1, "cause"))
-    write_output(message_out, "Cause = 0x%08x (%d)\n", coprocessor_0_cause, coprocessor_0_cause);
+    write_output(message_out, "Cause = 0x%08x (%d)\n", coprocessor_0_cause,
+                 coprocessor_0_cause);
   else if (strings_equal(s1, "epc"))
-    write_output(message_out, "EPC = 0x%08x (%d)\n", coprocessor_0_exception_program_counter, coprocessor_0_exception_program_counter);
+    write_output(message_out, "EPC = 0x%08x (%d)\n",
+                 coprocessor_0_exception_program_counter,
+                 coprocessor_0_exception_program_counter);
   else if (strings_equal(s1, "status"))
-    write_output(message_out, "Status = 0x%08x (%d)\n", coprocessor_0_status, coprocessor_0_status);
+    write_output(message_out, "Status = 0x%08x (%d)\n", coprocessor_0_status,
+                 coprocessor_0_status);
   else if (strings_equal(s1, "badvaddr"))
-    write_output(message_out, "BadVAddr = 0x%08x (%d)\n", coprocessor_0_bad_virtual_address,
+    write_output(message_out, "BadVAddr = 0x%08x (%d)\n",
+                 coprocessor_0_bad_virtual_address,
                  coprocessor_0_bad_virtual_address);
   else
     return (0);
@@ -1567,7 +1625,8 @@ static bool write_assembled_code(const char* program_name) {
   memory_address dump_end = current_text_location();
 
   (void)fprintf(file, ".text # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
-  for (memory_address address = dump_start; address < dump_end; address += BYTES_PER_WORD) {
+  for (memory_address address = dump_start; address < dump_end;
+       address += BYTES_PER_WORD) {
     const int32_t code = instruction_encode(memory_read_instruction(address));
     /* ", " goes before each word but the first: the segment's end need not
        fall on a word, so "not the last word" can't be tested by address. */
@@ -1586,7 +1645,8 @@ static bool write_assembled_code(const char* program_name) {
 
   if (dump_end > dump_start) {
     (void)fprintf(file, ".data # 0x%x .. 0x%x\n.word ", dump_start, dump_end);
-    for (memory_address address = dump_start; address < dump_end; address += BYTES_PER_WORD) {
+    for (memory_address address = dump_start; address < dump_end;
+         address += BYTES_PER_WORD) {
       const int32_t code = memory_read_word(address);
       (void)fprintf(file, "%s0x%x", address != dump_start ? ", " : "", code);
     }
@@ -1675,7 +1735,8 @@ int read_input(char* string, int string_size) {
   while (1 < string_size) /* Reserve space for null */
   {
     char buffer[1];
-    if (read((int)console_input.descriptor, buffer, 1) <= 0) /* Not in raw mode! */
+    if (read((int)console_input.descriptor, buffer, 1) <=
+        0) /* Not in raw mode! */
       break;
 
     *pointer++ = buffer[0];
@@ -1749,7 +1810,7 @@ static void console_to_program(void) {
     tcgetattr(console_input.descriptor, &saved_console_state);
     struct termios parameters = saved_console_state;
     parameters.c_iflag &= (tcflag_t) ~(ISTRIP | INLCR | ICRNL | IGNCR | IXON |
-                                   IXOFF | INPCK | BRKINT | PARMRK);
+                                       IXOFF | INPCK | BRKINT | PARMRK);
 
     /* Translate CR -> NL to canonicalize input. */
     parameters.c_iflag |= IGNBRK | IGNPAR | ICRNL;

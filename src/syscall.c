@@ -28,23 +28,29 @@ bool do_syscall(void) {
 
   switch (general_purpose_registers[VALUE_REGISTER_0]) {
     case PRINT_INT_SYSCALL:
-      write_output(console_out, "%d", general_purpose_registers[ARGUMENT_REGISTER_0]);
+      write_output(console_out, "%d",
+                   general_purpose_registers[ARGUMENT_REGISTER_0]);
       break;
 
     case PRINT_FLOAT_SYSCALL: {
-      const float value = FLOATING_POINT_REGISTER_SINGLE(FLOATING_POINT_ARGUMENT_REGISTER_0);
+      const float value =
+          FLOATING_POINT_REGISTER_SINGLE(FLOATING_POINT_ARGUMENT_REGISTER_0);
 
       write_output(console_out, "%.8f", value);
       break;
     }
 
     case PRINT_DOUBLE_SYSCALL:
-      write_output(console_out, "%.18g", floating_point_double_view[FLOATING_POINT_ARGUMENT_REGISTER_0 / 2]);
+      write_output(
+          console_out, "%.18g",
+          floating_point_double_view[FLOATING_POINT_ARGUMENT_REGISTER_0 / 2]);
       break;
 
     case PRINT_STRING_SYSCALL:
-      write_output(console_out, "%s",
-                   (char*)memory_reference((memory_address)general_purpose_registers[ARGUMENT_REGISTER_0]));
+      write_output(
+          console_out, "%s",
+          (char*)memory_reference(
+              (memory_address)general_purpose_registers[ARGUMENT_REGISTER_0]));
       break;
 
     case READ_INT_SYSCALL: {
@@ -55,7 +61,8 @@ bool do_syscall(void) {
       long value;
       const int ok = read_integer_input(&value);
       general_purpose_registers[RESULT_REGISTER] = (register_word)value;
-      general_purpose_registers[ARGUMENT_REGISTER_3] = ok ? 0 : 1; /* 0 = success, 1 = EOF/no number */
+      general_purpose_registers[ARGUMENT_REGISTER_3] =
+          ok ? 0 : 1; /* 0 = success, 1 = EOF/no number */
       break;
     }
 
@@ -63,7 +70,8 @@ bool do_syscall(void) {
       static char string[256];
 
       read_input(string, 256);
-      FLOATING_POINT_REGISTER_SINGLE(FLOATING_POINT_RESULT_REGISTER) = (float)atof(string);
+      FLOATING_POINT_REGISTER_SINGLE(FLOATING_POINT_RESULT_REGISTER) =
+          (float)atof(string);
       break;
     }
 
@@ -76,9 +84,12 @@ bool do_syscall(void) {
     }
 
     case READ_STRING_SYSCALL: {
-      const int n =
-          read_input((char*)memory_reference((memory_address)general_purpose_registers[ARGUMENT_REGISTER_0]), general_purpose_registers[ARGUMENT_REGISTER_1]);
-      general_purpose_registers[ARGUMENT_REGISTER_3] = (n == 0) ? 1 : 0; /* EOF flag */
+      const int n = read_input(
+          (char*)memory_reference(
+              (memory_address)general_purpose_registers[ARGUMENT_REGISTER_0]),
+          general_purpose_registers[ARGUMENT_REGISTER_1]);
+      general_purpose_registers[ARGUMENT_REGISTER_3] =
+          (n == 0) ? 1 : 0; /* EOF flag */
       data_modified = true;
       break;
     }
@@ -92,7 +103,8 @@ bool do_syscall(void) {
     }
 
     case PRINT_CHARACTER_SYSCALL:
-      write_output(console_out, "%c", general_purpose_registers[ARGUMENT_REGISTER_0]);
+      write_output(console_out, "%c",
+                   general_purpose_registers[ARGUMENT_REGISTER_0]);
       break;
 
     case READ_CHARACTER_SYSCALL: {
@@ -100,11 +112,13 @@ bool do_syscall(void) {
 
       const int n = read_input(string, 2);
       if (n == 0) {
-        general_purpose_registers[RESULT_REGISTER] = -1; /* EOF -- matches getchar()'s convention */
+        general_purpose_registers[RESULT_REGISTER] =
+            -1; /* EOF -- matches getchar()'s convention */
       } else {
         /* Treat the byte as unsigned (0..255) so bytes >= 0x80 don't
            alias with the -1 EOF sentinel via sign extension. */
-        general_purpose_registers[RESULT_REGISTER] = (register_word)(unsigned char)string[0];
+        general_purpose_registers[RESULT_REGISTER] =
+            (register_word)(unsigned char)string[0];
       }
       break;
     }
@@ -114,41 +128,55 @@ bool do_syscall(void) {
       return (false);
 
     case EXIT2_SYSCALL:
-      spim_return_value = general_purpose_registers[ARGUMENT_REGISTER_0]; /* value passed to spim's exit() call */
+      spim_return_value = general_purpose_registers
+          [ARGUMENT_REGISTER_0]; /* value passed to spim's exit() call */
       return (false);
 
     case OPEN_SYSCALL: {
-      general_purpose_registers[RESULT_REGISTER] = open((char*)memory_reference((memory_address)general_purpose_registers[ARGUMENT_REGISTER_0]),
-                          general_purpose_registers[ARGUMENT_REGISTER_1], general_purpose_registers[ARGUMENT_REGISTER_2]);
+      general_purpose_registers[RESULT_REGISTER] = open(
+          (char*)memory_reference(
+              (memory_address)general_purpose_registers[ARGUMENT_REGISTER_0]),
+          general_purpose_registers[ARGUMENT_REGISTER_1],
+          general_purpose_registers[ARGUMENT_REGISTER_2]);
       break;
     }
 
     case READ_SYSCALL: {
       /* Test if address is valid */
-      (void)memory_reference((memory_address)(general_purpose_registers[ARGUMENT_REGISTER_1] + general_purpose_registers[ARGUMENT_REGISTER_2] - 1));
-      general_purpose_registers[RESULT_REGISTER] =
-          (register_word)read(general_purpose_registers[ARGUMENT_REGISTER_0], memory_reference((memory_address)general_purpose_registers[ARGUMENT_REGISTER_1]),
-                         (size_t)general_purpose_registers[ARGUMENT_REGISTER_2]);
+      (void)memory_reference(
+          (memory_address)(general_purpose_registers[ARGUMENT_REGISTER_1] +
+                           general_purpose_registers[ARGUMENT_REGISTER_2] - 1));
+      general_purpose_registers[RESULT_REGISTER] = (register_word)read(
+          general_purpose_registers[ARGUMENT_REGISTER_0],
+          memory_reference(
+              (memory_address)general_purpose_registers[ARGUMENT_REGISTER_1]),
+          (size_t)general_purpose_registers[ARGUMENT_REGISTER_2]);
       data_modified = true;
       break;
     }
 
     case WRITE_SYSCALL: {
       /* Test if address is valid */
-      (void)memory_reference((memory_address)(general_purpose_registers[ARGUMENT_REGISTER_1] + general_purpose_registers[ARGUMENT_REGISTER_2] - 1));
-      general_purpose_registers[RESULT_REGISTER] =
-          (register_word)write(general_purpose_registers[ARGUMENT_REGISTER_0], memory_reference((memory_address)general_purpose_registers[ARGUMENT_REGISTER_1]),
-                          (size_t)general_purpose_registers[ARGUMENT_REGISTER_2]);
+      (void)memory_reference(
+          (memory_address)(general_purpose_registers[ARGUMENT_REGISTER_1] +
+                           general_purpose_registers[ARGUMENT_REGISTER_2] - 1));
+      general_purpose_registers[RESULT_REGISTER] = (register_word)write(
+          general_purpose_registers[ARGUMENT_REGISTER_0],
+          memory_reference(
+              (memory_address)general_purpose_registers[ARGUMENT_REGISTER_1]),
+          (size_t)general_purpose_registers[ARGUMENT_REGISTER_2]);
       break;
     }
 
     case CLOSE_SYSCALL: {
-      general_purpose_registers[RESULT_REGISTER] = close(general_purpose_registers[ARGUMENT_REGISTER_0]);
+      general_purpose_registers[RESULT_REGISTER] =
+          close(general_purpose_registers[ARGUMENT_REGISTER_0]);
       break;
     }
 
     default:
-      run_error("Unknown system call: %d\n", general_purpose_registers[VALUE_REGISTER_0]);
+      run_error("Unknown system call: %d\n",
+                general_purpose_registers[VALUE_REGISTER_0]);
       break;
   }
 
@@ -157,7 +185,8 @@ bool do_syscall(void) {
 
 void handle_exception(void) {
   if (!quiet && coprocessor_0_exception_code != EXCEPTION_CODE_INTERRUPT)
-    error("Exception occurred at PC=0x%08x\n", coprocessor_0_exception_program_counter);
+    error("Exception occurred at PC=0x%08x\n",
+          coprocessor_0_exception_program_counter);
 
   exception_occurred = false;
   PROGRAM_COUNTER = EXCEPTION_ADDRESS;
@@ -173,16 +202,21 @@ void handle_exception(void) {
       break;
 
     case EXCEPTION_CODE_ADDRESS_ERROR_STORE:
-      if (!quiet) error("  Unaligned address in store: 0x%08x\n", coprocessor_0_bad_virtual_address);
+      if (!quiet)
+        error("  Unaligned address in store: 0x%08x\n",
+              coprocessor_0_bad_virtual_address);
       break;
 
     case EXCEPTION_CODE_INSTRUCTION_BUS_ERROR:
-      if (!quiet) error("  Bad address in text read: 0x%08x\n", coprocessor_0_bad_virtual_address);
+      if (!quiet)
+        error("  Bad address in text read: 0x%08x\n",
+              coprocessor_0_bad_virtual_address);
       break;
 
     case EXCEPTION_CODE_DATA_BUS_ERROR:
       if (!quiet)
-        error("  Bad address in data/stack read: 0x%08x\n", coprocessor_0_bad_virtual_address);
+        error("  Bad address in data/stack read: 0x%08x\n",
+              coprocessor_0_bad_virtual_address);
       break;
 
     case EXCEPTION_CODE_SYSTEM_CALL:
@@ -214,7 +248,8 @@ void handle_exception(void) {
       break;
 
     default:
-      if (!quiet) error("Unknown exception: %d\n", coprocessor_0_exception_code);
+      if (!quiet)
+        error("Unknown exception: %d\n", coprocessor_0_exception_code);
       break;
   }
 }

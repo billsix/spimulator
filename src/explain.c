@@ -25,12 +25,14 @@ int explain_level = 0;
 /* Snapshot of architectural state at explain_before() time. The narration
    itself runs from explain_after() (so every line reads in past tense by
    the time the user sees it), which means input-side reads come from
-   snapshot_registers / snapshot_multiply_divide_high / snapshot_multiply_divide_low / snapshot_program_counter and result-side reads come from
-   the live gpr / HI / LO / PC. Stores also need a pre-execute memory
+   snapshot_registers / snapshot_multiply_divide_high /
+   snapshot_multiply_divide_low / snapshot_program_counter and result-side reads
+   come from the live gpr / HI / LO / PC. Stores also need a pre-execute memory
    snapshot, since by the time explain_after runs the write has happened
    and peek_word would return the new value. */
 static register_word snapshot_registers[GENERAL_PURPOSE_REGISTER_COUNT];
-static register_word snapshot_multiply_divide_high, snapshot_multiply_divide_low;
+static register_word snapshot_multiply_divide_high,
+    snapshot_multiply_divide_low;
 static memory_address snapshot_program_counter;
 static bool snapshot_has_memory;
 static memory_address snapshot_memory_address;
@@ -141,7 +143,9 @@ void explain_print_step_header(memory_address program_counter,
   char* disassembly = instruction_to_string(program_counter);
   size_t disassembly_length = strlen(disassembly);
   while (disassembly_length > 0 &&
-         (disassembly[disassembly_length - 1] == '\n' || disassembly[disassembly_length - 1] == ' ' || disassembly[disassembly_length - 1] == '\t'))
+         (disassembly[disassembly_length - 1] == '\n' ||
+          disassembly[disassembly_length - 1] == ' ' ||
+          disassembly[disassembly_length - 1] == '\t'))
     disassembly[--disassembly_length] = '\0';
 
   char* p = strchr(disassembly, '\t');
@@ -163,12 +167,13 @@ void explain_print_step_header(memory_address program_counter,
   char* disassembly_text = p;
   if (strlen(p) >= 10 && p[0] == '0' && p[1] == 'x') {
     disassembly_text = p + 10;
-    while (*disassembly_text == ' ' || *disassembly_text == '\t') disassembly_text++;
+    while (*disassembly_text == ' ' || *disassembly_text == '\t')
+      disassembly_text++;
   }
 
   const uint32_t encoding = (uint32_t)instruction_encode(instruction);
-  write_output(message_out, "    memory[0x%08x] = 0x%08x   →   %s\n", program_counter, encoding,
-               disassembly_text);
+  write_output(message_out, "    memory[0x%08x] = 0x%08x   →   %s\n",
+               program_counter, encoding, disassembly_text);
   if (source_part && *source_part) {
     write_output(message_out, "    source line %s\n", source_part);
   }
@@ -431,12 +436,13 @@ static void horizontal_rule(void) {
                "──────────────────────────────────────────────────────────\n");
 }
 
-/* Input-side reads: always from snapshot_registers, since templates run after the
-   dispatch and gpr[] now holds post-execute values. */
+/* Input-side reads: always from snapshot_registers, since templates run after
+   the dispatch and gpr[] now holds post-execute values. */
 static void say_input_register(int r) {
   if (r == 0) return; /* $zero is always 0; saying so is noise */
   write_output(message_out, "    $%s = 0x%08x  (decimal %d)\n",
-               integer_register_names[r], snapshot_registers[r], snapshot_registers[r]);
+               integer_register_names[r], snapshot_registers[r],
+               snapshot_registers[r]);
 }
 
 static void say_input_immediate(int immediate_signed) {
@@ -459,16 +465,19 @@ static bool immediate_not_sign_extended(int primary) {
 static void say_wrote_register(int r) {
   if (r == 0) return; /* writes to $zero are discarded; nothing to show */
   write_output(message_out, "    $%s:  0x%08x  →  0x%08x   (decimal %d)\n",
-               integer_register_names[r], snapshot_registers[r], general_purpose_registers[r], general_purpose_registers[r]);
+               integer_register_names[r], snapshot_registers[r],
+               general_purpose_registers[r], general_purpose_registers[r]);
   touched_register[r] = true;
 }
 
 static void say_wrote_multiply_divide_high(void) {
-  write_output(message_out, "    HI:   0x%08x  →  0x%08x\n", snapshot_multiply_divide_high, MULTIPLY_DIVIDE_HIGH);
+  write_output(message_out, "    HI:   0x%08x  →  0x%08x\n",
+               snapshot_multiply_divide_high, MULTIPLY_DIVIDE_HIGH);
   touched_multiply_divide_high = true;
 }
 static void say_wrote_multiply_divide_low(void) {
-  write_output(message_out, "    LO:   0x%08x  →  0x%08x\n", snapshot_multiply_divide_low, MULTIPLY_DIVIDE_LOW);
+  write_output(message_out, "    LO:   0x%08x  →  0x%08x\n",
+               snapshot_multiply_divide_low, MULTIPLY_DIVIDE_LOW);
   touched_multiply_divide_low = true;
 }
 
@@ -488,8 +497,9 @@ static void say_wrote_memory(int width) {
   else
     now = peek_word(snapshot_memory_address);
   write_output(message_out, "  Wrote to memory:\n");
-  write_output(message_out, "    0x%08x:  0x%08x  →  0x%08x\n", snapshot_memory_address,
-               ((uint32_t)snapshot_memory_value) & mask, ((uint32_t)now) & mask);
+  write_output(
+      message_out, "    0x%08x:  0x%08x  →  0x%08x\n", snapshot_memory_address,
+      ((uint32_t)snapshot_memory_value) & mask, ((uint32_t)now) & mask);
 }
 
 /* Per-block state for "Try it yourself" emission.  `try_block_active`
@@ -573,14 +583,16 @@ static void say_try_finish(void) {
 
    Template operation_text strings use generic field placeholders `$rs`, `$rt`,
    `$rd` for readability at the call site (e.g. "compute $rs + $rt as a
-   signed sum"). `substitute_field_registers()` rewrites those placeholders to the
-   actual register names this particular instruction uses, so a student
-   sees one coherent vocabulary ($a2, $v0, ...) instead of mixing generic
-   $rs/$rt with concrete $a2 in the same sentence. Pass -1 for any field
-   that doesn't apply to a given template. */
+   signed sum"). `substitute_field_registers()` rewrites those placeholders to
+   the actual register names this particular instruction uses, so a student sees
+   one coherent vocabulary ($a2, $v0, ...) instead of mixing generic $rs/$rt
+   with concrete $a2 in the same sentence. Pass -1 for any field that doesn't
+   apply to a given template. */
 
-static void substitute_field_registers(char* destination, size_t cap, const char* source, int source_register,
-                             int target_register, int destination_register) {
+static void substitute_field_registers(char* destination, size_t cap,
+                                       const char* source, int source_register,
+                                       int target_register,
+                                       int destination_register) {
   size_t i = 0;
   while (*source && i + 1 < cap) {
     if (source[0] == '$' && source[1] == 'r' &&
@@ -605,7 +617,8 @@ static void substitute_field_registers(char* destination, size_t cap, const char
               source[2]);
       }
       if (r >= 0 && r < 32) {
-        const int n = snprintf(destination + i, cap - i, "$%s", integer_register_names[r]);
+        const int n = snprintf(destination + i, cap - i, "$%s",
+                               integer_register_names[r]);
         if (n > 0) i += (size_t)n;
         if (i >= cap) i = cap - 1;
         source += 3;
@@ -617,14 +630,21 @@ static void substitute_field_registers(char* destination, size_t cap, const char
   destination[i] = '\0';
 }
 
-static void template_r3_arithmetic(int level, const mips_instruction* instruction,
-                         const char* operation_label, const char* operation_text) {
-  const int source_register = SOURCE_REGISTER(instruction), target_register = TARGET_REGISTER(instruction), destination_register = DESTINATION_REGISTER(instruction);
+static void template_r3_arithmetic(int level,
+                                   const mips_instruction* instruction,
+                                   const char* operation_label,
+                                   const char* operation_text) {
+  const int source_register = SOURCE_REGISTER(instruction),
+            target_register = TARGET_REGISTER(instruction),
+            destination_register = DESTINATION_REGISTER(instruction);
   char buffer[512];
-  substitute_field_registers(buffer, sizeof(buffer), operation_text, source_register, target_register, destination_register);
+  substitute_field_registers(buffer, sizeof(buffer), operation_text,
+                             source_register, target_register,
+                             destination_register);
   write_output(message_out, "  What it did:\n");
   write_output(message_out, "    %s — %s; the result was placed in $%s.\n",
-               operation_label, buffer, integer_register_names[destination_register]);
+               operation_label, buffer,
+               integer_register_names[destination_register]);
   if (level >= 2) {
     write_output(message_out, "  Inputs (before this step):\n");
     if (source_register == 0 && target_register == 0)
@@ -633,13 +653,17 @@ static void template_r3_arithmetic(int level, const mips_instruction* instructio
     say_input_register(target_register);
     write_output(message_out, "  Wrote:\n");
     say_wrote_register(destination_register);
-    say_try_registers(source_register, target_register, destination_register, 0);
+    say_try_registers(source_register, target_register, destination_register,
+                      0);
   }
 }
 
-static void template_i2_arithmetic(int level, const mips_instruction* instruction,
-                         const char* operation_label, const char* operation_text) {
-  const int source_register = SOURCE_REGISTER(instruction), target_register = TARGET_REGISTER(instruction);
+static void template_i2_arithmetic(int level,
+                                   const mips_instruction* instruction,
+                                   const char* operation_label,
+                                   const char* operation_text) {
+  const int source_register = SOURCE_REGISTER(instruction),
+            target_register = TARGET_REGISTER(instruction);
   const short immediate = (short)IMMEDIATE(instruction);
   const bool zero_extension = immediate_not_sign_extended(
       (int)(((uint32_t)instruction_encode(instruction) >> 26) & 0x3f));
@@ -648,16 +672,19 @@ static void template_i2_arithmetic(int level, const mips_instruction* instructio
      destination is also rt architecturally but we always describe it
      by its concrete name in the surrounding "result was placed in" line.
      We map $rs and $rt to their concrete names; $rd is unused. */
-  substitute_field_registers(buffer, sizeof(buffer), operation_text, source_register, target_register, -1);
+  substitute_field_registers(buffer, sizeof(buffer), operation_text,
+                             source_register, target_register, -1);
   write_output(message_out, "  What it did:\n");
   write_output(message_out, "    %s — %s; the result was placed in $%s.\n",
-               operation_label, buffer, integer_register_names[target_register]);
+               operation_label, buffer,
+               integer_register_names[target_register]);
   if (level >= 2) {
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_register(source_register);
     if (zero_extension)
       write_output(message_out, "    immediate = %u  (0x%04x, zero-extended)\n",
-                   (unsigned)(uint16_t)immediate, (unsigned)(uint16_t)immediate);
+                   (unsigned)(uint16_t)immediate,
+                   (unsigned)(uint16_t)immediate);
     else
       say_input_immediate(immediate);
     write_output(message_out, "  Wrote:\n");
@@ -667,14 +694,19 @@ static void template_i2_arithmetic(int level, const mips_instruction* instructio
 }
 
 static void template_shift(int level, const mips_instruction* instruction,
-                      const char* operation_label, const char* operation_text) {
-  const int target_register = TARGET_REGISTER(instruction), destination_register = DESTINATION_REGISTER(instruction), shift_amount = SHIFT_AMOUNT(instruction);
+                           const char* operation_label,
+                           const char* operation_text) {
+  const int target_register = TARGET_REGISTER(instruction),
+            destination_register = DESTINATION_REGISTER(instruction),
+            shift_amount = SHIFT_AMOUNT(instruction);
   char buffer[512];
-  substitute_field_registers(buffer, sizeof(buffer), operation_text, -1, target_register, destination_register);
+  substitute_field_registers(buffer, sizeof(buffer), operation_text, -1,
+                             target_register, destination_register);
   write_output(message_out, "  What it did:\n");
-  write_output(message_out,
-               "    %s — %s by %d bit%s; the result was placed in $%s.\n",
-               operation_label, buffer, shift_amount, shift_amount == 1 ? "" : "s", integer_register_names[destination_register]);
+  write_output(
+      message_out, "    %s — %s by %d bit%s; the result was placed in $%s.\n",
+      operation_label, buffer, shift_amount, shift_amount == 1 ? "" : "s",
+      integer_register_names[destination_register]);
   if (level >= 2) {
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_register(target_register);
@@ -688,34 +720,41 @@ static void template_shift(int level, const mips_instruction* instruction,
 /* Effective-address arithmetic line shared by every base+offset
    load/store template.  Picks "+" or "-" based on the sign of off so
    "$fp - 4" reads naturally instead of "$fp + -4". */
-static void say_effective_address(int base, short offset, memory_address effective_address) {
+static void say_effective_address(int base, short offset,
+                                  memory_address effective_address) {
   const char* const sign = (offset < 0) ? "-" : "+";
   const int absolute_offset = (offset < 0) ? -offset : offset;
   write_output(
       message_out,
       "    Effective address = $%s %s %d  =  0x%08x %s %d  =  0x%08x.\n",
-      integer_register_names[base], sign, absolute_offset, snapshot_registers[base], sign, absolute_offset, effective_address);
+      integer_register_names[base], sign, absolute_offset,
+      snapshot_registers[base], sign, absolute_offset, effective_address);
 }
 
 static void template_load(int level, const mips_instruction* instruction,
-                     const char* operation_label, const char* operation_text, int width) {
-  const int target_register = TARGET_REGISTER(instruction), base = BASE(instruction);
+                          const char* operation_label,
+                          const char* operation_text, int width) {
+  const int target_register = TARGET_REGISTER(instruction),
+            base = BASE(instruction);
   const short offset = (short)IMMEDIATE_OFFSET(instruction);
   /* Effective address uses snapshot base — the value the instruction
      actually used. If this load's rt happens to equal base (rare but
      legal), the post-execute gpr[base] is the loaded value, not the
      pre-execute base. */
-  const memory_address effective_address = (memory_address)(snapshot_registers[base] + offset);
+  const memory_address effective_address =
+      (memory_address)(snapshot_registers[base] + offset);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — read %s from memory at the effective address; "
                "placed the result in $%s.\n",
-               operation_label, operation_text, integer_register_names[target_register]);
+               operation_label, operation_text,
+               integer_register_names[target_register]);
   say_effective_address(base, offset, effective_address);
   if (level >= 2) {
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_register(base);
-    write_output(message_out, "    offset = %d  (0x%04x)\n", offset, offset & 0xffff);
+    write_output(message_out, "    offset = %d  (0x%04x)\n", offset,
+                 offset & 0xffff);
     /* Loads don't modify memory, so peek_word post-execute returns the
        same value the instruction read. */
     register_word current = 0;
@@ -725,35 +764,41 @@ static void template_load(int level, const mips_instruction* instruction,
       current = peek_half(effective_address) & 0xffff;
     else
       current = peek_word(effective_address);
-    write_output(message_out, "    memory at 0x%08x = 0x%08x\n", effective_address,
-                 (uint32_t)current);
+    write_output(message_out, "    memory at 0x%08x = 0x%08x\n",
+                 effective_address, (uint32_t)current);
     write_output(message_out, "  Wrote:\n");
     say_wrote_register(target_register);
     say_try_registers(base, target_register, 0, 0);
     char buffer2[64];
     snprintf(buffer2, sizeof buffer2, "print 0x%08x", effective_address);
     say_try(buffer2, "inspect that memory");
-    snprintf(buffer2, sizeof buffer2, "print %d($%s)", offset, integer_register_names[base]);
+    snprintf(buffer2, sizeof buffer2, "print %d($%s)", offset,
+             integer_register_names[base]);
     say_try(buffer2, "same memory, using the N($reg) form you wrote");
   }
 }
 
 static void template_store(int level, const mips_instruction* instruction,
-                      const char* operation_label, const char* operation_text, int width) {
-  const int target_register = TARGET_REGISTER(instruction), base = BASE(instruction);
+                           const char* operation_label,
+                           const char* operation_text, int width) {
+  const int target_register = TARGET_REGISTER(instruction),
+            base = BASE(instruction);
   const short offset = (short)IMMEDIATE_OFFSET(instruction);
-  const memory_address effective_address = (memory_address)(snapshot_registers[base] + offset);
+  const memory_address effective_address =
+      (memory_address)(snapshot_registers[base] + offset);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — wrote %s from $%s into memory at the effective "
                "address.\n",
-               operation_label, operation_text, integer_register_names[target_register]);
+               operation_label, operation_text,
+               integer_register_names[target_register]);
   say_effective_address(base, offset, effective_address);
   if (level >= 2) {
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_register(base);
     say_input_register(target_register);
-    write_output(message_out, "    offset = %d  (0x%04x)\n", offset, offset & 0xffff);
+    write_output(message_out, "    offset = %d  (0x%04x)\n", offset,
+                 offset & 0xffff);
     /* Mirror the load template's "memory at addr = X" line — shows
        what's being overwritten, masked to the store width so a byte
        store shows the byte that's being clobbered, not the full word. */
@@ -761,15 +806,16 @@ static void template_store(int level, const mips_instruction* instruction,
       const uint32_t mask = (width == 1)   ? 0xff
                             : (width == 2) ? 0xffff
                                            : 0xffffffffu;
-      write_output(message_out, "    memory at 0x%08x = 0x%08x\n", effective_address,
-                   ((uint32_t)snapshot_memory_value) & mask);
+      write_output(message_out, "    memory at 0x%08x = 0x%08x\n",
+                   effective_address, ((uint32_t)snapshot_memory_value) & mask);
     }
     say_wrote_memory(width);
     say_try_registers(base, target_register, 0, 0);
     char buffer2[64];
     snprintf(buffer2, sizeof buffer2, "print 0x%08x", effective_address);
     say_try(buffer2, "inspect that memory");
-    snprintf(buffer2, sizeof buffer2, "print %d($%s)", offset, integer_register_names[base]);
+    snprintf(buffer2, sizeof buffer2, "print %d($%s)", offset,
+             integer_register_names[base]);
     say_try(buffer2, "same memory, using the N($reg) form you wrote");
   }
 }
@@ -780,16 +826,21 @@ static void template_store(int level, const mips_instruction* instruction,
    versa) to assemble a full 32-bit word from any byte address —
    the trick compilers use to load a misaligned word in two
    instructions instead of trapping. */
-static void template_load_unaligned(int level, const mips_instruction* instruction,
-                               const char* operation_label, const char* operation_text) {
-  const int target_register = TARGET_REGISTER(instruction), base = BASE(instruction);
+static void template_load_unaligned(int level,
+                                    const mips_instruction* instruction,
+                                    const char* operation_label,
+                                    const char* operation_text) {
+  const int target_register = TARGET_REGISTER(instruction),
+            base = BASE(instruction);
   const short offset = (short)IMMEDIATE_OFFSET(instruction);
-  const memory_address effective_address = (memory_address)(snapshot_registers[base] + offset);
+  const memory_address effective_address =
+      (memory_address)(snapshot_registers[base] + offset);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — merged %s into $%s; preserved the other bytes "
                "already there.\n",
-               operation_label, operation_text, integer_register_names[target_register]);
+               operation_label, operation_text,
+               integer_register_names[target_register]);
   say_effective_address(base, offset, effective_address);
   write_output(message_out,
                "    Typically paired with the matching opcode to assemble a "
@@ -798,11 +849,12 @@ static void template_load_unaligned(int level, const mips_instruction* instructi
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_register(base);
     say_input_register(target_register);
-    write_output(message_out, "    offset = %d  (0x%04x)\n", offset, offset & 0xffff);
+    write_output(message_out, "    offset = %d  (0x%04x)\n", offset,
+                 offset & 0xffff);
     const memory_address word_address = effective_address & ~3u;
     write_output(message_out,
-                 "    memory at 0x%08x (containing word) = 0x%08x\n", word_address,
-                 (uint32_t)peek_word(word_address));
+                 "    memory at 0x%08x (containing word) = 0x%08x\n",
+                 word_address, (uint32_t)peek_word(word_address));
     write_output(message_out, "  Wrote:\n");
     say_wrote_register(target_register);
     say_try_registers(base, target_register, 0, 0);
@@ -814,16 +866,21 @@ static void template_load_unaligned(int level, const mips_instruction* instructi
    containing the addressed byte, leaving the other bytes
    intact.  Pair them to spill a 32-bit register to any byte
    address. */
-static void template_store_unaligned(int level, const mips_instruction* instruction,
-                                const char* operation_label, const char* operation_text) {
-  const int target_register = TARGET_REGISTER(instruction), base = BASE(instruction);
+static void template_store_unaligned(int level,
+                                     const mips_instruction* instruction,
+                                     const char* operation_label,
+                                     const char* operation_text) {
+  const int target_register = TARGET_REGISTER(instruction),
+            base = BASE(instruction);
   const short offset = (short)IMMEDIATE_OFFSET(instruction);
-  const memory_address effective_address = (memory_address)(snapshot_registers[base] + offset);
+  const memory_address effective_address =
+      (memory_address)(snapshot_registers[base] + offset);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    %s — wrote %s from $%s into the word containing the "
                "effective address; preserved the other bytes of that word.\n",
-               operation_label, operation_text, integer_register_names[target_register]);
+               operation_label, operation_text,
+               integer_register_names[target_register]);
   say_effective_address(base, offset, effective_address);
   write_output(message_out,
                "    Typically paired with the matching opcode to store a "
@@ -832,7 +889,8 @@ static void template_store_unaligned(int level, const mips_instruction* instruct
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_register(base);
     say_input_register(target_register);
-    write_output(message_out, "    offset = %d  (0x%04x)\n", offset, offset & 0xffff);
+    write_output(message_out, "    offset = %d  (0x%04x)\n", offset,
+                 offset & 0xffff);
     if (snapshot_has_memory) {
       write_output(message_out, "    memory at 0x%08x = 0x%08x\n",
                    snapshot_memory_address, (uint32_t)snapshot_memory_value);
@@ -846,10 +904,13 @@ static void template_store_unaligned(int level, const mips_instruction* instruct
    this CPU's link register with the address so a subsequent sc to
    the same address can detect intervening writes.  spim is
    single-threaded; ll behaves as a plain word load. */
-static void template_load_linked(int level, const mips_instruction* instruction) {
-  const int target_register = TARGET_REGISTER(instruction), base = BASE(instruction);
+static void template_load_linked(int level,
+                                 const mips_instruction* instruction) {
+  const int target_register = TARGET_REGISTER(instruction),
+            base = BASE(instruction);
   const short offset = (short)IMMEDIATE_OFFSET(instruction);
-  const memory_address effective_address = (memory_address)(snapshot_registers[base] + offset);
+  const memory_address effective_address =
+      (memory_address)(snapshot_registers[base] + offset);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    Load Linked — read a 32-bit word from memory at the "
@@ -863,9 +924,10 @@ static void template_load_linked(int level, const mips_instruction* instruction)
   if (level >= 2) {
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_register(base);
-    write_output(message_out, "    offset = %d  (0x%04x)\n", offset, offset & 0xffff);
-    write_output(message_out, "    memory at 0x%08x = 0x%08x\n", effective_address,
-                 (uint32_t)peek_word(effective_address));
+    write_output(message_out, "    offset = %d  (0x%04x)\n", offset,
+                 offset & 0xffff);
+    write_output(message_out, "    memory at 0x%08x = 0x%08x\n",
+                 effective_address, (uint32_t)peek_word(effective_address));
     write_output(message_out, "  Wrote:\n");
     say_wrote_register(target_register);
     say_try_registers(base, target_register, 0, 0);
@@ -878,10 +940,12 @@ static void template_load_linked(int level, const mips_instruction* instruction)
    unconditionally and does NOT update $rt — code that polls $rt
    after sc will see the value it had going in. */
 static void template_store_conditional(int level,
-                                  const mips_instruction* instruction) {
-  const int target_register = TARGET_REGISTER(instruction), base = BASE(instruction);
+                                       const mips_instruction* instruction) {
+  const int target_register = TARGET_REGISTER(instruction),
+            base = BASE(instruction);
   const short offset = (short)IMMEDIATE_OFFSET(instruction);
-  const memory_address effective_address = (memory_address)(snapshot_registers[base] + offset);
+  const memory_address effective_address =
+      (memory_address)(snapshot_registers[base] + offset);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
                "    Store Conditional — wrote the 32-bit value from $%s into "
@@ -893,15 +957,17 @@ static void template_store_conditional(int level,
                "intervening write happened since the matching ll, and writes "
                "1 (success) or 0 (failure) to $%s.  In spim, sc always "
                "succeeds and does NOT update $%s.\n",
-               integer_register_names[target_register], integer_register_names[target_register]);
+               integer_register_names[target_register],
+               integer_register_names[target_register]);
   if (level >= 2) {
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_register(base);
     say_input_register(target_register);
-    write_output(message_out, "    offset = %d  (0x%04x)\n", offset, offset & 0xffff);
+    write_output(message_out, "    offset = %d  (0x%04x)\n", offset,
+                 offset & 0xffff);
     if (snapshot_has_memory) {
-      write_output(message_out, "    memory at 0x%08x = 0x%08x\n", effective_address,
-                   (uint32_t)snapshot_memory_value);
+      write_output(message_out, "    memory at 0x%08x = 0x%08x\n",
+                   effective_address, (uint32_t)snapshot_memory_value);
     }
     say_wrote_memory(4);
     say_try_registers(base, target_register, 0, 0);
@@ -912,11 +978,15 @@ static void template_store_conditional(int level,
    memory to the FP register $fN.  ldc1 reads 8 bytes into the
    register pair $fN / $f(N+1) and (in spim) needs at least 4-byte
    alignment — real MIPS requires 8-byte alignment for ldc1. */
-static void template_load_floating_point(int level, const mips_instruction* instruction,
-                        const char* operation_label, int width) {
-  const int floating_point_target = FLOATING_POINT_TARGET(instruction), base = BASE(instruction);
+static void template_load_floating_point(int level,
+                                         const mips_instruction* instruction,
+                                         const char* operation_label,
+                                         int width) {
+  const int floating_point_target = FLOATING_POINT_TARGET(instruction),
+            base = BASE(instruction);
   const short offset = (short)IMMEDIATE_OFFSET(instruction);
-  const memory_address effective_address = (memory_address)(snapshot_registers[base] + offset);
+  const memory_address effective_address =
+      (memory_address)(snapshot_registers[base] + offset);
   write_output(message_out, "  What it did:\n");
   if (width == 4) {
     write_output(message_out,
@@ -927,7 +997,8 @@ static void template_load_floating_point(int level, const mips_instruction* inst
     write_output(message_out,
                  "    %s — read 8 bytes from memory at the effective "
                  "address; placed them in the FP register pair $f%d / $f%d.\n",
-                 operation_label, floating_point_target, floating_point_target + 1);
+                 operation_label, floating_point_target,
+                 floating_point_target + 1);
   }
   say_effective_address(base, offset, effective_address);
   if (width == 8) {
@@ -938,10 +1009,11 @@ static void template_load_floating_point(int level, const mips_instruction* inst
   if (level >= 2) {
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_register(base);
-    write_output(message_out, "    offset = %d  (0x%04x)\n", offset, offset & 0xffff);
+    write_output(message_out, "    offset = %d  (0x%04x)\n", offset,
+                 offset & 0xffff);
     if (width == 4) {
-      write_output(message_out, "    memory at 0x%08x = 0x%08x\n", effective_address,
-                   (uint32_t)peek_word(effective_address));
+      write_output(message_out, "    memory at 0x%08x = 0x%08x\n",
+                   effective_address, (uint32_t)peek_word(effective_address));
       write_output(message_out, "  Wrote:\n");
       write_output(message_out,
                    "    $f%d  ← loaded 4 bytes (typically interpreted as a "
@@ -950,7 +1022,8 @@ static void template_load_floating_point(int level, const mips_instruction* inst
     } else {
       write_output(message_out,
                    "    memory at 0x%08x = 0x%08x 0x%08x  (low / high words)\n",
-                   effective_address, (uint32_t)peek_word(effective_address), (uint32_t)peek_word(effective_address + 4));
+                   effective_address, (uint32_t)peek_word(effective_address),
+                   (uint32_t)peek_word(effective_address + 4));
       write_output(message_out, "  Wrote:\n");
       write_output(message_out,
                    "    $f%d / $f%d  ← loaded 8 bytes (typically interpreted "
@@ -964,11 +1037,15 @@ static void template_load_floating_point(int level, const mips_instruction* inst
 /* swc1, sdc1 — coprocessor-1 (FP) stores.  Transfer width bytes from
    FP register $fN to memory.  sdc1 writes 8 bytes (the pair $fN /
    $f(N+1)) and (in spim) needs at least 4-byte alignment. */
-static void template_store_floating_point(int level, const mips_instruction* instruction,
-                         const char* operation_label, int width) {
-  const int floating_point_target = FLOATING_POINT_TARGET(instruction), base = BASE(instruction);
+static void template_store_floating_point(int level,
+                                          const mips_instruction* instruction,
+                                          const char* operation_label,
+                                          int width) {
+  const int floating_point_target = FLOATING_POINT_TARGET(instruction),
+            base = BASE(instruction);
   const short offset = (short)IMMEDIATE_OFFSET(instruction);
-  const memory_address effective_address = (memory_address)(snapshot_registers[base] + offset);
+  const memory_address effective_address =
+      (memory_address)(snapshot_registers[base] + offset);
   write_output(message_out, "  What it did:\n");
   if (width == 4) {
     write_output(message_out,
@@ -979,7 +1056,8 @@ static void template_store_floating_point(int level, const mips_instruction* ins
     write_output(message_out,
                  "    %s — wrote 8 bytes from the FP register pair $f%d / "
                  "$f%d into memory at the effective address.\n",
-                 operation_label, floating_point_target, floating_point_target + 1);
+                 operation_label, floating_point_target,
+                 floating_point_target + 1);
   }
   say_effective_address(base, offset, effective_address);
   if (width == 8) {
@@ -990,46 +1068,55 @@ static void template_store_floating_point(int level, const mips_instruction* ins
   if (level >= 2) {
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_register(base);
-    write_output(message_out, "    offset = %d  (0x%04x)\n", offset, offset & 0xffff);
+    write_output(message_out, "    offset = %d  (0x%04x)\n", offset,
+                 offset & 0xffff);
     write_output(message_out, "  Wrote to memory:\n");
     if (width == 4) {
-      write_output(message_out, "    0x%08x  ← 4 bytes from $f%d\n", effective_address, floating_point_target);
+      write_output(message_out, "    0x%08x  ← 4 bytes from $f%d\n",
+                   effective_address, floating_point_target);
     } else {
       write_output(
           message_out,
-          "    0x%08x  ← 8 bytes from $f%d / $f%d (low / high words)\n", effective_address, floating_point_target,
-          floating_point_target + 1);
+          "    0x%08x  ← 8 bytes from $f%d / $f%d (low / high words)\n",
+          effective_address, floating_point_target, floating_point_target + 1);
     }
     say_try_registers(base, 0, 0, 0);
   }
 }
 
 /* The address a taken branch goes to, computed as run.c's BRANCH_INSTRUCTION
-   does: the instruction's own PC (snapshot_program_counter; the live PC has moved on) plus
-   the stored displacement, plus 4 more with delayed branches. */
+   does: the instruction's own PC (snapshot_program_counter; the live PC has
+   moved on) plus the stored displacement, plus 4 more with delayed branches. */
 static memory_address branch_target(const mips_instruction* instruction) {
-  const memory_address target = snapshot_program_counter + (memory_address)BRANCH_OFFSET(instruction);
+  const memory_address target =
+      snapshot_program_counter + (memory_address)BRANCH_OFFSET(instruction);
   return delayed_branches ? target + BYTES_PER_WORD : target;
 }
 
 /* The address a j/jal goes to, as run.c computes it: the top four bits
    of the PC above the 26-bit word index shifted left by 2. */
 static memory_address jump_target(const mips_instruction* instruction) {
-  return (snapshot_program_counter & 0xf0000000u) | ((memory_address)TARGET(instruction) << 2);
+  return (snapshot_program_counter & 0xf0000000u) |
+         ((memory_address)TARGET(instruction) << 2);
 }
 
-static void template_branch_2register(int level, const mips_instruction* instruction,
-                            const char* operation_label, const char* operation_symbol,
-                            bool taken) {
-  const int source_register = SOURCE_REGISTER(instruction), target_register = TARGET_REGISTER(instruction);
+static void template_branch_2register(int level,
+                                      const mips_instruction* instruction,
+                                      const char* operation_label,
+                                      const char* operation_symbol,
+                                      bool taken) {
+  const int source_register = SOURCE_REGISTER(instruction),
+            target_register = TARGET_REGISTER(instruction);
   const memory_address target = branch_target(instruction);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
-               "    %s — would transfer to 0x%08x if ($%s %s $%s).\n", operation_label,
-               target, integer_register_names[source_register], operation_symbol, integer_register_names[target_register]);
+               "    %s — would transfer to 0x%08x if ($%s %s $%s).\n",
+               operation_label, target, integer_register_names[source_register],
+               operation_symbol, integer_register_names[target_register]);
   write_output(message_out, "  Comparison:\n");
   write_output(message_out, "    %d %s %d  →  %s  →  branch was %s\n",
-               snapshot_registers[source_register], operation_symbol, snapshot_registers[target_register], taken ? "true" : "false",
+               snapshot_registers[source_register], operation_symbol,
+               snapshot_registers[target_register], taken ? "true" : "false",
                taken ? "taken" : "NOT taken");
   if (level >= 2) {
     write_output(message_out, "  Inputs (before this step):\n");
@@ -1040,19 +1127,22 @@ static void template_branch_2register(int level, const mips_instruction* instruc
   }
 }
 
-static void template_branch_1register(int level, const mips_instruction* instruction,
-                            const char* operation_label, const char* operation_symbol,
-                            bool taken) {
+static void template_branch_1register(int level,
+                                      const mips_instruction* instruction,
+                                      const char* operation_label,
+                                      const char* operation_symbol,
+                                      bool taken) {
   const int source_register = SOURCE_REGISTER(instruction);
   const memory_address target = branch_target(instruction);
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
-               "    %s — would transfer to 0x%08x if ($%s %s 0).\n", operation_label,
-               target, integer_register_names[source_register], operation_symbol);
+               "    %s — would transfer to 0x%08x if ($%s %s 0).\n",
+               operation_label, target, integer_register_names[source_register],
+               operation_symbol);
   write_output(message_out, "  Comparison:\n");
   write_output(message_out, "    %d %s 0  →  %s  →  branch was %s\n",
-               snapshot_registers[source_register], operation_symbol, taken ? "true" : "false",
-               taken ? "taken" : "NOT taken");
+               snapshot_registers[source_register], operation_symbol,
+               taken ? "true" : "false", taken ? "taken" : "NOT taken");
   if (level >= 2) {
     write_output(message_out, "  Inputs (before this step):\n");
     say_input_register(source_register);
@@ -1065,7 +1155,8 @@ static void template_branch_1register(int level, const mips_instruction* instruc
 
 static void explain_syscall(int level) {
   /* Call number is the pre-execute $v0. syscall 5 (read_int) overwrites
-     $v0 with the read integer, so post-execute gpr[VALUE_REGISTER_0] would be wrong. */
+     $v0 with the read integer, so post-execute gpr[VALUE_REGISTER_0] would be
+     wrong. */
   const register_word v0 = snapshot_registers[VALUE_REGISTER_0];
   write_output(message_out, "  What it did:\n");
   write_output(message_out,
@@ -1086,7 +1177,8 @@ static void explain_syscall(int level) {
       }
       break;
     case 4: {
-      const memory_address a0 = (memory_address)snapshot_registers[ARGUMENT_REGISTER_0];
+      const memory_address a0 =
+          (memory_address)snapshot_registers[ARGUMENT_REGISTER_0];
       write_output(message_out,
                    "    $v0 = 4  →  print_string: printed the null-terminated\n"
                    "    string whose address was in $a0.\n");
@@ -1118,7 +1210,8 @@ static void explain_syscall(int level) {
       }
       break;
     case 8: {
-      const memory_address a0 = (memory_address)snapshot_registers[ARGUMENT_REGISTER_0];
+      const memory_address a0 =
+          (memory_address)snapshot_registers[ARGUMENT_REGISTER_0];
       write_output(
           message_out,
           "    $v0 = 8  →  read_string: read a string into the buffer\n"
@@ -1129,9 +1222,11 @@ static void explain_syscall(int level) {
         write_output(message_out, "    $a0 = 0x%08x  (buffer address)\n", a0);
         say_input_register(ARGUMENT_REGISTER_1);
         write_output(message_out, "  Wrote to memory:\n");
-        write_output(message_out, "    0x%08x .. 0x%08x\n", a0,
-                     a0 + (memory_address)snapshot_registers[ARGUMENT_REGISTER_1] - 1);
-        say_try_registers(VALUE_REGISTER_0, ARGUMENT_REGISTER_0, ARGUMENT_REGISTER_1, 0);
+        write_output(
+            message_out, "    0x%08x .. 0x%08x\n", a0,
+            a0 + (memory_address)snapshot_registers[ARGUMENT_REGISTER_1] - 1);
+        say_try_registers(VALUE_REGISTER_0, ARGUMENT_REGISTER_0,
+                          ARGUMENT_REGISTER_1, 0);
       }
       break;
     }
@@ -1163,7 +1258,8 @@ static void explain_syscall(int level) {
       if (level >= 2) {
         write_output(message_out, "  Inputs (before this step):\n");
         say_input_register(VALUE_REGISTER_0);
-        say_try_registers(VALUE_REGISTER_0, ARGUMENT_REGISTER_0, ARGUMENT_REGISTER_1, 0);
+        say_try_registers(VALUE_REGISTER_0, ARGUMENT_REGISTER_0,
+                          ARGUMENT_REGISTER_1, 0);
       }
       break;
   }
@@ -1218,12 +1314,14 @@ static void render_hex_binary_table(uint32_t encoding) {
       "    │ bin │%s │%s │%s │%s │%s │%s │%s │%s │\n"
       "    └─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘\n",
       (encoding >> 28) & 0xf, (encoding >> 24) & 0xf, (encoding >> 20) & 0xf,
-      (encoding >> 16) & 0xf, (encoding >> 12) & 0xf, (encoding >> 8) & 0xf, (encoding >> 4) & 0xf,
-      encoding & 0xf, n[0], n[1], n[2], n[3], n[4], n[5], n[6], n[7]);
+      (encoding >> 16) & 0xf, (encoding >> 12) & 0xf, (encoding >> 8) & 0xf,
+      (encoding >> 4) & 0xf, encoding & 0xf, n[0], n[1], n[2], n[3], n[4], n[5],
+      n[6], n[7]);
 }
 
 static void render_r_layout(uint32_t encoding, const char* mnemonic) {
-  char bits_opcode[7], b_source_register[6], b_target_register[6], b_destination_register[6], bits_shift_amount[6], b_function_field[7];
+  char bits_opcode[7], b_source_register[6], b_target_register[6],
+      b_destination_register[6], bits_shift_amount[6], b_function_field[7];
   write_bits(bits_opcode, encoding, 31, 26);
   write_bits(b_source_register, encoding, 25, 21);
   write_bits(b_target_register, encoding, 20, 16);
@@ -1239,9 +1337,10 @@ static void render_r_layout(uint32_t encoding, const char* mnemonic) {
   const char* const group = (opcode == 0x00)   ? "SPECIAL"
                             : (opcode == 0x1c) ? "SPECIAL2"
                             : (opcode == 0x1f) ? "SPECIAL3"
-                                           : "?";
+                                               : "?";
 
-  write_output(message_out, "  Bit layout (R-type, encoding 0x%08x):\n", encoding);
+  write_output(message_out, "  Bit layout (R-type, encoding 0x%08x):\n",
+               encoding);
   render_hex_binary_table(encoding);
   write_output(message_out,
                "     31    26 25  21 20  16 15  11 10   6 5     0\n"
@@ -1252,13 +1351,17 @@ static void render_r_layout(uint32_t encoding, const char* mnemonic) {
                "       = %-2d   = $%-4s = $%-4s = $%-4s   = %-2d    = 0x%02x\n"
                "    -> opcode=0x%02x (%s) tells the CPU to look at funct;\n"
                "       funct=0x%02x selects the `%s` instruction.\n",
-               bits_opcode, b_source_register, b_target_register, b_destination_register, bits_shift_amount, b_function_field, opcode, integer_register_names[source_register],
-               integer_register_names[target_register], integer_register_names[destination_register], shift_amount, function_field, opcode, group,
-               function_field, mnemonic);
+               bits_opcode, b_source_register, b_target_register,
+               b_destination_register, bits_shift_amount, b_function_field,
+               opcode, integer_register_names[source_register],
+               integer_register_names[target_register],
+               integer_register_names[destination_register], shift_amount,
+               function_field, opcode, group, function_field, mnemonic);
 }
 
 static void render_i_layout(uint32_t encoding, const char* mnemonic) {
-  char bits_opcode[7], b_source_register[6], b_target_register[6], bits_immediate[17];
+  char bits_opcode[7], b_source_register[6], b_target_register[6],
+      bits_immediate[17];
   write_bits(bits_opcode, encoding, 31, 26);
   write_bits(b_source_register, encoding, 25, 21);
   write_bits(b_target_register, encoding, 20, 16);
@@ -1269,7 +1372,8 @@ static void render_i_layout(uint32_t encoding, const char* mnemonic) {
   const int16_t immediate_signed = (int16_t)(encoding & 0xffff);
   const uint16_t immediate_unsigned = (uint16_t)(encoding & 0xffff);
 
-  write_output(message_out, "  Bit layout (I-type, encoding 0x%08x):\n", encoding);
+  write_output(message_out, "  Bit layout (I-type, encoding 0x%08x):\n",
+               encoding);
   render_hex_binary_table(encoding);
   write_output(message_out,
                "     31    26 25  21 20  16 15                 0\n"
@@ -1279,10 +1383,13 @@ static void render_i_layout(uint32_t encoding, const char* mnemonic) {
                "      opcode    rs      rt        immediate (16-bit)\n"
                "      = 0x%02x  = $%-4s = $%-4s   = %d  (%s) / 0x%04x\n"
                "    -> opcode=0x%02x selects the `%s` instruction.\n",
-               bits_opcode, b_source_register, b_target_register, bits_immediate, opcode, integer_register_names[source_register], integer_register_names[target_register],
-               immediate_not_sign_extended(opcode) ? (int)immediate_unsigned : (int)immediate_signed,
-               immediate_not_sign_extended(opcode) ? "unsigned" : "signed", immediate_unsigned, opcode,
-               mnemonic);
+               bits_opcode, b_source_register, b_target_register,
+               bits_immediate, opcode, integer_register_names[source_register],
+               integer_register_names[target_register],
+               immediate_not_sign_extended(opcode) ? (int)immediate_unsigned
+                                                   : (int)immediate_signed,
+               immediate_not_sign_extended(opcode) ? "unsigned" : "signed",
+               immediate_unsigned, opcode, mnemonic);
 }
 
 static void render_j_layout(uint32_t encoding, const char* mnemonic) {
@@ -1292,7 +1399,8 @@ static void render_j_layout(uint32_t encoding, const char* mnemonic) {
   const int opcode = (int)((encoding >> 26) & 0x3f);
   const uint32_t target = encoding & 0x03ffffff;
 
-  write_output(message_out, "  Bit layout (J-type, encoding 0x%08x):\n", encoding);
+  write_output(message_out, "  Bit layout (J-type, encoding 0x%08x):\n",
+               encoding);
   render_hex_binary_table(encoding);
   write_output(message_out,
                "     31    26 25                          0\n"
@@ -1303,8 +1411,9 @@ static void render_j_layout(uint32_t encoding, const char* mnemonic) {
                "      = 0x%02x  = 0x%07x  ->  jump addr = (PC[31:28] | "
                "target<<2) = 0x%08x\n"
                "    -> opcode=0x%02x selects the `%s` instruction.\n",
-               bits_opcode, b_target, opcode, target, (snapshot_program_counter & 0xf0000000u) | (target << 2),
-               opcode, mnemonic);
+               bits_opcode, b_target, opcode, target,
+               (snapshot_program_counter & 0xf0000000u) | (target << 2), opcode,
+               mnemonic);
 }
 
 static void explain_bit_layout(const mips_instruction* instruction) {
@@ -1372,8 +1481,8 @@ static const char* const register_immediate_target_register_to_name[32] = {
     [0x11] = "bgezal",
 };
 
-static void render_r_decode_step(uint32_t encoding, int step, const char* mnemonic,
-                                 const char* group_name) {
+static void render_r_decode_step(uint32_t encoding, int step,
+                                 const char* mnemonic, const char* group_name) {
   const uint32_t opcode = (encoding >> 26) & 0x3f;
   const uint32_t source_register = (encoding >> 21) & 0x1f;
   const uint32_t target_register = (encoding >> 16) & 0x1f;
@@ -1381,7 +1490,8 @@ static void render_r_decode_step(uint32_t encoding, int step, const char* mnemon
   const uint32_t shift_amount = (encoding >> 6) & 0x1f;
   const uint32_t function_field = encoding & 0x3f;
 
-  char bits_opcode[7], b_source_register[6], b_target_register[6], b_destination_register[6], bits_shift_amount[6], b_function_field[7];
+  char bits_opcode[7], b_source_register[6], b_target_register[6],
+      b_destination_register[6], bits_shift_amount[6], b_function_field[7];
   write_bits(bits_opcode, encoding, 31, 26);
   write_bits(b_source_register, encoding, 25, 21);
   write_bits(b_target_register, encoding, 20, 16);
@@ -1389,11 +1499,16 @@ static void render_r_decode_step(uint32_t encoding, int step, const char* mnemon
   write_bits(bits_shift_amount, encoding, 10, 6);
   write_bits(b_function_field, encoding, 5, 0);
 
-  const char* const field_source_register = (step >= 3) ? b_source_register : UNKNOWN5;
-  const char* const field_target_register = (step >= 3) ? b_target_register : UNKNOWN5;
-  const char* const field_destination_register = (step >= 3) ? b_destination_register : UNKNOWN5;
-  const char* const field_shift_amount = (step >= 3) ? bits_shift_amount : UNKNOWN5;
-  const char* const field_function_field = (step >= 2) ? b_function_field : UNKNOWN6;
+  const char* const field_source_register =
+      (step >= 3) ? b_source_register : UNKNOWN5;
+  const char* const field_target_register =
+      (step >= 3) ? b_target_register : UNKNOWN5;
+  const char* const field_destination_register =
+      (step >= 3) ? b_destination_register : UNKNOWN5;
+  const char* const field_shift_amount =
+      (step >= 3) ? bits_shift_amount : UNKNOWN5;
+  const char* const field_function_field =
+      (step >= 2) ? b_function_field : UNKNOWN6;
 
   switch (step) {
     case 1:
@@ -1417,7 +1532,9 @@ static void render_r_decode_step(uint32_t encoding, int step, const char* mnemon
                "  ┌────────┬───────┬───────┬───────┬───────┬────────┐\n"
                "  │ %s │ %s │ %s │ %s │ %s │ %s │\n"
                "  └────────┴───────┴───────┴───────┴───────┴────────┘\n",
-               bits_opcode, field_source_register, field_target_register, field_destination_register, field_shift_amount, field_function_field);
+               bits_opcode, field_source_register, field_target_register,
+               field_destination_register, field_shift_amount,
+               field_function_field);
   write_output(message_out, "   opcode    %-7s %-7s %-7s %-7s %s\n",
                (step >= 3) ? "rs" : "?", (step >= 3) ? "rt" : "?",
                (step >= 3) ? "rd" : "?", (step >= 3) ? "shamt" : "?",
@@ -1432,11 +1549,13 @@ static void render_r_decode_step(uint32_t encoding, int step, const char* mnemon
                  opcode, function_field);
   } else {
     const bool shift_amount_used = mnemonic && (strcmp(mnemonic, "sll") == 0 ||
-                                         strcmp(mnemonic, "srl") == 0 ||
-                                         strcmp(mnemonic, "sra") == 0);
+                                                strcmp(mnemonic, "srl") == 0 ||
+                                                strcmp(mnemonic, "sra") == 0);
     write_output(message_out,
-                 "   = 0x%02x    = $%-5s = $%-5s = $%-5s = %-5d = 0x%02x\n", opcode,
-                 integer_register_names[source_register], integer_register_names[target_register], integer_register_names[destination_register], shift_amount,
+                 "   = 0x%02x    = $%-5s = $%-5s = $%-5s = %-5d = 0x%02x\n",
+                 opcode, integer_register_names[source_register],
+                 integer_register_names[target_register],
+                 integer_register_names[destination_register], shift_amount,
                  function_field);
     if (!shift_amount_used) {
       write_output(message_out,
@@ -1455,7 +1574,8 @@ static void render_r_decode_step(uint32_t encoding, int step, const char* mnemon
                  opcode, group_name);
   } else if (step == 2) {
     const char* const file_name =
-        (opcode == 0x00 && function_field < 64 && special_function_field_to_name[function_field])
+        (opcode == 0x00 && function_field < 64 &&
+         special_function_field_to_name[function_field])
             ? special_function_field_to_name[function_field]
             : (mnemonic ? mnemonic : "?");
     write_output(message_out,
@@ -1469,7 +1589,8 @@ static void render_r_decode_step(uint32_t encoding, int step, const char* mnemon
   }
 }
 
-static void render_i_decode_step(uint32_t encoding, int step, const char* mnemonic) {
+static void render_i_decode_step(uint32_t encoding, int step,
+                                 const char* mnemonic) {
   const uint32_t opcode = (encoding >> 26) & 0x3f;
   const uint32_t source_register = (encoding >> 21) & 0x1f;
   const uint32_t target_register = (encoding >> 16) & 0x1f;
@@ -1477,14 +1598,17 @@ static void render_i_decode_step(uint32_t encoding, int step, const char* mnemon
   const uint16_t immediate_unsigned = (uint16_t)(encoding & 0xffff);
   const bool unsigned_immediate = immediate_not_sign_extended((int)opcode);
 
-  char bits_opcode[7], b_source_register[6], b_target_register[6], bits_immediate[17];
+  char bits_opcode[7], b_source_register[6], b_target_register[6],
+      bits_immediate[17];
   write_bits(bits_opcode, encoding, 31, 26);
   write_bits(b_source_register, encoding, 25, 21);
   write_bits(b_target_register, encoding, 20, 16);
   write_bits(bits_immediate, encoding, 15, 0);
 
-  const char* const field_source_register = (step >= 2) ? b_source_register : UNKNOWN5;
-  const char* const field_target_register = (step >= 2) ? b_target_register : UNKNOWN5;
+  const char* const field_source_register =
+      (step >= 2) ? b_source_register : UNKNOWN5;
+  const char* const field_target_register =
+      (step >= 2) ? b_target_register : UNKNOWN5;
   const char* const field_immediate = (step >= 2) ? bits_immediate : UNKNOWN16;
 
   switch (step) {
@@ -1506,19 +1630,23 @@ static void render_i_decode_step(uint32_t encoding, int step, const char* mnemon
                "  ┌────────┬───────┬───────┬──────────────────┐\n"
                "  │ %s │ %s │ %s │ %s │\n"
                "  └────────┴───────┴───────┴──────────────────┘\n",
-               bits_opcode, field_source_register, field_target_register, field_immediate);
+               bits_opcode, field_source_register, field_target_register,
+               field_immediate);
   write_output(message_out, "   opcode    %-7s %-7s %s\n",
                (step >= 2) ? "rs" : "?", (step >= 2) ? "rt" : "?",
                (step >= 2) ? (unsigned_immediate ? "imm (16-bit, unsigned)"
-                                           : "imm (16-bit, signed)")
+                                                 : "imm (16-bit, signed)")
                            : "?");
 
   if (step == 1) {
     write_output(message_out, "   = 0x%02x\n", opcode);
   } else {
-    write_output(message_out, "   = 0x%02x    = $%-5s = $%-5s = %d  (0x%04x)\n",
-                 opcode, integer_register_names[source_register], integer_register_names[target_register],
-                 unsigned_immediate ? (int)immediate_unsigned : (int)immediate_signed, immediate_unsigned);
+    write_output(
+        message_out, "   = 0x%02x    = $%-5s = $%-5s = %d  (0x%04x)\n", opcode,
+        integer_register_names[source_register],
+        integer_register_names[target_register],
+        unsigned_immediate ? (int)immediate_unsigned : (int)immediate_signed,
+        immediate_unsigned);
   }
 
   if (step == 1) {
@@ -1532,7 +1660,8 @@ static void render_i_decode_step(uint32_t encoding, int step, const char* mnemon
   }
 }
 
-static void render_j_decode_step(uint32_t encoding, int step, const char* mnemonic) {
+static void render_j_decode_step(uint32_t encoding, int step,
+                                 const char* mnemonic) {
   const uint32_t opcode = (encoding >> 26) & 0x3f;
   const uint32_t target = encoding & 0x03ffffff;
 
@@ -1571,7 +1700,8 @@ static void render_j_decode_step(uint32_t encoding, int step, const char* mnemon
                  "   = 0x%02x    = 0x%07x\n"
                  "             -> actual address = (PC[31:28] | target<<2)\n"
                  "                                = 0x%08x\n",
-                 opcode, target, (snapshot_program_counter & 0xf0000000u) | (target << 2));
+                 opcode, target,
+                 (snapshot_program_counter & 0xf0000000u) | (target << 2));
   }
 
   if (step == 1) {
@@ -1583,25 +1713,30 @@ static void render_j_decode_step(uint32_t encoding, int step, const char* mnemon
 }
 
 static void render_register_immediate_decode_step(uint32_t encoding, int step,
-                                      const char* mnemonic) {
+                                                  const char* mnemonic) {
   const uint32_t opcode = (encoding >> 26) & 0x3f;
   const uint32_t source_register = (encoding >> 21) & 0x1f;
   const uint32_t target_register = (encoding >> 16) & 0x1f;
   const int16_t immediate_signed = (int16_t)(encoding & 0xffff);
 
-  char bits_opcode[7], b_source_register[6], b_target_register[6], bits_immediate[17];
+  char bits_opcode[7], b_source_register[6], b_target_register[6],
+      bits_immediate[17];
   write_bits(bits_opcode, encoding, 31, 26);
   write_bits(b_source_register, encoding, 25, 21);
   write_bits(b_target_register, encoding, 20, 16);
   write_bits(bits_immediate, encoding, 15, 0);
 
-  const char* const field_source_register = (step >= 3) ? b_source_register : UNKNOWN5;
-  const char* const field_target_register = (step >= 2) ? b_target_register : UNKNOWN5;
+  const char* const field_source_register =
+      (step >= 3) ? b_source_register : UNKNOWN5;
+  const char* const field_target_register =
+      (step >= 2) ? b_target_register : UNKNOWN5;
   const char* const field_immediate = (step >= 3) ? bits_immediate : UNKNOWN16;
 
-  const char* const rt_instruction_name = (target_register < 32 && register_immediate_target_register_to_name[target_register])
-                                 ? register_immediate_target_register_to_name[target_register]
-                                 : (mnemonic ? mnemonic : "?");
+  const char* const rt_instruction_name =
+      (target_register < 32 &&
+       register_immediate_target_register_to_name[target_register])
+          ? register_immediate_target_register_to_name[target_register]
+          : (mnemonic ? mnemonic : "?");
 
   switch (step) {
     case 1:
@@ -1626,7 +1761,8 @@ static void render_register_immediate_decode_step(uint32_t encoding, int step,
                "  ┌────────┬───────┬───────┬──────────────────┐\n"
                "  │ %s │ %s │ %s │ %s │\n"
                "  └────────┴───────┴───────┴──────────────────┘\n",
-               bits_opcode, field_source_register, field_target_register, field_immediate);
+               bits_opcode, field_source_register, field_target_register,
+               field_immediate);
   write_output(message_out, "   opcode    %-7s %-7s %s\n",
                (step >= 3) ? "rs" : "?", (step >= 2) ? "rt-sel" : "?",
                (step >= 3) ? "offset (signed)" : "?");
@@ -1634,13 +1770,14 @@ static void render_register_immediate_decode_step(uint32_t encoding, int step,
   if (step == 1) {
     write_output(message_out, "   = 0x%02x\n", opcode);
   } else if (step == 2) {
-    write_output(message_out, "   = 0x%02x            = %s\n", opcode, rt_instruction_name);
+    write_output(message_out, "   = 0x%02x            = %s\n", opcode,
+                 rt_instruction_name);
   } else {
     write_output(
         message_out,
-        "   = 0x%02x    = $%-5s = %-6s = %d  (target = %s + (offset<<2))\n", opcode,
-        integer_register_names[source_register], rt_instruction_name, (int)immediate_signed,
-        delayed_branches ? "PC+4" : "PC");
+        "   = 0x%02x    = $%-5s = %-6s = %d  (target = %s + (offset<<2))\n",
+        opcode, integer_register_names[source_register], rt_instruction_name,
+        (int)immediate_signed, delayed_branches ? "PC+4" : "PC");
   }
 
   if (step == 1) {
@@ -1677,7 +1814,7 @@ static void explain_decoding_steps(const mips_instruction* instruction) {
     case 0x1f: /* SPECIAL3 */ {
       const char* const group = (opcode == 0x00)   ? "SPECIAL"
                                 : (opcode == 0x1c) ? "SPECIAL2"
-                                               : "SPECIAL3";
+                                                   : "SPECIAL3";
       for (int s = 1; s <= 3; s++) {
         if (s > 1) write_output(message_out, "\n");
         render_r_decode_step(encoding, s, mnemonic, group);
@@ -1713,7 +1850,8 @@ static void explain_decoding_steps(const mips_instruction* instruction) {
    It captures everything the post-execute narration will need to read —
    nothing is printed here, so by the time the (spim) prompt comes back,
    every visible line describes something that has already happened. */
-void explain_before(const mips_instruction* instruction, memory_address address) {
+void explain_before(const mips_instruction* instruction,
+                    memory_address address) {
   if (explain_level == 0) return;
 
   /* Once per session, before the first instruction executes: show the
@@ -1730,7 +1868,8 @@ void explain_before(const mips_instruction* instruction, memory_address address)
   explain_clear_suggestions();
 
   /* Snapshot of architectural state for the post-execute templates. */
-  memcpy(snapshot_registers, general_purpose_registers, sizeof(snapshot_registers));
+  memcpy(snapshot_registers, general_purpose_registers,
+         sizeof(snapshot_registers));
   snapshot_multiply_divide_high = MULTIPLY_DIVIDE_HIGH;
   snapshot_multiply_divide_low = MULTIPLY_DIVIDE_LOW;
   snapshot_program_counter = address;
@@ -1746,7 +1885,8 @@ void explain_before(const mips_instruction* instruction, memory_address address)
     case TOKEN_SC_OPCODE: {
       const int base = BASE(instruction);
       const short offset = (short)IMMEDIATE_OFFSET(instruction);
-      snapshot_memory_address = (memory_address)(general_purpose_registers[base] + offset);
+      snapshot_memory_address =
+          (memory_address)(general_purpose_registers[base] + offset);
       snapshot_memory_value = peek_word(snapshot_memory_address);
       snapshot_has_memory = true;
       break;
@@ -1757,7 +1897,9 @@ void explain_before(const mips_instruction* instruction, memory_address address)
          that word is the one to show before and after. */
       const int base = BASE(instruction);
       const short offset = (short)IMMEDIATE_OFFSET(instruction);
-      snapshot_memory_address = (memory_address)(general_purpose_registers[base] + offset) & ~(memory_address)0x3;
+      snapshot_memory_address =
+          (memory_address)(general_purpose_registers[base] + offset) &
+          ~(memory_address)0x3;
       snapshot_memory_value = peek_word(snapshot_memory_address);
       snapshot_has_memory = true;
       break;
@@ -1777,7 +1919,8 @@ void explain_program_exit(const mips_instruction* instruction) {
   write_output(message_out,
                "  What it did:\n"
                "    System Call %d (%s) — the program ended.\n",
-               snapshot_registers[VALUE_REGISTER_0], snapshot_registers[VALUE_REGISTER_0] == 10 ? "exit" : "exit2");
+               snapshot_registers[VALUE_REGISTER_0],
+               snapshot_registers[VALUE_REGISTER_0] == 10 ? "exit" : "exit2");
   if (status != spim_return_value) {
     write_output(message_out,
                  "  The program exited with status %d (128 + exception code "
@@ -1840,16 +1983,16 @@ typedef enum {
 } instruction_category;
 
 typedef enum {
-  MODIFIER_U_UNSIGNED_ARITHMETIC,   /* `u` on arith: no overflow trap */
-  MODIFIER_U_ZERO_EXTEND,      /* `u` on narrow load: zero-extend not sign */
-  MODIFIER_U_UNSIGNED_COMPARE, /* `u` on slt: compare as unsigned numbers */
-  MODIFIER_I_IMMEDIATE,        /* `i` suffix: 16-bit constant in instruction */
-  MODIFIER_V_VARIABLE_SHIFT,   /* `v` suffix: shift count from a register */
-  MODIFIER_AL_AND_LINK,        /* `al` suffix: write $ra (subroutine call) */
-  MODIFIER_L_LIKELY,           /* `l` suffix: branch-likely (delay-slot nullify) */
-  MODIFIER_W_WORD,             /* word-width memory access (32 bits) */
-  MODIFIER_H_HALFWORD,         /* halfword-width memory access (16 bits) */
-  MODIFIER_B_BYTE,             /* byte-width memory access (8 bits) */
+  MODIFIER_U_UNSIGNED_ARITHMETIC, /* `u` on arith: no overflow trap */
+  MODIFIER_U_ZERO_EXTEND,         /* `u` on narrow load: zero-extend not sign */
+  MODIFIER_U_UNSIGNED_COMPARE,    /* `u` on slt: compare as unsigned numbers */
+  MODIFIER_I_IMMEDIATE,      /* `i` suffix: 16-bit constant in instruction */
+  MODIFIER_V_VARIABLE_SHIFT, /* `v` suffix: shift count from a register */
+  MODIFIER_AL_AND_LINK,      /* `al` suffix: write $ra (subroutine call) */
+  MODIFIER_L_LIKELY,   /* `l` suffix: branch-likely (delay-slot nullify) */
+  MODIFIER_W_WORD,     /* word-width memory access (32 bits) */
+  MODIFIER_H_HALFWORD, /* halfword-width memory access (16 bits) */
+  MODIFIER_B_BYTE,     /* byte-width memory access (8 bits) */
   MODIFIER_COUNT
 } instruction_modifier;
 
@@ -1893,11 +2036,16 @@ static const char* category_descriptions[CATEGORY_COUNT] = {
 };
 
 static const char* modifier_letters[MODIFIER_COUNT] = {
-    [MODIFIER_U_UNSIGNED_ARITHMETIC] = "`u`",   [MODIFIER_U_ZERO_EXTEND] = "`u`",
-    [MODIFIER_U_UNSIGNED_COMPARE] = "`u`", [MODIFIER_I_IMMEDIATE] = "`i`",
-    [MODIFIER_V_VARIABLE_SHIFT] = "`v`",   [MODIFIER_AL_AND_LINK] = "`al`",
-    [MODIFIER_L_LIKELY] = "`l`",           [MODIFIER_W_WORD] = "`w`",
-    [MODIFIER_H_HALFWORD] = "`h`",         [MODIFIER_B_BYTE] = "`b`",
+    [MODIFIER_U_UNSIGNED_ARITHMETIC] = "`u`",
+    [MODIFIER_U_ZERO_EXTEND] = "`u`",
+    [MODIFIER_U_UNSIGNED_COMPARE] = "`u`",
+    [MODIFIER_I_IMMEDIATE] = "`i`",
+    [MODIFIER_V_VARIABLE_SHIFT] = "`v`",
+    [MODIFIER_AL_AND_LINK] = "`al`",
+    [MODIFIER_L_LIKELY] = "`l`",
+    [MODIFIER_W_WORD] = "`w`",
+    [MODIFIER_H_HALFWORD] = "`h`",
+    [MODIFIER_B_BYTE] = "`b`",
 };
 
 static const char* modifier_descriptions[MODIFIER_COUNT] = {
@@ -1944,7 +2092,8 @@ static const char* modifier_descriptions[MODIFIER_COUNT] = {
 };
 
 static void lookup_classification(const mips_instruction* instruction,
-                                  instruction_category* category, instruction_modifier modifiers[3],
+                                  instruction_category* category,
+                                  instruction_modifier modifiers[3],
                                   int* modifier_count) {
   *modifier_count = 0;
   *category = CATEGORY_COUNT; /* default = unknown */
@@ -2118,7 +2267,8 @@ static void lookup_classification(const mips_instruction* instruction,
       *category = CATEGORY_SYSTEM;
       break;
     default:
-      /* Any other opcode has no classification: *cat stays CATEGORY_COUNT (unknown).
+      /* Any other opcode has no classification: *cat stays CATEGORY_COUNT
+       * (unknown).
        */
       break;
   }
@@ -2158,18 +2308,19 @@ static void say_hazard_barrier(void) {
 
 /* render_dispatch: walks the opcode switch and emits each template's
    per-opcode "What it did / Inputs / Wrote / Try it yourself" content.
-   Called from explain_after only. Reads inputs from snapshot_registers[], outputs
-   from live gpr[]. */
+   Called from explain_after only. Reads inputs from snapshot_registers[],
+   outputs from live gpr[]. */
 static void render_dispatch(int level, const mips_instruction* instruction) {
   switch (OPCODE(instruction)) {
     /* Arithmetic, R-type */
     case TOKEN_ADD_OPCODE:
-      template_r3_arithmetic(level, instruction, "Add",
-                   "computed $rs + $rt as a signed sum; trapped on overflow");
+      template_r3_arithmetic(
+          level, instruction, "Add",
+          "computed $rs + $rt as a signed sum; trapped on overflow");
       break;
     case TOKEN_ADDU_OPCODE:
       template_r3_arithmetic(level, instruction, "Add Unsigned",
-                   "computed $rs + $rt with no overflow trap");
+                             "computed $rs + $rt with no overflow trap");
       break;
     case TOKEN_SUB_OPCODE:
       template_r3_arithmetic(
@@ -2178,65 +2329,70 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
       break;
     case TOKEN_SUBU_OPCODE:
       template_r3_arithmetic(level, instruction, "Subtract Unsigned",
-                   "computed $rs - $rt with no overflow trap");
+                             "computed $rs - $rt with no overflow trap");
       break;
     case TOKEN_AND_OPCODE:
       template_r3_arithmetic(level, instruction, "Bitwise AND",
-                   "computed the bitwise AND of $rs and $rt");
+                             "computed the bitwise AND of $rs and $rt");
       break;
     case TOKEN_OR_OPCODE:
       template_r3_arithmetic(level, instruction, "Bitwise OR",
-                   "computed the bitwise OR of $rs and $rt");
+                             "computed the bitwise OR of $rs and $rt");
       break;
     case TOKEN_XOR_OPCODE:
       template_r3_arithmetic(level, instruction, "Bitwise XOR",
-                   "computed the bitwise XOR of $rs and $rt");
+                             "computed the bitwise XOR of $rs and $rt");
       break;
     case TOKEN_NOR_OPCODE:
       template_r3_arithmetic(level, instruction, "Bitwise NOR",
-                   "computed NOT($rs OR $rt)");
+                             "computed NOT($rs OR $rt)");
       break;
     case TOKEN_SLT_OPCODE:
-      template_r3_arithmetic(level, instruction, "Set on Less Than (signed)",
-                   "set the destination to 1 if $rs < $rt (signed), else 0");
+      template_r3_arithmetic(
+          level, instruction, "Set on Less Than (signed)",
+          "set the destination to 1 if $rs < $rt (signed), else 0");
       break;
     case TOKEN_SLTU_OPCODE:
-      template_r3_arithmetic(level, instruction, "Set on Less Than (unsigned)",
-                   "set the destination to 1 if $rs < $rt (unsigned), else 0");
+      template_r3_arithmetic(
+          level, instruction, "Set on Less Than (unsigned)",
+          "set the destination to 1 if $rs < $rt (unsigned), else 0");
       break;
     case TOKEN_MUL_OPCODE:
       template_r3_arithmetic(level, instruction, "Multiply (MIPS32)",
-                   "computed the low 32 bits of $rs * $rt");
+                             "computed the low 32 bits of $rs * $rt");
       break;
 
     /* Arithmetic, I-type */
     case TOKEN_ADDI_OPCODE:
       template_i2_arithmetic(level, instruction, "Add Immediate",
-                   "computed $rs + immediate; trapped on overflow");
+                             "computed $rs + immediate; trapped on overflow");
       break;
     case TOKEN_ADDIU_OPCODE:
-      template_i2_arithmetic(level, instruction, "Add Immediate Unsigned",
-                   "computed $rs + sign-extended immediate, no overflow trap");
+      template_i2_arithmetic(
+          level, instruction, "Add Immediate Unsigned",
+          "computed $rs + sign-extended immediate, no overflow trap");
       break;
     case TOKEN_ANDI_OPCODE:
       template_i2_arithmetic(level, instruction, "AND Immediate",
-                   "computed $rs AND zero-extended immediate");
+                             "computed $rs AND zero-extended immediate");
       break;
     case TOKEN_ORI_OPCODE:
       template_i2_arithmetic(level, instruction, "OR Immediate",
-                   "computed $rs OR zero-extended immediate");
+                             "computed $rs OR zero-extended immediate");
       break;
     case TOKEN_XORI_OPCODE:
       template_i2_arithmetic(level, instruction, "XOR Immediate",
-                   "computed $rs XOR zero-extended immediate");
+                             "computed $rs XOR zero-extended immediate");
       break;
     case TOKEN_SLTI_OPCODE:
-      template_i2_arithmetic(level, instruction, "Set Less Than Immediate (signed)",
-                   "set destination to 1 if $rs < imm (signed)");
+      template_i2_arithmetic(level, instruction,
+                             "Set Less Than Immediate (signed)",
+                             "set destination to 1 if $rs < imm (signed)");
       break;
     case TOKEN_SLTIU_OPCODE:
-      template_i2_arithmetic(level, instruction, "Set Less Than Immediate (unsigned)",
-                   "set destination to 1 if $rs < imm (unsigned)");
+      template_i2_arithmetic(level, instruction,
+                             "Set Less Than Immediate (unsigned)",
+                             "set destination to 1 if $rs < imm (unsigned)");
       break;
 
     /* LUI is special: I1t-type, only writes high bits. */
@@ -2263,8 +2419,8 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
 
     /* Shifts */
     case TOKEN_SLL_OPCODE:
-      if (DESTINATION_REGISTER(instruction) == 0 && TARGET_REGISTER(instruction) == 0 &&
-          SHIFT_AMOUNT(instruction) == 0) {
+      if (DESTINATION_REGISTER(instruction) == 0 &&
+          TARGET_REGISTER(instruction) == 0 && SHIFT_AMOUNT(instruction) == 0) {
         /* nop = sll $0, $0, 0 */
         write_output(message_out, "  What it did:\n");
         write_output(message_out,
@@ -2280,16 +2436,16 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
         }
       } else {
         template_shift(level, instruction, "Shift Left Logical",
-                  "shifted $rt left, filling with 0");
+                       "shifted $rt left, filling with 0");
       }
       break;
     case TOKEN_SRL_OPCODE:
       template_shift(level, instruction, "Shift Right Logical",
-                "shifted $rt right, filling with 0");
+                     "shifted $rt right, filling with 0");
       break;
     case TOKEN_SRA_OPCODE:
       template_shift(level, instruction, "Shift Right Arithmetic",
-                "shifted $rt right, filling with the sign bit");
+                     "shifted $rt right, filling with the sign bit");
       break;
 
     /* Loads */
@@ -2298,19 +2454,19 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
       break;
     case TOKEN_LB_OPCODE:
       template_load(level, instruction, "Load Byte (signed)",
-               "one byte, sign-extended", 1);
+                    "one byte, sign-extended", 1);
       break;
     case TOKEN_LBU_OPCODE:
       template_load(level, instruction, "Load Byte Unsigned",
-               "one byte, zero-extended", 1);
+                    "one byte, zero-extended", 1);
       break;
     case TOKEN_LH_OPCODE:
       template_load(level, instruction, "Load Halfword (signed)",
-               "16 bits, sign-extended", 2);
+                    "16 bits, sign-extended", 2);
       break;
     case TOKEN_LHU_OPCODE:
       template_load(level, instruction, "Load Halfword Unsigned",
-               "16 bits, zero-extended", 2);
+                    "16 bits, zero-extended", 2);
       break;
 
     /* Stores */
@@ -2321,25 +2477,26 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
       template_store(level, instruction, "Store Byte", "the low 8 bits", 1);
       break;
     case TOKEN_SH_OPCODE:
-      template_store(level, instruction, "Store Halfword", "the low 16 bits", 2);
+      template_store(level, instruction, "Store Halfword", "the low 16 bits",
+                     2);
       break;
 
     /* Unaligned word loads/stores */
     case TOKEN_LWL_OPCODE:
       template_load_unaligned(level, instruction, "Load Word Left",
-                         "the high bytes of the addressed word");
+                              "the high bytes of the addressed word");
       break;
     case TOKEN_LWR_OPCODE:
       template_load_unaligned(level, instruction, "Load Word Right",
-                         "the low bytes of the addressed word");
+                              "the low bytes of the addressed word");
       break;
     case TOKEN_SWL_OPCODE:
       template_store_unaligned(level, instruction, "Store Word Left",
-                          "the high bytes of $rt");
+                               "the high bytes of $rt");
       break;
     case TOKEN_SWR_OPCODE:
       template_store_unaligned(level, instruction, "Store Word Right",
-                          "the low bytes of $rt");
+                               "the low bytes of $rt");
       break;
 
     /* Atomic primitives — degraded to plain load/store in single-
@@ -2353,45 +2510,56 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
 
     /* Coprocessor-1 (floating-point) loads/stores */
     case TOKEN_LWC1_OPCODE:
-      template_load_floating_point(level, instruction, "Load Word Coprocessor 1", 4);
+      template_load_floating_point(level, instruction,
+                                   "Load Word Coprocessor 1", 4);
       break;
     case TOKEN_LDC1_OPCODE:
-      template_load_floating_point(level, instruction, "Load Double Coprocessor 1", 8);
+      template_load_floating_point(level, instruction,
+                                   "Load Double Coprocessor 1", 8);
       break;
     case TOKEN_SWC1_OPCODE:
-      template_store_floating_point(level, instruction, "Store Word Coprocessor 1", 4);
+      template_store_floating_point(level, instruction,
+                                    "Store Word Coprocessor 1", 4);
       break;
     case TOKEN_SDC1_OPCODE:
-      template_store_floating_point(level, instruction, "Store Double Coprocessor 1", 8);
+      template_store_floating_point(level, instruction,
+                                    "Store Double Coprocessor 1", 8);
       break;
 
-    /* Branches. The comparison value is read from snapshot_registers[] since by the
-       time the template runs, an instruction like `beq $t0, $t0, ...`
-       has already executed (though it would not have modified rs/rt
-       anyway). */
+    /* Branches. The comparison value is read from snapshot_registers[] since by
+       the time the template runs, an instruction like `beq $t0, $t0, ...` has
+       already executed (though it would not have modified rs/rt anyway). */
     case TOKEN_BEQ_OPCODE:
-      template_branch_2register(level, instruction, "Branch if Equal",
-                      "==", snapshot_registers[SOURCE_REGISTER(instruction)] == snapshot_registers[TARGET_REGISTER(instruction)]);
+      template_branch_2register(
+          level, instruction, "Branch if Equal", "==",
+          snapshot_registers[SOURCE_REGISTER(instruction)] ==
+              snapshot_registers[TARGET_REGISTER(instruction)]);
       break;
     case TOKEN_BNE_OPCODE:
-      template_branch_2register(level, instruction, "Branch if Not Equal",
-                      "!=", snapshot_registers[SOURCE_REGISTER(instruction)] != snapshot_registers[TARGET_REGISTER(instruction)]);
+      template_branch_2register(
+          level, instruction, "Branch if Not Equal", "!=",
+          snapshot_registers[SOURCE_REGISTER(instruction)] !=
+              snapshot_registers[TARGET_REGISTER(instruction)]);
       break;
     case TOKEN_BGEZ_OPCODE:
-      template_branch_1register(level, instruction, "Branch if Greater or Equal Zero",
-                      ">=", (register_word)snapshot_registers[SOURCE_REGISTER(instruction)] >= 0);
+      template_branch_1register(
+          level, instruction, "Branch if Greater or Equal Zero", ">=",
+          (register_word)snapshot_registers[SOURCE_REGISTER(instruction)] >= 0);
       break;
     case TOKEN_BGTZ_OPCODE:
-      template_branch_1register(level, instruction, "Branch if Greater Than Zero", ">",
-                      (register_word)snapshot_registers[SOURCE_REGISTER(instruction)] > 0);
+      template_branch_1register(
+          level, instruction, "Branch if Greater Than Zero", ">",
+          (register_word)snapshot_registers[SOURCE_REGISTER(instruction)] > 0);
       break;
     case TOKEN_BLEZ_OPCODE:
-      template_branch_1register(level, instruction, "Branch if Less or Equal Zero",
-                      "<=", (register_word)snapshot_registers[SOURCE_REGISTER(instruction)] <= 0);
+      template_branch_1register(
+          level, instruction, "Branch if Less or Equal Zero", "<=",
+          (register_word)snapshot_registers[SOURCE_REGISTER(instruction)] <= 0);
       break;
     case TOKEN_BLTZ_OPCODE:
-      template_branch_1register(level, instruction, "Branch if Less Than Zero", "<",
-                      (register_word)snapshot_registers[SOURCE_REGISTER(instruction)] < 0);
+      template_branch_1register(
+          level, instruction, "Branch if Less Than Zero", "<",
+          (register_word)snapshot_registers[SOURCE_REGISTER(instruction)] < 0);
       break;
 
     /* Jumps. PC change is captured by the side-effect fallback at the
@@ -2433,7 +2601,8 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
                    "    Jump Register — jumped to the address held in $%s.\n"
                    "    (Used to return from a subroutine when $rs == $ra.)\n"
                    "    Destination = 0x%08x.\n",
-                   integer_register_names[source_register], (memory_address)snapshot_registers[source_register]);
+                   integer_register_names[source_register],
+                   (memory_address)snapshot_registers[source_register]);
       if (OPCODE(instruction) == TOKEN_JR_HB_OPCODE) say_hazard_barrier();
       if (level >= 2) {
         write_output(message_out, "  Inputs (before this step):\n");
@@ -2444,13 +2613,16 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
     }
     case TOKEN_JALR_OPCODE:
     case TOKEN_JALR_HB_OPCODE: {
-      const int destination_register = DESTINATION_REGISTER(instruction), source_register = SOURCE_REGISTER(instruction);
+      const int destination_register = DESTINATION_REGISTER(instruction),
+                source_register = SOURCE_REGISTER(instruction);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
                    "    Jump and Link Register — saved the return address "
                    "into $%s,\n    then jumped to the address in $%s "
                    "(0x%08x).\n",
-                   integer_register_names[destination_register], integer_register_names[source_register], (memory_address)snapshot_registers[source_register]);
+                   integer_register_names[destination_register],
+                   integer_register_names[source_register],
+                   (memory_address)snapshot_registers[source_register]);
       if (OPCODE(instruction) == TOKEN_JALR_HB_OPCODE) say_hazard_barrier();
       if (level >= 2) {
         write_output(message_out, "  Inputs (before this step):\n");
@@ -2474,7 +2646,8 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
                    integer_register_names[destination_register]);
       if (level >= 2) {
         write_output(message_out, "  Inputs (before this step):\n");
-        write_output(message_out, "    HI = 0x%08x\n", snapshot_multiply_divide_high);
+        write_output(message_out, "    HI = 0x%08x\n",
+                     snapshot_multiply_divide_high);
         write_output(message_out, "  Wrote:\n");
         say_wrote_register(destination_register);
         say_try_registers(destination_register, 0, 0, 0);
@@ -2492,7 +2665,8 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
                    integer_register_names[destination_register]);
       if (level >= 2) {
         write_output(message_out, "  Inputs (before this step):\n");
-        write_output(message_out, "    LO = 0x%08x\n", snapshot_multiply_divide_low);
+        write_output(message_out, "    LO = 0x%08x\n",
+                     snapshot_multiply_divide_low);
         write_output(message_out, "  Wrote:\n");
         say_wrote_register(destination_register);
         say_try_registers(destination_register, 0, 0, 0);
@@ -2500,7 +2674,8 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
       break;
     }
     case TOKEN_MULT_OPCODE: {
-      const int source_register = SOURCE_REGISTER(instruction), target_register = TARGET_REGISTER(instruction);
+      const int source_register = SOURCE_REGISTER(instruction),
+                target_register = TARGET_REGISTER(instruction);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
                    "    Multiply (signed) — computed $%s * $%s as a 64-bit "
@@ -2508,7 +2683,8 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
                    "    The high 32 bits went to HI; the low 32 bits went to "
                    "LO.\n"
                    "    Use mfhi / mflo to retrieve them.\n",
-                   integer_register_names[source_register], integer_register_names[target_register]);
+                   integer_register_names[source_register],
+                   integer_register_names[target_register]);
       if (level >= 2) {
         write_output(message_out, "  Inputs (before this step):\n");
         say_input_register(source_register);
@@ -2521,12 +2697,14 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
       break;
     }
     case TOKEN_DIV_OPCODE: {
-      const int source_register = SOURCE_REGISTER(instruction), target_register = TARGET_REGISTER(instruction);
+      const int source_register = SOURCE_REGISTER(instruction),
+                target_register = TARGET_REGISTER(instruction);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
                    "    Divide (signed) — computed $%s / $%s.\n"
                    "    Quotient went to LO; remainder went to HI.\n",
-                   integer_register_names[source_register], integer_register_names[target_register]);
+                   integer_register_names[source_register],
+                   integer_register_names[target_register]);
       if (level >= 2) {
         write_output(message_out, "  Inputs (before this step):\n");
         say_input_register(source_register);
@@ -2539,7 +2717,8 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
       break;
     }
     case TOKEN_MULTU_OPCODE: {
-      const int source_register = SOURCE_REGISTER(instruction), target_register = TARGET_REGISTER(instruction);
+      const int source_register = SOURCE_REGISTER(instruction),
+                target_register = TARGET_REGISTER(instruction);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
                    "    Multiply Unsigned — computed $%s * $%s as a 64-bit "
@@ -2547,7 +2726,8 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
                    "    The high 32 bits went to HI; the low 32 bits went to "
                    "LO.\n"
                    "    Use mfhi / mflo to retrieve them. No overflow trap.\n",
-                   integer_register_names[source_register], integer_register_names[target_register]);
+                   integer_register_names[source_register],
+                   integer_register_names[target_register]);
       if (level >= 2) {
         write_output(message_out, "  Inputs (before this step):\n");
         say_input_register(source_register);
@@ -2560,13 +2740,15 @@ static void render_dispatch(int level, const mips_instruction* instruction) {
       break;
     }
     case TOKEN_DIVU_OPCODE: {
-      const int source_register = SOURCE_REGISTER(instruction), target_register = TARGET_REGISTER(instruction);
+      const int source_register = SOURCE_REGISTER(instruction),
+                target_register = TARGET_REGISTER(instruction);
       write_output(message_out, "  What it did:\n");
       write_output(message_out,
                    "    Divide Unsigned — computed $%s / $%s, treating both "
                    "operands as unsigned.\n"
                    "    Quotient went to LO; remainder went to HI.\n",
-                   integer_register_names[source_register], integer_register_names[target_register]);
+                   integer_register_names[source_register],
+                   integer_register_names[target_register]);
       if (level >= 2) {
         write_output(message_out, "  Inputs (before this step):\n");
         say_input_register(source_register);
@@ -2716,7 +2898,9 @@ void explain_after(const mips_instruction* instruction) {
       case TOKEN_LH_OPCODE:
       case TOKEN_LHU_OPCODE: {
         const int target_register = TARGET_REGISTER(instruction);
-        if (target_register != 0 && snapshot_registers[target_register] == general_purpose_registers[target_register]) {
+        if (target_register != 0 &&
+            snapshot_registers[target_register] ==
+                general_purpose_registers[target_register]) {
           write_output(message_out,
                        "    (the load did happen — the memory value matched "
                        "the prior register value)\n");
@@ -2733,36 +2917,43 @@ void explain_after(const mips_instruction* instruction) {
        paths, templates that don't yet cover all of an op's writes). */
     bool header_done = false;
     for (int i = 1; i < GENERAL_PURPOSE_REGISTER_COUNT; i++) {
-      if (general_purpose_registers[i] != snapshot_registers[i] && !touched_register[i]) {
+      if (general_purpose_registers[i] != snapshot_registers[i] &&
+          !touched_register[i]) {
         if (!header_done) {
           write_output(message_out,
                        "  Side effects (changed but not named above):\n");
           header_done = true;
         }
-        write_output(message_out,
-                     "    $%s:  0x%08x  →  0x%08x   (decimal %d)\n",
-                     integer_register_names[i], snapshot_registers[i], general_purpose_registers[i], general_purpose_registers[i]);
+        write_output(
+            message_out, "    $%s:  0x%08x  →  0x%08x   (decimal %d)\n",
+            integer_register_names[i], snapshot_registers[i],
+            general_purpose_registers[i], general_purpose_registers[i]);
       }
     }
-    if (MULTIPLY_DIVIDE_HIGH != snapshot_multiply_divide_high && !touched_multiply_divide_high) {
+    if (MULTIPLY_DIVIDE_HIGH != snapshot_multiply_divide_high &&
+        !touched_multiply_divide_high) {
       if (!header_done) {
         write_output(message_out,
                      "  Side effects (changed but not named above):\n");
         header_done = true;
       }
-      write_output(message_out, "    HI:  0x%08x  →  0x%08x\n", snapshot_multiply_divide_high, MULTIPLY_DIVIDE_HIGH);
+      write_output(message_out, "    HI:  0x%08x  →  0x%08x\n",
+                   snapshot_multiply_divide_high, MULTIPLY_DIVIDE_HIGH);
     }
-    if (MULTIPLY_DIVIDE_LOW != snapshot_multiply_divide_low && !touched_multiply_divide_low) {
+    if (MULTIPLY_DIVIDE_LOW != snapshot_multiply_divide_low &&
+        !touched_multiply_divide_low) {
       if (!header_done) {
         write_output(message_out,
                      "  Side effects (changed but not named above):\n");
         header_done = true;
       }
-      write_output(message_out, "    LO:  0x%08x  →  0x%08x\n", snapshot_multiply_divide_low, MULTIPLY_DIVIDE_LOW);
+      write_output(message_out, "    LO:  0x%08x  →  0x%08x\n",
+                   snapshot_multiply_divide_low, MULTIPLY_DIVIDE_LOW);
     }
 
     /* PC always advances; print it last. */
-    write_output(message_out, "  PC:  0x%08x  →  0x%08x\n", snapshot_program_counter, PROGRAM_COUNTER);
+    write_output(message_out, "  PC:  0x%08x  →  0x%08x\n",
+                 snapshot_program_counter, PROGRAM_COUNTER);
   }
 
   write_output(message_out, "\n");

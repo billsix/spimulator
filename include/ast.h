@@ -41,16 +41,16 @@
 
 typedef enum : uint8_t {
   /* Instructions */
-  AST_INSTRUCTION_R,          /* op rd, rs, rt                     */
-  AST_INSTRUCTION_R_SHIFT,    /* op rd, rt, shamt                  */
-  AST_INSTRUCTION_I,          /* op rt, rs, imm                    */
-  AST_INSTRUCTION_J,          /* op target                         */
-  AST_INSTRUCTION_FLOATING_POINT_R,       /* op fd, fs, ft                     */
-  AST_INSTRUCTION_FLOATING_POINT_COMPARE, /* op fs, ft, cc                     */
-  AST_PSEUDO,          /* wrapper for a parser-level pseudo-op
-                          rewrite (la, li, move, neg, bge, ...).
-                          Children are the real instructions the
-                          parser emits for that pseudo-op. */
+  AST_INSTRUCTION_R,                /* op rd, rs, rt                     */
+  AST_INSTRUCTION_R_SHIFT,          /* op rd, rt, shamt                  */
+  AST_INSTRUCTION_I,                /* op rt, rs, imm                    */
+  AST_INSTRUCTION_J,                /* op target                         */
+  AST_INSTRUCTION_FLOATING_POINT_R, /* op fd, fs, ft                     */
+  AST_INSTRUCTION_FLOATING_POINT_COMPARE, /* op fs, ft, cc */
+  AST_PSEUDO, /* wrapper for a parser-level pseudo-op
+                 rewrite (la, li, move, neg, bge, ...).
+                 Children are the real instructions the
+                 parser emits for that pseudo-op. */
 
   /* Data directives */
   AST_DATA_BYTE,   /* .byte  EXPRESSION[, EXPRESSION]*              */
@@ -82,8 +82,8 @@ typedef enum : uint8_t {
 } ast_kind;
 
 typedef enum : uint8_t {
-  AST_LABEL_NORMAL, /* NAME : (placement at current PC)     */
-  AST_LABEL_CONSTANT,  /* NAME = EXPRESSION (compile-time constant)  */
+  AST_LABEL_NORMAL,   /* NAME : (placement at current PC)     */
+  AST_LABEL_CONSTANT, /* NAME = EXPRESSION (compile-time constant)  */
 } ast_label_kind;
 
 /* ------------------------------------------------------------------ */
@@ -130,7 +130,8 @@ struct ast_node {
 
     struct {
       int opcode;
-      int floating_point_destination, floating_point_source, floating_point_target;
+      int floating_point_destination, floating_point_source,
+          floating_point_target;
     } instruction_floating_point_r;
 
     struct {
@@ -148,13 +149,14 @@ struct ast_node {
 
     struct {
       int count;
-      immediate_expression** expressions; /* array of count immediate_expression*, each owned */
-    } data_integer;         /* used by BYTE / HALF / WORD */
+      immediate_expression**
+          expressions; /* array of count immediate_expression*, each owned */
+    } data_integer;    /* used by BYTE / HALF / WORD */
 
     struct {
       int count;
-      double* values; /* malloc'd array */
-    } data_floating_point;        /* used by FLOAT / DOUBLE */
+      double* values;      /* malloc'd array */
+    } data_floating_point; /* used by FLOAT / DOUBLE */
 
     struct {
       char* bytes; /* not necessarily NUL-terminated; len fields below */
@@ -216,22 +218,35 @@ struct ast_node {
 /* source_line is captured from the scanner's global at call time.    */
 
 /* Instructions */
-[[nodiscard]] ast_node* ast_make_instruction_r(int opcode, int destination_register, int source_register, int target_register);
-[[nodiscard]] ast_node* ast_make_instruction_r_shift(int opcode, int destination_register, int target_register,
-                                              int shift_amount);
-[[nodiscard]] ast_node* ast_make_instruction_i(int opcode, int target_register, int source_register, immediate_expression* immediate);
-[[nodiscard]] ast_node* ast_make_instruction_j(int opcode, immediate_expression* target);
-[[nodiscard]] ast_node* ast_make_instruction_floating_point_r(int opcode, int floating_point_destination, int floating_point_source, int floating_point_target);
-[[nodiscard]] ast_node* ast_make_instruction_floating_point_compare(int opcode, int floating_point_source, int floating_point_target,
-                                                 int condition_code);
+[[nodiscard]] ast_node* ast_make_instruction_r(int opcode,
+                                               int destination_register,
+                                               int source_register,
+                                               int target_register);
+[[nodiscard]] ast_node* ast_make_instruction_r_shift(int opcode,
+                                                     int destination_register,
+                                                     int target_register,
+                                                     int shift_amount);
+[[nodiscard]] ast_node* ast_make_instruction_i(int opcode, int target_register,
+                                               int source_register,
+                                               immediate_expression* immediate);
+[[nodiscard]] ast_node* ast_make_instruction_j(int opcode,
+                                               immediate_expression* target);
+[[nodiscard]] ast_node* ast_make_instruction_floating_point_r(
+    int opcode, int floating_point_destination, int floating_point_source,
+    int floating_point_target);
+[[nodiscard]] ast_node* ast_make_instruction_floating_point_compare(
+    int opcode, int floating_point_source, int floating_point_target,
+    int condition_code);
 [[nodiscard]] ast_node* ast_make_pseudo(
     const char* mnemonic); /* mnemonic dup'd */
 
 /* Data */
 [[nodiscard]] ast_node* ast_make_data_byte(
     int count, immediate_expression** expressions); /* takes ownership */
-[[nodiscard]] ast_node* ast_make_data_half(int count, immediate_expression** expressions);
-[[nodiscard]] ast_node* ast_make_data_word(int count, immediate_expression** expressions);
+[[nodiscard]] ast_node* ast_make_data_half(int count,
+                                           immediate_expression** expressions);
+[[nodiscard]] ast_node* ast_make_data_word(int count,
+                                           immediate_expression** expressions);
 [[nodiscard]] ast_node* ast_make_data_float(
     int count, double* values); /* takes ownership */
 [[nodiscard]] ast_node* ast_make_data_double(int count, double* values);
@@ -240,22 +255,24 @@ struct ast_node {
 
 /* Segment + layout */
 [[nodiscard]] ast_node* ast_make_directive_text(bool has_start_address,
-                                          memory_address start_address);
+                                                memory_address start_address);
 [[nodiscard]] ast_node* ast_make_directive_data(bool has_start_address,
-                                          memory_address start_address);
+                                                memory_address start_address);
 [[nodiscard]] ast_node* ast_make_directive_ktext(bool has_start_address,
-                                           memory_address start_address);
+                                                 memory_address start_address);
 [[nodiscard]] ast_node* ast_make_directive_kdata(bool has_start_address,
-                                           memory_address start_address);
+                                                 memory_address start_address);
 [[nodiscard]] ast_node* ast_make_directive_align(int n);
 [[nodiscard]] ast_node* ast_make_directive_space(int size);
-[[nodiscard]] ast_node* ast_make_directive_globl(const char* name); /* name dup'd */
+[[nodiscard]] ast_node* ast_make_directive_globl(
+    const char* name); /* name dup'd */
 [[nodiscard]] ast_node* ast_make_directive_extern(const char* name, int size);
 [[nodiscard]] ast_node* ast_make_directive_comm(const char* name, int size);
 
 /* Labels */
 [[nodiscard]] ast_node* ast_make_label_normal(const char* name);
-[[nodiscard]] ast_node* ast_make_label_constant(const char* name, int32_t value);
+[[nodiscard]] ast_node* ast_make_label_constant(const char* name,
+                                                int32_t value);
 
 /* File root */
 [[nodiscard]] ast_node* ast_make_file(const char* source_file);

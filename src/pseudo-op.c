@@ -92,7 +92,8 @@ void nop_instruction(void) {
 void trap_instruction(void) { emit_r(TOKEN_BREAK_OPCODE, 0, 0, 0); }
 
 immediate_expression* branch_offset(int instruction_count) {
-  return constant_immediate_expression(instruction_count << 2); /* later shifted right 2 by the encoder */
+  return constant_immediate_expression(
+      instruction_count << 2); /* later shifted right 2 by the encoder */
 }
 
 int opcode_to_immediate_opcode(int opcode) {
@@ -123,7 +124,9 @@ int opcode_to_immediate_opcode(int opcode) {
   }
 }
 
-void divide_instruction(int opcode, int destination_register, int source_register, int target_register, int constant_divisor) {
+void divide_instruction(int opcode, int destination_register,
+                        int source_register, int target_register,
+                        int constant_divisor) {
   if (destination_register != 0 && !constant_divisor) {
     emit_i_free(TOKEN_BNE_OPCODE, 0, target_register, branch_offset(3));
     nop_instruction();
@@ -136,7 +139,8 @@ void divide_instruction(int opcode, int destination_register, int source_registe
     emit_r(TOKEN_DIVU_OPCODE, 0, source_register, target_register);
 
   if (destination_register != 0) {
-    if (opcode == TOKEN_DIV_OPCODE || opcode == TOKEN_DIVU_OPCODE) /* Quotient */
+    if (opcode == TOKEN_DIV_OPCODE ||
+        opcode == TOKEN_DIVU_OPCODE) /* Quotient */
       emit_r(TOKEN_MFLO_OPCODE, destination_register, 0, 0);
     else
       /* Remainder */
@@ -144,7 +148,8 @@ void divide_instruction(int opcode, int destination_register, int source_registe
   }
 }
 
-void multiply_instruction(int opcode, int destination_register, int source_register, int target_register) {
+void multiply_instruction(int opcode, int destination_register,
+                          int source_register, int target_register) {
   if (opcode == TOKEN_MULOU_PSEUDO_OP)
     emit_r(TOKEN_MULTU_OPCODE, 0, source_register, target_register);
   else
@@ -158,40 +163,51 @@ void multiply_instruction(int opcode, int destination_register, int source_regis
   } else if (opcode == TOKEN_MULO_PSEUDO_OP && destination_register != 0) {
     emit_r(TOKEN_MFHI_OPCODE, 1, 0, 0); /* use $at */
     emit_r(TOKEN_MFLO_OPCODE, destination_register, 0, 0);
-    emit_r_shift(TOKEN_SRA_OPCODE, destination_register, destination_register, 31);
+    emit_r_shift(TOKEN_SRA_OPCODE, destination_register, destination_register,
+                 31);
     emit_i_free(TOKEN_BEQ_OPCODE, destination_register, 1, branch_offset(3));
     nop_instruction();
     trap_instruction();
   } else {
     /* Any other op, or a result into $zero: no overflow check. */
   }
-  if (destination_register != 0) emit_r(TOKEN_MFLO_OPCODE, destination_register, 0, 0);
+  if (destination_register != 0)
+    emit_r(TOKEN_MFLO_OPCODE, destination_register, 0, 0);
 }
 
-void set_less_or_equal_instruction(int opcode, int destination_register, int source_register, int target_register) {
-  emit_i_free(TOKEN_BNE_OPCODE, source_register, target_register, branch_offset(3));
-  emit_i_free(TOKEN_ORI_OPCODE, destination_register, 0, constant_immediate_expression(1));
+void set_less_or_equal_instruction(int opcode, int destination_register,
+                                   int source_register, int target_register) {
+  emit_i_free(TOKEN_BNE_OPCODE, source_register, target_register,
+              branch_offset(3));
+  emit_i_free(TOKEN_ORI_OPCODE, destination_register, 0,
+              constant_immediate_expression(1));
   emit_i_free(TOKEN_BEQ_OPCODE, 0, 0, branch_offset(3));
   nop_instruction();
-  emit_r((opcode == TOKEN_SLE_PSEUDO_OP ? TOKEN_SLT_OPCODE : TOKEN_SLTU_OPCODE), destination_register, source_register,
-         target_register);
+  emit_r((opcode == TOKEN_SLE_PSEUDO_OP ? TOKEN_SLT_OPCODE : TOKEN_SLTU_OPCODE),
+         destination_register, source_register, target_register);
 }
 
-void set_greater_than_instruction(int opcode, int destination_register, int source_register, int target_register) {
-  emit_r(opcode == TOKEN_SGT_PSEUDO_OP ? TOKEN_SLT_OPCODE : TOKEN_SLTU_OPCODE, destination_register, target_register,
-         source_register);
+void set_greater_than_instruction(int opcode, int destination_register,
+                                  int source_register, int target_register) {
+  emit_r(opcode == TOKEN_SGT_PSEUDO_OP ? TOKEN_SLT_OPCODE : TOKEN_SLTU_OPCODE,
+         destination_register, target_register, source_register);
 }
 
-void set_greater_or_equal_instruction(int opcode, int destination_register, int source_register, int target_register) {
-  emit_i_free(TOKEN_BNE_OPCODE, source_register, target_register, branch_offset(3));
-  emit_i_free(TOKEN_ORI_OPCODE, destination_register, 0, constant_immediate_expression(1));
+void set_greater_or_equal_instruction(int opcode, int destination_register,
+                                      int source_register,
+                                      int target_register) {
+  emit_i_free(TOKEN_BNE_OPCODE, source_register, target_register,
+              branch_offset(3));
+  emit_i_free(TOKEN_ORI_OPCODE, destination_register, 0,
+              constant_immediate_expression(1));
   emit_i_free(TOKEN_BEQ_OPCODE, 0, 0, branch_offset(3));
   nop_instruction();
-  emit_r(opcode == TOKEN_SGE_PSEUDO_OP ? TOKEN_SLT_OPCODE : TOKEN_SLTU_OPCODE, destination_register, target_register,
-         source_register);
+  emit_r(opcode == TOKEN_SGE_PSEUDO_OP ? TOKEN_SLT_OPCODE : TOKEN_SLTU_OPCODE,
+         destination_register, target_register, source_register);
 }
 
-void set_equal_instruction(int opcode, int destination_register, int source_register, int target_register) {
+void set_equal_instruction(int opcode, int destination_register,
+                           int source_register, int target_register) {
   immediate_expression *if_equal, *if_not_equal;
 
   if (opcode == TOKEN_SEQ_PSEUDO_OP) {
@@ -202,7 +218,8 @@ void set_equal_instruction(int opcode, int destination_register, int source_regi
     if_not_equal = constant_immediate_expression(1);
   }
 
-  emit_i_free(TOKEN_BEQ_OPCODE, source_register, target_register, branch_offset(3));
+  emit_i_free(TOKEN_BEQ_OPCODE, source_register, target_register,
+              branch_offset(3));
   /* RD <- 0 (if not equal) */
   emit_i_free(TOKEN_ORI_OPCODE, destination_register, 0, if_not_equal);
   emit_i_free(TOKEN_BEQ_OPCODE, 0, 0, branch_offset(3)); /* Branch always */
@@ -211,29 +228,31 @@ void set_equal_instruction(int opcode, int destination_register, int source_regi
   emit_i_free(TOKEN_ORI_OPCODE, destination_register, 0, if_equal);
 }
 
-void check_immediate_range(const immediate_expression* expression, int32_t min, int32_t max, int line) {
+void check_immediate_range(const immediate_expression* expression, int32_t min,
+                           int32_t max, int line) {
   if (expression->symbol == nullptr || SYMBOL_IS_DEFINED(expression->symbol)) {
     /* If expression can be evaluated, compare against limits. */
     const int32_t value = evaluate_immediate_expression(expression);
 
     if (value < min || max < value) {
       char string[200];
-      snprintf(string, sizeof string, "immediate value (%d) out of range (%d .. %d)",
-               value, min, max);
+      snprintf(string, sizeof string,
+               "immediate value (%d) out of range (%d .. %d)", value, min, max);
       error("spim: (parser) %s on line %d\n", string, line);
     }
   }
 }
 
-void check_unsigned_immediate_range(const immediate_expression* expression, uint32_t min, uint32_t max,
-                      int line) {
+void check_unsigned_immediate_range(const immediate_expression* expression,
+                                    uint32_t min, uint32_t max, int line) {
   if (expression->symbol == nullptr || SYMBOL_IS_DEFINED(expression->symbol)) {
     const uint32_t value = (uint32_t)evaluate_immediate_expression(expression);
 
     if (value < min || max < value) {
       char string[200];
-      snprintf(string, sizeof string, "immediate value (%d) out of range (%d .. %d)",
-               (int32_t)value, (int32_t)min, (int32_t)max);
+      snprintf(string, sizeof string,
+               "immediate value (%d) out of range (%d .. %d)", (int32_t)value,
+               (int32_t)min, (int32_t)max);
       error("spim: (parser) %s on line %d\n", string, line);
     }
   }
