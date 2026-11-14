@@ -11,7 +11,7 @@
 
 typedef struct label_use {
   mips_instruction* instruction; /* nullptr => Data, not code */
-  mem_addr addr;
+  mem_addr address;
   int32_t offset; /* Data only: the constant added to the label (`lab+4`) */
   int width; /* Data only: bytes stored, 1 (.byte), 2 (.half) or 4 (.word) */
   struct label_use* next;
@@ -21,16 +21,16 @@ typedef struct label_use {
 
 typedef struct label {
   char* name;               /* Name of label */
-  long addr;                /* Address of label or 0 if not yet defined */
+  long address;                /* Address of label or 0 if not yet defined */
   bool global_flag : 1;     /* => declared global */
-  bool gp_flag : 1;         /* => referenced off gp */
-  bool const_flag : 1;      /* => constant value (in addr) */
+  bool global_pointer_flag : 1;         /* => referenced off gp */
+  bool constant_flag : 1;      /* => constant value (in addr) */
   struct label* next;       /* Hash table link */
   struct label* next_local; /* Link in list of local labels */
   label_use* uses;          /* List of instructions that reference */
 } label;                    /* label that has not yet been defined */
 
-#define SYMBOL_IS_DEFINED(SYM) ((SYM)->addr != 0)
+#define SYMBOL_IS_DEFINED(SYM) ((SYM)->address != 0)
 
 /* Exported functions: */
 

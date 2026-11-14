@@ -101,43 +101,43 @@ struct ast_node {
      an assembled instruction's listing annotation shows the right
      source even though emission is deferred past the parse.  May be
      null (e.g. nodes built off a blank line).  Owned by the node. */
-  char* src_text;
+  char* source_text;
   ast_node* next; /* sibling chain inside a parent's child list */
 
   union {
     /* ---------- instructions ---------- */
 
     struct {
-      int op;
-      int rd, rs, rt;
-    } inst_r;
+      int opcode;
+      int destination_register, source_register, target_register;
+    } instruction_r;
 
     struct {
-      int op;
-      int rd, rt, shamt;
-    } inst_r_shift;
+      int opcode;
+      int destination_register, target_register, shift_amount;
+    } instruction_r_shift;
 
     struct {
-      int op;
-      int rt, rs;
-      imm_expr* imm; /* owned */
-    } inst_i;
+      int opcode;
+      int target_register, source_register;
+      imm_expr* immediate; /* owned */
+    } instruction_i;
 
     struct {
-      int op;
+      int opcode;
       imm_expr* target; /* owned */
-    } inst_j;
+    } instruction_j;
 
     struct {
-      int op;
-      int fd, fs, ft;
-    } inst_fp_r;
+      int opcode;
+      int floating_point_destination, floating_point_source, floating_point_target;
+    } instruction_floating_point_r;
 
     struct {
-      int op;
-      int fs, ft;
-      int cc;
-    } inst_fp_compare;
+      int opcode;
+      int floating_point_source, floating_point_target;
+      int condition_code;
+    } instruction_floating_point_compare;
 
     struct {
       char* mnemonic;  /* owned — e.g., "la", "li", "rol"        */
@@ -148,13 +148,13 @@ struct ast_node {
 
     struct {
       int count;
-      imm_expr** exprs; /* array of count imm_expr*, each owned */
-    } data_int;         /* used by BYTE / HALF / WORD */
+      imm_expr** expressions; /* array of count imm_expr*, each owned */
+    } data_integer;         /* used by BYTE / HALF / WORD */
 
     struct {
       int count;
       double* values; /* malloc'd array */
-    } data_fp;        /* used by FLOAT / DOUBLE */
+    } data_floating_point;        /* used by FLOAT / DOUBLE */
 
     struct {
       char* bytes; /* not necessarily NUL-terminated; len fields below */
@@ -165,26 +165,26 @@ struct ast_node {
     /* ---------- directives ---------- */
 
     struct {
-      bool has_start_addr;
-      mem_addr start_addr;
-    } dir_seg; /* covers TEXT / DATA / KTEXT / KDATA */
+      bool has_start_address;
+      mem_addr start_address;
+    } directive_segment; /* covers TEXT / DATA / KTEXT / KDATA */
 
     struct {
-      int n; /* alignment power */
-    } dir_align;
+      int alignment_power; /* alignment power */
+    } directive_align;
 
     struct {
       int size; /* bytes */
-    } dir_space;
+    } directive_space;
 
     struct {
       char* name; /* owned */
-    } dir_globl;
+    } directive_globl;
 
     struct {
       char* name; /* owned */
       int size;
-    } dir_named_size; /* covers EXTERN and COMM */
+    } directive_named_size; /* covers EXTERN and COMM */
 
     /* ---------- labels ---------- */
 
@@ -192,7 +192,7 @@ struct ast_node {
       char* name; /* owned */
       ast_label_kind kind;
       int32_t value; /* for AST_LABEL_CONST; ignored otherwise */
-    } label_def;
+    } label_definition;
 
     /* ---------- file ---------- */
 
@@ -206,7 +206,7 @@ struct ast_node {
     struct {
       char* message; /* owned; may be null */
     } error;
-  } u;
+  } payload;
 };
 
 /* ------------------------------------------------------------------ */

@@ -49,12 +49,12 @@ void explain_program_exit(const mips_instruction* instruction);
    branch's explain_before and explain_after, so run.c saves the branch's
    snapshot around it and restores it before the branch is narrated. */
 typedef struct {
-  reg_word r[R_LENGTH];
-  reg_word hi, lo;
-  mem_addr pc;
-  bool has_mem;
-  mem_addr mem_addr;
-  reg_word mem_val;
+  reg_word registers[R_LENGTH];
+  reg_word multiply_divide_high, multiply_divide_low;
+  mem_addr program_counter;
+  bool has_memory;
+  mem_addr memory_address;
+  reg_word memory_value;
 } explain_snapshot;
 explain_snapshot explain_save_snapshot(void);
 void explain_restore_snapshot(const explain_snapshot* s);

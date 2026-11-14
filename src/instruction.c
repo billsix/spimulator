@@ -132,7 +132,7 @@ void user_kernel_text_segment(bool to_kernel) { in_kernel = to_kernel; }
    scanner is still on that line, so source_line() reads it live; but
    emit_ast replays the tree after the parse has finished, when the
    scanner has moved to the last line of the file.  So emit_ast wraps
-   each node's emission in emit_source_set(node->src_text) /
+   each node's emission in emit_source_set(node->source_text) /
    emit_source_clear(): while active, store_instruction copies the
    supplied text instead of the stale live line.  When inactive (e.g.
    direct emission with the scanner still current), it falls back to
@@ -287,8 +287,8 @@ static void i_type_full_word(int opcode, int target_register, int source_registe
   if (opcode_is_load_store(opcode)) {
     int32_t offset;
 
-    if (expression->symbol != nullptr && expression->symbol->gp_flag && source_register == 0 &&
-        IMM_MIN <= (offset = (int32_t)(expression->symbol->addr + expression->offset)) &&
+    if (expression->symbol != nullptr && expression->symbol->global_pointer_flag && source_register == 0 &&
+        IMM_MIN <= (offset = (int32_t)(expression->symbol->address + expression->offset)) &&
         offset <= IMM_MAX) {
       i_type_free(opcode, target_register, REG_GP, make_imm_expr(offset, nullptr, false));
     } else if (value_known) {
@@ -335,8 +335,8 @@ static void i_type_full_word(int opcode, int target_register, int source_registe
   {
     int offset;
 
-    if (expression->symbol != nullptr && expression->symbol->gp_flag && source_register == 0 &&
-        IMM_MIN <= (offset = (int32_t)(expression->symbol->addr + expression->offset)) &&
+    if (expression->symbol != nullptr && expression->symbol->global_pointer_flag && source_register == 0 &&
+        IMM_MIN <= (offset = (int32_t)(expression->symbol->address + expression->offset)) &&
         offset <= IMM_MAX) {
       i_type_free((opcode == TOK_LUI_OPCODE ? TOK_ADDIU_OPCODE : opcode), target_register,
                   REG_GP, make_imm_expr(offset, nullptr, false));
@@ -376,7 +376,7 @@ void j_type(int opcode, imm_expr* target) {
 
   SET_OPCODE(instruction, opcode);
   target->offset = 0; /* Not PC relative */
-  target->pc_relative = false;
+  target->program_counter_relative = false;
   SET_EXPR(instruction, copy_imm_expr(target));
   if (target->symbol == nullptr || SYMBOL_IS_DEFINED(target->symbol))
     resolve_a_label(target->symbol, instruction);
@@ -971,7 +971,7 @@ imm_expr* make_imm_expr(int offset, const char* symbol, bool is_program_counter_
   *expression = (imm_expr){
       .offset = offset,
       .symbol = symbol != nullptr ? lookup_label(symbol) : nullptr,
-      .pc_relative = is_program_counter_relative,
+      .program_counter_relative = is_program_counter_relative,
   };
   return (expression);
 }
@@ -1030,7 +1030,7 @@ int32_t eval_imm_expr(const imm_expr* expression) {
   if (expression->symbol == nullptr)
     value = expression->offset;
   else if (SYMBOL_IS_DEFINED(expression->symbol)) {
-    value = (int32_t)(expression->offset + expression->symbol->addr);
+    value = (int32_t)(expression->offset + expression->symbol->address);
   } else {
     error("Evaluated undefined symbol: %s\n", expression->symbol->name);
     value = 0;
@@ -1050,7 +1050,7 @@ static void format_imm_expr(str_stream* stream, imm_expr* expression, int base_r
     ss_printf(stream, "%s", expression->symbol->name);
   }
 
-  if (expression->pc_relative)
+  if (expression->program_counter_relative)
     ss_printf(stream, "-0x%08x", (unsigned int)-expression->offset);
   else if (expression->offset < -10)
     ss_printf(stream, "-%d (-0x%08x)", -expression->offset, (unsigned int)-expression->offset);
@@ -1083,10 +1083,10 @@ addr_expr* make_addr_expr(int offset, const char* symbol, int register_no) {
   label* looked_up;
 
   if (register_no == 0 && symbol != nullptr &&
-      (looked_up = lookup_label(symbol))->gp_flag) {
+      (looked_up = lookup_label(symbol))->global_pointer_flag) {
     *expression = (addr_expr){
-        .reg_no = REG_GP,
-        .imm = make_imm_expr((int)(offset + looked_up->addr - gp_midpoint),
+        .register_no = REG_GP,
+        .immediate = make_imm_expr((int)(offset + looked_up->address - gp_midpoint),
                              nullptr, false),
     };
   } else {
@@ -1096,16 +1096,16 @@ addr_expr* make_addr_expr(int offset, const char* symbol, int register_no) {
        every call; pass the caller's `sym` straight through instead.  The
        caller keeps ownership and frees it. */
     *expression = (addr_expr){
-        .reg_no = (uint8_t)register_no,
-        .imm = make_imm_expr(offset, symbol, false),
+        .register_no = (uint8_t)register_no,
+        .immediate = make_imm_expr(offset, symbol, false),
     };
   }
   return (expression);
 }
 
-imm_expr* addr_expr_imm(const addr_expr* expression) { return (expression->imm); }
+imm_expr* addr_expr_imm(const addr_expr* expression) { return (expression->immediate); }
 
-int addr_expr_reg(const addr_expr* expression) { return (expression->reg_no); }
+int addr_expr_reg(const addr_expr* expression) { return (expression->register_no); }
 
 /* Map between a SPIM instruction and the binary representation of the
    instruction. */

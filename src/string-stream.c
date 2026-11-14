@@ -19,7 +19,7 @@
 static void ss_lazy_init(str_stream* stream) {
   if (stream->stream == nullptr) {
     *stream = (str_stream){};
-    stream->stream = open_memstream(&stream->buf, &stream->size);
+    stream->stream = open_memstream(&stream->buffer, &stream->size);
     if (stream->stream == nullptr) fatal_error("open_memstream failed\n");
   }
 }
@@ -38,7 +38,7 @@ void ss_clear(str_stream* stream) {
      after the rewind would end in the old text's tail. */
   if (stream->stream != nullptr) {
     fclose(stream->stream);
-    free(stream->buf);
+    free(stream->buffer);
   }
   *stream = (str_stream){};
   ss_lazy_init(stream);
@@ -64,7 +64,7 @@ int ss_length(str_stream* stream) {
 char* ss_to_string(str_stream* stream) {
   ss_lazy_init(stream);
   fflush(stream->stream);
-  return stream->buf;
+  return stream->buffer;
 }
 
 /* Take ownership of the contents: closes the stream and returns the
@@ -76,8 +76,8 @@ char* ss_take_string(str_stream* stream) {
   ss_lazy_init(stream);
   fclose(stream->stream);
   stream->stream = nullptr;
-  char* const buffer = stream->buf;
-  stream->buf = nullptr;
+  char* const buffer = stream->buffer;
+  stream->buffer = nullptr;
   stream->size = 0;
   return buffer;
 }

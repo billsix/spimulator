@@ -42,20 +42,20 @@ typedef struct asm_event {
   asm_event_kind kind;
   int source_line;         /* line_no at fire time; 0 if N/A */
   const char* source_file; /* input_file_name_get(); may be null */
-  mem_addr addr;           /* the memory address the event touches */
+  mem_addr address;           /* the memory address the event touches */
   union {
     struct {
       const char* name; /* label name (not owned) */
       bool global;
-    } label_def;
+    } label_definition;
 
     struct {
       uint32_t encoding; /* 32-bit instruction word */
-    } text_inst;
+    } text_instruction;
 
     struct {
       int value; /* sign-extended for byte/half, raw for word */
-    } data_int;  /* used for AE_DATA_BYTE/HALF/WORD */
+    } data_integer;  /* used for AE_DATA_BYTE/HALF/WORD */
 
     struct {
       double value;
@@ -68,14 +68,14 @@ typedef struct asm_event {
     } data_string;
 
     struct {
-      int new_pc_low_bits; /* alignment bits that got zeroed */
-      int new_pc_offset;   /* bytes the PC was advanced */
-      asm_segment seg;
+      int new_program_counter_low_bits; /* alignment bits that got zeroed */
+      int new_program_counter_offset;   /* bytes the PC was advanced */
+      asm_segment segment;
     } align;
 
     struct {
-      asm_segment seg;
-    } seg_change;
+      asm_segment segment;
+    } segment_change;
 
     struct {
       const char* symbol; /* not owned */
@@ -87,7 +87,7 @@ typedef struct asm_event {
       mem_addr at;        /* the use-site address that got patched */
       int32_t value;      /* the resolved value written there */
     } forward_resolved;
-  } u;
+  } payload;
 } asm_event;
 
 /* Observer signature.  The asm_event passed in is on the caller's

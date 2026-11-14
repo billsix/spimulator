@@ -341,7 +341,7 @@ bool run_program(mem_addr program_counter, int steps, bool display, bool continu
    in memory. */
 
 typedef struct bkptrec {
-  mem_addr addr;
+  mem_addr address;
   mips_instruction* instruction;
   struct bkptrec* next;
 } bkpt;
@@ -353,7 +353,7 @@ static bkpt* bkpts = nullptr;
 void add_breakpoint(mem_addr address) {
   bkpt* record = (bkpt*)xmalloc(sizeof(bkpt));
   *record =
-      (bkpt){.addr = address, .instruction = set_breakpoint(address), .next = bkpts};
+      (bkpt){.address = address, .instruction = set_breakpoint(address), .next = bkpts};
 
   if (record->instruction != nullptr)
     bkpts = record;
@@ -373,7 +373,7 @@ void delete_breakpoint(mem_addr address) {
   bool deleted_one = false;
 
   for (p = nullptr, b = bkpts; b != nullptr;)
-    if (b->addr == address) {
+    if (b->address == address) {
       mem_write_inst(address, b->instruction);
       if (p == nullptr)
         bkpts = b->next;
@@ -403,7 +403,7 @@ static void delete_all_breakpoints(void) {
 void list_breakpoints(void) {
   if (bkpts)
     for (bkpt* b = bkpts; b != nullptr; b = b->next)
-      write_output(message_out, "Breakpoint at 0x%08x\n", b->addr);
+      write_output(message_out, "Breakpoint at 0x%08x\n", b->address);
   else
     write_output(message_out, "No breakpoints set\n");
 }

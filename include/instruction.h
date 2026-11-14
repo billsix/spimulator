@@ -16,15 +16,15 @@ typedef struct immexpr {
   int32_t offset;       /* Offset from symbol */
   struct label* symbol; /* Symbolic label */
   int16_t bits;         /* > 0 => 31..16, < 0 => 15..0 */
-  bool pc_relative;     /* => offset from label in code */
+  bool program_counter_relative;     /* => offset from label in code */
 } imm_expr;
 
 /* Representation of the expression that produce an address for an
    instruction.  Address have the form: label +/- offset (register). */
 
 typedef struct addrexpr {
-  uint8_t reg_no; /* Register number */
-  imm_expr* imm;  /* The immediate part */
+  uint8_t register_no; /* Register number */
+  imm_expr* immediate;  /* The immediate part */
 } addr_expr;
 
 /* Representation of an instruction. Store the instruction fields in an
@@ -37,25 +37,25 @@ typedef struct inst_s {
   union {
     /* R-type or I-type: */
     struct {
-      uint8_t rs;
-      uint8_t rt;
+      uint8_t source_register;
+      uint8_t target_register;
 
       union {
-        int16_t imm;
+        int16_t immediate;
 
         struct {
-          uint8_t rd;
-          uint8_t shamt;
-        } r;
-      } r_i;
-    } r_i;
+          uint8_t destination_register;
+          uint8_t shift_amount;
+        } r_type;
+      } immediate_or_r_type;
+    } registers;
 
     /* J-type: */
     mem_addr target;
-  } r_t;
+  } fields;
 
   int32_t encoding;
-  imm_expr* expr;
+  imm_expr* expression;
   char* source_line;
   /* Set on each instruction the assembler emitted for a pseudo-op, or for
      a real instruction it had to expand into more than one (lw from a
@@ -73,14 +73,14 @@ typedef struct inst_s {
 #define OPCODE(INST) (INST)->opcode
 #define SET_OPCODE(INST, VAL) (INST)->opcode = (int16_t)(VAL)
 
-#define RS(INST) (INST)->r_t.r_i.rs
-#define SET_RS(INST, VAL) (INST)->r_t.r_i.rs = (uint8_t)(VAL)
+#define RS(INST) (INST)->fields.registers.source_register
+#define SET_RS(INST, VAL) (INST)->fields.registers.source_register = (uint8_t)(VAL)
 
-#define RT(INST) (INST)->r_t.r_i.rt
-#define SET_RT(INST, VAL) (INST)->r_t.r_i.rt = (uint8_t)(VAL)
+#define RT(INST) (INST)->fields.registers.target_register
+#define SET_RT(INST, VAL) (INST)->fields.registers.target_register = (uint8_t)(VAL)
 
-#define RD(INST) (INST)->r_t.r_i.r_i.r.rd
-#define SET_RD(INST, VAL) (INST)->r_t.r_i.r_i.r.rd = (uint8_t)(VAL)
+#define RD(INST) (INST)->fields.registers.immediate_or_r_type.r_type.destination_register
+#define SET_RD(INST, VAL) (INST)->fields.registers.immediate_or_r_type.r_type.destination_register = (uint8_t)(VAL)
 
 #define FS(INST) RD(INST)
 #define SET_FS(INST, VAL) SET_RD(INST, VAL)
@@ -91,11 +91,11 @@ typedef struct inst_s {
 #define FD(INST) SHAMT(INST)
 #define SET_FD(INST, VAL) SET_SHAMT(INST, VAL)
 
-#define SHAMT(INST) (INST)->r_t.r_i.r_i.r.shamt
-#define SET_SHAMT(INST, VAL) (INST)->r_t.r_i.r_i.r.shamt = (uint8_t)(VAL)
+#define SHAMT(INST) (INST)->fields.registers.immediate_or_r_type.r_type.shift_amount
+#define SET_SHAMT(INST, VAL) (INST)->fields.registers.immediate_or_r_type.r_type.shift_amount = (uint8_t)(VAL)
 
-#define IMM(INST) (INST)->r_t.r_i.r_i.imm
-#define SET_IMM(INST, VAL) (INST)->r_t.r_i.r_i.imm = (int16_t)(VAL)
+#define IMM(INST) (INST)->fields.registers.immediate_or_r_type.immediate
+#define SET_IMM(INST, VAL) (INST)->fields.registers.immediate_or_r_type.immediate = (int16_t)(VAL)
 
 #define BASE(INST) RS(INST)
 #define SET_BASE(INST, VAL) SET_RS(INST, VAL)
@@ -120,14 +120,14 @@ typedef struct inst_s {
 #define NDFP(INST) ((FD(INST) & 0x2) >> 1)
 #define TFF(INST) (FD(INST) & 0x1)
 
-#define TARGET(INST) (INST)->r_t.target
-#define SET_TARGET(INST, VAL) (INST)->r_t.target = (mem_addr)(VAL)
+#define TARGET(INST) (INST)->fields.target
+#define SET_TARGET(INST, VAL) (INST)->fields.target = (mem_addr)(VAL)
 
 #define ENCODING(INST) (INST)->encoding
 #define SET_ENCODING(INST, VAL) (INST)->encoding = (int32_t)(VAL)
 
-#define EXPR(INST) (INST)->expr
-#define SET_EXPR(INST, VAL) (INST)->expr = (imm_expr*)(VAL)
+#define EXPR(INST) (INST)->expression
+#define SET_EXPR(INST, VAL) (INST)->expression = (imm_expr*)(VAL)
 
 #define SOURCE(INST) (INST)->source_line
 #define SET_SOURCE(INST, VAL) (INST)->source_line = (char*)(VAL)

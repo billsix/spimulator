@@ -350,56 +350,56 @@ static void listing_observer(const asm_event* e) {
   switch (e->kind) {
     case AE_LABEL_DEF:
       fprintf(listing_file, "line %4d  label  %-24s defined at 0x%08x%s\n",
-              e->source_line, e->u.label_def.name, e->addr,
-              e->u.label_def.global ? "  (global)" : "");
+              e->source_line, e->payload.label_definition.name, e->address,
+              e->payload.label_definition.global ? "  (global)" : "");
       break;
     case AE_TEXT_INST: {
-      char* const disassembly = inst_to_string(e->addr);
+      char* const disassembly = inst_to_string(e->address);
       fprintf(listing_file, "line %4d  text   0x%08x  %-32s  0x%08x\n",
-              e->source_line, e->addr, disassembly ? disassembly : "",
-              e->u.text_inst.encoding);
+              e->source_line, e->address, disassembly ? disassembly : "",
+              e->payload.text_instruction.encoding);
       break;
     }
     case AE_DATA_BYTE:
       fprintf(listing_file, "line %4d  data   0x%08x  byte    0x%02x\n",
-              e->source_line, e->addr, e->u.data_int.value & 0xff);
+              e->source_line, e->address, e->payload.data_integer.value & 0xff);
       break;
     case AE_DATA_HALF:
       fprintf(listing_file, "line %4d  data   0x%08x  half    0x%04x\n",
-              e->source_line, e->addr, e->u.data_int.value & 0xffff);
+              e->source_line, e->address, e->payload.data_integer.value & 0xffff);
       break;
     case AE_DATA_WORD:
       fprintf(listing_file, "line %4d  data   0x%08x  word    0x%08x\n",
-              e->source_line, e->addr, (uint32_t)e->u.data_int.value);
+              e->source_line, e->address, (uint32_t)e->payload.data_integer.value);
       break;
     case AE_DATA_DOUBLE:
       fprintf(listing_file, "line %4d  data   0x%08x  double  %.18g\n",
-              e->source_line, e->addr, e->u.data_double.value);
+              e->source_line, e->address, e->payload.data_double.value);
       break;
     case AE_DATA_STRING:
       fprintf(listing_file, "line %4d  data   0x%08x  string  len=%d%s\n",
-              e->source_line, e->addr, e->u.data_string.length,
-              e->u.data_string.null_term ? " (+\\0)" : "");
+              e->source_line, e->address, e->payload.data_string.length,
+              e->payload.data_string.null_term ? " (+\\0)" : "");
       break;
     case AE_ALIGN:
       fprintf(listing_file, "line %4d  align  0x%08x  +%d bytes in %s\n",
-              e->source_line, e->addr, e->u.align.new_pc_offset,
-              seg_name(e->u.align.seg));
+              e->source_line, e->address, e->payload.align.new_program_counter_offset,
+              seg_name(e->payload.align.segment));
       break;
     case AE_SEG_CHANGE:
       fprintf(listing_file, "line %4d  seg    %s  at 0x%08x\n", e->source_line,
-              seg_name(e->u.seg_change.seg), e->addr);
+              seg_name(e->payload.segment_change.segment), e->address);
       break;
     case AE_FORWARD_REF:
       fprintf(listing_file,
               "line %4d  fref   0x%08x  uses unresolved symbol '%s'\n",
-              e->source_line, e->u.forward_ref.from, e->u.forward_ref.symbol);
+              e->source_line, e->payload.forward_ref.from, e->payload.forward_ref.symbol);
       break;
     case AE_FORWARD_RESOLVED:
       fprintf(listing_file, "line %4d  fres   0x%08x  patched '%s' = 0x%08x\n",
-              e->source_line, e->u.forward_resolved.at,
-              e->u.forward_resolved.symbol,
-              (uint32_t)e->u.forward_resolved.value);
+              e->source_line, e->payload.forward_resolved.at,
+              e->payload.forward_resolved.symbol,
+              (uint32_t)e->payload.forward_resolved.value);
       break;
     default:
       /* Never reached: the cases above list every asm_event_kind, and the
@@ -421,11 +421,11 @@ int main(int argc, char** argv) {
   int last_file_index = -1;           /* argv index of the last loaded -f file */
   int print_usage_message = 0;
 
-  console_out.f = stdout;
-  message_out.f = stderr;
+  console_out.file = stdout;
+  message_out.file = stderr;
 
   /* Input comes directly (not through stdio): */
-  console_in.i = 0;
+  console_in.descriptor = 0;
 
   if (getenv("SPIM_EXCEPTION_HANDLER") != nullptr)
     exception_file_name = getenv("SPIM_EXCEPTION_HANDLER");
@@ -994,7 +994,7 @@ static bool parse_spim_command(bool redo) {
         /* Loading a file points the scanner at it; save the command
            input around the load so the next command is read from it. */
         scanner_push_source(nullptr);
-        (void)read_assembly_file((char*)scan_value.p);
+        (void)read_assembly_file((char*)scan_value.pointer);
         scanner_pop_source();
       } else
         error("Must supply a filename to read\n");
@@ -1073,14 +1073,14 @@ static bool parse_spim_command(bool redo) {
           if (redo)
             location += 1;
           else
-            location = scan_value.i;
+            location = scan_value.integer;
           print_reg(location);
           break;
         case TOK_FP_REG:
           if (redo)
             location += 2;
           else
-            location = scan_value.i;
+            location = scan_value.integer;
           print_fp_reg(location);
           break;
         case TOK_INT: {
@@ -1088,13 +1088,13 @@ static bool parse_spim_command(bool redo) {
             location += 4;
             print_mem((mem_addr)location);
           } else {
-            const int integer_value = scan_value.i;
+            const int integer_value = scan_value.integer;
             /* Peek for the N($reg) base+offset form so students can inspect
              * memory using the same syntax they wrote in load/store ops. */
             const int next = read_token();
             if (next == '(') {
               const int register_token = read_token();
-              const int register_number = (register_token == TOK_REG) ? scan_value.i : -1;
+              const int register_number = (register_token == TOK_REG) ? scan_value.integer : -1;
               const int close = (register_token == TOK_REG) ? read_token() : 0;
               if (register_token == TOK_NL || close == TOK_NL) consumed_newline = true;
               if (register_number < 0 || close != ')') {
@@ -1114,16 +1114,16 @@ static bool parse_spim_command(bool redo) {
           break;
         }
         case TOK_ID:
-          if (!print_reg_from_string((char*)scan_value.p)) {
+          if (!print_reg_from_string((char*)scan_value.pointer)) {
             if (redo)
               location += 4;
             else
-              location = (int)find_symbol_address((char*)scan_value.p);
+              location = (int)find_symbol_address((char*)scan_value.pointer);
 
             if (location != 0)
               print_mem((mem_addr)location);
             else
-              error("Unknown label: %s\n", (char*)scan_value.p);
+              error("Unknown label: %s\n", (char*)scan_value.pointer);
           }
           break;
         default:
@@ -1145,7 +1145,7 @@ static bool parse_spim_command(bool redo) {
     case PRINT_ALL_REGS_CMD: {
       bool hex_flag = false;
       const int token = (redo ? previous_token : read_token());
-      if (token == TOK_ID && streq((char*)scan_value.p, "hex")) hex_flag = true;
+      if (token == TOK_ID && streq((char*)scan_value.pointer, "hex")) hex_flag = true;
       print_all_regs(hex_flag);
       /* With no operand the token read was the newline itself; flushing
          would read on into the next line. */
@@ -1209,11 +1209,11 @@ static bool parse_spim_command(bool redo) {
         switch (t) {
           case TOK_STR:
           case TOK_ID:
-            s = strdup((char*)scan_value.p);
+            s = strdup((char*)scan_value.pointer);
             break;
           case TOK_INT: {
             char buffer[32];
-            snprintf(buffer, sizeof(buffer), "%d", scan_value.i);
+            snprintf(buffer, sizeof(buffer), "%d", scan_value.integer);
             s = strdup(buffer);
             break;
           }
@@ -1308,9 +1308,9 @@ static bool parse_spim_command(bool redo) {
 
       if (!redo && token != TOK_NL) flush_to_newline();
       if (token == TOK_INT)
-        address = redo ? address + 4 : (mem_addr)scan_value.i;
+        address = redo ? address + 4 : (mem_addr)scan_value.integer;
       else if (token == TOK_ID)
-        address = redo ? address + 4 : find_symbol_address((char*)scan_value.p);
+        address = redo ? address + 4 : find_symbol_address((char*)scan_value.pointer);
       else {
         error("Must supply an address for breakpoint\n");
         return (0);
@@ -1337,7 +1337,7 @@ static bool parse_spim_command(bool redo) {
       char* filename = nullptr;
 
       if (token == TOK_STR)
-        filename = (char*)scan_value.p;
+        filename = (char*)scan_value.pointer;
       else if (token == TOK_NL)
         filename = "spim.dump";
       else {
@@ -1400,50 +1400,50 @@ static int read_assembly_command(void) {
     return (REDO_CMD);
   else if (token != TOK_ID) /* Better be a string */
     return (UNKNOWN_CMD);
-  else if (str_prefix((char*)scan_value.p, "exit", 2))
+  else if (str_prefix((char*)scan_value.pointer, "exit", 2))
     return (EXIT_CMD);
-  else if (str_prefix((char*)scan_value.p, "quit", 2))
+  else if (str_prefix((char*)scan_value.pointer, "quit", 2))
     return (EXIT_CMD);
-  else if (str_prefix((char*)scan_value.p, "print", 1))
+  else if (str_prefix((char*)scan_value.pointer, "print", 1))
     return (PRINT_CMD);
-  else if (str_prefix((char*)scan_value.p, "print_symbols", 7))
+  else if (str_prefix((char*)scan_value.pointer, "print_symbols", 7))
     return (PRINT_SYM_CMD);
-  else if (str_prefix((char*)scan_value.p, "print_all_regs", 7))
+  else if (str_prefix((char*)scan_value.pointer, "print_all_regs", 7))
     return (PRINT_ALL_REGS_CMD);
-  else if (str_prefix((char*)scan_value.p, "run", 2))
+  else if (str_prefix((char*)scan_value.pointer, "run", 2))
     return (RUN_CMD);
-  else if (str_prefix((char*)scan_value.p, "args", 2))
+  else if (str_prefix((char*)scan_value.pointer, "args", 2))
     return (ARGS_CMD);
-  else if (str_prefix((char*)scan_value.p, "read", 2))
+  else if (str_prefix((char*)scan_value.pointer, "read", 2))
     return (READ_CMD);
-  else if (str_prefix((char*)scan_value.p, "load", 2))
+  else if (str_prefix((char*)scan_value.pointer, "load", 2))
     return (READ_CMD);
-  else if (str_prefix((char*)scan_value.p, "reinitialize", 6))
+  else if (str_prefix((char*)scan_value.pointer, "reinitialize", 6))
     return (REINITIALIZE_CMD);
-  else if (str_prefix((char*)scan_value.p, "step", 1))
+  else if (str_prefix((char*)scan_value.pointer, "step", 1))
     return (STEP_CMD);
-  else if (str_prefix((char*)scan_value.p, "help", 1))
+  else if (str_prefix((char*)scan_value.pointer, "help", 1))
     return (HELP_CMD);
-  else if (str_prefix((char*)scan_value.p, "continue", 1))
+  else if (str_prefix((char*)scan_value.pointer, "continue", 1))
     return (CONTINUE_CMD);
-  else if (str_prefix((char*)scan_value.p, "breakpoint", 2))
+  else if (str_prefix((char*)scan_value.pointer, "breakpoint", 2))
     return (SET_BKPT_CMD);
-  else if (str_prefix((char*)scan_value.p, "delete", 1))
+  else if (str_prefix((char*)scan_value.pointer, "delete", 1))
     return (DELETE_BKPT_CMD);
-  else if (str_prefix((char*)scan_value.p, "list", 2))
+  else if (str_prefix((char*)scan_value.pointer, "list", 2))
     return (LIST_BKPT_CMD);
-  else if (str_prefix((char*)scan_value.p, "dumpnative", 5))
+  else if (str_prefix((char*)scan_value.pointer, "dumpnative", 5))
     return (DUMPNATIVE_TEXT_CMD);
-  else if (str_prefix((char*)scan_value.p, "dump", 4))
+  else if (str_prefix((char*)scan_value.pointer, "dump", 4))
     return (DUMP_TEXT_CMD);
   /* Min abbreviation is "dis", not "di" — `di` is the MIPS32r2
      disable-interrupts mnemonic, which the scanner tokenizes as an
      opcode before command dispatch ever sees it. */
-  else if (str_prefix((char*)scan_value.p, "disasm", 3))
+  else if (str_prefix((char*)scan_value.pointer, "disasm", 3))
     return (DISASM_CMD);
-  else if (*(char*)scan_value.p == '?')
+  else if (*(char*)scan_value.pointer == '?')
     return (HELP_CMD);
-  else if (*(char*)scan_value.p == '.')
+  else if (*(char*)scan_value.pointer == '.')
     return (ASM_CMD);
   else
     return (UNKNOWN_CMD);
@@ -1466,7 +1466,7 @@ static int get_opt_int(void) {
 
   if (token == TOK_INT) {
     flush_to_newline();
-    return (scan_value.i);
+    return (scan_value.integer);
   } else if (token == TOK_NL)
     return (0);
   else {
@@ -1636,7 +1636,7 @@ void fatal_error(const char* format, ...) {
 
 void write_output(port file, const char* format, ...) {
   va_list arguments;
-  FILE* const f = file.f != nullptr ? file.f : stdout;
+  FILE* const f = file.file != nullptr ? file.file : stdout;
   bool restore_console_to_program = false;
 
   va_start(arguments, format);
@@ -1675,7 +1675,7 @@ int read_input(char* string, int string_size) {
   while (1 < string_size) /* Reserve space for null */
   {
     char buffer[1];
-    if (read((int)console_in.i, buffer, 1) <= 0) /* Not in raw mode! */
+    if (read((int)console_in.descriptor, buffer, 1) <= 0) /* Not in raw mode! */
       break;
 
     *pointer++ = buffer[0];
@@ -1720,13 +1720,13 @@ int read_int_input(long* value) {
   char c = '\0';
   ssize_t n;
   do {
-    n = read((int)console_in.i, &c, 1);
+    n = read((int)console_in.descriptor, &c, 1);
   } while (n > 0 && (c == ' ' || c == '\t' || c == '\n' || c == '\r'));
 
   long sign = 1;
   if (n > 0 && (c == '-' || c == '+')) {
     if (c == '-') sign = -1;
-    n = read((int)console_in.i, &c, 1);
+    n = read((int)console_in.descriptor, &c, 1);
   }
 
   bool got_digit = false;
@@ -1734,7 +1734,7 @@ int read_int_input(long* value) {
   while (n > 0 && '0' <= c && c <= '9') {
     got_digit = true;
     v = v * 10 + (c - '0');
-    n = read((int)console_in.i, &c, 1);
+    n = read((int)console_in.descriptor, &c, 1);
   }
 
   if (restore_console_to_program) console_to_program();
@@ -1746,7 +1746,7 @@ int read_int_input(long* value) {
 
 static void console_to_program(void) {
   if (mapped_io && !console_state_saved) {
-    tcgetattr(console_in.i, &saved_console_state);
+    tcgetattr(console_in.descriptor, &saved_console_state);
     struct termios parameters = saved_console_state;
     parameters.c_iflag &= (tcflag_t) ~(ISTRIP | INLCR | ICRNL | IGNCR | IXON |
                                    IXOFF | INPCK | BRKINT | PARMRK);
@@ -1760,7 +1760,7 @@ static void console_to_program(void) {
     parameters.c_cc[VMIN] = 1;
     parameters.c_cc[VTIME] = 1;
 
-    tcsetattr(console_in.i, TCSANOW, &parameters);
+    tcsetattr(console_in.descriptor, TCSANOW, &parameters);
     console_state_saved = true;
   }
 }
@@ -1769,7 +1769,7 @@ static void console_to_program(void) {
 
 static void console_to_spim(void) {
   if (mapped_io && console_state_saved)
-    tcsetattr(console_in.i, TCSANOW, &saved_console_state);
+    tcsetattr(console_in.descriptor, TCSANOW, &saved_console_state);
   console_state_saved = false;
 }
 
@@ -1778,7 +1778,7 @@ int console_input_available(void) {
     fd_set fdset;
     struct timeval timeout = {}; /* zero timeout: poll, don't block */
     FD_ZERO(&fdset);
-    FD_SET((int)console_in.i, &fdset);
+    FD_SET((int)console_in.descriptor, &fdset);
     return (select(sizeof(fdset) * 8, &fdset, nullptr, nullptr, &timeout));
   } else
     return (0);
@@ -1787,7 +1787,7 @@ int console_input_available(void) {
 char get_console_char(void) {
   char buffer;
 
-  read((int)console_in.i, &buffer, 1);
+  read((int)console_in.descriptor, &buffer, 1);
 
   if (buffer == 3) /* ^C */
     control_c_seen(0);
@@ -1795,8 +1795,8 @@ char get_console_char(void) {
 }
 
 void put_console_char(char c) {
-  putc(c, console_out.f);
-  fflush(console_out.f);
+  putc(c, console_out.file);
+  fflush(console_out.file);
 }
 
 static int read_token(void) {

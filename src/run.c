@@ -202,7 +202,7 @@ bool run_spim(mem_addr initial_program_counter, int steps_to_run, bool display) 
         return false;
       } else if (EXPR(instruction) != nullptr &&
                  EXPR(instruction)->symbol != nullptr &&
-                 EXPR(instruction)->symbol->addr == 0) {
+                 EXPR(instruction)->symbol->address == 0) {
         run_error("Instruction references undefined symbol at 0x%08x\n  %s", PC,
                   inst_to_string(PC));
         return false;

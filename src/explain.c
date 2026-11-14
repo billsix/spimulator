@@ -1790,24 +1790,24 @@ void explain_program_exit(const mips_instruction* instruction) {
 }
 
 explain_snapshot explain_save_snapshot(void) {
-  explain_snapshot s = {.hi = snap_HI,
-                        .lo = snap_LO,
-                        .pc = snap_PC,
-                        .has_mem = snap_has_mem,
-                        .mem_addr = snap_mem_addr,
-                        .mem_val = snap_mem_val};
-  memcpy(s.r, snap_R, sizeof(s.r));
+  explain_snapshot s = {.multiply_divide_high = snap_HI,
+                        .multiply_divide_low = snap_LO,
+                        .program_counter = snap_PC,
+                        .has_memory = snap_has_mem,
+                        .memory_address = snap_mem_addr,
+                        .memory_value = snap_mem_val};
+  memcpy(s.registers, snap_R, sizeof(s.registers));
   return s;
 }
 
 void explain_restore_snapshot(const explain_snapshot* s) {
-  memcpy(snap_R, s->r, sizeof(snap_R));
-  snap_HI = s->hi;
-  snap_LO = s->lo;
-  snap_PC = s->pc;
-  snap_has_mem = s->has_mem;
-  snap_mem_addr = s->mem_addr;
-  snap_mem_val = s->mem_val;
+  memcpy(snap_R, s->registers, sizeof(snap_R));
+  snap_HI = s->multiply_divide_high;
+  snap_LO = s->multiply_divide_low;
+  snap_PC = s->program_counter;
+  snap_has_mem = s->has_memory;
+  snap_mem_addr = s->memory_address;
+  snap_mem_val = s->memory_value;
 }
 
 /* ------------ Category preamble (L2+) ------------

@@ -119,12 +119,12 @@ label* lookup_label(const char* name) {
 label* record_label(const char* name, mem_addr address, bool resolve_uses) {
   label* l = lookup_label(name);
 
-  if (!l->gp_flag) {
-    if (l->addr != 0) {
+  if (!l->global_pointer_flag) {
+    if (l->address != 0) {
       parse_error("Label is defined for the second time");
       return (l);
     }
-    l->addr = address;
+    l->address = address;
   }
 
   asm_fire_label_def(address, l->name, l->global_flag != 0);
@@ -156,14 +156,14 @@ void record_inst_uses_symbol(mips_instruction* instruction, label* symbol) {
 
   if (data_dir) /* Want to free up original instruction */
     *u = (label_use){.instruction = copy_inst(instruction),
-                     .addr = current_data_pc(),
+                     .address = current_data_pc(),
                      .next = symbol->uses};
   else
     *u = (label_use){.instruction = instruction,
-                     .addr = current_text_pc(),
+                     .address = current_text_pc(),
                      .next = symbol->uses};
   symbol->uses = u;
-  asm_fire_forward_ref(u->addr, symbol->name);
+  asm_fire_forward_ref(u->address, symbol->name);
 }
 
 /* Record that the WIDTH-byte datum at memory LOCATION holds the as-yet
@@ -174,7 +174,7 @@ void record_data_uses_symbol(mem_addr location, label* symbol, int32_t offset,
   label_use* u = (label_use*)xmalloc(sizeof(label_use));
 
   *u = (label_use){
-      .addr = location, .offset = offset, .width = width, .next = symbol->uses};
+      .address = location, .offset = offset, .width = width, .next = symbol->uses};
   symbol->uses = u;
   asm_fire_forward_ref(location, symbol->name);
 }
@@ -203,15 +203,15 @@ void resolve_label_uses(label* symbol) {
 
   for (label_use* use = symbol->uses; use != nullptr; use = next_use) {
     if (use->instruction == nullptr)
-      write_data_value(use->addr, (int32_t)symbol->addr + use->offset, use->width);
+      write_data_value(use->address, (int32_t)symbol->address + use->offset, use->width);
     else
-      resolve_a_label_sub(symbol, use->instruction, use->addr);
-    if (use->instruction != nullptr && use->addr >= DATA_BOT &&
-        use->addr < stack_bot) {
-      mem_write_word(use->addr, inst_encode(use->instruction));
+      resolve_a_label_sub(symbol, use->instruction, use->address);
+    if (use->instruction != nullptr && use->address >= DATA_BOT &&
+        use->address < stack_bot) {
+      mem_write_word(use->address, inst_encode(use->instruction));
       free_inst(use->instruction);
     }
-    asm_fire_forward_resolved(use->addr, symbol->name, (int32_t)symbol->addr);
+    asm_fire_forward_resolved(use->address, symbol->name, (int32_t)symbol->address);
     next_use = use->next;
     free(use);
   }
@@ -229,10 +229,10 @@ static void resolve_a_label_sub(const label* symbol, mips_instruction* instructi
                                 mem_addr program_counter) {
   if (instruction == nullptr) {
     /* Memory data: */
-    mem_write_word(program_counter, (reg_word)symbol->addr);
+    mem_write_word(program_counter, (reg_word)symbol->address);
   } else {
     /* Instruction: */
-    if (EXPR(instruction)->pc_relative)
+    if (EXPR(instruction)->program_counter_relative)
       EXPR(instruction)->offset =
           (int32_t)(0 - program_counter); /* Instruction may have moved */
 
@@ -342,7 +342,7 @@ void flush_local_labels(bool issue_undefined_warnings) {
           label_hash_table[high] = cursor->next;
         else
           previous->next = cursor->next;
-        if (issue_undefined_warnings && entry->addr == 0 && !entry->const_flag)
+        if (issue_undefined_warnings && entry->address == 0 && !entry->constant_flag)
           error("Warning: local symbol %s was not defined\n", entry->name);
         /* Can't free label since IMM_EXPR's still reference it */
         break;
@@ -356,10 +356,10 @@ void flush_local_labels(bool issue_undefined_warnings) {
 mem_addr find_symbol_address(const char* symbol) {
   label* const l = lookup_label(symbol);
 
-  if (l == nullptr || l->addr == 0)
+  if (l == nullptr || l->address == 0)
     return 0;
   else
-    return ((mem_addr)l->addr);
+    return ((mem_addr)l->address);
 }
 
 /* Print all symbols in the table. */
@@ -368,7 +368,7 @@ void print_symbols(void) {
   for (int i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
     for (label* l = label_hash_table[i]; l != nullptr; l = l->next)
       write_output(message_out, "%s%s at 0x%08x\n",
-                   l->global_flag ? "g\t" : "\t", l->name, (unsigned)l->addr);
+                   l->global_flag ? "g\t" : "\t", l->name, (unsigned)l->address);
 }
 
 /* Iterate over every currently-defined symbol in the table. */
@@ -384,7 +384,7 @@ void for_each_label(void (*callback)(const label* l, void* ctx), void* context) 
 void print_undefined_symbols(void) {
   for (int i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
     for (label* l = label_hash_table[i]; l != nullptr; l = l->next)
-      if (l->addr == 0) write_output(message_out, "%s\n", l->name);
+      if (l->address == 0) write_output(message_out, "%s\n", l->name);
 }
 
 /* Return a string containing the names of all undefined symbols in the
@@ -398,7 +398,7 @@ char* undefined_symbol_string(void) {
 
   for (int i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
     for (label* l = label_hash_table[i]; l != nullptr; l = l->next)
-      if (l->addr == 0) {
+      if (l->address == 0) {
         const int name_length = (int)strlen(l->name);
         const int after_length = string_length + name_length + 2;
         if (buffer_length < after_length) {

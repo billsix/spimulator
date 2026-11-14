@@ -14,7 +14,7 @@
    lazily creates the stream on first use. */
 typedef struct str_stm {
   FILE* stream; /* nullptr until first use */
-  char* buf;    /* owned by the stream until ss_take_string */
+  char* buffer;    /* owned by the stream until ss_take_string */
   size_t size;  /* bytes written, updated on flush */
 } str_stream;
 

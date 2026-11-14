@@ -26,8 +26,8 @@
 #include <string.h>
 
 typedef union {
-  int i;
-  void* p;
+  int integer;
+  void* pointer;
 } intptr_union;
 
 static inline bool streq(const char* a, const char* b) {
@@ -42,7 +42,7 @@ static inline int32_t sign_ex(int x) { return (int32_t)(int16_t)x; }
    argument into a local before comparing, so the arguments are
    evaluated exactly once even when they have side effects.  Macros
    rather than functions because they need to be polymorphic across
-   int / mem_addr / size_t / etc.  GNU statement-expression form
+   int / memory_address / size_t / etc.  GNU statement-expression form
    (allowed by c_std=gnu23); the __extension__ keyword silences
    -Wpedantic's complaint about ISO C not allowing braced-groups in
    expressions. */
@@ -154,8 +154,8 @@ constexpr int TIMER_TICK_MS = 10; /* 100 times per second */
 #include <stdio.h>
 
 typedef union {
-  int i;
-  FILE* f;
+  int descriptor;
+  FILE* file;
 } port;
 
 /* Exported functions (from spim.c or xspim.c): */

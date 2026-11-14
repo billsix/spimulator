@@ -10,8 +10,8 @@ skipped; they are regenerated from the renamed ``.tsv`` files):
    follows its referenced declaration's decision by clang's declaration id. So two
    declarations spelled alike can get different new names, or one can keep its name.
 2. **By token**, for what the JSON AST has no reference positions for: typedef names, struct,
-   union and enum tags, macros, and a renamed field written as a designator (``.old =``) or in
-   ``offsetof``. String and character literals are never changed; comments change only for
+   union and enum tags, macros, and a renamed field written in a designator chain
+   (``.old =``, ``.old.inner =``) or in ``offsetof``. String and character literals are never changed; comments change only for
    names that are clearly identifiers (they contain ``_``, or mix or are all upper case).
 
 ``--kinds`` limits both passes to some declaration kinds, so the work can be committed in
@@ -412,6 +412,27 @@ def token_edits(
         for rule in renames
         if rule.location == "*" and "FieldDecl" in rule.kinds and field_designators
     }
+    # A field renamed only at its declaration(s) is still safe to rename in a designator when
+    # every one of its rows gives the same new name and no row renames it everywhere.
+    field_lines: set[str] = {
+        f"{path}:{line}"
+        for kind, _, path, line in (
+            row.split("\t") for row in (DATA / "names.tsv").read_text().splitlines()
+        )
+        if kind == "FieldDecl"
+    }
+    located_fields: dict[str, set[str]] = collections.defaultdict(set)
+    rule: Rename
+    for rule in renames:
+        if rule.location in field_lines and field_designators:
+            located_fields[rule.old].add(rule.new)
+    old: str
+    news: set[str]
+    for old, news in located_fields.items():
+        if len(news) == 1 and old not in fields:
+            fields[old] = next(iter(news))
+        elif old in fields and news != {fields[old]}:
+            del fields[old]  # ambiguous in a designator: left for the build to report
     edits: dict[tuple[str, int], tuple[str, str]] = {}
     path: pathlib.Path
     for path in core_files(root):
@@ -434,7 +455,7 @@ def token_edits(
                 if token in by_token:
                     edits[(relative, match.start())] = (token, by_token[token])
                 elif token in fields and (
-                    (before.endswith(".") and after.startswith("="))
+                    (before.endswith(".") and after.startswith(("=", ".", "[")))
                     or re.search(r"offsetof\s*\([^,]*,\s*$", before) is not None
                 ):
                     edits[(relative, match.start())] = (token, fields[token])

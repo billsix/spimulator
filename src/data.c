@@ -123,11 +123,11 @@ void increment_data_pc(int delta) {
 void extern_directive(const char* name, int size) {
   label* symbol = make_label_global(name);
 
-  if (!bare_machine && !symbol->gp_flag  // Not already a global symbol
+  if (!bare_machine && !symbol->global_pointer_flag  // Not already a global symbol
       && size > 0 && size <= SMALL_DATA_SEG_MAX_SIZE &&
       next_gp_item_addr + (mem_addr)size < gp_midpoint + 32 * kilo) {
-    symbol->gp_flag = true;
-    symbol->addr = next_gp_item_addr;
+    symbol->global_pointer_flag = true;
+    symbol->address = next_gp_item_addr;
     next_gp_item_addr += (mem_addr)size;
   }
 }
@@ -138,7 +138,7 @@ void lcomm_directive(const char* name, int size) {
   if (!bare_machine && size > 0 && size <= SMALL_DATA_SEG_MAX_SIZE &&
       next_gp_item_addr + (mem_addr)size < gp_midpoint + 32 * kilo) {
     label* symbol = record_label(name, next_gp_item_addr, true);
-    symbol->gp_flag = true;
+    symbol->global_pointer_flag = true;
 
     next_gp_item_addr += (mem_addr)size;
     /* Don't need to initialize since memory starts with 0's */
