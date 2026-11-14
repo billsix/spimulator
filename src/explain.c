@@ -230,122 +230,170 @@ struct pseudo_info {
 };
 
 static const struct pseudo_info pseudo_ops[] = {
-    {"abs",
-     "Absolute Value — set $rd to |$rs|. Multi-instruction expansion using\n"
-     "    arithmetic-shift / xor / sub to avoid a conditional branch."},
-    {"b",
-     "Branch — unconditional jump to a label. Encoded as `bgez $0, label`\n"
-     "    ($0 is never negative, so the branch is always taken)."},
-    {"bal",
-     "Branch-and-Link — unconditional call to a label, saving the return\n"
-     "    address in $ra. Encoded as `bgezal $0, label`."},
-    {"beqz",
-     "Branch if Equal to Zero — branch if $rs == 0. Encoded as\n"
-     "    `beq $rs, $0, label`."},
-    {"bnez",
-     "Branch if Not Equal to Zero — branch if $rs != 0. Encoded as\n"
-     "    `bne $rs, $0, label`."},
-    {"bge",
-     "Branch if Greater or Equal (signed) — branch if $rs >= $rt. Expands\n"
-     "    to `slt $at, $rs, $rt` + `beq $at, $0, label` (with an immediate,\n"
-     "    `slti $at, $rs, imm` + `beq`)."},
-    {"bgeu",
-     "Branch if Greater or Equal (unsigned) — branch if $rs >= $rt unsigned.\n"
-     "    Expands to `sltu $at, $rs, $rt` + `beq $at, $0, label`."},
-    {"bgt",
-     "Branch if Greater Than (signed) — branch if $rs > $rt. Expands to\n"
-     "    `slt $at, $rt, $rs` + `bne $at, $0, label` (with an immediate,\n"
-     "    `slti $at, $rs, imm+1` + `beq $at, $0, label`)."},
-    {"bgtu",
-     "Branch if Greater Than (unsigned) — branch if $rs > $rt unsigned.\n"
-     "    Expands to `sltu $at, $rt, $rs` + `bne $at, $0, label`."},
-    {"ble",
-     "Branch if Less or Equal (signed) — branch if $rs <= $rt. Expands to\n"
-     "    `slt $at, $rt, $rs` + `beq $at, $0, label` (with an immediate,\n"
-     "    `slti $at, $rs, imm+1` + `bne $at, $0, label`)."},
-    {"bleu",
-     "Branch if Less or Equal (unsigned) — branch if $rs <= $rt unsigned.\n"
-     "    Expands to `sltu $at, $rt, $rs` + `beq $at, $0, label`."},
-    {"blt",
-     "Branch if Less Than (signed) — branch if $rs < $rt. Expands to\n"
-     "    `slt $at, $rs, $rt` + `bne $at, $0, label` (with an immediate,\n"
-     "    `slti $at, $rs, imm` + `bne`)."},
-    {"bltu",
-     "Branch if Less Than (unsigned) — branch if $rs < $rt unsigned.\n"
-     "    Expands to `sltu $at, $rs, $rt` + `bne $at, $0, label`."},
-    {"la",
-     "Load Address — set $rd to the 32-bit address of a label. Expands to\n"
-     "    `lui $rd, hi(addr)` + `ori $rd, $rd, lo(addr)`, or just the `lui`\n"
-     "    when the low 16 bits are 0; `la $rd, N($rs)` is `addi $rd, $rs, N`."},
-    {"ld",
-     "Load Doubleword — load 64 bits into a register pair. Expands to two\n"
-     "    `lw` instructions covering offsets 0 and 4."},
-    {"li",
-     "Load Immediate — set $rd to a 32-bit constant. One that fits in 16\n"
-     "    unsigned bits is one `ori $rd, $0, imm`; any other expands to `lui`\n"
-     "    + `ori`, or just the `lui` when the low 16 bits are 0."},
-    {"move",
-     "Move — copy $rs into $rd. Encoded as `addu $rd, $0, $rs` (adding $zero\n"
-     "    is the simplest way to copy a register)."},
-    {"mulo",
-     "Multiply with Overflow check — signed multiply that traps on overflow.\n"
-     "    Expands to `mult` plus an overflow check plus `mflo`."},
-    {"mulou",
-     "Multiply Unsigned with Overflow check — unsigned variant of `mulo`."},
-    {"neg",
-     "Negate (signed; traps on overflow) — set $rd = -$rs. Encoded as\n"
-     "    `sub $rd, $0, $rs`."},
-    {"negu",
-     "Negate Unsigned — set $rd = -$rs with no overflow trap. Encoded as\n"
-     "    `subu $rd, $0, $rs`."},
-    {"nop",
-     "No Operation — do nothing for one cycle. Encoded as `sll $0, $0, 0`\n"
-     "    (a shift writing to $zero, which is hardwired to 0 and discards\n"
-     "    the result)."},
-    {"not",
-     "Bitwise NOT — set $rd to the one's complement of $rs. Encoded as\n"
-     "    `nor $rd, $rs, $0` (NOR with $zero is logical NOT)."},
-    {"rem",
-     "Signed Remainder — set $rd = $rs % $rt. Expands to a zero-divisor\n"
-     "    check (`bne` + `break`), then `div $rs, $rt` + `mfhi $rd`."},
-    {"remu",
-     "Unsigned Remainder — set $rd = $rs % $rt unsigned. Expands to a\n"
-     "    zero-divisor check, then `divu $rs, $rt` + `mfhi $rd`."},
-    {"rol",
-     "Rotate Left — multi-instruction expansion using sll, srl, and or to\n"
-     "    rotate the bits of $rs left."},
-    {"ror",
-     "Rotate Right — multi-instruction expansion using srl, sll, and or."},
-    {"sd",
-     "Store Doubleword — store 64 bits from a register pair. Expands to two\n"
-     "    `sw` instructions at offsets 0 and 4."},
-    {"seq",
-     "Set if Equal — set $rd = ($rs == $rt) ? 1 : 0. Expands to `xor` +\n"
-     "    `sltiu`."},
-    {"sne",
-     "Set if Not Equal — set $rd = ($rs != $rt) ? 1 : 0. Expands to `xor` +\n"
-     "    `sltu` against $zero."},
-    {"sge", "Set if Greater or Equal (signed) — $rd = ($rs >= $rt) ? 1 : 0."},
-    {"sgeu", "Set if Greater or Equal (unsigned)."},
-    {"sgt", "Set if Greater Than (signed) — $rd = ($rs > $rt) ? 1 : 0."},
-    {"sgtu", "Set if Greater Than (unsigned)."},
-    {"sle", "Set if Less or Equal (signed) — $rd = ($rs <= $rt) ? 1 : 0."},
-    {"sleu", "Set if Less or Equal (unsigned)."},
-    {"ulh",
-     "Unaligned Load Halfword (signed) — read 16 bits at a possibly-unaligned\n"
-     "    address. Expands to byte loads + shifts."},
-    {"ulhu",
-     "Unaligned Load Halfword Unsigned — zero-extending variant of `ulh`."},
-    {"ulw",
-     "Unaligned Load Word — read 32 bits at a possibly-unaligned address.\n"
-     "    Expands to `lwl` + `lwr` (or a sequence of byte loads)."},
-    {"ush",
-     "Unaligned Store Halfword — write 16 bits at a possibly-unaligned "
-     "address."},
-    {"usw",
-     "Unaligned Store Word — write 32 bits at a possibly-unaligned address.\n"
-     "    Expands to `swl` + `swr`."},
-    {nullptr, nullptr},
+    {.name = "abs",
+     .what_it_means =
+         "Absolute Value — set $rd to |$rs|. "
+         "Multi-instruction expansion using\n"
+         "    arithmetic-shift / xor / sub to avoid a conditional branch."},
+    {.name = "b",
+     .what_it_means =
+         "Branch — unconditional jump to a label. Encoded as `bgez $0, label`\n"
+         "    ($0 is never negative, so the branch is always taken)."},
+    {.name = "bal",
+     .what_it_means =
+         "Branch-and-Link — unconditional call to a label, saving the return\n"
+         "    address in $ra. Encoded as `bgezal $0, label`."},
+    {.name = "beqz",
+     .what_it_means =
+         "Branch if Equal to Zero — branch if $rs == 0. Encoded as\n"
+         "    `beq $rs, $0, label`."},
+    {.name = "bnez",
+     .what_it_means =
+         "Branch if Not Equal to Zero — branch if $rs != 0. Encoded as\n"
+         "    `bne $rs, $0, label`."},
+    {.name = "bge",
+     .what_it_means =
+         "Branch if Greater or Equal (signed) — branch if $rs >= $rt. Expands\n"
+         "    to `slt $at, $rs, $rt` + `beq "
+         "$at, $0, label` (with an immediate,\n"
+         "    `slti $at, $rs, imm` + `beq`)."},
+    {.name = "bgeu",
+     .what_it_means =
+         "Branch if Greater or Equal (unsigned) "
+         "— branch if $rs >= $rt unsigned.\n"
+         "    Expands to `sltu $at, $rs, $rt` + `beq $at, $0, label`."},
+    {.name = "bgt",
+     .what_it_means =
+         "Branch if Greater Than (signed) — branch if $rs > $rt. Expands to\n"
+         "    `slt $at, $rt, $rs` + `bne $at, $0, label` (with an immediate,\n"
+         "    `slti $at, $rs, imm+1` + `beq $at, $0, label`)."},
+    {.name = "bgtu",
+     .what_it_means =
+         "Branch if Greater Than (unsigned) — branch if $rs > $rt unsigned.\n"
+         "    Expands to `sltu $at, $rt, $rs` + `bne $at, $0, label`."},
+    {.name = "ble",
+     .what_it_means =
+         "Branch if Less or Equal (signed) — branch if $rs <= $rt. Expands to\n"
+         "    `slt $at, $rt, $rs` + `beq $at, $0, label` (with an immediate,\n"
+         "    `slti $at, $rs, imm+1` + `bne $at, $0, label`)."},
+    {.name = "bleu",
+     .what_it_means =
+         "Branch if Less or Equal (unsigned) — branch if $rs <= $rt unsigned.\n"
+         "    Expands to `sltu $at, $rt, $rs` + `beq $at, $0, label`."},
+    {.name = "blt",
+     .what_it_means =
+         "Branch if Less Than (signed) — branch if $rs < $rt. Expands to\n"
+         "    `slt $at, $rs, $rt` + `bne $at, $0, label` (with an immediate,\n"
+         "    `slti $at, $rs, imm` + `bne`)."},
+    {.name = "bltu",
+     .what_it_means =
+         "Branch if Less Than (unsigned) — branch if $rs < $rt unsigned.\n"
+         "    Expands to `sltu $at, $rs, $rt` + `bne $at, $0, label`."},
+    {.name = "la",
+     .what_it_means =
+         "Load Address — set $rd to the 32-bit address of a label. Expands to\n"
+         "    `lui $rd, hi(addr)` + `ori $rd, "
+         "$rd, lo(addr)`, or just the `lui`\n"
+         "    when the low 16 bits are 0; `la "
+         "$rd, N($rs)` is `addi $rd, $rs, N`."},
+    {.name = "ld",
+     .what_it_means =
+         "Load Doubleword — load 64 bits into a register pair. Expands to two\n"
+         "    `lw` instructions covering offsets 0 and 4."},
+    {.name = "li",
+     .what_it_means =
+         "Load Immediate — set $rd to a 32-bit constant. One that fits in 16\n"
+         "    unsigned bits is one `ori $rd, "
+         "$0, imm`; any other expands to `lui`\n"
+         "    + `ori`, or just the `lui` when the low 16 bits are 0."},
+    {.name = "move",
+     .what_it_means = "Move — copy $rs into $rd. Encoded as "
+                      "`addu $rd, $0, $rs` (adding $zero\n"
+                      "    is the simplest way to copy a register)."},
+    {.name = "mulo",
+     .what_it_means =
+         "Multiply with Overflow check — signed "
+         "multiply that traps on overflow.\n"
+         "    Expands to `mult` plus an overflow check plus `mflo`."},
+    {.name = "mulou",
+     .what_it_means =
+         "Multiply Unsigned with Overflow check — unsigned variant of `mulo`."},
+    {.name = "neg",
+     .what_it_means =
+         "Negate (signed; traps on overflow) — set $rd = -$rs. Encoded as\n"
+         "    `sub $rd, $0, $rs`."},
+    {.name = "negu",
+     .what_it_means =
+         "Negate Unsigned — set $rd = -$rs with no overflow trap. Encoded as\n"
+         "    `subu $rd, $0, $rs`."},
+    {.name = "nop",
+     .what_it_means =
+         "No Operation — do nothing for one cycle. Encoded as `sll $0, $0, 0`\n"
+         "    (a shift writing to $zero, which is hardwired to 0 and discards\n"
+         "    the result)."},
+    {.name = "not",
+     .what_it_means =
+         "Bitwise NOT — set $rd to the one's complement of $rs. Encoded as\n"
+         "    `nor $rd, $rs, $0` (NOR with $zero is logical NOT)."},
+    {.name = "rem",
+     .what_it_means =
+         "Signed Remainder — set $rd = $rs % $rt. Expands to a zero-divisor\n"
+         "    check (`bne` + `break`), then `div $rs, $rt` + `mfhi $rd`."},
+    {.name = "remu",
+     .what_it_means =
+         "Unsigned Remainder — set $rd = $rs % $rt unsigned. Expands to a\n"
+         "    zero-divisor check, then `divu $rs, $rt` + `mfhi $rd`."},
+    {.name = "rol",
+     .what_it_means =
+         "Rotate Left — multi-instruction expansion using sll, srl, and or to\n"
+         "    rotate the bits of $rs left."},
+    {.name = "ror",
+     .what_it_means =
+         "Rotate Right — multi-instruction expansion using srl, sll, and or."},
+    {.name = "sd",
+     .what_it_means = "Store Doubleword — store 64 bits from "
+                      "a register pair. Expands to two\n"
+                      "    `sw` instructions at offsets 0 and 4."},
+    {.name = "seq",
+     .what_it_means =
+         "Set if Equal — set $rd = ($rs == $rt) ? 1 : 0. Expands to `xor` +\n"
+         "    `sltiu`."},
+    {.name = "sne",
+     .what_it_means = "Set if Not Equal — set $rd = ($rs != "
+                      "$rt) ? 1 : 0. Expands to `xor` +\n"
+                      "    `sltu` against $zero."},
+    {.name = "sge",
+     .what_it_means =
+         "Set if Greater or Equal (signed) — $rd = ($rs >= $rt) ? 1 : 0."},
+    {.name = "sgeu", .what_it_means = "Set if Greater or Equal (unsigned)."},
+    {.name = "sgt",
+     .what_it_means =
+         "Set if Greater Than (signed) — $rd = ($rs > $rt) ? 1 : 0."},
+    {.name = "sgtu", .what_it_means = "Set if Greater Than (unsigned)."},
+    {.name = "sle",
+     .what_it_means =
+         "Set if Less or Equal (signed) — $rd = ($rs <= $rt) ? 1 : 0."},
+    {.name = "sleu", .what_it_means = "Set if Less or Equal (unsigned)."},
+    {.name = "ulh",
+     .what_it_means = "Unaligned Load Halfword (signed) — "
+                      "read 16 bits at a possibly-unaligned\n"
+                      "    address. Expands to byte loads + shifts."},
+    {.name = "ulhu",
+     .what_it_means =
+         "Unaligned Load Halfword Unsigned — zero-extending variant of `ulh`."},
+    {.name = "ulw",
+     .what_it_means =
+         "Unaligned Load Word — read 32 bits at a possibly-unaligned address.\n"
+         "    Expands to `lwl` + `lwr` (or a sequence of byte loads)."},
+    {.name = "ush",
+     .what_it_means =
+         "Unaligned Store Halfword — write 16 bits at a possibly-unaligned "
+         "address."},
+    {.name = "usw",
+     .what_it_means = "Unaligned Store Word — write 32 bits "
+                      "at a possibly-unaligned address.\n"
+                      "    Expands to `swl` + `swr`."},
+    {.name = nullptr, .what_it_means = nullptr},
 };
 
 /* The table entry for the pseudo-op named NAME, or nullptr. */
