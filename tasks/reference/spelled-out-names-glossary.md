@@ -4,7 +4,7 @@
 the port tasks that carry the same names into `port/python`, `port/haskell` and `port/rust`
 (`tasks/archive/2026/11/14/spelled-out-names-python-port.md`,
 `tasks/archive/2026/11/14/spelled-out-names-haskell-port.md`,
-`tasks/spelled-out-names-rust-port.md`). Update it in place when a name is added or a decision
+`tasks/archive/2026/11/14/spelled-out-names-rust-port.md`). Update it in place when a name is added or a decision
 changes. Written 2026-11-14 (William Emerison Six <billsix@gmail.com>) by the rename recorded in
 `tasks/archive/2026/11/14/spelled-out-names-c-core.md`.
 
@@ -82,9 +82,15 @@ The ports carry the same names in their own casing (`general_purpose_registers` 
   - `len` and `err` are `byteLength` and `errorOccurred`, since `length` and `error` are
     Prelude's;
   - `Output.hs`'s `fd` is a file descriptor and stays.
+- **Rust** (`tasks/archive/2026/11/14/spelled-out-names-rust-port.md`):
+  - `read_le32` is `read_little_endian_32` (here `le` is little-endian);
+  - std's names stay, `.len()` among them, while the port's own `len` is `length`;
+  - `console.rs`'s `fd` is a file descriptor and stays.
 
-The decisions are in the archived task's Decisions section. The full per-name table is
-`tasks/adhoc/spelled-out-names-c-core/data/renames.tsv` until the port tasks are done.
+The decisions are in the archived C task's Decisions section. The full per-name tables were
+`tasks/adhoc/spelled-out-names-c-core/data/renames.tsv` and the ports'
+`tasks/adhoc/spelled-out-names-python-port/data/*.names.tsv`; they were removed when the last
+port task was archived and are in the history at commit `ced3497`.
 
 ## The words
 
