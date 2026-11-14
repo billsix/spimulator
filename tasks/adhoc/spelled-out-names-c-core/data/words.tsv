@@ -1,0 +1,922 @@
+tok	no	377	2783	EnumConstant,Field,ParmVar,Var	TOK_INT TOK_ID TOK_ORI_OPCODE TOK_REG TOK_NL TOK_BEQ_OPCODE	no
+addr	no	25	1207	EnumConstant,Field,Function,Macro,ParmVar,Typedef,Var	addr mem_addr RT_ADDR_INST addr_expr_imm addr_expr addr_expr_reg	no
+rs	no	15	714	EnumConstant,Field,Macro,ParmVar,Var	rs RS RD_RS_RT_INST RS_RT_INST BRANCH_RS_LABEL_INST RT_RS_IMM_INST	no
+imm	no	34	596	EnumConstant,Field,Function,Macro,ParmVar,Typedef,Var	imm_expr imm IMM addr_expr_imm RT_RS_IMM_INST make_imm_expr	no
+ast	no	72	586	EnumConstant,Function,Record,Typedef,Var	ast_node ast_append emit_ast AST_PSEUDO ast_kind AST_FILE	no
+fp	no	40	576	EnumConstant,Field,Function,ParmVar,Var	FP_FD_FS_INST FP_CMP_FS_FT_INST FP_FD_FS_FT_INST FP_MOVC_TYPE_INST FP_FD_FR_FS_FT_INST fp	no
+mem	no	23	554	Field,Function,Typedef,Var	mem_addr mem_word mem_read_word mem_write_word snap_mem_addr mem_read_inst	no
+expr	no	23	551	Field,Function,Macro,ParmVar,Typedef,Var	imm_expr expr EXPR addr_expr_imm addr_expr addr_expr_reg	no
+fs	no	8	384	EnumConstant,Field,Macro,ParmVar,Var	FP_FD_FS_INST FP_CMP_FS_FT_INST FS fs FP_FD_FS_FT_INST FP_FD_FR_FS_FT_INST	no
+ss	no	9	364	Function,ParmVar,Var	ss ss_printf ss_lazy_init ss_clear ss_to_string ss_init	no
+dir	no	50	335	EnumConstant,Field,Function,ParmVar,Var	ASM_DIR data_dir text_dir dir_seg AST_DIR_KTEXT AST_DIR_TEXT	no
+gpr	no	2	297	ParmVar,Var	gpr print_gpr_hex	no
+fd	no	7	284	EnumConstant,Field,Macro,ParmVar,Var	FP_FD_FS_INST FD FP_FD_FS_FT_INST fd FP_FD_FR_FS_FT_INST BIN_FD	no
+pc	no	21	270	Field,Function,Macro,ParmVar,Var	PC pc data_pc snap_PC next_data_pc current_data_pc	no
+seg	no	27	201	EnumConstant,Field,Function,ParmVar,Var	stack_seg text_seg data_seg k_data_seg seg dir_seg	no
+cp	no	49	195	EnumConstant,Function,Macro,Var	CP0_Status CP0_BadVAddr CP0_Cause ExcCode_CpU CP0_EPC CP0_Status_EXL	no
+buf	no	12	189	Field,Function,Var	buf line_buf tok_buf buf2 current_line_buf repl_buf	no
+asm	no	24	178	EnumConstant,Function,Record,Typedef	ASM_DIR asm_event asm_segment asm_event_observer TOK_ASM0_DIRECTIVE ASM_CMD	no
+argv	no	4	145	ParmVar,Var	argv program_argv owned_argv argv0	no
+mips	no	2	137	Enum,Typedef	mips_instruction mips_exc_code	no
+cmd	no	24	123	EnumConstant,Function,ParmVar,Var	cmd prev_cmd NOP_CMD DUMP_TEXT_CMD EXIT_CMD HELP_CMD	no
+fpr	no	8	122	Macro,ParmVar,Var	FPR_S FPR_D SET_FPR_S SET_FPR_D SET_FPR_W print_fpr_hex	no
+printf	no	1	113	Function	ss_printf	no
+len	no	8	111	Field,ParmVar,Var	len line_len text_len expansion_len owned_strs_len tbl_len	no
+cond	no	10	110	EnumConstant,Function,Macro,ParmVar,Var	BRANCH_COPROC_COND_INST SET_COND cond COND_IN COND_EQ COND_LT	no
+shamt	no	6	109	EnumConstant,Field,Macro,ParmVar,Var	shamt RD_RT_SHAMT_INST SHAMT SET_SHAMT BIN_SHAMT shamt_used	no
+str	no	8	107	EnumConstant,Function,ParmVar,Record,Typedef,Var	str_stream str_prefix str TOK_STR copy_str_to_stack str_size	no
+regs	no	6	101	EnumConstant,Function,Macro,Var	REGS say_try_regs print_all_regs subst_field_regs PRINT_ALL_REGS_CMD regs	no
+ps	no	20	100	EnumConstant	TOK_ABS_PS_OPCODE TOK_ADD_PS_OPCODE TOK_ALNV_PS_OPCODE TOK_CVT_PS_S_OPCODE TOK_MADD_PS_OPCODE TOK_MOVF_PS_OPCODE	yes
+spim	no	15	99	Enum,Function,Macro,Var	spim_return_value run_spim console_to_spim _spim_b_ _spim_a_ parse_spim_command	no
+sym	no	3	99	EnumConstant,ParmVar,Var	sym sym_name PRINT_SYM_CMD	no
+exc	no	22	91	Enum,EnumConstant,Typedef,Var	ExcCode_Tr ExcCode_CpU ExcCode_RI ExcCode_Bp ExcCode_Int ExcCode_AdEL	no
+cmp	no	4	78	EnumConstant,Function	FP_CMP_FS_FT_INST inst_cmp cmp_key_to_name cmp_key_to_value1	no
+streq	no	1	73	Function	streq	no
+cvt	no	13	71	EnumConstant	TOK_CVT_D_S_OPCODE TOK_CVT_D_W_OPCODE TOK_CVT_S_D_OPCODE TOK_CVT_S_W_OPCODE TOK_CVT_W_D_OPCODE TOK_CVT_W_S_OPCODE	yes
+copreg	no	3	66	EnumConstant,Var	RT_COPREG_INST FP_RT_COPREG_INST copreg	no
+syscall	no	21	65	Enum,EnumConstant,Function,Macro	TOK_SYSCALL_OPCODE CLOSE_SYSCALL EXIT2_SYSCALL EXIT_SYSCALL OPEN_SYSCALL PRINT_CHARACTER_SYSCALL	no
+bc	no	8	64	EnumConstant	TOK_BC1TL_OPCODE TOK_BC2TL_OPCODE TOK_BC1FL_OPCODE TOK_BC1T_OPCODE TOK_BC2FL_OPCODE TOK_BC2T_OPCODE	yes
+tpl	no	13	58	Function	tpl_r3_arith tpl_i2_arith tpl_load tpl_branch_1reg tpl_shift tpl_store	no
+args	no	4	54	EnumConstant,Var	args ARGS_CMD MAX_ARGS orig_args	no
+pos	no	4	49	Field,ParmVar,Var	line_pos pos end_pos bit_pos	no
+json	no	10	47	Function,Var	json_escape_string ast_print_json json_node ast_json_out json_imm json_chain	no
+argc	no	2	44	ParmVar,Var	argc program_argc	no
+prev	no	5	44	Var	prev_cmd prev prev_token prev_inst prev_prev_inst	no
+tbl	no	6	43	ParmVar,Var	opcode_tbl tbl tbl_len opcode_decode_tbl opcode_encoding_tbl register_tbl	no
+nl	no	3	41	EnumConstant,Function,Var	TOK_NL sync_to_nl consumed_nl	no
+ioffset	no	2	40	Macro	IOFFSET SET_IOFFSET	no
+movc	no	2	40	EnumConstant	FP_MOVC_TYPE_INST MOVC_TYPE_INST	no
+tmp	no	1	40	Var	tmp	no
+recv	no	9	39	Var	recv_control recv_buffer_full_timer RECV_INT_ENABLE RECV_INT_LEVEL RECV_READY RECV_BUFFER_ADDR	no
+repl	no	3	39	Var	repl_line repl_buf repl_fp	no
+fcsr	no	20	36	Macro,Var	FCSR FCSR_REG FCSR_FCC FCSR_MASK FCSR_Cause_E FCSR_Cause_I	no
+xmalloc	no	1	36	Function	xmalloc	no
+const	no	6	35	EnumConstant,Field,Function,ParmVar	const_imm_expr const_flag AST_LABEL_CONST ast_make_label_const const_divisor emit_label_const	no
+mk	no	4	35	Function	mk_r_inst mk_i_inst mk_co_r_inst mk_j_inst	no
+ae	no	11	34	EnumConstant	AE_DATA_BYTE AE_ALIGN AE_DATA_DOUBLE AE_DATA_HALF AE_DATA_STRING AE_DATA_WORD	no
+noarg	no	2	33	EnumConstant,Function	NOARG_TYPE_INST parse_noarg	no
+ori	no	1	33	EnumConstant	TOK_ORI_OPCODE	yes
+src	no	4	33	Field,ParmVar,Var	src src_text src1 src2	no
+eq	no	5	31	EnumConstant,Function,Var	COND_EQ TOK_C_EQ_D_OPCODE TOK_C_EQ_S_OPCODE if_eq set_eq_inst	no
+init	no	5	30	Function,ParmVar	ss_lazy_init parser_init scanner_init init ss_init	no
+io	no	7	29	Function,Var	mapped_io IO_INTERVAL MM_IO_BOT MM_IO_TOP check_memory_mapped_IO read_memory_mapped_IO	no
+eof	no	2	28	EnumConstant,Field,Var	TOK_EOF at_eof	no
+gp	no	4	28	Field,Var	gp_flag next_gp_item_addr gp_midpoint REG_GP	no
+mtc	no	4	28	EnumConstant	TOK_MTC1_OPCODE TOK_MTC0_OPCODE TOK_MTC2_OPCODE TOK_MTC1_D_PSEUDO_OP	yes
+jalr	no	2	27	EnumConstant	TOK_JALR_HB_OPCODE TOK_JALR_OPCODE	yes
+mul	no	4	26	EnumConstant	TOK_MUL_OPCODE TOK_MUL_D_OPCODE TOK_MUL_S_OPCODE TOK_MUL_PS_OPCODE	yes
+arith	no	3	25	EnumConstant,Function	tpl_r3_arith tpl_i2_arith MOD_U_UNSIGNED_ARITH	no
+bkpt	no	5	25	EnumConstant,ParmVar,Typedef	bkpt LIST_BKPT_CMD SET_BKPT_CMD DELETE_BKPT_CMD cont_bkpt	no
+exprs	no	1	25	Field,ParmVar,Var	exprs	no
+im	no	11	25	Var	b_im CP0_Status_IM fld_im CP0_Status_IM0 CP0_Status_IM1 CP0_Status_IM2	no
+loc	no	2	25	EnumConstant,Var	loc TOK_LOC_DIRECTIVE	no
+mfc	no	4	25	EnumConstant	TOK_MFC1_OPCODE TOK_MFC0_OPCODE TOK_MFC2_OPCODE TOK_MFC1_D_PSEUDO_OP	yes
+movn	no	4	25	EnumConstant	TOK_MOVN_D_OPCODE TOK_MOVN_S_OPCODE TOK_MOVN_OPCODE TOK_MOVN_PS_OPCODE	yes
+movz	no	4	25	EnumConstant	TOK_MOVZ_D_OPCODE TOK_MOVZ_S_OPCODE TOK_MOVZ_OPCODE TOK_MOVZ_PS_OPCODE	yes
+fld	no	7	24	Var	fld_rs fld_rt fld_im fld_fn fld_rd fld_sh	no
+funct	no	2	24	Var	funct special_funct_to_name	no
+lt	no	3	24	EnumConstant,Var	COND_LT TOK_C_LT_D_OPCODE TOK_C_LT_S_OPCODE	no
+un	no	3	24	EnumConstant,Var	COND_UN TOK_C_UN_D_OPCODE TOK_C_UN_S_OPCODE	no
+beq	no	1	23	EnumConstant	TOK_BEQ_OPCODE	yes
+hb	no	2	23	EnumConstant	TOK_JALR_HB_OPCODE TOK_JR_HB_OPCODE	yes
+movf	no	4	23	EnumConstant	TOK_MOVF_D_OPCODE TOK_MOVF_OPCODE TOK_MOVF_S_OPCODE TOK_MOVF_PS_OPCODE	yes
+movt	no	4	23	EnumConstant	TOK_MOVT_D_OPCODE TOK_MOVT_OPCODE TOK_MOVT_S_OPCODE TOK_MOVT_PS_OPCODE	yes
+nop	no	3	23	EnumConstant,Function	nop_inst NOP_CMD TOK_NOP_PSEUDO_OP	no
+ceil	no	4	22	EnumConstant	TOK_CEIL_W_D_OPCODE TOK_CEIL_W_S_OPCODE TOK_CEIL_L_D_OPCODE TOK_CEIL_L_S_OPCODE	yes
+coproc	no	1	22	EnumConstant	BRANCH_COPROC_COND_INST	no
+extern	no	6	22	EnumConstant,Function	AST_DIR_EXTERN TOK_EXTERN_DIRECTIVE ast_make_dir_extern emit_dir_extern extern_directive parse_dir_extern	no
+globl	no	5	22	EnumConstant,Field,Function	AST_DIR_GLOBL dir_globl ast_make_dir_globl emit_dir_globl parse_dir_globl	no
+madd	no	4	22	EnumConstant	TOK_MADD_OPCODE TOK_MADD_D_OPCODE TOK_MADD_PS_OPCODE TOK_MADD_S_OPCODE	yes
+msub	no	4	22	EnumConstant	TOK_MSUB_OPCODE TOK_MSUB_D_OPCODE TOK_MSUB_PS_OPCODE TOK_MSUB_S_OPCODE	yes
+trunc	no	4	22	EnumConstant	TOK_TRUNC_W_D_OPCODE TOK_TRUNC_W_S_OPCODE TOK_TRUNC_L_D_OPCODE TOK_TRUNC_L_S_OPCODE	yes
+fmt	no	1	21	ParmVar	fmt	no
+coprocessor	no	2	20	Var	coprocessor_registers coprocessor_control_registers	no
+insts	no	3	20	Function,Var	accept_pseudo_insts expansion_insts format_insts	no
+msg	no	2	20	ParmVar,Var	print_usage_msg msg	no
+sltu	no	1	20	EnumConstant	TOK_SLTU_OPCODE	yes
+config	no	8	19	Macro,Var	CP0_Config CP0_Config_BE CP0_Config_Reg CP0_Config_AR CP0_Config_AT CP0_Config_MT	no
+bne	no	1	18	EnumConstant	TOK_BNE_OPCODE	yes
+cfc	no	3	18	EnumConstant	TOK_CFC0_OPCODE TOK_CFC1_OPCODE TOK_CFC2_OPCODE	yes
+ctc	no	3	18	EnumConstant	TOK_CTC0_OPCODE TOK_CTC1_OPCODE TOK_CTC2_OPCODE	yes
+fpstr	no	1	18	Var	fpstr	no
+ip	no	9	18	Var	CP0_Cause_IP CP0_Cause_IP7 CP0_Cause_IP2 CP0_Cause_IP3 CP0_Cause_IP4 CP0_Cause_IP5	no
+lui	no	1	18	EnumConstant	TOK_LUI_OPCODE	yes
+slt	no	1	18	EnumConstant	TOK_SLT_OPCODE	yes
+tl	no	2	18	EnumConstant	TOK_BC1TL_OPCODE TOK_BC2TL_OPCODE	yes
+breakpoint	no	4	17	Function	add_breakpoint delete_breakpoint inst_is_breakpoint set_breakpoint	no
+le	no	3	17	EnumConstant,Function	TOK_C_LE_D_OPCODE TOK_C_LE_S_OPCODE set_le_inst	no
+mov	no	3	17	EnumConstant	TOK_MOV_D_OPCODE TOK_MOV_S_OPCODE TOK_MOV_PS_OPCODE	yes
+sll	no	1	17	EnumConstant	TOK_SLL_OPCODE	yes
+strs	no	2	17	Var	owned_strs owned_strs_len	no
+addu	no	1	16	EnumConstant	TOK_ADDU_OPCODE	yes
+ktext	no	3	16	EnumConstant,Function	AST_DIR_KTEXT ast_make_dir_ktext ASM_SEG_KTEXT	no
+ldc	no	2	16	EnumConstant	TOK_LDC1_OPCODE TOK_LDC2_OPCODE	yes
+lwc	no	2	16	EnumConstant	TOK_LWC1_OPCODE TOK_LWC2_OPCODE	yes
+sdc	no	2	16	EnumConstant	TOK_SDC1_OPCODE TOK_SDC2_OPCODE	yes
+swc	no	2	16	EnumConstant	TOK_SWC1_OPCODE TOK_SWC2_OPCODE	yes
+uk	no	4	16	Var	UK5 UK16 UK26 UK6	no
+addi	no	1	15	EnumConstant	TOK_ADDI_OPCODE	yes
+addiu	no	1	15	EnumConstant	TOK_ADDIU_OPCODE	yes
+addl	no	1	15	ParmVar	addl_bytes	no
+env	no	3	15	Var	spim_top_level_env top_level_env_ready env_j	no
+li	no	3	15	EnumConstant	TOK_LI_D_PSEUDO_OP TOK_LI_PSEUDO_OP TOK_LI_S_PSEUDO_OP	yes
+nmadd	no	3	15	EnumConstant	TOK_NMADD_D_OPCODE TOK_NMADD_PS_OPCODE TOK_NMADD_S_OPCODE	yes
+nmsub	no	3	15	EnumConstant	TOK_NMSUB_D_OPCODE TOK_NMSUB_PS_OPCODE TOK_NMSUB_S_OPCODE	yes
+slti	no	1	15	EnumConstant	TOK_SLTI_OPCODE	yes
+sp	no	1	15	Var	REG_SP	no
+kdata	no	3	14	EnumConstant,Function	AST_DIR_KDATA ast_make_dir_kdata ASM_SEG_KDATA	no
+nge	no	2	14	EnumConstant	TOK_C_NGE_D_OPCODE TOK_C_NGE_S_OPCODE	yes
+ngl	no	2	14	EnumConstant	TOK_C_NGL_D_OPCODE TOK_C_NGL_S_OPCODE	yes
+ngle	no	2	14	EnumConstant	TOK_C_NGLE_D_OPCODE TOK_C_NGLE_S_OPCODE	yes
+ngt	no	2	14	EnumConstant	TOK_C_NGT_D_OPCODE TOK_C_NGT_S_OPCODE	yes
+olt	no	2	14	EnumConstant	TOK_C_OLT_D_OPCODE TOK_C_OLT_S_OPCODE	yes
+srl	no	1	14	EnumConstant	TOK_SRL_OPCODE	yes
+ueq	no	2	14	EnumConstant	TOK_C_UEQ_D_OPCODE TOK_C_UEQ_S_OPCODE	yes
+ule	no	2	14	EnumConstant	TOK_C_ULE_D_OPCODE TOK_C_ULE_S_OPCODE	yes
+eval	no	1	13	Function	eval_imm_expr	no
+fpfill	no	1	13	Var	fpfill	no
+jal	no	1	13	EnumConstant	TOK_JAL_OPCODE	yes
+mult	no	2	13	EnumConstant,Function	TOK_MULT_OPCODE mult_inst	no
+sltiu	no	1	13	EnumConstant	TOK_SLTIU_OPCODE	yes
+continuable	no	1	12	ParmVar,Var	continuable	no
+dup	no	2	12	Function,Var	dup dup_imm	no
+fcc	no	3	12	Function,Var	fcc FCSR_FCC set_fcc	no
+idx	no	1	12	Var	idx	no
+lbu	no	1	12	EnumConstant	TOK_LBU_OPCODE	yes
+lw	no	1	12	EnumConstant	TOK_LW_OPCODE	yes
+sb	no	1	12	EnumConstant	TOK_SB_OPCODE	yes
+sqrt	no	2	12	EnumConstant	TOK_SQRT_D_OPCODE TOK_SQRT_S_OPCODE	yes
+sw	no	1	12	EnumConstant	TOK_SW_OPCODE	yes
+andi	no	1	11	EnumConstant	TOK_ANDI_OPCODE	yes
+bgez	no	1	11	EnumConstant	TOK_BGEZ_OPCODE	yes
+disasm	no	2	11	EnumConstant,Var	disasm DISASM_CMD	no
+divu	no	1	11	EnumConstant	TOK_DIVU_OPCODE	yes
+epc	no	2	11	Macro,Var	CP0_EPC CP0_EPC_Reg	no
+mfhi	no	1	11	EnumConstant	TOK_MFHI_OPCODE	yes
+mflo	no	1	11	EnumConstant	TOK_MFLO_OPCODE	yes
+sllv	no	1	11	EnumConstant	TOK_SLLV_OPCODE	yes
+sra	no	1	11	EnumConstant	TOK_SRA_OPCODE	yes
+srlv	no	1	11	EnumConstant	TOK_SRLV_OPCODE	yes
+subu	no	1	11	EnumConstant	TOK_SUBU_OPCODE	yes
+tf	no	2	11	Macro,Var	tf TF	no
+uimm	no	4	11	Function,Var	parse_uimm16 check_uimm_range UIMM_MAX UIMM_MIN	no
+xori	no	1	11	EnumConstant	TOK_XORI_OPCODE	yes
+zmalloc	no	1	11	Function	zmalloc	no
+incr	no	1	10	Function	incr_expr_offset	no
+lh	no	1	10	EnumConstant	TOK_LH_OPCODE	yes
+lhu	no	1	10	EnumConstant	TOK_LHU_OPCODE	yes
+mfhc	no	2	10	EnumConstant	TOK_MFHC1_OPCODE TOK_MFHC2_OPCODE	yes
+mthc	no	2	10	EnumConstant	TOK_MTHC1_OPCODE TOK_MTHC2_OPCODE	yes
+params	no	1	10	Var	params	no
+recip	no	2	10	EnumConstant	TOK_RECIP_D_OPCODE TOK_RECIP_S_OPCODE	yes
+rsqrt	no	2	10	EnumConstant	TOK_RSQRT_D_OPCODE TOK_RSQRT_S_OPCODE	yes
+swl	no	1	10	EnumConstant	TOK_SWL_OPCODE	yes
+swr	no	1	10	EnumConstant	TOK_SWR_OPCODE	yes
+arg	no	1	9	ParmVar	arg	no
+beql	no	1	9	EnumConstant	TOK_BEQL_OPCODE	yes
+bgezal	no	1	9	EnumConstant	TOK_BGEZAL_OPCODE	yes
+bgezall	no	1	9	EnumConstant	TOK_BGEZALL_OPCODE	yes
+bgezl	no	1	9	EnumConstant	TOK_BGEZL_OPCODE	yes
+bgtz	no	1	9	EnumConstant	TOK_BGTZ_OPCODE	yes
+bgtzl	no	1	9	EnumConstant	TOK_BGTZL_OPCODE	yes
+bkpts	no	1	9	Var	bkpts	no
+blez	no	1	9	EnumConstant	TOK_BLEZ_OPCODE	yes
+blezl	no	1	9	EnumConstant	TOK_BLEZL_OPCODE	yes
+bltz	no	1	9	EnumConstant	TOK_BLTZ_OPCODE	yes
+bltzall	no	1	9	EnumConstant	TOK_BLTZALL_OPCODE	yes
+bltzl	no	1	9	EnumConstant	TOK_BLTZL_OPCODE	yes
+bnel	no	1	9	EnumConstant	TOK_BNEL_OPCODE	yes
+cb	no	2	9	Function,ParmVar,Var	cb label_collect_cb	no
+exl	no	1	9	Var	CP0_Status_EXL	no
+lwl	no	1	9	EnumConstant	TOK_LWL_OPCODE	yes
+lwr	no	1	9	EnumConstant	TOK_LWR_OPCODE	yes
+multu	no	1	9	EnumConstant	TOK_MULTU_OPCODE	yes
+sc	no	1	9	EnumConstant	TOK_SC_OPCODE	yes
+srav	no	1	9	EnumConstant	TOK_SRAV_OPCODE	yes
+xrealloc	no	1	9	Function	xrealloc	no
+bge	no	1	8	EnumConstant	TOK_BGE_PSEUDO_OP	yes
+bgt	no	1	8	EnumConstant	TOK_BGT_PSEUDO_OP	yes
+ble	no	1	8	EnumConstant	TOK_BLE_PSEUDO_OP	yes
+blt	no	1	8	EnumConstant	TOK_BLT_PSEUDO_OP	yes
+bltzal	no	1	8	EnumConstant	TOK_BLTZAL_OPCODE	yes
+cmds	no	1	8	ParmVar,Var	cmds	no
+dst	no	1	8	ParmVar,Var	dst	no
+excode	no	1	8	ParmVar	excode	no
+fn	no	2	8	Var	b_fn fld_fn	no
+sz	no	1	8	ParmVar,Var	sz	no
+tg	no	2	8	Var	b_tg fld_tg	no
+undefs	no	1	8	Var	undefs	no
+ascii	no	2	7	EnumConstant,Function	TOK_ASCII_DIRECTIVE parse_dir_ascii	no
+asciiz	no	2	7	EnumConstant,Function	TOK_ASCIIZ_DIRECTIVE parse_dir_asciiz	no
+bd	no	2	7	Var	bd CP0_Cause_BD	no
+beqz	no	1	7	EnumConstant	TOK_BEQZ_PSEUDO_OP	yes
+clo	no	1	7	EnumConstant	TOK_CLO_OPCODE	yes
+clz	no	1	7	EnumConstant	TOK_CLZ_OPCODE	yes
+ctx	no	1	7	ParmVar	ctx	no
+maddu	no	1	7	EnumConstant	TOK_MADDU_OPCODE	yes
+msubu	no	1	7	EnumConstant	TOK_MSUBU_OPCODE	yes
+mulou	no	1	7	EnumConstant	TOK_MULOU_PSEUDO_OP	yes
+nd	no	2	7	Macro,Var	nd ND	no
+ri	no	1	7	EnumConstant	ExcCode_RI	no
+ror	no	1	7	EnumConstant	TOK_ROR_PSEUDO_OP	yes
+sge	no	1	7	EnumConstant	TOK_SGE_PSEUDO_OP	yes
+sgt	no	1	7	EnumConstant	TOK_SGT_PSEUDO_OP	yes
+sle	no	1	7	EnumConstant	TOK_SLE_PSEUDO_OP	yes
+teq	no	1	7	EnumConstant	TOK_TEQ_OPCODE	yes
+teqi	no	1	7	EnumConstant	TOK_TEQI_OPCODE	yes
+tge	no	1	7	EnumConstant	TOK_TGE_OPCODE	yes
+tgei	no	1	7	EnumConstant	TOK_TGEI_OPCODE	yes
+tgeiu	no	1	7	EnumConstant	TOK_TGEIU_OPCODE	yes
+tgeu	no	1	7	EnumConstant	TOK_TGEU_OPCODE	yes
+tlt	no	1	7	EnumConstant	TOK_TLT_OPCODE	yes
+tlti	no	1	7	EnumConstant	TOK_TLTI_OPCODE	yes
+tltiu	no	1	7	EnumConstant	TOK_TLTIU_OPCODE	yes
+tltu	no	1	7	EnumConstant	TOK_TLTU_OPCODE	yes
+tne	no	1	7	EnumConstant	TOK_TNE_OPCODE	yes
+tnei	no	1	7	EnumConstant	TOK_TNEI_OPCODE	yes
+al	no	1	6	EnumConstant	MOD_AL_AND_LINK	no
+bal	no	1	6	EnumConstant	TOK_BAL_PSEUDO_OP	yes
+bgeu	no	1	6	EnumConstant	TOK_BGEU_PSEUDO_OP	yes
+bgtu	no	1	6	EnumConstant	TOK_BGTU_PSEUDO_OP	yes
+bleu	no	1	6	EnumConstant	TOK_BLEU_PSEUDO_OP	yes
+bltu	no	1	6	EnumConstant	TOK_BLTU_PSEUDO_OP	yes
+bnez	no	1	6	EnumConstant	TOK_BNEZ_PSEUDO_OP	yes
+bp	no	1	6	EnumConstant	ExcCode_Bp	no
+ctrl	no	2	6	Var	RECV_CTRL_ADDR TRANS_CTRL_ADDR	no
+dasm	no	1	6	Var	dasm	no
+dn	no	1	6	Var	dn	no
+eret	no	1	6	EnumConstant	TOK_ERET_OPCODE	yes
+fpu	no	1	6	Function	set_fpu_cc	no
+halfword	no	1	6	EnumConstant	MOD_H_HALFWORD	no
+lcomm	no	2	6	EnumConstant,Function	TOK_LCOMM_DIRECTIVE lcomm_directive	no
+mthi	no	1	6	EnumConstant	TOK_MTHI_OPCODE	yes
+mtlo	no	1	6	EnumConstant	TOK_MTLO_OPCODE	yes
+mulo	no	1	6	EnumConstant	TOK_MULO_PSEUDO_OP	yes
+num	no	2	6	ParmVar	num reg_num	no
+regimm	no	2	6	Function,Var	regimm_rt_to_name render_regimm_decode_step	no
+rfe	no	1	6	EnumConstant	TOK_RFE_OPCODE	yes
+sgeu	no	1	6	EnumConstant	TOK_SGEU_PSEUDO_OP	yes
+sgtu	no	1	6	EnumConstant	TOK_SGTU_PSEUDO_OP	yes
+sleu	no	1	6	EnumConstant	TOK_SLEU_PSEUDO_OP	yes
+sne	no	1	6	EnumConstant	TOK_SNE_PSEUDO_OP	yes
+ssnop	no	1	6	EnumConstant	TOK_SSNOP_OPCODE	yes
+stmt	no	1	6	ParmVar	stmt	no
+subst	no	1	6	Function	subst_field_regs	no
+tlbp	no	1	6	EnumConstant	TOK_TLBP_OPCODE	yes
+tlbr	no	1	6	EnumConstant	TOK_TLBR_OPCODE	yes
+tlbwi	no	1	6	EnumConstant	TOK_TLBWI_OPCODE	yes
+tlbwr	no	1	6	EnumConstant	TOK_TLBWR_OPCODE	yes
+ulh	no	1	6	EnumConstant	TOK_ULH_PSEUDO_OP	yes
+addrs	no	1	5	Var	addrs	no
+alnv	no	1	5	EnumConstant	TOK_ALNV_PS_OPCODE	yes
+bgnb	no	1	5	EnumConstant	TOK_BGNB_DIRECTIVE	yes
+dbe	no	1	5	EnumConstant	ExcCode_DBE	no
+deret	no	1	5	EnumConstant	TOK_DERET_OPCODE	yes
+di	no	1	5	EnumConstant	TOK_DI_OPCODE	yes
+ehb	no	1	5	EnumConstant	TOK_EHB_OPCODE	yes
+ei	no	1	5	EnumConstant	TOK_EI_OPCODE	yes
+el	no	1	5	EnumConstant	ExcCode_AdEL	no
+endb	no	1	5	EnumConstant	TOK_ENDB_DIRECTIVE	yes
+endr	no	1	5	EnumConstant	TOK_ENDR_DIRECTIVE	yes
+ent	no	1	5	EnumConstant	TOK_ENT_DIRECTIVE	yes
+fcr	no	1	5	Macro	FCR	no
+fdset	no	1	5	Var	fdset	no
+fmask	no	1	5	EnumConstant	TOK_FMASK_DIRECTIVE	yes
+fpe	no	1	5	EnumConstant	ExcCode_FPE	no
+grstr	no	1	5	Var	grstr	no
+idlen	no	1	5	Var	idlen	no
+ld	no	1	5	EnumConstant	TOK_LD_PSEUDO_OP	yes
+ldxc	no	1	5	EnumConstant	TOK_LDXC1_OPCODE	yes
+livereg	no	1	5	EnumConstant	TOK_LIVEREG_DIRECTIVE	yes
+luxc	no	1	5	EnumConstant	TOK_LUXC1_OPCODE	yes
+lwxc	no	1	5	EnumConstant	TOK_LWXC1_OPCODE	yes
+negu	no	1	5	EnumConstant	TOK_NEGU_PSEUDO_OP	yes
+ov	no	1	5	EnumConstant	ExcCode_Ov	no
+pll	no	1	5	EnumConstant	TOK_PLL_PS_OPCODE	yes
+plu	no	1	5	EnumConstant	TOK_PLU_PS_OPCODE	yes
+prefx	no	1	5	EnumConstant	TOK_PREFX_OPCODE	yes
+pu	no	1	5	EnumConstant	TOK_CVT_S_PU_OPCODE	yes
+pul	no	1	5	EnumConstant	TOK_PUL_PS_OPCODE	yes
+puu	no	1	5	EnumConstant	TOK_PUU_PS_OPCODE	yes
+rdhwr	no	1	5	EnumConstant	TOK_RDHWR_OPCODE	yes
+rdpgpr	no	1	5	EnumConstant	TOK_RDPGPR_OPCODE	yes
+reglen	no	1	5	Var	reglen	no
+remu	no	1	5	EnumConstant	TOK_REMU_PSEUDO_OP	yes
+rol	no	1	5	EnumConstant	TOK_ROL_PSEUDO_OP	yes
+rotr	no	1	5	EnumConstant	TOK_ROTR_OPCODE	yes
+rotrv	no	1	5	EnumConstant	TOK_ROTRV_OPCODE	yes
+sd	no	1	5	EnumConstant	TOK_SD_PSEUDO_OP	yes
+sdbbp	no	1	5	EnumConstant	TOK_SDBBP_OPCODE	yes
+sdxc	no	1	5	EnumConstant	TOK_SDXC1_OPCODE	yes
+seb	no	1	5	EnumConstant	TOK_SEB_OPCODE	yes
+seh	no	1	5	EnumConstant	TOK_SEH_OPCODE	yes
+suxc	no	1	5	EnumConstant	TOK_SUXC1_OPCODE	yes
+swxc	no	1	5	EnumConstant	TOK_SWXC1_OPCODE	yes
+synci	no	1	5	EnumConstant	TOK_SYNCI_OPCODE	yes
+ulhu	no	1	5	EnumConstant	TOK_ULHU_PSEUDO_OP	yes
+ulw	no	1	5	EnumConstant	TOK_ULW_PSEUDO_OP	yes
+uncond	no	1	5	EnumConstant	CAT_UNCOND_JUMP	no
+ush	no	1	5	EnumConstant	TOK_USH_PSEUDO_OP	yes
+usw	no	1	5	EnumConstant	TOK_USW_PSEUDO_OP	yes
+wrpgpr	no	1	5	EnumConstant	TOK_WRPGPR_OPCODE	yes
+wsbh	no	1	5	EnumConstant	TOK_WSBH_OPCODE	yes
+dv	no	2	4	Var	dv1 dv2	no
+fres	no	1	4	Var	REG_FRES	no
+grfill	no	1	4	Var	grfill	no
+ibe	no	1	4	EnumConstant	ExcCode_IBE	no
+ie	no	1	4	Var	CP0_Status_IE	no
+neq	no	1	4	Var	if_neq	no
+noalias	no	1	4	EnumConstant	TOK_NOALIAS_DIRECTIVE	yes
+ok	no	1	4	Var	ok	no
+po	no	1	4	Var	po	no
+rdata	no	1	4	EnumConstant	TOK_RDATA_DIRECTIVE	yes
+rtname	no	1	4	Var	rtname	no
+sdata	no	1	4	EnumConstant	TOK_SDATA_DIRECTIVE	yes
+struct	no	1	4	EnumConstant	TOK_STRUCT_DIRECTIVE	yes
+verstamp	no	1	4	EnumConstant	TOK_VERSTAMP_DIRECTIVE	yes
+vreg	no	1	4	EnumConstant	TOK_VREG_DIRECTIVE	yes
+absoff	no	1	3	Var	absoff	no
+asan	no	1	3	Macro	SPIM_ASAN_BUILD	no
+ccfp	no	1	3	Macro	CCFP	no
+dumpnative	no	1	3	EnumConstant	DUMPNATIVE_TEXT_CMD	no
+es	no	1	3	EnumConstant	ExcCode_AdES	no
+fname	no	1	3	Var	fname	no
+ge	no	1	3	Function	set_ge_inst	no
+ms	no	1	3	Var	TIMER_TICK_MS	no
+pn	no	1	3	Var	pn	no
+ptr	no	1	3	Var	ptr	no
+sbrk	no	1	3	EnumConstant,Macro	SBRK_SYSCALL	no
+segs	no	1	3	Function	format_data_segs	no
+sys	no	1	3	EnumConstant	ExcCode_Sys	no
+undef	no	1	3	ParmVar	issue_undef_warnings	no
+ar	no	1	2	Var	CP0_Config_AR	no
+bkptrec	no	1	2	Record	bkptrec	no
+dt	no	1	2	Var	dt	no
+environ	no	1	2	Var	environ	no
+fval	no	1	2	Var	fval	no
+hashbits	no	1	2	Var	HASHBITS	no
+intptr	no	1	2	Typedef	intptr_union	no
+sep	no	1	2	Var	sep	no
+addrexpr	no	1	1	Record	addrexpr	no
+fgr	no	1	1	Var	FGR_LENGTH	no
+immexpr	no	1	1	Record	immexpr	no
+littlendian	no	1	1	Macro	SPIM_LITTLENDIAN	no
+mdmx	no	1	1	EnumConstant	ExcCode_MDMX	no
+ndfp	no	1	1	Macro	NDFP	no
+stm	no	1	1	Record	str_stm	no
+tff	no	1	1	Macro	TFF	no
+tlbl	no	1	1	EnumConstant	ExcCode_TLBL	no
+tlbs	no	1	1	EnumConstant	ExcCode_TLBS	no
+value	yes	13	2447	Field,Function,ParmVar,Typedef,Var	value1 value2 value scan_value spim_return_value flag_value_missing	no
+opcode	yes	290	2417	EnumConstant,Field,Function,Macro,ParmVar,Var	opcode OPCODE a_opcode TOK_ORI_OPCODE i_opcode TOK_BEQ_OPCODE	no
+name	yes	21	1418	Field,Function,ParmVar,Typedef,Var	name name_val_val kind_name op_token_name map_int_to_name_val_val exception_file_name	no
+1	yes	42	1313	EnumConstant,Field,Function,ParmVar,Var	value1 s1 v1 r1 REG_A1 TOK_MTC1_OPCODE	no
+s	yes	64	1278	EnumConstant,Function,Macro,ParmVar,Record,Var	s FPR_S s1 SET_FPR_S s2 TOK_C_EQ_S_OPCODE	no
+2	yes	40	1255	EnumConstant,Field,Function,Macro,ParmVar,Var	value2 buf2 v2 r2 c2 TOK_BC2TL_OPCODE	no
+instruction	yes	3	1254	Field,Function,ParmVar,Typedef,Var	instruction mips_instruction store_instruction	no
+inst	yes	90	1150	EnumConstant,Field,Function,Macro,ParmVar,Record,Typedef,Var	FP_FD_FS_INST FP_CMP_FS_FT_INST FP_FD_FS_FT_INST RT_ADDR_INST RD_RS_RT_INST RS_RT_INST	no
+n	yes	7	924	Field,ParmVar,Var	n n_mods n_suggestions label_names_cache_n n_inst nPC	no
+op	yes	64	897	Enum,EnumConstant,Field,Function,ParmVar,Typedef,Var	op PSEUDO_OP op_label b_op op_text op_token_name	no
+d	yes	57	837	EnumConstant,Macro,ParmVar,Var	d FPR_D SET_FPR_D TOK_C_EQ_D_OPCODE TOK_C_F_D_OPCODE TOK_C_LE_D_OPCODE	no
+rt	yes	17	836	EnumConstant,Field,Macro,ParmVar,Var	rt RT RT_ADDR_INST RD_RS_RT_INST RS_RT_INST RT_COPREG_INST	no
+data	yes	101	819	EnumConstant,Field,Function,ParmVar,Var	data data_dir DATA_BOT K_DATA_BOT data_top data_int	no
+reg	yes	42	762	EnumConstant,Field,Function,Macro,ParmVar,Typedef,Var	reg_word u_reg_word int_reg_names reg say_input_reg TOK_REG	no
+i	yes	25	665	EnumConstant,Field,Function,ParmVar,Var	i emit_i_free emit_i i_opcode i_type_free inst_i	no
+word	yes	20	651	EnumConstant,Function,Typedef,Var	reg_word word u_reg_word BYTES_PER_WORD mem_word mem_read_word	no
+a	yes	11	634	Function,ParmVar,Var	a a0 a_opcode REG_A0 REG_A1 REG_A2	no
+out	yes	6	606	ParmVar,Var	message_out out console_out ast_print_out ast_json_out show_expansion_out	no
+pseudo	yes	69	557	EnumConstant,Field,Function,ParmVar,Record,Var	PSEUDO_OP pseudo AST_PSEUDO TOK_BGE_PSEUDO_OP TOK_BGT_PSEUDO_OP TOK_BLE_PSEUDO_OP	no
+to	yes	23	550	Function,Macro,ParmVar,Var	to console_to_spim flush_to_newline map_int_to_name_val_val align_labels_to console_to_program	no
+c	yes	38	535	EnumConstant,Function,ParmVar,Var	c c2 TOK_C_EQ_D_OPCODE TOK_C_EQ_S_OPCODE TOK_C_F_D_OPCODE TOK_C_F_S_OPCODE	no
+node	yes	9	498	Function,ParmVar,Record,Typedef,Var	node ast_node new_node emit_data_int_node emit_node json_node	no
+line	yes	27	477	Field,Function,ParmVar,Var	line line_pos source_line line_no line_buf line_len	no
+label	yes	40	456	EnumConstant,Field,Function,Macro,ParmVar,Record,Typedef,Var	label BRANCH_RS_LABEL_INST op_label label_def BRANCH_RS_RT_LABEL_INST parse_label	no
+r	yes	33	438	EnumConstant,Field,Function,ParmVar,Var	r emit_r snap_R emit_fp_r r_i emit_r_shift	no
+u	yes	10	433	EnumConstant,Field,Typedef,Var	u u_reg_word ExcCode_CpU imm_u MOD_U_UNSIGNED_ARITH MOD_U_UNSIGNED_COMPARE	no
+text	yes	46	427	EnumConstant,Field,Function,ParmVar,Var	text TEXT_BOT text_dir text_seg op_text text_top	no
+write	yes	13	426	EnumConstant,Function,Macro	write_output write_bits mem_write_word mem_write_byte bad_mem_write mem_write_inst	no
+x	yes	1	415	ParmVar,Var	x	no
+rd	yes	11	405	EnumConstant,Field,Macro,ParmVar,Var	rd RD RD_RS_RT_INST RD_RT_SHAMT_INST RD_RS_INST RD_RT_RS_INST	no
+in	yes	8	391	Function,ParmVar,Var	in in_kernel console_in COND_IN in_file running_in_delay_slot	no
+parse	yes	56	391	Function,Var	parse_register parse_error_at parse_fp_register parse_imm32 parse_label parse_address	no
+message	yes	4	364	Field,Function,ParmVar,Var	message_out message print_message write_startup_message	no
+output	yes	1	341	Function	write_output	no
+0	yes	61	339	EnumConstant,Function,Macro,Var	a0 v0 CP0_Status REG_A0 CP0_BadVAddr REG_V0	no
+file	yes	25	297	EnumConstant,Field,Function,ParmVar,Var	file listing_file current_file source_file AST_FILE input_file	no
+at	yes	10	290	Field,Function,ParmVar,Var	at parse_error_at at_eof data_begins_at_point k_data_begins_at_point k_text_begins_at_point	no
+emit	yes	27	279	Function,Var	emit_r emit_i_free emit_i emit_fp_r emit_ast emit_r_shift	no
+int	yes	26	271	EnumConstant,Field,Function,Macro,Var	int_reg_names TOK_INT data_int data_int_count map_int_to_name_val_val data_int_buf	no
+val	yes	8	263	Field,Function,ParmVar,Typedef,Var	val name_val_val reg_val map_int_to_name_val_val snap_mem_val map_string_to_name_val_val	no
+ft	yes	8	255	EnumConstant,Field,Macro,ParmVar,Var	FP_CMP_FS_FT_INST ft FP_FD_FS_FT_INST FP_FD_FR_FS_FT_INST FT FP_FT_ADDR_INST	no
+error	yes	9	243	EnumConstant,Field,Function,Var	error fatal_error parse_error_at run_error parse_error_occurred parse_error	no
+type	yes	16	231	Enum,EnumConstant,Field,Function,Typedef,Var	type NOARG_TYPE_INST FP_MOVC_TYPE_INST i_type_free J_TYPE_INST r_type	no
+size	yes	28	223	Field,Function,ParmVar,Var	size new_size data_size dir_named_size old_size LABEL_HASH_TABLE_SIZE	no
+l	yes	17	217	EnumConstant,ParmVar,Var	l MOD_L_LIKELY TOK_CEIL_L_D_OPCODE TOK_CEIL_L_S_OPCODE TOK_CVT_D_L_OPCODE TOK_CVT_L_D_OPCODE	no
+directive	yes	46	210	EnumConstant,Function,Var	TOK_ALIAS_DIRECTIVE TOK_ALIGN_DIRECTIVE TOK_ASCIIZ_DIRECTIVE TOK_ASCII_DIRECTIVE TOK_ASM0_DIRECTIVE TOK_BGNB_DIRECTIVE	no
+v	yes	12	203	EnumConstant,Macro,ParmVar,Var	v v0 v1 CP0_BadVAddr v2 REG_V0	no
+set	yes	39	202	EnumConstant,Function,Macro,Var	SET_COND SET_FPR_S SET_FPR_D set_data_alignment SET_FPR_W SET_EXPR	no
+scanner	yes	14	197	Function,Typedef,Var	scanner_peek scanner_advance scanner_force_identifier scanner_push_source scanner_init scanner_pushed	no
+next	yes	13	195	Field,Function,Var	next next_char next_data_pc force_id_next next_k_data_pc next_k_text_pc	no
+k	yes	26	190	EnumConstant,Function,ParmVar,Var	K_DATA_BOT k_data_seg k_data_top K_TEXT_BOT k_text_seg k_text_top	no
+b	yes	17	187	EnumConstant,Function,ParmVar,Var	b b_op b_rs b_rt _spim_b_ b_im	no
+string	yes	21	172	EnumConstant,Field,Function,Macro,ParmVar,Var	string data_string json_escape_string string_length AST_DATA_STRING inst_to_string	no
+print	yes	37	170	EnumConstant,Function,Macro,ParmVar,Var	print_usage_msg print_all_regs ast_print print_inst print_mem print_message	no
+bytes	yes	6	165	Field,Macro,ParmVar,Var	bytes BYTES_PER_WORD addl_bytes BYTES_TO_INST BYTES_PER_LINE embedded_exceptions_bytes	no
+t	yes	6	164	EnumConstant,Field,Function,Typedef,Var	t r_t TOK_BC1T_OPCODE TOK_BC2T_OPCODE scan_value_t parse_i1t	no
+w	yes	17	163	EnumConstant,Macro,ParmVar,Var	w SET_FPR_W TOK_CEIL_W_D_OPCODE TOK_CEIL_W_S_OPCODE TOK_CVT_D_W_OPCODE TOK_CVT_S_W_OPCODE	no
+level	yes	7	158	Function,ParmVar,Var	level explain_level spim_top_level_env RECV_INT_LEVEL TRANS_INT_LEVEL top_level_env_ready	no
+address	yes	6	157	Function,Macro,ParmVar	address parse_address fix_current_label_address say_effective_address find_symbol_address starting_address	no
+kind	yes	7	155	Field,Function,ParmVar,Typedef,Var	kind kind_name ast_kind data_int_kind asm_event_kind json_kind_header	no
+token	yes	7	154	Function,ParmVar,Typedef,Var	token scan_token op_token_name read_token prev_token op_token	no
+branch	yes	14	153	EnumConstant,Function,Macro,Var	BRANCH_RS_LABEL_INST BRANCH_COPROC_COND_INST BRANCH_OFFSET BRANCH_INST BRANCH_RS_RT_LABEL_INST branch_offset	no
+bits	yes	7	151	Field,Function,ParmVar,Var	bits write_bits lower_bits_of_expr float_bits upper_bits_of_expr low_bits	no
+symbol	yes	9	151	Field,Function,Macro,ParmVar,Var	symbol SYMBOL_IS_DEFINED find_symbol_address op_symbol record_inst_uses_symbol undefined_symbol_string	no
+on	yes	2	145	Function,ParmVar	on parse_error_on_line	no
+peek	yes	9	145	Function	scanner_peek peek_char peek_word mem_peek peek_char2 scanner_peek2	no
+code	yes	26	144	Enum,EnumConstant,Function,Macro,Typedef,Var	code ExcCode_Tr ExcCode_CpU ExcCode_RI ExcCode_Bp ExcCode_Int	no
+make	yes	35	143	Function	make_imm_expr make_addr_expr make_r_type make_label_global make_dir_seg ast_make_data_word	no
+step	yes	9	142	EnumConstant,Function,ParmVar,Var	step explain_print_step_header step_size STEP_CMD next_step render_i_decode_step	no
+offset	yes	7	140	Field,Function,Macro,ParmVar,Var	offset BRANCH_OFFSET branch_offset incr_expr_offset word_offset new_pc_offset	no
+stack	yes	20	140	Function,ParmVar,Var	stack_bot stack_seg STACK_TOP stack_size initialize_run_stack stack_seg_b	no
+from	yes	2	138	Field,Function,ParmVar,Var	from print_reg_from_string	no
+byte	yes	13	136	EnumConstant,Function,Var	byte store_byte AST_DATA_BYTE MOD_B_BYTE mem_write_byte TOK_BYTE_DIRECTIVE	no
+scan	yes	12	133	Function,Typedef,Var	scan_value scan_token scan_escape_char scan_value_t scan_fp scan_fp_check	no
+target	yes	5	130	Field,Function,Macro,ParmVar,Var	target TARGET SET_TARGET branch_target jump_target	no
+store	yes	14	124	Function,ParmVar,Var	store data_store_depth store_instruction store_byte store_word store_half	no
+bot	yes	6	121	Var	stack_bot TEXT_BOT DATA_BOT K_DATA_BOT K_TEXT_BOT MM_IO_BOT	no
+say	yes	11	121	Function	say_input_reg say_try_regs say_wrote_reg say_effective_address say_try say_wrote_hi	no
+p	yes	2	120	Field,Var	p p0	no
+count	yes	11	118	EnumConstant,Field,Function,Macro,ParmVar,Var	count OPCODE_COUNT data_int_count data_fp_count CAT_COUNT CP0_Count	no
+register	yes	5	116	Function,Var	parse_register parse_fp_register register_name_to_number register_tbl scan_register	no
+exception	yes	10	113	Function,Macro,ParmVar,Var	RAISE_EXCEPTION exception_occurred load_exception_handler exception_file_name first_bad_exception exception_file_names	no
+read	yes	19	113	EnumConstant,Function,Macro	mem_read_word read_token mem_read_inst bad_mem_read read_assembly_file read_input	no
+e	yes	3	112	EnumConstant,ParmVar,Var	e ExcCode_C2E FCSR_Cause_E	no
+j	yes	13	109	EnumConstant,Field,Function,Var	j J_TYPE_INST TOK_J_OPCODE inst_j parse_j AST_INST_J	no
+snap	yes	8	109	Var	snap_R snap_PC snap_mem_addr snap_has_mem snap_HI snap_LO	no
+names	yes	6	108	ParmVar,Var	int_reg_names exception_file_names label_names_cache label_names_cache_cap label_names_cache_n category_names	no
+base	yes	6	107	Macro,ParmVar,Var	base BASE base_reg LOAD_INST_BASE BIN_BASE SET_BASE	no
+current	yes	9	104	Field,Function,Macro,Var	current_file current_line_buf current_observer current_line_saved fix_current_label_address current_data_pc	no
+enc	yes	1	98	ParmVar,Var	enc	no
+free	yes	6	98	Function	emit_i_free i_type_free ast_free free_inst free_instructions free_imm_array	no
+has	yes	6	98	Field,Function,ParmVar,Var	has has_start_addr has_addr snap_has_mem has_mem op_has_imm_form	no
+top	yes	9	97	Function,Var	data_top k_data_top text_top STACK_TOP k_text_top spim_top_level_env	no
+f	yes	6	96	EnumConstant,Field,ParmVar,Var	f TOK_BC1F_OPCODE TOK_BC2F_OPCODE TOK_C_F_D_OPCODE TOK_C_F_S_OPCODE is_explicit_f	no
+source	yes	11	95	Field,Function,Macro,ParmVar,Var	source_line source_file scanner_push_source source_part emit_source_text scanner_pop_source	no
+cat	yes	10	94	EnumConstant,ParmVar,Var	cat CAT_DATA_TRANSFER CAT_ARITHMETIC CAT_COMPARISON CAT_COND_BRANCH CAT_COUNT	no
+cc	yes	6	94	Field,Function,Macro,ParmVar,Var	cc CC set_fpu_cc cc_mask CC0_bit CC1_bit	no
+status	yes	18	90	Function,Macro,Var	CP0_Status status CP0_Status_EXL CP0_Status_CU CP0_Status_IE CP0_Status_IM	no
+explain	yes	15	89	Function,Macro,Typedef,Var	explain_after explain_before explain_level explain_snapshot explain_clear_suggestions explain_decoding_steps	no
+hi	yes	6	89	Field,Function,ParmVar,Var	HI hi snap_HI say_wrote_hi touched_hi HI_present	no
+after	yes	6	87	Function,ParmVar,Var	after explain_after after_length print_ast_after_parse print_ast_json_after_parse show_expansion_after_parse	no
+start	yes	9	87	Field,Function,ParmVar,Var	start_addr has_start_addr start dump_start scanner_start_line start_CP0_timer	no
+stream	yes	2	85	Field,Typedef	stream str_stream	no
+console	yes	10	76	Function,Var	console_to_spim console_in console_out console_to_program restore_console_to_program console_state_saved	no
+end	yes	8	76	EnumConstant,Function,ParmVar,Var	end dump_end expansion_end fp_end TOK_END_DIRECTIVE end_of_assembly_file	no
+align	yes	13	75	EnumConstant,Field,Function,Var	align align_labels_to align_data auto_align AST_DIR_ALIGN TOK_ALIGN_DIRECTIVE	no
+input	yes	9	75	Field,Function,Var	say_input_reg input_file input_file_name_get input_file_name read_input console_input_available	no
+mnemonic	yes	2	75	Field,ParmVar,Var	mnemonic expansion_mnemonic	no
+lo	yes	6	74	Field,Function,ParmVar,Var	LO lo snap_LO say_wrote_lo touched_lo LO_present	no
+new	yes	11	74	Field,Function,ParmVar,Var	new_node new_size new_inst new_seg new_entry new_addr	no
+no	yes	4	74	Field,ParmVar,Var	line_no reg_no current_line_no_saved slot_no	no
+what	yes	2	74	Field,ParmVar	what_it_means what	no
+shift	yes	7	72	EnumConstant,Field,Function,Var	shift emit_r_shift inst_r_shift AST_INST_R_SHIFT MOD_V_VARIABLE_SHIFT tpl_shift	no
+off	yes	1	71	ParmVar,Var	off	no
+kernel	yes	6	70	Function,ParmVar,Var	kernel in_kernel kernel_also to_kernel user_kernel_text_segment user_kernel_data_segment	no
+length	yes	10	69	Field,Function,ParmVar,Var	length R_LENGTH string_length buffer_length name_length ss_length	no
+bin	yes	10	68	Function,Macro	BIN_RS BIN_RT BIN_REG BIN_RD BIN_FS BIN_FD	no
+is	yes	16	68	Function,Macro,ParmVar,Var	SYMBOL_IS_DEFINED is_zero_imm opcode_is_load_store label_is_defined expansion_is_pseudo inst_is_breakpoint	no
+per	yes	2	68	Var	BYTES_PER_WORD BYTES_PER_LINE	no
+run	yes	8	68	EnumConstant,Function,ParmVar,Var	run_error run_spim initialize_run_stack run_program steps_to_run DEFAULT_RUN_STEPS	no
+use	yes	3	68	Record,Typedef,Var	use label_use next_use	no
+buffer	yes	8	65	Var	buffer buffer_length recv_buffer_full_timer trans_buffer_full_timer trans_buffer RECV_BUFFER_ADDR	no
+expansion	yes	15	65	Field,Function,Var	expansion_len expansion_end expansion_insts expansion_begin expansion_of EXPANSION_MAX	no
+char	yes	7	64	Function	next_char peek_char peek_char2 scan_escape_char get_console_char put_console_char	no
+id	yes	5	64	EnumConstant,Field,ParmVar,Var	TOK_ID force_id_next id_buf force_id id	no
+entry	yes	2	63	ParmVar,Var	entry new_entry	no
+load	yes	13	61	Function,Macro,Var	LOAD_INST load_exception_handler opcode_is_load_store tpl_load LOAD_INST_BASE delayed_load_addr1	no
+alignment	yes	4	60	Function,ParmVar,Var	alignment set_data_alignment enable_data_auto_alignment enable_data_alignment	no
+mods	yes	2	60	ParmVar,Var	n_mods mods	no
+program	yes	8	60	Function,ParmVar,Var	program_argc program_argv console_to_program restore_console_to_program run_program program_exit_status	no
+try	yes	5	60	Function,Var	say_try_regs try_lines_emitted say_try try_block_active say_try_finish	no
+double	yes	12	59	EnumConstant,Field,Function,Macro,Var	fp_double_view AST_DATA_DOUBLE TOK_DOUBLE_DIRECTIVE double_words AE_DATA_DOUBLE PRINT_DOUBLE_SYSCALL	no
+mod	yes	12	59	EnumConstant	MOD_I_IMMEDIATE MOD_AL_AND_LINK MOD_B_BYTE MOD_H_HALFWORD MOD_L_LIKELY MOD_U_UNSIGNED_ARITH	no
+raise	yes	3	56	Function,Macro	RAISE_EXCEPTION RAISE_INTERRUPT raise_exception	no
+sign	yes	5	56	Function,ParmVar,Var	sign sign_bit imm_not_sign_extended neg_sign sign_ex	no
+mask	yes	9	55	EnumConstant,Function,ParmVar,Var	mask field_mask TOK_MASK_DIRECTIVE cc_mask CP0_Cause_Mask CP0_Config_Mask	no
+time	yes	1	55	Var	time	no
+advance	yes	1	54	Function	scanner_advance	no
+encoding	yes	4	54	Field,Macro,ParmVar,Var	encoding ENCODING SET_ENCODING opcode_encoding_tbl	no
+first	yes	2	52	Var	first first_bad_exception	no
+cause	yes	20	51	Macro,Var	CP0_Cause CP0_Cause_ExcCode CP0_Cause_BD CP0_Cause_IP CP0_Cause_IP7 CP0_Cause_Reg	no
+copy	yes	5	50	Function,Var	copy copy_imm_expr copy_int_to_stack copy_str_to_stack copy_inst	no
+fire	yes	12	50	Function	fire asm_fire_forward_ref asm_fire_data_byte asm_fire_data_double asm_fire_data_half asm_fire_data_string	no
+half	yes	10	48	EnumConstant,Function	AST_DATA_HALF store_half TOK_HALF_DIRECTIVE mem_read_half mem_write_half AE_DATA_HALF	no
+bad	yes	7	47	Function,Macro,Var	CP0_BadVAddr bad_mem_read first_bad_exception bad_mem_write bad_text_read bad_text_write	no
+low	yes	5	47	Field,ParmVar,Var	low product_low low_bits low_expr new_pc_low_bits	no
+width	yes	1	46	Field,ParmVar,Var	width	no
+delayed	yes	7	44	Macro,Var	delayed_branches delayed_loads delayed_load_addr1 delayed_load_addr2 delayed_load_value1 delayed_load_value2	no
+it	yes	1	44	Field	what_it_means	no
+means	yes	1	44	Field	what_it_means	no
+trans	yes	9	44	Var	trans_control TRANS_READY TRANS_INT_ENABLE TRANS_INT_LEVEL trans_buffer_full_timer trans_buffer	no
+fatal	yes	1	43	Function	fatal_error	no
+max	yes	9	42	Macro,ParmVar,Var	max LINE_BUF_MAX MAX EXPANSION_MAX IMM_MAX MAX_ARGS	no
+dump	yes	7	41	EnumConstant,Function,Var	dump_start dump_end DUMP_TEXT_CMD dump_data_seg dump_text_seg dump_all_segments	no
+flag	yes	10	41	Field,Function,ParmVar,Var	flag_value_missing gp_flag hex_flag const_flag global_flag FCSR_Flag_I	no
+fr	yes	2	41	EnumConstant,Var	FP_FD_FR_FS_FT_INST fr	no
+uses	yes	5	41	Field,Function,ParmVar	uses resolve_label_uses record_inst_uses_symbol record_data_uses_symbol resolve_uses	no
+child	yes	2	40	Field,Function,ParmVar	child last_child	no
+labels	yes	5	40	Function,Var	this_line_labels align_labels_to clear_labels local_labels flush_local_labels	no
+space	yes	7	40	EnumConstant,Field,Function,Var	space AST_DIR_SPACE TOK_SPACE_DIRECTIVE dir_space ast_make_dir_space emit_dir_space	no
+add	yes	6	39	EnumConstant,Function	TOK_ADD_OPCODE TOK_ADD_D_OPCODE TOK_ADD_S_OPCODE add_suggestion TOK_ADD_PS_OPCODE add_breakpoint	no
+compare	yes	7	39	EnumConstant,Field,Function,Macro,Var	inst_fp_compare AST_INST_FP_COMPARE MOD_U_UNSIGNED_COMPARE CP0_Compare CP0_Compare_Reg ast_make_inst_fp_compare	no
+words	yes	2	39	Function,Var	words double_words	no
+saved	yes	6	38	Field,Var	current_line_saved console_state_saved current_line_no_saved saved_console_state saved_line saved_pseudo	no
+values	yes	1	38	Field,ParmVar,Var	values	no
+cap	yes	5	37	ParmVar,Var	cap data_fp_cap data_int_cap label_names_cache_cap new_cap	no
+def	yes	4	37	EnumConstant,Field,Function	label_def AST_LABEL_DEF AE_LABEL_DEF asm_fire_label_def	no
+round	yes	6	37	EnumConstant,Macro	ROUND_UP TOK_ROUND_W_D_OPCODE TOK_ROUND_W_S_OPCODE TOK_ROUND_L_D_OPCODE TOK_ROUND_L_S_OPCODE ROUND_DOWN	no
+ea	yes	1	36	ParmVar,Var	ea	no
+limit	yes	12	36	ParmVar,Var	initial_data_limit initial_k_data_limit initial_stack_limit data_limit data_size_limit k_data_limit	no
+state	yes	3	36	ParmVar,Var	state console_state_saved saved_console_state	no
+depth	yes	5	35	ParmVar,Var	data_store_depth depth scanner_stack_depth expansion_depth SCANNER_STACK_DEPTH	no
+initial	yes	9	35	ParmVar,Var	initial_data_limit initial_data_size initial_k_data_limit initial_k_data_size initial_k_text_size initial_stack_limit	no
+redo	yes	2	35	EnumConstant,ParmVar,Var	redo REDO_CMD	no
+sh	yes	6	35	EnumConstant,Function,Var	sh TOK_SH_OPCODE b_sh r_sh_type fld_sh parse_r2sh	no
+steps	yes	4	35	Function,ParmVar,Var	steps steps_to_run explain_decoding_steps DEFAULT_RUN_STEPS	no
+sub	yes	5	35	EnumConstant,Function	TOK_SUB_OPCODE TOK_SUB_D_OPCODE TOK_SUB_S_OPCODE TOK_SUB_PS_OPCODE resolve_a_label_sub	no
+float	yes	8	34	EnumConstant,Function,Macro	AST_DATA_FLOAT TOK_FLOAT_DIRECTIVE float_bits PRINT_FLOAT_SYSCALL READ_FLOAT_SYSCALL ast_make_data_float	no
+filename	yes	2	33	Var	filename filename_len	no
+format	yes	7	33	Function	format_an_inst format_insts format_mem format_imm_expr format_partial_line format_data_segs	no
+occurred	yes	2	33	Var	exception_occurred parse_error_occurred	no
+global	yes	4	32	EnumConstant,Field,Function,ParmVar	global make_label_global TOK_GLOBAL_DIRECTIVE global_flag	no
+listing	yes	5	32	Function,Var	listing_file print_text_listing listing_observer listing_shown close_listing_file	no
+suggestions	yes	4	32	Function,Var	suggestions n_suggestions explain_clear_suggestions MAX_SUGGESTIONS	no
+last	yes	3	31	Function,Var	last last_file_i last_child	no
+abs	yes	5	30	EnumConstant,Function	parse_abs_addr TOK_ABS_D_OPCODE TOK_ABS_S_OPCODE TOK_ABS_PSEUDO_OP TOK_ABS_PS_OPCODE	no
+clear	yes	5	30	Function,Macro	clear_labels ss_clear explain_clear_suggestions CLEAR_INTERRUPT emit_source_clear	no
+div	yes	4	30	EnumConstant,Function	TOK_DIV_OPCODE TOK_DIV_D_OPCODE TOK_DIV_S_OPCODE div_inst	no
+3	yes	7	29	Function,Var	tpl_r3_arith c3 REG_A3 CP0_Cause_IP3 parse_r3 r3	no
+force	yes	4	29	Field,Function,ParmVar,Var	force_id_next scanner_force_identifier force_id force_break	no
+observer	yes	4	29	Function,Typedef,Var	current_observer asm_event_observer asm_set_observer listing_observer	no
+view	yes	3	29	Var	fp_double_view fp_single_view fp_int_view	no
+assembly	yes	6	28	Function,Var	assembly_file_loaded read_assembly_file end_of_assembly_file read_assembly_command assembly_file_attempted test_assembly	no
+decode	yes	8	28	Function,Var	inst_decode opcode_decode_tbl OPCODE_DECODE_COUNT render_i_decode_step render_j_decode_step render_r_decode_step	no
+emitted	yes	3	28	Var	emitted try_lines_emitted legend_emitted	no
+hex	yes	5	28	Function,ParmVar,Var	hex_flag hex_digit_value print_fpr_hex render_hex_bin_table print_gpr_hex	no
+high	yes	2	28	Var	high product_high	no
+of	yes	6	28	Field,Function,Var	lower_bits_of_expr expansion_of upper_bits_of_expr end_of_assembly_file END_OF_TRAP_HANDLER_SYMBOL expansion_of_pseudo	no
+old	yes	5	28	ParmVar,Var	old_size old_expr old_inst old_accept old_bare	no
+table	yes	4	28	Function,Var	label_hash_table LABEL_HASH_TABLE_SIZE render_hex_bin_table initialize_symbol_table	no
+wrote	yes	4	28	Function	say_wrote_reg say_wrote_hi say_wrote_lo say_wrote_mem	no
+control	yes	4	27	Function,Var	trans_control recv_control control_c_seen coprocessor_control_registers	no
+event	yes	3	27	Record,Typedef	asm_event asm_event_observer asm_event_kind	no
+h	yes	5	27	EnumConstant,Macro,Var	stack_seg_h MOD_H_HALFWORD data_seg_h k_data_seg_h _config_h_	no
+neg	yes	5	27	EnumConstant,Var	TOK_NEG_D_OPCODE TOK_NEG_S_OPCODE TOK_NEG_PSEUDO_OP TOK_NEG_PS_OPCODE neg_sign	no
+append	yes	3	26	Function	ast_append ast_file_append ast_pseudo_append	no
+initialize	yes	5	26	Function	initialize_world initialize_run_stack initialize_registers initialize_symbol_table initialize_stack	no
+null	yes	3	26	Field,ParmVar,Var	null_term null_terminate null_term_in	no
+path	yes	2	26	Var	path history_path	no
+registers	yes	4	26	Function,Var	coprocessor_registers coprocessor_control_registers format_registers initialize_registers	no
+render	yes	9	26	Function	render_hex_bin_table render_dispatch render_i_decode_step render_j_decode_step render_r_decode_step render_regimm_decode_step	no
+block	yes	2	25	ParmVar,Var	block try_block_active	no
+enable	yes	9	25	Function,Var	enable_data_auto_alignment RECV_INT_ENABLE TRANS_INT_ENABLE enable_data_alignment FCSR_Enable_I FCSR_Enable_O	no
+hash	yes	3	25	Function,Var	label_hash_table LABEL_HASH_TABLE_SIZE get_hash	no
+min	yes	5	25	Macro,ParmVar,Var	min MIN IMM_MIN min_match UIMM_MIN	no
+owned	yes	3	25	Var	owned_strs owned_argv owned_strs_len	no
+present	yes	3	25	Field,Var	present HI_present LO_present	no
+result	yes	1	25	Var	result	no
+break	yes	3	23	EnumConstant,Var	TOK_BREAK_OPCODE break_inst force_break	no
+cache	yes	5	23	EnumConstant,Var	TOK_CACHE_OPCODE label_names_cache label_names_cache_cap label_names_cache_n ExcCode_CacheErr	no
+jr	yes	2	23	EnumConstant	TOK_JR_OPCODE TOK_JR_HB_OPCODE	yes
+parser	yes	6	23	Function	parser_init parser_set_print_ast_only parser_get_print_ast_only parser_set_print_ast parser_set_print_ast_json parser_set_show_expansion	no
+aligned	yes	1	22	Var	aligned	no
+floor	yes	4	22	EnumConstant	TOK_FLOOR_W_D_OPCODE TOK_FLOOR_W_S_OPCODE TOK_FLOOR_L_D_OPCODE TOK_FLOOR_L_S_OPCODE	yes
+forward	yes	6	22	EnumConstant,Field,Function	forward_resolved asm_fire_forward_ref forward_ref AE_FORWARD_REF AE_FORWARD_RESOLVED asm_fire_forward_resolved	no
+get	yes	5	22	Function	input_file_name_get get_hash get_opt_int get_console_char parser_get_print_ast_only	no
+prefix	yes	1	22	Function	str_prefix	no
+quiet	yes	1	22	Var	quiet	no
+bit	yes	5	21	Function,Var	sign_bit CC0_bit CC1_bit bit_pos explain_bit_layout	no
+command	yes	6	21	Function,ParmVar	parse_spim_command read_assembly_command command_line line_is_file_command line_is_label_command command_generator	no
+mapped	yes	5	21	Function,Var	mapped_io check_memory_mapped_IO read_memory_mapped_IO write_memory_mapped_IO DIRECT_MAPPED	no
+seq	yes	3	21	EnumConstant	TOK_C_SEQ_D_OPCODE TOK_C_SEQ_S_OPCODE TOK_SEQ_PSEUDO_OP	yes
+timer	yes	5	21	Function,Var	recv_buffer_full_timer trans_buffer_full_timer start_CP0_timer TIMER_TICK_MS bump_CP0_timer	no
+unsigned	yes	4	21	EnumConstant,Function,Var	unsigned_multiply MOD_U_UNSIGNED_ARITH MOD_U_UNSIGNED_COMPARE unsigned_imm	no
+exit	yes	6	20	EnumConstant,Function,Macro	EXIT_CMD program_exit_status EXIT2_SYSCALL EXIT_SYSCALL explain_program_exit save_history_at_exit	no
+segment	yes	3	20	Function,Typedef	asm_segment user_kernel_text_segment user_kernel_data_segment	no
+32	yes	1	19	Function	parse_imm32	no
+all	yes	4	19	EnumConstant,Function,Var	print_all_regs PRINT_ALL_REGS_CMD delete_all_breakpoints dump_all_segments	no
+bare	yes	2	19	Var	bare_machine old_bare	no
+branches	yes	1	19	Var	delayed_branches	no
+comm	yes	5	19	EnumConstant,Function	AST_DIR_COMM TOK_COMM_DIRECTIVE ast_make_dir_comm emit_dir_comm parse_dir_comm	no
+escape	yes	2	19	Function	json_escape_string scan_escape_char	no
+flush	yes	2	19	Function	flush_to_newline flush_local_labels	no
+jump	yes	4	19	EnumConstant,Function,Macro	JUMP_INST CAT_UNCOND_JUMP opcode_is_jump jump_target	no
+record	yes	3	19	Function	record_label record_inst_uses_symbol record_data_uses_symbol	no
+snapshot	yes	5	19	Function,Typedef	explain_snapshot scanner_snapshot explain_restore_snapshot explain_save_snapshot maybe_snapshot_line	no
+term	yes	3	19	Field,Function,ParmVar,Var	null_term parse_term null_term_in	no
+cursor	yes	1	18	Var	cursor	no
+list	yes	5	18	EnumConstant,Function	parse_expr_list LIST_BKPT_CMD list_breakpoints parse_fp_expr_list parse_string_list	no
+map	yes	2	18	Function	map_int_to_name_val_val map_string_to_name_val_val	no
+return	yes	1	18	Var	spim_return_value	no
+seen	yes	2	18	Function,Var	parse_errors_seen control_c_seen	no
+taken	yes	1	18	ParmVar	taken	no
+and	yes	2	17	EnumConstant	TOK_AND_OPCODE MOD_AL_AND_LINK	no
+fir	yes	6	17	Macro,Var	FIR FIR_D FIR_REG FIR_S FIR_W FIR_MASK	no
+location	yes	2	17	ParmVar,Var	location DEFAULT_RUN_LOCATION	no
+machine	yes	1	17	Var	bare_machine	no
+resolve	yes	4	17	Function,ParmVar	resolve_a_label_sub resolve_label_uses resolve_a_label resolve_uses	no
+check	yes	6	16	EnumConstant,Function	check_imm_range check_memory_mapped_IO check_uimm_range scan_fp_check check_keyword ExcCode_MCheck	no
+delta	yes	1	16	ParmVar,Var	delta	no
+fl	yes	2	16	EnumConstant	TOK_BC1FL_OPCODE TOK_BC2FL_OPCODE	yes
+handler	yes	3	16	Function,Var	load_exception_handler END_OF_TRAP_HANDLER_SYMBOL load_embedded_exception_handler	no
+or	yes	1	16	EnumConstant	TOK_OR_OPCODE	yes
+ready	yes	3	16	Var	TRANS_READY top_level_env_ready RECV_READY	no
+suggestion	yes	4	16	Function	add_suggestion explain_suggestion explain_suggestion_count suggestion_generator	no
+usage	yes	1	16	Var	print_usage_msg	no
+defined	yes	2	15	Function,Macro	SYMBOL_IS_DEFINED label_is_defined	no
+errors	yes	2	15	Var	parse_errors_seen errors_before	no
+full	yes	3	15	Function,Var	recv_buffer_full_timer trans_buffer_full_timer i_type_full_word	no
+header	yes	3	15	Function,Var	header_done explain_print_step_header json_kind_header	no
+kilo	yes	1	15	Var	kilo	no
+main	yes	1	15	Function	main	no
+mid	yes	3	15	Var	mid mid2 carry_mid	no
+modified	yes	2	15	Var	data_modified text_modified	no
+newline	yes	1	15	Function	flush_to_newline	no
+auto	yes	2	14	Var	auto_align enable_data_auto_alignment	no
+before	yes	2	14	Function,Var	explain_before errors_before	no
+expand	yes	3	14	Function	expand_data expand_k_data expand_stack	no
+increment	yes	2	14	Function	increment_data_pc increment_text_pc	no
+named	yes	2	14	Field,Function	dir_named_size make_named_size	no
+now	yes	1	14	Var	now	no
+ole	yes	2	14	EnumConstant	TOK_C_OLE_D_OPCODE TOK_C_OLE_S_OPCODE	yes
+sf	yes	2	14	EnumConstant	TOK_C_SF_D_OPCODE TOK_C_SF_S_OPCODE	yes
+sync	yes	2	14	EnumConstant,Function	sync_to_nl TOK_SYNC_OPCODE	no
+tag	yes	1	14	Var	tag	no
+tr	yes	1	14	EnumConstant	ExcCode_Tr	no
+ult	yes	2	14	EnumConstant	TOK_C_ULT_D_OPCODE TOK_C_ULT_S_OPCODE	yes
+up	yes	2	14	Macro,Var	ROUND_UP looked_up	no
+user	yes	3	14	Function,Var	user_kernel_text_segment user_kernel_data_segment dump_user_segments	no
+world	yes	2	14	Function,Var	initialize_world world_initialized	no
+zero	yes	3	14	EnumConstant,Function,Var	is_zero_imm MOD_U_ZERO_EXTEND zero_ext	no
+16	yes	3	13	Function,Var	parse_imm16 parse_uimm16 UK16	no
+begin	yes	3	13	Function	data_int_begin expansion_begin data_fp_begin	no
+display	yes	1	13	ParmVar	display	no
+encode	yes	1	13	Function	inst_encode	no
+field	yes	2	13	Function,Var	field_mask subst_field_regs	no
+files	yes	1	13	Var	files	no
+find	yes	3	13	Function	find_symbol_address find_op_type find_pseudo	no
+group	yes	2	13	ParmVar,Var	group group_name	no
+local	yes	3	13	Field,Function,Var	local_labels flush_local_labels next_local	no
+lookup	yes	2	13	Function	lookup_label lookup_classification	no
+multiply	yes	2	13	Function	unsigned_multiply signed_multiply	no
+only	yes	3	13	Function,Var	parser_set_print_ast_only print_ast_only_ parser_get_print_ast_only	no
+this	yes	1	13	Var	this_line_labels	no
+touched	yes	3	13	Var	touched_reg touched_hi touched_lo	no
+5	yes	3	12	Var	UK5 CP0_Cause_IP5 CP0_Status_IM5	no
+ad	yes	3	12	EnumConstant,Var	ExcCode_AdEL ad ExcCode_AdES	no
+assemble	yes	1	12	Var	assemble	no
+begins	yes	4	12	Function	data_begins_at_point k_data_begins_at_point k_text_begins_at_point text_begins_at_point	no
+fix	yes	1	12	Function,Macro	fix_current_label_address	no
+identifier	yes	2	12	Function	scanner_force_identifier scan_identifier	no
+immediate	yes	2	12	EnumConstant,Function	MOD_I_IMMEDIATE produce_immediate	no
+index	yes	2	12	Field,Var	index expansion_index	no
+key	yes	3	12	Function,ParmVar	key cmp_key_to_name cmp_key_to_value1	no
+m	yes	2	12	EnumConstant,Var	m ExcCode_MCheck	no
+memory	yes	4	12	Function	check_memory_mapped_IO make_memory read_memory_mapped_IO write_memory_mapped_IO	no
+one	yes	3	12	Function,Var	emit_one deleted_one scan_one_token	no
+point	yes	4	12	Function	data_begins_at_point k_data_begins_at_point k_text_begins_at_point text_begins_at_point	no
+product	yes	2	12	Var	product_high product_low	no
+push	yes	3	12	Function	scanner_push_source data_int_push data_fp_push	no
+re	yes	1	12	Var	re	no
+relative	yes	2	12	Field,ParmVar	pc_relative is_pc_relative	no
+restore	yes	2	12	Function,Var	restore_console_to_program explain_restore_snapshot	no
+default	yes	3	11	Var	DEFAULT_RUN_STEPS SPIM_DEFAULT_EXCEPTIONS_SENTINEL DEFAULT_RUN_LOCATION	no
+delete	yes	3	11	EnumConstant,Function	delete_breakpoint DELETE_BKPT_CMD delete_all_breakpoints	no
+grow	yes	1	11	Var	grow	no
+interrupt	yes	2	11	Macro	RAISE_INTERRUPT CLEAR_INTERRUPT	no
+lb	yes	1	11	EnumConstant	TOK_LB_OPCODE	yes
+lines	yes	1	11	Var	try_lines_emitted	no
+missing	yes	1	11	Function	flag_value_missing	no
+outer	yes	1	11	Var	outer	no
+primary	yes	1	11	ParmVar	primary	no
+ref	yes	3	11	EnumConstant,Field,Function	asm_fire_forward_ref forward_ref AE_FORWARD_REF	no
+resolved	yes	3	11	EnumConstant,Field,Function	forward_resolved AE_FORWARD_RESOLVED asm_fire_forward_resolved	no
+transfer	yes	1	11	EnumConstant	CAT_DATA_TRANSFER	no
+xor	yes	1	11	EnumConstant	TOK_XOR_OPCODE	yes
+accept	yes	2	10	Var	accept_pseudo_insts old_accept	no
+arr	yes	3	10	ParmVar,Var	arr new_arr __arr	no
+co	yes	2	10	Function	mk_co_r_inst r_co_type	no
+digit	yes	2	10	Function,Var	hex_digit_value got_digit	no
+dis	yes	1	10	Var	dis	no
+do	yes	3	10	Function,Macro	do_parse_pseudo do_syscall DO_DELAYED_UPDATE	no
+normal	yes	3	10	EnumConstant,Function	AST_LABEL_NORMAL ast_make_label_normal emit_label_normal	no
+not	yes	2	10	EnumConstant,Function	TOK_NOT_PSEUDO_OP imm_not_sign_extended	no
+res	yes	1	10	Var	REG_RES	no
+show	yes	3	10	Function,Var	show_expansion_out parser_set_show_expansion show_expansion_after_parse	no
+terminate	yes	1	10	Field,ParmVar	null_terminate	no
+active	yes	2	9	Var	try_block_active emit_source_active	no
+category	yes	4	9	Function,Typedef,Var	inst_category category_descriptions category_names emit_category_preamble	no
+cell	yes	1	9	Record,Typedef	label_cell	no
+close	yes	3	9	EnumConstant,Function,Macro,Var	close CLOSE_SYSCALL close_listing_file	no
+effective	yes	1	9	Function	say_effective_address	no
+known	yes	1	9	ParmVar	value_known	no
+loads	yes	1	9	Var	delayed_loads	no
+nor	yes	1	9	EnumConstant	TOK_NOR_OPCODE	yes
+reference	yes	1	9	Function	mem_reference	no
+signed	yes	2	9	Function,ParmVar	signed_multiply imm_signed	no
+tail	yes	1	9	Var	tail	no
+chain	yes	3	8	Function	json_chain print_chain print_pseudo_in_chain	no
+change	yes	3	8	EnumConstant,Field,Function	AE_SEG_CHANGE seg_change asm_fire_seg_change	no
+equal	yes	1	8	ParmVar	equal	no
+ex	yes	2	8	Function,Macro	CP0_ExCode sign_ex	no
+expect	yes	1	8	Function	expect	no
+expression	yes	1	8	Function	parse_expression	no
+head	yes	1	8	ParmVar	head	no
+history	yes	2	8	Function,Var	history_path save_history_at_exit	no
+if	yes	2	8	Var	if_eq if_neq	no
+item	yes	1	8	Var	next_gp_item_addr	no
+layout	yes	4	8	Function	explain_bit_layout render_i_layout render_j_layout render_r_layout	no
+lazy	yes	1	8	Function	ss_lazy_init	no
+ll	yes	1	8	EnumConstant	TOK_LL_OPCODE	yes
+lower	yes	1	8	Function	lower_bits_of_expr	no
+modifier	yes	3	8	Typedef,Var	inst_modifier modifier_descriptions modifier_letters	no
+sum	yes	1	8	Var	sum	no
+symbols	yes	2	8	Function	print_symbols print_undefined_symbols	no
+trap	yes	2	8	Function,Var	trap_inst END_OF_TRAP_HANDLER_SYMBOL	no
+unresolved	yes	1	8	Var	expr_unresolved_label	no
+whole	yes	1	8	Var	whole	no
+an	yes	1	7	Function	format_an_inst	no
+arithmetic	yes	1	7	EnumConstant	CAT_ARITHMETIC	no
+comparison	yes	1	7	EnumConstant	CAT_COMPARISON	no
+cop	yes	1	7	EnumConstant	TOK_COP2_OPCODE	yes
+cur	yes	1	7	Var	cur	no
+done	yes	1	7	Var	header_done	no
+erroneous	yes	1	7	Function	erroneous_line	no
+exceptions	yes	2	7	Var	SPIM_DEFAULT_EXCEPTIONS_SENTINEL embedded_exceptions_bytes	no
+ext	yes	2	7	EnumConstant,Var	TOK_EXT_OPCODE zero_ext	no
+loaded	yes	1	7	Var	assembly_file_loaded	no
+midpoint	yes	1	7	Var	gp_midpoint	no
+offs	yes	1	7	ParmVar	offs	no
+part	yes	1	7	Var	source_part	no
+port	yes	1	7	Typedef	port	no
+pp	yes	1	7	ParmVar	pp	no
+range	yes	2	7	Function	check_imm_range check_uimm_range	no
+slot	yes	2	7	ParmVar,Var	running_in_delay_slot slot_no	no
+also	yes	1	6	ParmVar	kernel_also	no
+breakpoints	yes	2	6	Function	delete_all_breakpoints list_breakpoints	no
+character	yes	2	6	EnumConstant,Macro	PRINT_CHARACTER_SYSCALL READ_CHARACTER_SYSCALL	no
+decoding	yes	1	6	Function	explain_decoding_steps	no
+diff	yes	1	6	Var	diff	no
+embedded	yes	2	6	Function,Var	embedded_exceptions_bytes load_embedded_exception_handler	no
+err	yes	2	6	EnumConstant	TOK_ERR_DIRECTIVE ExcCode_CacheErr	no
+expected	yes	1	6	ParmVar	expected	no
+finalize	yes	2	6	Function	data_fp_finalize data_int_finalize	no
+generator	yes	3	6	Function	command_generator label_generator suggestion_generator	no
+link	yes	1	6	EnumConstant	MOD_AL_AND_LINK	no
+logical	yes	1	6	EnumConstant	CAT_LOGICAL	no
+mm	yes	2	6	Var	MM_IO_BOT MM_IO_TOP	no
+ops	yes	2	6	ParmVar,Var	pseudo_ops allow_pseudo_ops	no
+opt	yes	2	6	Function	get_opt_int parse_opt_label	no
+orig	yes	3	6	Var	orig orig_args orig_len	no
+pref	yes	1	6	EnumConstant	TOK_PREF_OPCODE	yes
+pushed	yes	1	6	Var	scanner_pushed	no
+rem	yes	1	6	EnumConstant	TOK_REM_PSEUDO_OP	yes
+segments	yes	2	6	Var	dump_all_segments dump_user_segments	no
+single	yes	1	6	Var	fp_single_view	no
+unaligned	yes	2	6	Function	tpl_load_unaligned tpl_store_unaligned	no
+undefined	yes	2	6	Function	undefined_symbol_string print_undefined_symbols	no
+z	yes	4	6	Var	z FCSR_Cause_Z FCSR_Enable_Z FCSR_Flag_Z	no
+6	yes	3	5	Var	CP0_Cause_IP6 UK6 CP0_Status_IM6	no
+alias	yes	1	5	EnumConstant	TOK_ALIAS_DIRECTIVE	yes
+constant	yes	1	5	EnumConstant	CAT_CONSTANT	no
+dist	yes	1	5	Var	dist	no
+extend	yes	1	5	EnumConstant	MOD_U_ZERO_EXTEND	no
+extended	yes	1	5	Function	imm_not_sign_extended	no
+factor	yes	1	5	Function	parse_factor	no
+frame	yes	1	5	EnumConstant	TOK_FRAME_DIRECTIVE	yes
+handle	yes	1	5	Function	handle_exception	no
+help	yes	1	5	EnumConstant	HELP_CMD	no
+ins	yes	1	5	EnumConstant	TOK_INS_OPCODE	yes
+interval	yes	2	5	Var	IO_INTERVAL RECV_INTERVAL	no
+la	yes	1	5	EnumConstant	TOK_LA_PSEUDO_OP	yes
+legend	yes	2	5	Function,Var	legend_emitted emit_legend	no
+likely	yes	1	5	EnumConstant	MOD_L_LIKELY	no
+mega	yes	1	5	Var	mega	no
+move	yes	1	5	EnumConstant	TOK_MOVE_PSEUDO_OP	yes
+options	yes	1	5	EnumConstant	TOK_OPTIONS_DIRECTIVE	yes
+pl	yes	1	5	EnumConstant	TOK_CVT_S_PL_OPCODE	yes
+pop	yes	1	5	Function	scanner_pop_source	no
+rec	yes	1	5	Var	rec	no
+save	yes	2	5	Function	explain_save_snapshot save_history_at_exit	no
+upper	yes	1	5	Function	upper_bits_of_expr	no
+warn	yes	1	5	Function	parse_warn	no
+7	yes	2	4	Var	CP0_Cause_IP7 CP0_Status_IM7	no
+array	yes	2	4	Function	free_imm_array json_imm_array	no
+carry	yes	1	4	Var	carry_mid	no
+commands	yes	1	4	Var	spim_commands	no
+consumed	yes	1	4	Var	consumed_nl	no
+continue	yes	1	4	EnumConstant	CONTINUE_CMD	no
+cu	yes	1	4	Var	CP0_Status_CU	no
+delay	yes	1	4	Var	running_in_delay_slot	no
+descriptions	yes	2	4	Var	category_descriptions modifier_descriptions	no
+down	yes	1	4	Macro	ROUND_DOWN	no
+elem	yes	1	4	ParmVar	elem	no
+ensure	yes	1	4	Function	ensure_filled	no
+explicit	yes	1	4	Var	is_explicit_f	no
+filled	yes	1	4	Function	ensure_filled	no
+finish	yes	1	4	Function	say_try_finish	no
+got	yes	1	4	Var	got_digit	no
+hr	yes	1	4	Function	hr	no
+inc	yes	1	4	Var	imm_inc	no
+info	yes	1	4	Record	pseudo_info	no
+instructions	yes	1	4	Function	free_instructions	no
+match	yes	1	4	ParmVar	min_match	no
+number	yes	1	4	Function	register_name_to_number	no
+partial	yes	1	4	Function	format_partial_line	no
+produce	yes	1	4	Function	produce_immediate	no
+q	yes	1	4	Var	q	no
+real	yes	1	4	Var	real_op	no
+repeat	yes	1	4	EnumConstant	TOK_REPEAT_DIRECTIVE	yes
+running	yes	1	4	Var	running_in_delay_slot	no
+scratch	yes	1	4	Var	scratch	no
+semi	yes	1	4	Var	semi	no
+sentinel	yes	1	4	Var	SPIM_DEFAULT_EXCEPTIONS_SENTINEL	no
+starting	yes	1	4	Function	starting_address	no
+system	yes	1	4	EnumConstant	CAT_SYSTEM	no
+take	yes	1	4	Function	ss_take_string	no
+um	yes	1	4	Var	CP0_Status_UM	no
+variable	yes	1	4	EnumConstant	MOD_V_VARIABLE_SHIFT	no
+walk	yes	1	4	Function	print_pseudo_walk	no
+4	yes	2	3	Var	CP0_Cause_IP4 CP0_Status_IM4	no
+assembled	yes	1	3	Function	write_assembled_code	no
+attempted	yes	1	3	Var	assembly_file_attempted	no
+available	yes	1	3	Function	console_input_available	no
+barrier	yes	1	3	Function	say_hazard_barrier	no
+be	yes	1	3	Var	CP0_Config_BE	no
+build	yes	1	3	Macro	SPIM_ASAN_BUILD	no
+bump	yes	1	3	Function	bump_CP0_timer	no
+cons	yes	1	3	Function	cons_label	no
+cont	yes	1	3	ParmVar	cont_bkpt	no
+deleted	yes	1	3	Var	deleted_one	no
+dispatch	yes	1	3	Function	render_dispatch	no
+divisor	yes	1	3	ParmVar	const_divisor	no
+each	yes	1	3	Function	for_each_label	no
+erase	yes	1	3	Function	ss_erase	no
+fa	yes	1	3	Var	REG_FA0	no
+for	yes	1	3	Function	for_each_label	no
+gap	yes	1	3	Var	gap_length	no
+gt	yes	1	3	Function	set_gt_inst	no
+hazard	yes	1	3	Function	say_hazard_barrier	no
+home	yes	1	3	Var	home	no
+initialized	yes	1	3	Var	world_initialized	no
+issue	yes	1	3	ParmVar	issue_undef_warnings	no
+less	yes	1	3	ParmVar	less	no
+looked	yes	1	3	Var	looked_up	no
+nullified	yes	1	3	Function	opcode_is_nullified_branch	no
+o	yes	3	3	Var	FCSR_Cause_O FCSR_Enable_O FCSR_Flag_O	no
+obs	yes	1	3	ParmVar	obs	no
+open	yes	1	3	EnumConstant,Macro	OPEN_SYSCALL	no
+put	yes	1	3	Function	put_console_char	no
+reinitialize	yes	1	3	EnumConstant	REINITIALIZE_CMD	no
+shown	yes	1	3	Var	listing_shown	no
+small	yes	1	3	Var	SMALL_DATA_SEG_MAX_SIZE	no
+special	yes	1	3	Var	special_funct_to_name	no
+starts	yes	1	3	Function	line_starts_with_cmd	no
+startup	yes	1	3	Function	write_startup_message	no
+test	yes	1	3	Function	test_assembly	no
+tick	yes	1	3	Var	TIMER_TICK_MS	no
+timeout	yes	1	3	Var	timeout	no
+true	yes	1	3	Function	opcode_is_true_branch	no
+unknown	yes	1	3	EnumConstant	UNKNOWN_CMD	no
+unordered	yes	1	3	ParmVar	unordered	no
+warnings	yes	1	3	ParmVar	issue_undef_warnings	no
+why	yes	1	3	ParmVar	why	no
+with	yes	1	3	Function	line_starts_with_cmd	no
+26	yes	1	2	Var	UK26	no
+ac	yes	1	2	Var	ac	no
+allow	yes	1	2	ParmVar	allow_pseudo_ops	no
+classification	yes	1	2	Function	lookup_classification	no
+collect	yes	1	2	Function	label_collect_cb	no
+completion	yes	1	2	Function	spim_completion	no
+conditional	yes	1	2	Function	tpl_store_conditional	no
+fill	yes	1	2	Function	fill_line_buf	no
+form	yes	1	2	Function	op_has_imm_form	no
+indent	yes	1	2	Function	indent	no
+keyword	yes	1	2	Function	check_keyword	no
+latency	yes	1	2	Var	TRANS_LATENCY	no
+letters	yes	1	2	Var	modifier_letters	no
+linked	yes	1	2	Function	tpl_load_linked	no
+maybe	yes	1	2	Function	maybe_snapshot_line	no
+mode	yes	1	2	Macro	explain_mode	no
+mt	yes	1	2	Var	CP0_Config_MT	no
+preamble	yes	1	2	Function	emit_category_preamble	no
+sibling	yes	1	2	Var	next_sibling	no
+union	yes	1	2	Typedef	intptr_union	no
+update	yes	1	2	Macro	DO_DELAYED_UPDATE	no
+used	yes	1	2	Var	shamt_used	no
+version	yes	1	2	Macro	SPIM_VERSION	no
+chunk	yes	1	1	Var	TEXT_CHUNK_SIZE	no
+direct	yes	1	1	Var	DIRECT_MAPPED	no
+two	yes	1	1	Var	TWO_WAY_SET	no
+watch	yes	1	1	EnumConstant	ExcCode_WATCH	no
+way	yes	1	1	Var	TWO_WAY_SET	no

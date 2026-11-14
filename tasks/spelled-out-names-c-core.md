@@ -1,6 +1,7 @@
 # Spell out the abbreviated names in the C core (`src/`, `include/`)
 
-**Status:** proposed — needs go-ahead
+**Status:** in progress — phase 1 (investigate) done on branch `spelled-out-names-c-core`;
+the open questions below block phase 2
 **Priority:** 5
 **Difficulty:** 7
 **Created:** 2026-11-14 (William Emerison Six <billsix@gmail.com>)
@@ -154,7 +155,71 @@ manual: `general_purpose_registers /* the ISA's GPRs */`, `exception_program_cou
     - **Mechanics:** rename by AST or LSP rather than by text where the language allows it, batch
       by word, add the commits to `.git-blame-ignore-revs`, and reflow comments by hand.
 
+## Phase 1 results (2026-11-14)
+
+The inventory is in `tasks/adhoc/spelled-out-names-c-core/data/`. It stays until the port
+follow-ups are done, because they reuse it. To regenerate the first three files, run
+`tasks/adhoc/spelled-out-names-c-core/discover.sh BUILDDIR` (any configured meson build; it needs
+clang and hunspell). A gcc-configured build gives byte-identical output. `glossary.tsv` is
+written by hand.
+
+- `names.tsv`: 4,133 declarations (1,812 distinct names), from clang's AST of the 103 translation
+  units. Columns: kind, name, path, line.
+- `macros.tsv`: 125 `#define` names, from `git grep`.
+- `words.tsv`: 922 distinct words. Columns: word, whether hunspell's en_US dictionary has it,
+  distinct names containing it, identifier uses in `src/` and `include/`, kinds, example names,
+  and `keyword_only`. 369 words are not in the dictionary.
+- `glossary.tsv`: **the research result**, 253 rows. Columns: word, meaning, proposed spelling,
+  category, and source or note. The categories:
+  - `spell-out` (148): a shortened word or initialism, such as `addr`, `reg`, `inst`, `imm`,
+    `expr`, `tok`, `buf`, `seg` and `ss` (string stream).
+  - `architecture` (54): a MIPS manual term, spelled out with the manual's name kept in a comment.
+    These are the instruction fields `rs`/`rt`/`rd`/`shamt`/`funct`/`fs`/`ft`/`fd`/`fr`, plus
+    `gpr`, `pc`, `epc`, `fcsr` and `fir`. Then come the Status/Cause/Config bit fields (`EXL`,
+    `IE`, `IM`, `UM`, `CU`, `BD`, `IP`, `BE`, `AT`, `AR`, `MT`) and the exception codes (`AdEL`,
+    `AdES`, `IBE`, `DBE`, `RI`, `CpU`, `Ov`, `Tr`, `Sys`, `Bp`).
+  - `keyword` (14): assembly text a student types, either a directive (`.globl`, `.asciiz`,
+    `.ktext`) or a register name (`$sp`, `$gp`). Kept.
+  - `familiar` (15), `external` (6), `math` (2) and `not-abbreviation` (5): kept, each with its
+    reason.
+  - A few words have more than one meaning. They carry a split category and are decided per name:
+    `fd` (the floating-point destination field, or a POSIX file descriptor), `fp` (floating point,
+    `$fp`, or a `FILE*`), and `op` (opcode or operation).
+- **207 words occur only inside the generated assembler-keyword tokens** (`TOK_ADDIU_OPCODE`,
+  `TOK_LI_PSEUDO_OP`, `TOK_ASCIIZ_DIRECTIVE`). They are the instruction mnemonics and directives,
+  which a student types. So the keyword part is kept and only `TOK` is spelled out
+  (`TOKEN_ADDIU_OPCODE`), in `tools/gen_opcodes.py`.
+- **How the candidates were found:** a word was a candidate if hunspell rejected it. A hand review
+  also covered every dictionary word of five letters or fewer that occurs outside the keyword
+  tokens, because hunspell accepts `reg`, `inst`, `val`, `op`, `rt`, `rd`, `enc`, `cur`, `err` and
+  most single letters. Longer dictionary words were taken as real words.
+- **The meanings** come from the declarations and their comments, and each row cites a file. The
+  CP0 and FPU field meanings were checked against NetBSD's `mipsNN.h` header and the register
+  descriptions in the MIPS32 manuals.
+- **Not yet in the glossary: names that are only one or two letters long.** The most common are
+  `rt` (96 declarations), `rs` (81), `op` (71), `i` (43), `ss` (35), `n` (35) and `s` (28). The
+  architecture ones follow the glossary. The rest (loop indices, `n`, `s`, `p`) depend on scope,
+  so phase 2 decides each one from `names.tsv` under the tight-scope exemption.
+- The scripts are `discover.sh`, `list_names.py`, `split_words.py` and `classify_words.py`. They
+  are candidates for promotion to a shared tool at the end (step 13).
+
 ## Open questions
 
-None yet. Phase 2 ends with a review of the word table and exemptions, which settles the policy
-cases (step 7).
+These settle the policy cases. Each row of `glossary.tsv` that depends on one of them cites its
+number.
+
+1. The CP0 prefix (`CP0_Status`, `CP0_EPC`, `CP0_Cause_BD`): (a) spell it out
+   (`coprocessor_0_status`, with "CP0 Status" in a comment), as with `gpr` (recommended), or
+   (b) keep `CP0`, the manual's name for the unit?
+2. Names of registers a student types in assembly: `REG_SP` is `$sp`, and likewise `REG_GP`,
+   `REG_A0` to `REG_A3`, `REG_FA0`, `REG_RES`/`REG_FRES`, and `HI`/`LO`. (a) Spell out the meaning
+   (`stack_pointer_register /* $sp */`) (recommended), or (b) keep the typed name
+   (`register_sp`)?
+3. Keep these familiar acronyms as they are: `AST`, `ASCII`, `ASAN`, `EOF`, `IO`, `JSON`, `MIPS`,
+   `SPIM`, `REPL`, `ms` and `syscall`? Recommended: yes.
+4. Rename the allocation wrappers `xmalloc`, `xrealloc` and `zmalloc` to `allocate_or_exit`,
+   `reallocate_or_exit` and `allocate_zeroed_or_exit`? The x-prefix is an old GNU idiom that a new
+   student won't know. Recommended: yes.
+5. Keep the math-style names in `unsigned_multiply` (`src/run.c`)? These are the 16-bit halves
+   `a`, `b`, `c` and `d`, their products `ac`, `ad`, `cb` and `bd`, and `mid`. They read like the
+   long-hand multiplication they implement. Recommended: yes.
