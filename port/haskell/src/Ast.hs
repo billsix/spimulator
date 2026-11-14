@@ -63,8 +63,8 @@ data NodeKind
     DataString String Bool
   | DirectiveText (Maybe Word32)
   | DirectiveData (Maybe Word32)
-  | DirectiveKernelText (Maybe Word32)
-  | DirectiveKernelData (Maybe Word32)
+  | DirectiveKtext (Maybe Word32)
+  | DirectiveKdata (Maybe Word32)
   | DirectiveAlign Int
   | DirectiveSpace Int
   | DirectiveGlobl String
@@ -105,8 +105,8 @@ printNode depth node =
           ++ "\"\n"
       DirectiveText a -> segment "DIR_TEXT" a
       DirectiveData a -> segment "DIR_DATA" a
-      DirectiveKernelText a -> segment "DIR_KTEXT" a
-      DirectiveKernelData a -> segment "DIR_KDATA" a
+      DirectiveKtext a -> segment "DIR_KTEXT" a
+      DirectiveKdata a -> segment "DIR_KDATA" a
       DirectiveAlign n -> printf "DIR_ALIGN n=%d\n" n
       DirectiveSpace n -> printf "DIR_SPACE size=%d\n" n
       DirectiveGlobl name -> "DIR_GLOBL name=" ++ name ++ "\n"
@@ -180,8 +180,8 @@ jsonNode node = "{\"kind\":\"" ++ kindName ++ "\",\"source_line\":" ++ show (nod
         )
       DirectiveText a -> ("DIR_TEXT", start a)
       DirectiveData a -> ("DIR_DATA", start a)
-      DirectiveKernelText a -> ("DIR_KTEXT", start a)
-      DirectiveKernelData a -> ("DIR_KDATA", start a)
+      DirectiveKtext a -> ("DIR_KTEXT", start a)
+      DirectiveKdata a -> ("DIR_KDATA", start a)
       DirectiveAlign n -> ("DIR_ALIGN", printf ",\"n\":%d" n)
       DirectiveSpace n -> ("DIR_SPACE", printf ",\"size\":%d" n)
       DirectiveGlobl name -> ("DIR_GLOBL", ",\"name\":" ++ jsonString name)

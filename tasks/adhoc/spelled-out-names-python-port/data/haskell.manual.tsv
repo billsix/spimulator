@@ -65,8 +65,8 @@ excCpU	exceptionCoprocessorUnusable
 excInt	exceptionInterrupt
 getGpr	getGeneralPurposeRegister
 setGpr	setGeneralPurposeRegister
-DirKData	DirectiveKernelData
-DirKText	DirectiveKernelText
+DirKData	DirectiveKdata
+DirKText	DirectiveKtext
 TokOp	TokenOpcode
 asInt	asInteger
 asmObserver	assemblerObserver

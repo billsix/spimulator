@@ -1111,9 +1111,9 @@ parseStringList s = do
 parseDirective :: Spim -> Opcode -> IO ()
 parseDirective s d = case d of
   TOKEN_DATA_DIRECTIVE -> parseDirectiveSegment s DirectiveData False
-  TOKEN_K_DATA_DIRECTIVE -> parseDirectiveSegment s DirectiveKernelData False
+  TOKEN_K_DATA_DIRECTIVE -> parseDirectiveSegment s DirectiveKdata False
   TOKEN_TEXT_DIRECTIVE -> parseDirectiveSegment s DirectiveText True
-  TOKEN_K_TEXT_DIRECTIVE -> parseDirectiveSegment s DirectiveKernelText True
+  TOKEN_K_TEXT_DIRECTIVE -> parseDirectiveSegment s DirectiveKtext True
   TOKEN_GLOBAL_DIRECTIVE -> directiveName s "Expected identifier after .globl" >>= mapM_ (appendNode s . DirectiveGlobl)
   TOKEN_WORD_DIRECTIVE -> alignForData s 2 >> parseExpressionList s DataWord
   TOKEN_HALF_DIRECTIVE -> alignForData s 1 >> parseExpressionList s DataHalf
@@ -1294,9 +1294,9 @@ emitOne s node = do
   case nodeKind node of
     File _ _ -> pure ()
     DirectiveText a -> segmentText False a
-    DirectiveKernelText a -> segmentText True a
+    DirectiveKtext a -> segmentText True a
     DirectiveData a -> segmentData False a
-    DirectiveKernelData a -> segmentData True a
+    DirectiveKdata a -> segmentData True a
     DirectiveAlign v -> do
       when (v == 0) $ set (autoAlign s) False
       inText :: Bool <- get (textDirective s)
