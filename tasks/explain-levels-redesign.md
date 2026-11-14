@@ -58,7 +58,7 @@ hanoi used. Done means:
 - Bare `-explain` drops a beginner at L3 bit boxes.
 - Categories and modifier glossaries print in full on every step (142 COD citations and 105 modifier
   blocks in one run). The code comment says "first-time full, then short", which is stale.
-- The Try-it block is padded to 3 lines with generic `print_all_regs`/`step`/`continue`.
+- The Try-it block is padded to 3 lines with generic `print_all_registers`/`step`/`continue`.
 - Unchanged writes (`$v0: 0x4 → 0x4`) are flagged only for loads.
 - Stack addresses also get a decimal form (2147483596).
 - Wrap width varies between about 70 and over 100 columns.

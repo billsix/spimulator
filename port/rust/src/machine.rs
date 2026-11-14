@@ -19,9 +19,9 @@ use std::rc::Rc;
 use std::time::Instant;
 
 use crate::ast::AstNode;
-use crate::instruction::{ImmExpr, InstRef, Instruction};
+use crate::instruction::{ImmediateExpression, InstRef, Instruction};
 use crate::memory::{MappedIo, Memory};
-use crate::opcodes::TOK_BREAK_OPCODE;
+use crate::opcodes::TOKEN_BREAK_OPCODE;
 use crate::registers::Registers;
 use crate::scanner::Scanner;
 use crate::symbol_table::{LabelId, SymbolTable};
@@ -32,7 +32,7 @@ pub struct Options {
     /// `-bare`: no pseudo-instructions, no `$gp` area.
     pub bare_machine: bool,
     /// Accept pseudo-instructions (`-pseudo`/`-nopseudo`).
-    pub accept_pseudo_insts: bool,
+    pub accept_pseudo_instructions: bool,
     /// `-delayed_branches`: run the instruction after a branch first.
     pub delayed_branches: bool,
     /// `-delayed_loads`: a load's value arrives one instruction late.
@@ -52,18 +52,18 @@ pub struct Options {
     /// `-lstack`.
     pub initial_stack_limit: i32,
     /// `-sktext`.
-    pub initial_k_text_size: i32,
+    pub initial_kernel_text_size: i32,
     /// `-skdata`.
-    pub initial_k_data_size: i32,
+    pub initial_kernel_data_size: i32,
     /// `-lkdata`.
-    pub initial_k_data_limit: i32,
+    pub initial_kernel_data_limit: i32,
 }
 
 impl Default for Options {
     fn default() -> Self {
         Options {
             bare_machine: false,
-            accept_pseudo_insts: true,
+            accept_pseudo_instructions: true,
             delayed_branches: false,
             delayed_loads: false,
             quiet: false,
@@ -73,9 +73,9 @@ impl Default for Options {
             initial_data_limit: 1024 * 1024,
             initial_stack_size: 64 * 1024,
             initial_stack_limit: 256 * 1024,
-            initial_k_text_size: 64 * 1024,
-            initial_k_data_size: 64 * 1024,
-            initial_k_data_limit: 1024 * 1024,
+            initial_kernel_text_size: 64 * 1024,
+            initial_kernel_data_size: 64 * 1024,
+            initial_kernel_data_limit: 1024 * 1024,
         }
     }
 }
@@ -83,21 +83,21 @@ impl Default for Options {
 /// Where the assembled code and data go, and the parser's state
 /// (the globals of `instruction.c`, `data.c`, `parser.c`, `pseudo-op.c`).
 #[derive(Debug, Default)]
-pub struct AsmState {
+pub struct AssemblerState {
     /// Address of the next instruction in the user text segment.
-    pub next_text_pc: u32,
+    pub next_text_location: u32,
     /// Address of the next instruction in the kernel text segment.
-    pub next_k_text_pc: u32,
+    pub next_kernel_text_location: u32,
     /// Instructions go to the kernel text segment (`.ktext`).
     pub text_in_kernel: bool,
     /// Address of the next datum in the user data segment.
-    pub next_data_pc: u32,
+    pub next_data_location: u32,
     /// Address of the next datum in the kernel data segment.
-    pub next_k_data_pc: u32,
+    pub next_kernel_data_location: u32,
     /// Data goes to the kernel data segment (`.kdata`).
     pub data_in_kernel: bool,
     /// Address of the next item in the `$gp` small-data area.
-    pub next_gp_item_addr: u32,
+    pub next_global_pointer_item_address: u32,
     /// Align `.word`, `.half`, ... to their size (off after `.align 0`).
     pub data_auto_align: bool,
     /// How deep the store helpers are nested (one listing event per
@@ -111,7 +111,7 @@ pub struct AsmState {
     /// The parser is in a data segment.
     pub data_dir: bool,
     /// The parser is in a text segment.
-    pub text_dir: bool,
+    pub text_directive: bool,
     /// The name of the file being assembled, for messages.
     pub input_file_name: Option<Vec<u8>>,
     /// `.asciiz` (true) or `.ascii`.
@@ -125,16 +125,16 @@ pub struct AsmState {
     /// One of the three above was given: do not emit any code.
     pub print_ast_only: bool,
     /// The first undefined label of the expression being parsed.
-    pub expr_unresolved_label: Option<LabelId>,
+    pub expression_unresolved_label: Option<LabelId>,
     /// The tree of the file being parsed.
     pub file: Option<AstNode>,
     /// The pseudo-instructions being expanded; their children are
     /// appended to the innermost.
     pub pseudo_stack: Vec<AstNode>,
     /// The values of the `.byte`/`.half`/`.word` being parsed.
-    pub data_int_buf: Vec<ImmExpr>,
+    pub data_integer_buffer: Vec<ImmediateExpression>,
     /// The values of the `.float`/`.double` being parsed.
-    pub data_fp_buf: Vec<f64>,
+    pub data_floating_point_buffer: Vec<f64>,
     /// The source line of the data directive being parsed.
     pub data_directive_line: i32,
     /// The labels defined on the line being emitted, newest first; an
@@ -150,11 +150,11 @@ pub struct AsmState {
 
 /// Where a delayed load will write (`-delayed_loads`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum LoadDest {
+pub enum LoadDestination {
     /// A general register.
-    Gpr(usize),
+    GeneralPurposeRegister(usize),
     /// A floating-point register, as a raw word.
-    Fpr(usize),
+    FloatingPointRegister(usize),
 }
 
 /// The executor's state that lives between instructions (`run.c`).
@@ -163,9 +163,9 @@ pub struct RunState {
     /// The instruction running is in a branch delay slot.
     pub running_in_delay_slot: bool,
     /// The load issued by the current instruction (`-delayed_loads`).
-    pub delayed_load_1: Option<(LoadDest, i32)>,
+    pub delayed_load_1: Option<(LoadDestination, i32)>,
     /// The load issued by the previous instruction.
-    pub delayed_load_2: Option<(LoadDest, i32)>,
+    pub delayed_load_2: Option<(LoadDestination, i32)>,
     /// When the CP0 timer next ticks (it ticks every 10 ms of real time).
     pub timer_deadline: Option<Instant>,
     /// Stop the run loop at the next instruction.
@@ -176,7 +176,7 @@ pub struct RunState {
 #[derive(Clone, Debug)]
 pub struct Breakpoint {
     /// The address.
-    pub addr: u32,
+    pub address: u32,
     /// The instruction the breakpoint instruction replaced.
     pub instruction: Option<InstRef>,
 }
@@ -186,7 +186,7 @@ pub struct Machine {
     /// Command-line settings.
     pub options: Options,
     /// The registers.
-    pub regs: Registers,
+    pub registers: Registers,
     /// The memory segments.
     pub mem: Memory,
     /// The memory-mapped console.
@@ -196,7 +196,7 @@ pub struct Machine {
     /// The scanner reading the current assembly source.
     pub scanner: Scanner,
     /// The assembler's and parser's state.
-    pub asm: AsmState,
+    pub asm: AssemblerState,
     /// The executor's state.
     pub run: RunState,
     /// An exception was raised by the current instruction.
@@ -205,7 +205,7 @@ pub struct Machine {
     /// a syscall or a breakpoint), or -1; the exit status reports it.
     pub first_bad_exception: i32,
     /// The single instruction every breakpoint uses (`break 1`).
-    pub break_inst: InstRef,
+    pub break_instruction: InstRef,
     /// The breakpoints, newest first.
     pub breakpoints: Vec<Breakpoint>,
     /// The engine's exit status.
@@ -225,21 +225,21 @@ impl Machine {
     pub fn new() -> Machine {
         Machine {
             options: Options::default(),
-            regs: Registers::default(),
+            registers: Registers::default(),
             mem: Memory::default(),
             mmio: MappedIo::default(),
             symbols: SymbolTable::default(),
             scanner: Scanner::default(),
-            asm: AsmState {
-                text_dir: true,
+            asm: AssemblerState {
+                text_directive: true,
                 data_auto_align: true,
                 auto_align: true,
-                ..AsmState::default()
+                ..AssemblerState::default()
             },
             run: RunState::default(),
             exception_occurred: false,
             first_bad_exception: -1,
-            break_inst: Instruction::r_type(TOK_BREAK_OPCODE, 1, 0, 0).into_ref(),
+            break_instruction: Instruction::r_type(TOKEN_BREAK_OPCODE, 1, 0, 0).into_ref(),
             breakpoints: Vec::new(),
             return_value: 0,
             listing: None,

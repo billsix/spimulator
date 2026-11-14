@@ -18,7 +18,8 @@ extern int explain_level;
 
 /* Called before the dispatch switch in run_spim. Snapshots register state and
    prints a description of the upcoming instruction. */
-void explain_before(const mips_instruction* instruction, mem_addr addr);
+void explain_before(const mips_instruction* instruction,
+                    memory_address address);
 
 /* Called after the dispatch switch. Prints a diff of register/PC state vs
    the snapshot taken in explain_before. */
@@ -30,7 +31,7 @@ void explain_after(const mips_instruction* instruction);
    of its body, and by the default step display in run.c so the
    no-explain step output has the same shape as the explain-mode
    header. Level-independent — `instruction` is the instruction at `pc`. */
-void explain_print_step_header(mem_addr pc,
+void explain_print_step_header(memory_address program_counter,
                                const mips_instruction* instruction);
 
 /* Tab-completion candidates for the most recent instruction's "Try it
@@ -49,12 +50,12 @@ void explain_program_exit(const mips_instruction* instruction);
    branch's explain_before and explain_after, so run.c saves the branch's
    snapshot around it and restores it before the branch is narrated. */
 typedef struct {
-  reg_word r[R_LENGTH];
-  reg_word hi, lo;
-  mem_addr pc;
-  bool has_mem;
-  mem_addr mem_addr;
-  reg_word mem_val;
+  register_word registers[GENERAL_PURPOSE_REGISTER_COUNT];
+  register_word multiply_divide_high, multiply_divide_low;
+  memory_address program_counter;
+  bool has_memory;
+  memory_address memory_address;
+  register_word memory_value;
 } explain_snapshot;
 explain_snapshot explain_save_snapshot(void);
 void explain_restore_snapshot(const explain_snapshot* s);

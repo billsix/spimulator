@@ -11,11 +11,11 @@
 module State
   ( Spim (..),
     Token (..),
-    TokValue (..),
+    TokenValue (..),
     ScanState (..),
     ScanItem (..),
     LoadDest (..),
-    AsmEvent (..),
+    AssemblerEvent (..),
     newSpim,
     initialScanState,
     get,
@@ -55,47 +55,47 @@ modify = modifyIORef'
 -- | A token from the scanner (C: the @TOK_*@ enum, plus single characters
 -- such as @(@ and @+@, which C returns as their character codes).
 data Token
-  = TokEOF
-  | TokNL
-  | TokInt
-  | TokId
-  | TokReg
-  | TokFpReg
-  | TokStr
-  | TokFp
+  = TokenEOF
+  | TokenNewline
+  | TokenInteger
+  | TokenIdentifier
+  | TokenRegister
+  | TokenFloatingPointRegister
+  | TokenString
+  | TokenFloatingPoint
   | -- | an instruction, pseudo-instruction or directive keyword
-    TokOp Opcode
+    TokenOpcode Opcode
   | -- | punctuation: @* / : ( ) + - > =@
-    TokChar Char
+    TokenChar Char
   deriving (Eq, Show)
 
 -- | The value carried by the last token (C: @scan_value@).
-data TokValue = VNone | VInt Int32 | VStr String | VFp Double
+data TokenValue = ValueNone | ValueInteger Int32 | ValueString String | ValueFloatingPoint Double
 
 -- | One slot of the scanner's three-token look-ahead buffer.
-data ScanItem = ScanItem Token TokValue
+data ScanItem = ScanItem Token TokenValue
 
 -- | Everything the scanner remembers (C: the statics of scanner.c).  It is
 -- one immutable value in one 'IORef', so saving and restoring the whole
 -- scanner, as the REPL does, is just keeping a copy.
 data ScanState = ScanState
   { -- | the input not yet read into the line buffer
-    ssInput :: String,
+    scanStateInput :: String,
     -- | the current line (C: @line_buf@)
-    ssLine :: String,
+    scanStateLine :: String,
     -- | the part of the line not yet scanned
-    ssRest :: String,
-    ssAtEof :: Bool,
+    scanStateRest :: String,
+    scanStateAtEof :: Bool,
     -- | C: @line_no@
-    ssLineNo :: Int,
+    scanStateLineNo :: Int,
     -- | the current line, for error messages
-    ssSnapshot :: String,
-    ssSnapshotLineNo :: Int,
-    ssSnapshotSaved :: Bool,
+    scanStateSnapshot :: String,
+    scanStateSnapshotLineNo :: Int,
+    scanStateSnapshotSaved :: Bool,
     -- | classify the next identifier as TOK_ID
-    ssForceId :: Bool,
+    scanStateForceIdentifier :: Bool,
     -- | the look-ahead buffer, at most three
-    ssTokens :: [ScanItem]
+    scanStateTokens :: [ScanItem]
   }
 
 -- | A scanner reading the given text.
@@ -104,45 +104,45 @@ initialScanState input = ScanState input "" "" False 1 "" 0 False False []
 
 -- | Where a delayed load will write: a general or a floating-point
 -- register (C: a @reg_word*@ pointing into either file).
-data LoadDest = DestGpr Int | DestFpr Int
+data LoadDest = DestinationGeneralPurposeRegister Int | DestinationFloatingPointRegister Int
 
 -- | An event the assembler reports to the @-listing@ trace
 -- (C: @asm_event@).  Each carries the source line it happened on.
-data AsmEvent
-  = EvLabelDef Word32 String Bool
-  | EvTextInst Word32 Word32
-  | EvDataByte Word32 Int32
-  | EvDataHalf Word32 Int32
-  | EvDataWord Word32 Int32
-  | EvDataDouble Word32 Double
-  | EvDataString Word32 Int Bool
-  | EvForwardRef Word32 String
-  | EvForwardResolved Word32 String Int32
+data AssemblerEvent
+  = EventLabelDefinition Word32 String Bool
+  | EventTextInstruction Word32 Word32
+  | EventDataByte Word32 Int32
+  | EventDataHalf Word32 Int32
+  | EventDataWord Word32 Int32
+  | EventDataDouble Word32 Double
+  | EventDataString Word32 Int Bool
+  | EventForwardReference Word32 String
+  | EventForwardResolved Word32 String Int32
 
 -- | The whole machine.
 data Spim = Spim
   { -- spim.c: command-line options
-    optBare :: IORef Bool,
-    optAcceptPseudo :: IORef Bool,
-    optDelayedBranches :: IORef Bool,
-    optDelayedLoads :: IORef Bool,
-    optQuiet :: IORef Bool,
-    optMappedIo :: IORef Bool,
+    optionBare :: IORef Bool,
+    optionAcceptPseudo :: IORef Bool,
+    optionDelayedBranches :: IORef Bool,
+    optionDelayedLoads :: IORef Bool,
+    optionQuiet :: IORef Bool,
+    optionMappedIO :: IORef Bool,
     spimReturnValue :: IORef Int32,
     forceBreak :: IORef Bool,
     -- | text, data, data limit, stack, stack limit, ktext, kdata, kdata limit
     initialSizes :: IORef (Int, Int, Int, Int, Int, Int, Int, Int),
     -- memory.c and registers.h: the registers
-    gpr :: IOUArray Int Int32,
-    regHI :: IORef Int32,
-    regLO :: IORef Int32,
-    regPC :: IORef Word32,
+    generalPurposeRegisters :: IOUArray Int Int32,
+    registerMultiplyDivideHigh :: IORef Int32,
+    registerMultiplyDivideLow :: IORef Int32,
+    registerProgramCounter :: IORef Word32,
     -- | the 32 FP registers as raw words; a double is two of them
-    fpRegs :: IOUArray Int Word32,
+    floatingPointRegisters :: IOUArray Int Word32,
     -- | coprocessor registers, 4 x 32
-    cpRegs :: IOUArray Int Int32,
+    coprocessorRegisters :: IOUArray Int Int32,
     -- | coprocessor control registers, 4 x 32
-    cpControl :: IOUArray Int Int32,
+    coprocessorControl :: IOUArray Int Int32,
     -- run.c and instruction.h: exceptions
     exceptionOccurred :: IORef Bool,
     firstBadException :: IORef Int,
@@ -152,39 +152,39 @@ data Spim = Spim
     -- | the CP0 timer's next tick, in microseconds
     timerDeadline :: IORef Integer,
     -- memory.c: the five segments
-    textSeg :: IORef (IOArray Int (Maybe InstRef)),
+    textSegment :: IORef (IOArray Int (Maybe InstructionRef)),
     textTop :: IORef Word32,
-    kTextSeg :: IORef (IOArray Int (Maybe InstRef)),
-    kTextTop :: IORef Word32,
-    dataSeg :: IORef (IOUArray Int Word8),
+    kernelTextSegment :: IORef (IOArray Int (Maybe InstructionRef)),
+    kernelTextTop :: IORef Word32,
+    dataSegment :: IORef (IOUArray Int Word8),
     dataTop :: IORef Word32,
-    stackSeg :: IORef (IOUArray Int Word8),
-    stackBot :: IORef Word32,
-    kDataSeg :: IORef (IOUArray Int Word8),
-    kDataTop :: IORef Word32,
-    gpMidpoint :: IORef Word32,
+    stackSegment :: IORef (IOUArray Int Word8),
+    stackBottom :: IORef Word32,
+    kernelDataSegment :: IORef (IOUArray Int Word8),
+    kernelDataTop :: IORef Word32,
+    globalPointerMidpoint :: IORef Word32,
     dataSizeLimit :: IORef Int,
     stackSizeLimit :: IORef Int,
-    kDataSizeLimit :: IORef Int,
+    kernelDataSizeLimit :: IORef Int,
     -- memory.c: memory-mapped IO
-    recvControl :: IORef Word32,
-    recvBuffer :: IORef Int,
-    recvTimer :: IORef Int,
-    transControl :: IORef Word32,
-    transBuffer :: IORef Int,
-    transTimer :: IORef Int,
+    receiverControl :: IORef Word32,
+    receiverBuffer :: IORef Int,
+    receiverTimer :: IORef Int,
+    transmitterControl :: IORef Word32,
+    transmitterBuffer :: IORef Int,
+    transmitterTimer :: IORef Int,
     -- data.c
-    nextDataPc :: IORef Word32,
-    nextKDataPc :: IORef Word32,
+    nextDataLocation :: IORef Word32,
+    nextKernelDataLocation :: IORef Word32,
     dataInKernel :: IORef Bool,
-    nextGpItemAddr :: IORef Word32,
+    nextGlobalPointerItemAddress :: IORef Word32,
     dataAutoAlign :: IORef Bool,
     dataStoreDepth :: IORef Int,
     -- instruction.c
     textInKernel :: IORef Bool,
-    nextTextPc :: IORef Word32,
-    nextKTextPc :: IORef Word32,
-    breakInst :: IORef (Maybe InstRef),
+    nextTextLocation :: IORef Word32,
+    nextKernelTextLocation :: IORef Word32,
+    cachedBreakInstruction :: IORef (Maybe InstructionRef),
     -- | Nothing: inactive; Just text: the source annotation for emitted code
     emitSource :: IORef (Maybe (Maybe String)),
     -- symbol-table.c
@@ -196,21 +196,21 @@ data Spim = Spim
     -- spim-utils.c
 
     -- | newest first
-    breakpoints :: IORef [(Word32, InstRef)],
+    breakpoints :: IORef [(Word32, InstructionRef)],
     -- scanner.c
     scanner :: IORef ScanState,
     scannerStack :: IORef [ScanState],
-    scanValue :: IORef TokValue,
+    scanValue :: IORef TokenValue,
     -- parser.c and pseudo-op.c
-    dataDir :: IORef Bool,
-    textDir :: IORef Bool,
+    dataDirective :: IORef Bool,
+    textDirective :: IORef Bool,
     parseErrorOccurred :: IORef Bool,
     parseErrorsSeen :: IORef Int,
     inputFileName :: IORef (Maybe String),
     nullTerm :: IORef Bool,
     autoAlign :: IORef Bool,
     thisLineLabels :: IORef [Label],
-    exprUnresolvedLabel :: IORef (Maybe Label),
+    expressionUnresolvedLabel :: IORef (Maybe Label),
     -- | the statements being built, newest first
     astScope :: IORef [Node],
     dataDirectiveLine :: IORef Int,
@@ -219,7 +219,7 @@ data Spim = Spim
     showExpansionFlag :: IORef Bool,
     printAstJsonFlag :: IORef Bool,
     -- assembler-event.c: the -listing observer
-    asmObserver :: IORef (Maybe (AsmEvent -> Int -> IO ()))
+    assemblerObserver :: IORef (Maybe (AssemblerEvent -> Int -> IO ()))
   }
 
 -- | A fresh machine, before @initialize_world@.
@@ -227,8 +227,8 @@ newSpim :: IO Spim
 newSpim = do
   let b :: a -> IO (IORef a)
       b = newIORef
-  emptyText :: IOArray Int (Maybe InstRef) <- newArray (0, 0) Nothing
-  emptyText2 :: IOArray Int (Maybe InstRef) <- newArray (0, 0) Nothing
+  emptyText :: IOArray Int (Maybe InstructionRef) <- newArray (0, 0) Nothing
+  emptyText2 :: IOArray Int (Maybe InstructionRef) <- newArray (0, 0) Nothing
   emptyData :: IOUArray Int Word8 <- newArray (0, 0) 0
   emptyData2 :: IOUArray Int Word8 <- newArray (0, 0) 0
   emptyData3 :: IOUArray Int Word8 <- newArray (0, 0) 0
@@ -292,7 +292,7 @@ newSpim = do
     <*> b []
     <*> b (initialScanState "")
     <*> b []
-    <*> b VNone
+    <*> b ValueNone
     <*> b False
     <*> b True
     <*> b False

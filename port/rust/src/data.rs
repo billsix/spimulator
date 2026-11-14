@@ -10,7 +10,7 @@
 //! all of it; user data starts after it.
 
 use crate::machine::Machine;
-use crate::registers::REG_GP;
+use crate::registers::GLOBAL_POINTER_REGISTER;
 
 impl Machine {
     /// Send data to the kernel or the user data segment.
@@ -27,20 +27,21 @@ impl Machine {
     /// Start the user data segment at `addr`, after the 64K small-data
     /// area, and point `$gp` at the middle of that area
     /// (`data_begins_at_point`).
-    pub fn data_begins_at_point(&mut self, addr: u32) {
+    pub fn data_begins_at_point(&mut self, address: u32) {
         if self.options.bare_machine {
-            self.asm.next_data_pc = addr;
+            self.asm.next_data_location = address;
         } else {
-            self.asm.next_gp_item_addr = addr;
-            self.mem.gp_midpoint = addr + 32 * 1024;
-            self.regs.gpr[REG_GP] = self.mem.gp_midpoint as i32;
-            self.asm.next_data_pc = addr + 64 * 1024;
+            self.asm.next_global_pointer_item_address = address;
+            self.mem.global_pointer_midpoint = address + 32 * 1024;
+            self.registers.general_purpose_registers[GLOBAL_POINTER_REGISTER] =
+                self.mem.global_pointer_midpoint as i32;
+            self.asm.next_data_location = address + 64 * 1024;
         }
     }
 
     /// Start the kernel data segment at `addr`.
-    pub fn k_data_begins_at_point(&mut self, addr: u32) {
-        self.asm.next_k_data_pc = addr;
+    pub fn kernel_data_begins_at_point(&mut self, address: u32) {
+        self.asm.next_kernel_data_location = address;
     }
 
     /// Advance the data address to a multiple of `2^alignment` and move
@@ -51,17 +52,18 @@ impl Machine {
             self.asm.data_auto_align = false;
             return;
         }
-        let round = |pc: u32| -> u32 {
-            pc.wrapping_add(1u32.wrapping_shl(alignment as u32))
+        let round = |program_counter: u32| -> u32 {
+            program_counter
+                .wrapping_add(1u32.wrapping_shl(alignment as u32))
                 .wrapping_sub(1)
                 & 0xffff_ffffu32.wrapping_shl(alignment as u32)
         };
         if self.asm.data_in_kernel {
-            self.asm.next_k_data_pc = round(self.asm.next_k_data_pc);
-            self.fix_current_label_address(self.asm.next_k_data_pc);
+            self.asm.next_kernel_data_location = round(self.asm.next_kernel_data_location);
+            self.fix_current_label_address(self.asm.next_kernel_data_location);
         } else {
-            self.asm.next_data_pc = round(self.asm.next_data_pc);
-            self.fix_current_label_address(self.asm.next_data_pc);
+            self.asm.next_data_location = round(self.asm.next_data_location);
+            self.fix_current_label_address(self.asm.next_data_location);
         }
     }
 
@@ -78,37 +80,41 @@ impl Machine {
     }
 
     /// Set the data address (`.data ADDR`).
-    pub fn set_data_pc(&mut self, addr: u32) {
+    pub fn set_data_location(&mut self, address: u32) {
         if self.asm.data_in_kernel {
-            self.asm.next_k_data_pc = addr;
+            self.asm.next_kernel_data_location = address;
         } else {
-            self.asm.next_data_pc = addr;
+            self.asm.next_data_location = address;
         }
     }
 
-    /// The address of the next datum (`current_data_pc`).
-    pub fn current_data_pc(&self) -> u32 {
+    /// The address of the next datum (`current_data_location`).
+    pub fn current_data_location(&self) -> u32 {
         if self.asm.data_in_kernel {
-            self.asm.next_k_data_pc
+            self.asm.next_kernel_data_location
         } else {
-            self.asm.next_data_pc
+            self.asm.next_data_location
         }
     }
 
     /// Move the data address on by `delta` bytes, growing the segment in
-    /// 64K steps if it runs past the end (`increment_data_pc`).
-    pub fn increment_data_pc(&mut self, delta: i32) {
+    /// 64K steps if it runs past the end (`increment_data_location`).
+    pub fn increment_data_location(&mut self, delta: i32) {
         let round_64k = |bytes: u32| -> i32 { (bytes.wrapping_add(0xffff) & !0xffff) as i32 };
         if self.asm.data_in_kernel {
-            self.asm.next_k_data_pc = self.asm.next_k_data_pc.wrapping_add(delta as u32);
-            if self.mem.k_data_top <= self.asm.next_k_data_pc {
-                let missing: u32 = self.asm.next_k_data_pc - self.mem.k_data_top + 1;
-                self.expand_k_data(round_64k(missing));
+            self.asm.next_kernel_data_location = self
+                .asm
+                .next_kernel_data_location
+                .wrapping_add(delta as u32);
+            if self.mem.kernel_data_top <= self.asm.next_kernel_data_location {
+                let missing: u32 =
+                    self.asm.next_kernel_data_location - self.mem.kernel_data_top + 1;
+                self.expand_kernel_data(round_64k(missing));
             }
         } else {
-            self.asm.next_data_pc = self.asm.next_data_pc.wrapping_add(delta as u32);
-            if self.mem.data_top <= self.asm.next_data_pc {
-                let missing: u32 = self.asm.next_data_pc - self.mem.data_top + 1;
+            self.asm.next_data_location = self.asm.next_data_location.wrapping_add(delta as u32);
+            if self.mem.data_top <= self.asm.next_data_location {
+                let missing: u32 = self.asm.next_data_location - self.mem.data_top + 1;
                 self.expand_data(round_64k(missing));
             }
         }
@@ -116,7 +122,7 @@ impl Machine {
 
     /// Store a string, and a NUL after it for `.asciiz` (`store_string`).
     pub fn store_string(&mut self, bytes: &[u8], null_terminate: bool) {
-        let at: u32 = self.current_data_pc();
+        let at: u32 = self.current_data_location();
         self.asm.data_store_depth += 1;
         for &byte in bytes {
             self.store_byte(i32::from(byte as i8));
@@ -132,9 +138,9 @@ impl Machine {
 
     /// Store a byte (`store_byte`).
     pub fn store_byte(&mut self, value: i32) {
-        let at: u32 = self.current_data_pc();
-        self.mem_write_byte(at, value);
-        self.increment_data_pc(1);
+        let at: u32 = self.current_data_location();
+        self.memory_write_byte(at, value);
+        self.increment_data_location(1);
         if self.asm.data_store_depth == 0 {
             self.listing_data_byte(at, value);
         }
@@ -142,15 +148,15 @@ impl Machine {
 
     /// Store a halfword; at an odd address, as two bytes (`store_half`).
     pub fn store_half(&mut self, value: i32) {
-        let at: u32 = self.current_data_pc();
+        let at: u32 = self.current_data_location();
         let outer: bool = self.asm.data_store_depth == 0;
         self.asm.data_store_depth += 1;
         if at & 1 != 0 {
             self.store_byte(value & 0xff);
             self.store_byte((value >> 8) & 0xff);
         } else {
-            self.mem_write_half(at, value);
-            self.increment_data_pc(2);
+            self.memory_write_half(at, value);
+            self.increment_data_location(2);
         }
         self.asm.data_store_depth -= 1;
         if outer {
@@ -160,15 +166,15 @@ impl Machine {
 
     /// Store a word; at an unaligned address, as two halves (`store_word`).
     pub fn store_word(&mut self, value: i32) {
-        let at: u32 = self.current_data_pc();
+        let at: u32 = self.current_data_location();
         let outer: bool = self.asm.data_store_depth == 0;
         self.asm.data_store_depth += 1;
         if at & 3 != 0 {
             self.store_half(value & 0xffff);
             self.store_half((value >> 16) & 0xffff);
         } else {
-            self.mem_write_word(at, value);
-            self.increment_data_pc(4);
+            self.memory_write_word(at, value);
+            self.increment_data_location(4);
         }
         self.asm.data_store_depth -= 1;
         if outer {
@@ -178,7 +184,7 @@ impl Machine {
 
     /// Store a double as its two words, low word first (`store_double`).
     pub fn store_double(&mut self, value: f64) {
-        let at: u32 = self.current_data_pc();
+        let at: u32 = self.current_data_location();
         let outer: bool = self.asm.data_store_depth == 0;
         self.asm.data_store_depth += 1;
         let bits: u64 = value.to_bits();
@@ -187,12 +193,12 @@ impl Machine {
             self.store_word(low);
             self.store_word(high);
         } else {
-            let pc: u32 = self.current_data_pc();
-            self.mem_write_word(pc, low);
-            self.increment_data_pc(4);
-            let pc: u32 = self.current_data_pc();
-            self.mem_write_word(pc, high);
-            self.increment_data_pc(4);
+            let program_counter: u32 = self.current_data_location();
+            self.memory_write_word(program_counter, low);
+            self.increment_data_location(4);
+            let program_counter: u32 = self.current_data_location();
+            self.memory_write_word(program_counter, high);
+            self.increment_data_location(4);
         }
         self.asm.data_store_depth -= 1;
         if outer {
@@ -203,13 +209,13 @@ impl Machine {
     /// Store a float, rounded from the literal's double (`store_float`).
     pub fn store_float(&mut self, value: f64) {
         let bits: i32 = (value as f32).to_bits() as i32;
-        let at: u32 = self.current_data_pc();
+        let at: u32 = self.current_data_location();
         if at & 3 != 0 {
             self.store_half(bits & 0xffff);
             self.store_half((bits >> 16) & 0xffff);
         } else {
-            self.mem_write_word(at, bits);
-            self.increment_data_pc(4);
+            self.memory_write_word(at, bits);
+            self.increment_data_location(4);
         }
     }
 }

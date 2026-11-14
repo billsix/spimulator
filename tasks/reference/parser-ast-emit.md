@@ -22,8 +22,8 @@ The parser is **parse-to-tree, then emit**:
    effect to memory and the symbol table.
 
 The parse phase routes every instruction/directive through the `emit_*`
-dispatch helpers (`emit_r`, `emit_i`, `emit_i_free`, `emit_j`, `emit_fp_r`,
-`emit_fp_compare`, `emit_dir_*`, `emit_label_*`, `emit_data_string`), which
+dispatch helpers (`emit_r`, `emit_i`, `emit_i_free`, `emit_j`, `emit_floating_point_r`,
+`emit_floating_point_compare`, `emit_directive_*`, `emit_label_*`, `emit_data_string`), which
 now do exactly one thing: append the corresponding AST node. Actual
 emission happens only in `emit_one`.
 
@@ -36,7 +36,7 @@ a second ownership model, which is how the parser once leaked; the git history o
 `tasks/archive/2026/08/03/parser-leak-cleanup.md` has that mode and its removal.
 
 The label machinery (`this_line_labels`, `align_labels_to`, `clear_labels`) is driven from
-`emit_ast`/`emit_one`, where labels are `cons_label`'d. The same calls also appear in the parse
+`emit_ast`/`emit_one`, where labels are `prepend_label`'d. The same calls also appear in the parse
 phase, where they are no-ops (`this_line_labels` is empty during parse); they stay because they are
 shared with the emit path.
 
@@ -53,11 +53,11 @@ the only mode.
 
 Fix (the pattern column-tracking should extend):
 
-- `ast_node` carries `char* src_text` — the `"NNN: text"` snapshot from
+- `ast_node` carries `char* source_text` — the `"NNN: text"` snapshot from
   `source_line()`, captured in `new_node` (`ast.c`) while the scanner is
   still on the node's line; freed in `ast_free`.
 - `emit_one` sets `line_no = node->source_line` **and**
-  `emit_source_set(node->src_text)` before emitting each node; `emit_ast`
+  `emit_source_set(node->source_text)` before emitting each node; `emit_ast`
   calls `emit_source_clear()` when done.
 - While active, `store_instruction` records `strdup(emit_source_text)`
   instead of `source_line()`; while cleared (e.g. interactive REPL, where

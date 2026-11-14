@@ -10,21 +10,21 @@
 
 /* Backed by POSIX open_memstream (POSIX.1-2008): a FILE* whose writes
    grow a malloc'd, NUL-terminated buffer.  Zero-initialized (static)
-   str_streams work without an explicit ss_init — every entry point
+   str_streams work without an explicit stream_initialize — every entry point
    lazily creates the stream on first use. */
-typedef struct str_stm {
+typedef struct string_stream {
   FILE* stream; /* nullptr until first use */
-  char* buf;    /* owned by the stream until ss_take_string */
+  char* buffer; /* owned by the stream until stream_take_string */
   size_t size;  /* bytes written, updated on flush */
-} str_stream;
+} string_stream;
 
-void ss_init(str_stream* ss);
-void ss_clear(str_stream* ss);
-void ss_erase(str_stream* ss, int n);
-int ss_length(str_stream* ss);
-[[nodiscard]] char* ss_to_string(str_stream* ss);
-[[nodiscard]] char* ss_take_string(str_stream* ss);
-[[gnu::format(printf, 2, 3)]] void ss_printf(str_stream* ss, const char* fmt,
-                                             ...);
+void stream_initialize(string_stream* stream);
+void stream_clear(string_stream* stream);
+void stream_erase(string_stream* stream, int n);
+int stream_length(string_stream* stream);
+[[nodiscard]] char* stream_to_string(string_stream* stream);
+[[nodiscard]] char* stream_take_string(string_stream* stream);
+[[gnu::format(printf, 2, 3)]] void stream_printf(string_stream* stream,
+                                                 const char* format, ...);
 
 #endif

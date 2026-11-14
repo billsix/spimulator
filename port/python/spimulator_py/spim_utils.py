@@ -15,7 +15,6 @@ from typing import BinaryIO
 from . import (
     console,
     data,
-    instruction,
     machine,
     memory,
     options,
@@ -25,6 +24,9 @@ from . import (
     scanner,
     symbol_table,
     traps,
+)
+from . import (
+    instruction as instruction_module,
 )
 from . import memory_layout as layout
 from . import registers as regs
@@ -74,21 +76,21 @@ def initialize_world(exception_files: str | None, print_message: bool) -> None:
         options.initial_data_limit,
         options.initial_stack_size,
         options.initial_stack_limit,
-        options.initial_k_text_size,
-        options.initial_k_data_size,
-        options.initial_k_data_limit,
+        options.initial_kernel_text_size,
+        options.initial_kernel_data_size,
+        options.initial_kernel_data_limit,
     )
     initialize_registers()
     symbol_table.initialize_symbol_table()
-    instruction.k_text_begins_at_point(layout.K_TEXT_BOT)
-    data.k_data_begins_at_point(layout.K_DATA_BOT)
-    data.data_begins_at_point(layout.DATA_BOT)
-    instruction.text_begins_at_point(layout.TEXT_BOT)
+    instruction_module.kernel_text_begins_at_point(layout.KERNEL_TEXT_BOTTOM)
+    data.kernel_data_begins_at_point(layout.KERNEL_DATA_BOTTOM)
+    data.data_begins_at_point(layout.DATA_BOTTOM)
+    instruction_module.text_begins_at_point(layout.TEXT_BOTTOM)
     if exception_files is not None:
         old_bare: bool = options.bare_machine
-        old_accept: bool = options.accept_pseudo_insts
+        old_accept: bool = options.accept_pseudo_instructions
         options.bare_machine = False  # the handler is written for the extended machine
-        options.accept_pseudo_insts = True
+        options.accept_pseudo_instructions = True
         if exception_files == DEFAULT_EXCEPTIONS:
             _assemble(io.BytesIO(EXCEPTIONS_FILE.read_bytes()), DEFAULT_EXCEPTIONS)
             if print_message:
@@ -102,11 +104,11 @@ def initialize_world(exception_files: str | None, print_message: bool) -> None:
                 if print_message:
                     console.message(f"Loaded: {name}\n")
         options.bare_machine = old_bare
-        options.accept_pseudo_insts = old_accept
+        options.accept_pseudo_instructions = old_accept
         if not options.bare_machine:
             symbol_table.make_label_global("main")  # in case .globl main is missing
             symbol_table.record_label("main", 0, False)
-    scanner.init(None)
+    scanner.initialize(None)
     delete_all_breakpoints()
 
 
@@ -123,30 +125,38 @@ def write_startup_message() -> None:
 
 def initialize_registers() -> None:
     """Zero every register, then set $sp, Status and the FPU's FIR."""
-    for i in range(len(cpu.fpr)):
-        cpu.fpr[i] = 0
-    for i in range(regs.R_LENGTH):
-        cpu.gpr[i] = 0
-    cpu.gpr[regs.REG_SP] = layout.STACK_TOP - 4 - 4096
-    cpu.hi = cpu.lo = 0
-    cpu.pc = 0
-    cp0: list[int] = cpu.cpr[0]
-    cp0[regs.CP0_BADVADDR] = 0
-    cp0[regs.CP0_COUNT] = 0
-    cp0[regs.CP0_COMPARE] = 0
-    cp0[regs.CP0_STATUS] = (
-        (regs.STATUS_CU & 0x30000000) | regs.STATUS_IM | regs.STATUS_UM
+    for i in range(len(cpu.floating_point_registers)):
+        cpu.floating_point_registers[i] = 0
+    for i in range(regs.GENERAL_PURPOSE_REGISTER_COUNT):
+        cpu.general_purpose_registers[i] = 0
+    cpu.general_purpose_registers[regs.STACK_POINTER_REGISTER] = (
+        layout.STACK_TOP - 4 - 4096
     )
-    cp0[regs.CP0_CAUSE] = 0
-    cp0[regs.CP0_EPC] = 0
-    cp0[regs.CP0_CONFIG] = 0
-    cpu.cpr[1][regs.FIR_REG] = regs.FIR_W | regs.FIR_D | regs.FIR_S
-    cpu.cpr[1][regs.FCSR_REG] = 0
+    cpu.multiply_divide_high = cpu.multiply_divide_low = 0
+    cpu.program_counter = 0
+    coprocessor_0: list[int] = cpu.coprocessor_registers[0]
+    coprocessor_0[regs.COPROCESSOR_0_BAD_VIRTUAL_ADDRESS] = 0
+    coprocessor_0[regs.COPROCESSOR_0_COUNT] = 0
+    coprocessor_0[regs.COPROCESSOR_0_COMPARE] = 0
+    coprocessor_0[regs.COPROCESSOR_0_STATUS] = (
+        (regs.STATUS_COPROCESSOR_USABLE & 0x30000000)
+        | regs.STATUS_INTERRUPT_MASK
+        | regs.STATUS_USER_MODE
+    )
+    coprocessor_0[regs.COPROCESSOR_0_CAUSE] = 0
+    coprocessor_0[regs.COPROCESSOR_0_EXCEPTION_PROGRAM_COUNTER] = 0
+    coprocessor_0[regs.COPROCESSOR_0_CONFIG] = 0
+    cpu.coprocessor_registers[1][regs.FLOATING_POINT_IMPLEMENTATION_REGISTER_NUMBER] = (
+        regs.FLOATING_POINT_IMPLEMENTATION_HAS_WORD
+        | regs.FLOATING_POINT_IMPLEMENTATION_HAS_DOUBLE
+        | regs.FLOATING_POINT_IMPLEMENTATION_HAS_SINGLE
+    )
+    cpu.coprocessor_registers[1][regs.FLOATING_POINT_CONTROL_STATUS_REGISTER_NUMBER] = 0
 
 
 def _assemble(source: BinaryIO, name: str) -> None:
     """Parse and emit one source file, then close its scope."""
-    parser.parser_init(source, name)
+    parser.parser_initialize(source, name)
     parser.parse_file()
     symbol_table.flush_local_labels(not pseudo_op.parse_error_occurred)
     data.end_of_assembly_file()
@@ -169,19 +179,28 @@ def starting_address() -> int:
     return symbol_table.find_symbol_address(layout.DEFAULT_RUN_LOCATION)
 
 
-def _copy_str_to_stack(text: bytes) -> int:
+def _copy_string_to_stack(text: bytes) -> int:
     """Push text and its NUL byte by byte; return the string's address."""
     for byte in reversed(text + b"\0"):
-        memory.write_byte(machine.u32(cpu.gpr[regs.REG_SP]), byte)
-        cpu.gpr[regs.REG_SP] = machine.s32(cpu.gpr[regs.REG_SP] - 1)
-    return machine.u32(cpu.gpr[regs.REG_SP] + 1)
+        memory.write_byte(
+            machine.u32(cpu.general_purpose_registers[regs.STACK_POINTER_REGISTER]),
+            byte,
+        )
+        cpu.general_purpose_registers[regs.STACK_POINTER_REGISTER] = machine.s32(
+            cpu.general_purpose_registers[regs.STACK_POINTER_REGISTER] - 1
+        )
+    return machine.u32(cpu.general_purpose_registers[regs.STACK_POINTER_REGISTER] + 1)
 
 
-def _copy_int_to_stack(value: int) -> int:
+def _copy_integer_to_stack(value: int) -> int:
     """Push a word; return its address."""
-    memory.write_word(machine.u32(cpu.gpr[regs.REG_SP]), value)
-    cpu.gpr[regs.REG_SP] = machine.s32(cpu.gpr[regs.REG_SP] - 4)
-    return machine.u32(cpu.gpr[regs.REG_SP] + 4)
+    memory.write_word(
+        machine.u32(cpu.general_purpose_registers[regs.STACK_POINTER_REGISTER]), value
+    )
+    cpu.general_purpose_registers[regs.STACK_POINTER_REGISTER] = machine.s32(
+        cpu.general_purpose_registers[regs.STACK_POINTER_REGISTER] - 4
+    )
+    return machine.u32(cpu.general_purpose_registers[regs.STACK_POINTER_REGISTER] + 4)
 
 
 def initialize_run_stack(argv: list[str]) -> None:
@@ -192,42 +211,66 @@ def initialize_run_stack(argv: list[str]) -> None:
     argv vector, and argc, where $sp points.  $a0, $a1 and $a2 get argc,
     argv and envp.
     """
-    cpu.gpr[regs.REG_SP] = machine.s32(layout.STACK_TOP - 1)
-    env_addrs: list[int] = [_copy_str_to_stack(entry) for entry in STARTUP_ENVIRONMENT]
-    arg_addrs: list[int] = [_copy_str_to_stack(console.to_bytes(arg)) for arg in argv]
-    sp: int = cpu.gpr[regs.REG_SP] & ~3
+    cpu.general_purpose_registers[regs.STACK_POINTER_REGISTER] = machine.s32(
+        layout.STACK_TOP - 1
+    )
+    environment_addresses: list[int] = [
+        _copy_string_to_stack(entry) for entry in STARTUP_ENVIRONMENT
+    ]
+    argument_addresses: list[int] = [
+        _copy_string_to_stack(console.to_bytes(argument)) for argument in argv
+    ]
+    sp: int = cpu.general_purpose_registers[regs.STACK_POINTER_REGISTER] & ~3
     sp -= 4
-    cpu.gpr[regs.REG_SP] = machine.s32(sp & ~7)
-    _copy_int_to_stack(0)
-    for addr in reversed(env_addrs):
-        cpu.gpr[regs.REG_A2] = machine.s32(_copy_int_to_stack(addr))
-    _copy_int_to_stack(0)
-    for addr in reversed(arg_addrs):
-        cpu.gpr[regs.REG_A1] = machine.s32(_copy_int_to_stack(addr))
-    cpu.gpr[regs.REG_A0] = len(argv)
-    memory.write_word(machine.u32(cpu.gpr[regs.REG_SP]), len(argv))
+    cpu.general_purpose_registers[regs.STACK_POINTER_REGISTER] = machine.s32(sp & ~7)
+    _copy_integer_to_stack(0)
+    for address in reversed(environment_addresses):
+        cpu.general_purpose_registers[regs.ARGUMENT_REGISTER_2] = machine.s32(
+            _copy_integer_to_stack(address)
+        )
+    _copy_integer_to_stack(0)
+    for address in reversed(argument_addresses):
+        cpu.general_purpose_registers[regs.ARGUMENT_REGISTER_1] = machine.s32(
+            _copy_integer_to_stack(address)
+        )
+    cpu.general_purpose_registers[regs.ARGUMENT_REGISTER_0] = len(argv)
+    memory.write_word(
+        machine.u32(cpu.general_purpose_registers[regs.STACK_POINTER_REGISTER]),
+        len(argv),
+    )
 
 
-def run_program(pc: int, steps: int, display: bool, cont_bkpt: bool) -> bool:
+def run_program(
+    program_counter: int, steps: int, display: bool, continue_breakpoint: bool
+) -> bool:
     """Run from pc for steps instructions; True if it stopped at a breakpoint.
 
-    With cont_bkpt, first step over a breakpoint at pc.
+    With continue_breakpoint, first step over a breakpoint at pc.
     """
-    if cont_bkpt and instruction.inst_is_breakpoint(pc):
-        addr: int = pc if cpu.pc == 0 else cpu.pc
-        delete_breakpoint(addr)
+    if continue_breakpoint and instruction_module.instruction_is_breakpoint(
+        program_counter
+    ):
+        address: int = (
+            program_counter if cpu.program_counter == 0 else cpu.program_counter
+        )
+        delete_breakpoint(address)
         traps.exception_occurred = False
-        run.run_spim(addr, 1, display)
-        add_breakpoint(addr)
+        run.run_spim(address, 1, display)
+        add_breakpoint(address)
         steps -= 1
-        pc = cpu.pc
+        program_counter = cpu.program_counter
     traps.exception_occurred = False
-    run.run_spim(pc, steps, display)
-    if traps.exception_occurred and regs.exc_code() == traps.ExcCode.BP:
+    run.run_spim(program_counter, steps, display)
+    if (
+        traps.exception_occurred
+        and regs.exception_code() == traps.ExceptionCode.BREAKPOINT
+    ):
         # The break is handled by the simulator, not MIPS code: clear EXL so
         # later interrupts set EPC again.
-        cp0: list[int] = cpu.cpr[0]
-        cp0[regs.CP0_STATUS] = machine.s32(cp0[regs.CP0_STATUS] & ~regs.STATUS_EXL)
+        coprocessor_0: list[int] = cpu.coprocessor_registers[0]
+        coprocessor_0[regs.COPROCESSOR_0_STATUS] = machine.s32(
+            coprocessor_0[regs.COPROCESSOR_0_STATUS] & ~regs.STATUS_EXCEPTION_LEVEL
+        )
         return True
     return False
 
@@ -236,32 +279,32 @@ def run_program(pc: int, steps: int, display: bool, cont_bkpt: bool) -> bool:
 class _Breakpoint:
     """A breakpoint and the instruction it replaced."""
 
-    addr: int
-    instruction: Instruction
+    address: int
+    instruction_module: Instruction
 
 
 _breakpoints: list[_Breakpoint] = []  # newest first
 
 
-def add_breakpoint(addr: int) -> None:
+def add_breakpoint(address: int) -> None:
     """Set a breakpoint at addr."""
-    old: Instruction | None = instruction.set_breakpoint(addr)
+    old: Instruction | None = instruction_module.set_breakpoint(address)
     if old is not None:
-        _breakpoints.insert(0, _Breakpoint(addr, old))
+        _breakpoints.insert(0, _Breakpoint(address, old))
     elif traps.exception_occurred:
-        console.error(f"Cannot put a breakpoint at address 0x{addr:08x}\n")
+        console.error(f"Cannot put a breakpoint at address 0x{address:08x}\n")
     else:
-        console.error(f"No instruction to breakpoint at address 0x{addr:08x}\n")
+        console.error(f"No instruction to breakpoint at address 0x{address:08x}\n")
 
 
-def delete_breakpoint(addr: int) -> None:
+def delete_breakpoint(address: int) -> None:
     """Remove every breakpoint at addr, restoring the instruction."""
-    found: list[_Breakpoint] = [b for b in _breakpoints if b.addr == addr]
-    for bkpt in found:
-        memory.write_inst(addr, bkpt.instruction)
-        _breakpoints.remove(bkpt)
+    found: list[_Breakpoint] = [b for b in _breakpoints if b.address == address]
+    for breakpoint in found:
+        memory.write_instruction(address, breakpoint.instruction_module)
+        _breakpoints.remove(breakpoint)
     if not found:
-        console.error(f"No breakpoint to delete at 0x{addr:08x}\n")
+        console.error(f"No breakpoint to delete at 0x{address:08x}\n")
 
 
 def delete_all_breakpoints() -> None:
@@ -273,5 +316,5 @@ def list_breakpoints() -> None:
     """The REPL's ``list``."""
     if not _breakpoints:
         console.message("No breakpoints set\n")
-    for bkpt in _breakpoints:
-        console.message(f"Breakpoint at 0x{bkpt.addr:08x}\n")
+    for breakpoint in _breakpoints:
+        console.message(f"Breakpoint at 0x{breakpoint.address:08x}\n")

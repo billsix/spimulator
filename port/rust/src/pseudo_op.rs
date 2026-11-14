@@ -6,50 +6,50 @@
 //! zero, a `div`, and an `mfhi`.  The helpers here append the real
 //! instructions to the syntax tree, under the pseudo-instruction's node.
 
-use crate::instruction::ImmExpr;
+use crate::instruction::ImmediateExpression;
 use crate::machine::{error, error_bytes, fatal_error, Machine};
 use crate::opcodes::*;
 
 /// The register-register form of an immediate instruction
-/// (`imm_op_to_op`): `addi` to `add`, `ori` to `or`, ...
-pub fn imm_op_to_op(opcode: i32) -> i32 {
+/// (`immediate_opcode_to_opcode`): `addi` to `add`, `ori` to `or`, ...
+pub fn immediate_opcode_to_opcode(opcode: i32) -> i32 {
     match opcode {
-        TOK_ADDI_OPCODE => TOK_ADD_OPCODE,
-        TOK_ADDIU_OPCODE => TOK_ADDU_OPCODE,
-        TOK_ANDI_OPCODE => TOK_AND_OPCODE,
-        TOK_ORI_OPCODE => TOK_OR_OPCODE,
-        TOK_XORI_OPCODE => TOK_XOR_OPCODE,
-        TOK_SLTI_OPCODE => TOK_SLT_OPCODE,
-        TOK_SLTIU_OPCODE => TOK_SLTU_OPCODE,
-        TOK_J_OPCODE => TOK_JR_OPCODE,
-        TOK_LUI_OPCODE => TOK_ADDU_OPCODE,
-        TOK_SLL_OPCODE => TOK_SLLV_OPCODE,
-        TOK_SRA_OPCODE => TOK_SRAV_OPCODE,
-        TOK_SRL_OPCODE => TOK_SRLV_OPCODE,
+        TOKEN_ADDI_OPCODE => TOKEN_ADD_OPCODE,
+        TOKEN_ADDIU_OPCODE => TOKEN_ADDU_OPCODE,
+        TOKEN_ANDI_OPCODE => TOKEN_AND_OPCODE,
+        TOKEN_ORI_OPCODE => TOKEN_OR_OPCODE,
+        TOKEN_XORI_OPCODE => TOKEN_XOR_OPCODE,
+        TOKEN_SLTI_OPCODE => TOKEN_SLT_OPCODE,
+        TOKEN_SLTIU_OPCODE => TOKEN_SLTU_OPCODE,
+        TOKEN_J_OPCODE => TOKEN_JR_OPCODE,
+        TOKEN_LUI_OPCODE => TOKEN_ADDU_OPCODE,
+        TOKEN_SLL_OPCODE => TOKEN_SLLV_OPCODE,
+        TOKEN_SRA_OPCODE => TOKEN_SRAV_OPCODE,
+        TOKEN_SRL_OPCODE => TOKEN_SRLV_OPCODE,
         _ => fatal_error("Can't convert immediate op to op\n"),
     }
 }
 
-/// The immediate form of a register-register instruction (`op_to_imm_op`).
-pub fn op_to_imm_op(opcode: i32) -> i32 {
+/// The immediate form of a register-register instruction (`opcode_to_immediate_opcode`).
+pub fn opcode_to_immediate_opcode(opcode: i32) -> i32 {
     match opcode {
-        TOK_ADD_OPCODE => TOK_ADDI_OPCODE,
-        TOK_ADDU_OPCODE => TOK_ADDIU_OPCODE,
-        TOK_AND_OPCODE => TOK_ANDI_OPCODE,
-        TOK_OR_OPCODE => TOK_ORI_OPCODE,
-        TOK_XOR_OPCODE => TOK_XORI_OPCODE,
-        TOK_SLT_OPCODE => TOK_SLTI_OPCODE,
-        TOK_SLTU_OPCODE => TOK_SLTIU_OPCODE,
-        TOK_SLLV_OPCODE => TOK_SLL_OPCODE,
-        TOK_SRAV_OPCODE => TOK_SRA_OPCODE,
-        TOK_SRLV_OPCODE => TOK_SRL_OPCODE,
+        TOKEN_ADD_OPCODE => TOKEN_ADDI_OPCODE,
+        TOKEN_ADDU_OPCODE => TOKEN_ADDIU_OPCODE,
+        TOKEN_AND_OPCODE => TOKEN_ANDI_OPCODE,
+        TOKEN_OR_OPCODE => TOKEN_ORI_OPCODE,
+        TOKEN_XOR_OPCODE => TOKEN_XORI_OPCODE,
+        TOKEN_SLT_OPCODE => TOKEN_SLTI_OPCODE,
+        TOKEN_SLTU_OPCODE => TOKEN_SLTIU_OPCODE,
+        TOKEN_SLLV_OPCODE => TOKEN_SLL_OPCODE,
+        TOKEN_SRAV_OPCODE => TOKEN_SRA_OPCODE,
+        TOKEN_SRLV_OPCODE => TOKEN_SRL_OPCODE,
         _ => fatal_error("Can't convert op to immediate op\n"),
     }
 }
 
-/// A branch offset of `n_inst` instructions (`branch_offset`).
-pub fn branch_offset(n_inst: i32) -> ImmExpr {
-    ImmExpr::constant(n_inst << 2)
+/// A branch offset of `instruction_count` instructions (`branch_offset`).
+pub fn branch_offset(instruction_count: i32) -> ImmediateExpression {
+    ImmediateExpression::constant(instruction_count << 2)
 }
 
 impl Machine {
@@ -75,122 +75,205 @@ impl Machine {
     }
 
     /// `nop`: `sll $0, $0, 0`, the all-zero word.
-    pub fn nop_inst(&mut self) {
-        self.emit_r(TOK_SLL_OPCODE, 0, 0, 0);
+    pub fn nop_instruction(&mut self) {
+        self.emit_r(TOKEN_SLL_OPCODE, 0, 0, 0);
     }
 
     /// `break 0`.
-    pub fn trap_inst(&mut self) {
-        self.emit_r(TOK_BREAK_OPCODE, 0, 0, 0);
+    pub fn trap_instruction(&mut self) {
+        self.emit_r(TOKEN_BREAK_OPCODE, 0, 0, 0);
     }
 
-    /// `div`/`divu`/`rem`/`remu` with a destination (`div_inst`): a check
+    /// `div`/`divu`/`rem`/`remu` with a destination (`divide_instruction`): a check
     /// for a zero divisor (unless the divisor is a constant), the
     /// division, and `mflo` (quotient) or `mfhi` (remainder).
-    pub fn div_inst(&mut self, op: i32, rd: i32, rs: i32, rt: i32, const_divisor: bool) {
-        if rd != 0 && !const_divisor {
-            self.emit_i(TOK_BNE_OPCODE, 0, rt, &branch_offset(3));
-            self.nop_inst();
-            self.trap_inst();
+    pub fn divide_instruction(
+        &mut self,
+        op: i32,
+        destination_register: i32,
+        source_register: i32,
+        target_register: i32,
+        constant_divisor: bool,
+    ) {
+        if destination_register != 0 && !constant_divisor {
+            self.emit_i(TOKEN_BNE_OPCODE, 0, target_register, &branch_offset(3));
+            self.nop_instruction();
+            self.trap_instruction();
         }
-        if op == TOK_DIV_OPCODE || op == TOK_REM_PSEUDO_OP {
-            self.emit_r(TOK_DIV_OPCODE, 0, rs, rt);
+        if op == TOKEN_DIV_OPCODE || op == TOKEN_REM_PSEUDO_OP {
+            self.emit_r(TOKEN_DIV_OPCODE, 0, source_register, target_register);
         } else {
-            self.emit_r(TOK_DIVU_OPCODE, 0, rs, rt);
+            self.emit_r(TOKEN_DIVU_OPCODE, 0, source_register, target_register);
         }
-        if rd != 0 {
-            if op == TOK_DIV_OPCODE || op == TOK_DIVU_OPCODE {
-                self.emit_r(TOK_MFLO_OPCODE, rd, 0, 0);
+        if destination_register != 0 {
+            if op == TOKEN_DIV_OPCODE || op == TOKEN_DIVU_OPCODE {
+                self.emit_r(TOKEN_MFLO_OPCODE, destination_register, 0, 0);
             } else {
-                self.emit_r(TOK_MFHI_OPCODE, rd, 0, 0);
+                self.emit_r(TOKEN_MFHI_OPCODE, destination_register, 0, 0);
             }
         }
     }
 
-    /// `mulo`/`mulou` (`mult_inst`): multiply, and trap if the product
+    /// `mulo`/`mulou` (`multiply_instruction`): multiply, and trap if the product
     /// does not fit in 32 bits.
-    pub fn mult_inst(&mut self, op: i32, rd: i32, rs: i32, rt: i32) {
-        if op == TOK_MULOU_PSEUDO_OP {
-            self.emit_r(TOK_MULTU_OPCODE, 0, rs, rt);
+    pub fn multiply_instruction(
+        &mut self,
+        op: i32,
+        destination_register: i32,
+        source_register: i32,
+        target_register: i32,
+    ) {
+        if op == TOKEN_MULOU_PSEUDO_OP {
+            self.emit_r(TOKEN_MULTU_OPCODE, 0, source_register, target_register);
         } else {
-            self.emit_r(TOK_MULT_OPCODE, 0, rs, rt);
+            self.emit_r(TOKEN_MULT_OPCODE, 0, source_register, target_register);
         }
-        if op == TOK_MULOU_PSEUDO_OP && rd != 0 {
-            self.emit_r(TOK_MFHI_OPCODE, 1, 0, 0);
-            self.emit_i(TOK_BEQ_OPCODE, 0, 1, &branch_offset(3));
-            self.nop_inst();
-            self.trap_inst();
-        } else if op == TOK_MULO_PSEUDO_OP && rd != 0 {
-            self.emit_r(TOK_MFHI_OPCODE, 1, 0, 0);
-            self.emit_r(TOK_MFLO_OPCODE, rd, 0, 0);
-            self.emit_r_shift(TOK_SRA_OPCODE, rd, rd, 31);
-            self.emit_i(TOK_BEQ_OPCODE, rd, 1, &branch_offset(3));
-            self.nop_inst();
-            self.trap_inst();
+        if op == TOKEN_MULOU_PSEUDO_OP && destination_register != 0 {
+            self.emit_r(TOKEN_MFHI_OPCODE, 1, 0, 0);
+            self.emit_i(TOKEN_BEQ_OPCODE, 0, 1, &branch_offset(3));
+            self.nop_instruction();
+            self.trap_instruction();
+        } else if op == TOKEN_MULO_PSEUDO_OP && destination_register != 0 {
+            self.emit_r(TOKEN_MFHI_OPCODE, 1, 0, 0);
+            self.emit_r(TOKEN_MFLO_OPCODE, destination_register, 0, 0);
+            self.emit_r_shift(
+                TOKEN_SRA_OPCODE,
+                destination_register,
+                destination_register,
+                31,
+            );
+            self.emit_i(TOKEN_BEQ_OPCODE, destination_register, 1, &branch_offset(3));
+            self.nop_instruction();
+            self.trap_instruction();
         }
-        if rd != 0 {
-            self.emit_r(TOK_MFLO_OPCODE, rd, 0, 0);
+        if destination_register != 0 {
+            self.emit_r(TOKEN_MFLO_OPCODE, destination_register, 0, 0);
         }
     }
 
-    /// `sle`/`sleu` (`set_le_inst`).
-    pub fn set_le_inst(&mut self, op: i32, rd: i32, rs: i32, rt: i32) {
-        self.emit_i(TOK_BNE_OPCODE, rs, rt, &branch_offset(3));
-        self.emit_i(TOK_ORI_OPCODE, rd, 0, &ImmExpr::constant(1));
-        self.emit_i(TOK_BEQ_OPCODE, 0, 0, &branch_offset(3));
-        self.nop_inst();
-        let slt: i32 = if op == TOK_SLE_PSEUDO_OP {
-            TOK_SLT_OPCODE
+    /// `sle`/`sleu` (`set_less_or_equal_instruction`).
+    pub fn set_less_or_equal_instruction(
+        &mut self,
+        op: i32,
+        destination_register: i32,
+        source_register: i32,
+        target_register: i32,
+    ) {
+        self.emit_i(
+            TOKEN_BNE_OPCODE,
+            source_register,
+            target_register,
+            &branch_offset(3),
+        );
+        self.emit_i(
+            TOKEN_ORI_OPCODE,
+            destination_register,
+            0,
+            &ImmediateExpression::constant(1),
+        );
+        self.emit_i(TOKEN_BEQ_OPCODE, 0, 0, &branch_offset(3));
+        self.nop_instruction();
+        let slt: i32 = if op == TOKEN_SLE_PSEUDO_OP {
+            TOKEN_SLT_OPCODE
         } else {
-            TOK_SLTU_OPCODE
+            TOKEN_SLTU_OPCODE
         };
-        self.emit_r(slt, rd, rs, rt);
+        self.emit_r(slt, destination_register, source_register, target_register);
     }
 
-    /// `sgt`/`sgtu`: `slt` with the operands swapped (`set_gt_inst`).
-    pub fn set_gt_inst(&mut self, op: i32, rd: i32, rs: i32, rt: i32) {
-        let slt: i32 = if op == TOK_SGT_PSEUDO_OP {
-            TOK_SLT_OPCODE
+    /// `sgt`/`sgtu`: `slt` with the operands swapped (`set_greater_than_instruction`).
+    pub fn set_greater_than_instruction(
+        &mut self,
+        op: i32,
+        destination_register: i32,
+        source_register: i32,
+        target_register: i32,
+    ) {
+        let slt: i32 = if op == TOKEN_SGT_PSEUDO_OP {
+            TOKEN_SLT_OPCODE
         } else {
-            TOK_SLTU_OPCODE
+            TOKEN_SLTU_OPCODE
         };
-        self.emit_r(slt, rd, rt, rs);
+        self.emit_r(slt, destination_register, target_register, source_register);
     }
 
-    /// `sge`/`sgeu` (`set_ge_inst`).
-    pub fn set_ge_inst(&mut self, op: i32, rd: i32, rs: i32, rt: i32) {
-        self.emit_i(TOK_BNE_OPCODE, rs, rt, &branch_offset(3));
-        self.emit_i(TOK_ORI_OPCODE, rd, 0, &ImmExpr::constant(1));
-        self.emit_i(TOK_BEQ_OPCODE, 0, 0, &branch_offset(3));
-        self.nop_inst();
-        let slt: i32 = if op == TOK_SGE_PSEUDO_OP {
-            TOK_SLT_OPCODE
+    /// `sge`/`sgeu` (`set_greater_or_equal_instruction`).
+    pub fn set_greater_or_equal_instruction(
+        &mut self,
+        op: i32,
+        destination_register: i32,
+        source_register: i32,
+        target_register: i32,
+    ) {
+        self.emit_i(
+            TOKEN_BNE_OPCODE,
+            source_register,
+            target_register,
+            &branch_offset(3),
+        );
+        self.emit_i(
+            TOKEN_ORI_OPCODE,
+            destination_register,
+            0,
+            &ImmediateExpression::constant(1),
+        );
+        self.emit_i(TOKEN_BEQ_OPCODE, 0, 0, &branch_offset(3));
+        self.nop_instruction();
+        let slt: i32 = if op == TOKEN_SGE_PSEUDO_OP {
+            TOKEN_SLT_OPCODE
         } else {
-            TOK_SLTU_OPCODE
+            TOKEN_SLTU_OPCODE
         };
-        self.emit_r(slt, rd, rt, rs);
+        self.emit_r(slt, destination_register, target_register, source_register);
     }
 
-    /// `seq`/`sne` (`set_eq_inst`).
-    pub fn set_eq_inst(&mut self, op: i32, rd: i32, rs: i32, rt: i32) {
-        let (if_eq, if_neq): (i32, i32) = if op == TOK_SEQ_PSEUDO_OP {
+    /// `seq`/`sne` (`set_equal_instruction`).
+    pub fn set_equal_instruction(
+        &mut self,
+        op: i32,
+        destination_register: i32,
+        source_register: i32,
+        target_register: i32,
+    ) {
+        let (if_eq, if_neq): (i32, i32) = if op == TOKEN_SEQ_PSEUDO_OP {
             (1, 0)
         } else {
             (0, 1)
         };
-        self.emit_i(TOK_BEQ_OPCODE, rs, rt, &branch_offset(3));
-        self.emit_i(TOK_ORI_OPCODE, rd, 0, &ImmExpr::constant(if_neq));
-        self.emit_i(TOK_BEQ_OPCODE, 0, 0, &branch_offset(3));
-        self.nop_inst();
-        self.emit_i(TOK_ORI_OPCODE, rd, 0, &ImmExpr::constant(if_eq));
+        self.emit_i(
+            TOKEN_BEQ_OPCODE,
+            source_register,
+            target_register,
+            &branch_offset(3),
+        );
+        self.emit_i(
+            TOKEN_ORI_OPCODE,
+            destination_register,
+            0,
+            &ImmediateExpression::constant(if_neq),
+        );
+        self.emit_i(TOKEN_BEQ_OPCODE, 0, 0, &branch_offset(3));
+        self.nop_instruction();
+        self.emit_i(
+            TOKEN_ORI_OPCODE,
+            destination_register,
+            0,
+            &ImmediateExpression::constant(if_eq),
+        );
     }
 
-    /// Warn if a known immediate is outside `min..=max` (`check_imm_range`),
+    /// Warn if a known immediate is outside `min..=max` (`check_immediate_range`),
     /// on `line`, the instruction's line: the scanner's line can already be
     /// the next one, as reading past the immediate scans the newline.
-    pub fn check_imm_range(&mut self, expr: &ImmExpr, min: i32, max: i32, line: i32) {
-        if self.expr_is_known(expr) {
-            let value: i32 = self.eval_imm_expr(expr);
+    pub fn check_immediate_range(
+        &mut self,
+        expr: &ImmediateExpression,
+        min: i32,
+        max: i32,
+        line: i32,
+    ) {
+        if self.expression_is_known(expr) {
+            let value: i32 = self.evaluate_immediate_expression(expr);
             if value < min || max < value {
                 error(&format!(
                     "spim: (parser) immediate value ({value}) out of range ({min} .. {max}) on line {line}\n"
@@ -200,10 +283,16 @@ impl Machine {
     }
 
     /// Warn if a known immediate is outside `min..=max` as an unsigned
-    /// number (`check_uimm_range`), on `line`.
-    pub fn check_uimm_range(&mut self, expr: &ImmExpr, min: u32, max: u32, line: i32) {
-        if self.expr_is_known(expr) {
-            let value: u32 = self.eval_imm_expr(expr) as u32;
+    /// number (`check_unsigned_immediate_range`), on `line`.
+    pub fn check_unsigned_immediate_range(
+        &mut self,
+        expr: &ImmediateExpression,
+        min: u32,
+        max: u32,
+        line: i32,
+    ) {
+        if self.expression_is_known(expr) {
+            let value: u32 = self.evaluate_immediate_expression(expr) as u32;
             if value < min || max < value {
                 error(&format!(
                     "spim: (parser) immediate value ({}) out of range ({} .. {}) on line {line}\n",

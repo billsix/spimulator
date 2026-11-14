@@ -13,8 +13,8 @@ carries its columns, the two AST printers show them, and every port prints the s
 ## Context
 
 - The parser is single-mode (parse to AST, then emit): `tasks/reference/parser-ast-emit.md`. The
-  column fields join `ast_node`'s `src_text` and are captured at the same point in `new_node`;
-  `emit_one` (`src/parser.c`) already replays `line_no` and `src_text` per node, and columns would
+  column fields join `ast_node`'s `source_text` and are captured at the same point in `new_node`;
+  `emit_one` (`src/parser.c`) already replays `line_no` and `source_text` per node, and columns would
   extend that pattern.
 - §1-§6 below hold the verified current state, the design options, risk, effort and verification.
 
@@ -23,12 +23,12 @@ carries its columns, the two AST printers show them, and every port prints the s
 - **`ast_node`** in `include/ast.h` carries `source_line` (int)
   and no column fields.
 - **`scanner.c`** tracks `line_no` (file-static `int`) and a
-  per-line buffer `current_line_buf`, but **does not** track
+  per-line buffer `current_line_buffer`, but **does not** track
   column position within the line.  No `col_no` or equivalent.
 - **`scan_one_token`** in `src/scanner.c` reads characters via
   `next_char` / `peek_char`, but neither maintains a column
   counter.
-- **Tokens** in `tok_buf[]` carry only `type` and `val`; no
+- **Tokens** in `token_buffer[]` carry only `type` and `val`; no
   source position.
 
 So column information is **not** captured anywhere today.  Adding
@@ -73,7 +73,7 @@ Add column tracking to `src/scanner.c`:
 
 ### 3.2 Token-level capture
 
-Extend `tok_buf[i]` entries in scanner.c with `col_begin` and
+Extend `token_buffer[i]` entries in scanner.c with `col_begin` and
 `col_end` fields:
 
 ```c

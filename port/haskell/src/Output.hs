@@ -14,7 +14,7 @@
 module Output
   ( SpimJump (..),
     writeOut,
-    writeErr,
+    writeError,
     cError,
     runError,
     fatalError,
@@ -97,7 +97,7 @@ writeFd :: CInt -> B.ByteString -> IO ()
 writeFd fd bytes
   | B.null bytes = pure ()
   | otherwise = do
-      n :: CInt <- B.useAsCStringLen bytes $ \(p, len) -> c_write fd (castPtr p) (fromIntegral len)
+      n :: CInt <- B.useAsCStringLen bytes $ \(p, byteLength) -> c_write fd (castPtr p) (fromIntegral byteLength)
       if n <= 0
         then pure ()
         else writeFd fd (B.drop (fromIntegral n) bytes)
@@ -107,21 +107,21 @@ writeOut :: String -> IO ()
 writeOut = put stdout
 
 -- | Write a message to stderr (C: @write_output(message_out, ...)@).
-writeErr :: String -> IO ()
-writeErr = put stderr
+writeError :: String -> IO ()
+writeError = put stderr
 
 -- | C's @error@: a message on stderr.
 cError :: String -> IO ()
-cError = writeErr
+cError = writeError
 
 -- | C's @run_error@: print the message, then return to the top level.
 runError :: String -> IO a
-runError msg = writeErr msg >> throwIO RunErrorJump
+runError message = writeError message >> throwIO RunErrorJump
 
 -- | C's @fatal_error@: print the message and exit with status 255
 -- (C's @exit(-1)@).
 fatalError :: String -> IO a
-fatalError msg = writeErr msg >> exitSpim 255
+fatalError message = writeError message >> exitSpim 255
 
 -- | Exit the process with a C-style status (only the low 8 bits count).
 exitSpim :: Int -> IO a

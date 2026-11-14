@@ -2,7 +2,7 @@
 //!
 //! The scanner reads its input a line at a time (as `fgets` does, at most
 //! 4095 bytes at once) and cuts it into tokens: numbers, identifiers,
-//! registers, strings, punctuation, and `TOK_NL` at the end of each
+//! registers, strings, punctuation, and `TOKEN_NEWLINE` at the end of each
 //! statement (a newline or a `;`).  A comma is skipped like a space, so
 //! `add $t0 $t1 $t2` assembles.
 //!
@@ -16,12 +16,15 @@
 use crate::arith::{c_atof, c_atoi};
 use crate::machine::{error_bytes, fatal_error};
 use crate::opcode_types::OpType;
-use crate::opcodes::{c_bsearch, keyword_row, TOK_EOF, TOK_FP, TOK_FP_REG, TOK_ID, TOK_INT};
-use crate::opcodes::{TOK_NL, TOK_REG, TOK_STR};
+use crate::opcodes::{
+    c_bsearch, keyword_row, TOKEN_EOF, TOKEN_FLOATING_POINT, TOKEN_FLOATING_POINT_REGISTER,
+    TOKEN_IDENTIFIER, TOKEN_INTEGER,
+};
+use crate::opcodes::{TOKEN_NEWLINE, TOKEN_REGISTER, TOKEN_STRING};
 use crate::symbol_table::{Label, SymbolTable};
 
-/// The size of the line buffer (`LINE_BUF_MAX`).
-const LINE_BUF_MAX: usize = 4096;
+/// The size of the line buffer (`LINE_BUFFER_MAX`).
+const LINE_BUFFER_MAX: usize = 4096;
 
 /// The register names and numbers, sorted for a binary search
 /// (`register_tbl`).
@@ -84,13 +87,13 @@ pub fn register_name_to_number(name: &[u8]) -> i32 {
     } else if c1 == b'f' && c2.is_ascii_digit() {
         // $f0..$f31 only; the digits are read without overflow (C: strtol,
         // then the range test), so a long number is not a register.
-        let fp_reg: u64 = name[1..]
+        let floating_point_register: u64 = name[1..]
             .iter()
             .take_while(|c: &&u8| c.is_ascii_digit())
             .fold(0, |acc: u64, c: &u8| {
                 acc.saturating_mul(10).saturating_add(u64::from(c - b'0'))
             });
-        i32::try_from(fp_reg)
+        i32::try_from(floating_point_register)
             .ok()
             .filter(|n: &i32| *n <= 31)
             .unwrap_or(-1)
@@ -170,18 +173,18 @@ impl Token {
 struct ScanState {
     /// The input, read whole, and how far `fgets` has read it.
     input: Vec<u8>,
-    input_pos: usize,
+    input_position: usize,
     /// The line buffer, as `fgets` fills it: the bytes of the current line,
     /// a NUL, and whatever earlier lines left after it.
-    line_buf: Vec<u8>,
-    line_pos: usize,
-    line_len: usize,
+    line_buffer: Vec<u8>,
+    line_position: usize,
+    line_length: usize,
     at_eof: bool,
     line_no: i32,
-    current_line_buf: Vec<u8>,
+    current_line_buffer: Vec<u8>,
     current_line_no_saved: i32,
     current_line_saved: bool,
-    force_id_next: bool,
+    force_identifier_next: bool,
     tokens: [Option<Token>; 3],
 }
 
@@ -189,16 +192,16 @@ impl Default for ScanState {
     fn default() -> Self {
         ScanState {
             input: Vec::new(),
-            input_pos: 0,
-            line_buf: vec![0; LINE_BUF_MAX],
-            line_pos: 0,
-            line_len: 0,
+            input_position: 0,
+            line_buffer: vec![0; LINE_BUFFER_MAX],
+            line_position: 0,
+            line_length: 0,
             at_eof: false,
             line_no: 1,
-            current_line_buf: Vec::new(),
+            current_line_buffer: Vec::new(),
             current_line_no_saved: 0,
             current_line_saved: false,
-            force_id_next: false,
+            force_identifier_next: false,
             tokens: [None, None, None],
         }
     }
@@ -225,16 +228,16 @@ pub struct ScanContext<'a> {
 impl Scanner {
     /// Start scanning `input` (`scanner_init`).  The text of the last
     /// line seen is kept: error messages may still print it.
-    pub fn init(&mut self, input: Vec<u8>) {
+    pub fn initialize(&mut self, input: Vec<u8>) {
         let state: &mut ScanState = &mut self.state;
         state.input = input;
-        state.input_pos = 0;
-        state.line_pos = 0;
-        state.line_len = 0;
+        state.input_position = 0;
+        state.line_position = 0;
+        state.line_length = 0;
         state.at_eof = false;
         state.line_no = 1;
         state.current_line_saved = false;
-        state.force_id_next = false;
+        state.force_identifier_next = false;
         state.tokens = [None, None, None];
     }
 
@@ -256,7 +259,7 @@ impl Scanner {
     /// Scan the next identifier as an identifier even if it is a keyword
     /// (`scanner_force_identifier`), so `j b` can jump to a label `b`.
     pub fn force_identifier(&mut self) {
-        self.state.force_id_next = true;
+        self.state.force_identifier_next = true;
     }
 
     /// Save the scanner and start scanning `input` (`scanner_push_source`).
@@ -265,7 +268,7 @@ impl Scanner {
             fatal_error("scanner_push_source: nested scanner stack overflow\n");
         }
         self.saved.push(self.state.clone());
-        self.init(input);
+        self.initialize(input);
     }
 
     /// Go back to the scanner saved by the last `push_source`
@@ -281,7 +284,7 @@ impl Scanner {
         self.ensure_filled(1, context);
         self.state.tokens[0]
             .as_ref()
-            .map_or(TOK_EOF, |t: &Token| t.kind)
+            .map_or(TOKEN_EOF, |t: &Token| t.kind)
     }
 
     /// The kind of the token after the next (`scanner_peek2`).
@@ -289,7 +292,7 @@ impl Scanner {
         self.ensure_filled(2, context);
         self.state.tokens[1]
             .as_ref()
-            .map_or(TOK_EOF, |t: &Token| t.kind)
+            .map_or(TOKEN_EOF, |t: &Token| t.kind)
     }
 
     /// Take the next token and return its kind (`scanner_advance`).  If it
@@ -301,7 +304,12 @@ impl Scanner {
             .expect("ensure_filled filled the first slot");
         if matches!(
             token.kind,
-            TOK_INT | TOK_ID | TOK_REG | TOK_FP_REG | TOK_STR | TOK_FP
+            TOKEN_INTEGER
+                | TOKEN_IDENTIFIER
+                | TOKEN_REGISTER
+                | TOKEN_FLOATING_POINT_REGISTER
+                | TOKEN_STRING
+                | TOKEN_FLOATING_POINT
         ) {
             self.scan_value = token.value;
         }
@@ -313,7 +321,7 @@ impl Scanner {
     /// (`erroneous_line`).
     pub fn erroneous_line(&self) -> Vec<u8> {
         let mut text: Vec<u8> = b"\t  ".to_vec();
-        text.extend_from_slice(&self.state.current_line_buf);
+        text.extend_from_slice(&self.state.current_line_buffer);
         text.push(b'\n');
         text
     }
@@ -326,7 +334,7 @@ impl Scanner {
             return None;
         }
         let mut text: Vec<u8> = format!("{}: ", self.state.current_line_no_saved).into_bytes();
-        text.extend_from_slice(&self.state.current_line_buf);
+        text.extend_from_slice(&self.state.current_line_buffer);
         Some(text)
     }
 
@@ -342,75 +350,75 @@ impl Scanner {
     // ----- Characters -----
 
     /// Read the next line into the line buffer, as `fgets` does.
-    fn fill_line_buf(&mut self) {
+    fn fill_line_buffer(&mut self) {
         let state: &mut ScanState = &mut self.state;
         if state.at_eof {
             return;
         }
-        if state.input_pos >= state.input.len() {
+        if state.input_position >= state.input.len() {
             state.at_eof = true;
-            state.line_len = 0;
-            state.line_pos = 0;
+            state.line_length = 0;
+            state.line_position = 0;
             return;
         }
-        let rest: &[u8] = &state.input[state.input_pos..];
+        let rest: &[u8] = &state.input[state.input_position..];
         let mut count: usize = 0;
-        while count < LINE_BUF_MAX - 1 && count < rest.len() {
+        while count < LINE_BUFFER_MAX - 1 && count < rest.len() {
             count += 1;
             if rest[count - 1] == b'\n' {
                 break;
             }
         }
-        state.line_buf[..count].copy_from_slice(&rest[..count]);
-        state.line_buf[count] = 0;
-        state.input_pos += count;
+        state.line_buffer[..count].copy_from_slice(&rest[..count]);
+        state.line_buffer[count] = 0;
+        state.input_position += count;
         // The C engine measures the line with strlen: a NUL byte ends it.
-        state.line_len = state.line_buf[..count]
+        state.line_length = state.line_buffer[..count]
             .iter()
             .position(|b: &u8| *b == 0)
             .unwrap_or(count);
-        state.line_pos = 0;
+        state.line_position = 0;
     }
 
     fn peek_char(&self) -> u8 {
-        if self.state.line_pos >= self.state.line_len {
+        if self.state.line_position >= self.state.line_length {
             0
         } else {
-            self.state.line_buf[self.state.line_pos]
+            self.state.line_buffer[self.state.line_position]
         }
     }
 
     fn peek_char2(&self) -> u8 {
-        if self.state.line_pos + 1 >= self.state.line_len {
+        if self.state.line_position + 1 >= self.state.line_length {
             0
         } else {
-            self.state.line_buf[self.state.line_pos + 1]
+            self.state.line_buffer[self.state.line_position + 1]
         }
     }
 
     fn next_char(&mut self) -> u8 {
         let c: u8 = self.peek_char();
-        if self.state.line_pos < self.state.line_len {
-            self.state.line_pos += 1;
+        if self.state.line_position < self.state.line_length {
+            self.state.line_position += 1;
         }
         c
     }
 
     /// The byte at `index` of the line buffer, as C's pointer would read
     /// it (past the line, the NUL and then older bytes).
-    fn buf_at(&self, index: usize) -> u8 {
-        self.state.line_buf.get(index).copied().unwrap_or(0)
+    fn buffer_at(&self, index: usize) -> u8 {
+        self.state.line_buffer.get(index).copied().unwrap_or(0)
     }
 
     /// Remember the current line the first time a token of it is scanned.
     fn maybe_snapshot_line(&mut self) {
         let state: &mut ScanState = &mut self.state;
         if !state.current_line_saved {
-            let mut len: usize = state.line_len;
-            if len > 0 && state.line_buf[len - 1] == b'\n' {
-                len -= 1;
+            let mut length: usize = state.line_length;
+            if length > 0 && state.line_buffer[length - 1] == b'\n' {
+                length -= 1;
             }
-            state.current_line_buf = state.line_buf[..len].to_vec();
+            state.current_line_buffer = state.line_buffer[..length].to_vec();
             state.current_line_no_saved = state.line_no;
             state.current_line_saved = true;
         }
@@ -419,54 +427,54 @@ impl Scanner {
     // ----- Tokens -----
 
     /// If a floating-point literal (`digits.digits[e[+-]digits]`) starts
-    /// here, the position after it (`scan_fp_check`).
-    fn scan_fp_check(&self) -> Option<usize> {
-        let buf: &[u8] = &self.state.line_buf;
-        let len: usize = self.state.line_len;
-        let mut p: usize = self.state.line_pos;
-        if p >= len || !buf[p].is_ascii_digit() {
+    /// here, the position after it (`scan_floating_point_check`).
+    fn scan_floating_point_check(&self) -> Option<usize> {
+        let buffer: &[u8] = &self.state.line_buffer;
+        let length: usize = self.state.line_length;
+        let mut p: usize = self.state.line_position;
+        if p >= length || !buffer[p].is_ascii_digit() {
             return None;
         }
-        while p < len && buf[p].is_ascii_digit() {
+        while p < length && buffer[p].is_ascii_digit() {
             p += 1;
         }
         // The decimal point; `,` separates operands, so `.word 1,2` is two.
-        if p >= len || buf[p] != b'.' {
+        if p >= length || buffer[p] != b'.' {
             return None;
         }
         p += 1;
-        if p >= len || !buf[p].is_ascii_digit() {
+        if p >= length || !buffer[p].is_ascii_digit() {
             return None;
         }
-        while p < len && buf[p].is_ascii_digit() {
+        while p < length && buffer[p].is_ascii_digit() {
             p += 1;
         }
-        if p < len && (buf[p] == b'e' || buf[p] == b'E') {
+        if p < length && (buffer[p] == b'e' || buffer[p] == b'E') {
             p += 1;
-            if p < len && (buf[p] == b'+' || buf[p] == b'-') {
+            if p < length && (buffer[p] == b'+' || buffer[p] == b'-') {
                 p += 1;
             }
-            while p < len && buf[p].is_ascii_digit() {
+            while p < length && buffer[p].is_ascii_digit() {
                 p += 1;
             }
         }
         Some(p)
     }
 
-    fn scan_fp(&mut self, sign: f64, end: usize) -> Token {
-        let start: usize = self.state.line_pos;
+    fn scan_floating_point(&mut self, sign: f64, end: usize) -> Token {
+        let start: usize = self.state.line_position;
         let length: usize = (end - start).min(63);
-        let value: f64 = sign * c_atof(&self.state.line_buf[start..start + length]);
-        self.state.line_pos = end;
+        let value: f64 = sign * c_atof(&self.state.line_buffer[start..start + length]);
+        self.state.line_position = end;
         Token {
-            kind: TOK_FP,
+            kind: TOKEN_FLOATING_POINT,
             value: ScanValue::Fp(value),
         }
     }
 
     /// An integer, decimal or `0x` hexadecimal; it wraps silently past 32
-    /// bits (`scan_int`).
-    fn scan_int(&mut self, sign: u32) -> Token {
+    /// bits (`scan_integer`).
+    fn scan_integer(&mut self, sign: u32) -> Token {
         let mut value: u32 = 0;
         if self.peek_char() == b'0' && (self.peek_char2() == b'x' || self.peek_char2() == b'X') {
             self.next_char();
@@ -482,7 +490,7 @@ impl Scanner {
             }
         }
         Token {
-            kind: TOK_INT,
+            kind: TOKEN_INTEGER,
             value: ScanValue::Int(sign.wrapping_mul(value) as i32),
         }
     }
@@ -490,7 +498,7 @@ impl Scanner {
     /// The character after a backslash in a character literal; `p` is the
     /// index after the backslash and moves past the escape.
     fn scan_escape_char(&self, p: &mut usize) -> i32 {
-        let first: u8 = self.buf_at(*p);
+        let first: u8 = self.buffer_at(*p);
         *p += 1;
         match first {
             b'a' => 0x07,
@@ -503,8 +511,8 @@ impl Scanner {
             b'"' => i32::from(b'"'),
             b'\'' => i32::from(b'\''),
             b'x' | b'X' => {
-                let high: u8 = self.buf_at(*p);
-                let low: u8 = self.buf_at(*p + 1);
+                let high: u8 = self.buffer_at(*p);
+                let low: u8 = self.buffer_at(*p + 1);
                 let mut value: i32 = 0;
                 if high.is_ascii_hexdigit() {
                     value = hex_digit(high) << 4;
@@ -531,17 +539,17 @@ impl Scanner {
 
     /// Scan an identifier or a keyword (`scan_identifier`).  A defined
     /// constant (`X = 5`) scans as its value.
-    fn scan_identifier(&mut self, force_id: bool, context: &ScanContext<'_>) -> Token {
-        let start: usize = self.state.line_pos;
+    fn scan_identifier(&mut self, force_identifier: bool, context: &ScanContext<'_>) -> Token {
+        let start: usize = self.state.line_position;
         while self.peek_char() == b'_'
             || self.peek_char() == b'.'
             || self.peek_char().is_ascii_alphanumeric()
         {
             self.next_char();
         }
-        let end: usize = self.state.line_pos;
-        let id: Vec<u8> = self.state.line_buf[start..start + (end - start).min(255)].to_vec();
-        if !force_id {
+        let end: usize = self.state.line_position;
+        let id: Vec<u8> = self.state.line_buffer[start..start + (end - start).min(255)].to_vec();
+        if !force_identifier {
             if let Some(row) = keyword_row(&id) {
                 if context.allow_pseudo_ops || row.op_type != OpType::PseudoOp {
                     return Token {
@@ -562,13 +570,13 @@ impl Scanner {
             let label: &Label = context.symbols.label(label);
             if label.constant {
                 return Token {
-                    kind: TOK_INT,
-                    value: ScanValue::Int(label.addr as i32),
+                    kind: TOKEN_INTEGER,
+                    value: ScanValue::Int(label.address as i32),
                 };
             }
         }
         Token {
-            kind: TOK_ID,
+            kind: TOKEN_IDENTIFIER,
             value: ScanValue::Text(id),
         }
     }
@@ -577,26 +585,26 @@ impl Scanner {
     /// floating-point register, or else an identifier.
     fn scan_register(&mut self, context: &ScanContext<'_>) -> Token {
         self.next_char();
-        let start: usize = self.state.line_pos;
+        let start: usize = self.state.line_position;
         while matches!(self.peek_char(), b'_' | b'.' | b'$')
             || self.peek_char().is_ascii_alphanumeric()
         {
             self.next_char();
         }
-        let end: usize = self.state.line_pos;
-        let name: Vec<u8> = self.state.line_buf[start..start + (end - start).min(63)].to_vec();
+        let end: usize = self.state.line_position;
+        let name: Vec<u8> = self.state.line_buffer[start..start + (end - start).min(63)].to_vec();
         let number: i32 = register_name_to_number(&name);
         let first: u8 = name.first().copied().unwrap_or(0);
         let second: u8 = name.get(1).copied().unwrap_or(0);
         if number != -1 && first == b'f' && second != b'p' {
             return Token {
-                kind: TOK_FP_REG,
+                kind: TOKEN_FLOATING_POINT_REGISTER,
                 value: ScanValue::Int(number),
             };
         }
         if (0..32).contains(&number) {
             return Token {
-                kind: TOK_REG,
+                kind: TOKEN_REGISTER,
                 value: ScanValue::Int(number),
             };
         }
@@ -606,20 +614,20 @@ impl Scanner {
     /// Scan a string literal; its escapes are decoded (`scan_string`).
     fn scan_string(&mut self) -> Token {
         self.next_char();
-        let start: usize = self.state.line_pos;
+        let start: usize = self.state.line_position;
         while self.peek_char() != 0 && self.peek_char() != b'"' {
             if self.peek_char() == b'\\' && self.peek_char2() != 0 {
                 self.next_char();
             }
             self.next_char();
         }
-        let end: usize = self.state.line_pos;
+        let end: usize = self.state.line_position;
         if self.peek_char() == b'"' {
             self.next_char();
         }
-        let decoded: Vec<u8> = decode_string(&self.state.line_buf[start..end]);
+        let decoded: Vec<u8> = decode_string(&self.state.line_buffer[start..end]);
         Token {
-            kind: TOK_STR,
+            kind: TOKEN_STRING,
             value: ScanValue::Text(decoded),
         }
     }
@@ -629,9 +637,9 @@ impl Scanner {
         self.next_char();
         let value: i32 = if self.peek_char() == b'\\' {
             self.next_char();
-            let mut p: usize = self.state.line_pos;
+            let mut p: usize = self.state.line_position;
             let value: i32 = self.scan_escape_char(&mut p);
-            self.state.line_pos = p;
+            self.state.line_position = p;
             value
         } else {
             i32::from(self.next_char())
@@ -640,17 +648,17 @@ impl Scanner {
             self.next_char();
         }
         Token {
-            kind: TOK_INT,
+            kind: TOKEN_INTEGER,
             value: ScanValue::Int(value),
         }
     }
 
     /// Scan one token, skipping white space and comments (`scan_one_token`).
     fn scan_one_token(&mut self, context: &ScanContext<'_>) -> Token {
-        let force_id: bool = self.state.force_id_next;
-        self.state.force_id_next = false;
+        let force_identifier: bool = self.state.force_identifier_next;
+        self.state.force_identifier_next = false;
         loop {
-            while self.state.line_pos < self.state.line_len {
+            while self.state.line_position < self.state.line_length {
                 match self.peek_char() {
                     b' ' | b'\t' | b'\r' | b',' => {
                         self.next_char();
@@ -660,50 +668,50 @@ impl Scanner {
                             self.next_char();
                         }
                     }
-                    _ => return self.scan_token_at_char(force_id, context),
+                    _ => return self.scan_token_at_char(force_identifier, context),
                 }
             }
             if self.state.at_eof {
-                return Token::plain(TOK_EOF);
+                return Token::plain(TOKEN_EOF);
             }
-            self.fill_line_buf();
-            if self.state.at_eof && self.state.line_len == 0 {
-                return Token::plain(TOK_EOF);
+            self.fill_line_buffer();
+            if self.state.at_eof && self.state.line_length == 0 {
+                return Token::plain(TOKEN_EOF);
             }
             self.state.current_line_saved = false;
         }
     }
 
     /// Scan the token that starts at the current character.
-    fn scan_token_at_char(&mut self, force_id: bool, context: &ScanContext<'_>) -> Token {
+    fn scan_token_at_char(&mut self, force_identifier: bool, context: &ScanContext<'_>) -> Token {
         let c: u8 = self.peek_char();
         if c == b'\n' {
             // The line ends; the next token is on the next line.
             self.next_char();
             self.state.line_no += 1;
-            return Token::plain(TOK_NL);
+            return Token::plain(TOKEN_NEWLINE);
         }
         if c == b';' {
             self.next_char();
-            return Token::plain(TOK_NL);
+            return Token::plain(TOKEN_NEWLINE);
         }
         self.maybe_snapshot_line();
         if c == b'-' && self.peek_char2().is_ascii_digit() {
             // A negative literal: `8 -4` is two integers, not a subtraction.
             self.next_char();
-            return match self.scan_fp_check() {
-                Some(end) => self.scan_fp(-1.0, end),
-                None => self.scan_int(u32::MAX),
+            return match self.scan_floating_point_check() {
+                Some(end) => self.scan_floating_point(-1.0, end),
+                None => self.scan_integer(u32::MAX),
             };
         }
         if c.is_ascii_digit() {
-            return match self.scan_fp_check() {
-                Some(end) => self.scan_fp(1.0, end),
-                None => self.scan_int(1),
+            return match self.scan_floating_point_check() {
+                Some(end) => self.scan_floating_point(1.0, end),
+                None => self.scan_integer(1),
             };
         }
         if c == b'_' || c == b'.' || c.is_ascii_alphabetic() {
-            return self.scan_identifier(force_id, context);
+            return self.scan_identifier(force_identifier, context);
         }
         match c {
             b'$' => self.scan_register(context),
@@ -712,7 +720,7 @@ impl Scanner {
             b'?' => {
                 self.next_char();
                 Token {
-                    kind: TOK_ID,
+                    kind: TOKEN_IDENTIFIER,
                     value: ScanValue::Text(b"?".to_vec()),
                 }
             }
@@ -729,7 +737,7 @@ impl Scanner {
                 message.push(c);
                 message.extend_from_slice(format!("' (0x{c:02x})\n").as_bytes());
                 error_bytes(&message);
-                Token::plain(TOK_NL)
+                Token::plain(TOKEN_NEWLINE)
             }
         }
     }

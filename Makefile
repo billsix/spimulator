@@ -122,7 +122,7 @@ update-emacs-packages: ## USE_EMACS=1: rebuild image, wipe+reinstall elpa, strip
 generate: ## Regenerate every opcode table from include/opcodes.tsv (tools/gen_opcodes.py) on the existing image; commit the result
 	@$(CONTAINER_CMD) image inspect $(CONTAINER_NAME) >/dev/null 2>&1 || { \
 		echo "make generate: no $(CONTAINER_NAME) image yet. Run 'make image' first (before editing"; \
-		echo "include/opcodes.tsv), or run 'python3 tools/gen_opcodes.py' on the host (needs clang-format)."; \
+		echo "include/opcodes.tsv), or run 'python3 tools/gen_opcodes.py' on the host (needs clang-format, ruff and rustfmt)."; \
 		exit 2; }
 	$(CONTAINER_CMD) run $(PODMAN_RUN_FLAGS) --rm \
 		--entrypoint /bin/bash \

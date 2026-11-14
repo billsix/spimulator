@@ -9,7 +9,7 @@
 //! (`li`, `la`, `bge`, ...) turns into.
 
 use crate::cformat::format_g;
-use crate::instruction::{bprint, ImmExpr};
+use crate::instruction::{bprint, ImmediateExpression};
 use crate::opcodes::token_name;
 use crate::symbol_table::SymbolTable;
 
@@ -17,38 +17,56 @@ use crate::symbol_table::SymbolTable;
 #[derive(Clone, Debug, PartialEq)]
 pub enum AstKind {
     /// `op rd, rs, rt`.
-    InstR { op: i32, rd: i32, rs: i32, rt: i32 },
-    /// `op rd, rt, shamt`.
-    InstRShift {
+    InstructionR {
         op: i32,
-        rd: i32,
-        rt: i32,
-        shamt: i32,
+        destination_register: i32,
+        source_register: i32,
+        target_register: i32,
+    },
+    /// `op rd, rt, shamt`.
+    InstructionRShift {
+        op: i32,
+        destination_register: i32,
+        target_register: i32,
+        shift_amount: i32,
     },
     /// `op rt, rs, imm`.
-    InstI {
+    InstructionI {
         op: i32,
-        rt: i32,
-        rs: i32,
-        imm: ImmExpr,
+        target_register: i32,
+        source_register: i32,
+        immediate: ImmediateExpression,
     },
     /// `op target`.
-    InstJ { op: i32, target: ImmExpr },
+    InstructionJ {
+        op: i32,
+        target: ImmediateExpression,
+    },
     /// `op fd, fs, ft`.
-    InstFpR { op: i32, fd: i32, fs: i32, ft: i32 },
+    InstructionFloatingPointR {
+        op: i32,
+        floating_point_destination: i32,
+        fs: i32,
+        floating_point_target: i32,
+    },
     /// `op fs, ft, cc`.
-    InstFpCompare { op: i32, fs: i32, ft: i32, cc: i32 },
+    InstructionFloatingPointCompare {
+        op: i32,
+        fs: i32,
+        floating_point_target: i32,
+        condition_code: i32,
+    },
     /// A pseudo-instruction, with the real instructions it became.
     Pseudo {
         mnemonic: String,
         children: Vec<AstNode>,
     },
     /// `.byte` values.
-    DataByte(Vec<ImmExpr>),
+    DataByte(Vec<ImmediateExpression>),
     /// `.half` values.
-    DataHalf(Vec<ImmExpr>),
+    DataHalf(Vec<ImmediateExpression>),
     /// `.word` values.
-    DataWord(Vec<ImmExpr>),
+    DataWord(Vec<ImmediateExpression>),
     /// `.float` values.
     DataFloat(Vec<f64>),
     /// `.double` values.
@@ -59,27 +77,27 @@ pub enum AstKind {
         null_terminate: bool,
     },
     /// `.text [ADDR]`.
-    DirText(Option<u32>),
+    DirectiveText(Option<u32>),
     /// `.data [ADDR]`.
-    DirData(Option<u32>),
+    DirectiveData(Option<u32>),
     /// `.ktext [ADDR]`.
-    DirKtext(Option<u32>),
+    DirectiveKtext(Option<u32>),
     /// `.kdata [ADDR]`.
-    DirKdata(Option<u32>),
+    DirectiveKdata(Option<u32>),
     /// `.align N`.
-    DirAlign(i32),
+    DirectiveAlign(i32),
     /// `.space N`.
-    DirSpace(i32),
+    DirectiveSpace(i32),
     /// `.globl NAME`.
-    DirGlobl(String),
+    DirectiveGlobl(String),
     /// `.extern NAME SIZE`.
-    DirExtern { name: String, size: i32 },
+    DirectiveExtern { name: String, size: i32 },
     /// `.comm NAME SIZE`.
-    DirComm { name: String, size: i32 },
+    DirectiveComm { name: String, size: i32 },
     /// `NAME:`.
     LabelNormal(String),
     /// `NAME = VALUE`.
-    LabelConst(String, i32),
+    LabelConstant(String, i32),
     /// The root: one per file.
     File {
         source_file: Option<Vec<u8>>,
@@ -96,7 +114,7 @@ pub struct AstNode {
     pub source_line: i32,
     /// The source line as `"12: text"`, for the listing annotation of the
     /// instructions this node assembles into.
-    pub src_text: Option<Vec<u8>>,
+    pub source_text: Option<Vec<u8>>,
 }
 
 /// Append a JSON string literal (RFC 8259 escapes).
@@ -124,8 +142,8 @@ impl AstNode {
         self.print_at(symbols, out, 0);
     }
 
-    /// Append an immediate the way `-print-ast` shows it (`print_imm`).
-    fn print_imm(expr: &ImmExpr, symbols: &SymbolTable, out: &mut Vec<u8>) {
+    /// Append an immediate the way `-print-ast` shows it (`print_immediate`).
+    fn print_immediate(expr: &ImmediateExpression, symbols: &SymbolTable, out: &mut Vec<u8>) {
         match expr.symbol {
             Some(id) => {
                 out.extend_from_slice(symbols.label(id).name.as_bytes());
@@ -135,7 +153,7 @@ impl AstNode {
                 if expr.offset < 0 {
                     bprint!(out, "{}", expr.offset);
                 }
-                if expr.pc_relative {
+                if expr.program_counter_relative {
                     out.extend_from_slice(b" (pc-rel)");
                 }
             }
@@ -160,41 +178,70 @@ impl AstNode {
                     child.print_at(symbols, out, depth + 1);
                 }
             }
-            AstKind::InstR { op, rd, rs, rt } => {
+            AstKind::InstructionR {
+                op,
+                destination_register,
+                source_register,
+                target_register,
+            } => {
                 bprint!(
                     out,
-                    "INST_R op={} rd={rd} rs={rs} rt={rt}\n",
+                    "INST_R op={} rd={destination_register} rs={source_register} rt={target_register}\n",
                     token_name(*op)
                 )
             }
-            AstKind::InstRShift { op, rd, rt, shamt } => {
+            AstKind::InstructionRShift {
+                op,
+                destination_register,
+                target_register,
+                shift_amount,
+            } => {
                 bprint!(
                     out,
-                    "INST_R_SHIFT op={} rd={rd} rt={rt} shamt={shamt}\n",
+                    "INST_R_SHIFT op={} rd={destination_register} rt={target_register} shamt={shift_amount}\n",
                     token_name(*op)
                 )
             }
-            AstKind::InstI { op, rt, rs, imm } => {
-                bprint!(out, "INST_I op={} rt={rt} rs={rs} imm=", token_name(*op));
-                Self::print_imm(imm, symbols, out);
+            AstKind::InstructionI {
+                op,
+                target_register,
+                source_register,
+                immediate,
+            } => {
+                bprint!(
+                    out,
+                    "INST_I op={} rt={target_register} rs={source_register} imm=",
+                    token_name(*op)
+                );
+                Self::print_immediate(immediate, symbols, out);
                 out.push(b'\n');
             }
-            AstKind::InstJ { op, target } => {
+            AstKind::InstructionJ { op, target } => {
                 bprint!(out, "INST_J op={} target=", token_name(*op));
-                Self::print_imm(target, symbols, out);
+                Self::print_immediate(target, symbols, out);
                 out.push(b'\n');
             }
-            AstKind::InstFpR { op, fd, fs, ft } => {
+            AstKind::InstructionFloatingPointR {
+                op,
+                floating_point_destination,
+                fs,
+                floating_point_target,
+            } => {
                 bprint!(
                     out,
-                    "INST_FP_R op={} fd={fd} fs={fs} ft={ft}\n",
+                    "INST_FP_R op={} fd={floating_point_destination} fs={fs} ft={floating_point_target}\n",
                     token_name(*op)
                 )
             }
-            AstKind::InstFpCompare { op, fs, ft, cc } => {
+            AstKind::InstructionFloatingPointCompare {
+                op,
+                fs,
+                floating_point_target,
+                condition_code,
+            } => {
                 bprint!(
                     out,
-                    "INST_FP_COMPARE op={} fs={fs} ft={ft} cc={cc}\n",
+                    "INST_FP_COMPARE op={} fs={fs} ft={floating_point_target} cc={condition_code}\n",
                     token_name(*op)
                 )
             }
@@ -215,7 +262,7 @@ impl AstNode {
                     if i > 0 {
                         out.extend_from_slice(b", ");
                     }
-                    Self::print_imm(value, symbols, out);
+                    Self::print_immediate(value, symbols, out);
                 }
                 out.extend_from_slice(b"]\n");
             }
@@ -258,30 +305,32 @@ impl AstNode {
                 }
                 out.extend_from_slice(b"\"\n");
             }
-            AstKind::DirText(start)
-            | AstKind::DirData(start)
-            | AstKind::DirKtext(start)
-            | AstKind::DirKdata(start) => {
+            AstKind::DirectiveText(start)
+            | AstKind::DirectiveData(start)
+            | AstKind::DirectiveKtext(start)
+            | AstKind::DirectiveKdata(start) => {
                 let tag: &str = match &self.kind {
-                    AstKind::DirText(_) => "DIR_TEXT",
-                    AstKind::DirData(_) => "DIR_DATA",
-                    AstKind::DirKtext(_) => "DIR_KTEXT",
+                    AstKind::DirectiveText(_) => "DIR_TEXT",
+                    AstKind::DirectiveData(_) => "DIR_DATA",
+                    AstKind::DirectiveKtext(_) => "DIR_KTEXT",
                     _ => "DIR_KDATA",
                 };
                 match start {
-                    Some(addr) => bprint!(out, "{tag} start=0x{addr:08x}\n"),
+                    Some(address) => bprint!(out, "{tag} start=0x{address:08x}\n"),
                     None => bprint!(out, "{tag}\n"),
                 }
             }
-            AstKind::DirAlign(n) => bprint!(out, "DIR_ALIGN n={n}\n"),
-            AstKind::DirSpace(size) => bprint!(out, "DIR_SPACE size={size}\n"),
-            AstKind::DirGlobl(name) => bprint!(out, "DIR_GLOBL name={name}\n"),
-            AstKind::DirExtern { name, size } => {
+            AstKind::DirectiveAlign(n) => bprint!(out, "DIR_ALIGN n={n}\n"),
+            AstKind::DirectiveSpace(size) => bprint!(out, "DIR_SPACE size={size}\n"),
+            AstKind::DirectiveGlobl(name) => bprint!(out, "DIR_GLOBL name={name}\n"),
+            AstKind::DirectiveExtern { name, size } => {
                 bprint!(out, "DIR_EXTERN name={name} size={size}\n")
             }
-            AstKind::DirComm { name, size } => bprint!(out, "DIR_COMM name={name} size={size}\n"),
+            AstKind::DirectiveComm { name, size } => {
+                bprint!(out, "DIR_COMM name={name} size={size}\n")
+            }
             AstKind::LabelNormal(name) => bprint!(out, "LABEL_DEF name={name} (placement)\n"),
-            AstKind::LabelConst(name, value) => {
+            AstKind::LabelConstant(name, value) => {
                 bprint!(out, "LABEL_DEF name={name} = {value} (constant)\n")
             }
         }
@@ -291,12 +340,12 @@ impl AstNode {
     /// the final newline.
     pub fn print_json(&self, symbols: &SymbolTable, out: &mut Vec<u8>) {
         let kind_name: &str = match &self.kind {
-            AstKind::InstR { .. } => "INST_R",
-            AstKind::InstRShift { .. } => "INST_R_SHIFT",
-            AstKind::InstI { .. } => "INST_I",
-            AstKind::InstJ { .. } => "INST_J",
-            AstKind::InstFpR { .. } => "INST_FP_R",
-            AstKind::InstFpCompare { .. } => "INST_FP_COMPARE",
+            AstKind::InstructionR { .. } => "INST_R",
+            AstKind::InstructionRShift { .. } => "INST_R_SHIFT",
+            AstKind::InstructionI { .. } => "INST_I",
+            AstKind::InstructionJ { .. } => "INST_J",
+            AstKind::InstructionFloatingPointR { .. } => "INST_FP_R",
+            AstKind::InstructionFloatingPointCompare { .. } => "INST_FP_COMPARE",
             AstKind::Pseudo { .. } => "PSEUDO",
             AstKind::DataByte(_) => "DATA_BYTE",
             AstKind::DataHalf(_) => "DATA_HALF",
@@ -304,16 +353,16 @@ impl AstNode {
             AstKind::DataFloat(_) => "DATA_FLOAT",
             AstKind::DataDouble(_) => "DATA_DOUBLE",
             AstKind::DataString { .. } => "DATA_STRING",
-            AstKind::DirText(_) => "DIR_TEXT",
-            AstKind::DirData(_) => "DIR_DATA",
-            AstKind::DirKtext(_) => "DIR_KTEXT",
-            AstKind::DirKdata(_) => "DIR_KDATA",
-            AstKind::DirAlign(_) => "DIR_ALIGN",
-            AstKind::DirSpace(_) => "DIR_SPACE",
-            AstKind::DirGlobl(_) => "DIR_GLOBL",
-            AstKind::DirExtern { .. } => "DIR_EXTERN",
-            AstKind::DirComm { .. } => "DIR_COMM",
-            AstKind::LabelNormal(_) | AstKind::LabelConst(..) => "LABEL_DEF",
+            AstKind::DirectiveText(_) => "DIR_TEXT",
+            AstKind::DirectiveData(_) => "DIR_DATA",
+            AstKind::DirectiveKtext(_) => "DIR_KTEXT",
+            AstKind::DirectiveKdata(_) => "DIR_KDATA",
+            AstKind::DirectiveAlign(_) => "DIR_ALIGN",
+            AstKind::DirectiveSpace(_) => "DIR_SPACE",
+            AstKind::DirectiveGlobl(_) => "DIR_GLOBL",
+            AstKind::DirectiveExtern { .. } => "DIR_EXTERN",
+            AstKind::DirectiveComm { .. } => "DIR_COMM",
+            AstKind::LabelNormal(_) | AstKind::LabelConstant(..) => "LABEL_DEF",
             AstKind::File { .. } => "FILE",
         };
         bprint!(
@@ -337,31 +386,62 @@ impl AstNode {
                 out.extend_from_slice(b",\"children\":");
                 Self::json_chain(children, symbols, out);
             }
-            AstKind::InstR { op, rd, rs, rt } => {
+            AstKind::InstructionR {
+                op,
+                destination_register,
+                source_register,
+                target_register,
+            } => {
                 mnemonic(out, *op);
-                bprint!(out, ",\"rd\":{rd},\"rs\":{rs},\"rt\":{rt}");
+                bprint!(out, ",\"rd\":{destination_register},\"rs\":{source_register},\"rt\":{target_register}");
             }
-            AstKind::InstRShift { op, rd, rt, shamt } => {
+            AstKind::InstructionRShift {
+                op,
+                destination_register,
+                target_register,
+                shift_amount,
+            } => {
                 mnemonic(out, *op);
-                bprint!(out, ",\"rd\":{rd},\"rt\":{rt},\"shamt\":{shamt}");
+                bprint!(out, ",\"rd\":{destination_register},\"rt\":{target_register},\"shamt\":{shift_amount}");
             }
-            AstKind::InstI { op, rt, rs, imm } => {
+            AstKind::InstructionI {
+                op,
+                target_register,
+                source_register,
+                immediate,
+            } => {
                 mnemonic(out, *op);
-                bprint!(out, ",\"rt\":{rt},\"rs\":{rs},\"imm\":");
-                Self::json_imm(imm, symbols, out);
+                bprint!(
+                    out,
+                    ",\"rt\":{target_register},\"rs\":{source_register},\"imm\":"
+                );
+                Self::json_immediate(immediate, symbols, out);
             }
-            AstKind::InstJ { op, target } => {
+            AstKind::InstructionJ { op, target } => {
                 mnemonic(out, *op);
                 out.extend_from_slice(b",\"target\":");
-                Self::json_imm(target, symbols, out);
+                Self::json_immediate(target, symbols, out);
             }
-            AstKind::InstFpR { op, fd, fs, ft } => {
+            AstKind::InstructionFloatingPointR {
+                op,
+                floating_point_destination,
+                fs,
+                floating_point_target,
+            } => {
                 mnemonic(out, *op);
-                bprint!(out, ",\"fd\":{fd},\"fs\":{fs},\"ft\":{ft}");
+                bprint!(out, ",\"fd\":{floating_point_destination},\"fs\":{fs},\"ft\":{floating_point_target}");
             }
-            AstKind::InstFpCompare { op, fs, ft, cc } => {
+            AstKind::InstructionFloatingPointCompare {
+                op,
+                fs,
+                floating_point_target,
+                condition_code,
+            } => {
                 mnemonic(out, *op);
-                bprint!(out, ",\"fs\":{fs},\"ft\":{ft},\"cc\":{cc}");
+                bprint!(
+                    out,
+                    ",\"fs\":{fs},\"ft\":{floating_point_target},\"cc\":{condition_code}"
+                );
             }
             AstKind::Pseudo { mnemonic, children } => {
                 out.extend_from_slice(b",\"mnemonic\":");
@@ -375,7 +455,7 @@ impl AstNode {
                     if i > 0 {
                         out.push(b',');
                     }
-                    Self::json_imm(value, symbols, out);
+                    Self::json_immediate(value, symbols, out);
                 }
                 out.push(b']');
             }
@@ -401,21 +481,21 @@ impl AstNode {
                 );
                 json_string(out, bytes);
             }
-            AstKind::DirText(start)
-            | AstKind::DirData(start)
-            | AstKind::DirKtext(start)
-            | AstKind::DirKdata(start) => {
-                if let Some(addr) = start {
-                    bprint!(out, ",\"start_addr\":{addr}");
+            AstKind::DirectiveText(start)
+            | AstKind::DirectiveData(start)
+            | AstKind::DirectiveKtext(start)
+            | AstKind::DirectiveKdata(start) => {
+                if let Some(address) = start {
+                    bprint!(out, ",\"start_addr\":{address}");
                 }
             }
-            AstKind::DirAlign(n) => bprint!(out, ",\"n\":{n}"),
-            AstKind::DirSpace(size) => bprint!(out, ",\"size\":{size}"),
-            AstKind::DirGlobl(name) => {
+            AstKind::DirectiveAlign(n) => bprint!(out, ",\"n\":{n}"),
+            AstKind::DirectiveSpace(size) => bprint!(out, ",\"size\":{size}"),
+            AstKind::DirectiveGlobl(name) => {
                 out.extend_from_slice(b",\"name\":");
                 json_string(out, name.as_bytes());
             }
-            AstKind::DirExtern { name, size } | AstKind::DirComm { name, size } => {
+            AstKind::DirectiveExtern { name, size } | AstKind::DirectiveComm { name, size } => {
                 out.extend_from_slice(b",\"name\":");
                 json_string(out, name.as_bytes());
                 bprint!(out, ",\"size\":{size}");
@@ -425,7 +505,7 @@ impl AstNode {
                 json_string(out, name.as_bytes());
                 out.extend_from_slice(b",\"label_kind\":\"placement\"");
             }
-            AstKind::LabelConst(name, value) => {
+            AstKind::LabelConstant(name, value) => {
                 out.extend_from_slice(b",\"name\":");
                 json_string(out, name.as_bytes());
                 bprint!(out, ",\"label_kind\":\"constant\",\"value\":{value}");
@@ -445,12 +525,12 @@ impl AstNode {
         out.push(b']');
     }
 
-    fn json_imm(expr: &ImmExpr, symbols: &SymbolTable, out: &mut Vec<u8>) {
+    fn json_immediate(expr: &ImmediateExpression, symbols: &SymbolTable, out: &mut Vec<u8>) {
         bprint!(out, "{{\"offset\":{},\"symbol\":", expr.offset);
         match expr.symbol {
             Some(id) => json_string(out, symbols.label(id).name.as_bytes()),
             None => out.extend_from_slice(b"null"),
         }
-        bprint!(out, ",\"pc_relative\":{}}}", expr.pc_relative);
+        bprint!(out, ",\"pc_relative\":{}}}", expr.program_counter_relative);
     }
 }

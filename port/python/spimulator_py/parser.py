@@ -21,30 +21,32 @@ from . import (
     ast_nodes,
     console,
     data,
-    instruction,
     machine,
     opcodes,
     pseudo_op,
     scanner,
     symbol_table,
 )
+from . import (
+    instruction as instruction_module,
+)
 from .ast_nodes import Kind, Node
-from .inst import AddrExpr, ImmExpr
+from .inst import AddressExpression, ImmediateExpression
 from .opcode_table import OpType, Tok
 from .opcodes import (
-    TOK_EOF,
-    TOK_FP,
-    TOK_FP_REG,
-    TOK_ID,
-    TOK_INT,
-    TOK_NL,
-    TOK_REG,
-    TOK_STR,
+    TOKEN_EOF,
+    TOKEN_FLOATING_POINT,
+    TOKEN_FLOATING_POINT_REGISTER,
+    TOKEN_IDENTIFIER,
+    TOKEN_INTEGER,
+    TOKEN_NEWLINE,
+    TOKEN_REGISTER,
+    TOKEN_STRING,
 )
 
-data_dir: bool = False
+data_directive: bool = False
 """The current segment is a data segment."""
-text_dir: bool = True
+text_directive: bool = True
 """The current segment is a text segment."""
 
 input_file_name: str | None = None
@@ -55,7 +57,7 @@ _auto_align: bool = True  # mirrors data.py's flag, as the C parser does
 
 _current_file: Node | None = None
 _current_pseudo: Node | None = None
-_expr_unresolved_label: symbol_table.Label | None = None
+_expression_unresolved_label: symbol_table.Label | None = None
 
 # The command-line views of the tree (-print-ast, -show-expansion, ...).
 print_ast: bool = False
@@ -69,7 +71,7 @@ _this_line_labels: list[symbol_table.Label] = []
 
 # The value list of the .word/.half/.byte (or .float/.double) being parsed.
 _data_kind: Kind = Kind.DATA_WORD
-_data_exprs: list[ImmExpr] = []
+_data_expressions: list[ImmediateExpression] = []
 _data_doubles: list[float] = []
 _data_directive_line: int = 0
 
@@ -81,74 +83,137 @@ def _append(node: Node) -> None:
     elif _current_file is not None:
         _current_file.children.append(node)
     else:
-        pass  # no tree is being built (parser_init has not run): the node is dropped
+        pass  # no tree is being built (parser_initialize has not run): the node is dropped
 
 
 # --- the emit_* helpers the pseudo-op expansions call ---------------------------
 
 
-def emit_r(op: int, rd: int, rs: int, rt: int) -> None:
+def emit_r(
+    opcode: int, destination_register: int, source_register: int, target_register: int
+) -> None:
     """Append an R-type instruction node."""
-    _append(ast_nodes.make(Kind.INST_R, op=op, rd=rd, rs=rs, rt=rt))
+    _append(
+        ast_nodes.make(
+            Kind.INSTRUCTION_R,
+            opcode=opcode,
+            destination_register=destination_register,
+            source_register=source_register,
+            target_register=target_register,
+        )
+    )
 
 
-def emit_r_shift(op: int, rd: int, rt: int, shamt: int) -> None:
+def emit_r_shift(
+    opcode: int, destination_register: int, target_register: int, shift_amount: int
+) -> None:
     """Append a shift node."""
-    _append(ast_nodes.make(Kind.INST_R_SHIFT, op=op, rd=rd, rt=rt, shamt=shamt))
+    _append(
+        ast_nodes.make(
+            Kind.INSTRUCTION_R_SHIFT,
+            opcode=opcode,
+            destination_register=destination_register,
+            target_register=target_register,
+            shift_amount=shift_amount,
+        )
+    )
 
 
-def emit_i(op: int, rt: int, rs: int, imm: ImmExpr) -> None:
+def emit_i(
+    opcode: int,
+    target_register: int,
+    source_register: int,
+    immediate: ImmediateExpression,
+) -> None:
     """Append an I-type node (it keeps its own copy of imm)."""
-    _append(ast_nodes.make(Kind.INST_I, op=op, rt=rt, rs=rs, imm=imm.copy()))
+    _append(
+        ast_nodes.make(
+            Kind.INSTRUCTION_I,
+            opcode=opcode,
+            target_register=target_register,
+            source_register=source_register,
+            immediate=immediate.copy(),
+        )
+    )
 
 
-def emit_j(op: int, target: ImmExpr) -> None:
+def emit_j(opcode: int, target: ImmediateExpression) -> None:
     """Append a J-type node."""
-    _append(ast_nodes.make(Kind.INST_J, op=op, imm=target.copy()))
+    _append(ast_nodes.make(Kind.INSTRUCTION_J, opcode=opcode, immediate=target.copy()))
 
 
-def emit_fp_r(op: int, fd: int, fs: int, ft: int) -> None:
+def emit_floating_point_r(
+    opcode: int,
+    floating_point_destination: int,
+    floating_point_source: int,
+    floating_point_target: int,
+) -> None:
     """Append a coprocessor R-type node."""
-    _append(ast_nodes.make(Kind.INST_FP_R, op=op, fd=fd, fs=fs, ft=ft))
+    _append(
+        ast_nodes.make(
+            Kind.INSTRUCTION_FLOATING_POINT_R,
+            opcode=opcode,
+            floating_point_destination=floating_point_destination,
+            floating_point_source=floating_point_source,
+            floating_point_target=floating_point_target,
+        )
+    )
 
 
-def emit_fp_compare(op: int, fs: int, ft: int, cc: int) -> None:
+def emit_floating_point_compare(
+    opcode: int,
+    floating_point_source: int,
+    floating_point_target: int,
+    condition_code: int,
+) -> None:
     """Append an FP compare node."""
-    _append(ast_nodes.make(Kind.INST_FP_COMPARE, op=op, fs=fs, ft=ft, cc=cc))
+    _append(
+        ast_nodes.make(
+            Kind.INSTRUCTION_FLOATING_POINT_COMPARE,
+            opcode=opcode,
+            floating_point_source=floating_point_source,
+            floating_point_target=floating_point_target,
+            condition_code=condition_code,
+        )
+    )
 
 
 # --- data lists -------------------------------------------------------------------
 
 
-def _data_int_begin(kind: Kind) -> None:
+def _data_integer_begin(kind: Kind) -> None:
     """Start a .byte/.half/.word value list."""
     global _data_kind, _data_directive_line
     _data_kind = kind
-    _data_exprs.clear()
+    _data_expressions.clear()
     _data_directive_line = scanner.line_no
 
 
-def _data_int_push(value: int) -> None:
+def _data_integer_push(value: int) -> None:
     """Add one value, with the first undefined symbol it used, if any."""
-    global _expr_unresolved_label
+    global _expression_unresolved_label
     name: str | None = (
-        _expr_unresolved_label.name if _expr_unresolved_label is not None else None
+        _expression_unresolved_label.name
+        if _expression_unresolved_label is not None
+        else None
     )
-    _data_exprs.append(instruction.make_imm_expr(value, name, False))
-    _expr_unresolved_label = None
+    _data_expressions.append(
+        instruction_module.make_immediate_expression(value, name, False)
+    )
+    _expression_unresolved_label = None
 
 
-def _data_int_finalize() -> None:
+def _data_integer_finalize() -> None:
     """Turn the collected values into one node."""
-    if not _data_exprs:
+    if not _data_expressions:
         return
-    node: Node = ast_nodes.make(_data_kind, exprs=list(_data_exprs))
+    node: Node = ast_nodes.make(_data_kind, expressions=list(_data_expressions))
     node.source_line = _data_directive_line
     _append(node)
-    _data_exprs.clear()
+    _data_expressions.clear()
 
 
-def _data_fp_begin(kind: Kind) -> None:
+def _data_floating_point_begin(kind: Kind) -> None:
     """Start a .float/.double value list."""
     global _data_kind, _data_directive_line
     _data_kind = kind
@@ -156,7 +221,7 @@ def _data_fp_begin(kind: Kind) -> None:
     _data_directive_line = scanner.line_no
 
 
-def _data_fp_finalize() -> None:
+def _data_floating_point_finalize() -> None:
     """Turn the collected floating-point values into one node."""
     if not _data_doubles:
         return
@@ -167,17 +232,17 @@ def _data_fp_finalize() -> None:
     _data_doubles.clear()
 
 
-def _emit_dir_seg(kind: Kind, has_addr: bool, addr: int) -> None:
+def _emit_directive_segment(kind: Kind, has_address: bool, address: int) -> None:
     """Record a segment directive; the parser's own segment flags change now."""
-    global data_dir, text_dir, _auto_align
-    if kind in (Kind.DIR_TEXT, Kind.DIR_KTEXT):
-        data_dir = False
-        text_dir = True
+    global data_directive, text_directive, _auto_align
+    if kind in (Kind.DIRECTIVE_TEXT, Kind.DIRECTIVE_KTEXT):
+        data_directive = False
+        text_directive = True
     else:
-        data_dir = True
-        text_dir = False
+        data_directive = True
+        text_directive = False
         _auto_align = True
-    _append(ast_nodes.make(kind, has_start_addr=has_addr, start_addr=addr))
+    _append(ast_nodes.make(kind, has_start_address=has_address, start_address=address))
 
 
 # --- labels on the current line ---------------------------------------------------
@@ -189,10 +254,10 @@ def _clear_labels() -> None:
         symbol_table.resolve_label_uses(_this_line_labels.pop(0))
 
 
-def fix_current_label_address(new_addr: int) -> None:
-    """Move the current line's labels to new_addr (alignment moved the PC)."""
+def fix_current_label_address(new_address: int) -> None:
+    """Move the current line's labels to new_address (alignment moved the PC)."""
     for label in _this_line_labels:
-        label.addr = new_addr
+        label.address = new_address
 
 
 # --- errors -------------------------------------------------------------------------
@@ -207,9 +272,9 @@ def _parse_error_at(message: str, line: int | None = None) -> None:
     console.error(f"spim: (parser) {message} on line {at} of file {name}\n")
 
 
-def _sync_to_nl() -> None:
+def _sync_to_newline() -> None:
     """Skip tokens up to, not past, the end of the line."""
-    while scanner.peek() not in (TOK_NL, TOK_EOF):
+    while scanner.peek() not in (TOKEN_NEWLINE, TOKEN_EOF):
         scanner.advance()
 
 
@@ -222,7 +287,7 @@ def _expect(expected: int, what: str) -> bool:
     return False
 
 
-def _int_value() -> int:
+def _integer_value() -> int:
     """The scanner's last integer value."""
     value: int | float | str = scanner.scan_value
     if not isinstance(value, int):
@@ -230,7 +295,7 @@ def _int_value() -> int:
     return value
 
 
-def _str_value() -> str:
+def _string_value() -> str:
     """The scanner's last identifier or string value."""
     value: int | float | str = scanner.scan_value
     if not isinstance(value, str):
@@ -243,66 +308,66 @@ def _str_value() -> str:
 
 def _parse_register() -> int:
     """A ``$`` general register."""
-    if scanner.peek() == TOK_REG:
+    if scanner.peek() == TOKEN_REGISTER:
         scanner.advance()
-        return _int_value()
+        return _integer_value()
     _parse_error_at("Expected register")
     return 0
 
 
-def _parse_fp_register() -> int:
+def _parse_floating_point_register() -> int:
     """A ``$f`` register."""
-    if scanner.peek() == TOK_FP_REG:
+    if scanner.peek() == TOKEN_FLOATING_POINT_REGISTER:
         scanner.advance()
-        return _int_value()
+        return _integer_value()
     _parse_error_at("Expected FP register")
     return 0
 
 
-def _parse_abs_addr() -> int:
+def _parse_absolute_address() -> int:
     """``INT``, ``INT + INT``, or ``INT INT`` (a negative literal subtracts)."""
-    if scanner.peek() != TOK_INT:
+    if scanner.peek() != TOKEN_INTEGER:
         _parse_error_at("Expected integer")
         return 0
     scanner.advance()
-    value: int = _int_value()
+    value: int = _integer_value()
     if scanner.peek() == ord("+"):
         scanner.advance()
-        if scanner.peek() != TOK_INT:
+        if scanner.peek() != TOKEN_INTEGER:
             _parse_error_at("Expected integer after '+'")
             return value
         scanner.advance()
-        return machine.s32(value + _int_value())
-    elif scanner.peek() == TOK_INT:
+        return machine.s32(value + _integer_value())
+    elif scanner.peek() == TOKEN_INTEGER:
         scanner.advance()
-        if _int_value() >= 0:
+        if _integer_value() >= 0:
             _parse_error_at("Syntax error")
-        return machine.s32(value + _int_value())
+        return machine.s32(value + _integer_value())
     else:
         return value
 
 
 def _parse_factor() -> int:
     """``INT``, ``( EXPR )``, or a name (its address, or 0 if undefined yet)."""
-    global _expr_unresolved_label
+    global _expression_unresolved_label
     token: int = scanner.peek()
-    if token == TOK_INT:
+    if token == TOKEN_INTEGER:
         scanner.advance()
-        return _int_value()
+        return _integer_value()
     elif token == ord("("):
         scanner.advance()
-        value: int = _parse_expr()
+        value: int = _parse_sum_of_terms()
         _expect(ord(")"), "Expected ')'")
         return value
-    elif token == TOK_ID:
+    elif token == TOKEN_IDENTIFIER:
         scanner.advance()
-        label: symbol_table.Label = symbol_table.lookup_label(_str_value())
-        if label.addr == 0:
+        label: symbol_table.Label = symbol_table.lookup_label(_string_value())
+        if label.address == 0:
             # A forward reference: emit_ast records the use at the right PC.
-            if _expr_unresolved_label is None:
-                _expr_unresolved_label = label
+            if _expression_unresolved_label is None:
+                _expression_unresolved_label = label
             return 0
-        return machine.s32(label.addr)
+        return machine.s32(label.address)
     else:
         _parse_error_at("Expected expression")
         return 0
@@ -312,133 +377,157 @@ def _parse_term() -> int:
     """``FACTOR (('*' | '/') FACTOR)*``; division by zero gives 0."""
     value: int = _parse_factor()
     while scanner.peek() in (ord("*"), ord("/")):
-        op: int = scanner.advance()
+        opcode: int = scanner.advance()
         right: int = _parse_factor()
-        if op == ord("*"):
+        if opcode == ord("*"):
             value = machine.s32(value * right)
         else:
-            value = 0 if right == 0 else machine.s32(machine.c_div(value, right))
+            value = 0 if right == 0 else machine.s32(machine.c_divide(value, right))
     return value
 
 
-def _parse_expr() -> int:
+def _parse_sum_of_terms() -> int:
     """``TERM (('+' | '-') TERM)*``."""
     value: int = _parse_term()
     while scanner.peek() in (ord("+"), ord("-")):
-        op: int = scanner.advance()
+        opcode: int = scanner.advance()
         right: int = _parse_term()
-        value = machine.s32(value + right if op == ord("+") else value - right)
+        value = machine.s32(value + right if opcode == ord("+") else value - right)
     return value
 
 
 def _parse_expression() -> int:
     """An expression whose first name is never taken as a keyword."""
-    global _expr_unresolved_label
+    global _expression_unresolved_label
     scanner.force_identifier()
-    _expr_unresolved_label = None
-    return _parse_expr()
+    _expression_unresolved_label = None
+    return _parse_sum_of_terms()
 
 
-def _parse_imm32() -> ImmExpr:
+def _parse_immediate_32() -> ImmediateExpression:
     """A 32-bit immediate: ``ABS``, ``(ABS) >> INT``, ``ID``, ``ID +/- ABS``."""
     scanner.force_identifier()
-    if scanner.peek() == TOK_ID:
+    if scanner.peek() == TOKEN_IDENTIFIER:
         scanner.advance()
-        name: str = _str_value()
+        name: str = _string_value()
         if scanner.peek() == ord("+"):
             scanner.advance()
-            return instruction.make_imm_expr(_parse_abs_addr(), name, False)
+            return instruction_module.make_immediate_expression(
+                _parse_absolute_address(), name, False
+            )
         elif scanner.peek() == ord("-"):
             scanner.advance()
-            return instruction.make_imm_expr(-_parse_abs_addr(), name, False)
+            return instruction_module.make_immediate_expression(
+                -_parse_absolute_address(), name, False
+            )
         else:
-            return instruction.make_imm_expr(0, name, False)
+            return instruction_module.make_immediate_expression(0, name, False)
     elif scanner.peek() == ord("("):
         scanner.advance()
-        value: int = _parse_abs_addr()
+        value: int = _parse_absolute_address()
         _expect(ord(")"), "Expected ')'")
         _expect(ord(">"), "Expected '>'")
         _expect(ord(">"), "Expected '>'")
-        if scanner.peek() != TOK_INT:
+        if scanner.peek() != TOKEN_INTEGER:
             _parse_error_at("Expected integer after '>>'")
-            return instruction.make_imm_expr(0, None, False)
+            return instruction_module.make_immediate_expression(0, None, False)
         scanner.advance()
-        shift: int = _int_value()
-        return instruction.make_imm_expr(value >> (shift & 31), None, False)
+        shift: int = _integer_value()
+        return instruction_module.make_immediate_expression(
+            value >> (shift & 31), None, False
+        )
     else:
-        return instruction.make_imm_expr(_parse_abs_addr(), None, False)
+        return instruction_module.make_immediate_expression(
+            _parse_absolute_address(), None, False
+        )
 
 
-def _parse_imm16() -> ImmExpr:
+def _parse_immediate_16() -> ImmediateExpression:
     """A signed 16-bit immediate (a warning if it does not fit)."""
     # The instruction's line, before parsing the immediate scans the newline.
     line: int = scanner.line_no
-    expr: ImmExpr = _parse_imm32()
-    pseudo_op.check_imm_range(expr, instruction.IMM_MIN, instruction.IMM_MAX, line)
-    return expr
+    expression: ImmediateExpression = _parse_immediate_32()
+    pseudo_op.check_immediate_range(
+        expression,
+        instruction_module.IMMEDIATE_MIN,
+        instruction_module.IMMEDIATE_MAX,
+        line,
+    )
+    return expression
 
 
-def _parse_uimm16() -> ImmExpr:
+def _parse_unsigned_immediate_16() -> ImmediateExpression:
     """An unsigned 16-bit immediate."""
-    line: int = scanner.line_no  # as in _parse_imm16
-    expr: ImmExpr = _parse_imm32()
-    pseudo_op.check_uimm_range(expr, instruction.UIMM_MIN, instruction.UIMM_MAX, line)
-    return expr
+    line: int = scanner.line_no  # as in _parse_immediate_16
+    expression: ImmediateExpression = _parse_immediate_32()
+    pseudo_op.check_unsigned_immediate_range(
+        expression,
+        instruction_module.UNSIGNED_IMMEDIATE_MIN,
+        instruction_module.UNSIGNED_IMMEDIATE_MAX,
+        line,
+    )
+    return expression
 
 
-def _parse_label() -> ImmExpr:
+def _parse_label() -> ImmediateExpression:
     """A branch or jump target: a PC-relative reference to a name."""
-    if scanner.peek() != TOK_ID:
+    if scanner.peek() != TOKEN_IDENTIFIER:
         _parse_error_at("Expected label")
-        return instruction.make_imm_expr(0, None, True)
+        return instruction_module.make_immediate_expression(0, None, True)
     scanner.advance()
-    return instruction.make_imm_expr(-instruction.current_text_pc(), _str_value(), True)
+    return instruction_module.make_immediate_expression(
+        -instruction_module.current_text_location(), _string_value(), True
+    )
 
 
-def _parse_address() -> AddrExpr:
+def _parse_address() -> AddressExpression:
     """A load/store address: ``(REG)``, ``ABS [(REG)]``, ``ID [+-ABS] [(REG)]``."""
     scanner.force_identifier()
     token: int = scanner.peek()
     if token == ord("("):
         scanner.advance()
-        reg: int = _parse_register()
+        register_number: int = _parse_register()
         _expect(ord(")"), "Expected ')' after register")
-        return instruction.make_addr_expr(0, None, reg)
-    elif token == TOK_INT:
-        offset: int = _parse_abs_addr()
-        if scanner.peek() == ord("+") and scanner.peek2() == TOK_ID:
+        return instruction_module.make_address_expression(0, None, register_number)
+    elif token == TOKEN_INTEGER:
+        offset: int = _parse_absolute_address()
+        if scanner.peek() == ord("+") and scanner.peek2() == TOKEN_IDENTIFIER:
             scanner.advance()
             scanner.force_identifier()
             scanner.advance()
-            return instruction.make_addr_expr(offset, _str_value(), 0)
+            return instruction_module.make_address_expression(
+                offset, _string_value(), 0
+            )
         elif scanner.peek() == ord("("):
             scanner.advance()
-            reg = _parse_register()
+            register_number = _parse_register()
             _expect(ord(")"), "Expected ')'")
-            return instruction.make_addr_expr(offset, None, reg)
+            return instruction_module.make_address_expression(
+                offset, None, register_number
+            )
         else:
-            return instruction.make_addr_expr(offset, None, 0)
-    elif token == TOK_ID:
+            return instruction_module.make_address_expression(offset, None, 0)
+    elif token == TOKEN_IDENTIFIER:
         scanner.advance()
-        name: str = _str_value()
+        name: str = _string_value()
         offset = 0
         if scanner.peek() == ord("+"):
             scanner.advance()
-            offset = _parse_abs_addr()
+            offset = _parse_absolute_address()
         elif scanner.peek() == ord("-"):
             scanner.advance()
-            offset = -_parse_abs_addr()
+            offset = -_parse_absolute_address()
         else:
             pass  # no offset: offset stays 0
-        reg = 0
+        register_number = 0
         if scanner.peek() == ord("("):
             scanner.advance()
-            reg = _parse_register()
+            register_number = _parse_register()
             _expect(ord(")"), "Expected ')'")
-        return instruction.make_addr_expr(offset, name, reg)
+        return instruction_module.make_address_expression(offset, name, register_number)
     else:
         _parse_error_at("Expected address")
-        return instruction.make_addr_expr(0, None, 0)
+        return instruction_module.make_address_expression(0, None, 0)
 
 
 # --- instructions -----------------------------------------------------------------
@@ -449,102 +538,135 @@ _HAS_IMMEDIATE_FORM: frozenset[int] = frozenset((
     ))  # fmt: skip
 
 
-def _parse_r3(op: int) -> None:
+def _parse_r3(opcode: int) -> None:
     """``op rd, rs, rt``, and the immediate forms some of them accept."""
-    rd: int = _parse_register()
-    match op:
+    destination_register: int = _parse_register()
+    match opcode:
         case Tok.CLO_OPCODE | Tok.CLZ_OPCODE:
-            emit_r(op, rd, _parse_register(), rd)  # rt must equal rd
+            emit_r(
+                opcode, destination_register, _parse_register(), destination_register
+            )  # rt must equal rd
             return
         case Tok.MUL_OPCODE:
-            rs: int = _parse_register()
-            if scanner.peek() == TOK_REG:
-                emit_r(op, rd, rs, _parse_register())
+            source_register: int = _parse_register()
+            if scanner.peek() == TOKEN_REGISTER:
+                emit_r(opcode, destination_register, source_register, _parse_register())
             else:
-                emit_i(Tok.ORI_OPCODE, 1, 0, _parse_imm32())
-                emit_r(op, rd, rs, 1)
+                emit_i(Tok.ORI_OPCODE, 1, 0, _parse_immediate_32())
+                emit_r(opcode, destination_register, source_register, 1)
             return
         case Tok.SUB_OPCODE | Tok.SUBU_OPCODE:
-            add: int = Tok.ADDI_OPCODE if op == Tok.SUB_OPCODE else Tok.ADDIU_OPCODE
-            if scanner.peek() != TOK_REG:
-                negated: int = -instruction.eval_imm_expr(_parse_imm32())
-                emit_i(add, rd, rd, instruction.make_imm_expr(negated, None, False))
+            add: int = Tok.ADDI_OPCODE if opcode == Tok.SUB_OPCODE else Tok.ADDIU_OPCODE
+            if scanner.peek() != TOKEN_REGISTER:
+                negated: int = -instruction_module.evaluate_immediate_expression(
+                    _parse_immediate_32()
+                )
+                emit_i(
+                    add,
+                    destination_register,
+                    destination_register,
+                    instruction_module.make_immediate_expression(negated, None, False),
+                )
                 return
-            rs = _parse_register()
-            if scanner.peek() == TOK_REG:
-                emit_r(op, rd, rs, _parse_register())
+            source_register = _parse_register()
+            if scanner.peek() == TOKEN_REGISTER:
+                emit_r(opcode, destination_register, source_register, _parse_register())
             else:
-                negated = -instruction.eval_imm_expr(_parse_imm32())
-                emit_i(add, rd, rs, instruction.make_imm_expr(negated, None, False))
+                negated = -instruction_module.evaluate_immediate_expression(
+                    _parse_immediate_32()
+                )
+                emit_i(
+                    add,
+                    destination_register,
+                    source_register,
+                    instruction_module.make_immediate_expression(negated, None, False),
+                )
             return
-        case _ if op in _HAS_IMMEDIATE_FORM:
-            if scanner.peek() != TOK_REG:
-                emit_i(pseudo_op.op_to_imm_op(op), rd, rd, _parse_imm32())
+        case _ if opcode in _HAS_IMMEDIATE_FORM:
+            if scanner.peek() != TOKEN_REGISTER:
+                emit_i(
+                    pseudo_op.opcode_to_immediate_opcode(opcode),
+                    destination_register,
+                    destination_register,
+                    _parse_immediate_32(),
+                )
                 return
-            rs = _parse_register()
-            if scanner.peek() == TOK_REG:
-                emit_r(op, rd, rs, _parse_register())
+            source_register = _parse_register()
+            if scanner.peek() == TOKEN_REGISTER:
+                emit_r(opcode, destination_register, source_register, _parse_register())
             else:
-                emit_i(pseudo_op.op_to_imm_op(op), rd, rs, _parse_imm32())
+                emit_i(
+                    pseudo_op.opcode_to_immediate_opcode(opcode),
+                    destination_register,
+                    source_register,
+                    _parse_immediate_32(),
+                )
             return
         case _:
-            rs = _parse_register()
-            emit_r(op, rd, rs, _parse_register())
+            source_register = _parse_register()
+            emit_r(opcode, destination_register, source_register, _parse_register())
 
 
-def _parse_r2sh(op: int) -> None:
+def _parse_two_registers_shift_amount(opcode: int) -> None:
     """``op rd, rt, shamt``; ``ssnop`` is ``sll $0, $0, 1``."""
-    if op == Tok.SSNOP_OPCODE:
+    if opcode == Tok.SSNOP_OPCODE:
         emit_r_shift(Tok.SLL_OPCODE, 0, 0, 1)
         return
-    rd: int = _parse_register()
-    rt: int = _parse_register()
-    if scanner.peek() != TOK_INT:
+    destination_register: int = _parse_register()
+    target_register: int = _parse_register()
+    if scanner.peek() != TOKEN_INTEGER:
         _parse_error_at("Expected integer shift amount")
         return
     scanner.advance()
-    emit_r_shift(op, rd, rt, _int_value())
+    emit_r_shift(opcode, destination_register, target_register, _integer_value())
 
 
-def _parse_i2(op: int) -> None:
+def _parse_i2(opcode: int) -> None:
     """``op rt, rs, imm16``, or ``op rt, imm16`` with rs = rt."""
-    rt: int = _parse_register()
-    rs: int = _parse_register() if scanner.peek() == TOK_REG else rt
-    unsigned: bool = op in (Tok.ANDI_OPCODE, Tok.ORI_OPCODE, Tok.XORI_OPCODE)
-    emit_i(op, rt, rs, _parse_uimm16() if unsigned else _parse_imm16())
+    target_register: int = _parse_register()
+    source_register: int = (
+        _parse_register() if scanner.peek() == TOKEN_REGISTER else target_register
+    )
+    unsigned: bool = opcode in (Tok.ANDI_OPCODE, Tok.ORI_OPCODE, Tok.XORI_OPCODE)
+    emit_i(
+        opcode,
+        target_register,
+        source_register,
+        _parse_unsigned_immediate_16() if unsigned else _parse_immediate_16(),
+    )
 
 
-def _parse_b2(op: int) -> None:
+def _parse_b2(opcode: int) -> None:
     """``op rs, rt, label``, or ``op rs, imm, label`` through $at."""
-    src1: int = _parse_register()
-    if scanner.peek() == TOK_REG:
-        src2: int = _parse_register()
-        emit_i(op, src2, src1, _parse_label())
+    source_1: int = _parse_register()
+    if scanner.peek() == TOKEN_REGISTER:
+        source_2: int = _parse_register()
+        emit_i(opcode, source_2, source_1, _parse_label())
         return
-    imm: ImmExpr = _parse_imm32()
-    target: ImmExpr = _parse_label()
-    if instruction.is_zero_imm(imm):
-        emit_i(op, src1, 0, target)
+    immediate: ImmediateExpression = _parse_immediate_32()
+    target: ImmediateExpression = _parse_label()
+    if instruction_module.is_zero_immediate(immediate):
+        emit_i(opcode, source_1, 0, target)
     else:
-        emit_i(Tok.ORI_OPCODE, 1, 0, imm)
-        emit_i(op, src1, 1, target)
+        emit_i(Tok.ORI_OPCODE, 1, 0, immediate)
+        emit_i(opcode, source_1, 1, target)
 
 
-def _parse_j(op: int) -> None:
+def _parse_j(opcode: int) -> None:
     """``j``/``jal``/``jr``/``jalr``/``jalr.hb`` with a label or register(s); ``cop2`` is an error.
 
     ``jalr.hb`` keeps its own opcode (``jalr`` with the hazard-barrier bit) and takes registers
-    only. ``cop2`` shares ``J_TYPE_INST``, but spim has no coprocessor 2.
+    only. ``cop2`` shares ``J_TYPE_INSTRUCTION``, but spim has no coprocessor 2.
     """
-    if op == Tok.COP2_OPCODE:
+    if opcode == Tok.COP2_OPCODE:
         _parse_error_at("cop2 is not supported: spim has no coprocessor 2")
         return
-    elif scanner.peek() == TOK_REG:
+    elif scanner.peek() == TOKEN_REGISTER:
         r1: int = _parse_register()
-        if scanner.peek() == TOK_REG:
+        if scanner.peek() == TOKEN_REGISTER:
             # DEST SRC1 form
             r2: int = _parse_register()
-            match op:
+            match opcode:
                 case Tok.J_OPCODE | Tok.JR_OPCODE:
                     emit_r(Tok.JR_OPCODE, 0, r2, 0)
                 case Tok.JAL_OPCODE | Tok.JALR_OPCODE:
@@ -552,13 +674,13 @@ def _parse_j(op: int) -> None:
                 case Tok.JALR_HB_OPCODE:
                     emit_r(Tok.JALR_HB_OPCODE, r1, r2, 0)
                 case _:
-                    # Never reached: only J_TYPE_INST and RD_RS_INST opcodes come here.
+                    # Never reached: only J_TYPE_INSTRUCTION and DESTINATION_REGISTER_SOURCE_REGISTER_INSTRUCTION opcodes come here.
                     raise console.fatal_error(
-                        f"internal error: parse_j: unexpected opcode {op}\n"
+                        f"internal error: parse_j: unexpected opcode {opcode}\n"
                     )
         else:
             # SRC1-only form
-            match op:
+            match opcode:
                 case Tok.J_OPCODE | Tok.JR_OPCODE:
                     emit_r(Tok.JR_OPCODE, 0, r1, 0)
                 case Tok.JAL_OPCODE | Tok.JALR_OPCODE:
@@ -568,13 +690,13 @@ def _parse_j(op: int) -> None:
                 case _:
                     # Never reached: as in the DEST SRC1 form above.
                     raise console.fatal_error(
-                        f"internal error: parse_j: unexpected opcode {op}\n"
+                        f"internal error: parse_j: unexpected opcode {opcode}\n"
                     )
-    elif op == Tok.JALR_HB_OPCODE:
+    elif opcode == Tok.JALR_HB_OPCODE:
         _parse_error_at("jalr.hb needs a register operand")
     else:
-        target: ImmExpr = _parse_label()
-        match op:
+        target: ImmediateExpression = _parse_label()
+        match opcode:
             case Tok.J_OPCODE | Tok.JR_OPCODE:
                 emit_j(Tok.J_OPCODE, target)
             case Tok.JAL_OPCODE | Tok.JALR_OPCODE:
@@ -582,156 +704,211 @@ def _parse_j(op: int) -> None:
             case _:
                 # Never reached: jalr.hb and cop2 are handled above.
                 raise console.fatal_error(
-                    f"internal error: parse_j: unexpected opcode {op}\n"
+                    f"internal error: parse_j: unexpected opcode {opcode}\n"
                 )
 
 
-def _parse_noarg(op: int) -> None:
+def _parse_no_argument(opcode: int) -> None:
     """``op`` alone, or ``op N`` (``break N``: N goes in the rd byte)."""
-    if scanner.peek() == TOK_INT:
+    if scanner.peek() == TOKEN_INTEGER:
         scanner.advance()
-        number: int = _int_value()
-        if op == Tok.BREAK_OPCODE and number == 1:
+        number: int = _integer_value()
+        if opcode == Tok.BREAK_OPCODE and number == 1:
             _parse_error_at("Breakpoint 1 is reserved for debugger")
-        emit_r(op, number, 0, 0)
+        emit_r(opcode, number, 0, 0)
     else:
-        emit_r(op, 0, 0, 0)
+        emit_r(opcode, 0, 0, 0)
 
 
-def _parse_rs_rt(op: int) -> None:
+def _parse_source_register_target_register(opcode: int) -> None:
     """mult/multu, the trap-on-compare ops, and 2- or 3-operand div/divu."""
     r1: int = _parse_register()
-    if scanner.peek() not in (TOK_REG, TOK_INT, TOK_ID):
+    if scanner.peek() not in (TOKEN_REGISTER, TOKEN_INTEGER, TOKEN_IDENTIFIER):
         _parse_error_at("Expected operand for div/mult")
         return
-    trap_ops: tuple[int, ...] = (Tok.TEQ_OPCODE, Tok.TGE_OPCODE, Tok.TGEU_OPCODE, Tok.TLT_OPCODE,
+    trap_opcodes: tuple[int, ...] = (Tok.TEQ_OPCODE, Tok.TGE_OPCODE, Tok.TGEU_OPCODE, Tok.TLT_OPCODE,
                   Tok.TLTU_OPCODE, Tok.TNE_OPCODE)  # fmt: skip
-    if op in trap_ops:
-        emit_r(op, 0, r1, _parse_register())
-    elif op in (Tok.DIV_OPCODE, Tok.DIVU_OPCODE):
+    if opcode in trap_opcodes:
+        emit_r(opcode, 0, r1, _parse_register())
+    elif opcode in (Tok.DIV_OPCODE, Tok.DIVU_OPCODE):
         r2: int = _parse_register()
-        if scanner.peek() in (TOK_NL, TOK_EOF):
-            emit_r(op, 0, r1, r2)
-        elif scanner.peek() == TOK_REG:
-            pseudo_op.div_inst(op, r1, r2, _parse_register(), False)
+        if scanner.peek() in (TOKEN_NEWLINE, TOKEN_EOF):
+            emit_r(opcode, 0, r1, r2)
+        elif scanner.peek() == TOKEN_REGISTER:
+            pseudo_op.divide_instruction(opcode, r1, r2, _parse_register(), False)
         else:
-            imm: ImmExpr = _parse_imm32()
-            if instruction.is_zero_imm(imm):
+            immediate: ImmediateExpression = _parse_immediate_32()
+            if instruction_module.is_zero_immediate(immediate):
                 _parse_error_at("Divide by zero")
             else:
-                emit_i(Tok.ORI_OPCODE, 1, 0, imm)
-                pseudo_op.div_inst(op, r1, r2, 1, True)
+                emit_i(Tok.ORI_OPCODE, 1, 0, immediate)
+                pseudo_op.divide_instruction(opcode, r1, r2, 1, True)
     else:
-        emit_r(op, 0, r1, _parse_register())
+        emit_r(opcode, 0, r1, _parse_register())
 
 
-def _parse_copreg_operand() -> int:
+def _parse_coprocessor_register_operand() -> int:
     """A coprocessor register, written ``$fN`` or ``$N``."""
-    return _parse_fp_register() if scanner.peek() == TOK_FP_REG else _parse_register()
+    return (
+        _parse_floating_point_register()
+        if scanner.peek() == TOKEN_FLOATING_POINT_REGISTER
+        else _parse_register()
+    )
 
 
-def _parse_asm_code() -> None:
+def _parse_assembly_code() -> None:
     """One instruction, dispatched on its operand shape."""
-    op: int = scanner.advance()
-    kind: int | None = instruction.kind_of(op)
+    opcode: int = scanner.advance()
+    kind: int | None = instruction_module.kind_of(opcode)
     match kind:
-        case OpType.NOARG_TYPE_INST:
-            _parse_noarg(op)
-        case OpType.RD_RS_RT_INST:
-            _parse_r3(op)
-        case OpType.RD_RT_SHAMT_INST:
-            _parse_r2sh(op)
-        case OpType.RS_INST:
-            emit_r(op, 0, _parse_register(), 0)
-        case OpType.RT_RS_IMM_INST:
-            _parse_i2(op)
-        case OpType.RT_IMM_INST:
-            rt: int = _parse_register()
-            emit_i(op, rt, 0, _parse_uimm16())
-        case OpType.RT_ADDR_INST | OpType.FP_FT_ADDR_INST:
-            reg: int = (
+        case OpType.NO_ARGUMENT_TYPE_INSTRUCTION:
+            _parse_no_argument(opcode)
+        case OpType.DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION:
+            _parse_r3(opcode)
+        case OpType.DESTINATION_REGISTER_TARGET_REGISTER_SHIFT_AMOUNT_INSTRUCTION:
+            _parse_two_registers_shift_amount(opcode)
+        case OpType.SOURCE_REGISTER_INSTRUCTION:
+            emit_r(opcode, 0, _parse_register(), 0)
+        case OpType.TARGET_REGISTER_SOURCE_REGISTER_IMMEDIATE_INSTRUCTION:
+            _parse_i2(opcode)
+        case OpType.TARGET_REGISTER_IMMEDIATE_INSTRUCTION:
+            target_register: int = _parse_register()
+            emit_i(opcode, target_register, 0, _parse_unsigned_immediate_16())
+        case (
+            OpType.TARGET_REGISTER_ADDRESS_INSTRUCTION
+            | OpType.FLOATING_POINT_TARGET_ADDRESS_INSTRUCTION
+        ):
+            register_number: int = (
                 _parse_register()
-                if kind == OpType.RT_ADDR_INST
-                else _parse_fp_register()
+                if kind == OpType.TARGET_REGISTER_ADDRESS_INSTRUCTION
+                else _parse_floating_point_register()
             )
-            address: AddrExpr = _parse_address()
-            emit_i(op, reg, address.reg_no, address.imm)
-        case OpType.BRANCH_RS_RT_LABEL_INST:
-            _parse_b2(op)
-        case OpType.BRANCH_RS_LABEL_INST:
-            rs: int = _parse_register()
-            emit_i(op, 0, rs, _parse_label())
-        case OpType.J_TYPE_INST | OpType.RD_RS_INST:
-            _parse_j(op)
+            address: AddressExpression = _parse_address()
+            emit_i(opcode, register_number, address.register_no, address.immediate)
+        case OpType.BRANCH_SOURCE_REGISTER_TARGET_REGISTER_LABEL_INSTRUCTION:
+            _parse_b2(opcode)
+        case OpType.BRANCH_SOURCE_REGISTER_LABEL_INSTRUCTION:
+            source_register: int = _parse_register()
+            emit_i(opcode, 0, source_register, _parse_label())
+        case (
+            OpType.J_TYPE_INSTRUCTION
+            | OpType.DESTINATION_REGISTER_SOURCE_REGISTER_INSTRUCTION
+        ):
+            _parse_j(opcode)
         case opcodes.PSEUDO_OP:
-            _parse_pseudo(op)
-        case OpType.RT_COPREG_INST | OpType.FP_RT_COPREG_INST:
-            reg = _parse_register()
-            emit_fp_r(op, 0, _parse_copreg_operand(), reg)
-        case OpType.RS_RT_INST:
-            _parse_rs_rt(op)
-        case OpType.RD_INST:
-            emit_r(op, _parse_register(), 0, 0)
-        case OpType.RD_RT_RS_INST:
-            _parse_variable_shift(op)
-        case OpType.RS_IMM_INST:
-            rs = _parse_register()
-            emit_i(op, 0, rs, _parse_imm16())
-        case OpType.BRANCH_COPROC_COND_INST:
-            nd: int = 1 if instruction.opcode_is_nullified_branch(op) else 0
-            tf: int = 1 if instruction.opcode_is_true_branch(op) else 0
-            cc: int = 0
-            if scanner.peek() == TOK_INT:
+            _parse_pseudo(opcode)
+        case (
+            OpType.TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION
+            | OpType.FLOATING_POINT_TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION
+        ):
+            register_number = _parse_register()
+            emit_floating_point_r(
+                opcode, 0, _parse_coprocessor_register_operand(), register_number
+            )
+        case OpType.SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION:
+            _parse_source_register_target_register(opcode)
+        case OpType.DESTINATION_REGISTER_INSTRUCTION:
+            emit_r(opcode, _parse_register(), 0, 0)
+        case OpType.DESTINATION_REGISTER_TARGET_REGISTER_SOURCE_REGISTER_INSTRUCTION:
+            _parse_variable_shift(opcode)
+        case OpType.SOURCE_REGISTER_IMMEDIATE_INSTRUCTION:
+            source_register = _parse_register()
+            emit_i(opcode, 0, source_register, _parse_immediate_16())
+        case OpType.BRANCH_COPROCESSOR_CONDITION_INSTRUCTION:
+            nullify_delay: int = (
+                1 if instruction_module.opcode_is_nullified_branch(opcode) else 0
+            )
+            true_false: int = (
+                1 if instruction_module.opcode_is_true_branch(opcode) else 0
+            )
+            condition_code: int = 0
+            if scanner.peek() == TOKEN_INTEGER:
                 scanner.advance()
-                cc = _int_value()
-            target: ImmExpr = _parse_label()
-            emit_i(op, (cc << 2) | (nd << 1) | tf, 0, target)
-        case OpType.MOVC_TYPE_INST:
-            rd: int = _parse_register()
-            rs = _parse_register()
-            cc = 0
-            if scanner.peek() == TOK_INT:
+                condition_code = _integer_value()
+            target: ImmediateExpression = _parse_label()
+            emit_i(
+                opcode,
+                (condition_code << 2) | (nullify_delay << 1) | true_false,
+                0,
+                target,
+            )
+        case OpType.MOVE_CONDITIONAL_TYPE_INSTRUCTION:
+            destination_register: int = _parse_register()
+            source_register = _parse_register()
+            condition_code = 0
+            if scanner.peek() == TOKEN_INTEGER:
                 scanner.advance()
-                cc = _int_value()
-            emit_r(op, rd, rs, (cc & 7) << 2)
-        case OpType.FP_FD_FS_INST:
-            fd: int = _parse_fp_register()
-            emit_fp_r(op, fd, _parse_fp_register(), 0)
-        case OpType.FP_FD_FS_FT_INST:
-            fd = _parse_fp_register()
-            fs: int = _parse_fp_register()
-            emit_fp_r(op, fd, fs, _parse_fp_register())
-        case OpType.FP_CMP_FS_FT_INST:
-            cc = 0
-            if scanner.peek() == TOK_INT:
+                condition_code = _integer_value()
+            emit_r(
+                opcode, destination_register, source_register, (condition_code & 7) << 2
+            )
+        case OpType.FLOATING_POINT_DESTINATION_SOURCE_INSTRUCTION:
+            floating_point_destination: int = _parse_floating_point_register()
+            emit_floating_point_r(
+                opcode, floating_point_destination, _parse_floating_point_register(), 0
+            )
+        case OpType.FLOATING_POINT_DESTINATION_SOURCE_TARGET_INSTRUCTION:
+            floating_point_destination = _parse_floating_point_register()
+            floating_point_source: int = _parse_floating_point_register()
+            emit_floating_point_r(
+                opcode,
+                floating_point_destination,
+                floating_point_source,
+                _parse_floating_point_register(),
+            )
+        case OpType.FLOATING_POINT_COMPARE_SOURCE_TARGET_INSTRUCTION:
+            condition_code = 0
+            if scanner.peek() == TOKEN_INTEGER:
                 scanner.advance()
-                cc = _int_value()
-            fs = _parse_fp_register()
-            emit_fp_compare(op, fs, _parse_fp_register(), cc)
-        case OpType.FP_MOVC_TYPE_INST:
-            fd = _parse_fp_register()
-            fs = _parse_fp_register()
-            if scanner.peek() == TOK_REG:
-                emit_fp_r(op, fd, fs, _parse_register())
-            elif scanner.peek() == TOK_INT:
+                condition_code = _integer_value()
+            floating_point_source = _parse_floating_point_register()
+            emit_floating_point_compare(
+                opcode,
+                floating_point_source,
+                _parse_floating_point_register(),
+                condition_code,
+            )
+        case OpType.FLOATING_POINT_MOVE_CONDITIONAL_TYPE_INSTRUCTION:
+            floating_point_destination = _parse_floating_point_register()
+            floating_point_source = _parse_floating_point_register()
+            if scanner.peek() == TOKEN_REGISTER:
+                emit_floating_point_r(
+                    opcode,
+                    floating_point_destination,
+                    floating_point_source,
+                    _parse_register(),
+                )
+            elif scanner.peek() == TOKEN_INTEGER:
                 scanner.advance()
-                emit_fp_r(op, fd, fs, (_int_value() & 7) << 2)
+                emit_floating_point_r(
+                    opcode,
+                    floating_point_destination,
+                    floating_point_source,
+                    (_integer_value() & 7) << 2,
+                )
             else:
-                emit_fp_r(op, fd, fs, 0)
+                emit_floating_point_r(
+                    opcode, floating_point_destination, floating_point_source, 0
+                )
         case _:
             _parse_error_at("Instruction not yet supported")
-            _sync_to_nl()
+            _sync_to_newline()
 
 
-def _parse_variable_shift(op: int) -> None:
+def _parse_variable_shift(opcode: int) -> None:
     """``sllv rd, rt, rs`` (note the order), or ``sllv rd, rt, INT``."""
-    rd: int = _parse_register()
-    rs: int = _parse_register()
-    if scanner.peek() == TOK_REG:
-        emit_r(op, rd, _parse_register(), rs)
-    elif scanner.peek() == TOK_INT:
+    destination_register: int = _parse_register()
+    source_register: int = _parse_register()
+    if scanner.peek() == TOKEN_REGISTER:
+        emit_r(opcode, destination_register, _parse_register(), source_register)
+    elif scanner.peek() == TOKEN_INTEGER:
         scanner.advance()
-        emit_r_shift(pseudo_op.op_to_imm_op(op), rd, rs, _int_value())
+        emit_r_shift(
+            pseudo_op.opcode_to_immediate_opcode(opcode),
+            destination_register,
+            source_register,
+            _integer_value(),
+        )
     else:
         _parse_error_at("Expected register or integer shift")
 
@@ -739,13 +916,13 @@ def _parse_variable_shift(op: int) -> None:
 # --- pseudo-instructions ----------------------------------------------------------
 
 
-def _parse_pseudo(op: int) -> None:
+def _parse_pseudo(opcode: int) -> None:
     """A pseudo-instruction, wrapped in a PSEUDO node holding its expansion."""
     global _current_pseudo
-    node: Node = ast_nodes.make(Kind.PSEUDO, mnemonic=opcodes.name_of(op))
+    node: Node = ast_nodes.make(Kind.PSEUDO, mnemonic=opcodes.name_of(opcode))
     saved: Node | None = _current_pseudo
     _current_pseudo = node
-    _expand_pseudo(op)
+    _expand_pseudo(opcode)
     # The expansion is the pseudo-op's line, even when its last operand read
     # on to the newline before a child was built.
     for child in node.children:
@@ -754,292 +931,350 @@ def _parse_pseudo(op: int) -> None:
     _append(node)
 
 
-def _expand_pseudo(op: int) -> None:
+def _expand_pseudo(opcode: int) -> None:
     """Parse a pseudo-instruction's operands and emit its expansion."""
-    match op:
+    match opcode:
         case Tok.LI_PSEUDO_OP:
-            rt: int = _parse_register()
-            emit_i(Tok.ORI_OPCODE, rt, 0, _parse_imm32())
+            target_register: int = _parse_register()
+            emit_i(Tok.ORI_OPCODE, target_register, 0, _parse_immediate_32())
         case Tok.MOVE_PSEUDO_OP | Tok.NEG_PSEUDO_OP | Tok.NEGU_PSEUDO_OP:
-            register_ops: dict[int, int] = {
+            register_opcodes: dict[int, int] = {
                 Tok.MOVE_PSEUDO_OP: Tok.ADDU_OPCODE,
                 Tok.NEG_PSEUDO_OP: Tok.SUB_OPCODE,
                 Tok.NEGU_PSEUDO_OP: Tok.SUBU_OPCODE,
             }
-            real: int = register_ops[op]
-            rd: int = _parse_register()
-            emit_r(real, rd, 0, _parse_register())
+            real: int = register_opcodes[opcode]
+            destination_register: int = _parse_register()
+            emit_r(real, destination_register, 0, _parse_register())
         case Tok.NOT_PSEUDO_OP:
-            rd = _parse_register()
-            emit_r(Tok.NOR_OPCODE, rd, _parse_register(), 0)
+            destination_register = _parse_register()
+            emit_r(Tok.NOR_OPCODE, destination_register, _parse_register(), 0)
         case Tok.ROR_PSEUDO_OP | Tok.ROL_PSEUDO_OP:
-            _expand_rotate(op)
+            _expand_rotate(opcode)
         case Tok.SLE_PSEUDO_OP | Tok.SLEU_PSEUDO_OP | Tok.SGT_PSEUDO_OP | Tok.SGTU_PSEUDO_OP | Tok.SGE_PSEUDO_OP | Tok.SGEU_PSEUDO_OP | Tok.SEQ_PSEUDO_OP | Tok.SNE_PSEUDO_OP:  # fmt: skip
-            _expand_set(op)
+            _expand_set(opcode)
         case Tok.ABS_PSEUDO_OP:
-            rd = _parse_register()
-            rs: int = _parse_register()
-            if rd != rs:
-                emit_r(Tok.ADDU_OPCODE, rd, 0, rs)
-            emit_i(Tok.BGEZ_OPCODE, 0, rs, pseudo_op.branch_offset(3))
-            pseudo_op.nop_inst()
-            emit_r(Tok.SUB_OPCODE, rd, 0, rs)
+            destination_register = _parse_register()
+            source_register: int = _parse_register()
+            if destination_register != source_register:
+                emit_r(Tok.ADDU_OPCODE, destination_register, 0, source_register)
+            emit_i(Tok.BGEZ_OPCODE, 0, source_register, pseudo_op.branch_offset(3))
+            pseudo_op.nop_instruction()
+            emit_r(Tok.SUB_OPCODE, destination_register, 0, source_register)
         case Tok.NOP_PSEUDO_OP:
-            pseudo_op.nop_inst()
+            pseudo_op.nop_instruction()
         case Tok.REM_PSEUDO_OP | Tok.REMU_PSEUDO_OP:
-            rd = _parse_register()
-            rs = _parse_register()
-            if scanner.peek() == TOK_REG:
-                pseudo_op.div_inst(op, rd, rs, _parse_register(), False)
+            destination_register = _parse_register()
+            source_register = _parse_register()
+            if scanner.peek() == TOKEN_REGISTER:
+                pseudo_op.divide_instruction(
+                    opcode,
+                    destination_register,
+                    source_register,
+                    _parse_register(),
+                    False,
+                )
             else:
-                imm: ImmExpr = _parse_imm32()
-                if instruction.is_zero_imm(imm):
+                immediate: ImmediateExpression = _parse_immediate_32()
+                if instruction_module.is_zero_immediate(immediate):
                     _parse_error_at("Divide by zero")
                 else:
-                    emit_i(Tok.ORI_OPCODE, 1, 0, imm)
-                    pseudo_op.div_inst(op, rd, rs, 1, True)
+                    emit_i(Tok.ORI_OPCODE, 1, 0, immediate)
+                    pseudo_op.divide_instruction(
+                        opcode, destination_register, source_register, 1, True
+                    )
         case Tok.MULO_PSEUDO_OP | Tok.MULOU_PSEUDO_OP:
-            rd = _parse_register()
-            rs = _parse_register()
-            if scanner.peek() == TOK_REG:
-                pseudo_op.mult_inst(op, rd, rs, _parse_register())
+            destination_register = _parse_register()
+            source_register = _parse_register()
+            if scanner.peek() == TOKEN_REGISTER:
+                pseudo_op.multiply_instruction(
+                    opcode, destination_register, source_register, _parse_register()
+                )
             else:
-                imm = _parse_imm32()
-                if instruction.is_zero_imm(imm):
-                    emit_i(Tok.ORI_OPCODE, rd, 0, imm)  # n * 0 is 0
+                immediate = _parse_immediate_32()
+                if instruction_module.is_zero_immediate(immediate):
+                    emit_i(
+                        Tok.ORI_OPCODE, destination_register, 0, immediate
+                    )  # n * 0 is 0
                 else:
-                    emit_i(Tok.ORI_OPCODE, 1, 0, imm)
-                    pseudo_op.mult_inst(op, rd, rs, 1)
+                    emit_i(Tok.ORI_OPCODE, 1, 0, immediate)
+                    pseudo_op.multiply_instruction(
+                        opcode, destination_register, source_register, 1
+                    )
         case Tok.MFC1_D_PSEUDO_OP | Tok.MTC1_D_PSEUDO_OP:
-            real = Tok.MFC1_OPCODE if op == Tok.MFC1_D_PSEUDO_OP else Tok.MTC1_OPCODE
+            real = (
+                Tok.MFC1_OPCODE if opcode == Tok.MFC1_D_PSEUDO_OP else Tok.MTC1_OPCODE
+            )
             line: int = scanner.line_no  # the last operand can consume the newline
-            reg: int = _parse_register()
-            copreg: int = _parse_copreg_operand()
-            if 31 in (reg, copreg):  # the pair's second register would be 32
+            register_number: int = _parse_register()
+            coprocessor_register: int = _parse_coprocessor_register_operand()
+            if 31 in (
+                register_number,
+                coprocessor_register,
+            ):  # the pair's second register would be 32
                 _parse_error_at("Register pair starts at the last register (31)", line)
                 return
-            emit_fp_r(real, 0, copreg, reg)
-            emit_fp_r(real, 0, copreg + 1, reg + 1)
+            emit_floating_point_r(real, 0, coprocessor_register, register_number)
+            emit_floating_point_r(
+                real, 0, coprocessor_register + 1, register_number + 1
+            )
         case Tok.LI_D_PSEUDO_OP | Tok.LI_S_PSEUDO_OP:
-            _expand_li_fp(op)
+            _expand_li_floating_point(opcode)
         case Tok.L_D_PSEUDO_OP | Tok.L_S_PSEUDO_OP | Tok.S_D_PSEUDO_OP | Tok.S_S_PSEUDO_OP:  # fmt: skip
-            fp_memory_ops: dict[int, int] = {
+            floating_point_memory_opcodes: dict[int, int] = {
                 Tok.L_D_PSEUDO_OP: Tok.LDC1_OPCODE,
                 Tok.L_S_PSEUDO_OP: Tok.LWC1_OPCODE,
                 Tok.S_D_PSEUDO_OP: Tok.SDC1_OPCODE,
                 Tok.S_S_PSEUDO_OP: Tok.SWC1_OPCODE,
             }
-            real = fp_memory_ops[op]
-            fr: int = _parse_fp_register()
-            address: AddrExpr = _parse_address()
-            emit_i(real, fr, address.reg_no, address.imm)
+            real = floating_point_memory_opcodes[opcode]
+            floating_point_addend: int = _parse_floating_point_register()
+            address: AddressExpression = _parse_address()
+            emit_i(real, floating_point_addend, address.register_no, address.immediate)
         case Tok.LD_PSEUDO_OP | Tok.SD_PSEUDO_OP:
-            real = Tok.LW_OPCODE if op == Tok.LD_PSEUDO_OP else Tok.SW_OPCODE
+            real = Tok.LW_OPCODE if opcode == Tok.LD_PSEUDO_OP else Tok.SW_OPCODE
             line = scanner.line_no  # the address can consume the newline
-            rt = _parse_register()
+            target_register = _parse_register()
             address = _parse_address()
-            if rt == 31:  # the pair's second register would be 32
+            if target_register == 31:  # the pair's second register would be 32
                 _parse_error_at("Register pair starts at the last register (31)", line)
                 return
-            emit_i(real, rt, address.reg_no, address.imm)
+            emit_i(real, target_register, address.register_no, address.immediate)
             emit_i(
                 real,
-                rt + 1,
-                address.reg_no,
-                instruction.incr_expr_offset(address.imm, 4),
+                target_register + 1,
+                address.register_no,
+                instruction_module.increment_expression_offset(address.immediate, 4),
             )
         case Tok.ULW_PSEUDO_OP | Tok.USW_PSEUDO_OP:
-            left: int = Tok.LWL_OPCODE if op == Tok.ULW_PSEUDO_OP else Tok.SWL_OPCODE
-            right: int = Tok.LWR_OPCODE if op == Tok.ULW_PSEUDO_OP else Tok.SWR_OPCODE
-            rt = _parse_register()
+            left: int = (
+                Tok.LWL_OPCODE if opcode == Tok.ULW_PSEUDO_OP else Tok.SWL_OPCODE
+            )
+            right: int = (
+                Tok.LWR_OPCODE if opcode == Tok.ULW_PSEUDO_OP else Tok.SWR_OPCODE
+            )
+            target_register = _parse_register()
             address = _parse_address()
             emit_i(
-                left, rt, address.reg_no, instruction.incr_expr_offset(address.imm, 3)
+                left,
+                target_register,
+                address.register_no,
+                instruction_module.increment_expression_offset(address.immediate, 3),
             )
-            emit_i(right, rt, address.reg_no, address.imm)
+            emit_i(right, target_register, address.register_no, address.immediate)
         case Tok.ULH_PSEUDO_OP | Tok.ULHU_PSEUDO_OP:
             high_load: int = (
-                Tok.LB_OPCODE if op == Tok.ULH_PSEUDO_OP else Tok.LBU_OPCODE
+                Tok.LB_OPCODE if opcode == Tok.ULH_PSEUDO_OP else Tok.LBU_OPCODE
             )
-            rt = _parse_register()
+            target_register = _parse_register()
             address = _parse_address()
             emit_i(
                 high_load,
-                rt,
-                address.reg_no,
-                instruction.incr_expr_offset(address.imm, 1),
+                target_register,
+                address.register_no,
+                instruction_module.increment_expression_offset(address.immediate, 1),
             )
-            emit_i(Tok.LBU_OPCODE, 1, address.reg_no, address.imm)
-            emit_r_shift(Tok.SLL_OPCODE, rt, rt, 8)
-            emit_r(Tok.OR_OPCODE, rt, rt, 1)
+            emit_i(Tok.LBU_OPCODE, 1, address.register_no, address.immediate)
+            emit_r_shift(Tok.SLL_OPCODE, target_register, target_register, 8)
+            emit_r(Tok.OR_OPCODE, target_register, target_register, 1)
         case Tok.USH_PSEUDO_OP:
-            rt = _parse_register()
+            target_register = _parse_register()
             address = _parse_address()
-            emit_i(Tok.SB_OPCODE, rt, address.reg_no, address.imm)
-            emit_r_shift(Tok.SLL_OPCODE, 1, rt, 24)
-            emit_r_shift(Tok.SRL_OPCODE, rt, rt, 8)
-            emit_r(Tok.OR_OPCODE, rt, rt, 1)
+            emit_i(
+                Tok.SB_OPCODE, target_register, address.register_no, address.immediate
+            )
+            emit_r_shift(Tok.SLL_OPCODE, 1, target_register, 24)
+            emit_r_shift(Tok.SRL_OPCODE, target_register, target_register, 8)
+            emit_r(Tok.OR_OPCODE, target_register, target_register, 1)
             emit_i(
                 Tok.SB_OPCODE,
-                rt,
-                address.reg_no,
-                instruction.incr_expr_offset(address.imm, 1),
+                target_register,
+                address.register_no,
+                instruction_module.increment_expression_offset(address.immediate, 1),
             )
-            emit_r_shift(Tok.SRL_OPCODE, 1, rt, 24)
-            emit_r_shift(Tok.SLL_OPCODE, rt, rt, 8)
-            emit_r(Tok.OR_OPCODE, rt, rt, 1)
+            emit_r_shift(Tok.SRL_OPCODE, 1, target_register, 24)
+            emit_r_shift(Tok.SLL_OPCODE, target_register, target_register, 8)
+            emit_r(Tok.OR_OPCODE, target_register, target_register, 1)
         case Tok.LA_PSEUDO_OP:
-            rt = _parse_register()
+            target_register = _parse_register()
             address = _parse_address()
-            if address.reg_no:
-                emit_i(Tok.ADDI_OPCODE, rt, address.reg_no, address.imm)
+            if address.register_no:
+                emit_i(
+                    Tok.ADDI_OPCODE,
+                    target_register,
+                    address.register_no,
+                    address.immediate,
+                )
             else:
-                emit_i(Tok.ORI_OPCODE, rt, 0, address.imm)
+                emit_i(Tok.ORI_OPCODE, target_register, 0, address.immediate)
         case Tok.BEQZ_PSEUDO_OP | Tok.BNEZ_PSEUDO_OP:
-            rs = _parse_register()
-            real = Tok.BEQ_OPCODE if op == Tok.BEQZ_PSEUDO_OP else Tok.BNE_OPCODE
-            emit_i(real, 0, rs, _parse_label())
+            source_register = _parse_register()
+            real = Tok.BEQ_OPCODE if opcode == Tok.BEQZ_PSEUDO_OP else Tok.BNE_OPCODE
+            emit_i(real, 0, source_register, _parse_label())
         case Tok.B_PSEUDO_OP | Tok.BAL_PSEUDO_OP:
-            real = Tok.BGEZAL_OPCODE if op == Tok.BAL_PSEUDO_OP else Tok.BGEZ_OPCODE
+            real = Tok.BGEZAL_OPCODE if opcode == Tok.BAL_PSEUDO_OP else Tok.BGEZ_OPCODE
             emit_i(real, 0, 0, _parse_label())
         case Tok.BGT_PSEUDO_OP | Tok.BGTU_PSEUDO_OP | Tok.BGE_PSEUDO_OP | Tok.BGEU_PSEUDO_OP | Tok.BLT_PSEUDO_OP | Tok.BLTU_PSEUDO_OP | Tok.BLE_PSEUDO_OP | Tok.BLEU_PSEUDO_OP:  # fmt: skip
-            _expand_compare_branch(op)
+            _expand_compare_branch(opcode)
         case _:
             _parse_error_at("Pseudo-op not yet supported")
-            _sync_to_nl()
+            _sync_to_newline()
 
 
-def _expand_rotate(op: int) -> None:
+def _expand_rotate(opcode: int) -> None:
     """``ror``/``rol`` by a register or by a constant."""
-    is_right: bool = op == Tok.ROR_PSEUDO_OP
-    rd: int = _parse_register()
-    rs: int = _parse_register()
-    if scanner.peek() == TOK_REG:
-        rt: int = _parse_register()
-        emit_r(Tok.SUBU_OPCODE, 1, 0, rt)
+    is_right: bool = opcode == Tok.ROR_PSEUDO_OP
+    destination_register: int = _parse_register()
+    source_register: int = _parse_register()
+    if scanner.peek() == TOKEN_REGISTER:
+        target_register: int = _parse_register()
+        emit_r(Tok.SUBU_OPCODE, 1, 0, target_register)
         if is_right:
-            emit_r(Tok.SLLV_OPCODE, 1, 1, rs)
-            emit_r(Tok.SRLV_OPCODE, rd, rt, rs)
+            emit_r(Tok.SLLV_OPCODE, 1, 1, source_register)
+            emit_r(
+                Tok.SRLV_OPCODE, destination_register, target_register, source_register
+            )
         else:
-            emit_r(Tok.SRLV_OPCODE, 1, 1, rs)
-            emit_r(Tok.SLLV_OPCODE, rd, rt, rs)
-        emit_r(Tok.OR_OPCODE, rd, rd, 1)
+            emit_r(Tok.SRLV_OPCODE, 1, 1, source_register)
+            emit_r(
+                Tok.SLLV_OPCODE, destination_register, target_register, source_register
+            )
+        emit_r(Tok.OR_OPCODE, destination_register, destination_register, 1)
         return
-    line: int = scanner.line_no  # as in _parse_imm16
-    imm: ImmExpr = _parse_imm32()
-    distance: int = instruction.eval_imm_expr(imm)
-    pseudo_op.check_imm_range(imm, 0, 31, line)
+    line: int = scanner.line_no  # as in _parse_immediate_16
+    immediate: ImmediateExpression = _parse_immediate_32()
+    distance: int = instruction_module.evaluate_immediate_expression(immediate)
+    pseudo_op.check_immediate_range(immediate, 0, 31, line)
     first: int = Tok.SLL_OPCODE if is_right else Tok.SRL_OPCODE
     second: int = Tok.SRL_OPCODE if is_right else Tok.SLL_OPCODE
-    emit_r_shift(first, 1, rs, -distance)
-    emit_r_shift(second, rd, rs, distance)
-    emit_r(Tok.OR_OPCODE, rd, rd, 1)
+    emit_r_shift(first, 1, source_register, -distance)
+    emit_r_shift(second, destination_register, source_register, distance)
+    emit_r(Tok.OR_OPCODE, destination_register, destination_register, 1)
 
 
-def _expand_set(op: int) -> None:
+def _expand_set(opcode: int) -> None:
     """``sle sleu sgt sgtu sge sgeu seq sne rd, rs, (rt | imm)``."""
-    rd: int = _parse_register()
-    rs: int = _parse_register()
-    rt: int
-    if scanner.peek() == TOK_REG:
-        rt = _parse_register()
+    destination_register: int = _parse_register()
+    source_register: int = _parse_register()
+    target_register: int
+    if scanner.peek() == TOKEN_REGISTER:
+        target_register = _parse_register()
     else:
-        imm: ImmExpr = _parse_imm32()
-        if instruction.is_zero_imm(imm):
-            rt = 0
+        immediate: ImmediateExpression = _parse_immediate_32()
+        if instruction_module.is_zero_immediate(immediate):
+            target_register = 0
         else:
-            emit_i(Tok.ORI_OPCODE, 1, 0, imm)
-            rt = 1
-    match op:
+            emit_i(Tok.ORI_OPCODE, 1, 0, immediate)
+            target_register = 1
+    match opcode:
         case Tok.SLE_PSEUDO_OP | Tok.SLEU_PSEUDO_OP:
-            pseudo_op.set_le_inst(op, rd, rs, rt)
+            pseudo_op.set_less_or_equal_instruction(
+                opcode, destination_register, source_register, target_register
+            )
         case Tok.SGT_PSEUDO_OP | Tok.SGTU_PSEUDO_OP:
-            pseudo_op.set_gt_inst(op, rd, rs, rt)
+            pseudo_op.set_greater_than_instruction(
+                opcode, destination_register, source_register, target_register
+            )
         case Tok.SGE_PSEUDO_OP | Tok.SGEU_PSEUDO_OP:
-            pseudo_op.set_ge_inst(op, rd, rs, rt)
+            pseudo_op.set_greater_or_equal_instruction(
+                opcode, destination_register, source_register, target_register
+            )
         case Tok.SEQ_PSEUDO_OP | Tok.SNE_PSEUDO_OP:
-            pseudo_op.set_eq_inst(op, rd, rs, rt)
+            pseudo_op.set_equal_instruction(
+                opcode, destination_register, source_register, target_register
+            )
         case _:
             raise AssertionError(
-                f"_expand_set: op {op} is not a set pseudo-op; only they reach here"
+                f"_expand_set: op {opcode} is not a set pseudo-op; only they reach here"
             )
 
 
-def _expand_li_fp(op: int) -> None:
+def _expand_li_floating_point(opcode: int) -> None:
     """``li.d``/``li.s fd, FLOAT``: build the bits in $at, move with mtc1."""
-    fd: int = _parse_fp_register()
-    if scanner.peek() != TOK_FP:
+    floating_point_destination: int = _parse_floating_point_register()
+    if scanner.peek() != TOKEN_FLOATING_POINT:
         _parse_error_at("Expected FP literal")
         return
     scanner.advance()
     value: int | float | str = scanner.scan_value
     if not isinstance(value, float):
         raise TypeError(f"_expand_li_fp: expected float, got {type(value).__name__}")
-    if op == Tok.LI_D_PSEUDO_OP:
+    if opcode == Tok.LI_D_PSEUDO_OP:
         low: int
         high: int
         low, high = machine.double_words(value)
-        emit_i(Tok.ORI_OPCODE, 1, 0, instruction.const_imm_expr(low))
-        emit_fp_r(Tok.MTC1_OPCODE, 0, fd, 1)
-        emit_i(Tok.ORI_OPCODE, 1, 0, instruction.const_imm_expr(high))
-        emit_fp_r(Tok.MTC1_OPCODE, 0, fd + 1, 1)
+        emit_i(
+            Tok.ORI_OPCODE, 1, 0, instruction_module.constant_immediate_expression(low)
+        )
+        emit_floating_point_r(Tok.MTC1_OPCODE, 0, floating_point_destination, 1)
+        emit_i(
+            Tok.ORI_OPCODE, 1, 0, instruction_module.constant_immediate_expression(high)
+        )
+        emit_floating_point_r(Tok.MTC1_OPCODE, 0, floating_point_destination + 1, 1)
     else:
         bits: int = machine.float_bits(value)
-        emit_i(Tok.ORI_OPCODE, 1, 0, instruction.const_imm_expr(bits))
-        emit_fp_r(Tok.MTC1_OPCODE, 0, fd, 1)
+        emit_i(
+            Tok.ORI_OPCODE, 1, 0, instruction_module.constant_immediate_expression(bits)
+        )
+        emit_floating_point_r(Tok.MTC1_OPCODE, 0, floating_point_destination, 1)
 
 
-def _expand_compare_branch(op: int) -> None:
+def _expand_compare_branch(opcode: int) -> None:
     """``bgt bgtu bge bgeu blt bltu ble bleu rs, (rt | imm), label``."""
-    rs: int = _parse_register()
-    signed: bool = op in (
+    source_register: int = _parse_register()
+    signed: bool = opcode in (
         Tok.BGT_PSEUDO_OP, Tok.BGE_PSEUDO_OP, Tok.BLT_PSEUDO_OP, Tok.BLE_PSEUDO_OP
     )  # fmt: skip
     slt: int = Tok.SLT_OPCODE if signed else Tok.SLTU_OPCODE
     slti: int = Tok.SLTI_OPCODE if signed else Tok.SLTIU_OPCODE
-    greater: bool = op in (Tok.BGT_PSEUDO_OP, Tok.BGTU_PSEUDO_OP, Tok.BLE_PSEUDO_OP,
+    greater: bool = opcode in (Tok.BGT_PSEUDO_OP, Tok.BGTU_PSEUDO_OP, Tok.BLE_PSEUDO_OP,
                            Tok.BLEU_PSEUDO_OP)  # fmt: skip
     # bgt/ble branch on $at != 0 / == 0 after slt $at, rt, rs; bge/blt after
     # slt $at, rs, rt.
-    on_set: bool = op in (Tok.BGT_PSEUDO_OP, Tok.BGTU_PSEUDO_OP, Tok.BLT_PSEUDO_OP,
+    on_set: bool = opcode in (Tok.BGT_PSEUDO_OP, Tok.BGTU_PSEUDO_OP, Tok.BLT_PSEUDO_OP,
                           Tok.BLTU_PSEUDO_OP)  # fmt: skip
     branch: int = Tok.BNE_OPCODE if on_set else Tok.BEQ_OPCODE
-    if scanner.peek() == TOK_REG:
-        rt: int = _parse_register()
-        target: ImmExpr = _parse_label()
+    if scanner.peek() == TOKEN_REGISTER:
+        target_register: int = _parse_register()
+        target: ImmediateExpression = _parse_label()
         if greater:
-            emit_r(slt, 1, rt, rs)
+            emit_r(slt, 1, target_register, source_register)
         else:
-            emit_r(slt, 1, rs, rt)
+            emit_r(slt, 1, source_register, target_register)
         emit_i(branch, 0, 1, target)
         return
-    imm: ImmExpr = _parse_imm32()
+    immediate: ImmediateExpression = _parse_immediate_32()
     target = _parse_label()
-    match op:
+    match opcode:
         case Tok.BGE_PSEUDO_OP | Tok.BGEU_PSEUDO_OP | Tok.BLT_PSEUDO_OP | Tok.BLTU_PSEUDO_OP:  # fmt: skip
-            emit_i(slti, 1, rs, imm)
+            emit_i(slti, 1, source_register, immediate)
             emit_i(branch, 0, 1, target)
         case Tok.BGT_PSEUDO_OP | Tok.BLE_PSEUDO_OP:
-            emit_i(Tok.SLTI_OPCODE, 1, rs, instruction.incr_expr_offset(imm, 1))
             emit_i(
-                Tok.BEQ_OPCODE if op == Tok.BGT_PSEUDO_OP else Tok.BNE_OPCODE,
+                Tok.SLTI_OPCODE,
+                1,
+                source_register,
+                instruction_module.increment_expression_offset(immediate, 1),
+            )
+            emit_i(
+                Tok.BEQ_OPCODE if opcode == Tok.BGT_PSEUDO_OP else Tok.BNE_OPCODE,
                 0,
                 1,
                 target,
             )
         case Tok.BGTU_PSEUDO_OP:
-            emit_i(Tok.ORI_OPCODE, 1, 0, imm)
-            emit_i(Tok.BEQ_OPCODE, rs, 1, pseudo_op.branch_offset(3))
-            emit_r(Tok.SLTU_OPCODE, 1, rs, 1)
+            emit_i(Tok.ORI_OPCODE, 1, 0, immediate)
+            emit_i(Tok.BEQ_OPCODE, source_register, 1, pseudo_op.branch_offset(3))
+            emit_r(Tok.SLTU_OPCODE, 1, source_register, 1)
             emit_i(Tok.BEQ_OPCODE, 0, 1, target)
         case Tok.BLEU_PSEUDO_OP:
-            emit_i(Tok.ORI_OPCODE, 1, 0, imm)
-            emit_i(Tok.BEQ_OPCODE, rs, 1, target)
-            emit_r(Tok.SLTU_OPCODE, 1, rs, 1)
+            emit_i(Tok.ORI_OPCODE, 1, 0, immediate)
+            emit_i(Tok.BEQ_OPCODE, source_register, 1, target)
+            emit_r(Tok.SLTU_OPCODE, 1, source_register, 1)
             emit_i(Tok.BNE_OPCODE, 0, 1, target)
         case _:
             raise AssertionError(
-                f"_expand_compare_branch: op {op} is not a compare-branch pseudo-op;"
+                f"_expand_compare_branch: op {opcode} is not a compare-branch pseudo-op;"
                 " only they reach here"
             )
 
@@ -1049,56 +1284,56 @@ def _expand_compare_branch(op: int) -> None:
 
 def _parse_segment(kind: Kind) -> None:
     """``.text/.data/.ktext/.kdata [ADDR]``."""
-    has_addr: bool = False
-    addr: int = 0
-    if scanner.peek() == TOK_INT:
+    has_address: bool = False
+    address: int = 0
+    if scanner.peek() == TOKEN_INTEGER:
         scanner.advance()
-        has_addr = True
-        addr = machine.u32(_int_value())
-    _emit_dir_seg(kind, has_addr, addr)
+        has_address = True
+        address = machine.u32(_integer_value())
+    _emit_directive_segment(kind, has_address, address)
 
 
 def _parse_named_size(kind: Kind) -> None:
     """``.extern NAME SIZE`` / ``.comm NAME SIZE``."""
     scanner.force_identifier()
-    if scanner.peek() != TOK_ID:
+    if scanner.peek() != TOKEN_IDENTIFIER:
         _parse_error_at("Expected ID")
         return
     scanner.advance()
-    name: str = _str_value()
+    name: str = _string_value()
     size: int = _parse_expression()
     _append(ast_nodes.make(kind, name=name, number=size))
 
 
-def _parse_expr_list() -> None:
+def _parse_expression_list() -> None:
     """The comma- (really white-space-) separated values of .word etc."""
     while True:
         errors_before: int = pseudo_op.parse_errors_seen
         value: int = _parse_expression()
         if pseudo_op.parse_errors_seen != errors_before:
             # The bad token is still there: skip the line, don't loop on it.
-            _sync_to_nl()
+            _sync_to_newline()
             break
-        _data_int_push(value)
-        if scanner.peek() in (TOK_NL, TOK_EOF):
+        _data_integer_push(value)
+        if scanner.peek() in (TOKEN_NEWLINE, TOKEN_EOF):
             break
-    _data_int_finalize()
+    _data_integer_finalize()
 
 
 def _align_labels_to(alignment: int) -> None:
     """Move the line's labels to where the alignment will put the data."""
-    if not data_dir or not _auto_align or not _this_line_labels:
+    if not data_directive or not _auto_align or not _this_line_labels:
         return
-    current: int = data.current_data_pc()
+    current: int = data.current_data_location()
     fix_current_label_address(
         (current + (1 << alignment) - 1) & ((0xFFFFFFFF << alignment) & 0xFFFFFFFF)
     )
 
 
-def _parse_fp_expr_list() -> None:
+def _parse_floating_point_expression_list() -> None:
     """The floating-point literals of .float/.double."""
     while True:
-        if scanner.peek() != TOK_FP:
+        if scanner.peek() != TOKEN_FLOATING_POINT:
             _parse_error_at("Expected floating-point literal")
             return
         scanner.advance()
@@ -1108,40 +1343,40 @@ def _parse_fp_expr_list() -> None:
                 f"_parse_fp_expr_list: expected float, got {type(value).__name__}"
             )
         _data_doubles.append(value)
-        if scanner.peek() in (TOK_NL, TOK_EOF):
+        if scanner.peek() in (TOKEN_NEWLINE, TOKEN_EOF):
             break
-    _data_fp_finalize()
+    _data_floating_point_finalize()
 
 
 def _parse_aligned_list(kind: Kind, alignment: int) -> None:
     """.word/.half/.float/.double: align now (as the C parser does), then parse."""
     _align_labels_to(alignment)
-    if data_dir:
+    if data_directive:
         data.set_data_alignment(alignment)
     if kind in (Kind.DATA_FLOAT, Kind.DATA_DOUBLE):
-        _data_fp_begin(kind)
-        _parse_fp_expr_list()
+        _data_floating_point_begin(kind)
+        _parse_floating_point_expression_list()
     else:
-        _data_int_begin(kind)
-        _parse_expr_list()
+        _data_integer_begin(kind)
+        _parse_expression_list()
 
 
 def _parse_string_list() -> None:
     """The strings of .ascii/.asciiz."""
     while True:
-        if scanner.peek() != TOK_STR:
+        if scanner.peek() != TOKEN_STRING:
             _parse_error_at("Expected string literal")
             return
         scanner.advance()
         # A \000 escape ends the string: C measures it with strlen.
-        text: bytes = console.to_bytes(_str_value()).split(b"\0", 1)[0]
-        if text_dir:
+        text: bytes = console.to_bytes(_string_value()).split(b"\0", 1)[0]
+        if text_directive:
             _parse_error_at("Can't put data in text segment")
         else:
             _append(
                 ast_nodes.make(Kind.DATA_STRING, string=text, null_terminate=_null_term)
             )
-        if scanner.peek() in (TOK_NL, TOK_EOF):
+        if scanner.peek() in (TOKEN_NEWLINE, TOKEN_EOF):
             break
 
 
@@ -1158,27 +1393,27 @@ def _parse_directive(token: int) -> None:
     global _null_term, _auto_align
     match token:
         case Tok.DATA_DIRECTIVE:
-            _parse_segment(Kind.DIR_DATA)
+            _parse_segment(Kind.DIRECTIVE_DATA)
         case Tok.K_DATA_DIRECTIVE:
-            _parse_segment(Kind.DIR_KDATA)
+            _parse_segment(Kind.DIRECTIVE_KDATA)
         case Tok.TEXT_DIRECTIVE:
-            _parse_segment(Kind.DIR_TEXT)
+            _parse_segment(Kind.DIRECTIVE_TEXT)
         case Tok.K_TEXT_DIRECTIVE:
-            _parse_segment(Kind.DIR_KTEXT)
+            _parse_segment(Kind.DIRECTIVE_KTEXT)
         case Tok.GLOBAL_DIRECTIVE:
             scanner.force_identifier()
-            if scanner.peek() != TOK_ID:
+            if scanner.peek() != TOKEN_IDENTIFIER:
                 _parse_error_at("Expected identifier after .globl")
                 return
             scanner.advance()
-            _append(ast_nodes.make(Kind.DIR_GLOBL, name=_str_value()))
+            _append(ast_nodes.make(Kind.DIRECTIVE_GLOBL, name=_string_value()))
         case Tok.WORD_DIRECTIVE:
             _parse_aligned_list(Kind.DATA_WORD, 2)
         case Tok.HALF_DIRECTIVE:
             _parse_aligned_list(Kind.DATA_HALF, 1)
         case Tok.BYTE_DIRECTIVE:
-            _data_int_begin(Kind.DATA_BYTE)
-            _parse_expr_list()
+            _data_integer_begin(Kind.DATA_BYTE)
+            _parse_expression_list()
         case Tok.ASCII_DIRECTIVE | Tok.ASCIIZ_DIRECTIVE:
             _null_term = token == Tok.ASCIIZ_DIRECTIVE
             _parse_string_list()
@@ -1188,10 +1423,10 @@ def _parse_directive(token: int) -> None:
             _parse_aligned_list(Kind.DATA_DOUBLE, 3)
         case Tok.SPACE_DIRECTIVE:
             size: int = _parse_expression()
-            if text_dir:
+            if text_directive:
                 _parse_error_at("Can't put data in text segment")
                 return
-            _append(ast_nodes.make(Kind.DIR_SPACE, number=size))
+            _append(ast_nodes.make(Kind.DIRECTIVE_SPACE, number=size))
         case Tok.ALIGN_DIRECTIVE:
             line: int = scanner.line_no  # the expression can consume the newline
             power: int = _parse_expression()
@@ -1200,79 +1435,84 @@ def _parse_directive(token: int) -> None:
                 return
             if power == 0:
                 _auto_align = False
-            _append(ast_nodes.make(Kind.DIR_ALIGN, number=power))
+            _append(ast_nodes.make(Kind.DIRECTIVE_ALIGN, number=power))
         case Tok.COMM_DIRECTIVE:
-            _parse_named_size(Kind.DIR_COMM)
+            _parse_named_size(Kind.DIRECTIVE_COMM)
         case Tok.EXTERN_DIRECTIVE:
-            _parse_named_size(Kind.DIR_EXTERN)
+            _parse_named_size(Kind.DIRECTIVE_EXTERN)
         case Tok.ERR_DIRECTIVE:
             _parse_error_at(".err directive")
         case _ if token in _IGNORED_DIRECTIVES:
-            _sync_to_nl()
+            _sync_to_newline()
         case _:
             _parse_error_at("Directive not yet supported")
-            _sync_to_nl()
+            _sync_to_newline()
 
 
 # --- lines and files ----------------------------------------------------------------
 
 
-def _parse_opt_label() -> None:
+def _parse_optional_label() -> None:
     """``NAME:`` or ``NAME = EXPR`` (the caller saw the ':' or '=')."""
     scanner.advance()
-    name: str = _str_value()
+    name: str = _string_value()
     separator: int = scanner.advance()
     if separator == ord(":"):
-        _append(ast_nodes.make(Kind.LABEL_DEF, name=name))
+        _append(ast_nodes.make(Kind.LABEL_DEFINITION, name=name))
     else:
         value: int = _parse_expression()
         _append(
-            ast_nodes.make(Kind.LABEL_DEF, name=name, is_constant=True, number=value)
+            ast_nodes.make(
+                Kind.LABEL_DEFINITION, name=name, is_constant=True, number=value
+            )
         )
 
 
 def _parse_line() -> None:
     """One line: optional label, then a directive or an instruction."""
-    if scanner.peek() == TOK_NL:
+    if scanner.peek() == TOKEN_NEWLINE:
         scanner.advance()
         return
-    elif scanner.peek() == TOK_EOF:
+    elif scanner.peek() == TOKEN_EOF:
         return
     else:
-        if scanner.peek() == TOK_ID and scanner.peek2() in (ord(":"), ord("=")):
-            _parse_opt_label()
+        if scanner.peek() == TOKEN_IDENTIFIER and scanner.peek2() in (
+            ord(":"),
+            ord("="),
+        ):
+            _parse_optional_label()
         token: int = scanner.peek()
-        if token == TOK_NL:
+        if token == TOKEN_NEWLINE:
             scanner.advance()
             return
-        elif token == TOK_EOF:
+        elif token == TOKEN_EOF:
             return
         else:
-            if instruction.kind_of(token) == opcodes.ASM_DIR:
+            if instruction_module.kind_of(token) == opcodes.ASSEMBLER_DIRECTIVE:
                 _parse_directive(scanner.advance())
             else:
-                _parse_asm_code()
+                _parse_assembly_code()
             _clear_labels()
             if pseudo_op.parse_error_occurred:
-                _sync_to_nl()
-            elif scanner.peek() == TOK_NL:
+                _sync_to_newline()
+            elif scanner.peek() == TOKEN_NEWLINE:
                 scanner.advance()
-            elif scanner.peek() != TOK_EOF:
+            elif scanner.peek() != TOKEN_EOF:
                 _parse_error_at("Extra tokens after instruction")
-                _sync_to_nl()
+                _sync_to_newline()
             else:
-                pass  # at TOK_EOF: there is no newline to consume
+                pass  # at TOKEN_EOF: there is no newline to consume
 
 
-def parser_init(source: BinaryIO | None, file_name: str | None) -> None:
+def parser_initialize(source: BinaryIO | None, file_name: str | None) -> None:
     """Get ready to assemble source (named file_name in messages)."""
-    global input_file_name, data_dir, text_dir, _current_file
-    scanner.init(source)
+    global input_file_name, data_directive, text_directive, _current_file
+    scanner.initialize(source)
     input_file_name = file_name
     pseudo_op.parse_errors_seen = 0
     pseudo_op.parse_error_occurred = False
-    data_dir = False
-    text_dir = True
+    data_directive = False
+    text_directive = True
     _current_file = ast_nodes.make(Kind.FILE, name=file_name)
 
 
@@ -1282,16 +1522,16 @@ def parse_file() -> int:
     Returns:
         int: the number of parse errors.
     """
-    global data_dir, text_dir
+    global data_directive, text_directive
     # Emit only what this call parses, starting in the segment that was
     # current when it began.  The REPL's `.` command parses one line onto the
     # tree of the file loaded last, whose nodes were emitted already; and the
-    # parse moves data_dir/text_dir as it meets .data and .text, so the emit
+    # parse moves data_directive/text_directive as it meets .data and .text, so the emit
     # pass must replay them from the start.
     already_emitted: int = len(_current_file.children) if _current_file else 0
-    start_data_dir: bool = data_dir
-    start_text_dir: bool = text_dir
-    while scanner.peek() != TOK_EOF:
+    start_data_directive: bool = data_directive
+    start_text_directive: bool = text_directive
+    while scanner.peek() != TOKEN_EOF:
         pseudo_op.parse_error_occurred = False
         scanner.start_line()
         _parse_line()
@@ -1310,8 +1550,8 @@ def parse_file() -> int:
         if print_ast_json:
             console.output(ast_nodes.format_json(_current_file))
         if not print_ast_only:
-            data_dir = start_data_dir
-            text_dir = start_text_dir
+            data_directive = start_data_directive
+            text_directive = start_text_directive
             emit_ast(_current_file, already_emitted)
     return pseudo_op.parse_errors_seen
 
@@ -1323,66 +1563,71 @@ def emit_ast(file: Node, skip: int = 0) -> None:
     """Store the file's nodes after the first skip into memory, in order."""
     for node in file.children[skip:]:
         _emit_one(node)
-        if node.kind not in (Kind.LABEL_DEF, Kind.DIR_GLOBL):
+        if node.kind not in (Kind.LABEL_DEFINITION, Kind.DIRECTIVE_GLOBL):
             _clear_labels()
     _clear_labels()
-    instruction.emit_source_clear()
+    instruction_module.emit_source_clear()
 
 
-def _emit_data_ints(node: Node, store: Callable[[int], None], width: int) -> None:
+def _emit_data_integers(node: Node, store: Callable[[int], None], width: int) -> None:
     """Store a .byte/.half/.word list, recording forward references."""
-    for expr in node.exprs:
-        if expr.symbol is not None and expr.symbol.addr == 0:
+    for expression in node.expressions:
+        if expression.symbol is not None and expression.symbol.address == 0:
             symbol_table.record_data_uses_symbol(
-                data.current_data_pc(), expr.symbol, expr.offset, width
+                data.current_data_location(),
+                expression.symbol,
+                expression.offset,
+                width,
             )
-            store(expr.offset)
+            store(expression.offset)
         else:
-            store(instruction.eval_imm_expr(expr))
+            store(instruction_module.evaluate_immediate_expression(expression))
 
 
 def _emit_one(node: Node) -> None:
     """Store one node: the action the C engine's emit_one takes for its kind."""
-    global data_dir, text_dir, _auto_align
+    global data_directive, text_directive, _auto_align
     scanner.line_no = node.source_line
-    instruction.emit_source_set(node.src_text)
+    instruction_module.emit_source_set(node.source_text)
     match node.kind:
-        case Kind.DIR_TEXT | Kind.DIR_KTEXT:
-            instruction.user_kernel_text_segment(node.kind == Kind.DIR_KTEXT)
-            data_dir = False
-            text_dir = True
-            if node.has_start_addr:
-                instruction.set_text_pc(node.start_addr)
-        case Kind.DIR_DATA | Kind.DIR_KDATA:
-            data.user_kernel_data_segment(node.kind == Kind.DIR_KDATA)
-            data_dir = True
-            text_dir = False
+        case Kind.DIRECTIVE_TEXT | Kind.DIRECTIVE_KTEXT:
+            instruction_module.user_kernel_text_segment(
+                node.kind == Kind.DIRECTIVE_KTEXT
+            )
+            data_directive = False
+            text_directive = True
+            if node.has_start_address:
+                instruction_module.set_text_location(node.start_address)
+        case Kind.DIRECTIVE_DATA | Kind.DIRECTIVE_KDATA:
+            data.user_kernel_data_segment(node.kind == Kind.DIRECTIVE_KDATA)
+            data_directive = True
+            text_directive = False
             data.enable_data_alignment()
             _auto_align = True
-            if node.has_start_addr:
-                data.set_data_pc(node.start_addr)
-        case Kind.DIR_ALIGN:
+            if node.has_start_address:
+                data.set_data_location(node.start_address)
+        case Kind.DIRECTIVE_ALIGN:
             if node.number == 0:
                 _auto_align = False
-            if text_dir:
-                instruction.align_text(node.number)
+            if text_directive:
+                instruction_module.align_text(node.number)
             else:
                 data.align_data(node.number)
-        case Kind.DIR_SPACE:
-            data.increment_data_pc(node.number)
-        case Kind.DIR_GLOBL:
+        case Kind.DIRECTIVE_SPACE:
+            data.increment_data_location(node.number)
+        case Kind.DIRECTIVE_GLOBL:
             symbol_table.make_label_global(node.name or "")
-        case Kind.DIR_EXTERN | Kind.DIR_COMM:
+        case Kind.DIRECTIVE_EXTERN | Kind.DIRECTIVE_COMM:
             name: str = node.name or ""
-            if node.kind == Kind.DIR_EXTERN:
+            if node.kind == Kind.DIRECTIVE_EXTERN:
                 symbol_table.make_label_global(name)
             else:
                 data.align_data(2)
-            if symbol_table.lookup_label(name).addr == 0:
-                symbol_table.record_label(name, data.current_data_pc(), True)
-            data.increment_data_pc(node.number)
+            if symbol_table.lookup_label(name).address == 0:
+                symbol_table.record_label(name, data.current_data_location(), True)
+            data.increment_data_location(node.number)
         case Kind.DATA_BYTE:
-            _emit_data_ints(node, data.store_byte, 1)
+            _emit_data_integers(node, data.store_byte, 1)
         case Kind.DATA_HALF | Kind.DATA_WORD | Kind.DATA_FLOAT | Kind.DATA_DOUBLE:
             alignment: int = {
                 Kind.DATA_HALF: 1,
@@ -1391,58 +1636,83 @@ def _emit_one(node: Node) -> None:
                 Kind.DATA_DOUBLE: 3,
             }[node.kind]
             _align_labels_to(alignment)
-            if data_dir:
+            if data_directive:
                 data.set_data_alignment(alignment)
             if node.kind == Kind.DATA_HALF:
-                _emit_data_ints(node, data.store_half, 2)
+                _emit_data_integers(node, data.store_half, 2)
             elif node.kind == Kind.DATA_WORD:
-                _emit_data_ints(node, data.store_word, 4)
+                _emit_data_integers(node, data.store_word, 4)
             else:
-                store_fp: Callable[[float], None] = (
+                store_floating_point: Callable[[float], None] = (
                     data.store_float
                     if node.kind == Kind.DATA_FLOAT
                     else data.store_double
                 )
                 for value in node.doubles:
-                    store_fp(value)
+                    store_floating_point(value)
         case Kind.DATA_STRING:
-            if not text_dir:
+            if not text_directive:
                 data.store_string(node.string, node.null_terminate)
-        case Kind.LABEL_DEF:
+        case Kind.LABEL_DEFINITION:
             if node.is_constant:
                 label: symbol_table.Label = symbol_table.record_label(
                     node.name or "", machine.u32(node.number), True
                 )
-                label.const_flag = True
+                label.constant_flag = True
             else:
-                addr: int = (
-                    instruction.current_text_pc()
-                    if text_dir
-                    else data.current_data_pc()
+                address: int = (
+                    instruction_module.current_text_location()
+                    if text_directive
+                    else data.current_data_location()
                 )
                 _this_line_labels.insert(
-                    0, symbol_table.record_label(node.name or "", addr, False)
+                    0, symbol_table.record_label(node.name or "", address, False)
                 )
-        case Kind.INST_R:
-            instruction.r_type(node.op, node.rd, node.rs, node.rt)
-        case Kind.INST_R_SHIFT:
-            instruction.r_sh_type(node.op, node.rd, node.rt, node.shamt)
-        case Kind.INST_I:
-            if node.imm is None:
+        case Kind.INSTRUCTION_R:
+            instruction_module.r_type(
+                node.opcode,
+                node.destination_register,
+                node.source_register,
+                node.target_register,
+            )
+        case Kind.INSTRUCTION_R_SHIFT:
+            instruction_module.r_shift_amount_type(
+                node.opcode,
+                node.destination_register,
+                node.target_register,
+                node.shift_amount,
+            )
+        case Kind.INSTRUCTION_I:
+            if node.immediate is None:
                 raise AssertionError("_emit_one: node.imm is None")
-            instruction.i_type(node.op, node.rt, node.rs, node.imm.copy())
-        case Kind.INST_J:
-            if node.imm is None:
+            instruction_module.i_type(
+                node.opcode,
+                node.target_register,
+                node.source_register,
+                node.immediate.copy(),
+            )
+        case Kind.INSTRUCTION_J:
+            if node.immediate is None:
                 raise AssertionError("_emit_one: node.imm is None")
-            instruction.j_type(node.op, node.imm.copy())
-        case Kind.INST_FP_R:
-            instruction.r_co_type(node.op, node.fd, node.fs, node.ft)
-        case Kind.INST_FP_COMPARE:
-            instruction.r_cond_type(node.op, node.fs, node.ft, node.cc)
+            instruction_module.j_type(node.opcode, node.immediate.copy())
+        case Kind.INSTRUCTION_FLOATING_POINT_R:
+            instruction_module.r_coprocessor_type(
+                node.opcode,
+                node.floating_point_destination,
+                node.floating_point_source,
+                node.floating_point_target,
+            )
+        case Kind.INSTRUCTION_FLOATING_POINT_COMPARE:
+            instruction_module.r_condition_type(
+                node.opcode,
+                node.floating_point_source,
+                node.floating_point_target,
+                node.condition_code,
+            )
         case Kind.PSEUDO:
             for child in node.children:
                 _emit_one(child)
-                if child.kind not in (Kind.LABEL_DEF, Kind.DIR_GLOBL):
+                if child.kind not in (Kind.LABEL_DEFINITION, Kind.DIRECTIVE_GLOBL):
                     _clear_labels()
         case Kind.FILE:
             raise AssertionError(

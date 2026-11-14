@@ -15,23 +15,23 @@
 use std::rc::Rc;
 
 use crate::ast::{AstKind, AstNode};
-use crate::instruction::{opcode_is_nullified_branch, opcode_is_true_branch, ImmExpr};
+use crate::instruction::{opcode_is_nullified_branch, opcode_is_true_branch, ImmediateExpression};
 use crate::machine::{error_bytes, Machine};
 use crate::opcode_types::OpType;
 use crate::opcodes::*;
-use crate::pseudo_op::{branch_offset, op_to_imm_op};
-use crate::registers::REG_GP;
+use crate::pseudo_op::{branch_offset, opcode_to_immediate_opcode};
+use crate::registers::GLOBAL_POINTER_REGISTER;
 use crate::scanner::ScanContext;
 use crate::symbol_table::{Label, LabelId};
 
 /// An address operand, `offset(register)` with an optional label
 /// (`addr_expr`).
 #[derive(Clone, Copy, Debug)]
-pub struct AddrExpr {
+pub struct AddressExpression {
     /// The base register (stored in 8 bits, as in C).
-    pub reg: i32,
+    pub register_number: i32,
     /// The offset expression.
-    pub imm: ImmExpr,
+    pub immediate: ImmediateExpression,
 }
 
 /// Which data directive the value buffer belongs to.
@@ -51,7 +51,7 @@ impl Machine {
     pub fn peek(&mut self) -> i32 {
         let context: ScanContext<'_> = ScanContext {
             symbols: &self.symbols,
-            allow_pseudo_ops: !self.options.bare_machine && self.options.accept_pseudo_insts,
+            allow_pseudo_ops: !self.options.bare_machine && self.options.accept_pseudo_instructions,
         };
         self.scanner.peek(&context)
     }
@@ -60,7 +60,7 @@ impl Machine {
     pub fn peek2(&mut self) -> i32 {
         let context: ScanContext<'_> = ScanContext {
             symbols: &self.symbols,
-            allow_pseudo_ops: !self.options.bare_machine && self.options.accept_pseudo_insts,
+            allow_pseudo_ops: !self.options.bare_machine && self.options.accept_pseudo_instructions,
         };
         self.scanner.peek2(&context)
     }
@@ -69,13 +69,13 @@ impl Machine {
     pub fn advance(&mut self) -> i32 {
         let context: ScanContext<'_> = ScanContext {
             symbols: &self.symbols,
-            allow_pseudo_ops: !self.options.bare_machine && self.options.accept_pseudo_insts,
+            allow_pseudo_ops: !self.options.bare_machine && self.options.accept_pseudo_instructions,
         };
         self.scanner.advance(&context)
     }
 
     /// The integer value of the last token taken.
-    fn value_int(&self) -> i32 {
+    fn value_integer(&self) -> i32 {
         self.scanner.scan_value.int()
     }
 
@@ -91,7 +91,7 @@ impl Machine {
         AstNode {
             kind,
             source_line: self.scanner.line_no(),
-            src_text: self.scanner.source_line(),
+            source_text: self.scanner.source_line(),
         }
     }
 
@@ -110,46 +110,96 @@ impl Machine {
     }
 
     /// Append an R-type instruction node (`emit_r`).
-    pub fn emit_r(&mut self, op: i32, rd: i32, rs: i32, rt: i32) {
-        let node: AstNode = self.node(AstKind::InstR { op, rd, rs, rt });
+    pub fn emit_r(
+        &mut self,
+        op: i32,
+        destination_register: i32,
+        source_register: i32,
+        target_register: i32,
+    ) {
+        let node: AstNode = self.node(AstKind::InstructionR {
+            op,
+            destination_register,
+            source_register,
+            target_register,
+        });
         self.ast_append(node);
     }
 
     /// Append a constant-shift node (`emit_r_shift`).
-    pub fn emit_r_shift(&mut self, op: i32, rd: i32, rt: i32, shamt: i32) {
-        let node: AstNode = self.node(AstKind::InstRShift { op, rd, rt, shamt });
+    pub fn emit_r_shift(
+        &mut self,
+        op: i32,
+        destination_register: i32,
+        target_register: i32,
+        shift_amount: i32,
+    ) {
+        let node: AstNode = self.node(AstKind::InstructionRShift {
+            op,
+            destination_register,
+            target_register,
+            shift_amount,
+        });
         self.ast_append(node);
     }
 
     /// Append an I-type instruction node (`emit_i`).
-    pub fn emit_i(&mut self, op: i32, rt: i32, rs: i32, imm: &ImmExpr) {
-        let node: AstNode = self.node(AstKind::InstI {
+    pub fn emit_i(
+        &mut self,
+        op: i32,
+        target_register: i32,
+        source_register: i32,
+        immediate: &ImmediateExpression,
+    ) {
+        let node: AstNode = self.node(AstKind::InstructionI {
             op,
-            rt,
-            rs,
-            imm: *imm,
+            target_register,
+            source_register,
+            immediate: *immediate,
         });
         self.ast_append(node);
     }
 
     /// Append a jump node (`emit_j`).
-    fn emit_j(&mut self, op: i32, target: &ImmExpr) {
-        let node: AstNode = self.node(AstKind::InstJ {
+    fn emit_j(&mut self, op: i32, target: &ImmediateExpression) {
+        let node: AstNode = self.node(AstKind::InstructionJ {
             op,
             target: *target,
         });
         self.ast_append(node);
     }
 
-    /// Append a floating-point R-type node (`emit_fp_r`).
-    fn emit_fp_r(&mut self, op: i32, fd: i32, fs: i32, ft: i32) {
-        let node: AstNode = self.node(AstKind::InstFpR { op, fd, fs, ft });
+    /// Append a floating-point R-type node (`emit_floating_point_r`).
+    fn emit_floating_point_r(
+        &mut self,
+        op: i32,
+        floating_point_destination: i32,
+        fs: i32,
+        floating_point_target: i32,
+    ) {
+        let node: AstNode = self.node(AstKind::InstructionFloatingPointR {
+            op,
+            floating_point_destination,
+            fs,
+            floating_point_target,
+        });
         self.ast_append(node);
     }
 
-    /// Append a floating-point compare node (`emit_fp_compare`).
-    fn emit_fp_compare(&mut self, op: i32, fs: i32, ft: i32, cc: i32) {
-        let node: AstNode = self.node(AstKind::InstFpCompare { op, fs, ft, cc });
+    /// Append a floating-point compare node (`emit_floating_point_compare`).
+    fn emit_floating_point_compare(
+        &mut self,
+        op: i32,
+        fs: i32,
+        floating_point_target: i32,
+        condition_code: i32,
+    ) {
+        let node: AstNode = self.node(AstKind::InstructionFloatingPointCompare {
+            op,
+            fs,
+            floating_point_target,
+            condition_code,
+        });
         self.ast_append(node);
     }
 
@@ -159,39 +209,45 @@ impl Machine {
         self.ast_append(node);
     }
 
-    /// An immediate expression on an optional label (`make_imm_expr`).
+    /// An immediate expression on an optional label (`make_immediate_expression`).
     /// Naming a label creates it in the symbol table if it is new.
-    pub fn make_imm_expr(
+    pub fn make_immediate_expression(
         &mut self,
         offset: i32,
         symbol: Option<&str>,
-        pc_relative: bool,
-    ) -> ImmExpr {
-        ImmExpr {
+        program_counter_relative: bool,
+    ) -> ImmediateExpression {
+        ImmediateExpression {
             offset,
             symbol: symbol.map(|name: &str| self.symbols.lookup(name)),
             bits: 0,
-            pc_relative,
+            program_counter_relative,
         }
     }
 
-    /// An address expression (`make_addr_expr`).  A label in the `$gp`
+    /// An address expression (`make_address_expression`).  A label in the `$gp`
     /// small-data area is addressed off `$gp`.
-    fn make_addr_expr(&mut self, offset: i32, symbol: Option<&str>, reg: i32) -> AddrExpr {
-        if let (0, Some(name)) = (reg, symbol) {
+    fn make_address_expression(
+        &mut self,
+        offset: i32,
+        symbol: Option<&str>,
+        register_number: i32,
+    ) -> AddressExpression {
+        if let (0, Some(name)) = (register_number, symbol) {
             let id: LabelId = self.symbols.lookup(name);
             let label: &Label = self.symbols.label(id);
             if label.gp {
-                let value: i64 = i64::from(offset) + label.addr - i64::from(self.mem.gp_midpoint);
-                return AddrExpr {
-                    reg: REG_GP as i32,
-                    imm: ImmExpr::constant(value as i32),
+                let value: i64 =
+                    i64::from(offset) + label.address - i64::from(self.mem.global_pointer_midpoint);
+                return AddressExpression {
+                    register_number: GLOBAL_POINTER_REGISTER as i32,
+                    immediate: ImmediateExpression::constant(value as i32),
                 };
             }
         }
-        AddrExpr {
-            reg: i32::from(reg as u8),
-            imm: self.make_imm_expr(offset, symbol, false),
+        AddressExpression {
+            register_number: i32::from(register_number as u8),
+            immediate: self.make_immediate_expression(offset, symbol, false),
         }
     }
 
@@ -214,9 +270,9 @@ impl Machine {
         error_bytes(&text);
     }
 
-    /// Skip to (not past) the end of the statement (`sync_to_nl`).
-    fn sync_to_nl(&mut self) {
-        while self.peek() != TOK_NL && self.peek() != TOK_EOF {
+    /// Skip to (not past) the end of the statement (`sync_to_newline`).
+    fn sync_to_newline(&mut self) {
+        while self.peek() != TOKEN_NEWLINE && self.peek() != TOKEN_EOF {
             self.advance();
         }
     }
@@ -235,44 +291,44 @@ impl Machine {
     // ----- Operands -----
 
     fn parse_register(&mut self) -> i32 {
-        if self.peek() == TOK_REG {
+        if self.peek() == TOKEN_REGISTER {
             self.advance();
-            return self.value_int();
+            return self.value_integer();
         }
         self.parse_error_at("Expected register");
         0
     }
 
-    fn parse_fp_register(&mut self) -> i32 {
-        if self.peek() == TOK_FP_REG {
+    fn parse_floating_point_register(&mut self) -> i32 {
+        if self.peek() == TOKEN_FLOATING_POINT_REGISTER {
             self.advance();
-            return self.value_int();
+            return self.value_integer();
         }
         self.parse_error_at("Expected FP register");
         0
     }
 
     /// An absolute value: `INT`, `INT + INT`, or `INT INT` where the second
-    /// is negative (`8 -4` is a subtraction) (`parse_abs_addr`).
-    fn parse_abs_addr(&mut self) -> i32 {
-        if self.peek() != TOK_INT {
+    /// is negative (`8 -4` is a subtraction) (`parse_absolute_address`).
+    fn parse_absolute_address(&mut self) -> i32 {
+        if self.peek() != TOKEN_INTEGER {
             self.parse_error_at("Expected integer");
             return 0;
         }
         self.advance();
-        let value: i32 = self.value_int();
+        let value: i32 = self.value_integer();
         if self.peek() == i32::from(b'+') {
             self.advance();
-            if self.peek() != TOK_INT {
+            if self.peek() != TOKEN_INTEGER {
                 self.parse_error_at("Expected integer after '+'");
                 return value;
             }
             self.advance();
-            return value.wrapping_add(self.value_int());
+            return value.wrapping_add(self.value_integer());
         }
-        if self.peek() == TOK_INT {
+        if self.peek() == TOKEN_INTEGER {
             self.advance();
-            let second: i32 = self.value_int();
+            let second: i32 = self.value_integer();
             if second >= 0 {
                 self.parse_error_at("Syntax error");
             }
@@ -286,28 +342,28 @@ impl Machine {
     /// be patched when the label is defined.
     fn parse_factor(&mut self) -> i32 {
         match self.peek() {
-            TOK_INT => {
+            TOKEN_INTEGER => {
                 self.advance();
-                self.value_int()
+                self.value_integer()
             }
             t if t == i32::from(b'(') => {
                 self.advance();
-                let value: i32 = self.parse_expr();
+                let value: i32 = self.parse_sum_of_terms();
                 self.expect(i32::from(b')'), "Expected ')'");
                 value
             }
-            TOK_ID => {
+            TOKEN_IDENTIFIER => {
                 self.advance();
                 let name: String = self.value_name();
                 let id: LabelId = self.symbols.lookup(&name);
-                let addr: i64 = self.symbols.label(id).addr;
-                if addr == 0 {
-                    if self.asm.expr_unresolved_label.is_none() {
-                        self.asm.expr_unresolved_label = Some(id);
+                let address: i64 = self.symbols.label(id).address;
+                if address == 0 {
+                    if self.asm.expression_unresolved_label.is_none() {
+                        self.asm.expression_unresolved_label = Some(id);
                     }
                     return 0;
                 }
-                addr as i32
+                address as i32
             }
             _ => {
                 self.parse_error_at("Expected expression");
@@ -336,7 +392,7 @@ impl Machine {
     }
 
     /// `TERM (('+' | '-') TERM)*`.
-    fn parse_expr(&mut self) -> i32 {
+    fn parse_sum_of_terms(&mut self) -> i32 {
         let mut value: i32 = self.parse_term();
         while self.peek() == i32::from(b'+') || self.peek() == i32::from(b'-') {
             let op: i32 = self.advance();
@@ -354,127 +410,127 @@ impl Machine {
     /// a keyword (`parse_expression`).
     fn parse_expression(&mut self) -> i32 {
         self.scanner.force_identifier();
-        self.asm.expr_unresolved_label = None;
-        self.parse_expr()
+        self.asm.expression_unresolved_label = None;
+        self.parse_sum_of_terms()
     }
 
     /// A 32-bit immediate: a value, `label`, `label±value`, or
-    /// `(value) >> n` (`parse_imm32`).
-    fn parse_imm32(&mut self) -> ImmExpr {
+    /// `(value) >> n` (`parse_immediate_32`).
+    fn parse_immediate_32(&mut self) -> ImmediateExpression {
         self.scanner.force_identifier();
-        if self.peek() == TOK_ID {
+        if self.peek() == TOKEN_IDENTIFIER {
             self.advance();
             let symbol: String = self.value_name();
             if self.peek() == i32::from(b'+') {
                 self.advance();
-                let offset: i32 = self.parse_abs_addr();
-                return self.make_imm_expr(offset, Some(&symbol), false);
+                let offset: i32 = self.parse_absolute_address();
+                return self.make_immediate_expression(offset, Some(&symbol), false);
             }
             if self.peek() == i32::from(b'-') {
                 self.advance();
-                let offset: i32 = self.parse_abs_addr();
-                return self.make_imm_expr(offset.wrapping_neg(), Some(&symbol), false);
+                let offset: i32 = self.parse_absolute_address();
+                return self.make_immediate_expression(offset.wrapping_neg(), Some(&symbol), false);
             }
-            return self.make_imm_expr(0, Some(&symbol), false);
+            return self.make_immediate_expression(0, Some(&symbol), false);
         }
         if self.peek() == i32::from(b'(') {
             self.advance();
-            let value: i32 = self.parse_abs_addr();
+            let value: i32 = self.parse_absolute_address();
             self.expect(i32::from(b')'), "Expected ')'");
             self.expect(i32::from(b'>'), "Expected '>'");
             self.expect(i32::from(b'>'), "Expected '>'");
-            if self.peek() != TOK_INT {
+            if self.peek() != TOKEN_INTEGER {
                 self.parse_error_at("Expected integer after '>>'");
-                return ImmExpr::constant(0);
+                return ImmediateExpression::constant(0);
             }
             self.advance();
-            let shift: i32 = self.value_int();
-            return ImmExpr::constant(value.wrapping_shr(shift as u32));
+            let shift: i32 = self.value_integer();
+            return ImmediateExpression::constant(value.wrapping_shr(shift as u32));
         }
-        let value: i32 = self.parse_abs_addr();
-        ImmExpr::constant(value)
+        let value: i32 = self.parse_absolute_address();
+        ImmediateExpression::constant(value)
     }
 
     /// A signed 16-bit immediate (warns if it does not fit).
-    fn parse_imm16(&mut self) -> ImmExpr {
+    fn parse_immediate_16(&mut self) -> ImmediateExpression {
         // The instruction's line, before parsing the immediate scans the newline.
         let line: i32 = self.scanner.line_no();
-        let expr: ImmExpr = self.parse_imm32();
-        self.check_imm_range(&expr, -0x8000, 0x7fff, line);
+        let expr: ImmediateExpression = self.parse_immediate_32();
+        self.check_immediate_range(&expr, -0x8000, 0x7fff, line);
         expr
     }
 
     /// An unsigned 16-bit immediate (warns if it does not fit).
-    fn parse_uimm16(&mut self) -> ImmExpr {
-        let line: i32 = self.scanner.line_no(); // as in parse_imm16
-        let expr: ImmExpr = self.parse_imm32();
-        self.check_uimm_range(&expr, 0, 0xffff, line);
+    fn parse_unsigned_immediate_16(&mut self) -> ImmediateExpression {
+        let line: i32 = self.scanner.line_no(); // as in parse_immediate_16
+        let expr: ImmediateExpression = self.parse_immediate_32();
+        self.check_unsigned_immediate_range(&expr, 0, 0xffff, line);
         expr
     }
 
     /// A branch target: a label, relative to the branch (`parse_label`).
-    fn parse_label(&mut self) -> ImmExpr {
-        if self.peek() != TOK_ID {
+    fn parse_label(&mut self) -> ImmediateExpression {
+        if self.peek() != TOKEN_IDENTIFIER {
             self.parse_error_at("Expected label");
-            return ImmExpr {
-                pc_relative: true,
-                ..ImmExpr::default()
+            return ImmediateExpression {
+                program_counter_relative: true,
+                ..ImmediateExpression::default()
             };
         }
         self.advance();
         let symbol: String = self.value_name();
-        let offset: i32 = (self.current_text_pc() as i32).wrapping_neg();
-        self.make_imm_expr(offset, Some(&symbol), true)
+        let offset: i32 = (self.current_text_location() as i32).wrapping_neg();
+        self.make_immediate_expression(offset, Some(&symbol), true)
     }
 
     /// An address operand: `(reg)`, `value`, `value(reg)`, `value+label`,
     /// `label`, `label±value`, `label±value(reg)` (`parse_address`).
-    fn parse_address(&mut self) -> AddrExpr {
+    fn parse_address(&mut self) -> AddressExpression {
         self.scanner.force_identifier();
         if self.peek() == i32::from(b'(') {
             self.advance();
-            let reg: i32 = self.parse_register();
+            let register_number: i32 = self.parse_register();
             self.expect(i32::from(b')'), "Expected ')' after register");
-            return self.make_addr_expr(0, None, reg);
+            return self.make_address_expression(0, None, register_number);
         }
-        if self.peek() == TOK_INT {
-            let imm: i32 = self.parse_abs_addr();
-            if self.peek() == i32::from(b'+') && self.peek2() == TOK_ID {
+        if self.peek() == TOKEN_INTEGER {
+            let immediate: i32 = self.parse_absolute_address();
+            if self.peek() == i32::from(b'+') && self.peek2() == TOKEN_IDENTIFIER {
                 self.advance();
                 self.scanner.force_identifier();
                 self.advance();
                 let symbol: String = self.value_name();
-                return self.make_addr_expr(imm, Some(&symbol), 0);
+                return self.make_address_expression(immediate, Some(&symbol), 0);
             }
             if self.peek() == i32::from(b'(') {
                 self.advance();
-                let reg: i32 = self.parse_register();
+                let register_number: i32 = self.parse_register();
                 self.expect(i32::from(b')'), "Expected ')'");
-                return self.make_addr_expr(imm, None, reg);
+                return self.make_address_expression(immediate, None, register_number);
             }
-            return self.make_addr_expr(imm, None, 0);
+            return self.make_address_expression(immediate, None, 0);
         }
-        if self.peek() == TOK_ID {
+        if self.peek() == TOKEN_IDENTIFIER {
             self.advance();
             let symbol: String = self.value_name();
             let mut offset: i32 = 0;
             if self.peek() == i32::from(b'+') {
                 self.advance();
-                offset = self.parse_abs_addr();
+                offset = self.parse_absolute_address();
             } else if self.peek() == i32::from(b'-') {
                 self.advance();
-                offset = self.parse_abs_addr().wrapping_neg();
+                offset = self.parse_absolute_address().wrapping_neg();
             }
-            let mut reg: i32 = 0;
+            let mut register_number: i32 = 0;
             if self.peek() == i32::from(b'(') {
                 self.advance();
-                reg = self.parse_register();
+                register_number = self.parse_register();
                 self.expect(i32::from(b')'), "Expected ')'");
             }
-            return self.make_addr_expr(offset, Some(&symbol), reg);
+            return self.make_address_expression(offset, Some(&symbol), register_number);
         }
         self.parse_error_at("Expected address");
-        self.make_addr_expr(0, None, 0)
+        self.make_address_expression(0, None, 0)
     }
 
     // ----- Instructions -----
@@ -482,134 +538,165 @@ impl Machine {
     /// `op rd, rs, rt`, with the immediate and two-operand forms of the
     /// arithmetic instructions (`parse_r3`).
     fn parse_r3(&mut self, op: i32) {
-        let rd: i32 = self.parse_register();
-        if op == TOK_CLO_OPCODE || op == TOK_CLZ_OPCODE {
+        let destination_register: i32 = self.parse_register();
+        if op == TOKEN_CLO_OPCODE || op == TOKEN_CLZ_OPCODE {
             // The hardware wants rt equal to rd.
-            let rs: i32 = self.parse_register();
-            self.emit_r(op, rd, rs, rd);
+            let source_register: i32 = self.parse_register();
+            self.emit_r(
+                op,
+                destination_register,
+                source_register,
+                destination_register,
+            );
             return;
         }
-        if op == TOK_MUL_OPCODE {
-            let rs: i32 = self.parse_register();
-            if self.peek() == TOK_REG {
-                let rt: i32 = self.parse_register();
-                self.emit_r(op, rd, rs, rt);
+        if op == TOKEN_MUL_OPCODE {
+            let source_register: i32 = self.parse_register();
+            if self.peek() == TOKEN_REGISTER {
+                let target_register: i32 = self.parse_register();
+                self.emit_r(op, destination_register, source_register, target_register);
             } else {
-                let imm: ImmExpr = self.parse_imm32();
-                self.emit_i(TOK_ORI_OPCODE, 1, 0, &imm);
-                self.emit_r(op, rd, rs, 1);
+                let immediate: ImmediateExpression = self.parse_immediate_32();
+                self.emit_i(TOKEN_ORI_OPCODE, 1, 0, &immediate);
+                self.emit_r(op, destination_register, source_register, 1);
             }
             return;
         }
-        if op == TOK_SUB_OPCODE || op == TOK_SUBU_OPCODE {
+        if op == TOKEN_SUB_OPCODE || op == TOKEN_SUBU_OPCODE {
             // `sub rd, rs, imm` becomes `addi rd, rs, -imm`.
-            let add_op: i32 = if op == TOK_SUB_OPCODE {
-                TOK_ADDI_OPCODE
+            let add_opcode: i32 = if op == TOKEN_SUB_OPCODE {
+                TOKEN_ADDI_OPCODE
             } else {
-                TOK_ADDIU_OPCODE
+                TOKEN_ADDIU_OPCODE
             };
-            if self.peek() != TOK_REG {
-                let imm: ImmExpr = self.parse_imm32();
-                let value: i32 = self.eval_imm_expr(&imm);
-                self.emit_i(add_op, rd, rd, &ImmExpr::constant(value.wrapping_neg()));
+            if self.peek() != TOKEN_REGISTER {
+                let immediate: ImmediateExpression = self.parse_immediate_32();
+                let value: i32 = self.evaluate_immediate_expression(&immediate);
+                self.emit_i(
+                    add_opcode,
+                    destination_register,
+                    destination_register,
+                    &ImmediateExpression::constant(value.wrapping_neg()),
+                );
                 return;
             }
-            let rs: i32 = self.parse_register();
-            if self.peek() == TOK_REG {
-                let rt: i32 = self.parse_register();
-                self.emit_r(op, rd, rs, rt);
+            let source_register: i32 = self.parse_register();
+            if self.peek() == TOKEN_REGISTER {
+                let target_register: i32 = self.parse_register();
+                self.emit_r(op, destination_register, source_register, target_register);
             } else {
-                let imm: ImmExpr = self.parse_imm32();
-                let value: i32 = self.eval_imm_expr(&imm);
-                self.emit_i(add_op, rd, rs, &ImmExpr::constant(value.wrapping_neg()));
+                let immediate: ImmediateExpression = self.parse_immediate_32();
+                let value: i32 = self.evaluate_immediate_expression(&immediate);
+                self.emit_i(
+                    add_opcode,
+                    destination_register,
+                    source_register,
+                    &ImmediateExpression::constant(value.wrapping_neg()),
+                );
             }
             return;
         }
         if matches!(
             op,
-            TOK_ADD_OPCODE
-                | TOK_ADDU_OPCODE
-                | TOK_AND_OPCODE
-                | TOK_OR_OPCODE
-                | TOK_XOR_OPCODE
-                | TOK_SLT_OPCODE
-                | TOK_SLTU_OPCODE
+            TOKEN_ADD_OPCODE
+                | TOKEN_ADDU_OPCODE
+                | TOKEN_AND_OPCODE
+                | TOKEN_OR_OPCODE
+                | TOKEN_XOR_OPCODE
+                | TOKEN_SLT_OPCODE
+                | TOKEN_SLTU_OPCODE
         ) {
-            if self.peek() != TOK_REG {
-                let imm: ImmExpr = self.parse_imm32();
-                self.emit_i(op_to_imm_op(op), rd, rd, &imm);
+            if self.peek() != TOKEN_REGISTER {
+                let immediate: ImmediateExpression = self.parse_immediate_32();
+                self.emit_i(
+                    opcode_to_immediate_opcode(op),
+                    destination_register,
+                    destination_register,
+                    &immediate,
+                );
                 return;
             }
-            let rs: i32 = self.parse_register();
-            if self.peek() == TOK_REG {
-                let rt: i32 = self.parse_register();
-                self.emit_r(op, rd, rs, rt);
+            let source_register: i32 = self.parse_register();
+            if self.peek() == TOKEN_REGISTER {
+                let target_register: i32 = self.parse_register();
+                self.emit_r(op, destination_register, source_register, target_register);
             } else {
-                let imm: ImmExpr = self.parse_imm32();
-                self.emit_i(op_to_imm_op(op), rd, rs, &imm);
+                let immediate: ImmediateExpression = self.parse_immediate_32();
+                self.emit_i(
+                    opcode_to_immediate_opcode(op),
+                    destination_register,
+                    source_register,
+                    &immediate,
+                );
             }
             return;
         }
-        let rs: i32 = self.parse_register();
-        let rt: i32 = self.parse_register();
-        self.emit_r(op, rd, rs, rt);
+        let source_register: i32 = self.parse_register();
+        let target_register: i32 = self.parse_register();
+        self.emit_r(op, destination_register, source_register, target_register);
     }
 
-    /// `op rd, rt, shamt`; `ssnop` is `sll $0, $0, 1` (`parse_r2sh`).
-    fn parse_r2sh(&mut self, op: i32) {
-        if op == TOK_SSNOP_OPCODE {
-            self.emit_r_shift(TOK_SLL_OPCODE, 0, 0, 1);
+    /// `op rd, rt, shamt`; `ssnop` is `sll $0, $0, 1` (`parse_two_registers_shift_amount`).
+    fn parse_two_registers_shift_amount(&mut self, op: i32) {
+        if op == TOKEN_SSNOP_OPCODE {
+            self.emit_r_shift(TOKEN_SLL_OPCODE, 0, 0, 1);
             return;
         }
-        let rd: i32 = self.parse_register();
-        let rt: i32 = self.parse_register();
-        if self.peek() != TOK_INT {
+        let destination_register: i32 = self.parse_register();
+        let target_register: i32 = self.parse_register();
+        if self.peek() != TOKEN_INTEGER {
             self.parse_error_at("Expected integer shift amount");
             return;
         }
         self.advance();
-        let shamt: i32 = self.value_int();
-        self.emit_r_shift(op, rd, rt, shamt);
+        let shift_amount: i32 = self.value_integer();
+        self.emit_r_shift(op, destination_register, target_register, shift_amount);
     }
 
     /// `op rt, rs, imm16`, or `op rt, imm16` with rs = rt (`parse_i2`).
     fn parse_i2(&mut self, op: i32) {
-        let rt: i32 = self.parse_register();
-        let rs: i32 = if self.peek() == TOK_REG {
+        let target_register: i32 = self.parse_register();
+        let source_register: i32 = if self.peek() == TOKEN_REGISTER {
             self.parse_register()
         } else {
-            rt
+            target_register
         };
-        let imm: ImmExpr = if matches!(op, TOK_ANDI_OPCODE | TOK_ORI_OPCODE | TOK_XORI_OPCODE) {
-            self.parse_uimm16()
-        } else {
-            self.parse_imm16()
-        };
-        self.emit_i(op, rt, rs, &imm);
+        let immediate: ImmediateExpression =
+            if matches!(op, TOKEN_ANDI_OPCODE | TOKEN_ORI_OPCODE | TOKEN_XORI_OPCODE) {
+                self.parse_unsigned_immediate_16()
+            } else {
+                self.parse_immediate_16()
+            };
+        self.emit_i(op, target_register, source_register, &immediate);
     }
 
     /// `op rt, address` (loads and stores).
     fn parse_i2a(&mut self, op: i32) {
-        let rt: i32 = self.parse_register();
-        let addr: AddrExpr = self.parse_address();
-        self.emit_i(op, rt, addr.reg, &addr.imm);
+        let target_register: i32 = self.parse_register();
+        let address: AddressExpression = self.parse_address();
+        self.emit_i(
+            op,
+            target_register,
+            address.register_number,
+            &address.immediate,
+        );
     }
 
     /// `beq rs, rt, label`, or `beq rs, imm, label` through `$at`.
     fn parse_b2(&mut self, op: i32) {
-        let src1: i32 = self.parse_register();
-        if self.peek() == TOK_REG {
-            let src2: i32 = self.parse_register();
-            let target: ImmExpr = self.parse_label();
-            self.emit_i(op, src2, src1, &target);
+        let source_1: i32 = self.parse_register();
+        if self.peek() == TOKEN_REGISTER {
+            let source_2: i32 = self.parse_register();
+            let target: ImmediateExpression = self.parse_label();
+            self.emit_i(op, source_2, source_1, &target);
         } else {
-            let imm: ImmExpr = self.parse_imm32();
-            let target: ImmExpr = self.parse_label();
-            if imm.is_zero() {
-                self.emit_i(op, src1, 0, &target);
+            let immediate: ImmediateExpression = self.parse_immediate_32();
+            let target: ImmediateExpression = self.parse_label();
+            if immediate.is_zero() {
+                self.emit_i(op, source_1, 0, &target);
             } else {
-                self.emit_i(TOK_ORI_OPCODE, 1, 0, &imm);
-                self.emit_i(op, src1, 1, &target);
+                self.emit_i(TOKEN_ORI_OPCODE, 1, 0, &immediate);
+                self.emit_i(op, source_1, 1, &target);
             }
         }
     }
@@ -619,17 +706,19 @@ impl Machine {
     fn parse_j(&mut self, op: i32) {
         // jalr.hb keeps its own opcode (jalr with the hazard-barrier bit) and takes
         // registers only. cop2 shares J_TYPE_INST, but spim has no coprocessor 2.
-        if op == TOK_COP2_OPCODE {
+        if op == TOKEN_COP2_OPCODE {
             self.parse_error_at("cop2 is not supported: spim has no coprocessor 2");
-        } else if self.peek() == TOK_REG {
+        } else if self.peek() == TOKEN_REGISTER {
             let r1: i32 = self.parse_register();
-            if self.peek() == TOK_REG {
+            if self.peek() == TOKEN_REGISTER {
                 // DEST SRC1 form
                 let r2: i32 = self.parse_register();
                 match op {
-                    TOK_J_OPCODE | TOK_JR_OPCODE => self.emit_r(TOK_JR_OPCODE, 0, r2, 0),
-                    TOK_JAL_OPCODE | TOK_JALR_OPCODE => self.emit_r(TOK_JALR_OPCODE, r1, r2, 0),
-                    TOK_JALR_HB_OPCODE => self.emit_r(TOK_JALR_HB_OPCODE, r1, r2, 0),
+                    TOKEN_J_OPCODE | TOKEN_JR_OPCODE => self.emit_r(TOKEN_JR_OPCODE, 0, r2, 0),
+                    TOKEN_JAL_OPCODE | TOKEN_JALR_OPCODE => {
+                        self.emit_r(TOKEN_JALR_OPCODE, r1, r2, 0)
+                    }
+                    TOKEN_JALR_HB_OPCODE => self.emit_r(TOKEN_JALR_HB_OPCODE, r1, r2, 0),
                     // Never reached: only J_TYPE_INST and RD_RS_INST opcodes come here.
                     _ => crate::machine::fatal_error(&format!(
                         "internal error: parse_j: unexpected opcode {op}\n"
@@ -638,22 +727,24 @@ impl Machine {
             } else {
                 // SRC1-only form
                 match op {
-                    TOK_J_OPCODE | TOK_JR_OPCODE => self.emit_r(TOK_JR_OPCODE, 0, r1, 0),
-                    TOK_JAL_OPCODE | TOK_JALR_OPCODE => self.emit_r(TOK_JALR_OPCODE, 31, r1, 0),
-                    TOK_JALR_HB_OPCODE => self.emit_r(TOK_JALR_HB_OPCODE, 31, r1, 0),
+                    TOKEN_J_OPCODE | TOKEN_JR_OPCODE => self.emit_r(TOKEN_JR_OPCODE, 0, r1, 0),
+                    TOKEN_JAL_OPCODE | TOKEN_JALR_OPCODE => {
+                        self.emit_r(TOKEN_JALR_OPCODE, 31, r1, 0)
+                    }
+                    TOKEN_JALR_HB_OPCODE => self.emit_r(TOKEN_JALR_HB_OPCODE, 31, r1, 0),
                     // Never reached: as in the DEST SRC1 form above.
                     _ => crate::machine::fatal_error(&format!(
                         "internal error: parse_j: unexpected opcode {op}\n"
                     )),
                 }
             }
-        } else if op == TOK_JALR_HB_OPCODE {
+        } else if op == TOKEN_JALR_HB_OPCODE {
             self.parse_error_at("jalr.hb needs a register operand");
         } else {
-            let target: ImmExpr = self.parse_label();
+            let target: ImmediateExpression = self.parse_label();
             match op {
-                TOK_J_OPCODE | TOK_JR_OPCODE => self.emit_j(TOK_J_OPCODE, &target),
-                TOK_JAL_OPCODE | TOK_JALR_OPCODE => self.emit_j(TOK_JAL_OPCODE, &target),
+                TOKEN_J_OPCODE | TOKEN_JR_OPCODE => self.emit_j(TOKEN_J_OPCODE, &target),
+                TOKEN_JAL_OPCODE | TOKEN_JALR_OPCODE => self.emit_j(TOKEN_JAL_OPCODE, &target),
                 // Never reached: jalr.hb and cop2 are handled above.
                 _ => crate::machine::fatal_error(&format!(
                     "internal error: parse_j: unexpected opcode {op}\n"
@@ -662,12 +753,12 @@ impl Machine {
         }
     }
 
-    /// `syscall`, or `break n` (`parse_noarg`).
-    fn parse_noarg(&mut self, op: i32) {
-        if self.peek() == TOK_INT {
+    /// `syscall`, or `break n` (`parse_no_argument`).
+    fn parse_no_argument(&mut self, op: i32) {
+        if self.peek() == TOKEN_INTEGER {
             self.advance();
-            let n: i32 = self.value_int();
-            if op == TOK_BREAK_OPCODE && n == 1 {
+            let n: i32 = self.value_integer();
+            if op == TOKEN_BREAK_OPCODE && n == 1 {
                 self.parse_error_at("Breakpoint 1 is reserved for debugger");
             }
             self.emit_r(op, n, 0, 0);
@@ -677,9 +768,9 @@ impl Machine {
     }
 
     /// A coprocessor register operand: written `$n` or `$fn`.
-    fn parse_copreg(&mut self) -> i32 {
-        if self.peek() == TOK_FP_REG {
-            self.parse_fp_register()
+    fn parse_coprocessor_register(&mut self) -> i32 {
+        if self.peek() == TOKEN_FLOATING_POINT_REGISTER {
+            self.parse_floating_point_register()
         } else {
             self.parse_register()
         }
@@ -713,103 +804,138 @@ impl Machine {
     /// The expansion of each pseudo-instruction (`do_parse_pseudo`).
     fn do_parse_pseudo(&mut self, op: i32) {
         match op {
-            TOK_LI_PSEUDO_OP => {
-                let rt: i32 = self.parse_register();
-                let imm: ImmExpr = self.parse_imm32();
-                self.emit_i(TOK_ORI_OPCODE, rt, 0, &imm);
+            TOKEN_LI_PSEUDO_OP => {
+                let target_register: i32 = self.parse_register();
+                let immediate: ImmediateExpression = self.parse_immediate_32();
+                self.emit_i(TOKEN_ORI_OPCODE, target_register, 0, &immediate);
             }
-            TOK_MOVE_PSEUDO_OP => {
-                let rd: i32 = self.parse_register();
-                let rs: i32 = self.parse_register();
-                self.emit_r(TOK_ADDU_OPCODE, rd, 0, rs);
+            TOKEN_MOVE_PSEUDO_OP => {
+                let destination_register: i32 = self.parse_register();
+                let source_register: i32 = self.parse_register();
+                self.emit_r(TOKEN_ADDU_OPCODE, destination_register, 0, source_register);
             }
-            TOK_NEG_PSEUDO_OP | TOK_NEGU_PSEUDO_OP => {
-                let rd: i32 = self.parse_register();
-                let rs: i32 = self.parse_register();
-                let sub: i32 = if op == TOK_NEG_PSEUDO_OP {
-                    TOK_SUB_OPCODE
+            TOKEN_NEG_PSEUDO_OP | TOKEN_NEGU_PSEUDO_OP => {
+                let destination_register: i32 = self.parse_register();
+                let source_register: i32 = self.parse_register();
+                let subtract: i32 = if op == TOKEN_NEG_PSEUDO_OP {
+                    TOKEN_SUB_OPCODE
                 } else {
-                    TOK_SUBU_OPCODE
+                    TOKEN_SUBU_OPCODE
                 };
-                self.emit_r(sub, rd, 0, rs);
+                self.emit_r(subtract, destination_register, 0, source_register);
             }
-            TOK_NOT_PSEUDO_OP => {
-                let rd: i32 = self.parse_register();
-                let rs: i32 = self.parse_register();
-                self.emit_r(TOK_NOR_OPCODE, rd, rs, 0);
+            TOKEN_NOT_PSEUDO_OP => {
+                let destination_register: i32 = self.parse_register();
+                let source_register: i32 = self.parse_register();
+                self.emit_r(TOKEN_NOR_OPCODE, destination_register, source_register, 0);
             }
-            TOK_ROR_PSEUDO_OP | TOK_ROL_PSEUDO_OP => self.parse_rotate(op),
-            TOK_SLE_PSEUDO_OP | TOK_SLEU_PSEUDO_OP | TOK_SGT_PSEUDO_OP | TOK_SGTU_PSEUDO_OP
-            | TOK_SGE_PSEUDO_OP | TOK_SGEU_PSEUDO_OP | TOK_SEQ_PSEUDO_OP | TOK_SNE_PSEUDO_OP => {
-                let rd: i32 = self.parse_register();
-                let rs: i32 = self.parse_register();
-                let rt: i32 = if self.peek() == TOK_REG {
+            TOKEN_ROR_PSEUDO_OP | TOKEN_ROL_PSEUDO_OP => self.parse_rotate(op),
+            TOKEN_SLE_PSEUDO_OP | TOKEN_SLEU_PSEUDO_OP | TOKEN_SGT_PSEUDO_OP
+            | TOKEN_SGTU_PSEUDO_OP | TOKEN_SGE_PSEUDO_OP | TOKEN_SGEU_PSEUDO_OP
+            | TOKEN_SEQ_PSEUDO_OP | TOKEN_SNE_PSEUDO_OP => {
+                let destination_register: i32 = self.parse_register();
+                let source_register: i32 = self.parse_register();
+                let target_register: i32 = if self.peek() == TOKEN_REGISTER {
                     self.parse_register()
                 } else {
-                    let imm: ImmExpr = self.parse_imm32();
-                    if imm.is_zero() {
+                    let immediate: ImmediateExpression = self.parse_immediate_32();
+                    if immediate.is_zero() {
                         0
                     } else {
-                        self.emit_i(TOK_ORI_OPCODE, 1, 0, &imm);
+                        self.emit_i(TOKEN_ORI_OPCODE, 1, 0, &immediate);
                         1
                     }
                 };
                 match op {
-                    TOK_SLE_PSEUDO_OP | TOK_SLEU_PSEUDO_OP => self.set_le_inst(op, rd, rs, rt),
-                    TOK_SGT_PSEUDO_OP | TOK_SGTU_PSEUDO_OP => self.set_gt_inst(op, rd, rs, rt),
-                    TOK_SGE_PSEUDO_OP | TOK_SGEU_PSEUDO_OP => self.set_ge_inst(op, rd, rs, rt),
-                    _ => self.set_eq_inst(op, rd, rs, rt),
+                    TOKEN_SLE_PSEUDO_OP | TOKEN_SLEU_PSEUDO_OP => self
+                        .set_less_or_equal_instruction(
+                            op,
+                            destination_register,
+                            source_register,
+                            target_register,
+                        ),
+                    TOKEN_SGT_PSEUDO_OP | TOKEN_SGTU_PSEUDO_OP => self
+                        .set_greater_than_instruction(
+                            op,
+                            destination_register,
+                            source_register,
+                            target_register,
+                        ),
+                    TOKEN_SGE_PSEUDO_OP | TOKEN_SGEU_PSEUDO_OP => self
+                        .set_greater_or_equal_instruction(
+                            op,
+                            destination_register,
+                            source_register,
+                            target_register,
+                        ),
+                    _ => self.set_equal_instruction(
+                        op,
+                        destination_register,
+                        source_register,
+                        target_register,
+                    ),
                 }
             }
-            TOK_ABS_PSEUDO_OP => {
-                let rd: i32 = self.parse_register();
-                let rs: i32 = self.parse_register();
-                if rd != rs {
-                    self.emit_r(TOK_ADDU_OPCODE, rd, 0, rs);
+            TOKEN_ABS_PSEUDO_OP => {
+                let destination_register: i32 = self.parse_register();
+                let source_register: i32 = self.parse_register();
+                if destination_register != source_register {
+                    self.emit_r(TOKEN_ADDU_OPCODE, destination_register, 0, source_register);
                 }
-                self.emit_i(TOK_BGEZ_OPCODE, 0, rs, &branch_offset(3));
-                self.nop_inst();
-                self.emit_r(TOK_SUB_OPCODE, rd, 0, rs);
+                self.emit_i(TOKEN_BGEZ_OPCODE, 0, source_register, &branch_offset(3));
+                self.nop_instruction();
+                self.emit_r(TOKEN_SUB_OPCODE, destination_register, 0, source_register);
             }
-            TOK_NOP_PSEUDO_OP => self.nop_inst(),
-            TOK_REM_PSEUDO_OP | TOK_REMU_PSEUDO_OP => {
-                let rd: i32 = self.parse_register();
-                let rs: i32 = self.parse_register();
-                if self.peek() == TOK_REG {
-                    let rt: i32 = self.parse_register();
-                    self.div_inst(op, rd, rs, rt, false);
+            TOKEN_NOP_PSEUDO_OP => self.nop_instruction(),
+            TOKEN_REM_PSEUDO_OP | TOKEN_REMU_PSEUDO_OP => {
+                let destination_register: i32 = self.parse_register();
+                let source_register: i32 = self.parse_register();
+                if self.peek() == TOKEN_REGISTER {
+                    let target_register: i32 = self.parse_register();
+                    self.divide_instruction(
+                        op,
+                        destination_register,
+                        source_register,
+                        target_register,
+                        false,
+                    );
                 } else {
-                    let imm: ImmExpr = self.parse_imm32();
-                    if imm.is_zero() {
+                    let immediate: ImmediateExpression = self.parse_immediate_32();
+                    if immediate.is_zero() {
                         self.parse_error_at("Divide by zero");
                     } else {
-                        self.emit_i(TOK_ORI_OPCODE, 1, 0, &imm);
-                        self.div_inst(op, rd, rs, 1, true);
+                        self.emit_i(TOKEN_ORI_OPCODE, 1, 0, &immediate);
+                        self.divide_instruction(op, destination_register, source_register, 1, true);
                     }
                 }
             }
-            TOK_MULO_PSEUDO_OP | TOK_MULOU_PSEUDO_OP => {
-                let rd: i32 = self.parse_register();
-                let rs: i32 = self.parse_register();
-                if self.peek() == TOK_REG {
-                    let rt: i32 = self.parse_register();
-                    self.mult_inst(op, rd, rs, rt);
+            TOKEN_MULO_PSEUDO_OP | TOKEN_MULOU_PSEUDO_OP => {
+                let destination_register: i32 = self.parse_register();
+                let source_register: i32 = self.parse_register();
+                if self.peek() == TOKEN_REGISTER {
+                    let target_register: i32 = self.parse_register();
+                    self.multiply_instruction(
+                        op,
+                        destination_register,
+                        source_register,
+                        target_register,
+                    );
                 } else {
-                    let imm: ImmExpr = self.parse_imm32();
-                    if imm.is_zero() {
+                    let immediate: ImmediateExpression = self.parse_immediate_32();
+                    if immediate.is_zero() {
                         // n * 0 is 0.
-                        self.emit_i(TOK_ORI_OPCODE, rd, 0, &imm);
+                        self.emit_i(TOKEN_ORI_OPCODE, destination_register, 0, &immediate);
                     } else {
-                        self.emit_i(TOK_ORI_OPCODE, 1, 0, &imm);
-                        self.mult_inst(op, rd, rs, 1);
+                        self.emit_i(TOKEN_ORI_OPCODE, 1, 0, &immediate);
+                        self.multiply_instruction(op, destination_register, source_register, 1);
                     }
                 }
             }
-            TOK_MFC1_D_PSEUDO_OP | TOK_MTC1_D_PSEUDO_OP => {
+            TOKEN_MFC1_D_PSEUDO_OP | TOKEN_MTC1_D_PSEUDO_OP => {
                 let line: i32 = self.scanner.line_no(); // the last operand can consume the newline
-                let reg: i32 = self.parse_register();
-                let copreg: i32 = self.parse_copreg();
-                if reg == 31 || copreg == 31 {
+                let register_number: i32 = self.parse_register();
+                let coprocessor_register: i32 = self.parse_coprocessor_register();
+                if register_number == 31 || coprocessor_register == 31 {
                     // The pair's second register would be 32.
                     self.parse_error_on_line(
                         "Register pair starts at the last register (31)",
@@ -817,70 +943,91 @@ impl Machine {
                     );
                     return;
                 }
-                let real: i32 = if op == TOK_MFC1_D_PSEUDO_OP {
-                    TOK_MFC1_OPCODE
+                let real: i32 = if op == TOKEN_MFC1_D_PSEUDO_OP {
+                    TOKEN_MFC1_OPCODE
                 } else {
-                    TOK_MTC1_OPCODE
+                    TOKEN_MTC1_OPCODE
                 };
-                self.emit_fp_r(real, 0, copreg, reg);
-                self.emit_fp_r(real, 0, copreg.wrapping_add(1), reg.wrapping_add(1));
+                self.emit_floating_point_r(real, 0, coprocessor_register, register_number);
+                self.emit_floating_point_r(
+                    real,
+                    0,
+                    coprocessor_register.wrapping_add(1),
+                    register_number.wrapping_add(1),
+                );
             }
-            TOK_LI_D_PSEUDO_OP => {
-                let fd: i32 = self.parse_fp_register();
-                if self.peek() != TOK_FP {
+            TOKEN_LI_D_PSEUDO_OP => {
+                let floating_point_destination: i32 = self.parse_floating_point_register();
+                if self.peek() != TOKEN_FLOATING_POINT {
                     self.parse_error_at("Expected FP literal");
                     return;
                 }
                 self.advance();
                 let bits: u64 = self.scanner.scan_value.fp().to_bits();
                 // The double's two words, low word first (little-endian).
-                self.emit_i(TOK_ORI_OPCODE, 1, 0, &ImmExpr::constant(bits as i32));
-                self.emit_fp_r(TOK_MTC1_OPCODE, 0, fd, 1);
                 self.emit_i(
-                    TOK_ORI_OPCODE,
+                    TOKEN_ORI_OPCODE,
                     1,
                     0,
-                    &ImmExpr::constant((bits >> 32) as i32),
+                    &ImmediateExpression::constant(bits as i32),
                 );
-                self.emit_fp_r(TOK_MTC1_OPCODE, 0, fd.wrapping_add(1), 1);
+                self.emit_floating_point_r(TOKEN_MTC1_OPCODE, 0, floating_point_destination, 1);
+                self.emit_i(
+                    TOKEN_ORI_OPCODE,
+                    1,
+                    0,
+                    &ImmediateExpression::constant((bits >> 32) as i32),
+                );
+                self.emit_floating_point_r(
+                    TOKEN_MTC1_OPCODE,
+                    0,
+                    floating_point_destination.wrapping_add(1),
+                    1,
+                );
             }
-            TOK_LI_S_PSEUDO_OP => {
-                let fd: i32 = self.parse_fp_register();
-                if self.peek() != TOK_FP {
+            TOKEN_LI_S_PSEUDO_OP => {
+                let floating_point_destination: i32 = self.parse_floating_point_register();
+                if self.peek() != TOKEN_FLOATING_POINT {
                     self.parse_error_at("Expected FP literal");
                     return;
                 }
                 self.advance();
                 let single: f32 = self.scanner.scan_value.fp() as f32;
                 self.emit_i(
-                    TOK_ORI_OPCODE,
+                    TOKEN_ORI_OPCODE,
                     1,
                     0,
-                    &ImmExpr::constant(single.to_bits() as i32),
+                    &ImmediateExpression::constant(single.to_bits() as i32),
                 );
-                self.emit_fp_r(TOK_MTC1_OPCODE, 0, fd, 1);
+                self.emit_floating_point_r(TOKEN_MTC1_OPCODE, 0, floating_point_destination, 1);
             }
-            TOK_L_D_PSEUDO_OP | TOK_L_S_PSEUDO_OP | TOK_S_D_PSEUDO_OP | TOK_S_S_PSEUDO_OP => {
+            TOKEN_L_D_PSEUDO_OP | TOKEN_L_S_PSEUDO_OP | TOKEN_S_D_PSEUDO_OP
+            | TOKEN_S_S_PSEUDO_OP => {
                 let real: i32 = match op {
-                    TOK_L_D_PSEUDO_OP => TOK_LDC1_OPCODE,
-                    TOK_L_S_PSEUDO_OP => TOK_LWC1_OPCODE,
-                    TOK_S_D_PSEUDO_OP => TOK_SDC1_OPCODE,
-                    _ => TOK_SWC1_OPCODE,
+                    TOKEN_L_D_PSEUDO_OP => TOKEN_LDC1_OPCODE,
+                    TOKEN_L_S_PSEUDO_OP => TOKEN_LWC1_OPCODE,
+                    TOKEN_S_D_PSEUDO_OP => TOKEN_SDC1_OPCODE,
+                    _ => TOKEN_SWC1_OPCODE,
                 };
-                let fr: i32 = self.parse_fp_register();
-                let addr: AddrExpr = self.parse_address();
-                self.emit_i(real, fr, addr.reg, &addr.imm);
+                let floating_point_addend: i32 = self.parse_floating_point_register();
+                let address: AddressExpression = self.parse_address();
+                self.emit_i(
+                    real,
+                    floating_point_addend,
+                    address.register_number,
+                    &address.immediate,
+                );
             }
-            TOK_LD_PSEUDO_OP | TOK_SD_PSEUDO_OP => {
-                let real: i32 = if op == TOK_LD_PSEUDO_OP {
-                    TOK_LW_OPCODE
+            TOKEN_LD_PSEUDO_OP | TOKEN_SD_PSEUDO_OP => {
+                let real: i32 = if op == TOKEN_LD_PSEUDO_OP {
+                    TOKEN_LW_OPCODE
                 } else {
-                    TOK_SW_OPCODE
+                    TOKEN_SW_OPCODE
                 };
                 let line: i32 = self.scanner.line_no(); // the address can consume the newline
-                let rt: i32 = self.parse_register();
-                let addr: AddrExpr = self.parse_address();
-                if rt == 31 {
+                let target_register: i32 = self.parse_register();
+                let address: AddressExpression = self.parse_address();
+                if target_register == 31 {
                     // The pair's second register would be 32.
                     self.parse_error_on_line(
                         "Register pair starts at the last register (31)",
@@ -888,360 +1035,488 @@ impl Machine {
                     );
                     return;
                 }
-                self.emit_i(real, rt, addr.reg, &addr.imm);
-                self.emit_i(real, rt.wrapping_add(1), addr.reg, &addr.imm.plus(4));
+                self.emit_i(
+                    real,
+                    target_register,
+                    address.register_number,
+                    &address.immediate,
+                );
+                self.emit_i(
+                    real,
+                    target_register.wrapping_add(1),
+                    address.register_number,
+                    &address.immediate.plus(4),
+                );
             }
-            TOK_ULW_PSEUDO_OP => {
-                let rt: i32 = self.parse_register();
-                let addr: AddrExpr = self.parse_address();
-                self.emit_i(TOK_LWL_OPCODE, rt, addr.reg, &addr.imm.plus(3));
-                self.emit_i(TOK_LWR_OPCODE, rt, addr.reg, &addr.imm);
+            TOKEN_ULW_PSEUDO_OP => {
+                let target_register: i32 = self.parse_register();
+                let address: AddressExpression = self.parse_address();
+                self.emit_i(
+                    TOKEN_LWL_OPCODE,
+                    target_register,
+                    address.register_number,
+                    &address.immediate.plus(3),
+                );
+                self.emit_i(
+                    TOKEN_LWR_OPCODE,
+                    target_register,
+                    address.register_number,
+                    &address.immediate,
+                );
             }
-            TOK_ULH_PSEUDO_OP | TOK_ULHU_PSEUDO_OP => {
-                let rt: i32 = self.parse_register();
-                let addr: AddrExpr = self.parse_address();
-                let load_high: i32 = if op == TOK_ULH_PSEUDO_OP {
-                    TOK_LB_OPCODE
+            TOKEN_ULH_PSEUDO_OP | TOKEN_ULHU_PSEUDO_OP => {
+                let target_register: i32 = self.parse_register();
+                let address: AddressExpression = self.parse_address();
+                let load_high: i32 = if op == TOKEN_ULH_PSEUDO_OP {
+                    TOKEN_LB_OPCODE
                 } else {
-                    TOK_LBU_OPCODE
+                    TOKEN_LBU_OPCODE
                 };
-                self.emit_i(load_high, rt, addr.reg, &addr.imm.plus(1));
-                self.emit_i(TOK_LBU_OPCODE, 1, addr.reg, &addr.imm);
-                self.emit_r_shift(TOK_SLL_OPCODE, rt, rt, 8);
-                self.emit_r(TOK_OR_OPCODE, rt, rt, 1);
+                self.emit_i(
+                    load_high,
+                    target_register,
+                    address.register_number,
+                    &address.immediate.plus(1),
+                );
+                self.emit_i(
+                    TOKEN_LBU_OPCODE,
+                    1,
+                    address.register_number,
+                    &address.immediate,
+                );
+                self.emit_r_shift(TOKEN_SLL_OPCODE, target_register, target_register, 8);
+                self.emit_r(TOKEN_OR_OPCODE, target_register, target_register, 1);
             }
-            TOK_USW_PSEUDO_OP => {
-                let rt: i32 = self.parse_register();
-                let addr: AddrExpr = self.parse_address();
-                self.emit_i(TOK_SWL_OPCODE, rt, addr.reg, &addr.imm.plus(3));
-                self.emit_i(TOK_SWR_OPCODE, rt, addr.reg, &addr.imm);
+            TOKEN_USW_PSEUDO_OP => {
+                let target_register: i32 = self.parse_register();
+                let address: AddressExpression = self.parse_address();
+                self.emit_i(
+                    TOKEN_SWL_OPCODE,
+                    target_register,
+                    address.register_number,
+                    &address.immediate.plus(3),
+                );
+                self.emit_i(
+                    TOKEN_SWR_OPCODE,
+                    target_register,
+                    address.register_number,
+                    &address.immediate,
+                );
             }
-            TOK_USH_PSEUDO_OP => {
-                let rt: i32 = self.parse_register();
-                let addr: AddrExpr = self.parse_address();
-                self.emit_i(TOK_SB_OPCODE, rt, addr.reg, &addr.imm);
-                self.emit_r_shift(TOK_SLL_OPCODE, 1, rt, 24);
-                self.emit_r_shift(TOK_SRL_OPCODE, rt, rt, 8);
-                self.emit_r(TOK_OR_OPCODE, rt, rt, 1);
-                self.emit_i(TOK_SB_OPCODE, rt, addr.reg, &addr.imm.plus(1));
-                self.emit_r_shift(TOK_SRL_OPCODE, 1, rt, 24);
-                self.emit_r_shift(TOK_SLL_OPCODE, rt, rt, 8);
-                self.emit_r(TOK_OR_OPCODE, rt, rt, 1);
+            TOKEN_USH_PSEUDO_OP => {
+                let target_register: i32 = self.parse_register();
+                let address: AddressExpression = self.parse_address();
+                self.emit_i(
+                    TOKEN_SB_OPCODE,
+                    target_register,
+                    address.register_number,
+                    &address.immediate,
+                );
+                self.emit_r_shift(TOKEN_SLL_OPCODE, 1, target_register, 24);
+                self.emit_r_shift(TOKEN_SRL_OPCODE, target_register, target_register, 8);
+                self.emit_r(TOKEN_OR_OPCODE, target_register, target_register, 1);
+                self.emit_i(
+                    TOKEN_SB_OPCODE,
+                    target_register,
+                    address.register_number,
+                    &address.immediate.plus(1),
+                );
+                self.emit_r_shift(TOKEN_SRL_OPCODE, 1, target_register, 24);
+                self.emit_r_shift(TOKEN_SLL_OPCODE, target_register, target_register, 8);
+                self.emit_r(TOKEN_OR_OPCODE, target_register, target_register, 1);
             }
-            TOK_LA_PSEUDO_OP => {
-                let rt: i32 = self.parse_register();
-                let addr: AddrExpr = self.parse_address();
-                if addr.reg != 0 {
-                    self.emit_i(TOK_ADDI_OPCODE, rt, addr.reg, &addr.imm);
+            TOKEN_LA_PSEUDO_OP => {
+                let target_register: i32 = self.parse_register();
+                let address: AddressExpression = self.parse_address();
+                if address.register_number != 0 {
+                    self.emit_i(
+                        TOKEN_ADDI_OPCODE,
+                        target_register,
+                        address.register_number,
+                        &address.immediate,
+                    );
                 } else {
-                    self.emit_i(TOK_ORI_OPCODE, rt, 0, &addr.imm);
+                    self.emit_i(TOKEN_ORI_OPCODE, target_register, 0, &address.immediate);
                 }
             }
-            TOK_BEQZ_PSEUDO_OP | TOK_BNEZ_PSEUDO_OP => {
-                let rs: i32 = self.parse_register();
-                let target: ImmExpr = self.parse_label();
-                let real: i32 = if op == TOK_BEQZ_PSEUDO_OP {
-                    TOK_BEQ_OPCODE
+            TOKEN_BEQZ_PSEUDO_OP | TOKEN_BNEZ_PSEUDO_OP => {
+                let source_register: i32 = self.parse_register();
+                let target: ImmediateExpression = self.parse_label();
+                let real: i32 = if op == TOKEN_BEQZ_PSEUDO_OP {
+                    TOKEN_BEQ_OPCODE
                 } else {
-                    TOK_BNE_OPCODE
+                    TOKEN_BNE_OPCODE
                 };
-                self.emit_i(real, 0, rs, &target);
+                self.emit_i(real, 0, source_register, &target);
             }
-            TOK_B_PSEUDO_OP | TOK_BAL_PSEUDO_OP => {
-                let target: ImmExpr = self.parse_label();
-                let real: i32 = if op == TOK_BAL_PSEUDO_OP {
-                    TOK_BGEZAL_OPCODE
+            TOKEN_B_PSEUDO_OP | TOKEN_BAL_PSEUDO_OP => {
+                let target: ImmediateExpression = self.parse_label();
+                let real: i32 = if op == TOKEN_BAL_PSEUDO_OP {
+                    TOKEN_BGEZAL_OPCODE
                 } else {
-                    TOK_BGEZ_OPCODE
+                    TOKEN_BGEZ_OPCODE
                 };
                 self.emit_i(real, 0, 0, &target);
             }
-            TOK_BGT_PSEUDO_OP | TOK_BGTU_PSEUDO_OP | TOK_BLE_PSEUDO_OP | TOK_BLEU_PSEUDO_OP => {
-                self.parse_branch_gt_le(op)
-            }
-            TOK_BGE_PSEUDO_OP | TOK_BGEU_PSEUDO_OP | TOK_BLT_PSEUDO_OP | TOK_BLTU_PSEUDO_OP => {
-                self.parse_branch_ge_lt(op)
-            }
+            TOKEN_BGT_PSEUDO_OP | TOKEN_BGTU_PSEUDO_OP | TOKEN_BLE_PSEUDO_OP
+            | TOKEN_BLEU_PSEUDO_OP => self.parse_branch_greater_than_less_or_equal(op),
+            TOKEN_BGE_PSEUDO_OP | TOKEN_BGEU_PSEUDO_OP | TOKEN_BLT_PSEUDO_OP
+            | TOKEN_BLTU_PSEUDO_OP => self.parse_branch_greater_or_equal_less_than(op),
             _ => {
                 self.parse_error_at("Pseudo-op not yet supported");
-                self.sync_to_nl();
+                self.sync_to_newline();
             }
         }
     }
 
     /// `ror`/`rol` by a register or a constant.
     fn parse_rotate(&mut self, op: i32) {
-        let rd: i32 = self.parse_register();
-        let rs: i32 = self.parse_register();
-        let right: bool = op == TOK_ROR_PSEUDO_OP;
-        if self.peek() == TOK_REG {
-            let rt: i32 = self.parse_register();
-            self.emit_r(TOK_SUBU_OPCODE, 1, 0, rt);
+        let destination_register: i32 = self.parse_register();
+        let source_register: i32 = self.parse_register();
+        let right: bool = op == TOKEN_ROR_PSEUDO_OP;
+        if self.peek() == TOKEN_REGISTER {
+            let target_register: i32 = self.parse_register();
+            self.emit_r(TOKEN_SUBU_OPCODE, 1, 0, target_register);
             if right {
-                self.emit_r(TOK_SLLV_OPCODE, 1, 1, rs);
-                self.emit_r(TOK_SRLV_OPCODE, rd, rt, rs);
+                self.emit_r(TOKEN_SLLV_OPCODE, 1, 1, source_register);
+                self.emit_r(
+                    TOKEN_SRLV_OPCODE,
+                    destination_register,
+                    target_register,
+                    source_register,
+                );
             } else {
-                self.emit_r(TOK_SRLV_OPCODE, 1, 1, rs);
-                self.emit_r(TOK_SLLV_OPCODE, rd, rt, rs);
+                self.emit_r(TOKEN_SRLV_OPCODE, 1, 1, source_register);
+                self.emit_r(
+                    TOKEN_SLLV_OPCODE,
+                    destination_register,
+                    target_register,
+                    source_register,
+                );
             }
-            self.emit_r(TOK_OR_OPCODE, rd, rd, 1);
+            self.emit_r(
+                TOKEN_OR_OPCODE,
+                destination_register,
+                destination_register,
+                1,
+            );
         } else {
-            let line: i32 = self.scanner.line_no(); // as in parse_imm16
-            let imm: ImmExpr = self.parse_imm32();
-            let distance: i32 = self.eval_imm_expr(&imm);
-            self.check_imm_range(&imm, 0, 31, line);
+            let line: i32 = self.scanner.line_no(); // as in parse_immediate_16
+            let immediate: ImmediateExpression = self.parse_immediate_32();
+            let distance: i32 = self.evaluate_immediate_expression(&immediate);
+            self.check_immediate_range(&immediate, 0, 31, line);
             if right {
-                self.emit_r_shift(TOK_SLL_OPCODE, 1, rs, distance.wrapping_neg());
-                self.emit_r_shift(TOK_SRL_OPCODE, rd, rs, distance);
+                self.emit_r_shift(
+                    TOKEN_SLL_OPCODE,
+                    1,
+                    source_register,
+                    distance.wrapping_neg(),
+                );
+                self.emit_r_shift(
+                    TOKEN_SRL_OPCODE,
+                    destination_register,
+                    source_register,
+                    distance,
+                );
             } else {
-                self.emit_r_shift(TOK_SRL_OPCODE, 1, rs, distance.wrapping_neg());
-                self.emit_r_shift(TOK_SLL_OPCODE, rd, rs, distance);
+                self.emit_r_shift(
+                    TOKEN_SRL_OPCODE,
+                    1,
+                    source_register,
+                    distance.wrapping_neg(),
+                );
+                self.emit_r_shift(
+                    TOKEN_SLL_OPCODE,
+                    destination_register,
+                    source_register,
+                    distance,
+                );
             }
-            self.emit_r(TOK_OR_OPCODE, rd, rd, 1);
+            self.emit_r(
+                TOKEN_OR_OPCODE,
+                destination_register,
+                destination_register,
+                1,
+            );
         }
     }
 
     /// `bgt`, `bgtu`, `ble`, `bleu`: compare with `slt` into `$at`, branch.
-    fn parse_branch_gt_le(&mut self, op: i32) {
-        let greater: bool = op == TOK_BGT_PSEUDO_OP || op == TOK_BGTU_PSEUDO_OP;
-        let signed: bool = op == TOK_BGT_PSEUDO_OP || op == TOK_BLE_PSEUDO_OP;
+    fn parse_branch_greater_than_less_or_equal(&mut self, op: i32) {
+        let greater: bool = op == TOKEN_BGT_PSEUDO_OP || op == TOKEN_BGTU_PSEUDO_OP;
+        let signed: bool = op == TOKEN_BGT_PSEUDO_OP || op == TOKEN_BLE_PSEUDO_OP;
         // bgt branches when the comparison is true (bne), ble when false.
         let branch: i32 = if greater {
-            TOK_BNE_OPCODE
+            TOKEN_BNE_OPCODE
         } else {
-            TOK_BEQ_OPCODE
+            TOKEN_BEQ_OPCODE
         };
-        let rs: i32 = self.parse_register();
-        if self.peek() == TOK_REG {
-            let rt: i32 = self.parse_register();
-            let target: ImmExpr = self.parse_label();
+        let source_register: i32 = self.parse_register();
+        if self.peek() == TOKEN_REGISTER {
+            let target_register: i32 = self.parse_register();
+            let target: ImmediateExpression = self.parse_label();
             let slt: i32 = if signed {
-                TOK_SLT_OPCODE
+                TOKEN_SLT_OPCODE
             } else {
-                TOK_SLTU_OPCODE
+                TOKEN_SLTU_OPCODE
             };
-            self.emit_r(slt, 1, rt, rs);
+            self.emit_r(slt, 1, target_register, source_register);
             self.emit_i(branch, 0, 1, &target);
             return;
         }
-        let imm: ImmExpr = self.parse_imm32();
-        let target: ImmExpr = self.parse_label();
+        let immediate: ImmediateExpression = self.parse_immediate_32();
+        let target: ImmediateExpression = self.parse_label();
         if signed {
-            self.emit_i(TOK_SLTI_OPCODE, 1, rs, &imm.plus(1));
+            self.emit_i(TOKEN_SLTI_OPCODE, 1, source_register, &immediate.plus(1));
             // bgt: rs >= imm+1 means rs > imm; branch when slti is false.
             let after_slti: i32 = if greater {
-                TOK_BEQ_OPCODE
+                TOKEN_BEQ_OPCODE
             } else {
-                TOK_BNE_OPCODE
+                TOKEN_BNE_OPCODE
             };
             self.emit_i(after_slti, 0, 1, &target);
         } else if greater {
-            self.emit_i(TOK_ORI_OPCODE, 1, 0, &imm);
-            self.emit_i(TOK_BEQ_OPCODE, rs, 1, &branch_offset(3));
-            self.emit_r(TOK_SLTU_OPCODE, 1, rs, 1);
-            self.emit_i(TOK_BEQ_OPCODE, 0, 1, &target);
+            self.emit_i(TOKEN_ORI_OPCODE, 1, 0, &immediate);
+            self.emit_i(TOKEN_BEQ_OPCODE, source_register, 1, &branch_offset(3));
+            self.emit_r(TOKEN_SLTU_OPCODE, 1, source_register, 1);
+            self.emit_i(TOKEN_BEQ_OPCODE, 0, 1, &target);
         } else {
-            self.emit_i(TOK_ORI_OPCODE, 1, 0, &imm);
-            self.emit_i(TOK_BEQ_OPCODE, rs, 1, &target);
-            self.emit_r(TOK_SLTU_OPCODE, 1, rs, 1);
-            self.emit_i(TOK_BNE_OPCODE, 0, 1, &target);
+            self.emit_i(TOKEN_ORI_OPCODE, 1, 0, &immediate);
+            self.emit_i(TOKEN_BEQ_OPCODE, source_register, 1, &target);
+            self.emit_r(TOKEN_SLTU_OPCODE, 1, source_register, 1);
+            self.emit_i(TOKEN_BNE_OPCODE, 0, 1, &target);
         }
     }
 
     /// `bge`, `bgeu`, `blt`, `bltu`: `slt` into `$at`, branch.
-    fn parse_branch_ge_lt(&mut self, op: i32) {
-        let signed: bool = op == TOK_BGE_PSEUDO_OP || op == TOK_BLT_PSEUDO_OP;
+    fn parse_branch_greater_or_equal_less_than(&mut self, op: i32) {
+        let signed: bool = op == TOKEN_BGE_PSEUDO_OP || op == TOKEN_BLT_PSEUDO_OP;
         // bge branches when rs < rt is false (beq $at, $0), blt when true.
-        let branch: i32 = if op == TOK_BGE_PSEUDO_OP || op == TOK_BGEU_PSEUDO_OP {
-            TOK_BEQ_OPCODE
+        let branch: i32 = if op == TOKEN_BGE_PSEUDO_OP || op == TOKEN_BGEU_PSEUDO_OP {
+            TOKEN_BEQ_OPCODE
         } else {
-            TOK_BNE_OPCODE
+            TOKEN_BNE_OPCODE
         };
-        let rs: i32 = self.parse_register();
-        if self.peek() == TOK_REG {
-            let rt: i32 = self.parse_register();
-            let target: ImmExpr = self.parse_label();
+        let source_register: i32 = self.parse_register();
+        if self.peek() == TOKEN_REGISTER {
+            let target_register: i32 = self.parse_register();
+            let target: ImmediateExpression = self.parse_label();
             let slt: i32 = if signed {
-                TOK_SLT_OPCODE
+                TOKEN_SLT_OPCODE
             } else {
-                TOK_SLTU_OPCODE
+                TOKEN_SLTU_OPCODE
             };
-            self.emit_r(slt, 1, rs, rt);
+            self.emit_r(slt, 1, source_register, target_register);
             self.emit_i(branch, 0, 1, &target);
         } else {
-            let imm: ImmExpr = self.parse_imm32();
-            let target: ImmExpr = self.parse_label();
+            let immediate: ImmediateExpression = self.parse_immediate_32();
+            let target: ImmediateExpression = self.parse_label();
             let slti: i32 = if signed {
-                TOK_SLTI_OPCODE
+                TOKEN_SLTI_OPCODE
             } else {
-                TOK_SLTIU_OPCODE
+                TOKEN_SLTIU_OPCODE
             };
-            self.emit_i(slti, 1, rs, &imm);
+            self.emit_i(slti, 1, source_register, &immediate);
             self.emit_i(branch, 0, 1, &target);
         }
     }
 
-    /// Parse one instruction, by the shape of its opcode (`parse_asm_code`).
-    fn parse_asm_code(&mut self) {
+    /// Parse one instruction, by the shape of its opcode (`parse_assembly_code`).
+    fn parse_assembly_code(&mut self) {
         let op: i32 = self.advance();
         match token_type(op) {
-            Some(OpType::NoargTypeInst) => self.parse_noarg(op),
-            Some(OpType::RdRsRtInst) => self.parse_r3(op),
-            Some(OpType::RdRtShamtInst) => self.parse_r2sh(op),
-            Some(OpType::RsInst) => {
-                let rs: i32 = self.parse_register();
-                self.emit_r(op, 0, rs, 0);
+            Some(OpType::NoArgumentTypeInstruction) => self.parse_no_argument(op),
+            Some(OpType::DestinationRegisterSourceRegisterTargetRegisterInstruction) => {
+                self.parse_r3(op)
             }
-            Some(OpType::RtRsImmInst) => self.parse_i2(op),
-            Some(OpType::RtImmInst) => {
-                let rt: i32 = self.parse_register();
-                let imm: ImmExpr = self.parse_uimm16();
-                self.emit_i(op, rt, 0, &imm);
+            Some(OpType::DestinationRegisterTargetRegisterShiftAmountInstruction) => {
+                self.parse_two_registers_shift_amount(op)
             }
-            Some(OpType::RtAddrInst) => self.parse_i2a(op),
-            Some(OpType::BranchRsRtLabelInst) => self.parse_b2(op),
-            Some(OpType::BranchRsLabelInst) => {
-                let rs: i32 = self.parse_register();
-                let target: ImmExpr = self.parse_label();
-                self.emit_i(op, 0, rs, &target);
+            Some(OpType::SourceRegisterInstruction) => {
+                let source_register: i32 = self.parse_register();
+                self.emit_r(op, 0, source_register, 0);
             }
-            Some(OpType::JTypeInst) | Some(OpType::RdRsInst) => self.parse_j(op),
+            Some(OpType::TargetRegisterSourceRegisterImmediateInstruction) => self.parse_i2(op),
+            Some(OpType::TargetRegisterImmediateInstruction) => {
+                let target_register: i32 = self.parse_register();
+                let immediate: ImmediateExpression = self.parse_unsigned_immediate_16();
+                self.emit_i(op, target_register, 0, &immediate);
+            }
+            Some(OpType::TargetRegisterAddressInstruction) => self.parse_i2a(op),
+            Some(OpType::BranchSourceRegisterTargetRegisterLabelInstruction) => self.parse_b2(op),
+            Some(OpType::BranchSourceRegisterLabelInstruction) => {
+                let source_register: i32 = self.parse_register();
+                let target: ImmediateExpression = self.parse_label();
+                self.emit_i(op, 0, source_register, &target);
+            }
+            Some(OpType::JTypeInstruction)
+            | Some(OpType::DestinationRegisterSourceRegisterInstruction) => self.parse_j(op),
             Some(OpType::PseudoOp) => self.parse_pseudo(op),
-            Some(OpType::RtCopregInst) | Some(OpType::FpRtCopregInst) => {
-                let reg: i32 = self.parse_register();
-                let copreg: i32 = self.parse_copreg();
-                self.emit_fp_r(op, 0, copreg, reg);
+            Some(OpType::TargetRegisterCoprocessorRegisterInstruction)
+            | Some(OpType::FloatingPointTargetRegisterCoprocessorRegisterInstruction) => {
+                let register_number: i32 = self.parse_register();
+                let coprocessor_register: i32 = self.parse_coprocessor_register();
+                self.emit_floating_point_r(op, 0, coprocessor_register, register_number);
             }
-            Some(OpType::RsRtInst) => self.parse_rs_rt(op),
-            Some(OpType::RdInst) => {
-                let rd: i32 = self.parse_register();
-                self.emit_r(op, rd, 0, 0);
+            Some(OpType::SourceRegisterTargetRegisterInstruction) => {
+                self.parse_source_register_target_register(op)
             }
-            Some(OpType::RdRtRsInst) => {
+            Some(OpType::DestinationRegisterInstruction) => {
+                let destination_register: i32 = self.parse_register();
+                self.emit_r(op, destination_register, 0, 0);
+            }
+            Some(OpType::DestinationRegisterTargetRegisterSourceRegisterInstruction) => {
                 // sllv rd, rt, rs: the register operands are swapped in
                 // the encoding; a constant third operand means sll.
-                let rd: i32 = self.parse_register();
-                let rs: i32 = self.parse_register();
-                if self.peek() == TOK_REG {
-                    let rt: i32 = self.parse_register();
-                    self.emit_r(op, rd, rt, rs);
+                let destination_register: i32 = self.parse_register();
+                let source_register: i32 = self.parse_register();
+                if self.peek() == TOKEN_REGISTER {
+                    let target_register: i32 = self.parse_register();
+                    self.emit_r(op, destination_register, target_register, source_register);
                 } else {
-                    if self.peek() != TOK_INT {
+                    if self.peek() != TOKEN_INTEGER {
                         self.parse_error_at("Expected register or integer shift");
                         return;
                     }
                     self.advance();
-                    let shamt: i32 = self.value_int();
-                    self.emit_r_shift(op_to_imm_op(op), rd, rs, shamt);
+                    let shift_amount: i32 = self.value_integer();
+                    self.emit_r_shift(
+                        opcode_to_immediate_opcode(op),
+                        destination_register,
+                        source_register,
+                        shift_amount,
+                    );
                 }
             }
-            Some(OpType::RsImmInst) => {
-                let rs: i32 = self.parse_register();
-                let imm: ImmExpr = self.parse_imm16();
-                self.emit_i(op, 0, rs, &imm);
+            Some(OpType::SourceRegisterImmediateInstruction) => {
+                let source_register: i32 = self.parse_register();
+                let immediate: ImmediateExpression = self.parse_immediate_16();
+                self.emit_i(op, 0, source_register, &immediate);
             }
-            Some(OpType::BranchCoprocCondInst) => {
+            Some(OpType::BranchCoprocessorConditionInstruction) => {
                 let nd: i32 = i32::from(opcode_is_nullified_branch(op));
                 let tf: i32 = i32::from(opcode_is_true_branch(op));
-                let mut cc: i32 = 0;
-                if self.peek() == TOK_INT {
+                let mut condition_code: i32 = 0;
+                if self.peek() == TOKEN_INTEGER {
                     self.advance();
-                    cc = self.value_int();
+                    condition_code = self.value_integer();
                 }
-                let target: ImmExpr = self.parse_label();
-                self.emit_i(op, (cc << 2) | (nd << 1) | tf, 0, &target);
+                let target: ImmediateExpression = self.parse_label();
+                self.emit_i(op, (condition_code << 2) | (nd << 1) | tf, 0, &target);
             }
-            Some(OpType::MovcTypeInst) => {
-                let rd: i32 = self.parse_register();
-                let rs: i32 = self.parse_register();
-                let mut cc: i32 = 0;
-                if self.peek() == TOK_INT {
+            Some(OpType::MoveConditionalTypeInstruction) => {
+                let destination_register: i32 = self.parse_register();
+                let source_register: i32 = self.parse_register();
+                let mut condition_code: i32 = 0;
+                if self.peek() == TOKEN_INTEGER {
                     self.advance();
-                    cc = self.value_int();
+                    condition_code = self.value_integer();
                 }
-                self.emit_r(op, rd, rs, (cc & 0x7) << 2);
+                self.emit_r(
+                    op,
+                    destination_register,
+                    source_register,
+                    (condition_code & 0x7) << 2,
+                );
             }
-            Some(OpType::FpFdFsInst) => {
-                let fd: i32 = self.parse_fp_register();
-                let fs: i32 = self.parse_fp_register();
-                self.emit_fp_r(op, fd, fs, 0);
+            Some(OpType::FloatingPointDestinationSourceInstruction) => {
+                let floating_point_destination: i32 = self.parse_floating_point_register();
+                let fs: i32 = self.parse_floating_point_register();
+                self.emit_floating_point_r(op, floating_point_destination, fs, 0);
             }
-            Some(OpType::FpFdFsFtInst) => {
-                let fd: i32 = self.parse_fp_register();
-                let fs: i32 = self.parse_fp_register();
-                let ft: i32 = self.parse_fp_register();
-                self.emit_fp_r(op, fd, fs, ft);
+            Some(OpType::FloatingPointDestinationSourceTargetInstruction) => {
+                let floating_point_destination: i32 = self.parse_floating_point_register();
+                let fs: i32 = self.parse_floating_point_register();
+                let floating_point_target: i32 = self.parse_floating_point_register();
+                self.emit_floating_point_r(
+                    op,
+                    floating_point_destination,
+                    fs,
+                    floating_point_target,
+                );
             }
-            Some(OpType::FpCmpFsFtInst) => {
-                let mut cc: i32 = 0;
-                if self.peek() == TOK_INT {
+            Some(OpType::FloatingPointCompareSourceTargetInstruction) => {
+                let mut condition_code: i32 = 0;
+                if self.peek() == TOKEN_INTEGER {
                     self.advance();
-                    cc = self.value_int();
+                    condition_code = self.value_integer();
                 }
-                let fs: i32 = self.parse_fp_register();
-                let ft: i32 = self.parse_fp_register();
-                self.emit_fp_compare(op, fs, ft, cc);
+                let fs: i32 = self.parse_floating_point_register();
+                let floating_point_target: i32 = self.parse_floating_point_register();
+                self.emit_floating_point_compare(op, fs, floating_point_target, condition_code);
             }
-            Some(OpType::FpMovcTypeInst) => {
-                let fd: i32 = self.parse_fp_register();
-                let fs: i32 = self.parse_fp_register();
-                if self.peek() == TOK_REG {
-                    let rt: i32 = self.parse_register();
-                    self.emit_fp_r(op, fd, fs, rt);
-                } else if self.peek() == TOK_INT {
+            Some(OpType::FloatingPointMoveConditionalTypeInstruction) => {
+                let floating_point_destination: i32 = self.parse_floating_point_register();
+                let fs: i32 = self.parse_floating_point_register();
+                if self.peek() == TOKEN_REGISTER {
+                    let target_register: i32 = self.parse_register();
+                    self.emit_floating_point_r(op, floating_point_destination, fs, target_register);
+                } else if self.peek() == TOKEN_INTEGER {
                     self.advance();
-                    let cc: i32 = self.value_int();
-                    self.emit_fp_r(op, fd, fs, (cc & 0x7) << 2);
+                    let condition_code: i32 = self.value_integer();
+                    self.emit_floating_point_r(
+                        op,
+                        floating_point_destination,
+                        fs,
+                        (condition_code & 0x7) << 2,
+                    );
                 } else {
-                    self.emit_fp_r(op, fd, fs, 0);
+                    self.emit_floating_point_r(op, floating_point_destination, fs, 0);
                 }
             }
-            Some(OpType::FpFtAddrInst) => {
-                let fr: i32 = self.parse_fp_register();
-                let addr: AddrExpr = self.parse_address();
-                self.emit_i(op, fr, addr.reg, &addr.imm);
+            Some(OpType::FloatingPointTargetAddressInstruction) => {
+                let floating_point_addend: i32 = self.parse_floating_point_register();
+                let address: AddressExpression = self.parse_address();
+                self.emit_i(
+                    op,
+                    floating_point_addend,
+                    address.register_number,
+                    &address.immediate,
+                );
             }
-            Some(OpType::AsmDir) | Some(OpType::FpFdFrFsFtInst) | None => {
+            Some(OpType::AssemblerDirective)
+            | Some(OpType::FloatingPointDestinationAddendSourceTargetInstruction)
+            | None => {
                 self.parse_error_at("Instruction not yet supported");
-                self.sync_to_nl();
+                self.sync_to_newline();
             }
         }
     }
 
     /// `mult rs, rt`, the traps `teq rs, rt`, and `div`/`divu` with two
     /// operands (the instruction) or three (the pseudo-instruction).
-    fn parse_rs_rt(&mut self, op: i32) {
+    fn parse_source_register_target_register(&mut self, op: i32) {
         let r1: i32 = self.parse_register();
         let next: i32 = self.peek();
-        if next != TOK_REG && next != TOK_INT && next != TOK_ID {
+        if next != TOKEN_REGISTER && next != TOKEN_INTEGER && next != TOKEN_IDENTIFIER {
             self.parse_error_at("Expected operand for div/mult");
             return;
         }
         if matches!(
             op,
-            TOK_TEQ_OPCODE
-                | TOK_TGE_OPCODE
-                | TOK_TGEU_OPCODE
-                | TOK_TLT_OPCODE
-                | TOK_TLTU_OPCODE
-                | TOK_TNE_OPCODE
+            TOKEN_TEQ_OPCODE
+                | TOKEN_TGE_OPCODE
+                | TOKEN_TGEU_OPCODE
+                | TOKEN_TLT_OPCODE
+                | TOKEN_TLTU_OPCODE
+                | TOKEN_TNE_OPCODE
         ) {
             let r2: i32 = self.parse_register();
             self.emit_r(op, 0, r1, r2);
-        } else if op == TOK_DIV_OPCODE || op == TOK_DIVU_OPCODE {
+        } else if op == TOKEN_DIV_OPCODE || op == TOKEN_DIVU_OPCODE {
             let r2: i32 = self.parse_register();
-            if self.peek() == TOK_NL || self.peek() == TOK_EOF {
+            if self.peek() == TOKEN_NEWLINE || self.peek() == TOKEN_EOF {
                 self.emit_r(op, 0, r1, r2);
-            } else if self.peek() == TOK_REG {
+            } else if self.peek() == TOKEN_REGISTER {
                 let r3: i32 = self.parse_register();
-                self.div_inst(op, r1, r2, r3, false);
+                self.divide_instruction(op, r1, r2, r3, false);
             } else {
-                let imm: ImmExpr = self.parse_imm32();
-                if imm.is_zero() {
+                let immediate: ImmediateExpression = self.parse_immediate_32();
+                if immediate.is_zero() {
                     self.parse_error_at("Divide by zero");
                 } else {
-                    self.emit_i(TOK_ORI_OPCODE, 1, 0, &imm);
-                    self.div_inst(op, r1, r2, 1, true);
+                    self.emit_i(TOKEN_ORI_OPCODE, 1, 0, &immediate);
+                    self.divide_instruction(op, r1, r2, 1, true);
                 }
             }
         } else {
@@ -1255,24 +1530,24 @@ impl Machine {
     /// A segment directive (`.data`, `.text`, ...), optionally with a
     /// start address (`emit_dir_seg`).  The parser follows the segment
     /// at once, so it knows whether data is allowed.
-    fn parse_dir_segment(&mut self, directive: i32) {
+    fn parse_directive_segment(&mut self, directive: i32) {
         let mut start: Option<u32> = None;
-        if self.peek() == TOK_INT {
+        if self.peek() == TOKEN_INTEGER {
             self.advance();
-            start = Some(self.value_int() as u32);
+            start = Some(self.value_integer() as u32);
         }
         let kind: AstKind = match directive {
-            TOK_TEXT_DIRECTIVE => AstKind::DirText(start),
-            TOK_K_TEXT_DIRECTIVE => AstKind::DirKtext(start),
-            TOK_K_DATA_DIRECTIVE => AstKind::DirKdata(start),
-            _ => AstKind::DirData(start),
+            TOKEN_TEXT_DIRECTIVE => AstKind::DirectiveText(start),
+            TOKEN_K_TEXT_DIRECTIVE => AstKind::DirectiveKtext(start),
+            TOKEN_K_DATA_DIRECTIVE => AstKind::DirectiveKdata(start),
+            _ => AstKind::DirectiveData(start),
         };
-        if matches!(kind, AstKind::DirText(_) | AstKind::DirKtext(_)) {
+        if matches!(kind, AstKind::DirectiveText(_) | AstKind::DirectiveKtext(_)) {
             self.asm.data_dir = false;
-            self.asm.text_dir = true;
+            self.asm.text_directive = true;
         } else {
             self.asm.data_dir = true;
-            self.asm.text_dir = false;
+            self.asm.text_directive = false;
             self.asm.auto_align = true;
         }
         self.emit_node(kind);
@@ -1281,7 +1556,7 @@ impl Machine {
     /// The `NAME` of `.globl`, `.extern`, `.comm`.
     fn parse_directive_name(&mut self, what: &str) -> Option<String> {
         self.scanner.force_identifier();
-        if self.peek() != TOK_ID {
+        if self.peek() != TOKEN_IDENTIFIER {
             self.parse_error_at(what);
             return None;
         }
@@ -1289,9 +1564,9 @@ impl Machine {
         Some(self.value_name())
     }
 
-    /// The values of `.byte`, `.half`, `.word` (`parse_expr_list`).
-    fn parse_expr_list(&mut self, kind: DataKind) {
-        self.asm.data_int_buf.clear();
+    /// The values of `.byte`, `.half`, `.word` (`parse_expression_list`).
+    fn parse_expression_list(&mut self, kind: DataKind) {
+        self.asm.data_integer_buffer.clear();
         self.asm.data_directive_line = self.scanner.line_no();
         loop {
             let errors_before: i32 = self.asm.parse_errors_seen;
@@ -1299,23 +1574,23 @@ impl Machine {
             if self.asm.parse_errors_seen != errors_before {
                 // The bad token was not taken; skip the rest of the line
                 // rather than ask for an expression again forever.
-                self.sync_to_nl();
+                self.sync_to_newline();
                 break;
             }
-            let symbol: Option<LabelId> = self.asm.expr_unresolved_label.take();
-            self.asm.data_int_buf.push(ImmExpr {
+            let symbol: Option<LabelId> = self.asm.expression_unresolved_label.take();
+            self.asm.data_integer_buffer.push(ImmediateExpression {
                 offset: value,
                 symbol,
-                ..ImmExpr::default()
+                ..ImmediateExpression::default()
             });
-            if self.peek() == TOK_NL || self.peek() == TOK_EOF {
+            if self.peek() == TOKEN_NEWLINE || self.peek() == TOKEN_EOF {
                 break;
             }
         }
-        if self.asm.data_int_buf.is_empty() {
+        if self.asm.data_integer_buffer.is_empty() {
             return;
         }
-        let values: Vec<ImmExpr> = std::mem::take(&mut self.asm.data_int_buf);
+        let values: Vec<ImmediateExpression> = std::mem::take(&mut self.asm.data_integer_buffer);
         let ast_kind: AstKind = match kind {
             DataKind::Byte => AstKind::DataByte(values),
             DataKind::Half => AstKind::DataHalf(values),
@@ -1326,23 +1601,23 @@ impl Machine {
         self.ast_append(node);
     }
 
-    /// The literals of `.float` and `.double` (`parse_fp_expr_list`).
-    fn parse_fp_expr_list(&mut self, kind: DataKind) {
-        self.asm.data_fp_buf.clear();
+    /// The literals of `.float` and `.double` (`parse_floating_point_expression_list`).
+    fn parse_floating_point_expression_list(&mut self, kind: DataKind) {
+        self.asm.data_floating_point_buffer.clear();
         self.asm.data_directive_line = self.scanner.line_no();
         loop {
-            if self.peek() != TOK_FP {
+            if self.peek() != TOKEN_FLOATING_POINT {
                 self.parse_error_at("Expected floating-point literal");
                 return;
             }
             self.advance();
             let value: f64 = self.scanner.scan_value.fp();
-            self.asm.data_fp_buf.push(value);
-            if self.peek() == TOK_NL || self.peek() == TOK_EOF {
+            self.asm.data_floating_point_buffer.push(value);
+            if self.peek() == TOKEN_NEWLINE || self.peek() == TOKEN_EOF {
                 break;
             }
         }
-        let values: Vec<f64> = std::mem::take(&mut self.asm.data_fp_buf);
+        let values: Vec<f64> = std::mem::take(&mut self.asm.data_floating_point_buffer);
         let ast_kind: AstKind = if kind == DataKind::Float {
             AstKind::DataFloat(values)
         } else {
@@ -1359,7 +1634,7 @@ impl Machine {
         if !self.asm.data_dir || !self.asm.auto_align || self.asm.this_line_labels.is_empty() {
             return;
         }
-        let current: u32 = self.current_data_pc();
+        let current: u32 = self.current_data_location();
         let aligned: u32 = current.wrapping_add((1u32 << alignment) - 1) & (!0u32 << alignment);
         self.fix_current_label_address(aligned);
     }
@@ -1376,7 +1651,7 @@ impl Machine {
     /// The strings of `.ascii`/`.asciiz` (`parse_string_list`).
     fn parse_string_list(&mut self) {
         loop {
-            if self.peek() != TOK_STR {
+            if self.peek() != TOKEN_STRING {
                 self.parse_error_at("Expected string literal");
                 return;
             }
@@ -1386,7 +1661,7 @@ impl Machine {
             if let Some(nul) = bytes.iter().position(|b: &u8| *b == 0) {
                 bytes.truncate(nul);
             }
-            if self.asm.text_dir {
+            if self.asm.text_directive {
                 self.parse_error_at("Can't put data in text segment");
             } else {
                 let null_terminate: bool = self.asm.null_term;
@@ -1395,7 +1670,7 @@ impl Machine {
                     null_terminate,
                 });
             }
-            if self.peek() == TOK_NL || self.peek() == TOK_EOF {
+            if self.peek() == TOKEN_NEWLINE || self.peek() == TOKEN_EOF {
                 break;
             }
         }
@@ -1404,43 +1679,45 @@ impl Machine {
     /// Parse one directive (`parse_directive`).
     fn parse_directive(&mut self, directive: i32) {
         match directive {
-            TOK_DATA_DIRECTIVE | TOK_K_DATA_DIRECTIVE | TOK_TEXT_DIRECTIVE
-            | TOK_K_TEXT_DIRECTIVE => self.parse_dir_segment(directive),
-            TOK_GLOBAL_DIRECTIVE => {
+            TOKEN_DATA_DIRECTIVE
+            | TOKEN_K_DATA_DIRECTIVE
+            | TOKEN_TEXT_DIRECTIVE
+            | TOKEN_K_TEXT_DIRECTIVE => self.parse_directive_segment(directive),
+            TOKEN_GLOBAL_DIRECTIVE => {
                 if let Some(name) = self.parse_directive_name("Expected identifier after .globl") {
-                    self.emit_node(AstKind::DirGlobl(name));
+                    self.emit_node(AstKind::DirectiveGlobl(name));
                 }
             }
-            TOK_WORD_DIRECTIVE => {
+            TOKEN_WORD_DIRECTIVE => {
                 self.align_for_data(2);
-                self.parse_expr_list(DataKind::Word);
+                self.parse_expression_list(DataKind::Word);
             }
-            TOK_HALF_DIRECTIVE => {
+            TOKEN_HALF_DIRECTIVE => {
                 self.align_for_data(1);
-                self.parse_expr_list(DataKind::Half);
+                self.parse_expression_list(DataKind::Half);
             }
-            TOK_BYTE_DIRECTIVE => self.parse_expr_list(DataKind::Byte),
-            TOK_ASCII_DIRECTIVE | TOK_ASCIIZ_DIRECTIVE => {
-                self.asm.null_term = directive == TOK_ASCIIZ_DIRECTIVE;
+            TOKEN_BYTE_DIRECTIVE => self.parse_expression_list(DataKind::Byte),
+            TOKEN_ASCII_DIRECTIVE | TOKEN_ASCIIZ_DIRECTIVE => {
+                self.asm.null_term = directive == TOKEN_ASCIIZ_DIRECTIVE;
                 self.parse_string_list();
             }
-            TOK_FLOAT_DIRECTIVE => {
+            TOKEN_FLOAT_DIRECTIVE => {
                 self.align_for_data(2);
-                self.parse_fp_expr_list(DataKind::Float);
+                self.parse_floating_point_expression_list(DataKind::Float);
             }
-            TOK_DOUBLE_DIRECTIVE => {
+            TOKEN_DOUBLE_DIRECTIVE => {
                 self.align_for_data(3);
-                self.parse_fp_expr_list(DataKind::Double);
+                self.parse_floating_point_expression_list(DataKind::Double);
             }
-            TOK_SPACE_DIRECTIVE => {
+            TOKEN_SPACE_DIRECTIVE => {
                 let size: i32 = self.parse_expression();
-                if self.asm.text_dir {
+                if self.asm.text_directive {
                     self.parse_error_at("Can't put data in text segment");
                     return;
                 }
-                self.emit_node(AstKind::DirSpace(size));
+                self.emit_node(AstKind::DirectiveSpace(size));
             }
-            TOK_ALIGN_DIRECTIVE => {
+            TOKEN_ALIGN_DIRECTIVE => {
                 let line: i32 = self.scanner.line_no(); // the expression can consume the newline
                 let n: i32 = self.parse_expression();
                 if !(0..=31).contains(&n) {
@@ -1450,49 +1727,49 @@ impl Machine {
                     if n == 0 {
                         self.asm.auto_align = false;
                     }
-                    self.emit_node(AstKind::DirAlign(n));
+                    self.emit_node(AstKind::DirectiveAlign(n));
                 }
             }
-            TOK_COMM_DIRECTIVE | TOK_EXTERN_DIRECTIVE => {
+            TOKEN_COMM_DIRECTIVE | TOKEN_EXTERN_DIRECTIVE => {
                 if let Some(name) = self.parse_directive_name("Expected ID") {
                     let size: i32 = self.parse_expression();
-                    let kind: AstKind = if directive == TOK_COMM_DIRECTIVE {
-                        AstKind::DirComm { name, size }
+                    let kind: AstKind = if directive == TOKEN_COMM_DIRECTIVE {
+                        AstKind::DirectiveComm { name, size }
                     } else {
-                        AstKind::DirExtern { name, size }
+                        AstKind::DirectiveExtern { name, size }
                     };
                     self.emit_node(kind);
                 }
             }
-            TOK_ERR_DIRECTIVE => self.parse_error_at(".err directive"),
-            TOK_FILE_DIRECTIVE
-            | TOK_LOC_DIRECTIVE
-            | TOK_FRAME_DIRECTIVE
-            | TOK_MASK_DIRECTIVE
-            | TOK_FMASK_DIRECTIVE
-            | TOK_ENT_DIRECTIVE
-            | TOK_END_DIRECTIVE
-            | TOK_LABEL_DIRECTIVE
-            | TOK_LIVEREG_DIRECTIVE
-            | TOK_OPTIONS_DIRECTIVE
-            | TOK_BGNB_DIRECTIVE
-            | TOK_ENDB_DIRECTIVE
-            | TOK_ENDR_DIRECTIVE
-            | TOK_ASM0_DIRECTIVE
-            | TOK_ALIAS_DIRECTIVE
-            | TOK_SET_DIRECTIVE => {
+            TOKEN_ERR_DIRECTIVE => self.parse_error_at(".err directive"),
+            TOKEN_FILE_DIRECTIVE
+            | TOKEN_LOC_DIRECTIVE
+            | TOKEN_FRAME_DIRECTIVE
+            | TOKEN_MASK_DIRECTIVE
+            | TOKEN_FMASK_DIRECTIVE
+            | TOKEN_ENT_DIRECTIVE
+            | TOKEN_END_DIRECTIVE
+            | TOKEN_LABEL_DIRECTIVE
+            | TOKEN_LIVEREG_DIRECTIVE
+            | TOKEN_OPTIONS_DIRECTIVE
+            | TOKEN_BGNB_DIRECTIVE
+            | TOKEN_ENDB_DIRECTIVE
+            | TOKEN_ENDR_DIRECTIVE
+            | TOKEN_ASM0_DIRECTIVE
+            | TOKEN_ALIAS_DIRECTIVE
+            | TOKEN_SET_DIRECTIVE => {
                 // Metadata for other assemblers: ignore the rest of the line.
-                self.sync_to_nl();
+                self.sync_to_newline();
             }
             _ => {
                 self.parse_error_at("Directive not yet supported");
-                self.sync_to_nl();
+                self.sync_to_newline();
             }
         }
     }
 
-    /// `NAME:` or `NAME = EXPR` (`parse_opt_label`).
-    fn parse_opt_label(&mut self) {
+    /// `NAME:` or `NAME = EXPR` (`parse_optional_label`).
+    fn parse_optional_label(&mut self) {
         self.advance();
         let name: String = self.value_name();
         let separator: i32 = self.advance();
@@ -1500,57 +1777,57 @@ impl Machine {
             self.emit_node(AstKind::LabelNormal(name));
         } else {
             let value: i32 = self.parse_expression();
-            self.emit_node(AstKind::LabelConst(name, value));
+            self.emit_node(AstKind::LabelConstant(name, value));
         }
     }
 
     /// Parse one statement (`parse_line`).
     fn parse_line(&mut self) {
-        if self.peek() == TOK_NL {
+        if self.peek() == TOKEN_NEWLINE {
             self.advance();
             return;
         }
-        if self.peek() == TOK_EOF {
+        if self.peek() == TOKEN_EOF {
             return;
         }
-        if self.peek() == TOK_ID
+        if self.peek() == TOKEN_IDENTIFIER
             && (self.peek2() == i32::from(b':') || self.peek2() == i32::from(b'='))
         {
-            self.parse_opt_label();
+            self.parse_optional_label();
         }
         let t: i32 = self.peek();
-        if t == TOK_NL {
+        if t == TOKEN_NEWLINE {
             self.advance();
             return;
         }
-        if t == TOK_EOF {
+        if t == TOKEN_EOF {
             return;
         }
-        if token_type(t) == Some(OpType::AsmDir) {
+        if token_type(t) == Some(OpType::AssemblerDirective) {
             let directive: i32 = self.advance();
             self.parse_directive(directive);
         } else {
-            self.parse_asm_code();
+            self.parse_assembly_code();
         }
         self.clear_labels();
         if self.asm.parse_error_occurred {
-            self.sync_to_nl();
-        } else if self.peek() == TOK_NL {
+            self.sync_to_newline();
+        } else if self.peek() == TOKEN_NEWLINE {
             self.advance();
-        } else if self.peek() != TOK_EOF {
+        } else if self.peek() != TOKEN_EOF {
             self.parse_error_at("Extra tokens after instruction");
-            self.sync_to_nl();
+            self.sync_to_newline();
         }
     }
 
-    /// Start parsing `input`, named `file_name` in messages (`parser_init`).
-    pub fn parser_init(&mut self, input: Vec<u8>, file_name: &[u8]) {
-        self.scanner.init(input);
+    /// Start parsing `input`, named `file_name` in messages (`parser_initialize`).
+    pub fn parser_initialize(&mut self, input: Vec<u8>, file_name: &[u8]) {
+        self.scanner.initialize(input);
         self.asm.input_file_name = Some(file_name.to_vec());
         self.asm.parse_errors_seen = 0;
         self.asm.parse_error_occurred = false;
         self.asm.data_dir = false;
-        self.asm.text_dir = true;
+        self.asm.text_directive = true;
         let file: AstNode = self.node(AstKind::File {
             source_file: Some(file_name.to_vec()),
             children: Vec::new(),
@@ -1565,14 +1842,15 @@ impl Machine {
         // Emit only what this call parses, starting in the segment that was
         // current when it began: the REPL's `.` command parses one line onto
         // the tree of the file loaded last, whose nodes were emitted already,
-        // and the parse moves `data_dir`/`text_dir` as it meets `.data` and
+        // and the parse moves `data_dir`/`text_directive` as it meets `.data` and
         // `.text`, which the emit pass must replay from the start.
         let already_emitted: usize = match self.asm.file.as_ref().map(|f: &AstNode| &f.kind) {
             Some(AstKind::File { children, .. }) => children.len(),
             _ => 0,
         };
-        let (start_data_dir, start_text_dir): (bool, bool) = (self.asm.data_dir, self.asm.text_dir);
-        while self.peek() != TOK_EOF {
+        let (start_data_dir, start_text_dir): (bool, bool) =
+            (self.asm.data_dir, self.asm.text_directive);
+        while self.peek() != TOKEN_EOF {
             self.asm.parse_error_occurred = false;
             self.scanner.start_line();
             self.parse_line();
@@ -1603,7 +1881,7 @@ impl Machine {
             }
             if !self.asm.print_ast_only {
                 self.asm.data_dir = start_data_dir;
-                self.asm.text_dir = start_text_dir;
+                self.asm.text_directive = start_text_dir;
                 self.emit_ast(&file, already_emitted);
             }
             self.asm.file = Some(file);
@@ -1622,12 +1900,12 @@ impl Machine {
         }
     }
 
-    /// Move this line's labels to `new_addr`, after an alignment
+    /// Move this line's labels to `new_address`, after an alignment
     /// (`fix_current_label_address`).
-    pub fn fix_current_label_address(&mut self, new_addr: u32) {
+    pub fn fix_current_label_address(&mut self, new_address: u32) {
         for index in 0..self.asm.this_line_labels.len() {
             let id: LabelId = self.asm.this_line_labels[index];
-            self.symbols.label_mut(id).addr = i64::from(new_addr);
+            self.symbols.label_mut(id).address = i64::from(new_address);
         }
     }
 
@@ -1652,7 +1930,7 @@ impl Machine {
             self.emit_one(node);
             if !matches!(
                 node.kind,
-                AstKind::LabelNormal(_) | AstKind::LabelConst(..) | AstKind::DirGlobl(_)
+                AstKind::LabelNormal(_) | AstKind::LabelConstant(..) | AstKind::DirectiveGlobl(_)
             ) {
                 self.clear_labels();
             }
@@ -1661,16 +1939,16 @@ impl Machine {
 
     /// Store each value of a `.byte`/`.half`/`.word`; a value on an
     /// undefined label is patched when the label is defined
-    /// (`emit_data_int_node`).
-    fn emit_data_int_node(&mut self, values: &[ImmExpr], width: i32) {
+    /// (`emit_data_integer_node`).
+    fn emit_data_integer_node(&mut self, values: &[ImmediateExpression], width: i32) {
         for expr in values {
             let value: i32 = match expr.symbol {
                 Some(id) if !self.symbols.label(id).is_defined() => {
-                    let pc: u32 = self.current_data_pc();
-                    self.record_data_uses_symbol(pc, id, expr.offset, width);
+                    let program_counter: u32 = self.current_data_location();
+                    self.record_data_uses_symbol(program_counter, id, expr.offset, width);
                     expr.offset
                 }
-                _ => self.eval_imm_expr(expr),
+                _ => self.evaluate_immediate_expression(expr),
             };
             match width {
                 1 => self.store_byte(value),
@@ -1685,67 +1963,67 @@ impl Machine {
         // Replay the node's line, for messages and listings.
         self.scanner.set_line_no(node.source_line);
         self.asm.emit_source_active = true;
-        self.asm.emit_source_text = node.src_text.as_deref().map(Rc::from);
+        self.asm.emit_source_text = node.source_text.as_deref().map(Rc::from);
         match &node.kind {
             AstKind::File { .. } => {}
-            AstKind::DirText(start) | AstKind::DirKtext(start) => {
-                self.user_kernel_text_segment(matches!(node.kind, AstKind::DirKtext(_)));
+            AstKind::DirectiveText(start) | AstKind::DirectiveKtext(start) => {
+                self.user_kernel_text_segment(matches!(node.kind, AstKind::DirectiveKtext(_)));
                 self.asm.data_dir = false;
-                self.asm.text_dir = true;
-                if let Some(addr) = start {
-                    self.set_text_pc(*addr);
+                self.asm.text_directive = true;
+                if let Some(address) = start {
+                    self.set_text_location(*address);
                 }
             }
-            AstKind::DirData(start) | AstKind::DirKdata(start) => {
-                self.user_kernel_data_segment(matches!(node.kind, AstKind::DirKdata(_)));
+            AstKind::DirectiveData(start) | AstKind::DirectiveKdata(start) => {
+                self.user_kernel_data_segment(matches!(node.kind, AstKind::DirectiveKdata(_)));
                 self.asm.data_dir = true;
-                self.asm.text_dir = false;
+                self.asm.text_directive = false;
                 self.enable_data_alignment();
                 self.asm.auto_align = true;
-                if let Some(addr) = start {
-                    self.set_data_pc(*addr);
+                if let Some(address) = start {
+                    self.set_data_location(*address);
                 }
             }
-            AstKind::DirAlign(n) => {
+            AstKind::DirectiveAlign(n) => {
                 if *n == 0 {
                     self.asm.auto_align = false;
                 }
-                if self.asm.text_dir {
+                if self.asm.text_directive {
                     self.align_text(*n);
                 } else {
                     self.align_data(*n);
                 }
             }
-            AstKind::DirSpace(size) => self.increment_data_pc(*size),
-            AstKind::DirGlobl(name) => {
+            AstKind::DirectiveSpace(size) => self.increment_data_location(*size),
+            AstKind::DirectiveGlobl(name) => {
                 self.make_label_global(name);
             }
-            AstKind::DirExtern { name, size } => {
+            AstKind::DirectiveExtern { name, size } => {
                 self.make_label_global(name);
                 let id: LabelId = self.symbols.lookup(name);
-                if self.symbols.label(id).addr == 0 {
-                    let pc: u32 = self.current_data_pc();
-                    self.record_label(name, pc, true);
+                if self.symbols.label(id).address == 0 {
+                    let program_counter: u32 = self.current_data_location();
+                    self.record_label(name, program_counter, true);
                 }
-                self.increment_data_pc(*size);
+                self.increment_data_location(*size);
             }
-            AstKind::DirComm { name, size } => {
+            AstKind::DirectiveComm { name, size } => {
                 self.align_data(2);
                 let id: LabelId = self.symbols.lookup(name);
-                if self.symbols.label(id).addr == 0 {
-                    let pc: u32 = self.current_data_pc();
-                    self.record_label(name, pc, true);
+                if self.symbols.label(id).address == 0 {
+                    let program_counter: u32 = self.current_data_location();
+                    self.record_label(name, program_counter, true);
                 }
-                self.increment_data_pc(*size);
+                self.increment_data_location(*size);
             }
-            AstKind::DataByte(values) => self.emit_data_int_node(values, 1),
+            AstKind::DataByte(values) => self.emit_data_integer_node(values, 1),
             AstKind::DataHalf(values) => {
                 self.align_for_data(1);
-                self.emit_data_int_node(values, 2);
+                self.emit_data_integer_node(values, 2);
             }
             AstKind::DataWord(values) => {
                 self.align_for_data(2);
-                self.emit_data_int_node(values, 4);
+                self.emit_data_integer_node(values, 4);
             }
             AstKind::DataFloat(values) => {
                 self.align_for_data(2);
@@ -1763,29 +2041,69 @@ impl Machine {
                 bytes,
                 null_terminate,
             } => {
-                if !self.asm.text_dir {
+                if !self.asm.text_directive {
                     self.store_string(bytes, *null_terminate);
                 }
             }
             AstKind::LabelNormal(name) => {
-                let addr: u32 = if self.asm.text_dir {
-                    self.current_text_pc()
+                let address: u32 = if self.asm.text_directive {
+                    self.current_text_location()
                 } else {
-                    self.current_data_pc()
+                    self.current_data_location()
                 };
-                let id: LabelId = self.record_label(name, addr, false);
+                let id: LabelId = self.record_label(name, address, false);
                 self.asm.this_line_labels.insert(0, id);
             }
-            AstKind::LabelConst(name, value) => {
+            AstKind::LabelConstant(name, value) => {
                 let id: LabelId = self.record_label(name, *value as u32, true);
                 self.symbols.label_mut(id).constant = true;
             }
-            AstKind::InstR { op, rd, rs, rt } => self.r_type(*op, *rd, *rs, *rt),
-            AstKind::InstRShift { op, rd, rt, shamt } => self.r_sh_type(*op, *rd, *rt, *shamt),
-            AstKind::InstI { op, rt, rs, imm } => self.i_type(*op, *rt, *rs, imm),
-            AstKind::InstJ { op, target } => self.j_type(*op, target),
-            AstKind::InstFpR { op, fd, fs, ft } => self.r_co_type(*op, *fd, *fs, *ft),
-            AstKind::InstFpCompare { op, fs, ft, cc } => self.r_cond_type(*op, *fs, *ft, *cc),
+            AstKind::InstructionR {
+                op,
+                destination_register,
+                source_register,
+                target_register,
+            } => self.r_type(
+                *op,
+                *destination_register,
+                *source_register,
+                *target_register,
+            ),
+            AstKind::InstructionRShift {
+                op,
+                destination_register,
+                target_register,
+                shift_amount,
+            } => self.r_shift_amount_type(
+                *op,
+                *destination_register,
+                *target_register,
+                *shift_amount,
+            ),
+            AstKind::InstructionI {
+                op,
+                target_register,
+                source_register,
+                immediate,
+            } => self.i_type(*op, *target_register, *source_register, immediate),
+            AstKind::InstructionJ { op, target } => self.j_type(*op, target),
+            AstKind::InstructionFloatingPointR {
+                op,
+                floating_point_destination,
+                fs,
+                floating_point_target,
+            } => self.r_coprocessor_type(
+                *op,
+                *floating_point_destination,
+                *fs,
+                *floating_point_target,
+            ),
+            AstKind::InstructionFloatingPointCompare {
+                op,
+                fs,
+                floating_point_target,
+                condition_code,
+            } => self.r_condition_type(*op, *fs, *floating_point_target, *condition_code),
             AstKind::Pseudo { children, .. } => self.emit_chain(children),
         }
     }

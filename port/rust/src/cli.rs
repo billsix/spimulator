@@ -9,8 +9,11 @@ use std::io::Write;
 
 use crate::machine::{catch_run_error, error, error_bytes, install_panic_hook};
 use crate::machine::{Machine, Options};
-use crate::memory::{DATA_BOT, K_TEXT_BOT, TEXT_BOT};
-use crate::opcodes::{TOK_EOF, TOK_FP_REG, TOK_ID, TOK_INT, TOK_NL, TOK_REG, TOK_STR};
+use crate::memory::{DATA_BOTTOM, KERNEL_TEXT_BOTTOM, TEXT_BOTTOM};
+use crate::opcodes::{
+    TOKEN_EOF, TOKEN_FLOATING_POINT_REGISTER, TOKEN_IDENTIFIER, TOKEN_INTEGER, TOKEN_NEWLINE,
+    TOKEN_REGISTER, TOKEN_STRING,
+};
 use crate::registers::Registers;
 use crate::spim_utils::{os_path, ExceptionHandler};
 
@@ -71,7 +74,7 @@ enum Command {
     Step,
     Print,
     PrintSymbols,
-    PrintAllRegs,
+    PrintAllRegisters,
     Reinitialize,
     Asm,
     Redo,
@@ -83,8 +86,8 @@ enum Command {
     ListBreakpoints,
     DumpNative,
     Dump,
-    Disasm,
-    Args,
+    Disassembly,
+    Arguments,
 }
 
 /// The engine: the machine plus the settings and REPL state of `spim.c`.
@@ -97,17 +100,17 @@ struct Engine {
     /// The program's arguments; the first is its name.
     program_argv: Vec<Vec<u8>>,
     /// The REPL's last command, for a blank line to repeat.
-    prev_cmd: Command,
+    previous_command: Command,
     /// The last `print` operand's token kind.
-    prev_token: i32,
+    previous_token: i32,
     /// The last `run` address.
-    run_addr: u32,
+    run_address: u32,
     /// The last `step` count.
     step_count: i32,
     /// The last `print` location.
-    print_loc: i32,
+    print_location: i32,
     /// The last breakpoint address.
-    breakpoint_addr: u32,
+    breakpoint_address: u32,
 }
 
 /// The process environment as `NAME=value` strings, in order.
@@ -124,8 +127,8 @@ fn environment() -> Vec<Vec<u8>> {
 }
 
 /// True if `s1` is a prefix of `s2` at least `min_match` long
-/// (`str_prefix`): `pr` is `print`, `p` is not `print_symbols`.
-fn str_prefix(s1: &[u8], s2: &str, min_match: usize) -> bool {
+/// (`string_prefix`): `pr` is `print`, `p` is not `print_symbols`.
+fn string_prefix(s1: &[u8], s2: &str, min_match: usize) -> bool {
     s1.len() >= min_match && s2.as_bytes().starts_with(s1)
 }
 
@@ -146,12 +149,12 @@ impl Engine {
             load_exception_handler: true,
             exception_file: Some(ExceptionHandler::Embedded),
             program_argv: Vec::new(),
-            prev_cmd: Command::Nop,
-            prev_token: 0,
-            run_addr: 0,
+            previous_command: Command::Nop,
+            previous_token: 0,
+            run_address: 0,
             step_count: 0,
-            print_loc: 0,
-            breakpoint_addr: 0,
+            print_location: 0,
+            breakpoint_address: 0,
         }
     }
 
@@ -198,7 +201,7 @@ impl Engine {
     /// Take the next token; at the end of input, exit (`read_token`).
     fn read_token(&mut self) -> i32 {
         let token: i32 = self.machine.advance();
-        if token == TOK_EOF {
+        if token == TOKEN_EOF {
             self.exit(0);
         }
         token
@@ -206,17 +209,17 @@ impl Engine {
 
     /// Skip the rest of the command line (`flush_to_newline`).
     fn flush_to_newline(&mut self) {
-        while self.read_token() != TOK_NL {}
+        while self.read_token() != TOKEN_NEWLINE {}
     }
 
-    /// An optional integer operand, 0 if none (`get_opt_int`).
-    fn get_opt_int(&mut self) -> i32 {
+    /// An optional integer operand, 0 if none (`get_optional_integer`).
+    fn get_optional_integer(&mut self) -> i32 {
         let token: i32 = self.read_token();
-        if token == TOK_INT {
+        if token == TOKEN_INTEGER {
             let value: i32 = self.machine.scanner.scan_value.int();
             self.flush_to_newline();
             value
-        } else if token == TOK_NL {
+        } else if token == TOKEN_NEWLINE {
             0
         } else {
             self.flush_to_newline();
@@ -227,10 +230,10 @@ impl Engine {
     /// Read a command word (`read_assembly_command`).
     fn read_assembly_command(&mut self) -> Command {
         let token: i32 = self.read_token();
-        if token == TOK_NL {
+        if token == TOKEN_NEWLINE {
             return Command::Redo;
         }
-        if token != TOK_ID {
+        if token != TOKEN_IDENTIFIER {
             return Command::Unknown;
         }
         let word: Vec<u8> = self.machine.scanner.scan_value.text();
@@ -239,9 +242,9 @@ impl Engine {
             ("quit", 2, Command::Exit),
             ("print", 1, Command::Print),
             ("print_symbols", 7, Command::PrintSymbols),
-            ("print_all_regs", 7, Command::PrintAllRegs),
+            ("print_all_regs", 7, Command::PrintAllRegisters),
             ("run", 2, Command::Run),
-            ("args", 2, Command::Args),
+            ("args", 2, Command::Arguments),
             ("read", 2, Command::Read),
             ("load", 2, Command::Read),
             ("reinitialize", 6, Command::Reinitialize),
@@ -253,10 +256,10 @@ impl Engine {
             ("list", 2, Command::ListBreakpoints),
             ("dumpnative", 5, Command::DumpNative),
             ("dump", 4, Command::Dump),
-            ("disasm", 3, Command::Disasm),
+            ("disasm", 3, Command::Disassembly),
         ];
         for (name, min_match, command) in table {
-            if str_prefix(&word, name, min_match) {
+            if string_prefix(&word, name, min_match) {
                 return command;
             }
         }
@@ -268,13 +271,20 @@ impl Engine {
     }
 
     /// Run the program at `addr`; report a breakpoint.
-    fn run_and_report(&mut self, addr: u32, steps: i32, display: bool, cont_bkpt: bool) {
+    fn run_and_report(
+        &mut self,
+        address: u32,
+        steps: i32,
+        display: bool,
+        continue_breakpoint: bool,
+    ) {
         let (breakpoint, _): (bool, bool) =
-            self.machine.run_program(addr, steps, display, cont_bkpt);
+            self.machine
+                .run_program(address, steps, display, continue_breakpoint);
         if breakpoint {
             error(&format!(
                 "Breakpoint encountered at 0x{:08x}\n",
-                self.machine.regs.pc
+                self.machine.registers.program_counter
             ));
         }
     }
@@ -284,7 +294,7 @@ impl Engine {
     /// (`parse_spim_command`).
     fn parse_spim_command(&mut self, redo: bool) -> bool {
         let command: Command = if redo {
-            self.prev_cmd
+            self.previous_command
         } else {
             self.read_assembly_command()
         };
@@ -292,63 +302,63 @@ impl Engine {
             Command::Exit => self.exit(0),
             Command::Read => {
                 let token: i32 = if redo {
-                    self.prev_token
+                    self.previous_token
                 } else {
                     self.read_token()
                 };
                 if !redo {
                     self.flush_to_newline();
                 }
-                if token == TOK_STR {
+                if token == TOKEN_STRING {
                     let name: Vec<u8> = self.machine.scanner.scan_value.text();
                     let _ = self.machine.read_assembly_file(&name);
                     self.machine.scanner.pop_source();
                 } else {
                     error("Must supply a filename to read\n");
                 }
-                self.prev_cmd = Command::Read;
+                self.previous_command = Command::Read;
             }
             Command::Run => {
                 if !redo {
-                    self.run_addr = self.get_opt_int() as u32;
+                    self.run_address = self.get_optional_integer() as u32;
                 }
-                if self.run_addr == 0 {
-                    self.run_addr = self.machine.starting_address();
+                if self.run_address == 0 {
+                    self.run_address = self.machine.starting_address();
                 }
                 self.initialize_run_stack();
-                if self.run_addr != 0 {
+                if self.run_address != 0 {
                     if let Some(undefined) = self.machine.undefined_symbol_string() {
                         error("The following symbols are undefined:\n");
                         error(&undefined);
                         error("\n");
                     }
-                    self.run_and_report(self.run_addr, DEFAULT_RUN_STEPS, false, false);
+                    self.run_and_report(self.run_address, DEFAULT_RUN_STEPS, false, false);
                 }
-                self.prev_cmd = Command::Run;
+                self.previous_command = Command::Run;
             }
             Command::Continue => {
-                if self.machine.regs.pc != 0 {
-                    let pc: u32 = self.machine.regs.pc;
-                    self.run_and_report(pc, DEFAULT_RUN_STEPS, false, true);
+                if self.machine.registers.program_counter != 0 {
+                    let program_counter: u32 = self.machine.registers.program_counter;
+                    self.run_and_report(program_counter, DEFAULT_RUN_STEPS, false, true);
                 }
-                self.prev_cmd = Command::Continue;
+                self.previous_command = Command::Continue;
             }
             Command::Step => {
                 if !redo {
-                    self.step_count = self.get_opt_int();
+                    self.step_count = self.get_optional_integer();
                 }
-                let addr: u32 = if self.machine.regs.pc == 0 {
+                let address: u32 = if self.machine.registers.program_counter == 0 {
                     self.machine.starting_address()
                 } else {
-                    self.machine.regs.pc
+                    self.machine.registers.program_counter
                 };
                 if self.step_count == 0 {
                     self.step_count = 1;
                 }
-                if addr != 0 {
-                    self.run_and_report(addr, self.step_count, true, true);
+                if address != 0 {
+                    self.run_and_report(address, self.step_count, true, true);
                 }
-                self.prev_cmd = Command::Step;
+                self.previous_command = Command::Step;
             }
             Command::Print => self.print_command(redo),
             Command::PrintSymbols => {
@@ -356,63 +366,64 @@ impl Engine {
                 if !redo {
                     self.flush_to_newline();
                 }
-                self.prev_cmd = Command::Nop;
+                self.previous_command = Command::Nop;
             }
-            Command::PrintAllRegs => {
+            Command::PrintAllRegisters => {
                 let token: i32 = if redo {
-                    self.prev_token
+                    self.previous_token
                 } else {
                     self.read_token()
                 };
-                let hex: bool = token == TOK_ID && self.machine.scanner.scan_value.text() == b"hex";
+                let hex: bool =
+                    token == TOKEN_IDENTIFIER && self.machine.scanner.scan_value.text() == b"hex";
                 let mut text: Vec<u8> = Vec::new();
                 self.machine.format_registers(&mut text, hex, hex);
                 text.push(b'\n');
                 error_bytes(&text);
-                if !redo && token != TOK_NL {
+                if !redo && token != TOKEN_NEWLINE {
                     self.flush_to_newline();
                 }
-                self.prev_cmd = Command::Nop;
+                self.previous_command = Command::Nop;
             }
             Command::Reinitialize => {
                 self.flush_to_newline();
                 self.initialize_world();
                 self.initialize_run_stack();
                 self.machine.write_startup_message();
-                self.prev_cmd = Command::Nop;
+                self.previous_command = Command::Nop;
             }
             Command::Asm => {
                 let _ = self.machine.parse_file();
-                self.prev_cmd = Command::Asm;
+                self.previous_command = Command::Asm;
             }
             Command::Redo => return true,
-            Command::Nop => self.prev_cmd = Command::Nop,
-            Command::Args => self.args_command(),
+            Command::Nop => self.previous_command = Command::Nop,
+            Command::Arguments => self.arguments_command(),
             Command::Help => {
                 if !redo {
                     self.flush_to_newline();
                 }
                 error(HELP);
-                self.prev_cmd = Command::Help;
+                self.previous_command = Command::Help;
             }
             Command::SetBreakpoint | Command::DeleteBreakpoint => {
                 let token: i32 = if redo {
-                    self.prev_token
+                    self.previous_token
                 } else {
                     self.read_token()
                 };
-                if !redo && token != TOK_NL {
+                if !redo && token != TOKEN_NEWLINE {
                     self.flush_to_newline();
                 }
-                if token == TOK_INT {
-                    self.breakpoint_addr = if redo {
-                        self.breakpoint_addr.wrapping_add(4)
+                if token == TOKEN_INTEGER {
+                    self.breakpoint_address = if redo {
+                        self.breakpoint_address.wrapping_add(4)
                     } else {
                         self.machine.scanner.scan_value.int() as u32
                     };
-                } else if token == TOK_ID {
-                    self.breakpoint_addr = if redo {
-                        self.breakpoint_addr.wrapping_add(4)
+                } else if token == TOKEN_IDENTIFIER {
+                    self.breakpoint_address = if redo {
+                        self.breakpoint_address.wrapping_add(4)
                     } else {
                         let name: String = self.machine.scanner.scan_value.name();
                         self.machine.find_symbol_address(&name)
@@ -422,29 +433,29 @@ impl Engine {
                     return false;
                 }
                 if command == Command::SetBreakpoint {
-                    self.machine.add_breakpoint(self.breakpoint_addr);
+                    self.machine.add_breakpoint(self.breakpoint_address);
                 } else {
-                    self.machine.delete_breakpoint(self.breakpoint_addr);
+                    self.machine.delete_breakpoint(self.breakpoint_address);
                 }
-                self.prev_cmd = command;
+                self.previous_command = command;
             }
             Command::ListBreakpoints => {
                 if !redo {
                     self.flush_to_newline();
                 }
                 self.machine.list_breakpoints();
-                self.prev_cmd = Command::ListBreakpoints;
+                self.previous_command = Command::ListBreakpoints;
             }
             Command::Dump | Command::DumpNative => self.dump_command(command, redo),
-            Command::Disasm => {
+            Command::Disassembly => {
                 self.machine.print_text_listing();
                 if !redo {
                     self.flush_to_newline();
                 }
-                self.prev_cmd = Command::Nop;
+                self.previous_command = Command::Nop;
             }
             Command::Unknown => {
-                while self.read_token() != TOK_NL {}
+                while self.read_token() != TOKEN_NEWLINE {}
                 error("Unknown spim command\n");
             }
         }
@@ -455,73 +466,74 @@ impl Engine {
     /// `print LABEL`, `print $pc`...
     fn print_command(&mut self, redo: bool) {
         let token: i32 = if redo {
-            self.prev_token
+            self.previous_token
         } else {
             self.read_token()
         };
-        let mut consumed_nl: bool = false;
-        if token == TOK_REG {
-            self.print_loc = if redo {
-                self.print_loc.wrapping_add(1)
+        let mut consumed_newline: bool = false;
+        if token == TOKEN_REGISTER {
+            self.print_location = if redo {
+                self.print_location.wrapping_add(1)
             } else {
                 self.machine.scanner.scan_value.int()
             };
-            self.print_reg(self.print_loc);
-        } else if token == TOK_FP_REG {
-            self.print_loc = if redo {
-                self.print_loc.wrapping_add(2)
+            self.print_register(self.print_location);
+        } else if token == TOKEN_FLOATING_POINT_REGISTER {
+            self.print_location = if redo {
+                self.print_location.wrapping_add(2)
             } else {
                 self.machine.scanner.scan_value.int()
             };
-            self.print_fp_reg(self.print_loc);
-        } else if token == TOK_INT {
+            self.print_floating_point_register(self.print_location);
+        } else if token == TOKEN_INTEGER {
             if redo {
-                self.print_loc = self.print_loc.wrapping_add(4);
-                self.machine.print_mem(self.print_loc as u32);
+                self.print_location = self.print_location.wrapping_add(4);
+                self.machine.print_memory(self.print_location as u32);
             } else {
                 let value: i32 = self.machine.scanner.scan_value.int();
                 let next: i32 = self.read_token();
                 if next == i32::from(b'(') {
-                    let reg_token: i32 = self.read_token();
-                    let reg: i32 = if reg_token == TOK_REG {
+                    let register_token: i32 = self.read_token();
+                    let register_number: i32 = if register_token == TOKEN_REGISTER {
                         self.machine.scanner.scan_value.int()
                     } else {
                         -1
                     };
-                    let close: i32 = if reg_token == TOK_REG {
+                    let close: i32 = if register_token == TOKEN_REGISTER {
                         self.read_token()
                     } else {
                         0
                     };
-                    if reg_token == TOK_NL || close == TOK_NL {
-                        consumed_nl = true;
+                    if register_token == TOKEN_NEWLINE || close == TOKEN_NEWLINE {
+                        consumed_newline = true;
                     }
-                    if reg < 0 || close != i32::from(b')') {
+                    if register_number < 0 || close != i32::from(b')') {
                         error("expected $reg) after '(' in print N($reg) form\n");
                     } else {
-                        self.print_loc =
-                            self.machine.regs.gpr[(reg & 31) as usize].wrapping_add(value);
-                        self.machine.print_mem(self.print_loc as u32);
+                        self.print_location = self.machine.registers.general_purpose_registers
+                            [(register_number & 31) as usize]
+                            .wrapping_add(value);
+                        self.machine.print_memory(self.print_location as u32);
                     }
                 } else {
-                    self.print_loc = value;
-                    self.machine.print_mem(value as u32);
-                    if next == TOK_NL {
-                        consumed_nl = true;
+                    self.print_location = value;
+                    self.machine.print_memory(value as u32);
+                    if next == TOKEN_NEWLINE {
+                        consumed_newline = true;
                     }
                 }
             }
-        } else if token == TOK_ID {
+        } else if token == TOKEN_IDENTIFIER {
             let name: Vec<u8> = self.machine.scanner.scan_value.text();
-            if !self.print_reg_from_string(&name) {
+            if !self.print_register_from_string(&name) {
                 if redo {
-                    self.print_loc = self.print_loc.wrapping_add(4);
+                    self.print_location = self.print_location.wrapping_add(4);
                 } else {
                     let label: String = String::from_utf8_lossy(&name).into_owned();
-                    self.print_loc = self.machine.find_symbol_address(&label) as i32;
+                    self.print_location = self.machine.find_symbol_address(&label) as i32;
                 }
-                if self.print_loc != 0 {
-                    self.machine.print_mem(self.print_loc as u32);
+                if self.print_location != 0 {
+                    self.machine.print_memory(self.print_location as u32);
                 } else {
                     let mut message: Vec<u8> = b"Unknown label: ".to_vec();
                     message.extend_from_slice(&name);
@@ -532,54 +544,72 @@ impl Engine {
         } else {
             error("Print what?\n");
         }
-        if !redo && !consumed_nl {
+        if !redo && !consumed_newline {
             self.flush_to_newline();
         }
-        self.prev_cmd = Command::Print;
-        self.prev_token = token;
+        self.previous_command = Command::Print;
+        self.previous_token = token;
     }
 
-    /// `Reg N = 0x... (...)` (`print_reg`).
-    fn print_reg(&self, n: i32) {
+    /// `Reg N = 0x... (...)` (`print_register`).
+    fn print_register(&self, n: i32) {
         let value: i32 = usize::try_from(n)
             .ok()
-            .and_then(|i: usize| self.machine.regs.gpr.get(i).copied())
+            .and_then(|i: usize| {
+                self.machine
+                    .registers
+                    .general_purpose_registers
+                    .get(i)
+                    .copied()
+            })
             .unwrap_or(0);
         error(&format!("Reg {n} = 0x{:08x} ({value})\n", value as u32));
     }
 
-    /// `FP reg N = ... (double)` and `(single)` (`print_fp_reg`).
-    fn print_fp_reg(&self, n: i32) {
+    /// `FP reg N = ... (double)` and `(single)` (`print_floating_point_register`).
+    fn print_floating_point_register(&self, n: i32) {
         let index: usize = usize::try_from(n).unwrap_or(usize::MAX);
         if n & 1 == 0 {
-            let value: f64 = self.machine.regs.fpr_d(index);
+            let value: f64 = self.machine.registers.floating_point_register_double(index);
             error(&format!(
                 "FP reg {n} = {} (double)\n",
                 crate::cformat::format_g6(value)
             ));
         }
-        let value: f32 = self.machine.regs.fpr_s(index);
+        let value: f32 = self.machine.registers.floating_point_register_single(index);
         error(&format!(
             "FP reg {n} = {} (single)\n",
             crate::cformat::format_g6(f64::from(value))
         ));
     }
 
-    /// `print $pc`, `print hi`, ... (`print_reg_from_string`).  Returns
+    /// `print $pc`, `print hi`, ... (`print_register_from_string`).  Returns
     /// false if the name is not one of these registers.
-    fn print_reg_from_string(&self, name: &[u8]) -> bool {
+    fn print_register_from_string(&self, name: &[u8]) -> bool {
         let lower: Vec<u8> = name.iter().take(100).map(u8::to_ascii_lowercase).collect();
         let name: &[u8] = lower.strip_prefix(b"$").unwrap_or(&lower);
-        let regs: &Registers = &self.machine.regs;
+        let registers: &Registers = &self.machine.registers;
         let (label, value): (&str, i32) = match name {
-            b"pc" => ("PC", regs.pc as i32),
-            b"hi" => ("HI", regs.hi),
-            b"lo" => ("LO", regs.lo),
-            b"fpcond" => ("FCSR", regs.fcsr()),
-            b"cause" => ("Cause", regs.cp0(crate::registers::CP0_CAUSE)),
-            b"epc" => ("EPC", regs.cp0(crate::registers::CP0_EPC)),
-            b"status" => ("Status", regs.cp0(crate::registers::CP0_STATUS)),
-            b"badvaddr" => ("BadVAddr", regs.cp0(crate::registers::CP0_BADVADDR)),
+            b"pc" => ("PC", registers.program_counter as i32),
+            b"hi" => ("HI", registers.hi),
+            b"lo" => ("LO", registers.lo),
+            b"fpcond" => ("FCSR", registers.floating_point_control_status_register()),
+            b"cause" => (
+                "Cause",
+                registers.coprocessor_0(crate::registers::COPROCESSOR_0_CAUSE),
+            ),
+            b"epc" => (
+                "EPC",
+                registers.coprocessor_0(crate::registers::COPROCESSOR_0_EXCEPTION_PROGRAM_COUNTER),
+            ),
+            b"status" => (
+                "Status",
+                registers.coprocessor_0(crate::registers::COPROCESSOR_0_STATUS),
+            ),
+            b"badvaddr" => (
+                "BadVAddr",
+                registers.coprocessor_0(crate::registers::COPROCESSOR_0_BAD_VIRTUAL_ADDRESS),
+            ),
             _ => return false,
         };
         error(&format!("{label} = 0x{:08x} ({value})\n", value as u32));
@@ -587,7 +617,7 @@ impl Engine {
     }
 
     /// `args A B C`: the arguments of the next run (`ARGS_CMD`).
-    fn args_command(&mut self) {
+    fn arguments_command(&mut self) {
         let argv0: Vec<u8> = self
             .program_argv
             .first()
@@ -596,25 +626,25 @@ impl Engine {
         let mut arguments: Vec<Vec<u8>> = vec![argv0];
         loop {
             let token: i32 = self.read_token();
-            if token == TOK_NL || token == 0 {
+            if token == TOKEN_NEWLINE || token == 0 {
                 break;
             }
-            if token == TOK_STR || token == TOK_ID {
+            if token == TOKEN_STRING || token == TOKEN_IDENTIFIER {
                 arguments.push(self.machine.scanner.scan_value.text());
-            } else if token == TOK_INT {
+            } else if token == TOKEN_INTEGER {
                 let value: i32 = self.machine.scanner.scan_value.int();
                 arguments.push(value.to_string().into_bytes());
             }
         }
         self.program_argv = arguments;
-        self.prev_cmd = Command::Args;
+        self.previous_command = Command::Arguments;
     }
 
     /// `dump ["FILE"]` / `dumpnative ["FILE"]`: write the user program's
     /// instruction words to a file.
     fn dump_command(&mut self, command: Command, redo: bool) {
         let token: i32 = if redo {
-            self.prev_token
+            self.previous_token
         } else {
             self.read_token()
         };
@@ -623,9 +653,9 @@ impl Engine {
         } else {
             "dumpnative"
         };
-        let filename: Vec<u8> = if token == TOK_STR {
+        let filename: Vec<u8> = if token == TOKEN_STRING {
             self.machine.scanner.scan_value.text()
-        } else if token == TOK_NL {
+        } else if token == TOKEN_NEWLINE {
             b"spim.dump".to_vec()
         } else {
             error(&format!("usage: {name} [ \"filename\" ]\n"));
@@ -642,22 +672,22 @@ impl Engine {
         };
         self.machine.user_kernel_text_segment(false);
         let start: u32 = self.machine.find_symbol_address("__eoth");
-        let end: u32 = self.machine.current_text_pc();
+        let end: u32 = self.machine.current_text_location();
         let mut words: i32 = 0;
         let mut bytes: Vec<u8> = Vec::new();
-        let mut addr: u32 = start;
-        while addr < end {
+        let mut address: u32 = start;
+        while address < end {
             let code: i32 = self
                 .machine
-                .mem_read_inst(addr)
-                .map_or(0, |inst| inst.borrow().encode());
+                .memory_read_instruction(address)
+                .map_or(0, |instruction| instruction.borrow().encode());
             if command == Command::Dump {
                 bytes.extend_from_slice(&code.to_be_bytes());
             } else {
                 bytes.extend_from_slice(&code.to_le_bytes());
             }
             words += 1;
-            addr = addr.wrapping_add(4);
+            address = address.wrapping_add(4);
         }
         let _ = file.write_all(&bytes);
         let mut message: Vec<u8> =
@@ -665,13 +695,13 @@ impl Engine {
         message.extend_from_slice(&filename);
         message.push(b'\n');
         error_bytes(&message);
-        self.prev_cmd = command;
+        self.previous_command = command;
     }
 
     /// The REPL (`top_level`): read a line, execute it, repeat.  A blank
     /// line repeats the previous command.
     fn top_level(&mut self) -> ! {
-        self.machine.scanner.init(Vec::new());
+        self.machine.scanner.initialize(Vec::new());
         self.machine.asm.input_file_name = Some(b"<standard input>".to_vec());
         let mut redo: bool = false;
         loop {
@@ -717,34 +747,34 @@ impl Engine {
         let mut out: String = String::new();
         self.machine.user_kernel_text_segment(false);
         let start: u32 = self.machine.find_symbol_address("__eoth");
-        let end: u32 = self.machine.current_text_pc();
+        let end: u32 = self.machine.current_text_location();
         out.push_str(&format!(".text # 0x{start:x} .. 0x{end:x}\n.word "));
-        let mut addr: u32 = start;
-        while addr < end {
+        let mut address: u32 = start;
+        while address < end {
             let code: i32 = self
                 .machine
-                .mem_read_inst(addr)
-                .map_or(0, |inst| inst.borrow().encode());
-            let separator: &str = if addr != start { ", " } else { "" };
+                .memory_read_instruction(address)
+                .map_or(0, |instruction| instruction.borrow().encode());
+            let separator: &str = if address != start { ", " } else { "" };
             out.push_str(&format!("{separator}0x{:x}", code as u32));
-            addr = addr.wrapping_add(4);
+            address = address.wrapping_add(4);
         }
         out.push('\n');
         self.machine.user_kernel_data_segment(false);
         let start: u32 = if self.machine.options.bare_machine {
             0
         } else {
-            DATA_BOT
+            DATA_BOTTOM
         };
-        let end: u32 = self.machine.current_data_pc();
+        let end: u32 = self.machine.current_data_location();
         if end > start {
             out.push_str(&format!(".data # 0x{start:x} .. 0x{end:x}\n.word "));
-            let mut addr: u32 = start;
-            while addr < end {
-                let code: i32 = self.machine.mem_read_word(addr);
-                let separator: &str = if addr != start { ", " } else { "" };
+            let mut address: u32 = start;
+            while address < end {
+                let code: i32 = self.machine.memory_read_word(address);
+                let separator: &str = if address != start { ", " } else { "" };
                 out.push_str(&format!("{separator}0x{:x}", code as u32));
-                addr = addr.wrapping_add(4);
+                address = address.wrapping_add(4);
             }
             out.push('\n');
         }
@@ -756,23 +786,26 @@ impl Engine {
     fn dump_segments(&mut self, kernel_also: bool) {
         let mut data: Vec<u8> = Vec::new();
         if kernel_also {
-            self.machine.format_data_segs(&mut data);
+            self.machine.format_data_segments(&mut data);
         } else {
             data.extend_from_slice(b"\tDATA\n");
             let top: u32 = self.machine.mem.data_top;
-            self.machine.format_mem(&mut data, DATA_BOT, top);
+            self.machine.format_memory(&mut data, DATA_BOTTOM, top);
         }
         let _ = std::fs::write("data.asm", &data);
         let mut text: Vec<u8> = Vec::new();
         let top: u32 = self.machine.mem.text_top;
         if kernel_also {
-            self.machine.format_insts(&mut text, TEXT_BOT, top);
+            self.machine
+                .format_instructions(&mut text, TEXT_BOTTOM, top);
             text.extend_from_slice(b"\n\tKERNEL\n");
-            let k_top: u32 = self.machine.mem.k_text_top;
-            self.machine.format_insts(&mut text, K_TEXT_BOT, k_top);
+            let kernel_top: u32 = self.machine.mem.kernel_text_top;
+            self.machine
+                .format_instructions(&mut text, KERNEL_TEXT_BOTTOM, kernel_top);
         } else {
             text.extend_from_slice(b"\n\tUSER TEXT SEGMENT\n");
-            self.machine.format_insts(&mut text, TEXT_BOT, top);
+            self.machine
+                .format_instructions(&mut text, TEXT_BOTTOM, top);
         }
         let _ = std::fs::write("text.asm", &text);
     }
@@ -822,37 +855,37 @@ enum SizeFlag {
     DataLimit,
     StackSize,
     StackLimit,
-    KTextSize,
-    KDataSize,
-    KDataLimit,
+    KernelTextSize,
+    KernelDataSize,
+    KernelDataLimit,
 }
 
 /// Which size flag `arg` is (`-stext`/`-st`, ...), if any.
-fn size_flag(arg: &[u8]) -> Option<SizeFlag> {
+fn size_flag(argument: &[u8]) -> Option<SizeFlag> {
     let flags: [(&str, &str, SizeFlag); 8] = [
         ("-stext", "-st", SizeFlag::TextSize),
         ("-sdata", "-sd", SizeFlag::DataSize),
         ("-ldata", "-ld", SizeFlag::DataLimit),
         ("-sstack", "-ss", SizeFlag::StackSize),
         ("-lstack", "-ls", SizeFlag::StackLimit),
-        ("-sktext", "-skt", SizeFlag::KTextSize),
-        ("-skdata", "-skd", SizeFlag::KDataSize),
-        ("-lkdata", "-lkd", SizeFlag::KDataLimit),
+        ("-sktext", "-skt", SizeFlag::KernelTextSize),
+        ("-skdata", "-skd", SizeFlag::KernelDataSize),
+        ("-lkdata", "-lkd", SizeFlag::KernelDataLimit),
     ];
     flags
         .iter()
-        .find(|(long, short, _)| arg == long.as_bytes() || arg == short.as_bytes())
+        .find(|(long, short, _)| argument == long.as_bytes() || argument == short.as_bytes())
         .map(|(_, _, flag)| *flag)
 }
 
 /// True, after saying so, if the flag `args[i]`, which takes a value, is
 /// the last argument (`flag_value_missing`).
-fn flag_value_missing(args: &[Vec<u8>], i: usize) -> bool {
-    if i + 1 < args.len() {
+fn flag_value_missing(arguments: &[Vec<u8>], i: usize) -> bool {
+    if i + 1 < arguments.len() {
         return false;
     }
     let mut message: Vec<u8> = b"spimulator: ".to_vec();
-    message.extend_from_slice(&args[i]);
+    message.extend_from_slice(&arguments[i]);
     message.extend_from_slice(b" requires a value\n");
     error_bytes(&message);
     true
@@ -870,8 +903,8 @@ pub fn main() -> i32 {
     use std::os::unix::ffi::OsStrExt;
     install_panic_hook();
     crate::console::restore_sigpipe();
-    let args: Vec<Vec<u8>> = std::env::args_os()
-        .map(|arg: std::ffi::OsString| arg.as_bytes().to_vec())
+    let arguments: Vec<Vec<u8>> = std::env::args_os()
+        .map(|argument: std::ffi::OsString| argument.as_bytes().to_vec())
         .collect();
     let mut engine: Engine = Engine::new();
     if let Some(handler) = std::env::var_os("SPIM_EXCEPTION_HANDLER") {
@@ -885,12 +918,12 @@ pub fn main() -> i32 {
     let mut file_attempted: bool = false;
     let mut world_initialized: bool = false;
     let mut last_file: Option<usize> = None;
-    let argc: usize = args.len();
+    let argc: usize = arguments.len();
     let mut i: usize = 1;
     while i < argc {
-        let arg: &[u8] = &args[i];
+        let argument: &[u8] = &arguments[i];
         let is: &dyn Fn(&str, &str) -> bool =
-            &|long: &str, short: &str| arg == long.as_bytes() || arg == short.as_bytes();
+            &|long: &str, short: &str| argument == long.as_bytes() || argument == short.as_bytes();
         let options: &mut Options = &mut engine.machine.options;
         if is("-asm", "-a") {
             options.bare_machine = false;
@@ -910,11 +943,11 @@ pub fn main() -> i32 {
         } else if is("-noexception", "-ne") || is("-notrap", "-nt") {
             engine.load_exception_handler = false;
         } else if is("-exception_file", "-ef") || is("-trap_file", "-tf") {
-            if flag_value_missing(&args, i) {
+            if flag_value_missing(&arguments, i) {
                 print_usage = true;
             } else {
                 i += 1;
-                engine.exception_file = Some(ExceptionHandler::Files(args[i].clone()));
+                engine.exception_file = Some(ExceptionHandler::Files(arguments[i].clone()));
                 engine.load_exception_handler = true;
             }
         } else if is("-mapped_io", "-mio") {
@@ -922,31 +955,31 @@ pub fn main() -> i32 {
         } else if is("-nomapped_io", "-nmio") {
             options.mapped_io = false;
         } else if is("-pseudo", "-p") {
-            options.accept_pseudo_insts = true;
+            options.accept_pseudo_instructions = true;
         } else if is("-nopseudo", "-np") {
-            options.accept_pseudo_insts = false;
+            options.accept_pseudo_instructions = false;
         } else if is("-quiet", "-q") {
             options.quiet = true;
         } else if is("-noquiet", "-nq") {
             options.quiet = false;
         } else if is("-noexplain", "-nx") {
             // The teaching mode is off already.
-        } else if arg.starts_with(b"-explain=") || arg.starts_with(b"-x=") {
-            let position: usize = arg.iter().position(|b: &u8| *b == b'=').unwrap_or(0);
-            let level: &[u8] = &arg[position + 1..];
+        } else if argument.starts_with(b"-explain=") || argument.starts_with(b"-x=") {
+            let position: usize = argument.iter().position(|b: &u8| *b == b'=').unwrap_or(0);
+            let level: &[u8] = &argument[position + 1..];
             if level.len() == 1 && (b'0'..=b'4').contains(&level[0]) {
                 if level[0] != b'0' {
                     explain_not_supported();
                 }
             } else {
                 let mut message: Vec<u8> = b"spimulator: ".to_vec();
-                message.extend_from_slice(arg);
+                message.extend_from_slice(argument);
                 message.extend_from_slice(b" requires a level in 0..4\n");
                 error_bytes(&message);
                 print_usage = true;
             }
         } else if is("-explain", "-x") {
-            let next: Option<&Vec<u8>> = args.get(i + 1);
+            let next: Option<&Vec<u8>> = arguments.get(i + 1);
             match next {
                 Some(level) if level.len() == 1 && (b'0'..=b'4').contains(&level[0]) => {
                     i += 1;
@@ -956,28 +989,28 @@ pub fn main() -> i32 {
                 }
                 _ => explain_not_supported(),
             }
-        } else if let Some(field) = size_flag(arg) {
+        } else if let Some(field) = size_flag(argument) {
             // -stext N, -sdata N, ...: a size or limit (C's atoi).
-            if flag_value_missing(&args, i) {
+            if flag_value_missing(&arguments, i) {
                 print_usage = true;
             } else {
                 i += 1;
-                let value: i32 = crate::arith::c_atoi(&args[i]);
+                let value: i32 = crate::arith::c_atoi(&arguments[i]);
                 match field {
                     SizeFlag::TextSize => options.initial_text_size = value,
                     SizeFlag::DataSize => options.initial_data_size = value,
                     SizeFlag::DataLimit => options.initial_data_limit = value,
                     SizeFlag::StackSize => options.initial_stack_size = value,
                     SizeFlag::StackLimit => options.initial_stack_limit = value,
-                    SizeFlag::KTextSize => options.initial_k_text_size = value,
-                    SizeFlag::KDataSize => options.initial_k_data_size = value,
-                    SizeFlag::KDataLimit => options.initial_k_data_limit = value,
+                    SizeFlag::KernelTextSize => options.initial_kernel_text_size = value,
+                    SizeFlag::KernelDataSize => options.initial_kernel_data_size = value,
+                    SizeFlag::KernelDataLimit => options.initial_kernel_data_limit = value,
                 }
             }
-        } else if (is("-file", "-f") && i + 1 < argc) || arg.first() != Some(&b'-') {
+        } else if (is("-file", "-f") && i + 1 < argc) || argument.first() != Some(&b'-') {
             // `-f FILE` may repeat; a bare FILE is both the program and
             // its argv[0], and everything after it is the program's argv.
-            let explicit: bool = arg.first() == Some(&b'-');
+            let explicit: bool = argument.first() == Some(&b'-');
             if !explicit && file_loaded {
                 break;
             }
@@ -987,7 +1020,7 @@ pub fn main() -> i32 {
                 world_initialized = true;
             }
             file_attempted = true;
-            let name: Vec<u8> = args[file_index].clone();
+            let name: Vec<u8> = arguments[file_index].clone();
             let loaded: bool = engine
                 .before_top_level(|engine: &mut Engine| engine.machine.read_assembly_file(&name));
             if !loaded {
@@ -999,20 +1032,20 @@ pub fn main() -> i32 {
                 i = file_index + 1;
                 continue;
             }
-            engine.program_argv = args[file_index..].to_vec();
+            engine.program_argv = arguments[file_index..].to_vec();
             break;
-        } else if arg == b"-assemble" {
+        } else if argument == b"-assemble" {
             assemble = true;
-        } else if arg == b"-print-ast" {
+        } else if argument == b"-print-ast" {
             engine.machine.asm.print_ast = true;
             engine.machine.asm.print_ast_only = true;
-        } else if arg == b"-show-expansion" {
+        } else if argument == b"-show-expansion" {
             engine.machine.asm.show_expansion = true;
             engine.machine.asm.print_ast_only = true;
-        } else if arg == b"-print-ast-json" {
+        } else if argument == b"-print-ast-json" {
             engine.machine.asm.print_ast_json = true;
             engine.machine.asm.print_ast_only = true;
-        } else if arg == b"-listing" {
+        } else if argument == b"-listing" {
             if i + 1 >= argc {
                 error("\n-listing requires a filename argument\n");
                 print_usage = true;
@@ -1020,7 +1053,7 @@ pub fn main() -> i32 {
                 continue;
             }
             i += 1;
-            let path: &[u8] = &args[i];
+            let path: &[u8] = &arguments[i];
             if path == b"-" {
                 engine.machine.listing = Some(Box::new(std::io::stderr()));
             } else {
@@ -1040,13 +1073,13 @@ pub fn main() -> i32 {
                     }
                 }
             }
-        } else if arg == b"-dump" {
+        } else if argument == b"-dump" {
             dump_user = true;
-        } else if arg == b"-full_dump" {
+        } else if argument == b"-full_dump" {
             dump_all = true;
         } else {
             let mut message: Vec<u8> = b"\nUnknown argument: ".to_vec();
-            message.extend_from_slice(arg);
+            message.extend_from_slice(argument);
             message.extend_from_slice(b" (ignored)\n");
             error_bytes(&message);
             print_usage = true;
@@ -1057,7 +1090,7 @@ pub fn main() -> i32 {
     // With only `-f` files, argv[0] is the last file loaded.
     if file_loaded && engine.program_argv.is_empty() {
         if let Some(index) = last_file {
-            engine.program_argv = args[index..].to_vec();
+            engine.program_argv = arguments[index..].to_vec();
         }
     }
     if print_usage {

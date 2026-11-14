@@ -32,14 +32,14 @@ length-counted compare missing the length check.
 
 | Site | Verdict |
 |---|---|
-| `testStringsForEquality.{c,-1.asm}` `str_eq`/`streq` | **correct** both sides (`bne` differ-check precedes the NUL check). NB: returns **0 on equal / 1 on differ** — deliberately inverted, documented in the header. |
+| `testStringsForEquality.{c,-1.asm}` `str_eq`/`strings_equal` | **correct** both sides (`bne` differ-check precedes the NUL check). NB: returns **0 on equal / 1 on differ** — deliberately inverted, documented in the header. |
 | `transforms/head/head.{c,asm}` `str_eq` (`-n` flag) | correct both sides (returns 1 on equal) |
 | `transforms/tail/tail.{c,asm}` `str_eq` | correct both sides |
 | `fileio/comm/comm.{c,asm}` `line_cmp` | correct both sides (strcmp shape; NUL handled after differ-check) |
 | `transforms/uniq/uniq.{c,asm}` `lines_equal`/`emit_if_new` | correct both sides — the length-counted case; **both check `prevLen == curLen` before comparing bytes** |
 | every other demo (`seq`, `factor`, `cp`, `touch`, `base64`, `nl`, `od`, `cut`, `cat`, recursion/algorithms sets) | no string-equality code (grep-swept for comparison loops; hits were comments or numeric compares) |
 | `pgu/` (book + asm ports) | no string-equality listings (swept `src/`, `upstreamSource/`, `docs/source/*.rst`) |
-| simulator: `streq` (spim.h), symbol table, `map_string_to_name_val_val` (the shared register/keyword lookup, spim-utils.c:414) | correct — the lookup's match test requires **both** strings at NUL; prefix in either direction is a miss. `str_prefix` in the REPL is prefix-matching **by design** (command abbreviation). |
+| simulator: `strings_equal` (spim.h), symbol table, `map_string_to_name_value_value` (the shared register/keyword lookup, spim-utils.c:414) | correct — the lookup's match test requires **both** strings at NUL; prefix in either direction is a miss. `string_prefix` in the REPL is prefix-matching **by design** (command abbreviation). |
 
 ## Question for the maintainer
 

@@ -12,7 +12,7 @@ module SpimUtils
   )
 where
 
-import Assemble (kTextBeginsAtPoint, textBeginsAtPoint)
+import Assemble (kernelTextBeginsAtPoint, textBeginsAtPoint)
 import Control.Exception (IOException, try)
 import Control.Monad (forM, forM_, unless, when)
 import Data.Bits (complement, (.&.), (.|.))
@@ -31,7 +31,7 @@ import Output
 import Parser
 import Registers
 import Run (runSpim)
-import Scanner (scannerInit)
+import Scanner (scannerInitialize)
 import State
 import SymbolTable
 import System.Directory (doesDirectoryExist)
@@ -49,45 +49,45 @@ initializeWorld s handler printMessage = do
   makeMemory s
   initializeRegisters s
   initializeSymbolTable s
-  kTextBeginsAtPoint s kTextBot
-  kDataBeginsAtPoint s kDataBot
-  dataBeginsAtPoint s dataBot
-  textBeginsAtPoint s textBot
+  kernelTextBeginsAtPoint s kernelTextBottom
+  kernelDataBeginsAtPoint s kernelDataBottom
+  dataBeginsAtPoint s dataBottom
+  textBeginsAtPoint s textBottom
   case handler of
     NoHandler -> pure ()
     _ -> do
-      oldBare :: Bool <- get (optBare s)
-      oldPseudo :: Bool <- get (optAcceptPseudo s)
-      set (optBare s) False
-      set (optAcceptPseudo s) True
+      oldBare :: Bool <- get (optionBare s)
+      oldPseudo :: Bool <- get (optionAcceptPseudo s)
+      set (optionBare s) False
+      set (optionAcceptPseudo s) True
       case handler of
         DefaultHandler text name -> do
           assembleText s text name
-          when printMessage $ writeErr ("Loaded: " ++ name ++ "\n")
+          when printMessage $ writeError ("Loaded: " ++ name ++ "\n")
         HandlerFiles names ->
           forM_ (splitOn ';' names) $ \file -> do
             okRead :: Bool <- readAssemblyFile s file
             unless okRead $ fatalError ("Cannot read exception handler: " ++ file ++ "\n")
-            when printMessage $ writeErr ("Loaded: " ++ file ++ "\n")
-      set (optBare s) oldBare
-      set (optAcceptPseudo s) oldPseudo
+            when printMessage $ writeError ("Loaded: " ++ file ++ "\n")
+      set (optionBare s) oldBare
+      set (optionAcceptPseudo s) oldPseudo
       unless oldBare $ do
         _ <- makeLabelGlobal s "main"
         _ <- recordLabel s "main" 0 False
         pure ()
-  scannerInit s ""
+  scannerInitialize s ""
   deleteAllBreakpoints s
   where
     -- strtok: the pieces between separators, skipping empty ones.
     splitOn :: Char -> String -> [String]
-    splitOn c str = case break (== c) (dropWhile (== c) str) of
+    splitOn c string = case break (== c) (dropWhile (== c) string) of
       ("", _) -> []
       (piece, rest) -> piece : splitOn c rest
 
 -- | C: @write_startup_message@.
 writeStartupMessage :: IO ()
 writeStartupMessage =
-  writeErr
+  writeError
     ( "SPIM Version 9.1.24 of August 1, 2023 (final)\n"
         ++ "Copyright 1990-2023 by James Larus.\n"
         ++ "All Rights Reserved.\n"
@@ -99,32 +99,32 @@ writeStartupMessage =
 -- (C: @initialize_registers@).
 initializeRegisters :: Spim -> IO ()
 initializeRegisters s = do
-  forM_ [0 .. 31] $ \n -> setFprWord s n 0 >> setGpr s n 0
-  setGpr s 29 (fromIntegral (stackTop - 4 - 4096))
-  set (regHI s) 0
-  set (regLO s) 0
-  set (regPC s) 0
-  forM_ [cp0BadVAddr, cp0Count, cp0Compare, cp0Cause, cp0Epc, cp0Config] $ \r -> setCp0 s r 0
-  setCp0 s cp0Status (fromIntegral ((statusCU .&. 0x30000000) .|. statusIM .|. statusUM))
-  setFcr s 0 (0x8000 + 0x1000 + 0x800)
-  setFcr s 31 0
+  forM_ [0 .. 31] $ \n -> setFloatingPointRegisterWord s n 0 >> setGeneralPurposeRegister s n 0
+  setGeneralPurposeRegister s 29 (fromIntegral (stackTop - 4 - 4096))
+  set (registerMultiplyDivideHigh s) 0
+  set (registerMultiplyDivideLow s) 0
+  set (registerProgramCounter s) 0
+  forM_ [coprocessor0BadVirtualAddress, coprocessor0Count, coprocessor0Compare, coprocessor0Cause, coprocessor0ExceptionProgramCounter, coprocessor0Config] $ \r -> setCoprocessor0 s r 0
+  setCoprocessor0 s coprocessor0Status (fromIntegral ((statusCoprocessorUsable .&. 0x30000000) .|. statusInterruptMask .|. statusUserMode))
+  setFloatingPointControlRegister s 0 (0x8000 + 0x1000 + 0x800)
+  setFloatingPointControlRegister s 31 0
 
 -- | Assemble one file's text (the body of C's @read_assembly_file@).
 assembleText :: Spim -> String -> String -> IO ()
 assembleText s text name = do
-  parserInit s text name
+  parserInitialize s text name
   _ <- parseFile s
-  err :: Bool <- get (parseErrorOccurred s)
-  flushLocalLabels s (not err)
+  errorOccurred :: Bool <- get (parseErrorOccurred s)
+  flushLocalLabels s (not errorOccurred)
   endOfAssemblyFile s
 
 -- | Read and assemble a file; False if it cannot be opened
 -- (C: @read_assembly_file@).
 readAssemblyFile :: Spim -> String -> IO Bool
 readAssemblyFile s name = do
-  isDir :: Bool <- doesDirectoryExist name
+  isDirective :: Bool <- doesDirectoryExist name
   contents :: Either IOException B.ByteString <-
-    if isDir
+    if isDirective
       then pure (Right B.empty)
       else try (B.readFile name) :: IO (Either IOException B.ByteString)
   case contents of
@@ -139,21 +139,21 @@ readAssemblyFile s name = do
 -- Unix @main(argc, argv, envp)@ would receive them (C: @initialize_run_stack@).
 initializeRunStack :: Spim -> [String] -> IO ()
 initializeRunStack s argv = do
-  env :: [String] <- readEnvironment
-  setGpr s 29 (fromIntegral (stackTop - 1))
-  envAddrs :: [Word32] <- forM env (copyStrToStack s)
-  argAddrs :: [Word32] <- forM argv (copyStrToStack s)
-  sp :: Word32 <- fromIntegral <$> getGpr s 29 :: IO Word32
+  environment :: [String] <- readEnvironment
+  setGeneralPurposeRegister s 29 (fromIntegral (stackTop - 1))
+  environmentAddresses :: [Word32] <- forM environment (copyStringToStack s)
+  argumentAddresses :: [Word32] <- forM argv (copyStringToStack s)
+  sp :: Word32 <- fromIntegral <$> getGeneralPurposeRegister s 29 :: IO Word32
   let aligned :: Word32
       aligned = ((sp .&. complement 3) - 4) .&. complement 7
-  setGpr s 29 (fromIntegral aligned)
-  _ <- copyIntToStack s 0
-  forM_ (reverse envAddrs) $ \a -> copyIntToStack s (fromIntegral a) >>= setGpr s 6 . fromIntegral
-  _ <- copyIntToStack s 0
-  forM_ (reverse argAddrs) $ \a -> copyIntToStack s (fromIntegral a) >>= setGpr s 5 . fromIntegral
-  setGpr s 4 (fromIntegral (length argv))
-  sp' :: Word32 <- fromIntegral <$> getGpr s 29
-  memWriteWord s sp' (fromIntegral (length argv))
+  setGeneralPurposeRegister s 29 (fromIntegral aligned)
+  _ <- copyIntegerToStack s 0
+  forM_ (reverse environmentAddresses) $ \a -> copyIntegerToStack s (fromIntegral a) >>= setGeneralPurposeRegister s 6 . fromIntegral
+  _ <- copyIntegerToStack s 0
+  forM_ (reverse argumentAddresses) $ \a -> copyIntegerToStack s (fromIntegral a) >>= setGeneralPurposeRegister s 5 . fromIntegral
+  setGeneralPurposeRegister s 4 (fromIntegral (length argv))
+  sp' :: Word32 <- fromIntegral <$> getGeneralPurposeRegister s 29
+  memoryWriteWord s sp' (fromIntegral (length argv))
 
 -- | The process's environment strings, in order, as bytes.
 readEnvironment :: IO [String]
@@ -162,48 +162,48 @@ readEnvironment = do
   if envp == nullPtr then pure [] else peekArray0 nullPtr envp >>= mapM peekCAString
 
 -- | Push a string (with its NUL) byte by byte; returns its address.
-copyStrToStack :: Spim -> String -> IO Word32
-copyStrToStack s str = do
-  forM_ (reverse (map ord str ++ [0])) $ \b -> do
-    sp :: Int32 <- getGpr s 29
-    memWriteByte s (fromIntegral sp) (fromIntegral b)
-    setGpr s 29 (sp - 1)
-  (+ 1) . fromIntegral <$> getGpr s 29
+copyStringToStack :: Spim -> String -> IO Word32
+copyStringToStack s string = do
+  forM_ (reverse (map ord string ++ [0])) $ \b -> do
+    sp :: Int32 <- getGeneralPurposeRegister s 29
+    memoryWriteByte s (fromIntegral sp) (fromIntegral b)
+    setGeneralPurposeRegister s 29 (sp - 1)
+  (+ 1) . fromIntegral <$> getGeneralPurposeRegister s 29
 
 -- | Push a word; returns its address.
-copyIntToStack :: Spim -> Int32 -> IO Word32
-copyIntToStack s n = do
-  sp :: Int32 <- getGpr s 29
-  memWriteWord s (fromIntegral sp) n
-  setGpr s 29 (sp - 4)
+copyIntegerToStack :: Spim -> Int32 -> IO Word32
+copyIntegerToStack s n = do
+  sp :: Int32 <- getGeneralPurposeRegister s 29
+  memoryWriteWord s (fromIntegral sp) n
+  setGeneralPurposeRegister s 29 (sp - 4)
   pure (fromIntegral sp)
 
 -- | Run from an address for some steps; step over a breakpoint first if
 -- asked.  Returns (stopped at a breakpoint, can continue)
 -- (C: @run_program@).
 runProgram :: Spim -> Word32 -> Int -> Bool -> Bool -> IO (Bool, Bool)
-runProgram s pc0 steps0 display contBkpt = do
-  atBreak :: Bool <- if contBkpt then instIsBreakpoint s pc0 else pure False
-  (pc, steps) :: (Word32, Int) <-
+runProgram s programCounter0 steps0 display continueBreakpoint = do
+  atBreak :: Bool <- if continueBreakpoint then instructionIsBreakpoint s programCounter0 else pure False
+  (programCounter, steps) :: (Word32, Int) <-
     if atBreak
       then do
-        cur :: Word32 <- get (regPC s)
-        let addr :: Word32
-            addr = if cur == 0 then pc0 else cur
-        deleteBreakpoint s addr
+        current :: Word32 <- get (registerProgramCounter s)
+        let address :: Word32
+            address = if current == 0 then programCounter0 else current
+        deleteBreakpoint s address
         set (exceptionOccurred s) False
-        _ <- runSpim s addr 1 display
-        addBreakpoint s addr
-        cur' :: Word32 <- get (regPC s)
-        pure (cur', steps0 - 1)
-      else pure (pc0, steps0)
+        _ <- runSpim s address 1 display
+        addBreakpoint s address
+        current' :: Word32 <- get (registerProgramCounter s)
+        pure (current', steps0 - 1)
+      else pure (programCounter0, steps0)
   set (exceptionOccurred s) False
-  continuable :: Bool <- runSpim s pc steps display
-  exc :: Bool <- get (exceptionOccurred s)
+  continuable :: Bool <- runSpim s programCounter steps display
+  exception :: Bool <- get (exceptionOccurred s)
   code :: Int <- exceptionCode s
-  if exc && code == excBp
+  if exception && code == exceptionBreakpoint
     then do
-      st :: Int32 <- getCp0 s cp0Status
-      setCp0 s cp0Status (st .&. complement (fromIntegral statusEXL))
+      st :: Int32 <- getCoprocessor0 s coprocessor0Status
+      setCoprocessor0 s coprocessor0Status (st .&. complement (fromIntegral statusExceptionLevel))
       pure (True, continuable)
     else pure (False, continuable)

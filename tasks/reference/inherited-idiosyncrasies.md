@@ -3,7 +3,7 @@
 **Reference document.** The parts of the 2026-08-25 code-idiosyncrasy audit that are still true. The
 audit's full itemized table is in `tasks/archive/2026/08/27/code-idiosyncrasies-audit.md`; its
 correctness fixes (the `fatal_error` format-string bug, `dump-opcodes.c`'s implicit-int `main`, the
-`int` sizes of `xmalloc`/`zmalloc`, the dead `kernel` parameter of `emit_dir_seg`) were made in
+`int` sizes of `allocate_or_exit`/`allocate_zeroed_or_exit`, the dead `kernel` parameter of `emit_directive_segment`) were made in
 `tasks/archive/2026/10/16/c23-modernization-pass2.md`, Tier 1.
 
 ## Still open

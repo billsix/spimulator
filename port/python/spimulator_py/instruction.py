@@ -7,9 +7,9 @@ Three jobs, as in the C file:
   that does not fit in 16 bits is synthesized with ``lui $at`` + ``ori``,
   exactly as the C engine does (so the addresses of everything after it
   match);
-* ``inst_encode`` / ``inst_decode`` convert between an Instruction and its
+* ``instruction_encode`` / ``instruction_decode`` convert between an Instruction and its
   32-bit machine word;
-* ``format_an_inst`` prints one line of disassembly.
+* ``format_an_instruction`` prints one line of disassembly.
 """
 
 from . import (
@@ -28,20 +28,20 @@ from . import (
     traps,
 )
 from . import registers as regs
-from .inst import AddrExpr, ImmExpr, Instruction
+from .inst import AddressExpression, ImmediateExpression, Instruction
 from .opcode_table import OpType, Tok
 
 # Operand-shape tags (opcode-types.h), named once for the switches below.
 
-IMM_MIN: int = -0x8000
-IMM_MAX: int = 0x7FFF
-UIMM_MIN: int = 0
-UIMM_MAX: int = 0xFFFF
+IMMEDIATE_MIN: int = -0x8000
+IMMEDIATE_MAX: int = 0x7FFF
+UNSIGNED_IMMEDIATE_MIN: int = 0
+UNSIGNED_IMMEDIATE_MAX: int = 0xFFFF
 
-COND_UN: int = 0x1
-COND_EQ: int = 0x2
-COND_LT: int = 0x4
-COND_IN: int = 0x8
+CONDITION_UNORDERED: int = 0x1
+CONDITION_EQUAL: int = 0x2
+CONDITION_LESS_THAN: int = 0x4
+CONDITION_INVALID: int = 0x8
 
 
 BRANCH_OPCODES: frozenset[int] = frozenset({
@@ -83,30 +83,50 @@ _SIGNED_IMMEDIATE_OPCODES: frozenset[int] = frozenset({
     Tok.TLTIU_OPCODE, Tok.TNEI_OPCODE,
 })  # fmt: skip
 
-# The condition bits each FP compare stores (r_cond_type).
+# The condition bits each FP compare stores (r_condition_type).
 _COMPARE_CONDITIONS: dict[int, int] = {}
-for _double_form, _single_form, _cond in (
-    (Tok.C_EQ_D_OPCODE, Tok.C_EQ_S_OPCODE, COND_EQ),
-    (Tok.C_LE_D_OPCODE, Tok.C_LE_S_OPCODE, COND_IN | COND_LT | COND_EQ),
-    (Tok.C_LT_D_OPCODE, Tok.C_LT_S_OPCODE, COND_IN | COND_LT),
-    (Tok.C_NGE_D_OPCODE, Tok.C_NGE_S_OPCODE, COND_IN | COND_LT | COND_UN),
-    (Tok.C_NGLE_D_OPCODE, Tok.C_NGLE_S_OPCODE, COND_IN | COND_UN),
-    (Tok.C_NGL_D_OPCODE, Tok.C_NGL_S_OPCODE, COND_IN | COND_EQ | COND_UN),
-    (Tok.C_NGT_D_OPCODE, Tok.C_NGT_S_OPCODE, COND_IN | COND_LT | COND_EQ | COND_UN),
-    (Tok.C_OLT_D_OPCODE, Tok.C_OLT_S_OPCODE, COND_LT),
-    (Tok.C_OLE_D_OPCODE, Tok.C_OLE_S_OPCODE, COND_LT | COND_EQ),
-    (Tok.C_SEQ_D_OPCODE, Tok.C_SEQ_S_OPCODE, COND_IN | COND_EQ),
-    (Tok.C_SF_D_OPCODE, Tok.C_SF_S_OPCODE, COND_IN),
+for _double_form, _single_form, _condition in (
+    (Tok.C_EQ_D_OPCODE, Tok.C_EQ_S_OPCODE, CONDITION_EQUAL),
+    (
+        Tok.C_LE_D_OPCODE,
+        Tok.C_LE_S_OPCODE,
+        CONDITION_INVALID | CONDITION_LESS_THAN | CONDITION_EQUAL,
+    ),
+    (Tok.C_LT_D_OPCODE, Tok.C_LT_S_OPCODE, CONDITION_INVALID | CONDITION_LESS_THAN),
+    (
+        Tok.C_NGE_D_OPCODE,
+        Tok.C_NGE_S_OPCODE,
+        CONDITION_INVALID | CONDITION_LESS_THAN | CONDITION_UNORDERED,
+    ),
+    (Tok.C_NGLE_D_OPCODE, Tok.C_NGLE_S_OPCODE, CONDITION_INVALID | CONDITION_UNORDERED),
+    (
+        Tok.C_NGL_D_OPCODE,
+        Tok.C_NGL_S_OPCODE,
+        CONDITION_INVALID | CONDITION_EQUAL | CONDITION_UNORDERED,
+    ),
+    (
+        Tok.C_NGT_D_OPCODE,
+        Tok.C_NGT_S_OPCODE,
+        CONDITION_INVALID | CONDITION_LESS_THAN | CONDITION_EQUAL | CONDITION_UNORDERED,
+    ),
+    (Tok.C_OLT_D_OPCODE, Tok.C_OLT_S_OPCODE, CONDITION_LESS_THAN),
+    (Tok.C_OLE_D_OPCODE, Tok.C_OLE_S_OPCODE, CONDITION_LESS_THAN | CONDITION_EQUAL),
+    (Tok.C_SEQ_D_OPCODE, Tok.C_SEQ_S_OPCODE, CONDITION_INVALID | CONDITION_EQUAL),
+    (Tok.C_SF_D_OPCODE, Tok.C_SF_S_OPCODE, CONDITION_INVALID),
     (Tok.C_F_D_OPCODE, Tok.C_F_S_OPCODE, 0),
-    (Tok.C_UEQ_D_OPCODE, Tok.C_UEQ_S_OPCODE, COND_EQ | COND_UN),
-    (Tok.C_ULT_D_OPCODE, Tok.C_ULT_S_OPCODE, COND_LT | COND_UN),
-    (Tok.C_ULE_D_OPCODE, Tok.C_ULE_S_OPCODE, COND_LT | COND_EQ | COND_UN),
-    (Tok.C_UN_D_OPCODE, Tok.C_UN_S_OPCODE, COND_UN),
+    (Tok.C_UEQ_D_OPCODE, Tok.C_UEQ_S_OPCODE, CONDITION_EQUAL | CONDITION_UNORDERED),
+    (Tok.C_ULT_D_OPCODE, Tok.C_ULT_S_OPCODE, CONDITION_LESS_THAN | CONDITION_UNORDERED),
+    (
+        Tok.C_ULE_D_OPCODE,
+        Tok.C_ULE_S_OPCODE,
+        CONDITION_LESS_THAN | CONDITION_EQUAL | CONDITION_UNORDERED,
+    ),
+    (Tok.C_UN_D_OPCODE, Tok.C_UN_S_OPCODE, CONDITION_UNORDERED),
 ):
-    _COMPARE_CONDITIONS[_double_form] = _cond
-    _COMPARE_CONDITIONS[_single_form] = _cond
+    _COMPARE_CONDITIONS[_double_form] = _condition
+    _COMPARE_CONDITIONS[_single_form] = _condition
 
-_FP_MOVE_ON_GPR: frozenset[int] = frozenset(
+_FLOATING_POINT_MOVE_ON_GENERAL_PURPOSE_REGISTER: frozenset[int] = frozenset(
     {Tok.MOVN_S_OPCODE, Tok.MOVN_D_OPCODE, Tok.MOVZ_S_OPCODE, Tok.MOVZ_D_OPCODE}
 )
 
@@ -145,62 +165,66 @@ def kind_of(opcode: int) -> int | None:
 # --- where the next instruction goes -----------------------------------------
 
 _in_kernel: bool = False
-_next_text_pc: int = 0
-_next_k_text_pc: int = 0
+_next_text_location: int = 0
+_next_kernel_text_location: int = 0
 
 
-def text_begins_at_point(addr: int) -> None:
+def text_begins_at_point(address: int) -> None:
     """Start the user text segment at addr."""
-    global _next_text_pc, _in_kernel
-    _next_text_pc = addr
+    global _next_text_location, _in_kernel
+    _next_text_location = address
     _in_kernel = False
 
 
-def k_text_begins_at_point(addr: int) -> None:
+def kernel_text_begins_at_point(address: int) -> None:
     """Start the kernel text segment at addr."""
-    global _next_k_text_pc, _in_kernel
-    _next_k_text_pc = addr
+    global _next_kernel_text_location, _in_kernel
+    _next_kernel_text_location = address
     _in_kernel = False
 
 
 def align_text(alignment: int) -> None:
     """Round the text PC up to a 2**alignment boundary (``.align`` in text)."""
-    global _next_text_pc, _next_k_text_pc
+    global _next_text_location, _next_kernel_text_location
     if alignment == 0:
         return  # disables auto-alignment, which text never does anyway
     mask: int = (0xFFFFFFFF << alignment) & 0xFFFFFFFF
     if _in_kernel:
-        _next_k_text_pc = ((_next_k_text_pc + (1 << alignment) - 1) & mask) & 0xFFFFFFFF
-        parser.fix_current_label_address(_next_k_text_pc)
+        _next_kernel_text_location = (
+            (_next_kernel_text_location + (1 << alignment) - 1) & mask
+        ) & 0xFFFFFFFF
+        parser.fix_current_label_address(_next_kernel_text_location)
     else:
-        _next_text_pc = ((_next_text_pc + (1 << alignment) - 1) & mask) & 0xFFFFFFFF
-        parser.fix_current_label_address(_next_text_pc)
+        _next_text_location = (
+            (_next_text_location + (1 << alignment) - 1) & mask
+        ) & 0xFFFFFFFF
+        parser.fix_current_label_address(_next_text_location)
 
 
-def set_text_pc(addr: int) -> None:
+def set_text_location(address: int) -> None:
     """Put the next instruction at addr (``.text ADDR``)."""
-    global _next_text_pc, _next_k_text_pc
+    global _next_text_location, _next_kernel_text_location
     if _in_kernel:
-        _next_k_text_pc = addr
+        _next_kernel_text_location = address
     else:
-        _next_text_pc = addr
+        _next_text_location = address
 
 
-def current_text_pc() -> int:
+def current_text_location() -> int:
     """The address the next instruction will be stored at."""
-    return _next_k_text_pc if _in_kernel else _next_text_pc
+    return _next_kernel_text_location if _in_kernel else _next_text_location
 
 
-def _increment_text_pc(delta: int) -> None:
+def _increment_text_location(delta: int) -> None:
     """Advance the text PC, which must stay inside its segment."""
-    global _next_text_pc, _next_k_text_pc
+    global _next_text_location, _next_kernel_text_location
     if _in_kernel:
-        _next_k_text_pc = (_next_k_text_pc + delta) & 0xFFFFFFFF
-        if memory.k_text_top <= _next_k_text_pc:
+        _next_kernel_text_location = (_next_kernel_text_location + delta) & 0xFFFFFFFF
+        if memory.kernel_text_top <= _next_kernel_text_location:
             raise console.run_error("Can't expand kernel text segment\n")
     else:
-        _next_text_pc = (_next_text_pc + delta) & 0xFFFFFFFF
-        if memory.text_top <= _next_text_pc:
+        _next_text_location = (_next_text_location + delta) & 0xFFFFFFFF
+        if memory.text_top <= _next_text_location:
             raise console.run_error("Can't expand text segment\n")
 
 
@@ -230,26 +254,26 @@ def emit_source_clear() -> None:
     _emit_source_text = None
 
 
-def _store_instruction(inst: Instruction) -> None:
+def _store_instruction(instruction: Instruction) -> None:
     """Store inst at the next text address (or as a word in a data segment)."""
-    if parser.data_dir:
-        data.store_word(inst_encode(inst))
-    elif parser.text_dir:
-        at: int = current_text_pc()
+    if parser.data_directive:
+        data.store_word(instruction_encode(instruction))
+    elif parser.text_directive:
+        at: int = current_text_location()
         traps.exception_occurred = False
-        memory.write_inst(at, inst)
+        memory.write_instruction(at, instruction)
         if traps.exception_occurred:
             console.error(f"Invalid address (0x{at:08x}) for instruction\n")
         else:
-            _increment_text_pc(4)
-        inst.source = (
+            _increment_text_location(4)
+        instruction.source = (
             _emit_source_text if _emit_source_active else scanner.source_line()
         )
-        if inst.encoding == 0:
-            inst.set_encoding(inst_encode(inst))
-        assembler_event.text_inst(at, machine.u32(inst.encoding))
+        if instruction.encoding == 0:
+            instruction.set_encoding(instruction_encode(instruction))
+        assembler_event.text_instruction(at, machine.u32(instruction.encoding))
     else:
-        # Never reached: the parser always sets data_dir and text_dir as a pair, one true.
+        # Never reached: the parser always sets data_directive and text_directive as a pair, one true.
         raise console.fatal_error(
             "internal error: store_instruction: neither the data nor the text segment is active\n"
         )
@@ -258,129 +282,166 @@ def _store_instruction(inst: Instruction) -> None:
 # --- the assembler's instruction builders ------------------------------------
 
 
-def make_imm_expr(offset: int, symbol: str | None, pc_relative: bool) -> ImmExpr:
+def make_immediate_expression(
+    offset: int, symbol: str | None, program_counter_relative: bool
+) -> ImmediateExpression:
     """``symbol + offset``; naming a symbol creates its label if it is new."""
     label: symbol_table.Label | None = (
         symbol_table.lookup_label(symbol) if symbol is not None else None
     )
-    return ImmExpr(machine.s32(offset), label, 0, pc_relative)
+    return ImmediateExpression(machine.s32(offset), label, 0, program_counter_relative)
 
 
-def const_imm_expr(value: int) -> ImmExpr:
+def constant_immediate_expression(value: int) -> ImmediateExpression:
     """A constant immediate."""
-    return make_imm_expr(value, None, False)
+    return make_immediate_expression(value, None, False)
 
 
-def incr_expr_offset(expr: ImmExpr, value: int) -> ImmExpr:
+def increment_expression_offset(
+    expression: ImmediateExpression, value: int
+) -> ImmediateExpression:
     """A copy of expr with value added to its offset."""
-    copy: ImmExpr = expr.copy()
+    copy: ImmediateExpression = expression.copy()
     copy.offset = machine.s32(copy.offset + value)
     return copy
 
 
-def _upper_bits_of_expr(expr: ImmExpr) -> ImmExpr:
+def _upper_bits_of_expression(expression: ImmediateExpression) -> ImmediateExpression:
     """A copy of expr that yields its upper 16 bits."""
-    copy: ImmExpr = expr.copy()
+    copy: ImmediateExpression = expression.copy()
     copy.bits = 1
     return copy
 
 
-def _lower_bits_of_expr(expr: ImmExpr) -> ImmExpr:
+def _lower_bits_of_expression(expression: ImmediateExpression) -> ImmediateExpression:
     """A copy of expr that yields its lower 16 bits."""
-    copy: ImmExpr = expr.copy()
+    copy: ImmediateExpression = expression.copy()
     copy.bits = -1
     return copy
 
 
-def is_zero_imm(expr: ImmExpr) -> bool:
+def is_zero_immediate(expression: ImmediateExpression) -> bool:
     """True if expr is the constant 0."""
-    return expr.offset == 0 and expr.symbol is None
+    return expression.offset == 0 and expression.symbol is None
 
 
-def eval_imm_expr(expr: ImmExpr) -> int:
+def evaluate_immediate_expression(expression: ImmediateExpression) -> int:
     """The value of expr (or its upper/lower 16 bits)."""
     value: int
-    if expr.symbol is None:
-        value = expr.offset
-    elif expr.symbol.addr != 0:
-        value = machine.s32(expr.offset + expr.symbol.addr)
+    if expression.symbol is None:
+        value = expression.offset
+    elif expression.symbol.address != 0:
+        value = machine.s32(expression.offset + expression.symbol.address)
     else:
-        console.error(f"Evaluated undefined symbol: {expr.symbol.name}\n")
+        console.error(f"Evaluated undefined symbol: {expression.symbol.name}\n")
         value = 0
-    if expr.bits > 0:
+    if expression.bits > 0:
         return (value >> 16) & 0xFFFF
-    elif expr.bits < 0:
+    elif expression.bits < 0:
         return value & 0xFFFF
     else:
         return value
 
 
-def make_addr_expr(offset: int, symbol: str | None, reg_no: int) -> AddrExpr:
-    """``symbol + offset (reg_no)``; a $gp-addressed symbol uses $gp."""
-    if reg_no == 0 and symbol is not None:
+def make_address_expression(
+    offset: int, symbol: str | None, register_no: int
+) -> AddressExpression:
+    """``symbol + offset (register_no)``; a $gp-addressed symbol uses $gp."""
+    if register_no == 0 and symbol is not None:
         label: symbol_table.Label = symbol_table.lookup_label(symbol)
-        if label.gp_flag:
-            return AddrExpr(
-                regs.REG_GP,
-                make_imm_expr(offset + label.addr - memory.gp_midpoint, None, False),
+        if label.global_pointer_flag:
+            return AddressExpression(
+                regs.GLOBAL_POINTER_REGISTER,
+                make_immediate_expression(
+                    offset + label.address - memory.global_pointer_midpoint, None, False
+                ),
             )
-    return AddrExpr(reg_no & 0xFF, make_imm_expr(offset, symbol, False))
+    return AddressExpression(
+        register_no & 0xFF, make_immediate_expression(offset, symbol, False)
+    )
 
 
-def _needs_full_word(opcode: int, value: int, expr: ImmExpr) -> bool:
+def _needs_full_word(opcode: int, value: int, expression: ImmediateExpression) -> bool:
     """True if value does not fit the instruction's 16-bit immediate."""
     if opcode in _SIGNED_IMMEDIATE_OPCODES or (
-        opcode_is_load_store(opcode) and expr.bits == 0
+        opcode_is_load_store(opcode) and expression.bits == 0
     ):
         high: int = machine.u32(value) & 0xFFFF8000
         return high not in (0, 0xFFFF8000)
     return machine.u32(value) & 0xFFFF0000 != 0
 
 
-def i_type(opcode: int, rt: int, rs: int, expr: ImmExpr) -> None:
+def i_type(
+    opcode: int,
+    target_register: int,
+    source_register: int,
+    expression: ImmediateExpression,
+) -> None:
     """Store an I-type instruction; a large immediate takes more than one.
 
     On the extended machine an immediate that does not fit 16 bits (or a
     still-undefined symbol whose full value is needed) is built in $at
     first: see :func:`_i_type_full_word`.
     """
-    inst: Instruction = Instruction(opcode)
-    inst.set_rs(rs)
-    inst.set_rt(rt)
-    inst.expr = expr.copy()
-    if expr.symbol is None or expr.symbol.addr != 0:
-        value: int = eval_imm_expr(expr)
-        if not options.bare_machine and _needs_full_word(opcode, value, expr):
-            _i_type_full_word(opcode, rt, rs, expr, True, value)
+    instruction: Instruction = Instruction(opcode)
+    instruction.set_source_register(source_register)
+    instruction.set_target_register(target_register)
+    instruction.expression = expression.copy()
+    if expression.symbol is None or expression.symbol.address != 0:
+        value: int = evaluate_immediate_expression(expression)
+        if not options.bare_machine and _needs_full_word(opcode, value, expression):
+            _i_type_full_word(
+                opcode, target_register, source_register, expression, True, value
+            )
             return
-        symbol_table.resolve_a_label(expr.symbol, inst)
-    elif options.bare_machine or expr.bits != 0:
+        symbol_table.resolve_a_label(expression.symbol, instruction)
+    elif options.bare_machine or expression.bits != 0:
         # Only 16 bits of the value are needed: patch them when it is known.
-        symbol_table.record_inst_uses_symbol(inst, expr.symbol)
+        symbol_table.record_instruction_uses_symbol(instruction, expression.symbol)
     else:
         # The whole value is needed and unknown: assume it is large.
-        _i_type_full_word(opcode, rt, rs, expr, False, 0)
+        _i_type_full_word(
+            opcode, target_register, source_register, expression, False, 0
+        )
         return
-    _store_instruction(inst)
+    _store_instruction(instruction)
 
 
-def _gp_offset(expr: ImmExpr, rs: int) -> int | None:
+def _global_pointer_offset(
+    expression: ImmediateExpression, source_register: int
+) -> int | None:
     """The $gp-relative offset of a $gp-addressed symbol, if it fits."""
-    if expr.symbol is not None and expr.symbol.gp_flag and rs == 0:
-        offset: int = machine.s32(expr.symbol.addr + expr.offset)
-        if IMM_MIN <= offset <= IMM_MAX:
+    if (
+        expression.symbol is not None
+        and expression.symbol.global_pointer_flag
+        and source_register == 0
+    ):
+        offset: int = machine.s32(expression.symbol.address + expression.offset)
+        if IMMEDIATE_MIN <= offset <= IMMEDIATE_MAX:
             return offset
     return None
 
 
 def _i_type_full_word(
-    opcode: int, rt: int, rs: int, expr: ImmExpr, value_known: bool, value: int
+    opcode: int,
+    target_register: int,
+    source_register: int,
+    expression: ImmediateExpression,
+    value_known: bool,
+    value: int,
 ) -> None:
     """Build an immediate that may not fit 16 bits from separate instructions."""
-    gp_offset: int | None = _gp_offset(expr, rs)
+    global_pointer_offset: int | None = _global_pointer_offset(
+        expression, source_register
+    )
     if opcode_is_load_store(opcode):
-        if gp_offset is not None:
-            i_type(opcode, rt, regs.REG_GP, make_imm_expr(gp_offset, None, False))
+        if global_pointer_offset is not None:
+            i_type(
+                opcode,
+                target_register,
+                regs.GLOBAL_POINTER_REGISTER,
+                make_immediate_expression(global_pointer_offset, None, False),
+            )
         elif value_known:
             high: int = (value >> 16) & 0xFFFF
             low: int = value & 0xFFFF
@@ -389,421 +450,603 @@ def _i_type_full_word(
             ):
                 if low & 0x8000:
                     high += 1  # the load sign-extends the low half
-                i_type(Tok.LUI_OPCODE, 1, 0, const_imm_expr(high))
-                if rs != 0:
-                    r_type(Tok.ADDU_OPCODE, 1, 1, rs)
-                i_type(opcode, rt, 1, _lower_bits_of_expr(const_imm_expr(low)))
+                i_type(Tok.LUI_OPCODE, 1, 0, constant_immediate_expression(high))
+                if source_register != 0:
+                    r_type(Tok.ADDU_OPCODE, 1, 1, source_register)
+                i_type(
+                    opcode,
+                    target_register,
+                    1,
+                    _lower_bits_of_expression(constant_immediate_expression(low)),
+                )
             else:
                 # Sign-extending the low half already gives the high half.
-                i_type(opcode, rt, rs, const_imm_expr(low))
+                i_type(
+                    opcode,
+                    target_register,
+                    source_register,
+                    constant_immediate_expression(low),
+                )
         else:
-            i_type(Tok.LUI_OPCODE, 1, 0, _upper_bits_of_expr(expr))
-            if rs != 0:
-                r_type(Tok.ADDU_OPCODE, 1, 1, rs)
-            i_type(opcode, rt, 1, _lower_bits_of_expr(expr))
+            i_type(Tok.LUI_OPCODE, 1, 0, _upper_bits_of_expression(expression))
+            if source_register != 0:
+                r_type(Tok.ADDU_OPCODE, 1, 1, source_register)
+            i_type(opcode, target_register, 1, _lower_bits_of_expression(expression))
     elif opcode_is_branch(opcode):
         # This only allows branches +/- 32K, which is not correct!
-        i_type(opcode, rt, rs, _lower_bits_of_expr(expr))
-    elif gp_offset is not None:
+        i_type(
+            opcode,
+            target_register,
+            source_register,
+            _lower_bits_of_expression(expression),
+        )
+    elif global_pointer_offset is not None:
         computed: int = Tok.ADDIU_OPCODE if opcode == Tok.LUI_OPCODE else opcode
-        i_type(computed, rt, regs.REG_GP, make_imm_expr(gp_offset, None, False))
-    elif rs == 0 and opcode in frozenset(
+        i_type(
+            computed,
+            target_register,
+            regs.GLOBAL_POINTER_REGISTER,
+            make_immediate_expression(global_pointer_offset, None, False),
+        )
+    elif source_register == 0 and opcode in frozenset(
         {Tok.ORI_OPCODE, Tok.ADDI_OPCODE, Tok.ADDIU_OPCODE, Tok.LUI_OPCODE}
     ):
-        _produce_immediate(expr, rt, value_known, value)
+        _produce_immediate(expression, target_register, value_known, value)
     else:
-        _produce_immediate(expr, 1, value_known, value)
-        r_type(pseudo_op.imm_op_to_op(opcode), rt, rs, 1)
+        _produce_immediate(expression, 1, value_known, value)
+        r_type(
+            pseudo_op.immediate_opcode_to_opcode(opcode),
+            target_register,
+            source_register,
+            1,
+        )
 
 
-def _produce_immediate(expr: ImmExpr, rt: int, value_known: bool, value: int) -> None:
+def _produce_immediate(
+    expression: ImmediateExpression, target_register: int, value_known: bool, value: int
+) -> None:
     """Load expr's 32-bit value into rt with lui and/or ori."""
     if value_known and value & 0xFFFF == 0:
-        i_type(Tok.LUI_OPCODE, rt, 0, _upper_bits_of_expr(expr))
+        i_type(
+            Tok.LUI_OPCODE, target_register, 0, _upper_bits_of_expression(expression)
+        )
     elif value_known and machine.u32(value) & 0xFFFF0000 == 0:
-        i_type(Tok.ORI_OPCODE, rt, 0, _lower_bits_of_expr(expr))
+        i_type(
+            Tok.ORI_OPCODE, target_register, 0, _lower_bits_of_expression(expression)
+        )
     else:
-        i_type(Tok.LUI_OPCODE, 1, 0, _upper_bits_of_expr(expr))
-        i_type(Tok.ORI_OPCODE, rt, 1, _lower_bits_of_expr(expr))
+        i_type(Tok.LUI_OPCODE, 1, 0, _upper_bits_of_expression(expression))
+        i_type(
+            Tok.ORI_OPCODE, target_register, 1, _lower_bits_of_expression(expression)
+        )
 
 
-def j_type(opcode: int, target: ImmExpr) -> None:
+def j_type(opcode: int, target: ImmediateExpression) -> None:
     """Store a J-type instruction (the target is not PC-relative)."""
-    inst: Instruction = Instruction(opcode)
+    instruction: Instruction = Instruction(opcode)
     target.offset = 0
-    target.pc_relative = False
-    inst.expr = target.copy()
-    if target.symbol is None or target.symbol.addr != 0:
-        symbol_table.resolve_a_label(target.symbol, inst)
+    target.program_counter_relative = False
+    instruction.expression = target.copy()
+    if target.symbol is None or target.symbol.address != 0:
+        symbol_table.resolve_a_label(target.symbol, instruction)
     else:
-        symbol_table.record_inst_uses_symbol(inst, target.symbol)
-    _store_instruction(inst)
+        symbol_table.record_instruction_uses_symbol(instruction, target.symbol)
+    _store_instruction(instruction)
 
 
-def _make_r_type(opcode: int, rd: int, rs: int, rt: int) -> Instruction:
+def _make_r_type(
+    opcode: int, destination_register: int, source_register: int, target_register: int
+) -> Instruction:
     """An R-type instruction with these fields."""
-    inst: Instruction = Instruction(opcode)
-    inst.set_rs(rs)
-    inst.set_rt(rt)
-    inst.set_rd(rd)
-    return inst
+    instruction: Instruction = Instruction(opcode)
+    instruction.set_source_register(source_register)
+    instruction.set_target_register(target_register)
+    instruction.set_destination_register(destination_register)
+    return instruction
 
 
-def r_type(opcode: int, rd: int, rs: int, rt: int) -> None:
+def r_type(
+    opcode: int, destination_register: int, source_register: int, target_register: int
+) -> None:
     """Store an R-type instruction."""
-    _store_instruction(_make_r_type(opcode, rd, rs, rt))
+    _store_instruction(
+        _make_r_type(opcode, destination_register, source_register, target_register)
+    )
 
 
-def r_co_type(opcode: int, fd: int, fs: int, ft: int) -> None:
+def r_coprocessor_type(
+    opcode: int,
+    floating_point_destination: int,
+    floating_point_source: int,
+    floating_point_target: int,
+) -> None:
     """Store a coprocessor R-type instruction (FS in rd, FD in shamt)."""
-    inst: Instruction = _make_r_type(opcode, fs, 0, ft)
-    inst.set_shamt(fd)
-    _store_instruction(inst)
+    instruction: Instruction = _make_r_type(
+        opcode, floating_point_source, 0, floating_point_target
+    )
+    instruction.set_shift_amount(floating_point_destination)
+    _store_instruction(instruction)
 
 
-def r_sh_type(opcode: int, rd: int, rt: int, shamt: int) -> None:
+def r_shift_amount_type(
+    opcode: int, destination_register: int, target_register: int, shift_amount: int
+) -> None:
     """Store a shift (the amount is masked to 5 bits)."""
-    inst: Instruction = _make_r_type(opcode, rd, 0, rt)
-    inst.set_shamt(shamt & 0x1F)
-    _store_instruction(inst)
+    instruction: Instruction = _make_r_type(
+        opcode, destination_register, 0, target_register
+    )
+    instruction.set_shift_amount(shift_amount & 0x1F)
+    _store_instruction(instruction)
 
 
-def r_cond_type(opcode: int, fs: int, ft: int, cc: int) -> None:
+def r_condition_type(
+    opcode: int,
+    floating_point_source: int,
+    floating_point_target: int,
+    condition_code: int,
+) -> None:
     """Store an FP compare, with its condition bits in the rs byte."""
-    inst: Instruction = _make_r_type(opcode, fs, 0, ft)
-    inst.set_shamt(cc << 2)
+    instruction: Instruction = _make_r_type(
+        opcode, floating_point_source, 0, floating_point_target
+    )
+    instruction.set_shift_amount(condition_code << 2)
     if opcode not in _COMPARE_CONDITIONS:
-        # Never reached: only FP_CMP_FS_FT_INST rows reach here, and the table holds all 32
+        # Never reached: only FLOATING_POINT_COMPARE_SOURCE_TARGET_INSTRUCTION rows reach here, and the table holds all 32
         # of them (16 conditions, .s and .d).
         raise console.fatal_error(
             f"internal error: r_cond_type: not an FP compare: {opcode}\n"
         )
     else:
-        inst.set_rs(_COMPARE_CONDITIONS[opcode])
-    _store_instruction(inst)
+        instruction.set_source_register(_COMPARE_CONDITIONS[opcode])
+    _store_instruction(instruction)
 
 
 # --- breakpoints --------------------------------------------------------------
 
-_break_inst: Instruction | None = None
+_break_instruction: Instruction | None = None
 
 
 def _breakpoint_instruction() -> Instruction:
     """The one ``break 1`` instruction every breakpoint shares."""
-    global _break_inst
-    if _break_inst is None:
-        _break_inst = _make_r_type(Tok.BREAK_OPCODE, 1, 0, 0)
-    return _break_inst
+    global _break_instruction
+    if _break_instruction is None:
+        _break_instruction = _make_r_type(Tok.BREAK_OPCODE, 1, 0, 0)
+    return _break_instruction
 
 
-def inst_is_breakpoint(addr: int) -> bool:
+def instruction_is_breakpoint(address: int) -> bool:
     """True if a breakpoint is set at addr."""
-    return memory.read_inst(addr) is _breakpoint_instruction()
+    return memory.read_instruction(address) is _breakpoint_instruction()
 
 
-def set_breakpoint(addr: int) -> Instruction | None:
+def set_breakpoint(address: int) -> Instruction | None:
     """Put a breakpoint at addr; return the instruction it replaced, or None."""
-    brk: Instruction = _breakpoint_instruction()
+    breakpoint_instruction: Instruction = _breakpoint_instruction()
     traps.exception_occurred = False
-    old: Instruction | None = memory.read_inst(addr)
-    if old is brk:
+    old: Instruction | None = memory.read_instruction(address)
+    if old is breakpoint_instruction:
         return None
-    memory.write_inst(addr, brk)
+    memory.write_instruction(address, breakpoint_instruction)
     return None if traps.exception_occurred else old
 
 
 # --- encoding and decoding ----------------------------------------------------
 
 
-def _regs(value: int, shift: int) -> int:
+def _registers(value: int, shift: int) -> int:
     """A register number placed in its 5-bit field."""
     return (value & 0x1F) << shift
 
 
-def inst_encode(inst: Instruction | None) -> int:
-    """The 32-bit machine word of inst (signed), or 0 (C ``inst_encode``)."""
-    if inst is None:
+def instruction_encode(instruction: Instruction | None) -> int:
+    """The 32-bit machine word of inst (signed), or 0 (C ``instruction_encode``)."""
+    if instruction is None:
         return 0
-    row: opcodes.OpcodeRow | None = opcodes.ROW_BY_TOKEN.get(inst.opcode)
+    row: opcodes.OpcodeRow | None = opcodes.ROW_BY_TOKEN.get(instruction.opcode)
     if row is None:
         return 0
     a: int = row.encoding
     kind: int = row.kind
-    imm: int = inst.imm & 0xFFFF
+    immediate: int = instruction.immediate & 0xFFFF
     word: int
     match kind:
-        case OpType.BRANCH_COPROC_COND_INST:
-            word = a | _regs((inst.rt >> 2) << 2, 16) | imm
-        case OpType.BRANCH_RS_LABEL_INST | OpType.RS_IMM_INST:
-            word = a | _regs(inst.rs, 21) | imm
+        case OpType.BRANCH_COPROCESSOR_CONDITION_INSTRUCTION:
+            word = (
+                a | _registers((instruction.target_register >> 2) << 2, 16) | immediate
+            )
         case (
-            OpType.RT_IMM_INST
-            | OpType.RT_RS_IMM_INST
-            | OpType.BRANCH_RS_RT_LABEL_INST
-            | OpType.RT_ADDR_INST
-            | OpType.FP_FT_ADDR_INST
+            OpType.BRANCH_SOURCE_REGISTER_LABEL_INSTRUCTION
+            | OpType.SOURCE_REGISTER_IMMEDIATE_INSTRUCTION
         ):
-            word = a | _regs(inst.rs, 21) | _regs(inst.rt, 16) | imm
-        case OpType.RS_INST:
-            word = a | _regs(inst.rs, 21)
-        case OpType.RD_INST:
-            word = a | _regs(inst.rd, 11)
-        case OpType.RT_COPREG_INST | OpType.FP_RT_COPREG_INST:
-            word = a | _regs(inst.rt, 16) | _regs(inst.rd, 11)
-        case OpType.RS_RT_INST:
-            word = a | _regs(inst.rs, 21) | _regs(inst.rt, 16)
-        case OpType.RD_RS_INST:
-            word = a | _regs(inst.rs, 21) | _regs(inst.rd, 11)
-        case OpType.RD_RT_SHAMT_INST:
-            word = a | _regs(inst.rt, 16) | _regs(inst.rd, 11) | _regs(inst.shamt, 6)
-        case OpType.RD_RS_RT_INST | OpType.RD_RT_RS_INST | OpType.MOVC_TYPE_INST:
-            word = a | _regs(inst.rs, 21) | _regs(inst.rt, 16) | _regs(inst.rd, 11)
-        case OpType.FP_FD_FS_INST:
-            word = a | _regs(inst.rd, 11) | _regs(inst.shamt, 6)
-        case OpType.FP_CMP_FS_FT_INST:
+            word = a | _registers(instruction.source_register, 21) | immediate
+        case (
+            OpType.TARGET_REGISTER_IMMEDIATE_INSTRUCTION
+            | OpType.TARGET_REGISTER_SOURCE_REGISTER_IMMEDIATE_INSTRUCTION
+            | OpType.BRANCH_SOURCE_REGISTER_TARGET_REGISTER_LABEL_INSTRUCTION
+            | OpType.TARGET_REGISTER_ADDRESS_INSTRUCTION
+            | OpType.FLOATING_POINT_TARGET_ADDRESS_INSTRUCTION
+        ):
             word = (
                 a
-                | _regs(inst.rt, 16)
-                | _regs(inst.rd, 11)
-                | _regs(inst.shamt, 6)
-                | inst.rs
+                | _registers(instruction.source_register, 21)
+                | _registers(instruction.target_register, 16)
+                | immediate
             )
-        case OpType.FP_FD_FS_FT_INST | OpType.FP_MOVC_TYPE_INST:
+        case OpType.SOURCE_REGISTER_INSTRUCTION:
+            word = a | _registers(instruction.source_register, 21)
+        case OpType.DESTINATION_REGISTER_INSTRUCTION:
+            word = a | _registers(instruction.destination_register, 11)
+        case (
+            OpType.TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION
+            | OpType.FLOATING_POINT_TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION
+        ):
+            word = (
+                a
+                | _registers(instruction.target_register, 16)
+                | _registers(instruction.destination_register, 11)
+            )
+        case OpType.SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION:
+            word = (
+                a
+                | _registers(instruction.source_register, 21)
+                | _registers(instruction.target_register, 16)
+            )
+        case OpType.DESTINATION_REGISTER_SOURCE_REGISTER_INSTRUCTION:
+            word = (
+                a
+                | _registers(instruction.source_register, 21)
+                | _registers(instruction.destination_register, 11)
+            )
+        case OpType.DESTINATION_REGISTER_TARGET_REGISTER_SHIFT_AMOUNT_INSTRUCTION:
+            word = (
+                a
+                | _registers(instruction.target_register, 16)
+                | _registers(instruction.destination_register, 11)
+                | _registers(instruction.shift_amount, 6)
+            )
+        case (
+            OpType.DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION
+            | OpType.DESTINATION_REGISTER_TARGET_REGISTER_SOURCE_REGISTER_INSTRUCTION
+            | OpType.MOVE_CONDITIONAL_TYPE_INSTRUCTION
+        ):
+            word = (
+                a
+                | _registers(instruction.source_register, 21)
+                | _registers(instruction.target_register, 16)
+                | _registers(instruction.destination_register, 11)
+            )
+        case OpType.FLOATING_POINT_DESTINATION_SOURCE_INSTRUCTION:
+            word = (
+                a
+                | _registers(instruction.destination_register, 11)
+                | _registers(instruction.shift_amount, 6)
+            )
+        case OpType.FLOATING_POINT_COMPARE_SOURCE_TARGET_INSTRUCTION:
+            word = (
+                a
+                | _registers(instruction.target_register, 16)
+                | _registers(instruction.destination_register, 11)
+                | _registers(instruction.shift_amount, 6)
+                | instruction.source_register
+            )
+        case (
+            OpType.FLOATING_POINT_DESTINATION_SOURCE_TARGET_INSTRUCTION
+            | OpType.FLOATING_POINT_MOVE_CONDITIONAL_TYPE_INSTRUCTION
+        ):
             # For movf/movt the rt byte is cc<<2; their tf bit is in a already.
-            word = a | _regs(inst.rt, 16) | _regs(inst.rd, 11) | _regs(inst.shamt, 6)
-        case OpType.J_TYPE_INST:
-            word = machine.u32(a) | inst.target
-        case OpType.NOARG_TYPE_INST:
+            word = (
+                a
+                | _registers(instruction.target_register, 16)
+                | _registers(instruction.destination_register, 11)
+                | _registers(instruction.shift_amount, 6)
+            )
+        case OpType.J_TYPE_INSTRUCTION:
+            word = machine.u32(a) | instruction.target
+        case OpType.NO_ARGUMENT_TYPE_INSTRUCTION:
             word = a
         case _:
             raise console.fatal_error("Unknown instruction type in inst_encoding\n")
     return machine.s32(word)
 
 
-def _mk_inst(
-    word: int, opcode: int, rs: int = 0, rt: int = 0, rd: int = 0, shamt: int = 0
+def _make_instruction(
+    word: int,
+    opcode: int,
+    source_register: int = 0,
+    target_register: int = 0,
+    destination_register: int = 0,
+    shift_amount: int = 0,
 ) -> Instruction:
     """A decoded instruction with these bytes (C mk_r_inst/mk_co_r_inst)."""
-    inst: Instruction = Instruction(opcode)
-    inst.rs, inst.rt, inst.rd, inst.shamt = (
-        rs & 0xFF,
-        rt & 0xFF,
-        rd & 0xFF,
-        shamt & 0xFF,
+    instruction: Instruction = Instruction(opcode)
+    (
+        instruction.source_register,
+        instruction.target_register,
+        instruction.destination_register,
+        instruction.shift_amount,
+    ) = (
+        source_register & 0xFF,
+        target_register & 0xFF,
+        destination_register & 0xFF,
+        shift_amount & 0xFF,
     )
-    inst._bytes_changed()
-    inst.encoding = machine.s32(word)
-    return inst
+    instruction._bytes_changed()
+    instruction.encoding = machine.s32(word)
+    return instruction
 
 
-def inst_decode(word: int) -> Instruction:
-    """The instruction a 32-bit machine word encodes (C ``inst_decode``).
+def instruction_decode(word: int) -> Instruction:
+    """The instruction a 32-bit machine word encodes (C ``instruction_decode``).
 
     The major opcode (the top 6 bits) decides which other bits complete the
     opcode; that key is looked up in the table of encodings.  An unknown
     word decodes to an instruction with opcode 0, which prints as
     ``<unknown instruction 0>``.
     """
-    val: int = machine.u32(word)
-    a: int = val & 0xFC000000
+    value: int = machine.u32(word)
+    a: int = value & 0xFC000000
     match a:
         case 0 | 0x70000000:  # SPECIAL, SPECIAL2: the function field
-            a |= val & 0x3F
+            a |= value & 0x3F
         case 0x04000000:  # REGIMM: the rt field
-            a |= val & 0x001F0000
+            a |= value & 0x001F0000
         case 0x40000000:  # COP0
-            a |= (val & 0x03E00000) | (val & 0x1F)
+            a |= (value & 0x03E00000) | (value & 0x1F)
         case 0x44000000:  # COP1
-            a |= val & 0x03E00000
-            a |= (val & 0x00010000) if val & 0xFF000000 == 0x45000000 else (val & 0x3F)
+            a |= value & 0x03E00000
+            a |= (
+                (value & 0x00010000)
+                if value & 0xFF000000 == 0x45000000
+                else (value & 0x3F)
+            )
         case 0x48000000:  # COP2: the rs field
-            a |= val & 0x03E00000
+            a |= value & 0x03E00000
         case 0x4C000000:  # COP1X: the funct field
-            a |= val & 0x3F
+            a |= value & 0x3F
         case _:
             pass  # other major opcodes: the top 6 bits alone are the key
     token: int | None = opcodes.token_for_encoding(machine.s32(a))
     if token is None:
-        return _mk_inst(val, 0)
-    rs: int = (val >> 21) & 0x1F
-    rt: int = (val >> 16) & 0x1F
-    rd: int = (val >> 11) & 0x1F
-    sh: int = (val >> 6) & 0x1F
-    imm: int = val & 0xFFFF
+        return _make_instruction(value, 0)
+    source_register: int = (value >> 21) & 0x1F
+    target_register: int = (value >> 16) & 0x1F
+    destination_register: int = (value >> 11) & 0x1F
+    shift_amount: int = (value >> 6) & 0x1F
+    immediate: int = value & 0xFFFF
     kind: int | None = kind_of(token)
     match kind:
-        case OpType.BRANCH_COPROC_COND_INST | OpType.RT_IMM_INST | OpType.RT_RS_IMM_INST | OpType.BRANCH_RS_RT_LABEL_INST | OpType.RT_ADDR_INST | OpType.FP_FT_ADDR_INST:  # fmt: skip
-            return _mk_inst(val, token, rs, rt, imm & 0xFF, imm >> 8)
-        case OpType.BRANCH_RS_LABEL_INST | OpType.RS_IMM_INST:
-            return _mk_inst(val, token, rs, 0, imm & 0xFF, imm >> 8)
-        case OpType.RS_INST:
-            return _mk_inst(val, token, rs)
-        case OpType.RD_INST:
-            return _mk_inst(val, token, rd=rd)
-        case OpType.RT_COPREG_INST | OpType.FP_RT_COPREG_INST:
-            return _mk_inst(val, token, rt=rt, rd=rd)
-        case OpType.RS_RT_INST:
-            return _mk_inst(val, token, rs, rt)
-        case OpType.RD_RS_INST:
-            return _mk_inst(val, token, rs, rd=rd)
-        case OpType.RD_RT_SHAMT_INST:
-            return _mk_inst(val, token, 0, rt, rd, sh)
-        case OpType.RD_RS_RT_INST | OpType.RD_RT_RS_INST | OpType.MOVC_TYPE_INST:
-            return _mk_inst(val, token, rs, rt, rd)
-        case OpType.FP_FD_FS_INST:
-            return _mk_inst(val, token, 0, 0, rd, sh)
-        case OpType.FP_CMP_FS_FT_INST:
-            return _mk_inst(val, token, val & 0xF, rt, rd, sh)
-        case OpType.FP_FD_FS_FT_INST | OpType.FP_MOVC_TYPE_INST:
-            return _mk_inst(val, token, 0, rt, rd, sh)
-        case OpType.J_TYPE_INST:
-            target: int = val & 0x3FFFFFF
-            return _mk_inst(val, token, target, target >> 8, target >> 16, target >> 24)
-        case OpType.NOARG_TYPE_INST:
-            return _mk_inst(val, token)
+        case OpType.BRANCH_COPROCESSOR_CONDITION_INSTRUCTION | OpType.TARGET_REGISTER_IMMEDIATE_INSTRUCTION | OpType.TARGET_REGISTER_SOURCE_REGISTER_IMMEDIATE_INSTRUCTION | OpType.BRANCH_SOURCE_REGISTER_TARGET_REGISTER_LABEL_INSTRUCTION | OpType.TARGET_REGISTER_ADDRESS_INSTRUCTION | OpType.FLOATING_POINT_TARGET_ADDRESS_INSTRUCTION:  # fmt: skip
+            return _make_instruction(
+                value,
+                token,
+                source_register,
+                target_register,
+                immediate & 0xFF,
+                immediate >> 8,
+            )
+        case (
+            OpType.BRANCH_SOURCE_REGISTER_LABEL_INSTRUCTION
+            | OpType.SOURCE_REGISTER_IMMEDIATE_INSTRUCTION
+        ):
+            return _make_instruction(
+                value, token, source_register, 0, immediate & 0xFF, immediate >> 8
+            )
+        case OpType.SOURCE_REGISTER_INSTRUCTION:
+            return _make_instruction(value, token, source_register)
+        case OpType.DESTINATION_REGISTER_INSTRUCTION:
+            return _make_instruction(
+                value, token, destination_register=destination_register
+            )
+        case (
+            OpType.TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION
+            | OpType.FLOATING_POINT_TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION
+        ):
+            return _make_instruction(
+                value,
+                token,
+                target_register=target_register,
+                destination_register=destination_register,
+            )
+        case OpType.SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION:
+            return _make_instruction(value, token, source_register, target_register)
+        case OpType.DESTINATION_REGISTER_SOURCE_REGISTER_INSTRUCTION:
+            return _make_instruction(
+                value, token, source_register, destination_register=destination_register
+            )
+        case OpType.DESTINATION_REGISTER_TARGET_REGISTER_SHIFT_AMOUNT_INSTRUCTION:
+            return _make_instruction(
+                value, token, 0, target_register, destination_register, shift_amount
+            )
+        case (
+            OpType.DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION
+            | OpType.DESTINATION_REGISTER_TARGET_REGISTER_SOURCE_REGISTER_INSTRUCTION
+            | OpType.MOVE_CONDITIONAL_TYPE_INSTRUCTION
+        ):
+            return _make_instruction(
+                value, token, source_register, target_register, destination_register
+            )
+        case OpType.FLOATING_POINT_DESTINATION_SOURCE_INSTRUCTION:
+            return _make_instruction(
+                value, token, 0, 0, destination_register, shift_amount
+            )
+        case OpType.FLOATING_POINT_COMPARE_SOURCE_TARGET_INSTRUCTION:
+            return _make_instruction(
+                value,
+                token,
+                value & 0xF,
+                target_register,
+                destination_register,
+                shift_amount,
+            )
+        case (
+            OpType.FLOATING_POINT_DESTINATION_SOURCE_TARGET_INSTRUCTION
+            | OpType.FLOATING_POINT_MOVE_CONDITIONAL_TYPE_INSTRUCTION
+        ):
+            return _make_instruction(
+                value, token, 0, target_register, destination_register, shift_amount
+            )
+        case OpType.J_TYPE_INSTRUCTION:
+            target: int = value & 0x3FFFFFF
+            return _make_instruction(
+                value, token, target, target >> 8, target >> 16, target >> 24
+            )
+        case OpType.NO_ARGUMENT_TYPE_INSTRUCTION:
+            return _make_instruction(value, token)
         case _:
-            return _mk_inst(val, 0)
+            return _make_instruction(value, 0)
 
 
 # --- disassembly ------------------------------------------------------------
 
 
-def _reg(number: int) -> str:
+def _register_number(number: int) -> str:
     """The ABI name of general register number ($0 is "r0")."""
-    return regs.INT_REG_NAMES[number]
+    return regs.INTEGER_REGISTER_NAMES[number]
 
 
-def _format_imm_expr(expr: ImmExpr, base_reg: int) -> str:
+def _format_immediate_expression(
+    expression: ImmediateExpression, base_register: int
+) -> str:
     """The ``[symbol...]`` annotation of a symbolic immediate."""
-    text: str = expr.symbol.name if expr.symbol is not None else ""
-    if expr.pc_relative:
-        text += f"-0x{machine.u32(-expr.offset):08x}"
-    elif expr.offset < -10:
-        text += f"-{-expr.offset} (-0x{machine.u32(-expr.offset):08x})"
-    elif expr.offset > 10:
-        text += f"+{expr.offset} (0x{machine.u32(expr.offset):08x})"
+    text: str = expression.symbol.name if expression.symbol is not None else ""
+    if expression.program_counter_relative:
+        text += f"-0x{machine.u32(-expression.offset):08x}"
+    elif expression.offset < -10:
+        text += f"-{-expression.offset} (-0x{machine.u32(-expression.offset):08x})"
+    elif expression.offset > 10:
+        text += f"+{expression.offset} (0x{machine.u32(expression.offset):08x})"
     else:
         pass  # an offset from -10 to 10 is not printed
     if (
-        base_reg != -1
-        and expr.symbol is not None
-        and (expr.offset > 10 or expr.offset < -10)
-        and (expr.offset != 0 or base_reg != 0)
+        base_register != -1
+        and expression.symbol is not None
+        and (expression.offset > 10 or expression.offset < -10)
+        and (expression.offset != 0 or base_register != 0)
     ):
-        text += f"(${_reg(base_reg)})"
+        text += f"(${_register_number(base_register)})"
     return text
 
 
-def _operands(inst: Instruction, kind: int) -> str:
-    """The operand text of inst for its operand shape (format_an_inst)."""
-    branch_offset: int = machine.s32(machine.s16(inst.imm) << 2)
+def _operands(instruction: Instruction, kind: int) -> str:
+    """The operand text of inst for its operand shape (format_an_instruction)."""
+    branch_offset: int = machine.s32(machine.s16(instruction.immediate) << 2)
     match kind:
-        case OpType.BRANCH_COPROC_COND_INST:
-            return f"{inst.rt >> 2} {branch_offset}"
-        case OpType.BRANCH_RS_LABEL_INST:
-            return f" ${_reg(inst.rs)} {branch_offset}"
-        case OpType.RS_IMM_INST:
-            return f" ${_reg(inst.rs)}, {inst.imm}"
-        case OpType.RT_IMM_INST:
-            return f" ${_reg(inst.rt)}, {inst.imm}"
-        case OpType.RT_RS_IMM_INST:
-            return f" ${_reg(inst.rt)}, ${_reg(inst.rs)}, {inst.imm}"
-        case OpType.BRANCH_RS_RT_LABEL_INST:
-            return f" ${_reg(inst.rs)}, ${_reg(inst.rt)}, {branch_offset}"
-        case OpType.RT_ADDR_INST:
-            return f" ${_reg(inst.rt)}, {inst.imm}(${_reg(inst.rs)})"
-        case OpType.RS_INST:
-            return f" ${_reg(inst.rs)}"
-        case OpType.RD_INST:
-            return f" ${_reg(inst.rd)}"
-        case OpType.RT_COPREG_INST:
-            return f" ${_reg(inst.rt)}, ${_reg(inst.rd)}"
-        case OpType.RS_RT_INST:
-            return f" ${_reg(inst.rs)}, ${_reg(inst.rt)}"
-        case OpType.RD_RS_INST:
-            return f" ${_reg(inst.rd)}, ${_reg(inst.rs)}"
-        case OpType.RD_RT_SHAMT_INST:
-            return f" ${_reg(inst.rd)}, ${_reg(inst.rt)}, {inst.shamt}"
-        case OpType.RD_RS_RT_INST:
-            return f" ${_reg(inst.rd)}, ${_reg(inst.rs)}, ${_reg(inst.rt)}"
-        case OpType.RD_RT_RS_INST:
-            return f" ${_reg(inst.rd)}, ${_reg(inst.rt)}, ${_reg(inst.rs)}"
-        case OpType.FP_FT_ADDR_INST:
-            return f" $f{inst.rt}, {inst.imm}(${_reg(inst.rs)})"
-        case OpType.FP_FD_FS_INST:
-            return f" $f{inst.shamt}, $f{inst.rd}"
-        case OpType.FP_RT_COPREG_INST:
-            return f" ${_reg(inst.rt)}, $f{inst.rd}"
-        case OpType.FP_CMP_FS_FT_INST:
-            if inst.shamt == 0:
-                return f" $f{inst.rd}, $f{inst.rt}"
-            return f" {inst.shamt >> 2}, $f{inst.rd}, $f{inst.rt}"
-        case OpType.FP_FD_FS_FT_INST:
-            return f" $f{inst.shamt}, $f{inst.rd}, $f{inst.rt}"
-        case OpType.MOVC_TYPE_INST:
-            return f" ${_reg(inst.rd)}, ${_reg(inst.rs)}, {inst.rt >> 2}"
-        case OpType.FP_MOVC_TYPE_INST:
-            if inst.opcode in _FP_MOVE_ON_GPR:
-                return f" $f{inst.shamt}, $f{inst.rd}, ${_reg(inst.rt)}"
-            return f" $f{inst.shamt}, $f{inst.rd}, {inst.rt >> 2}"
-        case OpType.J_TYPE_INST:
-            return f" 0x{(inst.target << 2) & 0xFFFFFFFF:08x}"
-        case OpType.NOARG_TYPE_INST:
+        case OpType.BRANCH_COPROCESSOR_CONDITION_INSTRUCTION:
+            return f"{instruction.target_register >> 2} {branch_offset}"
+        case OpType.BRANCH_SOURCE_REGISTER_LABEL_INSTRUCTION:
+            return f" ${_register_number(instruction.source_register)} {branch_offset}"
+        case OpType.SOURCE_REGISTER_IMMEDIATE_INSTRUCTION:
+            return f" ${_register_number(instruction.source_register)}, {instruction.immediate}"
+        case OpType.TARGET_REGISTER_IMMEDIATE_INSTRUCTION:
+            return f" ${_register_number(instruction.target_register)}, {instruction.immediate}"
+        case OpType.TARGET_REGISTER_SOURCE_REGISTER_IMMEDIATE_INSTRUCTION:
+            return f" ${_register_number(instruction.target_register)}, ${_register_number(instruction.source_register)}, {instruction.immediate}"
+        case OpType.BRANCH_SOURCE_REGISTER_TARGET_REGISTER_LABEL_INSTRUCTION:
+            return f" ${_register_number(instruction.source_register)}, ${_register_number(instruction.target_register)}, {branch_offset}"
+        case OpType.TARGET_REGISTER_ADDRESS_INSTRUCTION:
+            return f" ${_register_number(instruction.target_register)}, {instruction.immediate}(${_register_number(instruction.source_register)})"
+        case OpType.SOURCE_REGISTER_INSTRUCTION:
+            return f" ${_register_number(instruction.source_register)}"
+        case OpType.DESTINATION_REGISTER_INSTRUCTION:
+            return f" ${_register_number(instruction.destination_register)}"
+        case OpType.TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION:
+            return f" ${_register_number(instruction.target_register)}, ${_register_number(instruction.destination_register)}"
+        case OpType.SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION:
+            return f" ${_register_number(instruction.source_register)}, ${_register_number(instruction.target_register)}"
+        case OpType.DESTINATION_REGISTER_SOURCE_REGISTER_INSTRUCTION:
+            return f" ${_register_number(instruction.destination_register)}, ${_register_number(instruction.source_register)}"
+        case OpType.DESTINATION_REGISTER_TARGET_REGISTER_SHIFT_AMOUNT_INSTRUCTION:
+            return f" ${_register_number(instruction.destination_register)}, ${_register_number(instruction.target_register)}, {instruction.shift_amount}"
+        case OpType.DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION:
+            return f" ${_register_number(instruction.destination_register)}, ${_register_number(instruction.source_register)}, ${_register_number(instruction.target_register)}"
+        case OpType.DESTINATION_REGISTER_TARGET_REGISTER_SOURCE_REGISTER_INSTRUCTION:
+            return f" ${_register_number(instruction.destination_register)}, ${_register_number(instruction.target_register)}, ${_register_number(instruction.source_register)}"
+        case OpType.FLOATING_POINT_TARGET_ADDRESS_INSTRUCTION:
+            return f" $f{instruction.target_register}, {instruction.immediate}(${_register_number(instruction.source_register)})"
+        case OpType.FLOATING_POINT_DESTINATION_SOURCE_INSTRUCTION:
+            return (
+                f" $f{instruction.shift_amount}, $f{instruction.destination_register}"
+            )
+        case OpType.FLOATING_POINT_TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION:
+            return f" ${_register_number(instruction.target_register)}, $f{instruction.destination_register}"
+        case OpType.FLOATING_POINT_COMPARE_SOURCE_TARGET_INSTRUCTION:
+            if instruction.shift_amount == 0:
+                return f" $f{instruction.destination_register}, $f{instruction.target_register}"
+            return f" {instruction.shift_amount >> 2}, $f{instruction.destination_register}, $f{instruction.target_register}"
+        case OpType.FLOATING_POINT_DESTINATION_SOURCE_TARGET_INSTRUCTION:
+            return f" $f{instruction.shift_amount}, $f{instruction.destination_register}, $f{instruction.target_register}"
+        case OpType.MOVE_CONDITIONAL_TYPE_INSTRUCTION:
+            return f" ${_register_number(instruction.destination_register)}, ${_register_number(instruction.source_register)}, {instruction.target_register >> 2}"
+        case OpType.FLOATING_POINT_MOVE_CONDITIONAL_TYPE_INSTRUCTION:
+            if instruction.opcode in _FLOATING_POINT_MOVE_ON_GENERAL_PURPOSE_REGISTER:
+                return f" $f{instruction.shift_amount}, $f{instruction.destination_register}, ${_register_number(instruction.target_register)}"
+            return f" $f{instruction.shift_amount}, $f{instruction.destination_register}, {instruction.target_register >> 2}"
+        case OpType.J_TYPE_INSTRUCTION:
+            return f" 0x{(instruction.target << 2) & 0xFFFFFFFF:08x}"
+        case OpType.NO_ARGUMENT_TYPE_INSTRUCTION:
             return ""
         case _:
             raise console.fatal_error("Unknown instruction type in print_inst\n")
 
 
-def format_an_inst(inst: Instruction | None, addr: int) -> str:
+def format_an_instruction(instruction: Instruction | None, address: int) -> str:
     """One line of disassembly: address, encoding, mnemonic, operands, source.
 
     The source comment starts at column 57 (counting the tab as one column),
     and a breakpoint is shown as a ``*`` before the line.
     """
-    if addr != 0 and inst_is_breakpoint(addr):
-        spim_utils.delete_breakpoint(addr)
-        text: str = "*" + format_an_inst(memory.read_inst(addr), addr)
-        spim_utils.add_breakpoint(addr)
+    if address != 0 and instruction_is_breakpoint(address):
+        spim_utils.delete_breakpoint(address)
+        text: str = "*" + format_an_instruction(
+            memory.read_instruction(address), address
+        )
+        spim_utils.add_breakpoint(address)
         return text
-    line: str = f"[0x{addr:08x}]\t"
-    if inst is None:
+    line: str = f"[0x{address:08x}]\t"
+    if instruction is None:
         return line + "<none>\n"
-    row: opcodes.OpcodeRow | None = opcodes.ROW_BY_TOKEN.get(inst.opcode)
+    row: opcodes.OpcodeRow | None = opcodes.ROW_BY_TOKEN.get(instruction.opcode)
     if row is None:
-        return line + f"<unknown instruction {machine.s16(inst.opcode)}>\n"
-    line += f"0x{machine.u32(inst.encoding):08x}  {row.name}"
+        return line + f"<unknown instruction {machine.s16(instruction.opcode)}>\n"
+    line += f"0x{machine.u32(instruction.encoding):08x}  {row.name}"
     if (
-        row.kind == OpType.RD_RT_SHAMT_INST
-        and inst.rd == 0
-        and inst.rt == 0
-        and inst.shamt == 0
+        row.kind == OpType.DESTINATION_REGISTER_TARGET_REGISTER_SHIFT_AMOUNT_INSTRUCTION
+        and instruction.destination_register == 0
+        and instruction.target_register == 0
+        and instruction.shift_amount == 0
     ):
         line = line[:-3] + "nop"  # sll $0, $0, 0 is the canonical nop
     else:
-        line += _operands(inst, row.kind)
-    if inst.expr is not None and inst.expr.symbol is not None:
-        base: int = inst.rs if opcode_is_load_store(inst.opcode) else -1
-        line += f" [{_format_imm_expr(inst.expr, base)}]"
-    if inst.source is not None:
-        line = line.ljust(57) + "; " + inst.source
+        line += _operands(instruction, row.kind)
+    if instruction.expression is not None and instruction.expression.symbol is not None:
+        base: int = (
+            instruction.source_register
+            if opcode_is_load_store(instruction.opcode)
+            else -1
+        )
+        line += f" [{_format_immediate_expression(instruction.expression, base)}]"
+    if instruction.source is not None:
+        line = line.ljust(57) + "; " + instruction.source
     return line + "\n"
 
 
-def inst_to_string(addr: int) -> str:
+def instruction_to_string(address: int) -> str:
     """The disassembly line of the instruction at addr.
 
     The read is side-effect free: showing an instruction neither raises nor
     clears the exception the program's own step raised.
     """
     in_text: bool
-    inst: Instruction | None
-    in_text, inst = memory.peek_inst(addr)
+    instruction: Instruction | None
+    in_text, instruction = memory.peek_instruction(address)
     if not in_text:
-        console.error(f"Can't print instruction not in text segment (0x{addr:08x})\n")
+        console.error(
+            f"Can't print instruction not in text segment (0x{address:08x})\n"
+        )
         return ""
-    return format_an_inst(inst, addr)
+    return format_an_instruction(instruction, address)
 
 
-def print_inst(addr: int) -> None:
+def print_instruction(address: int) -> None:
     """Print the instruction at addr on stderr."""
-    console.message(inst_to_string(addr))
+    console.message(instruction_to_string(address))

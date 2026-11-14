@@ -18,7 +18,7 @@ deliverable is an investigation: the options, a recommended architecture, and a 
 - Today the simulator is text only: the REPL in `src/spim.c`, the flags in
   `Documentation/spimulator.1`. The old PCSpim/QtSpim GUIs exist only as PDFs under
   `Documentation/`.
-- The assembler already reports its steps as events (`src/assembler-event.c`, `asm_event` with
+- The assembler already reports its steps as events (`src/assembler-event.c`, `assembler_event` with
   label definitions, text instructions and data bytes), which is a natural feed for a "what is added
   when" view. The parse goes through an AST (`tasks/reference/parser-ast-emit.md`).
 - Teaching mode (`-explain`, `src/explain.c`) narrates execution; a GUI would want the same facts.

@@ -20,26 +20,26 @@ impl Machine {
     }
 
     /// A label was defined at `addr`.
-    pub fn listing_label_def(&mut self, addr: u32, name: &str, global: bool) {
+    pub fn listing_label_definition(&mut self, address: u32, name: &str, global: bool) {
         if self.listing.is_none() {
             return;
         }
         let line: i32 = self.scanner.line_no();
         let text: String = format!(
-            "line {line:4}  label  {name:<24} defined at 0x{addr:08x}{}\n",
+            "line {line:4}  label  {name:<24} defined at 0x{address:08x}{}\n",
             if global { "  (global)" } else { "" }
         );
         self.listing_write(text.as_bytes());
     }
 
     /// An instruction was stored at `addr`; the line shows its listing.
-    pub fn listing_text_inst(&mut self, addr: u32, encoding: u32) {
+    pub fn listing_text_instruction(&mut self, address: u32, encoding: u32) {
         if self.listing.is_none() {
             return;
         }
         let line: i32 = self.scanner.line_no();
-        let disassembly: Vec<u8> = self.inst_to_string(addr);
-        let mut text: Vec<u8> = format!("line {line:4}  text   0x{addr:08x}  ").into_bytes();
+        let disassembly: Vec<u8> = self.instruction_to_string(address);
+        let mut text: Vec<u8> = format!("line {line:4}  text   0x{address:08x}  ").into_bytes();
         text.extend_from_slice(&disassembly);
         // `%-32s`: pad to 32 bytes.
         text.resize(text.len() + 32usize.saturating_sub(disassembly.len()), b' ');
@@ -48,11 +48,11 @@ impl Machine {
     }
 
     /// A `.byte` value was stored.
-    pub fn listing_data_byte(&mut self, addr: u32, value: i32) {
+    pub fn listing_data_byte(&mut self, address: u32, value: i32) {
         if self.listing.is_some() {
             let line: i32 = self.scanner.line_no();
             let text: String = format!(
-                "line {line:4}  data   0x{addr:08x}  byte    0x{:02x}\n",
+                "line {line:4}  data   0x{address:08x}  byte    0x{:02x}\n",
                 value & 0xff
             );
             self.listing_write(text.as_bytes());
@@ -60,11 +60,11 @@ impl Machine {
     }
 
     /// A `.half` value was stored.
-    pub fn listing_data_half(&mut self, addr: u32, value: i32) {
+    pub fn listing_data_half(&mut self, address: u32, value: i32) {
         if self.listing.is_some() {
             let line: i32 = self.scanner.line_no();
             let text: String = format!(
-                "line {line:4}  data   0x{addr:08x}  half    0x{:04x}\n",
+                "line {line:4}  data   0x{address:08x}  half    0x{:04x}\n",
                 value & 0xffff
             );
             self.listing_write(text.as_bytes());
@@ -72,11 +72,11 @@ impl Machine {
     }
 
     /// A `.word` value was stored.
-    pub fn listing_data_word(&mut self, addr: u32, value: i32) {
+    pub fn listing_data_word(&mut self, address: u32, value: i32) {
         if self.listing.is_some() {
             let line: i32 = self.scanner.line_no();
             let text: String = format!(
-                "line {line:4}  data   0x{addr:08x}  word    0x{:08x}\n",
+                "line {line:4}  data   0x{address:08x}  word    0x{:08x}\n",
                 value as u32
             );
             self.listing_write(text.as_bytes());
@@ -84,11 +84,11 @@ impl Machine {
     }
 
     /// A `.double` value was stored.
-    pub fn listing_data_double(&mut self, addr: u32, value: f64) {
+    pub fn listing_data_double(&mut self, address: u32, value: f64) {
         if self.listing.is_some() {
             let line: i32 = self.scanner.line_no();
             let text: String = format!(
-                "line {line:4}  data   0x{addr:08x}  double  {}\n",
+                "line {line:4}  data   0x{address:08x}  double  {}\n",
                 format_g(false, 18, value)
             );
             self.listing_write(text.as_bytes());
@@ -96,11 +96,11 @@ impl Machine {
     }
 
     /// A string was stored.
-    pub fn listing_data_string(&mut self, addr: u32, length: usize, null_terminate: bool) {
+    pub fn listing_data_string(&mut self, address: u32, length: usize, null_terminate: bool) {
         if self.listing.is_some() {
             let line: i32 = self.scanner.line_no();
             let text: String = format!(
-                "line {line:4}  data   0x{addr:08x}  string  len={length}{}\n",
+                "line {line:4}  data   0x{address:08x}  string  len={length}{}\n",
                 if null_terminate { " (+\\0)" } else { "" }
             );
             self.listing_write(text.as_bytes());

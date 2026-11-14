@@ -13,57 +13,57 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OpType {
     /// `.data, .word (directives)`.
-    AsmDir,
+    AssemblerDirective,
     /// `li, la, bge (pseudo-ops)`.
     PseudoOp,
     /// `bc1t/bc1f label`.
-    BranchCoprocCondInst,
+    BranchCoprocessorConditionInstruction,
     /// `bgez rs, label`.
-    BranchRsLabelInst,
+    BranchSourceRegisterLabelInstruction,
     /// `tgei rs, imm16 (trap ops)`.
-    RsImmInst,
+    SourceRegisterImmediateInstruction,
     /// `lui  rt, imm16`.
-    RtImmInst,
+    TargetRegisterImmediateInstruction,
     /// `addi rt, rs, imm16`.
-    RtRsImmInst,
+    TargetRegisterSourceRegisterImmediateInstruction,
     /// `beq  rs, rt, label`.
-    BranchRsRtLabelInst,
+    BranchSourceRegisterTargetRegisterLabelInstruction,
     /// `lw   rt, address`.
-    RtAddrInst,
+    TargetRegisterAddressInstruction,
     /// `jr   rs`.
-    RsInst,
+    SourceRegisterInstruction,
     /// `mfhi rd`.
-    RdInst,
+    DestinationRegisterInstruction,
     /// `mult rs, rt`.
-    RsRtInst,
+    SourceRegisterTargetRegisterInstruction,
     /// `clz  rd, rs (also jalr)`.
-    RdRsInst,
+    DestinationRegisterSourceRegisterInstruction,
     /// `mfc0 rt, coproc-reg`.
-    RtCopregInst,
+    TargetRegisterCoprocessorRegisterInstruction,
     /// `sll  rd, rt, shamt`.
-    RdRtShamtInst,
+    DestinationRegisterTargetRegisterShiftAmountInstruction,
     /// `add  rd, rs, rt`.
-    RdRsRtInst,
+    DestinationRegisterSourceRegisterTargetRegisterInstruction,
     /// `sllv rd, rt, rs`.
-    RdRtRsInst,
+    DestinationRegisterTargetRegisterSourceRegisterInstruction,
     /// `lwc1  ft, address`.
-    FpFtAddrInst,
+    FloatingPointTargetAddressInstruction,
     /// `mov.s fd, fs`.
-    FpFdFsInst,
+    FloatingPointDestinationSourceInstruction,
     /// `mfc1  rt, coproc-reg`.
-    FpRtCopregInst,
+    FloatingPointTargetRegisterCoprocessorRegisterInstruction,
     /// `c.eq.s fs, ft`.
-    FpCmpFsFtInst,
+    FloatingPointCompareSourceTargetInstruction,
     /// `add.s fd, fs, ft`.
-    FpFdFsFtInst,
+    FloatingPointDestinationSourceTargetInstruction,
     /// `madd.s fd, fr, fs, ft`.
-    FpFdFrFsFtInst,
+    FloatingPointDestinationAddendSourceTargetInstruction,
     /// `movt.s fd, fs, cc`.
-    FpMovcTypeInst,
+    FloatingPointMoveConditionalTypeInstruction,
     /// `movt rd, rs, cc`.
-    MovcTypeInst,
+    MoveConditionalTypeInstruction,
     /// `j label / jalr rs`.
-    JTypeInst,
+    JTypeInstruction,
     /// `syscall, nop, break N`.
-    NoargTypeInst,
+    NoArgumentTypeInstruction,
 }

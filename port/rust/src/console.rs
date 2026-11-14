@@ -27,8 +27,8 @@ mod sys {
     }
 
     extern "C" {
-        pub fn read(fd: c_int, buf: *mut c_void, count: usize) -> isize;
-        pub fn write(fd: c_int, buf: *const c_void, count: usize) -> isize;
+        pub fn read(fd: c_int, buffer: *mut c_void, count: usize) -> isize;
+        pub fn write(fd: c_int, buffer: *const c_void, count: usize) -> isize;
         pub fn open(path: *const c_char, flags: c_int, ...) -> c_int;
         pub fn close(fd: c_int) -> c_int;
         pub fn poll(fds: *mut PollFd, nfds: u64, timeout: c_int) -> c_int;
@@ -133,11 +133,11 @@ pub fn read_input(buffer: &mut [u8], size: i32) -> usize {
     count
 }
 
-/// Read an integer like `scanf("%ld")` (`read_int_input`): skip white
+/// Read an integer like `scanf("%ld")` (`read_integer_input`): skip white
 /// space, an optional sign, digits.  Only the number and the byte after it
 /// are taken from the input.  Returns `None` at end of input or if no
 /// digit came.
-pub fn read_int_input() -> Option<i64> {
+pub fn read_integer_input() -> Option<i64> {
     let mut next: Option<u8> = read_input_byte();
     while matches!(next, Some(b' ' | b'\t' | b'\n' | b'\r')) {
         next = read_input_byte();

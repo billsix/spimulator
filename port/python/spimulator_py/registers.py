@@ -7,63 +7,69 @@ The floating-point registers: MIPS32 revision 1 has 32 single-precision
 registers, and a double occupies an even/odd pair.  The C engine overlays
 three arrays on the same 128 bytes (``float[32]``, ``double[16]``,
 ``int32_t[32]``).  Here the 32 words are the real storage (:attr:`CPU.fpr`)
-and :func:`fpr_s` / :func:`fpr_d` read them as a float or a double, so a
+and :func:`floating_point_register_single` / :func:`floating_point_register_double` read them as a float or a double, so a
 value written one way and read another way behaves as it does in C.
 """
 
 from . import console, machine
 
-R_LENGTH: int = 32
-FGR_LENGTH: int = 32
+GENERAL_PURPOSE_REGISTER_COUNT: int = 32
+FLOATING_POINT_GENERAL_REGISTER_LENGTH: int = 32
 
-REG_V0: int = 2
-REG_A0: int = 4
-REG_A1: int = 5
-REG_A2: int = 6
-REG_A3: int = 7
-REG_FA0: int = 12
-REG_SP: int = 29
-REG_RES: int = 2
-REG_FRES: int = 0
-REG_GP: int = 28
+VALUE_REGISTER_0: int = 2
+ARGUMENT_REGISTER_0: int = 4
+ARGUMENT_REGISTER_1: int = 5
+ARGUMENT_REGISTER_2: int = 6
+ARGUMENT_REGISTER_3: int = 7
+FLOATING_POINT_ARGUMENT_REGISTER_0: int = 12
+STACK_POINTER_REGISTER: int = 29
+RESULT_REGISTER: int = 2
+FLOATING_POINT_RESULT_REGISTER: int = 0
+GLOBAL_POINTER_REGISTER: int = 28
 
 # Coprocessor 0 (exceptions) register numbers.
-CP0_BADVADDR: int = 8
-CP0_COUNT: int = 9
-CP0_COMPARE: int = 11
-CP0_STATUS: int = 12
-CP0_CAUSE: int = 13
-CP0_EPC: int = 14
-CP0_CONFIG: int = 16
+COPROCESSOR_0_BAD_VIRTUAL_ADDRESS: int = 8
+COPROCESSOR_0_COUNT: int = 9
+COPROCESSOR_0_COMPARE: int = 11
+COPROCESSOR_0_STATUS: int = 12
+COPROCESSOR_0_CAUSE: int = 13
+COPROCESSOR_0_EXCEPTION_PROGRAM_COUNTER: int = 14
+COPROCESSOR_0_CONFIG: int = 16
 
 # Fields of the Status register.
-STATUS_CU: int = 0xF0000000
-STATUS_IM: int = 0x0000FF00
-STATUS_UM: int = 0x00000010
-STATUS_EXL: int = 0x00000002
-STATUS_IE: int = 0x00000001
-STATUS_MASK: int = STATUS_CU | STATUS_UM | STATUS_IM | STATUS_EXL | STATUS_IE
+STATUS_COPROCESSOR_USABLE: int = 0xF0000000
+STATUS_INTERRUPT_MASK: int = 0x0000FF00
+STATUS_USER_MODE: int = 0x00000010
+STATUS_EXCEPTION_LEVEL: int = 0x00000002
+STATUS_INTERRUPT_ENABLE: int = 0x00000001
+STATUS_MASK: int = (
+    STATUS_COPROCESSOR_USABLE
+    | STATUS_USER_MODE
+    | STATUS_INTERRUPT_MASK
+    | STATUS_EXCEPTION_LEVEL
+    | STATUS_INTERRUPT_ENABLE
+)
 
 # Fields of the Cause register.
 CAUSE_BD: int = 0x80000000
-CAUSE_IP: int = 0x0000FF00
-CAUSE_IP7: int = 0x00008000
-CAUSE_EXCCODE: int = 0x0000007C
-CAUSE_MASK: int = CAUSE_BD | CAUSE_IP | CAUSE_EXCCODE
+CAUSE_INTERRUPTS_PENDING: int = 0x0000FF00
+CAUSE_INTERRUPT_PENDING_7: int = 0x00008000
+CAUSE_EXCEPTION_CODE: int = 0x0000007C
+CAUSE_MASK: int = CAUSE_BD | CAUSE_INTERRUPTS_PENDING | CAUSE_EXCEPTION_CODE
 
 CONFIG_MASK: int = 0x80000 | 0x60000 | 0x1C000 | 0x380
 
 # Floating-point control registers (coprocessor 1's control registers).
-FIR_REG: int = 0
-FCSR_REG: int = 31
-FIR_W: int = 0x0008000
-FIR_D: int = 0x0001000
-FIR_S: int = 0x0000800
-FCSR_MASK: int = 0xFE800000
-CC0_BIT: int = 23
-CC1_BIT: int = 25
+FLOATING_POINT_IMPLEMENTATION_REGISTER_NUMBER: int = 0
+FLOATING_POINT_CONTROL_STATUS_REGISTER_NUMBER: int = 31
+FLOATING_POINT_IMPLEMENTATION_HAS_WORD: int = 0x0008000
+FLOATING_POINT_IMPLEMENTATION_HAS_DOUBLE: int = 0x0001000
+FLOATING_POINT_IMPLEMENTATION_HAS_SINGLE: int = 0x0000800
+FLOATING_POINT_CONTROL_STATUS_MASK: int = 0xFE800000
+CONDITION_CODE_0_BIT: int = 23
+CONDITION_CODE_1_BIT: int = 25
 
-INT_REG_NAMES: list[str] = [
+INTEGER_REGISTER_NAMES: list[str] = [
     "r0", "at", "v0", "v1", "a0", "a1", "a2", "a3",
     "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
     "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7",
@@ -76,81 +82,125 @@ class CPU:
     """The register file.
 
     Attributes:
-        gpr: the 32 general registers ($0 is forced to 0 before each step).
-        hi: the HI register (multiply/divide results).
-        lo: the LO register.
-        pc: the program counter (unsigned).
-        cpr: coprocessor registers, ``cpr[0]`` is CP0 (Status, Cause, EPC,
-            ...), ``cpr[1]`` holds the FPU control registers (FIR, FCSR).
-        ccr: coprocessor control registers (``cfc0``/``ctc0``).
-        fpr: the 32 floating-point registers, as raw words.
+        general_purpose_registers: the 32 GPRs ($0 is forced to 0 before each
+            step).
+        multiply_divide_high: the HI register (multiply/divide results).
+        multiply_divide_low: the LO register.
+        program_counter: the PC (unsigned).
+        coprocessor_registers: ``coprocessor_registers[0]`` is CP0 (Status,
+            Cause, EPC, ...), ``coprocessor_registers[1]`` holds the FPU control
+            registers (FIR, FCSR).
+        coprocessor_control_registers: the coprocessor control registers
+            (``cfc0``/``ctc0``).
+        floating_point_registers: the 32 FPRs, as raw words.
     """
 
-    __slots__ = ("gpr", "hi", "lo", "pc", "cpr", "ccr", "fpr")
+    __slots__ = (
+        "general_purpose_registers",
+        "multiply_divide_high",
+        "multiply_divide_low",
+        "program_counter",
+        "coprocessor_registers",
+        "coprocessor_control_registers",
+        "floating_point_registers",
+    )
 
     def __init__(self) -> None:
-        self.gpr: list[int] = [0] * R_LENGTH
-        self.hi: int = 0
-        self.lo: int = 0
-        self.pc: int = 0
-        self.cpr: list[list[int]] = [[0] * 32 for _ in range(4)]
-        self.ccr: list[list[int]] = [[0] * 32 for _ in range(4)]
-        self.fpr: list[int] = [0] * (FGR_LENGTH + 1)  # +1: see fpr_d's pair
+        self.general_purpose_registers: list[int] = [0] * GENERAL_PURPOSE_REGISTER_COUNT
+        self.multiply_divide_high: int = 0
+        self.multiply_divide_low: int = 0
+        self.program_counter: int = 0
+        self.coprocessor_registers: list[list[int]] = [[0] * 32 for _ in range(4)]
+        self.coprocessor_control_registers: list[list[int]] = [
+            [0] * 32 for _ in range(4)
+        ]
+        self.floating_point_registers: list[int] = [0] * (
+            FLOATING_POINT_GENERAL_REGISTER_LENGTH + 1
+        )  # +1: see floating_point_register_double's pair
 
 
 cpu: CPU = CPU()
 """The one register file."""
 
 
-def fpr_s(reg: int) -> float:
+def floating_point_register_single(register_number: int) -> float:
     """FP register reg read as a single-precision float (C ``FPR_S``)."""
-    return machine.bits_float(cpu.fpr[reg])
+    return machine.bits_float(cpu.floating_point_registers[register_number])
 
 
-def set_fpr_s(reg: int, value: float) -> None:
+def set_floating_point_register_single(register_number: int, value: float) -> None:
     """Store value, rounded to single precision, in FP register reg."""
-    cpu.fpr[reg] = machine.float_bits(value)
+    cpu.floating_point_registers[register_number] = machine.float_bits(value)
 
 
-def fpr_d(reg: int) -> float:
+def floating_point_register_double(register_number: int) -> float:
     """The even/odd FP register pair starting at reg as a double (``FPR_D``).
 
     Raises:
         RunError: reg is odd, which C reports as a run-time error.
     """
-    if reg & 1:
+    if register_number & 1:
         raise console.run_error("Odd FP double register number\n")
-    return machine.words_double(cpu.fpr[reg], cpu.fpr[reg + 1])
+    return machine.words_double(
+        cpu.floating_point_registers[register_number],
+        cpu.floating_point_registers[register_number + 1],
+    )
 
 
-def set_fpr_d(reg: int, value: float) -> None:
+def set_floating_point_register_double(register_number: int, value: float) -> None:
     """Store a double in the FP register pair starting at reg (``SET_FPR_D``).
 
     Raises:
         RunError: reg is odd.
     """
-    if reg & 1:
+    if register_number & 1:
         raise console.run_error("Odd FP double register number\n")
-    cpu.fpr[reg], cpu.fpr[reg + 1] = machine.double_words(value)
+    (
+        cpu.floating_point_registers[register_number],
+        cpu.floating_point_registers[register_number + 1],
+    ) = machine.double_words(value)
 
 
-def cc_mask(n: int) -> int:
+def condition_code_mask(n: int) -> int:
     """The FCSR bit of FP condition code n (cc 0 is bit 23, 1..7 bits 25..31)."""
-    return (1 << CC0_BIT) if n == 0 or n > 7 else (1 << (CC1_BIT + n - 1))
+    return (
+        (1 << CONDITION_CODE_0_BIT)
+        if n == 0 or n > 7
+        else (1 << (CONDITION_CODE_1_BIT + n - 1))
+    )
 
 
-def fcc(n: int) -> int:
+def floating_point_condition_code(n: int) -> int:
     """FP condition code n, 0 or 1."""
-    return 0 if machine.u32(cpu.cpr[1][FCSR_REG]) & cc_mask(n) == 0 else 1
+    return (
+        0
+        if machine.u32(
+            cpu.coprocessor_registers[1][FLOATING_POINT_CONTROL_STATUS_REGISTER_NUMBER]
+        )
+        & condition_code_mask(n)
+        == 0
+        else 1
+    )
 
 
-def set_fcc(n: int, value: int) -> None:
+def set_floating_point_condition_code(n: int, value: int) -> None:
     """Set FP condition code n to value (0 clears, anything else sets)."""
-    fcsr: int = machine.u32(cpu.cpr[1][FCSR_REG])
-    fcsr = fcsr & ~cc_mask(n) if value == 0 else fcsr | cc_mask(n)
-    cpu.cpr[1][FCSR_REG] = machine.s32(fcsr)
+    floating_point_control_status_register: int = machine.u32(
+        cpu.coprocessor_registers[1][FLOATING_POINT_CONTROL_STATUS_REGISTER_NUMBER]
+    )
+    floating_point_control_status_register = (
+        floating_point_control_status_register & ~condition_code_mask(n)
+        if value == 0
+        else floating_point_control_status_register | condition_code_mask(n)
+    )
+    cpu.coprocessor_registers[1][FLOATING_POINT_CONTROL_STATUS_REGISTER_NUMBER] = (
+        machine.s32(floating_point_control_status_register)
+    )
 
 
-def exc_code() -> int:
-    """The ExcCode field of the Cause register (C ``CP0_ExCode``)."""
-    return (machine.u32(cpu.cpr[0][CP0_CAUSE]) & CAUSE_EXCCODE) >> 2
+def exception_code() -> int:
+    """The ExceptionCode field of the Cause register (C ``CP0_ExCode``)."""
+    return (
+        machine.u32(cpu.coprocessor_registers[0][COPROCESSOR_0_CAUSE])
+        & CAUSE_EXCEPTION_CODE
+    ) >> 2

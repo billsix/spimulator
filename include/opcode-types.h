@@ -15,52 +15,69 @@
    per-instruction handling on the value.  uint8_t-backed — values fit in
    0..42.
 
-   Naming scheme: each tag spells the operand list exactly as the
-   student writes it in assembly, left to right, using the MIPS
-   register-field names (rd/rs/rt, fd/fs/ft/fr for FP):
+   Naming scheme: each tag spells the operand list as the student
+   writes it in assembly, left to right, with each MIPS register field
+   written out (rd is the destination register, rs the source register,
+   rt the target register; for floating point fd, fs, ft and fr):
 
-       RD_RS_RT_INST     ->  add   rd, rs, rt
-       RT_RS_IMM_INST    ->  addiu rt, rs, imm16
-       RT_ADDR_INST      ->  lw    rt, address
-       RD_RT_SHAMT_INST  ->  sll   rd, rt, shamt
-       BRANCH_RS_RT_LABEL_INST -> beq rs, rt, label
+       DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION
+           add   rd, rs, rt
+       TARGET_REGISTER_SOURCE_REGISTER_IMMEDIATE_INSTRUCTION
+           addiu rt, rs, imm16
+       TARGET_REGISTER_ADDRESS_INSTRUCTION
+           lw    rt, address
+       DESTINATION_REGISTER_TARGET_REGISTER_SHIFT_AMOUNT_INSTRUCTION
+           sll   rd, rt, shamt
+       BRANCH_SOURCE_REGISTER_TARGET_REGISTER_LABEL_INSTRUCTION
+           beq   rs, rt, label
 
-   COPREG is a coprocessor register operand (mfc0/mtc1-family).
-   MOVC/FP_MOVC are the conditional moves on the FP condition code;
-   J covers `<op> label` or `<op> reg` jumps; NOARG covers `<op>`
-   alone (syscall, nop) or `<op> imm` (break N). */
-typedef enum op_type : uint8_t {
-  ASM_DIR = 0,   /* .data, .word (directives)  */
-  PSEUDO_OP = 1, /* li, la, bge (pseudo-ops)   */
+   COPROCESSOR_REGISTER is a coprocessor register operand (the
+   mfc0/mtc1 family). MOVE_CONDITIONAL and FLOATING_POINT_MOVE_CONDITIONAL
+   are the conditional moves on the floating-point condition code;
+   J_TYPE covers `<op> label` or `<op> reg` jumps; NO_ARGUMENT covers
+   `<op>` alone (syscall, nop) or `<op> imm` (break N). */
+typedef enum opcode_type : uint8_t {
+  ASSEMBLER_DIRECTIVE = 0, /* .data, .word (directives)  */
+  PSEUDO_OP = 1,           /* li, la, bge (pseudo-ops)   */
 
-  BRANCH_COPROC_COND_INST = 10, /* bc1t/bc1f label            */
-  BRANCH_RS_LABEL_INST = 11,    /* bgez rs, label             */
-  RS_IMM_INST = 12,             /* tgei rs, imm16 (trap ops)  */
-  RT_IMM_INST = 13,             /* lui  rt, imm16             */
-  RT_RS_IMM_INST = 14,          /* addi rt, rs, imm16         */
-  BRANCH_RS_RT_LABEL_INST = 15, /* beq  rs, rt, label         */
-  RT_ADDR_INST = 16,            /* lw   rt, address           */
+  BRANCH_COPROCESSOR_CONDITION_INSTRUCTION = 10, /* bc1t/bc1f label */
+  BRANCH_SOURCE_REGISTER_LABEL_INSTRUCTION = 11, /* bgez rs, label */
+  SOURCE_REGISTER_IMMEDIATE_INSTRUCTION = 12, /* tgei rs, imm16 (trap ops)  */
+  TARGET_REGISTER_IMMEDIATE_INSTRUCTION = 13, /* lui  rt, imm16             */
+  TARGET_REGISTER_SOURCE_REGISTER_IMMEDIATE_INSTRUCTION =
+      14, /* addi rt, rs, imm16         */
+  BRANCH_SOURCE_REGISTER_TARGET_REGISTER_LABEL_INSTRUCTION =
+      15,                                   /* beq  rs, rt, label         */
+  TARGET_REGISTER_ADDRESS_INSTRUCTION = 16, /* lw   rt, address           */
 
-  RS_INST = 20,          /* jr   rs                    */
-  RD_INST = 21,          /* mfhi rd                    */
-  RS_RT_INST = 22,       /* mult rs, rt                */
-  RD_RS_INST = 23,       /* clz  rd, rs (also jalr)    */
-  RT_COPREG_INST = 24,   /* mfc0 rt, coproc-reg        */
-  RD_RT_SHAMT_INST = 25, /* sll  rd, rt, shamt         */
-  RD_RS_RT_INST = 26,    /* add  rd, rs, rt            */
-  RD_RT_RS_INST = 27,    /* sllv rd, rt, rs            */
+  SOURCE_REGISTER_INSTRUCTION = 20,      /* jr   rs                    */
+  DESTINATION_REGISTER_INSTRUCTION = 21, /* mfhi rd                    */
+  SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION = 22, /* mult rs, rt */
+  DESTINATION_REGISTER_SOURCE_REGISTER_INSTRUCTION =
+      23, /* clz  rd, rs (also jalr)    */
+  TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION =
+      24, /* mfc0 rt, coproc-reg        */
+  DESTINATION_REGISTER_TARGET_REGISTER_SHIFT_AMOUNT_INSTRUCTION =
+      25, /* sll  rd, rt, shamt         */
+  DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION =
+      26, /* add  rd, rs, rt            */
+  DESTINATION_REGISTER_TARGET_REGISTER_SOURCE_REGISTER_INSTRUCTION =
+      27, /* sllv rd, rt, rs            */
 
-  FP_FT_ADDR_INST = 30,     /* lwc1  ft, address          */
-  FP_FD_FS_INST = 31,       /* mov.s fd, fs               */
-  FP_RT_COPREG_INST = 32,   /* mfc1  rt, coproc-reg       */
-  FP_CMP_FS_FT_INST = 33,   /* c.eq.s fs, ft              */
-  FP_FD_FS_FT_INST = 34,    /* add.s fd, fs, ft           */
-  FP_FD_FR_FS_FT_INST = 35, /* madd.s fd, fr, fs, ft      */
-  FP_MOVC_TYPE_INST = 36,   /* movt.s fd, fs, cc          */
-  MOVC_TYPE_INST = 37,      /* movt rd, rs, cc            */
+  FLOATING_POINT_TARGET_ADDRESS_INSTRUCTION = 30,     /* lwc1  ft, address */
+  FLOATING_POINT_DESTINATION_SOURCE_INSTRUCTION = 31, /* mov.s fd, fs */
+  FLOATING_POINT_TARGET_REGISTER_COPROCESSOR_REGISTER_INSTRUCTION =
+      32, /* mfc1  rt, coproc-reg       */
+  FLOATING_POINT_COMPARE_SOURCE_TARGET_INSTRUCTION = 33, /* c.eq.s fs, ft */
+  FLOATING_POINT_DESTINATION_SOURCE_TARGET_INSTRUCTION =
+      34, /* add.s fd, fs, ft           */
+  FLOATING_POINT_DESTINATION_ADDEND_SOURCE_TARGET_INSTRUCTION =
+      35, /* madd.s fd, fr, fs, ft      */
+  FLOATING_POINT_MOVE_CONDITIONAL_TYPE_INSTRUCTION = 36, /* movt.s fd, fs, cc */
+  MOVE_CONDITIONAL_TYPE_INSTRUCTION = 37, /* movt rd, rs, cc            */
 
-  J_TYPE_INST = 40,     /* j label / jalr rs          */
-  NOARG_TYPE_INST = 42, /* syscall, nop, break N      */
-} op_type;
+  J_TYPE_INSTRUCTION = 40,           /* j label / jalr rs          */
+  NO_ARGUMENT_TYPE_INSTRUCTION = 42, /* syscall, nop, break N      */
+} opcode_type;
 
 #endif /* OP_TYPES_H */

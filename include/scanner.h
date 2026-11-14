@@ -10,21 +10,21 @@
 
 /* Exported functions. */
 
-void scanner_init(FILE* in_file);
+void scanner_initialize(FILE* input_stream);
 char* erroneous_line(void);
 void scanner_start_line(void);
 int scanner_peek(void);
 int scanner_peek2(void);
 int scanner_advance(void);
 void scanner_force_identifier(void);
-void scanner_push_source(FILE* in_file);
+void scanner_push_source(FILE* input_stream);
 void scanner_pop_source(void);
 int register_name_to_number(const char* name);
 char* source_line(void);
 
 /* Exported Variables: */
 
-typedef intptr_union scan_value_t;
+typedef integer_or_pointer_union scan_value_t;
 extern scan_value_t
     scan_value; /* Value of the last token returned by the scanner. */
 

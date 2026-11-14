@@ -3,9 +3,11 @@
 
 use crate::instruction::InstRef;
 use crate::machine::{error, fatal_error, Breakpoint, Machine, Options};
-use crate::memory::{Memory, DATA_BOT, K_DATA_BOT, K_TEXT_BOT, STACK_TOP, TEXT_BOT};
+use crate::memory::{
+    Memory, DATA_BOTTOM, KERNEL_DATA_BOTTOM, KERNEL_TEXT_BOTTOM, STACK_TOP, TEXT_BOTTOM,
+};
 use crate::registers::*;
-use crate::run::ExcCode;
+use crate::run::ExceptionCode;
 
 /// The default exception handler, built into the program as the C engine
 /// builds it in with `#embed`.
@@ -37,25 +39,25 @@ impl Machine {
             options.initial_data_limit,
             options.initial_stack_size,
             options.initial_stack_limit,
-            options.initial_k_text_size,
-            options.initial_k_data_size,
-            options.initial_k_data_limit,
+            options.initial_kernel_text_size,
+            options.initial_kernel_data_size,
+            options.initial_kernel_data_limit,
         );
         self.initialize_registers();
         self.symbols.clear();
-        self.k_text_begins_at_point(K_TEXT_BOT);
-        self.k_data_begins_at_point(K_DATA_BOT);
-        self.data_begins_at_point(DATA_BOT);
-        self.text_begins_at_point(TEXT_BOT);
+        self.kernel_text_begins_at_point(KERNEL_TEXT_BOTTOM);
+        self.kernel_data_begins_at_point(KERNEL_DATA_BOTTOM);
+        self.data_begins_at_point(DATA_BOTTOM);
+        self.text_begins_at_point(TEXT_BOTTOM);
         if let Some(handler) = handler {
             // The handler is written for the extended machine.
             let old_bare: bool = self.options.bare_machine;
-            let old_accept: bool = self.options.accept_pseudo_insts;
+            let old_accept: bool = self.options.accept_pseudo_instructions;
             self.options.bare_machine = false;
-            self.options.accept_pseudo_insts = true;
+            self.options.accept_pseudo_instructions = true;
             match handler {
                 ExceptionHandler::Embedded => {
-                    self.parser_init(EMBEDDED_EXCEPTIONS.to_vec(), EMBEDDED_EXCEPTIONS_NAME);
+                    self.parser_initialize(EMBEDDED_EXCEPTIONS.to_vec(), EMBEDDED_EXCEPTIONS_NAME);
                     let _ = self.parse_file();
                     self.flush_local_labels(!self.asm.parse_error_occurred);
                     self.end_of_assembly_file();
@@ -86,14 +88,14 @@ impl Machine {
                 }
             }
             self.options.bare_machine = old_bare;
-            self.options.accept_pseudo_insts = old_accept;
+            self.options.accept_pseudo_instructions = old_accept;
             if !self.options.bare_machine {
                 // In case `.globl main` was forgotten.
                 self.make_label_global("main");
                 self.record_label("main", 0, false);
             }
         }
-        self.scanner.init(Vec::new());
+        self.scanner.initialize(Vec::new());
         self.breakpoints.clear();
     }
 
@@ -108,24 +110,29 @@ impl Machine {
 
     /// Reset the registers (`initialize_registers`).
     pub fn initialize_registers(&mut self) {
-        self.regs.fpr = [0; 32];
-        self.regs.gpr = [0; 32];
-        self.regs.gpr[REG_SP] = (STACK_TOP - 4 - 4096) as i32;
-        self.regs.hi = 0;
-        self.regs.lo = 0;
-        self.regs.pc = 0;
-        self.regs.set_cp0(CP0_BADVADDR, 0);
-        self.regs.set_cp0(CP0_COUNT, 0);
-        self.regs.set_cp0(CP0_COMPARE, 0);
-        self.regs.set_cp0(
-            CP0_STATUS,
-            ((STATUS_CU & 0x3000_0000) | STATUS_IM | STATUS_UM) as i32,
+        self.registers.floating_point_register = [0; 32];
+        self.registers.general_purpose_registers = [0; 32];
+        self.registers.general_purpose_registers[STACK_POINTER_REGISTER] =
+            (STACK_TOP - 4 - 4096) as i32;
+        self.registers.hi = 0;
+        self.registers.lo = 0;
+        self.registers.program_counter = 0;
+        self.registers
+            .set_coprocessor_0(COPROCESSOR_0_BAD_VIRTUAL_ADDRESS, 0);
+        self.registers.set_coprocessor_0(COPROCESSOR_0_COUNT, 0);
+        self.registers.set_coprocessor_0(COPROCESSOR_0_COMPARE, 0);
+        self.registers.set_coprocessor_0(
+            COPROCESSOR_0_STATUS,
+            ((STATUS_COPROCESSOR_USABLE & 0x3000_0000) | STATUS_INTERRUPT_MASK | STATUS_USER_MODE)
+                as i32,
         );
-        self.regs.set_cp0(CP0_CAUSE, 0);
-        self.regs.set_cp0(CP0_EPC, 0);
-        self.regs.set_cp0(CP0_CONFIG, 0);
-        self.regs.cop[1][FIR_REG] = FIR_W_D_S as i32;
-        self.regs.cop[1][FCSR_REG] = 0;
+        self.registers.set_coprocessor_0(COPROCESSOR_0_CAUSE, 0);
+        self.registers
+            .set_coprocessor_0(COPROCESSOR_0_EXCEPTION_PROGRAM_COUNTER, 0);
+        self.registers.set_coprocessor_0(COPROCESSOR_0_CONFIG, 0);
+        self.registers.cop[1][FLOATING_POINT_IMPLEMENTATION_REGISTER_NUMBER] =
+            FLOATING_POINT_IMPLEMENTATION_HAS_WORD_DOUBLE_SINGLE as i32;
+        self.registers.cop[1][FLOATING_POINT_CONTROL_STATUS_REGISTER_NUMBER] = 0;
     }
 
     /// Assemble the file `name` (`read_assembly_file`).  Returns false if
@@ -144,7 +151,7 @@ impl Machine {
         if std::io::Read::read_to_end(&mut file, &mut contents).is_err() {
             contents.clear();
         }
-        self.parser_init(contents, name);
+        self.parser_initialize(contents, name);
         let _ = self.parse_file();
         self.flush_local_labels(!self.asm.parse_error_occurred);
         self.end_of_assembly_file();
@@ -160,81 +167,94 @@ impl Machine {
     /// arguments, then the `envp` and `argv` vectors and `argc`
     /// (`initialize_run_stack`).  `$a0` is argc, `$a1` argv, `$a2` envp.
     pub fn initialize_run_stack(&mut self, argv: &[Vec<u8>], environment: &[Vec<u8>]) {
-        self.regs.gpr[REG_SP] = (STACK_TOP - 1) as i32;
+        self.registers.general_purpose_registers[STACK_POINTER_REGISTER] = (STACK_TOP - 1) as i32;
         let mut addresses: Vec<u32> = Vec::new();
         for variable in environment {
-            addresses.push(self.copy_str_to_stack(variable));
+            addresses.push(self.copy_string_to_stack(variable));
         }
-        let env_count: usize = addresses.len();
+        let environment_count: usize = addresses.len();
         for argument in argv {
-            addresses.push(self.copy_str_to_stack(argument));
+            addresses.push(self.copy_string_to_stack(argument));
         }
         // Word-align the stack pointer, step to the first free word, and
         // align to a double word.
-        let sp: i32 = ((self.regs.gpr[REG_SP] & !3) - 4) & !7;
-        self.regs.gpr[REG_SP] = sp;
-        self.copy_int_to_stack(0);
-        for i in (0..env_count).rev() {
-            self.regs.gpr[REG_A2] = self.copy_int_to_stack(addresses[i] as i32) as i32;
+        let sp: i32 =
+            ((self.registers.general_purpose_registers[STACK_POINTER_REGISTER] & !3) - 4) & !7;
+        self.registers.general_purpose_registers[STACK_POINTER_REGISTER] = sp;
+        self.copy_integer_to_stack(0);
+        for i in (0..environment_count).rev() {
+            self.registers.general_purpose_registers[ARGUMENT_REGISTER_2] =
+                self.copy_integer_to_stack(addresses[i] as i32) as i32;
         }
-        self.copy_int_to_stack(0);
-        for i in (env_count..addresses.len()).rev() {
-            self.regs.gpr[REG_A1] = self.copy_int_to_stack(addresses[i] as i32) as i32;
+        self.copy_integer_to_stack(0);
+        for i in (environment_count..addresses.len()).rev() {
+            self.registers.general_purpose_registers[ARGUMENT_REGISTER_1] =
+                self.copy_integer_to_stack(addresses[i] as i32) as i32;
         }
         let argc: i32 = argv.len() as i32;
-        self.regs.gpr[REG_A0] = argc;
-        let sp: u32 = self.regs.gpr[REG_SP] as u32;
-        self.mem_write_word(sp, argc);
+        self.registers.general_purpose_registers[ARGUMENT_REGISTER_0] = argc;
+        let sp: u32 = self.registers.general_purpose_registers[STACK_POINTER_REGISTER] as u32;
+        self.memory_write_word(sp, argc);
     }
 
     /// Push a string and its NUL, last byte first; returns its address.
-    fn copy_str_to_stack(&mut self, text: &[u8]) -> u32 {
+    fn copy_string_to_stack(&mut self, text: &[u8]) -> u32 {
         let mut bytes: Vec<u8> = text.to_vec();
         bytes.push(0);
         for &byte in bytes.iter().rev() {
-            let sp: u32 = self.regs.gpr[REG_SP] as u32;
-            self.mem_write_byte(sp, i32::from(byte as i8));
-            self.regs.gpr[REG_SP] = self.regs.gpr[REG_SP].wrapping_sub(1);
+            let sp: u32 = self.registers.general_purpose_registers[STACK_POINTER_REGISTER] as u32;
+            self.memory_write_byte(sp, i32::from(byte as i8));
+            self.registers.general_purpose_registers[STACK_POINTER_REGISTER] =
+                self.registers.general_purpose_registers[STACK_POINTER_REGISTER].wrapping_sub(1);
         }
-        (self.regs.gpr[REG_SP] as u32).wrapping_add(1)
+        (self.registers.general_purpose_registers[STACK_POINTER_REGISTER] as u32).wrapping_add(1)
     }
 
     /// Push a word; returns its address.
-    fn copy_int_to_stack(&mut self, value: i32) -> u32 {
-        let sp: u32 = self.regs.gpr[REG_SP] as u32;
-        self.mem_write_word(sp, value);
-        self.regs.gpr[REG_SP] = self.regs.gpr[REG_SP].wrapping_sub(4);
-        (self.regs.gpr[REG_SP] as u32).wrapping_add(4)
+    fn copy_integer_to_stack(&mut self, value: i32) -> u32 {
+        let sp: u32 = self.registers.general_purpose_registers[STACK_POINTER_REGISTER] as u32;
+        self.memory_write_word(sp, value);
+        self.registers.general_purpose_registers[STACK_POINTER_REGISTER] =
+            self.registers.general_purpose_registers[STACK_POINTER_REGISTER].wrapping_sub(4);
+        (self.registers.general_purpose_registers[STACK_POINTER_REGISTER] as u32).wrapping_add(4)
     }
 
     /// Run from `pc` for `steps` instructions (`run_program`).  With
-    /// `cont_bkpt`, first step over a breakpoint at `pc`.  Returns
+    /// `continue_breakpoint`, first step over a breakpoint at `pc`.  Returns
     /// `(stopped at a breakpoint, can continue)`.
     pub fn run_program(
         &mut self,
-        pc: u32,
+        program_counter: u32,
         steps: i32,
         display: bool,
-        cont_bkpt: bool,
+        continue_breakpoint: bool,
     ) -> (bool, bool) {
-        let mut pc: u32 = pc;
+        let mut program_counter: u32 = program_counter;
         let mut steps: i32 = steps;
-        if cont_bkpt && self.inst_is_breakpoint(pc) {
-            let addr: u32 = if self.regs.pc == 0 { pc } else { self.regs.pc };
-            self.delete_breakpoint(addr);
+        if continue_breakpoint && self.instruction_is_breakpoint(program_counter) {
+            let address: u32 = if self.registers.program_counter == 0 {
+                program_counter
+            } else {
+                self.registers.program_counter
+            };
+            self.delete_breakpoint(address);
             self.exception_occurred = false;
-            let _ = self.run_spim(addr, 1, display);
-            self.add_breakpoint(addr);
+            let _ = self.run_spim(address, 1, display);
+            self.add_breakpoint(address);
             steps = steps.wrapping_sub(1);
-            pc = self.regs.pc;
+            program_counter = self.registers.program_counter;
         }
         self.exception_occurred = false;
-        let continuable: bool = self.run_spim(pc, steps, display);
-        if self.exception_occurred && self.regs.exc_code() == ExcCode::Bp as u32 {
+        let continuable: bool = self.run_spim(program_counter, steps, display);
+        if self.exception_occurred
+            && self.registers.exception_code() == ExceptionCode::Breakpoint as u32
+        {
             // The breakpoint is handled here, not by MIPS code: clear the
             // exception level so later interrupts set EPC again.
-            let status: u32 = self.regs.cp0(CP0_STATUS) as u32 & !STATUS_EXL;
-            self.regs.set_cp0(CP0_STATUS, status as i32);
+            let status: u32 =
+                self.registers.coprocessor_0(COPROCESSOR_0_STATUS) as u32 & !STATUS_EXCEPTION_LEVEL;
+            self.registers
+                .set_coprocessor_0(COPROCESSOR_0_STATUS, status as i32);
             (true, continuable)
         } else {
             (false, continuable)
@@ -242,37 +262,43 @@ impl Machine {
     }
 
     /// Set a breakpoint at `addr` (`add_breakpoint`).
-    pub fn add_breakpoint(&mut self, addr: u32) {
-        let instruction: Option<InstRef> = self.set_breakpoint(addr);
+    pub fn add_breakpoint(&mut self, address: u32) {
+        let instruction: Option<InstRef> = self.set_breakpoint(address);
         if instruction.is_some() {
-            self.breakpoints.insert(0, Breakpoint { addr, instruction });
+            self.breakpoints.insert(
+                0,
+                Breakpoint {
+                    address,
+                    instruction,
+                },
+            );
         } else if self.exception_occurred {
             error(&format!(
-                "Cannot put a breakpoint at address 0x{addr:08x}\n"
+                "Cannot put a breakpoint at address 0x{address:08x}\n"
             ));
         } else {
             error(&format!(
-                "No instruction to breakpoint at address 0x{addr:08x}\n"
+                "No instruction to breakpoint at address 0x{address:08x}\n"
             ));
         }
     }
 
     /// Remove the breakpoints at `addr`, putting the old instructions back
     /// (`delete_breakpoint`).
-    pub fn delete_breakpoint(&mut self, addr: u32) {
+    pub fn delete_breakpoint(&mut self, address: u32) {
         let mut deleted: bool = false;
         let mut index: usize = 0;
         while index < self.breakpoints.len() {
-            if self.breakpoints[index].addr == addr {
+            if self.breakpoints[index].address == address {
                 let breakpoint: Breakpoint = self.breakpoints.remove(index);
-                self.mem_write_inst(addr, breakpoint.instruction);
+                self.memory_write_instruction(address, breakpoint.instruction);
                 deleted = true;
             } else {
                 index += 1;
             }
         }
         if !deleted {
-            error(&format!("No breakpoint to delete at 0x{addr:08x}\n"));
+            error(&format!("No breakpoint to delete at 0x{address:08x}\n"));
         }
     }
 
@@ -282,7 +308,7 @@ impl Machine {
             error("No breakpoints set\n");
         }
         for breakpoint in &self.breakpoints {
-            error(&format!("Breakpoint at 0x{:08x}\n", breakpoint.addr));
+            error(&format!("Breakpoint at 0x{:08x}\n", breakpoint.address));
         }
     }
 }

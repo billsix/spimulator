@@ -13,23 +13,23 @@ A MIPS register/word is 32 bits, modeled with fixed-width domain typedefs (`incl
 
 | typedef | underlying | role |
 | --- | --- | --- |
-| `reg_word` | `int32_t` | a register / word, **signed** view |
-| `u_reg_word` | `uint32_t` | the **unsigned** view of the same bits |
-| `mem_word` | `int32_t` | a memory word |
-| `mem_addr` | `uint32_t` | an address (also the PC) |
+| `register_word` | `int32_t` | a register / word, **signed** view |
+| `unsigned_register_word` | `uint32_t` | the **unsigned** view of the same bits |
+| `memory_word` | `int32_t` | a memory word |
+| `memory_address` | `uint32_t` | an address (also the PC) |
 
 Instruction fields are fixed-width too (`instruction.h`): `int16_t` immediate, `uint8_t` register
-numbers. The MMIO control registers `recv_control`/`trans_control` (`src/memory.c`) are `uint32_t`
+numbers. The MMIO control registers `receiver_control`/`transmitter_control` (`src/memory.c`) are `uint32_t`
 (they are unsigned status registers).
 
 ## The rule: signed↔unsigned conversions are the ALU semantics — don't "clean them away"
 
 A MIPS instruction reinterprets the same 32 bits as signed or unsigned depending on the op (`add` vs
 `addu`, `sra` vs `srl`, `slt` vs `sltu`, sign-extended branch offsets, effective-address wraparound).
-In C that shows up as conversions between `reg_word` and `u_reg_word`/`mem_addr`. **These are correct,
+In C that shows up as conversions between `register_word` and `unsigned_register_word`/`memory_address`. **These are correct,
 intended behavior, not bugs.** The core makes each such reinterpretation an **explicit cast** to the
-target type — e.g. `(u_reg_word)gpr[BASE(instruction)] + (u_reg_word)IOFFSET(instruction)`,
-`PC + (mem_addr)BRANCH_OFFSET(instruction)`, `gpr[RD] = (reg_word)(<unsigned result>)`. The cast is a
+target type — e.g. `(unsigned_register_word)general_purpose_registers[BASE(instruction)] + (unsigned_register_word)IMMEDIATE_OFFSET(instruction)`,
+`PC + (memory_address)BRANCH_OFFSET(instruction)`, `general_purpose_registers[RD] = (register_word)(<unsigned result>)`. The cast is a
 no-op value-wise; it documents intent and keeps the gate (below) quiet. **Do not remove these casts to
 "tidy" run.c** — the compiler will immediately flag the bare conversion again, and removing one that
 was masking a genuine width/sign change would be a real bug.
@@ -42,14 +42,14 @@ checked by hand with a host build, and the core is clean under it too. The teach
 `examples/` is deliberately NOT gated (see `tasks/reference/example-c-teaching-style.md`).
 
 Staying clean when you touch the core:
-- **Cast each signed/unsigned reinterpretation to the exact target type** (`reg_word`/`u_reg_word`/
-  `mem_addr`/`size_t`), the same way existing code does.
+- **Cast each signed/unsigned reinterpretation to the exact target type** (`register_word`/`unsigned_register_word`/
+  `memory_address`/`size_t`), the same way existing code does.
 - **A conversion inside a macro body must be fixed in the macro, not at the call site** — a call-site
   cast cannot reach inside the expansion. The ones already handled this way: `BRANCH_OFFSET` and
-  `sign_ex` (`instruction.h`/`spim.h`), `CP0_ExCode`, `FCC`, `SET_FCC` (`registers.h`), `ROUND_UP`/
+  `sign_ex` (`instruction.h`/`spim.h`), `coprocessor_0_exception_code`, `FCC`, `SET_FCC` (`registers.h`), `ROUND_UP`/
   `ROUND_DOWN` (`spim.h`).
 - **gcc is the stricter of the two** — it flags compound assignments (`reg |= unsigned_mask`) that clang
-  passes; write CP0/FCC register bit-twiddling as `reg = (reg_word)((u_reg_word)reg OP mask)`. Build
+  passes; write CP0/FCC register bit-twiddling as `reg = (register_word)((unsigned_register_word)reg OP mask)`. Build
   under both before declaring done.
 - To find conversions: build with the flags and read the diagnostics (each names the from→to types);
   `clang -Xclang -ast-dump` / `clang-query` show every subexpression's type and the implicit casts.

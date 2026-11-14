@@ -20,14 +20,14 @@ from .opcode_table import ROWS as _TABLE_ROWS
 # The structural tokens of include/tokens.h.  The scanner returns a single
 # punctuation character ('+', '(', ...) as its own character code, which is
 # below 256, so these never collide with it.
-TOK_EOF: int = 256
-TOK_NL: int = 257
-TOK_INT: int = 258
-TOK_ID: int = 259
-TOK_REG: int = 260
-TOK_FP_REG: int = 261
-TOK_STR: int = 262
-TOK_FP: int = 263
+TOKEN_EOF: int = 256
+TOKEN_NEWLINE: int = 257
+TOKEN_INTEGER: int = 258
+TOKEN_IDENTIFIER: int = 259
+TOKEN_REGISTER: int = 260
+TOKEN_FLOATING_POINT_REGISTER: int = 261
+TOKEN_STRING: int = 262
+TOKEN_FLOATING_POINT: int = 263
 
 
 @dataclass(frozen=True)
@@ -39,7 +39,7 @@ class OpcodeRow:
         symbol: the C token name ("TOK_ADD_OPCODE").
         token: the token number the scanner returns for the mnemonic.
         kind: the operand-shape tag from opcode-types.h (e.g. 26 for
-            RD_RS_RT_INST); ASM_DIR for directives, PSEUDO_OP for
+            DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION); ASSEMBLER_DIRECTIVE for directives, PSEUDO_OP for
             pseudo-instructions.
         encoding: the instruction's fixed bits as a signed 32-bit value, or
             -1 for a directive or pseudo-instruction.
@@ -58,9 +58,9 @@ ROWS: list[OpcodeRow] = [
 ]
 
 KIND: dict[str, int] = {tag.name: int(tag) for tag in OpType}
-"""Operand-shape tags by name, e.g. ``KIND["RD_RS_RT_INST"] == 26``."""
+"""Operand-shape tags by name, e.g. ``KIND["DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION"] == 26``."""
 
-ASM_DIR: int = KIND["ASM_DIR"]
+ASSEMBLER_DIRECTIVE: int = KIND["ASSEMBLER_DIRECTIVE"]
 PSEUDO_OP: int = KIND["PSEUDO_OP"]
 
 TOKEN: dict[str, int] = {row.symbol.removeprefix("TOK_"): row.token for row in ROWS}
@@ -100,11 +100,11 @@ def keyword_token(name: str) -> int | None:
     return _KEYWORDS.get(name)
 
 
-def token_for_encoding(a_opcode: int) -> int | None:
-    """The token whose fixed bits are a_opcode, or None (C a_opcode_tbl).
+def token_for_encoding(table_opcode: int) -> int | None:
+    """The token whose fixed bits are table_opcode, or None (C a_opcode_tbl).
 
     Example:
         >>> name_of(token_for_encoding(0x4600000f) or 0)
         'floor.w.s'
     """
-    return _BY_ENCODING.get(a_opcode)
+    return _BY_ENCODING.get(table_opcode)

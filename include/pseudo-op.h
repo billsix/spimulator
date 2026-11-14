@@ -14,18 +14,25 @@
 /* Pseudo-op expansion — each emits a sequence of real R/I-type
    instructions that implements the user-visible pseudo-op. */
 
-void div_inst(int op, int rd, int rs, int rt, int const_divisor);
-void mult_inst(int op, int rd, int rs, int rt);
-void set_le_inst(int op, int rd, int rs, int rt);
-void set_gt_inst(int op, int rd, int rs, int rt);
-void set_ge_inst(int op, int rd, int rs, int rt);
-void set_eq_inst(int op, int rd, int rs, int rt);
+void divide_instruction(int opcode, int destination_register,
+                        int source_register, int target_register,
+                        int constant_divisor);
+void multiply_instruction(int opcode, int destination_register,
+                          int source_register, int target_register);
+void set_less_or_equal_instruction(int opcode, int destination_register,
+                                   int source_register, int target_register);
+void set_greater_than_instruction(int opcode, int destination_register,
+                                  int source_register, int target_register);
+void set_greater_or_equal_instruction(int opcode, int destination_register,
+                                      int source_register, int target_register);
+void set_equal_instruction(int opcode, int destination_register,
+                           int source_register, int target_register);
 
 /* Common building-block helpers. */
 
-void nop_inst(void);
-void trap_inst(void);
-imm_expr* branch_offset(int n_inst);
+void nop_instruction(void);
+void trap_instruction(void);
+immediate_expression* branch_offset(int instruction_count);
 
 /* Range checkers for immediate values. */
 
@@ -33,12 +40,13 @@ imm_expr* branch_offset(int n_inst);
    the instruction it belongs to.  (The scanner's line_no can already be on the
    next line: reading past the immediate scans the newline, which advances it.)
  */
-void check_imm_range(const imm_expr* expr, int32_t min, int32_t max, int line);
-void check_uimm_range(const imm_expr* expr, uint32_t min, uint32_t max,
-                      int line);
+void check_immediate_range(const immediate_expression* expression, int32_t min,
+                           int32_t max, int line);
+void check_unsigned_immediate_range(const immediate_expression* expression,
+                                    uint32_t min, uint32_t max, int line);
 
 /* Opcode lookups. */
 
-int op_to_imm_op(int opcode);
+int opcode_to_immediate_opcode(int opcode);
 
 #endif /* HP_PSEUDO_OP_H */

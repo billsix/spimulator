@@ -45,35 +45,35 @@ void parse_error(const char* s) {
 }
 
 /* ------------------------------------------------------------------ *
- * imm_op_to_op: needed by src/instruction.c's pseudo-op expander.
+ * immediate_opcode_to_opcode: needed by src/instruction.c's pseudo-op expander.
  * ------------------------------------------------------------------ */
 
-int imm_op_to_op(int opcode) {
+int immediate_opcode_to_opcode(int opcode) {
   switch (opcode) {
-    case TOK_ADDI_OPCODE:
-      return TOK_ADD_OPCODE;
-    case TOK_ADDIU_OPCODE:
-      return TOK_ADDU_OPCODE;
-    case TOK_ANDI_OPCODE:
-      return TOK_AND_OPCODE;
-    case TOK_ORI_OPCODE:
-      return TOK_OR_OPCODE;
-    case TOK_XORI_OPCODE:
-      return TOK_XOR_OPCODE;
-    case TOK_SLTI_OPCODE:
-      return TOK_SLT_OPCODE;
-    case TOK_SLTIU_OPCODE:
-      return TOK_SLTU_OPCODE;
-    case TOK_J_OPCODE:
-      return TOK_JR_OPCODE;
-    case TOK_LUI_OPCODE:
-      return TOK_ADDU_OPCODE;
-    case TOK_SLL_OPCODE:
-      return TOK_SLLV_OPCODE;
-    case TOK_SRA_OPCODE:
-      return TOK_SRAV_OPCODE;
-    case TOK_SRL_OPCODE:
-      return TOK_SRLV_OPCODE;
+    case TOKEN_ADDI_OPCODE:
+      return TOKEN_ADD_OPCODE;
+    case TOKEN_ADDIU_OPCODE:
+      return TOKEN_ADDU_OPCODE;
+    case TOKEN_ANDI_OPCODE:
+      return TOKEN_AND_OPCODE;
+    case TOKEN_ORI_OPCODE:
+      return TOKEN_OR_OPCODE;
+    case TOKEN_XORI_OPCODE:
+      return TOKEN_XOR_OPCODE;
+    case TOKEN_SLTI_OPCODE:
+      return TOKEN_SLT_OPCODE;
+    case TOKEN_SLTIU_OPCODE:
+      return TOKEN_SLTU_OPCODE;
+    case TOKEN_J_OPCODE:
+      return TOKEN_JR_OPCODE;
+    case TOKEN_LUI_OPCODE:
+      return TOKEN_ADDU_OPCODE;
+    case TOKEN_SLL_OPCODE:
+      return TOKEN_SLLV_OPCODE;
+    case TOKEN_SRA_OPCODE:
+      return TOKEN_SRAV_OPCODE;
+    case TOKEN_SRL_OPCODE:
+      return TOKEN_SRLV_OPCODE;
     default:
       fatal_error("Can't convert immediate op to op\n");
       return 0;
@@ -85,156 +85,175 @@ int imm_op_to_op(int opcode) {
    in via parser.h's emit_* dispatch wrappers so they participate in
    AST construction. */
 
-void nop_inst(void) {
-  emit_r(TOK_SLL_OPCODE, 0, 0, 0); /* sll $0, $0, 0 == 0x00000000 */
+void nop_instruction(void) {
+  emit_r(TOKEN_SLL_OPCODE, 0, 0, 0); /* sll $0, $0, 0 == 0x00000000 */
 }
 
-void trap_inst(void) { emit_r(TOK_BREAK_OPCODE, 0, 0, 0); }
+void trap_instruction(void) { emit_r(TOKEN_BREAK_OPCODE, 0, 0, 0); }
 
-imm_expr* branch_offset(int n_inst) {
-  return const_imm_expr(n_inst << 2); /* later shifted right 2 by the encoder */
+immediate_expression* branch_offset(int instruction_count) {
+  return constant_immediate_expression(
+      instruction_count << 2); /* later shifted right 2 by the encoder */
 }
 
-int op_to_imm_op(int opcode) {
+int opcode_to_immediate_opcode(int opcode) {
   switch (opcode) {
-    case TOK_ADD_OPCODE:
-      return TOK_ADDI_OPCODE;
-    case TOK_ADDU_OPCODE:
-      return TOK_ADDIU_OPCODE;
-    case TOK_AND_OPCODE:
-      return TOK_ANDI_OPCODE;
-    case TOK_OR_OPCODE:
-      return TOK_ORI_OPCODE;
-    case TOK_XOR_OPCODE:
-      return TOK_XORI_OPCODE;
-    case TOK_SLT_OPCODE:
-      return TOK_SLTI_OPCODE;
-    case TOK_SLTU_OPCODE:
-      return TOK_SLTIU_OPCODE;
-    case TOK_SLLV_OPCODE:
-      return TOK_SLL_OPCODE;
-    case TOK_SRAV_OPCODE:
-      return TOK_SRA_OPCODE;
-    case TOK_SRLV_OPCODE:
-      return TOK_SRL_OPCODE;
+    case TOKEN_ADD_OPCODE:
+      return TOKEN_ADDI_OPCODE;
+    case TOKEN_ADDU_OPCODE:
+      return TOKEN_ADDIU_OPCODE;
+    case TOKEN_AND_OPCODE:
+      return TOKEN_ANDI_OPCODE;
+    case TOKEN_OR_OPCODE:
+      return TOKEN_ORI_OPCODE;
+    case TOKEN_XOR_OPCODE:
+      return TOKEN_XORI_OPCODE;
+    case TOKEN_SLT_OPCODE:
+      return TOKEN_SLTI_OPCODE;
+    case TOKEN_SLTU_OPCODE:
+      return TOKEN_SLTIU_OPCODE;
+    case TOKEN_SLLV_OPCODE:
+      return TOKEN_SLL_OPCODE;
+    case TOKEN_SRAV_OPCODE:
+      return TOKEN_SRA_OPCODE;
+    case TOKEN_SRLV_OPCODE:
+      return TOKEN_SRL_OPCODE;
     default:
       fatal_error("Can't convert op to immediate op\n");
       return 0;
   }
 }
 
-void div_inst(int op, int rd, int rs, int rt, int const_divisor) {
-  if (rd != 0 && !const_divisor) {
-    emit_i_free(TOK_BNE_OPCODE, 0, rt, branch_offset(3));
-    nop_inst();
-    trap_inst();
+void divide_instruction(int opcode, int destination_register,
+                        int source_register, int target_register,
+                        int constant_divisor) {
+  if (destination_register != 0 && !constant_divisor) {
+    emit_i_free(TOKEN_BNE_OPCODE, 0, target_register, branch_offset(3));
+    nop_instruction();
+    trap_instruction();
   }
 
-  if (op == TOK_DIV_OPCODE || op == TOK_REM_PSEUDO_OP)
-    emit_r(TOK_DIV_OPCODE, 0, rs, rt);
+  if (opcode == TOKEN_DIV_OPCODE || opcode == TOKEN_REM_PSEUDO_OP)
+    emit_r(TOKEN_DIV_OPCODE, 0, source_register, target_register);
   else
-    emit_r(TOK_DIVU_OPCODE, 0, rs, rt);
+    emit_r(TOKEN_DIVU_OPCODE, 0, source_register, target_register);
 
-  if (rd != 0) {
-    if (op == TOK_DIV_OPCODE || op == TOK_DIVU_OPCODE) /* Quotient */
-      emit_r(TOK_MFLO_OPCODE, rd, 0, 0);
+  if (destination_register != 0) {
+    if (opcode == TOKEN_DIV_OPCODE ||
+        opcode == TOKEN_DIVU_OPCODE) /* Quotient */
+      emit_r(TOKEN_MFLO_OPCODE, destination_register, 0, 0);
     else
       /* Remainder */
-      emit_r(TOK_MFHI_OPCODE, rd, 0, 0);
+      emit_r(TOKEN_MFHI_OPCODE, destination_register, 0, 0);
   }
 }
 
-void mult_inst(int op, int rd, int rs, int rt) {
-  if (op == TOK_MULOU_PSEUDO_OP)
-    emit_r(TOK_MULTU_OPCODE, 0, rs, rt);
+void multiply_instruction(int opcode, int destination_register,
+                          int source_register, int target_register) {
+  if (opcode == TOKEN_MULOU_PSEUDO_OP)
+    emit_r(TOKEN_MULTU_OPCODE, 0, source_register, target_register);
   else
-    emit_r(TOK_MULT_OPCODE, 0, rs, rt);
+    emit_r(TOKEN_MULT_OPCODE, 0, source_register, target_register);
 
-  if (op == TOK_MULOU_PSEUDO_OP && rd != 0) {
-    emit_r(TOK_MFHI_OPCODE, 1, 0, 0); /* Use $at */
-    emit_i_free(TOK_BEQ_OPCODE, 0, 1, branch_offset(3));
-    nop_inst();
-    trap_inst();
-  } else if (op == TOK_MULO_PSEUDO_OP && rd != 0) {
-    emit_r(TOK_MFHI_OPCODE, 1, 0, 0); /* use $at */
-    emit_r(TOK_MFLO_OPCODE, rd, 0, 0);
-    emit_r_shift(TOK_SRA_OPCODE, rd, rd, 31);
-    emit_i_free(TOK_BEQ_OPCODE, rd, 1, branch_offset(3));
-    nop_inst();
-    trap_inst();
+  if (opcode == TOKEN_MULOU_PSEUDO_OP && destination_register != 0) {
+    emit_r(TOKEN_MFHI_OPCODE, 1, 0, 0); /* Use $at */
+    emit_i_free(TOKEN_BEQ_OPCODE, 0, 1, branch_offset(3));
+    nop_instruction();
+    trap_instruction();
+  } else if (opcode == TOKEN_MULO_PSEUDO_OP && destination_register != 0) {
+    emit_r(TOKEN_MFHI_OPCODE, 1, 0, 0); /* use $at */
+    emit_r(TOKEN_MFLO_OPCODE, destination_register, 0, 0);
+    emit_r_shift(TOKEN_SRA_OPCODE, destination_register, destination_register,
+                 31);
+    emit_i_free(TOKEN_BEQ_OPCODE, destination_register, 1, branch_offset(3));
+    nop_instruction();
+    trap_instruction();
   } else {
     /* Any other op, or a result into $zero: no overflow check. */
   }
-  if (rd != 0) emit_r(TOK_MFLO_OPCODE, rd, 0, 0);
+  if (destination_register != 0)
+    emit_r(TOKEN_MFLO_OPCODE, destination_register, 0, 0);
 }
 
-void set_le_inst(int op, int rd, int rs, int rt) {
-  emit_i_free(TOK_BNE_OPCODE, rs, rt, branch_offset(3));
-  emit_i_free(TOK_ORI_OPCODE, rd, 0, const_imm_expr(1));
-  emit_i_free(TOK_BEQ_OPCODE, 0, 0, branch_offset(3));
-  nop_inst();
-  emit_r((op == TOK_SLE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE), rd, rs,
-         rt);
+void set_less_or_equal_instruction(int opcode, int destination_register,
+                                   int source_register, int target_register) {
+  emit_i_free(TOKEN_BNE_OPCODE, source_register, target_register,
+              branch_offset(3));
+  emit_i_free(TOKEN_ORI_OPCODE, destination_register, 0,
+              constant_immediate_expression(1));
+  emit_i_free(TOKEN_BEQ_OPCODE, 0, 0, branch_offset(3));
+  nop_instruction();
+  emit_r((opcode == TOKEN_SLE_PSEUDO_OP ? TOKEN_SLT_OPCODE : TOKEN_SLTU_OPCODE),
+         destination_register, source_register, target_register);
 }
 
-void set_gt_inst(int op, int rd, int rs, int rt) {
-  emit_r(op == TOK_SGT_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, rd, rt,
-         rs);
+void set_greater_than_instruction(int opcode, int destination_register,
+                                  int source_register, int target_register) {
+  emit_r(opcode == TOKEN_SGT_PSEUDO_OP ? TOKEN_SLT_OPCODE : TOKEN_SLTU_OPCODE,
+         destination_register, target_register, source_register);
 }
 
-void set_ge_inst(int op, int rd, int rs, int rt) {
-  emit_i_free(TOK_BNE_OPCODE, rs, rt, branch_offset(3));
-  emit_i_free(TOK_ORI_OPCODE, rd, 0, const_imm_expr(1));
-  emit_i_free(TOK_BEQ_OPCODE, 0, 0, branch_offset(3));
-  nop_inst();
-  emit_r(op == TOK_SGE_PSEUDO_OP ? TOK_SLT_OPCODE : TOK_SLTU_OPCODE, rd, rt,
-         rs);
+void set_greater_or_equal_instruction(int opcode, int destination_register,
+                                      int source_register,
+                                      int target_register) {
+  emit_i_free(TOKEN_BNE_OPCODE, source_register, target_register,
+              branch_offset(3));
+  emit_i_free(TOKEN_ORI_OPCODE, destination_register, 0,
+              constant_immediate_expression(1));
+  emit_i_free(TOKEN_BEQ_OPCODE, 0, 0, branch_offset(3));
+  nop_instruction();
+  emit_r(opcode == TOKEN_SGE_PSEUDO_OP ? TOKEN_SLT_OPCODE : TOKEN_SLTU_OPCODE,
+         destination_register, target_register, source_register);
 }
 
-void set_eq_inst(int op, int rd, int rs, int rt) {
-  imm_expr *if_eq, *if_neq;
+void set_equal_instruction(int opcode, int destination_register,
+                           int source_register, int target_register) {
+  immediate_expression *if_equal, *if_not_equal;
 
-  if (op == TOK_SEQ_PSEUDO_OP) {
-    if_eq = const_imm_expr(1);
-    if_neq = const_imm_expr(0);
+  if (opcode == TOKEN_SEQ_PSEUDO_OP) {
+    if_equal = constant_immediate_expression(1);
+    if_not_equal = constant_immediate_expression(0);
   } else {
-    if_eq = const_imm_expr(0);
-    if_neq = const_imm_expr(1);
+    if_equal = constant_immediate_expression(0);
+    if_not_equal = constant_immediate_expression(1);
   }
 
-  emit_i_free(TOK_BEQ_OPCODE, rs, rt, branch_offset(3));
+  emit_i_free(TOKEN_BEQ_OPCODE, source_register, target_register,
+              branch_offset(3));
   /* RD <- 0 (if not equal) */
-  emit_i_free(TOK_ORI_OPCODE, rd, 0, if_neq);
-  emit_i_free(TOK_BEQ_OPCODE, 0, 0, branch_offset(3)); /* Branch always */
-  nop_inst();
+  emit_i_free(TOKEN_ORI_OPCODE, destination_register, 0, if_not_equal);
+  emit_i_free(TOKEN_BEQ_OPCODE, 0, 0, branch_offset(3)); /* Branch always */
+  nop_instruction();
   /* RD <- 1 */
-  emit_i_free(TOK_ORI_OPCODE, rd, 0, if_eq);
+  emit_i_free(TOKEN_ORI_OPCODE, destination_register, 0, if_equal);
 }
 
-void check_imm_range(const imm_expr* expr, int32_t min, int32_t max, int line) {
-  if (expr->symbol == nullptr || SYMBOL_IS_DEFINED(expr->symbol)) {
+void check_immediate_range(const immediate_expression* expression, int32_t min,
+                           int32_t max, int line) {
+  if (expression->symbol == nullptr || SYMBOL_IS_DEFINED(expression->symbol)) {
     /* If expression can be evaluated, compare against limits. */
-    const int32_t value = eval_imm_expr(expr);
+    const int32_t value = evaluate_immediate_expression(expression);
 
     if (value < min || max < value) {
-      char str[200];
-      snprintf(str, sizeof str, "immediate value (%d) out of range (%d .. %d)",
-               value, min, max);
-      error("spim: (parser) %s on line %d\n", str, line);
+      char string[200];
+      snprintf(string, sizeof string,
+               "immediate value (%d) out of range (%d .. %d)", value, min, max);
+      error("spim: (parser) %s on line %d\n", string, line);
     }
   }
 }
 
-void check_uimm_range(const imm_expr* expr, uint32_t min, uint32_t max,
-                      int line) {
-  if (expr->symbol == nullptr || SYMBOL_IS_DEFINED(expr->symbol)) {
-    const uint32_t value = (uint32_t)eval_imm_expr(expr);
+void check_unsigned_immediate_range(const immediate_expression* expression,
+                                    uint32_t min, uint32_t max, int line) {
+  if (expression->symbol == nullptr || SYMBOL_IS_DEFINED(expression->symbol)) {
+    const uint32_t value = (uint32_t)evaluate_immediate_expression(expression);
 
     if (value < min || max < value) {
-      char str[200];
-      snprintf(str, sizeof str, "immediate value (%d) out of range (%d .. %d)",
-               (int32_t)value, (int32_t)min, (int32_t)max);
-      error("spim: (parser) %s on line %d\n", str, line);
+      char string[200];
+      snprintf(string, sizeof string,
+               "immediate value (%d) out of range (%d .. %d)", (int32_t)value,
+               (int32_t)min, (int32_t)max);
+      error("spim: (parser) %s on line %d\n", string, line);
     }
   }
 }

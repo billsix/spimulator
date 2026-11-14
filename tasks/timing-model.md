@@ -32,19 +32,19 @@ CPI × clock cycle time.
 
 ## Phase 1 — investigate (findings 2026-07-07, partial)
 
-- **Dispatch loop:** `run_spim(initial_PC, steps_to_run, display)` in
+- **Dispatch loop:** `run_spim(initial_program_counter, steps_to_run, display)` in
   `src/run.c` — the inner `for (step = 0; step < step_size; ...)` body is
   the single per-instruction hook point for cost accounting and delay.
 - **"Being debugged" signal:** the `display` parameter is true for the
   REPL `step` path and false for `run`/`continue` — suppressing the delay
   when `display == true` (plus optionally when breakpoints exist) is
   enough; no new plumbing needed.
-- **No retired-instruction counter exists** — `CP0_Count` is the *timer*
-  (bumped by the ITIMER tick handler, compared against `CP0_Compare`),
+- **No retired-instruction counter exists** — `coprocessor_0_count` is the *timer*
+  (bumped by the ITIMER tick handler, compared against `coprocessor_0_compare`),
   not an instruction count.  The timing module adds its own counter.
 - **Register/memory costs need no access-time metering:** the freshly
-  renamed `op_type` tags in `opcode-types.h` already classify every
-  opcode's operand shape (`RT_ADDR_INST` = load/store, `RD_RS_RT_INST` =
+  renamed `opcode_type` tags in `opcode-types.h` already classify every
+  opcode's operand shape (`TARGET_REGISTER_ADDRESS_INSTRUCTION` = load/store, `DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION` =
   3-reg ALU, …), so per-instruction cost = a small table keyed on the
   tag + opcode family.  This is much simpler than hooking `mem_read_*`.
 
@@ -56,7 +56,7 @@ CPI × clock cycle time.
   `R[]` accesses are open-coded in `run.c` (hard to hook individually);
   memory goes through `read_mem_*` / `set_mem_*` in `src/memory.c` (easy to
   hook). Decide whether register costs are *derived from the decoded operand
-  shape* (count rs/rt/rd per `op_type` — no code restructuring needed) rather
+  shape* (count rs/rt/rd per `opcode_type` — no code restructuring needed) rather
   than metered at access time. That derivation approach looks right; verify.
 - How "being debugged" is detectable: stepping (`step` command), active
   breakpoints, or `-explain` narration — enumerate the states where the delay
@@ -94,7 +94,7 @@ CPI × clock cycle time.
 ## Phase 3 — execute
 
 Only after phases 1–2 are reviewed. Implementation likely: a small
-`src/timing.c` (cost tables keyed off the existing `op_type` tags +
+`src/timing.c` (cost tables keyed off the existing `opcode_type` tags +
 accumulator + reporter), hooks in `run.c`'s dispatch and `syscall.c`'s exit
 path, flag parsing in `spim.c`. **Ports** (added 2026-11-11): the new flag and its report are output, so
 each port (Python, Haskell, Rust) gets the same cost tables and report (`CLAUDE.md`: "A C behavior change must be followed in every port"; the port suites (`port-python`, `port-haskell`, `port-rust`) fail until each port matches). The cost

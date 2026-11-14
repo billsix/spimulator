@@ -34,14 +34,14 @@ OPCODES_TSV: pathlib.Path = REPO / "include" / "opcodes.tsv"
 TYPES_TSV: pathlib.Path = REPO / "include" / "opcode-types.tsv"
 # tokens.h numbers these structural/literal tokens from 256, then one per row.
 STRUCTURAL_TOKENS: tuple[str, ...] = (
-    "TOK_EOF",
-    "TOK_NL",
-    "TOK_INT",
-    "TOK_ID",
-    "TOK_REG",
-    "TOK_FP_REG",
-    "TOK_STR",
-    "TOK_FP",
+    "TOKEN_EOF",
+    "TOKEN_NEWLINE",
+    "TOKEN_INTEGER",
+    "TOKEN_IDENTIFIER",
+    "TOKEN_REGISTER",
+    "TOKEN_FLOATING_POINT_REGISTER",
+    "TOKEN_STRING",
+    "TOKEN_FLOATING_POINT",
 )
 FIRST_KEYWORD_TOKEN: int = 256 + len(STRUCTURAL_TOKENS)
 # The encoding of a directive or pseudo-instruction: no binary word decodes to it.
@@ -73,9 +73,9 @@ class Opcode:
 
     Attributes:
         name: the mnemonic as written in assembly (``add``, ``.word``).
-        symbol: the C token name (``TOK_ADD_OPCODE``).
+        symbol: the C token name (``TOKEN_ADD_OPCODE``).
         token: the token number, from the row's position.
-        type_name: the operand-shape tag (``RD_RS_RT_INST``).
+        type_name: the operand-shape tag (``TARGET_REGISTER_ADDRESS_INSTRUCTION``).
         encoding_text: the fixed bits as the C source writes them
             (``0x00000020``, ``-1``).
         decodes: True on the row a shared encoding decodes to.
@@ -108,15 +108,18 @@ class OpType:
     """One row of opcode-types.tsv.
 
     Attributes:
-        name: the tag (``RD_RS_RT_INST``).
+        name: the tag (``TARGET_REGISTER_ADDRESS_INSTRUCTION``).
         value: its number.
         comment: an example of the operand list, or an empty string.
+        category: the tree-sitter grammar's keyword category for the tag
+            (``KEYWORDS.RT_ADDR`` in ``tree-sitter/grammar.js``).
         group: the number of the blank-line-separated group it is in.
     """
 
     name: str
     value: int
     comment: str
+    category: str
     group: int
 
 
@@ -193,8 +196,8 @@ def read_table() -> Table:
     types: list[OpType] = []
     for group, fields in data_lines(TYPES_TSV):
         match fields:
-            case [name, value, comment]:
-                types.append(OpType(name, int(value), comment, group))
+            case [name, value, comment, category]:
+                types.append(OpType(name, int(value), comment, category, group))
             case _:
                 raise ValueError(f"{TYPES_TSV.name}: bad row {fields!r}")
     known: set[str] = {t.name for t in types}
@@ -279,6 +282,47 @@ def clang_format(text: str, path: str) -> str:
     return done.stdout
 
 
+def ruff_format(text: str, path: str) -> str:
+    """Format Python text with ruff and the Python port's settings, as if it were at path.
+
+    Args:
+        text: the Python source.
+        path: the repo-relative path it will be written to.
+
+    Returns:
+        str: the formatted source.
+    """
+    done: subprocess.CompletedProcess[str] = subprocess.run(
+        ["ruff", "format", f"--stdin-filename={path}", "-"],
+        input=text,
+        capture_output=True,
+        text=True,
+        cwd=REPO / "port" / "python",
+        check=True,
+    )
+    return done.stdout
+
+
+def rustfmt(text: str) -> str:
+    """Format Rust text with rustfmt and the Rust port's settings.
+
+    Args:
+        text: the Rust source.
+
+    Returns:
+        str: the formatted source.
+    """
+    done: subprocess.CompletedProcess[str] = subprocess.run(
+        ["rustfmt", "--edition", "2021", "--emit", "stdout"],
+        input=text,
+        capture_output=True,
+        text=True,
+        cwd=REPO / "port" / "rust",
+        check=True,
+    )
+    return done.stdout
+
+
 def grouped[T: (Opcode, OpType)](
     rows: Sequence[T], render: Callable[[T], str]
 ) -> list[str]:
@@ -316,26 +360,33 @@ OPCODE_TYPES_H_PREAMBLE: str = """/* SPIM S20 MIPS simulator.
    per-instruction handling on the value.  uint8_t-backed — values fit in
    0..42.
 
-   Naming scheme: each tag spells the operand list exactly as the
-   student writes it in assembly, left to right, using the MIPS
-   register-field names (rd/rs/rt, fd/fs/ft/fr for FP):
+   Naming scheme: each tag spells the operand list as the student
+   writes it in assembly, left to right, with each MIPS register field
+   written out (rd is the destination register, rs the source register,
+   rt the target register; for floating point fd, fs, ft and fr):
 
-       RD_RS_RT_INST     ->  add   rd, rs, rt
-       RT_RS_IMM_INST    ->  addiu rt, rs, imm16
-       RT_ADDR_INST      ->  lw    rt, address
-       RD_RT_SHAMT_INST  ->  sll   rd, rt, shamt
-       BRANCH_RS_RT_LABEL_INST -> beq rs, rt, label
+       DESTINATION_REGISTER_SOURCE_REGISTER_TARGET_REGISTER_INSTRUCTION
+           add   rd, rs, rt
+       TARGET_REGISTER_SOURCE_REGISTER_IMMEDIATE_INSTRUCTION
+           addiu rt, rs, imm16
+       TARGET_REGISTER_ADDRESS_INSTRUCTION
+           lw    rt, address
+       DESTINATION_REGISTER_TARGET_REGISTER_SHIFT_AMOUNT_INSTRUCTION
+           sll   rd, rt, shamt
+       BRANCH_SOURCE_REGISTER_TARGET_REGISTER_LABEL_INSTRUCTION
+           beq   rs, rt, label
 
-   COPREG is a coprocessor register operand (mfc0/mtc1-family).
-   MOVC/FP_MOVC are the conditional moves on the FP condition code;
-   J covers `<op> label` or `<op> reg` jumps; NOARG covers `<op>`
-   alone (syscall, nop) or `<op> imm` (break N). */
-typedef enum op_type : uint8_t {
+   COPROCESSOR_REGISTER is a coprocessor register operand (the
+   mfc0/mtc1 family). MOVE_CONDITIONAL and FLOATING_POINT_MOVE_CONDITIONAL
+   are the conditional moves on the floating-point condition code;
+   J_TYPE covers `<op> label` or `<op> reg` jumps; NO_ARGUMENT covers
+   `<op>` alone (syscall, nop) or `<op> imm` (break N). */
+typedef enum opcode_type : uint8_t {
 """
 
 
 def opcode_types_h(table: Table) -> str:
-    """``include/opcode-types.h``: the C ``op_type`` enum.
+    """``include/opcode-types.h``: the C ``opcode_type`` enum.
 
     Args:
         table: the data.
@@ -360,7 +411,9 @@ def opcode_types_h(table: Table) -> str:
 
     body: str = "\n".join(grouped(table.types, entry_line))
     return clang_format(
-        OPCODE_TYPES_H_PREAMBLE + body + "\n} op_type;\n\n#endif /* OP_TYPES_H */\n",
+        OPCODE_TYPES_H_PREAMBLE
+        + body
+        + "\n} opcode_type;\n\n#endif /* OP_TYPES_H */\n",
         "include/opcode-types.h",
     )
 
@@ -483,7 +536,7 @@ def haskell_opcode_types(table: Table) -> str:
         "--",
         "-- Operand-shape tags for the rows of the opcode table (C: include/opcode-types.h).",
         "-- Each tag spells the operand list as the student writes it, left to right:",
-        "-- 'RD_RS_RT_INST' is @add rd, rs, rt@, 'RT_ADDR_INST' is @lw rt, address@.",
+        "-- 'TARGET_REGISTER_ADDRESS_INSTRUCTION' is @lw rt, address@.",
         "-- The constructor names are the C enumerator names, so the two sources can",
         "-- be read side by side.",
         "module OpcodeTypes (OpType (..)) where",
@@ -502,7 +555,9 @@ def haskell_opcode_types(table: Table) -> str:
 
 
 def rust_variant(name: str) -> str:
-    """A C enumerator name as a Rust enum variant: ``RD_RS_RT_INST`` is ``RdRsRtInst``.
+    """A C enumerator name as a Rust enum variant.
+
+    ``TARGET_REGISTER_ADDRESS_INSTRUCTION`` is ``TargetRegisterAddressInstruction``.
 
     Args:
         name: the C name.
@@ -625,17 +680,17 @@ def python_opcode_table(table: Table) -> str:
         "",
         "",
         "class Tok(enum.IntEnum):",
-        '    """The keyword tokens, named like the C tokens without ``TOK_``."""',
+        '    """The keyword tokens, named like the C tokens without ``TOKEN_``."""',
         "",
         *[
-            f"    {row.symbol.removeprefix('TOK_')} = {row.token}"
+            f"    {row.symbol.removeprefix('TOKEN_')} = {row.token}"
             for row in table.opcodes
         ],
         "",
         "",
         "ROWS: tuple[tuple[str, Tok, OpType, int], ...] = (",
         *[
-            f"    ({quoted(row.name)}, Tok.{row.symbol.removeprefix('TOK_')}, OpType.{row.type_name}, {row.encoding}),"
+            f"    ({quoted(row.name)}, Tok.{row.symbol.removeprefix('TOKEN_')}, OpType.{row.type_name}, {row.encoding}),"
             for row in table.opcodes
         ],
         ")",
@@ -643,7 +698,7 @@ def python_opcode_table(table: Table) -> str:
         "",
         "DECODE: tuple[tuple[int, Tok], ...] = (",
         *[
-            f"    ({row.encoding}, Tok.{row.symbol.removeprefix('TOK_')}),"
+            f"    ({row.encoding}, Tok.{row.symbol.removeprefix('TOKEN_')}),"
             for row in table.decode_rows()
         ],
         ")",
@@ -655,10 +710,10 @@ def python_opcode_table(table: Table) -> str:
 def tree_sitter_keyword_lists(table: Table) -> str:
     """``tree-sitter/scripts/keyword-lists.js``: the grammar's keywords, by category.
 
-    Each operand-shape tag is a category (``RD_RS_RT_INST`` becomes
-    ``RD_RS_RT``, ``PSEUDO_OP`` becomes ``PSEUDO``), listed in name order with
-    its mnemonics in name order; ``grammar.js`` builds its keyword rules from
-    them.
+    Each operand-shape tag has a category, the fourth column of opcode-types.tsv
+    (``TARGET_REGISTER_ADDRESS_INSTRUCTION`` is ``RT_ADDR``, ``PSEUDO_OP`` is
+    ``PSEUDO``). The categories are listed in name order, each with its
+    mnemonics in name order; ``grammar.js`` builds its keyword rules from them.
 
     Args:
         table: the data.
@@ -666,6 +721,7 @@ def tree_sitter_keyword_lists(table: Table) -> str:
     Returns:
         str: the module's text.
     """
+    category_of: dict[str, str] = {entry.name: entry.category for entry in table.types}
 
     def category(type_name: str) -> str:
         """The grammar's name for an operand-shape tag.
@@ -676,15 +732,11 @@ def tree_sitter_keyword_lists(table: Table) -> str:
         Returns:
             str: the category name.
         """
-        match type_name:
-            case "PSEUDO_OP":
-                return "PSEUDO"
-            case name if name.endswith("_TYPE_INST"):
-                return name.removesuffix("_TYPE_INST")
-            case name:
-                return name.removesuffix("_INST")
+        return category_of[type_name]
 
-    used: list[str] = sorted({row.type_name for row in table.opcodes})
+    used: list[str] = sorted(
+        {row.type_name for row in table.opcodes}, key=lambda name: category_of[name]
+    )
     lines: list[str] = [
         "/* Generated from include/opcodes.tsv by tools/gen_opcodes.py",
         " * (make generate) — do not edit by hand. */",
@@ -711,7 +763,7 @@ C_LICENSE: str = """   SPDX-License-Identifier: BSD-3-Clause
 
 
 def tokens_h(table: Table) -> str:
-    """``include/tokens.h``: the C engine's ``TOK_*`` token enum.
+    """``include/tokens.h``: the C engine's ``TOKEN_*`` token enum.
 
     Args:
         table: the data.
@@ -721,7 +773,7 @@ def tokens_h(table: Table) -> str:
     """
     text: str = (
         "/* SPIM S20 MIPS simulator.\n"
-        "   TOK_* token enum shared by the scanner, parser, and runtime.\n"
+        "   TOKEN_* token enum shared by the scanner, parser, and runtime.\n"
         "   GENERATED by tools/gen_opcodes.py from include/opcodes.tsv -- do not\n"
         "   edit; change the .tsv and run `make generate`.\n"
         "\n"
@@ -756,27 +808,27 @@ def opcode_tables_h(table: Table) -> str:
         "/* SPIM S20 MIPS simulator.\n"
         "   The opcode tables: every instruction, pseudo-instruction, directive\n"
         "   and REPL command, as the scanner, parser, assembler and disassembler\n"
-        "   look them up (with map_string_to_name_val_val and\n"
-        "   map_int_to_name_val_val, which bsearch them).\n"
+        "   look them up (with map_string_to_name_value_value and\n"
+        "   map_integer_to_name_value_value, which bsearch them).\n"
         "   GENERATED by tools/gen_opcodes.py from include/opcodes.tsv -- do not\n"
         "   edit; change the .tsv and run `make generate`.\n" + C_LICENSE + "\n"
         "#ifndef OPCODE_TABLES_H\n#define OPCODE_TABLES_H\n\n"
-        '#include "spim-utils.h" /* name_val_val */\n\n'
+        '#include "spim-utils.h" /* name_value_value */\n\n'
         "/* The number of rows of opcodes.tsv. */\n"
         f"constexpr int OPCODE_COUNT = {len(table.opcodes)};\n\n"
-        "/* The number of distinct encodings: the rows of opcode_decode_tbl. */\n"
+        "/* The number of distinct encodings: the rows of opcode_decode_table. */\n"
         f"constexpr int OPCODE_DECODE_COUNT = {len(table.decode_rows())};\n\n"
-        "/* {name, token, op_type} per row, in opcodes.tsv's order, which is sorted\n"
+        "/* {name, token, opcode_type} per row, in opcodes.tsv's order, which is sorted\n"
         "   both by name (the scanner's keyword search) and by token (a token's\n"
         "   mnemonic and operand shape). */\n"
-        "extern const name_val_val opcode_tbl[OPCODE_COUNT];\n\n"
+        "extern const name_value_value opcode_table[OPCODE_COUNT];\n\n"
         "/* {name, token, encoding}: the fixed bits the assembler emits for a\n"
         "   token, sorted by token. */\n"
-        "extern const name_val_val opcode_encoding_tbl[OPCODE_COUNT];\n\n"
+        "extern const name_value_value opcode_encoding_table[OPCODE_COUNT];\n\n"
         "/* {name, encoding, token}: the token a binary encoding decodes to, one\n"
         "   row per encoding, sorted by encoding.  Where several rows share an\n"
         "   encoding, opcodes.tsv's decode column picks the row. */\n"
-        "extern const name_val_val opcode_decode_tbl[OPCODE_DECODE_COUNT];\n\n"
+        "extern const name_value_value opcode_decode_table[OPCODE_DECODE_COUNT];\n\n"
         "#endif /* OPCODE_TABLES_H */\n"
     )
     return clang_format(text, "include/opcode-tables.h")
@@ -809,17 +861,17 @@ def opcode_tables_c(table: Table) -> str:
         "   GENERATED by tools/gen_opcodes.py from include/opcodes.tsv -- do not\n"
         "   edit; change the .tsv and run `make generate`.\n" + C_LICENSE + "\n"
         '#include "opcode-tables.h"\n#include "opcode-types.h"\n#include "tokens.h"\n\n'
-        "const name_val_val opcode_tbl[OPCODE_COUNT] = {\n"
+        "const name_value_value opcode_table[OPCODE_COUNT] = {\n"
         + "".join(
             f"    {{.name = {quoted(row.name)}, .value1 = {row.symbol}, .value2 = {row.type_name}}},\n"
             for row in table.opcodes
         )
-        + "};\n\nconst name_val_val opcode_encoding_tbl[OPCODE_COUNT] = {\n"
+        + "};\n\nconst name_value_value opcode_encoding_table[OPCODE_COUNT] = {\n"
         + "".join(
             f"    {{.name = {quoted(row.name)}, .value1 = {row.symbol}, .value2 = {c_encoding(row)}}},\n"
             for row in table.opcodes
         )
-        + "};\n\nconst name_val_val opcode_decode_tbl[OPCODE_DECODE_COUNT] = {\n"
+        + "};\n\nconst name_value_value opcode_decode_table[OPCODE_DECODE_COUNT] = {\n"
         + "".join(
             f"    {{.name = {quoted(row.name)}, .value1 = {c_encoding(row)}, .value2 = {row.symbol}}},\n"
             for row in table.decode_rows()
@@ -836,9 +888,11 @@ OUTPUTS: Mapping[str, Callable[[Table], str]] = {
     "src/opcode-tables.c": opcode_tables_c,
     "port/haskell/src/Opcodes.hs": haskell_opcodes,
     "port/haskell/src/OpcodeTypes.hs": haskell_opcode_types,
-    "port/rust/src/opcodes_table.rs": rust_opcodes_table,
-    "port/rust/src/opcode_types.rs": rust_opcode_types,
-    "port/python/spimulator_py/opcode_table.py": python_opcode_table,
+    "port/rust/src/opcodes_table.rs": lambda table: rustfmt(rust_opcodes_table(table)),
+    "port/rust/src/opcode_types.rs": lambda table: rustfmt(rust_opcode_types(table)),
+    "port/python/spimulator_py/opcode_table.py": lambda table: ruff_format(
+        python_opcode_table(table), "spimulator_py/opcode_table.py"
+    ),
     "tree-sitter/scripts/keyword-lists.js": tree_sitter_keyword_lists,
 }
 

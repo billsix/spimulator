@@ -197,9 +197,9 @@ nanWithPayload rest = castWord64ToDouble (0x7ff8000000000000 .|. (payload .&. 0x
 -- | The value of a decimal number at the start of the text, if there is one.
 decimalValue :: String -> Maybe Double
 decimalValue s =
-  let intDigits :: String
+  let integerDigits :: String
       r1 :: String
-      (intDigits, r1) = span isDigit s
+      (integerDigits, r1) = span isDigit s
       fracDigits :: String
       r2 :: String
       (fracDigits, r2) = case r1 of
@@ -210,7 +210,7 @@ decimalValue s =
         (e : r) | e `elem` "eE" -> exponentPart r
         _ -> 0
       digits :: String
-      digits = intDigits ++ fracDigits
+      digits = integerDigits ++ fracDigits
    in if null digits
         then Nothing
         else Just (fromDecimal (read digits) (expo - length fracDigits))
@@ -240,9 +240,9 @@ fromDecimal m e
 -- the text: hex digits, an optional fraction, an optional binary exponent.
 hexValue :: String -> Double
 hexValue s =
-  let intDigits :: String
+  let integerDigits :: String
       r1 :: String
-      (intDigits, r1) = span isHexDigit s
+      (integerDigits, r1) = span isHexDigit s
       fracDigits :: String
       r2 :: String
       (fracDigits, r2) = case r1 of
@@ -253,7 +253,7 @@ hexValue s =
         (p : r) | p `elem` "pP" -> binaryExponent r
         _ -> 0
       m :: Integer
-      m = foldl (\acc c -> acc * 16 + toInteger (digitToInt c)) 0 (intDigits ++ fracDigits)
+      m = foldl (\acc c -> acc * 16 + toInteger (digitToInt c)) 0 (integerDigits ++ fracDigits)
       e :: Int
       e = expo - 4 * length fracDigits
    in if m == 0

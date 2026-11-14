@@ -21,8 +21,8 @@ low-risk, but unverifiable without a big-endian build — hence blocked.
 
 In `src/memory.c`, the byte/half load-shift helpers have paired `#ifdef SPIM_BIGENDIAN` / `#else`
 branches. The little-endian (`#else`) side was cast during the conversion pass, e.g.
-`tmp = (mem_word)((unsigned)tmp >> (8 * (addr & 0x3)));`; the big-endian side
-(`tmp = (unsigned)tmp >> (8 * (3 - (addr & 0x3)));`) was not. The `SPIM_BIGENDIAN` blocks to revisit
+`temporary = (memory_word)((unsigned)temporary >> (8 * (address & 0x3)));`; the big-endian side
+(`temporary = (unsigned)temporary >> (8 * (3 - (address & 0x3)));`) was not. The `SPIM_BIGENDIAN` blocks to revisit
 are near the four `#ifdef SPIM_BIGENDIAN` markers in `read_memory`/`read_memory_mapped` byte-extract
 code (two load twins plus their kernel-segment equivalents). Any other `SPIM_BIGENDIAN` block that does
 signed/unsigned word shuffling is in scope too.

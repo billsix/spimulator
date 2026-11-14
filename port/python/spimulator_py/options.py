@@ -11,7 +11,7 @@ from . import memory_layout as layout
 bare_machine: bool = False
 """Simulate the bare machine: no pseudo-instructions, delayed branches/loads."""
 
-accept_pseudo_insts: bool = True
+accept_pseudo_instructions: bool = True
 """Accept pseudo-instructions (``li``, ``la``, ...) in the assembly."""
 
 delayed_branches: bool = False
@@ -35,6 +35,6 @@ initial_data_size: int = layout.DATA_SIZE
 initial_data_limit: int = layout.DATA_LIMIT
 initial_stack_size: int = layout.STACK_SIZE
 initial_stack_limit: int = layout.STACK_LIMIT
-initial_k_text_size: int = layout.K_TEXT_SIZE
-initial_k_data_size: int = layout.K_DATA_SIZE
-initial_k_data_limit: int = layout.K_DATA_LIMIT
+initial_kernel_text_size: int = layout.KERNEL_TEXT_SIZE
+initial_kernel_data_size: int = layout.KERNEL_DATA_SIZE
+initial_kernel_data_limit: int = layout.KERNEL_DATA_LIMIT
