@@ -31,7 +31,7 @@ than a source file. The image build does not rely on that. A Dockerfile layer bu
 before `meson test`, and `port/check-binaries-fresh.sh` fails the build if they are missing or
 stale. Otherwise the first test to call a launcher would pay for the compile, and the regression
 cases that run under `timeout 10` would fail on a slow or loaded machine
-(`tasks/port-lazy-build-times-out-image-gate.md`).
+(`tasks/archive/2026/11/15/port-lazy-build-times-out-image-gate.md`).
 
 `port/meson.build` registers, for each port in its `ports` list:
 - every regression test except the teaching mode, every examples demo, and the documented example
