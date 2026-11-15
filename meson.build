@@ -185,11 +185,14 @@ test('generated_opcode_tables', find_program('python3'),
 # clang itself, so it needs clang installed, whichever compiler builds spim.
 clang_for_ast = find_program('clang', required: false)
 if clang_for_ast.found()
+  # Both checks run clang over every src/*.c: about 4 s alone, but over meson's
+  # default 30 s while the port suites run in parallel during the image build.
+  ast_check_timeout = 300
   test('dispatch_check', find_program('python3'),
        args: [meson.current_source_dir() / 'tools' / 'c_dispatch_check.py',
               meson.current_build_dir(), 'src'],
        workdir: meson.current_source_dir(),
-       suite: 'regression')
+       suite: 'regression', timeout: ast_check_timeout)
   # The C coding standard's designated-initializer rule: every struct or union
   # initializer in the core is written `{.name = …}`.  tools/c_designated_init_check.py
   # reads the same AST and fails on a positional one not accepted with a
@@ -199,7 +202,7 @@ if clang_for_ast.found()
        args: [meson.current_source_dir() / 'tools' / 'c_designated_init_check.py',
               meson.current_build_dir(), 'src', 'include'],
        workdir: meson.current_source_dir(),
-       suite: 'regression')
+       suite: 'regression', timeout: ast_check_timeout)
 endif
 
 # --- Examples curriculum (paired C + MIPS-asm teaching demos) -----------

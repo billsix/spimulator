@@ -88,7 +88,25 @@ history (who did what, in what order, and the C bugs the ports found) is in
   status and any `dump` files).
 
 The image build runs them all. A behavior change in C fails every port's suite until the port
-follows it. A new port is an entry in `ports`, plus `tools/add_port_lines.py NAME LABEL` for the
+follows it.
+
+**Compiled ports are built before the tests, never by them.** The Haskell and Rust launchers
+(`port/haskell/spimulator-haskell`, `port/rust/spimulator-rust`) build their binary on first use
+when it is missing or older than a source file, which keeps `make shell` edits live. The image
+build must not rely on that. A test that triggered the compile would pay for it inside its own
+time limit, and the regression cases in `tests/run-test.sh` that run under `timeout 10` would then
+fail whenever the build was slow: the ghc build takes about 9 s on an idle machine, and more
+while meson runs tests in parallel. So the Dockerfile builds both binaries in their own layer
+before `meson test`. The test layer starts with `port/check-binaries-fresh.sh`, which repeats each
+launcher's staleness test and fails the build, on every machine, if a binary is missing or stale.
+A new compiled port adds its build to that layer and its check to that script.
+
+**Heavy checks carry an explicit meson `timeout:`.** Under the image build's full parallelism
+(the port suites included), a test runs several times slower than alone. For example,
+`designated_init_check` takes about 4 s alone and 45–49 s in the build. Meson's 30 s default is
+too short for such a test, so `dispatch_check` and `designated_init_check` get `timeout: 300` in
+`meson.build`, and the port suites get 600–3600 s in `port/meson.build`. A new test that does real
+work (a clang pass over the tree, a whole-corpus comparison) gets an explicit `timeout:` too. A new port is an entry in `ports`, plus `tools/add_port_lines.py NAME LABEL` for the
 example headers.
 
 ## What is not ported yet

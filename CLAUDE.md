@@ -108,7 +108,10 @@ pinned goldens; `examples/tests/run-demo.sh`; plus `documented-commands`, which 
 BUILD AND RUN header commands verbatim, `tools/check_example_commands.py`).
 Running them from a standalone builddir needs every target built (`meson compile -C builddir`,
 not just the `spimulator` target): the examples' and the ports' demo tests compare against the
-demos' native C binaries, and fail when those are missing.
+demos' native C binaries, and fail when those are missing. The image builds the Haskell and Rust
+port binaries in their own layer before `meson test`, and `port/check-binaries-fresh.sh` fails the
+build if they are missing or stale, so no test triggers a compile (a cold ghc build inside a
+`timeout 10` regression case is a race; `port/README.md`, "Testing a port").
 
 **Sanitizer gate** (`RUN_SANITIZERS=1`, the `make image` default; `make image
 RUN_SANITIZERS=0` to skip): the image build also compiles **spim only** (the
