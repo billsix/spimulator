@@ -26,6 +26,13 @@ Each port's opcode table is generated from `include/opcodes.tsv` by `tools/gen_o
     # [CONTAINER] just the case-by-case comparison with the C engine:
     port/harness/compare_engines.py --reference builddir/spimulator --engine port/python/spimulator-python
 
+The Haskell and Rust launchers compile their port on first use when the binary is missing or older
+than a source file. The image build does not rely on that. A Dockerfile layer builds both binaries
+before `meson test`, and `port/check-binaries-fresh.sh` fails the build if they are missing or
+stale. Otherwise the first test to call a launcher would pay for the compile, and the regression
+cases that run under `timeout 10` would fail on a slow or loaded machine
+(`tasks/port-lazy-build-times-out-image-gate.md`).
+
 `port/meson.build` registers, for each port in its `ports` list:
 - every regression test except the teaching mode, every examples demo, and the documented example
   commands;

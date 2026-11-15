@@ -121,6 +121,16 @@ RUN cd ${SPIM_SRC_DIR} && \
     meson install -C ${SPIM_BUILD_DIR} && \
     ln -s ${SPIM_BUILD_DIR}/compile_commands.json ${SPIM_SRC_DIR}/compile_commands.json
 
+# Build the compiled engine ports (Haskell with ghc, Rust with cargo, offline)
+# here, before the tests.  Their launchers build on first use, but a test must
+# not pay for that: the regression cases that run under `timeout 10` would then
+# time the compiler and fail on a slow or loaded machine.  The launchers keep
+# their lazy build for `make shell` edits.  The `meson test` layer below checks
+# that these binaries are present and current (port/check-binaries-fresh.sh).
+RUN cd ${SPIM_SRC_DIR} && \
+    port/haskell/build.sh && \
+    cargo build --release --offline --quiet --manifest-path port/rust/Cargo.toml
+
 # Execute the full test suite via `meson test`.  Fails the image
 # build if any test fails.  Two suites run here:
 #   - 'regression' (spim itself): inventory in meson.build under
@@ -133,7 +143,10 @@ RUN cd ${SPIM_SRC_DIR} && \
 #     atexit-demo) verifies the host shell exit status matches
 #     `<demo>.expected-status`.  Any drift on either side fails
 #     the build.
-RUN meson test -C ${SPIM_BUILD_DIR} --print-errorlogs
+# First, port/check-binaries-fresh.sh fails the build if the port-build layer
+# above did not leave current port binaries, so no test triggers a compile.
+RUN ${SPIM_SRC_DIR}/port/check-binaries-fresh.sh && \
+    meson test -C ${SPIM_BUILD_DIR} --print-errorlogs
 
 # Run the sanitizer gate at image-build time?  Builds spim a second/third
 # time under UndefinedBehaviorSanitizer (trap mode) and AddressSanitizer and
