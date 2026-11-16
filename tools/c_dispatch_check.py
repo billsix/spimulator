@@ -57,6 +57,7 @@ import argparse
 import json
 import pathlib
 import shlex
+import shutil
 import subprocess
 import sys
 from collections.abc import Iterator
@@ -816,13 +817,22 @@ def main(arguments: argparse.Namespace) -> int:
         arguments: The parsed command line.
 
     Returns:
-        The exit status: 0 clean, 1 sites flagged, 2 a file could not be parsed.
+        The exit status: 0 clean, 1 sites flagged, 2 a file could not be parsed or
+        the check could not run (no compile database, no clang, or no translation
+        unit matching the sources).
     """
     build_dir: pathlib.Path = pathlib.Path(arguments.build_dir).resolve()
     roots: list[pathlib.Path] = [
         (ROOT / source).resolve() for source in (arguments.sources or ["."])
     ]
-    entries: list[Node] = json.loads((build_dir / "compile_commands.json").read_text())
+    database: pathlib.Path = build_dir / "compile_commands.json"
+    if not database.is_file():
+        print(f"no compile database at {database}", file=sys.stderr)
+        return 2
+    if shutil.which("clang") is None:
+        print("clang is not installed; it is needed to read the AST", file=sys.stderr)
+        return 2
+    entries: list[Node] = json.loads(database.read_text())
     by_file: dict[pathlib.Path, Node] = {}
     for entry in entries:
         source: pathlib.Path = (

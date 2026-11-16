@@ -42,6 +42,7 @@ import argparse
 import json
 import pathlib
 import shlex
+import shutil
 import subprocess
 import sys
 import typing
@@ -94,14 +95,15 @@ def parse_flags(arguments: list[str]) -> list[str]:
     return kept
 
 
-def ast_of(entry: dict[str, Json]) -> Json:
+def ast_of(entry: dict[str, Json]) -> Json | None:
     """The JSON AST of one compile-database entry.
 
     Args:
         entry: a ``compile_commands.json`` entry.
 
     Returns:
-        Json: clang's ``-ast-dump=json`` of that translation unit.
+        Json | None: clang's ``-ast-dump=json`` of that translation unit, or None
+        if clang could not parse it (reported on stderr).
     """
     arguments: list[str] = (
         entry["arguments"] if "arguments" in entry else shlex.split(entry["command"])
@@ -118,8 +120,16 @@ def ast_of(entry: dict[str, Json]) -> Json:
         cwd=entry["directory"],
         capture_output=True,
         text=True,
-        check=True,
+        check=False,
     )
+    if completed.returncode != 0:
+        # The first error line says why; the rest of clang's output is the cascade.
+        first_error: str = next(
+            (line for line in completed.stderr.splitlines() if "error" in line),
+            completed.stderr,
+        )
+        sys.stderr.write(f"{entry['file']}: clang could not parse it: {first_error}\n")
+        return None
     return json.loads(completed.stdout)
 
 
@@ -234,23 +244,43 @@ def main(arguments: argparse.Namespace) -> int:
         arguments: the parsed command line.
 
     Returns:
-        int: 1 if any site was reported, else 0.
+        int: 0 if clean, 1 if any site was reported, 2 if the check could not run
+        (no compile database or clang, a source path that does not exist, an empty
+        database) or a file could not be parsed.
     """
     root: pathlib.Path = pathlib.Path.cwd().resolve()
     scopes: list[pathlib.Path] = [
         (root / source).resolve() for source in arguments.sources
     ] or [root]
-    entries: list[dict[str, Json]] = json.loads(
-        (pathlib.Path(arguments.builddir) / "compile_commands.json").read_text()
-    )
+    missing: list[pathlib.Path] = [scope for scope in scopes if not scope.exists()]
+    if missing:
+        # A gate whose source list names nothing must not pass.
+        sys.stderr.write(f"no such source path: {' '.join(map(str, missing))}\n")
+        return 2
+    if shutil.which("clang") is None:
+        sys.stderr.write("clang is not installed; it is needed to read the AST\n")
+        return 2
+    database: pathlib.Path = pathlib.Path(arguments.builddir) / "compile_commands.json"
+    if not database.is_file():
+        sys.stderr.write(f"no compile database at {database}\n")
+        return 2
+    entries: list[dict[str, Json]] = json.loads(database.read_text())
+    if not entries:
+        sys.stderr.write(f"{database} lists no translation unit\n")
+        return 2
+    unparsed: int = 0
     seen: set[tuple[pathlib.Path, int]] = set()
     rows: list[tuple[str, int, str, str]] = []
     entry: dict[str, Json]
     for entry in entries:
+        tree: Json | None = ast_of(entry)
+        if tree is None:
+            unparsed += 1
+            continue
         file_name: str
         offset: int
         type_name: str
-        for file_name, offset, type_name in record_initializers(ast_of(entry)):
+        for file_name, offset, type_name in record_initializers(tree):
             path: pathlib.Path = (
                 pathlib.Path(entry["directory"]) / file_name
             ).resolve()
@@ -273,6 +303,9 @@ def main(arguments: argparse.Namespace) -> int:
     row: tuple[str, int, str, str]
     for row in sorted(rows):
         sys.stdout.write("\t".join(map(str, row)) + "\n")
+    if unparsed:
+        sys.stderr.write(f"{unparsed} translation unit(s) could not be parsed\n")
+        return 2
     return 1 if rows else 0
 
 
