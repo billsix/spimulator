@@ -1,0 +1,21 @@
+\ Rung 6: : and ; compile new words from the input.
+: SQUARE DUP * ;
+7 SQUARE . CR
+: CUBE DUP SQUARE * ;
+3 CUBE . CR
+: SHOUT 72 EMIT 73 EMIT 33 EMIT CR ;
+SHOUT
+\ An IMMEDIATE word runs while a definition is being compiled: NOW prints
+\ its * when LATER is compiled, not when LATER runs.
+: NOW 42 EMIT ; IMMEDIATE
+: LATER NOW 43 EMIT ;
+CR LATER CR
+\ : hides the word it defines, so this SQUARE calls the old SQUARE.
+: SQUARE SQUARE 1 + ;
+4 SQUARE . CR
+\ HIDE hides a word by name; FIVE is then unknown.
+: FIVE 5 ;
+FIVE . HIDE FIVE FIVE CR
+\ ' pushes the codeword address (the execution token) of the next word.
+: XT-OF-DUP ' DUP ;
+5 XT-OF-DUP EXECUTE . . CR

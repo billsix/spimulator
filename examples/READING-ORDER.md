@@ -5,7 +5,7 @@ MIPS assembly who already knows the algorithms from a
 high-level language (Java, Python, etc).
 
 **Filesystem layout is by topic, not by reading order.**  Demos
-live in seven topic folders under `src/`:
+live in eight topic folders under `src/`:
 
 | Folder | Contents |
 |---|---|
@@ -15,6 +15,7 @@ live in seven topic folders under `src/`:
 | `fileio/` | open/close/read/write (Part 4 + Unix toolchest file demos) |
 | `arguments/` | argv handling, atoi (Part 5 + Unix toolchest argv demos) |
 | `recursion/` | per-call stack frames (Part 6) |
+| `lang/` | language implementations: the calculators and the Forth ladder (Part 8) |
 | `extras/` | off-curriculum demos |
 
 The Parts below give the engagement-first reading sequence
@@ -345,6 +346,27 @@ recursion demos taught.
     allocator (`os_brk`), and `eval` recurses with the same $ra/frame
     discipline, saving the left operand across the right subtree's
     evaluation.
+
+    **The Forth ladder — read it after calc-tree.**  A Forth interpreter
+    in spim assembly, porting the design of Richard W.M. Jones's
+    public-domain jonesforth, built in nine rungs under `src/lang/forth/`,
+    one idea each.  Unlike the rest of the curriculum these are
+    **asm only** (there is no C twin: a threaded interpreter has no
+    natural C shape), and they are exempt from the stack-visible style:
+    each file's header gives a register map (IP `$s7`, return stack
+    `$s6`, data stack `$sp`, W `$t0`) instead.  Every rung is
+    golden-tested; rungs 4 on read Forth from stdin
+    (`spimulator -f forth-N-....asm < forth-N-....input`).  Spec:
+    `../tasks/reference/forth-incremental-versions.md`.
+    - 43a. **`forth-1-next`**       — threaded code and the inner interpreter, NEXT.
+    - 43b. **`forth-2-docol`**      — words written in Forth: DOCOL, EXIT, the return stack.
+    - 43c. **`forth-3-primitives`** — the primitive set, and BRANCH/0BRANCH loops.
+    - 43d. **`forth-4-dictionary`** — headers, FIND, and an outer interpreter.
+    - 43e. **`forth-5-numbers`**    — NUMBER and BASE: an extensible RPN calculator.
+    - 43f. **`forth-6-compiling`**  — `:` `;` STATE, IMMEDIATE: user-defined words.
+    - 43g. **`forth-7-quit`**       — jonesforth's QUIT/INTERPRET, PARSE ERROR.
+    - 43h. **`forth-8-control`**    — IF/ELSE/THEN and loops written in Forth (jonesforth.f).
+    - 43i. **`forth-9-prelude`**    — strings, VARIABLE/CONSTANT/VALUE, CASE, WORDS, SEE.
 
 ## Part 9 — Teaching libraries (multi-file linking)
 
