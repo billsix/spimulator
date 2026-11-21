@@ -1,0 +1,9 @@
+\ Rung 5: a word that is not in the dictionary but reads as a number is pushed.
+2 3 + . CR
+10 4 - .  6 7 * .  17 5 /MOD . . CR
+-5 3 + . CR
+\ BASE is a variable: in base 16, FF is 255 and 10 is sixteen.
+16 BASE !  FF .  10 . CR
+A BASE !  10 . CR
+1 2 3 ROT . . . CR
+12X CR

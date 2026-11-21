@@ -1,0 +1,18 @@
+\ Rung 7: the outer interpreter is one primitive, INTERPRET, as in jonesforth.
+: SQUARE DUP * ;
+5 SQUARE . CR
+\ A word that is neither defined nor a number is a parse error.
+SQAURE
+\ WORD reads the next name and TELL prints it.  WORD's buffer is reused by
+\ the interpreter's own WORD, so both run inside one definition.
+: ECHO WORD TELL ;
+ECHO hello CR
+\ CHAR gives the first byte of the next word.
+CHAR A . CHAR z EMIT CR
+\ ' inside a definition gives an execution token for EXECUTE.
+: TICK-SQUARE ' SQUARE ;
+6 TICK-SQUARE EXECUTE . CR
+\ QUIT empties the return stack (R0 RSP!) before each word: it holds no
+\ return addresses at the top level, and one inside a word.
+: RDEPTH R0 RSP@ - ;
+R0 RSP@ - . RDEPTH . CR

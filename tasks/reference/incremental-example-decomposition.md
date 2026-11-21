@@ -163,6 +163,9 @@ For every version, the example's reference doc records:
   `.c` with *two* `.asm` variants: `get-char-from-user` ships a `-1.asm` bug and a `-2.asm` fix,
   `subrountines` a longhand/idiomatic pair — so an asm-only variant rung is legitimate where the
   *lesson itself* is an asm distinction, but the default is one matched `.c`+`.asm` per rung.)
+  The Forth ladder (`tasks/reference/forth-incremental-versions.md`) is the one asm-only ladder, by
+  the maintainer's decision (William Emerison Six <billsix@gmail.com>, 2026-11-21): a threaded
+  interpreter's lesson is the machine-level threading, which has no natural C shape.
 - **Each rung keeps the paired-demo teaching-C style** (`example-c-teaching-style.md`): declare
   locals at the top, flat control flow, no modern-C idioms that hide the codegen.
 - **Naming/layout** (proposed, pending the maintainer's call — see the umbrella task): versions live

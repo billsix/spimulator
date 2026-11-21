@@ -287,6 +287,11 @@ lib_demo_tests = [
   'calc-1-numbers', 'calc-2-addsub', 'calc-3-muldiv',
   'calc-4-parens', 'calc-5-neg', 'calc-6-float', 'calc-sdt', 'calc-tree', 'calc-eval',
   'calc-eval-test',
+  # The Forth ladder: asm only, no C twin (run-demo.sh runs just the spim side;
+  # tasks/reference/forth-incremental-versions.md).
+  'forth-1-next', 'forth-2-docol', 'forth-3-primitives', 'forth-4-dictionary',
+  'forth-5-numbers', 'forth-6-compiling', 'forth-7-quit', 'forth-8-control',
+  'forth-9-prelude',
 ]
 foreach name : lib_demo_tests
   test(name,

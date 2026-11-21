@@ -37,7 +37,8 @@ port of the *Programming from the Ground Up* book, an editor grammar, and a
   the generated `tokens.h` / `opcode-types.h` / `opcode-tables.h`, `registers.h`,
   `spim.h`, parser/AST headers.
 - `examples/` — paired **C + MIPS-asm** teaching demos (`intro/`, `algorithms/`,
-  `transforms/`, `fileio/`, `arguments/`, `recursion/`, `extras/`, plus
+  `transforms/`, `fileio/`, `arguments/`, `recursion/`, `extras/`, `lang/` (the calculator
+  ladder and an asm-only Forth ladder, `tasks/reference/forth-incremental-versions.md`), plus
   `lib/libctype` + `libstdlib` + `libstr` adapted from musl). `examples/src/meson.build`
   builds them; `examples/src/Makefile` materializes native `.s` listings +
   binaries (and `make debug` builds debuggable `bin-debug/` binaries with `-g`

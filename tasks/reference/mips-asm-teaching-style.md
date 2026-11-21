@@ -188,9 +188,15 @@ counter-examples:
   original rpn.asm + rpn-1-stack.asm pair during the 2026-10-31 algorithms rollout; the
   `rpn-eval`/`rpn-eval-test` siblings instead use a `.data` operand array and ARE converted.)
 - `intro/exit/exit.asm` — the `set $v0 before jr $ra` exit lesson.
+- `lang/forth/forth-*.asm` — the nine-rung Forth ladder (a jonesforth port) keeps its machine
+  state in fixed registers on purpose: IP in `$s7`, the return stack in `$s6`, the data stack on
+  `$sp`, W in `$t0`. It has no C locals to give stack slots, so each file's header has a REGISTER MAP
+  in place of the SYMBOL TABLE and SNAPSHOT (William Emerison Six <billsix@gmail.com>, 2026-11-21;
+  `tasks/reference/forth-incremental-versions.md`).
 
-(The rollout is complete and this exempt set is final — confirmed with the maintainer
-(William Emerison Six <billsix@gmail.com>) at the close of the 2026-10-31 sweep.)
+(The rollout is complete; the exempt set was confirmed with the maintainer (William Emerison
+Six <billsix@gmail.com>) at the close of the 2026-10-31 sweep, and the Forth ladder was added
+to it on 2026-11-21.)
 
 ## Verifying a conversion (the rollout method)
 

@@ -2,7 +2,8 @@
 # Run a library demo on BOTH the C side and the spim asm side,
 # verify the stdout matches the pinned `.expected` golden, and
 # (for demos that pin one) verify the host shell exit status
-# matches `.expected-status`.
+# matches `.expected-status`.  An asm-only demo (the Forth ladder) has
+# no C side; only its spim run is checked.
 #
 # Mirrors /spimulator/tests/run-test.sh's structure.  Each demo
 # name names a case below that knows which .asm files to load
@@ -49,6 +50,7 @@ fail() {
 # optional stdin to pipe in, and whether to also verify exit status.
 expected_status=""
 input=""
+asm_only=""
 case "$NAME" in
   strings)
     # First non-library demo with a pinned golden: printable-run
@@ -257,6 +259,15 @@ case "$NAME" in
     expected=$SRC_DIR/lang/calc/calc-eval-test.expected
     asm_files="-f $SRC_DIR/lang/calc/calc-eval-test.asm"
     ;;
+  forth-*)
+    # The Forth ladder (tasks/reference/forth-incremental-versions.md): one
+    # .asm per rung and no C twin, so only the spim side runs, and it must
+    # exit 0.  A rung without a .input file runs on empty stdin.
+    expected=$SRC_DIR/lang/forth/$NAME.expected
+    [ -f "$SRC_DIR/lang/forth/$NAME.input" ] && input=$SRC_DIR/lang/forth/$NAME.input
+    asm_files="-f $SRC_DIR/lang/forth/$NAME.asm"
+    asm_only=1
+    ;;
   *)
     fail "unknown demo: $NAME"
     ;;
@@ -267,8 +278,13 @@ esac
 # --- Run the C side ---
 # Demo executables install/build with a `spimulator-example-` prefix so the
 # coreutil-named ones (cp, head, wc, …) don't shadow system tools on PATH.
-"$C_BIN_DIR/spimulator-example-$NAME" < "${input:-/dev/null}" > "$out_c" 2>&1
-c_status=$?
+# An asm-only demo has no C binary: skip this side, and expect exit 0.
+if [ -n "$asm_only" ]; then
+  c_status=0
+else
+  "$C_BIN_DIR/spimulator-example-$NAME" < "${input:-/dev/null}" > "$out_c" 2>&1
+  c_status=$?
+fi
 
 # --- Run the asm side under spim ---
 $SPIM -exception_file "$EF" -noexplain -quiet $asm_files \
@@ -276,7 +292,7 @@ $SPIM -exception_file "$EF" -noexplain -quiet $asm_files \
 asm_status=$?
 
 # --- Golden diff (C side) ---
-if ! diff -q "$expected" "$out_c" > /dev/null; then
+if [ -z "$asm_only" ] && ! diff -q "$expected" "$out_c" > /dev/null; then
   fail "C stdout differs from golden ($expected); see diff:
 $(diff "$expected" "$out_c" | head -10)"
 fi
@@ -291,7 +307,7 @@ fi
 if [ -n "$expected_status" ]; then
   [ -f "$expected_status" ] || fail "missing status golden: $expected_status"
   want=$(tr -d ' \t\n' < "$expected_status")
-  [ "$c_status"   = "$want" ] || fail "C exit was $c_status, expected $want"
+  [ -n "$asm_only" ] || [ "$c_status" = "$want" ] || fail "C exit was $c_status, expected $want"
   [ "$asm_status" = "$want" ] || fail "asm exit was $asm_status, expected $want"
 else
   # The asm is the C demo's translation, so it must exit the same way; this

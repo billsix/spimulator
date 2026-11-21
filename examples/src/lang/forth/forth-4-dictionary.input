@@ -1,0 +1,5 @@
+\ Rung 4: every word is looked up by name.  These lines are comments.
+HI
+STAR STAR STAR CR
+KEY A EMIT KEY B EMIT CR
+HI BOGUS CR
