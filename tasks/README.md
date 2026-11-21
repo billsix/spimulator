@@ -54,7 +54,7 @@ fail until each port matches.
 `timing-model` is much cheaper), `ast-line-numbers-after-newline` (do it before `ast-column-tracking`,
 which builds on the same per-node position), `ast-column-tracking`, `string-equality-audit` (waits on the
 maintainer), `paired-single-instructions-unsupported` (on hold), `big-endian-conversion-hardening`
-(blocked).
+(blocked), `forth-incremental-versions` (examples only; follows the calc ladder's method).
 
 ## Logging completed work
 
