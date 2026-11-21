@@ -1,6 +1,6 @@
 # A Forth for spim, modelled on jonesforth, built as an incremental ladder like the calculator
 
-**Status:** proposed — needs go-ahead (open questions below)
+**Status:** proposed — needs go-ahead (decisions recorded 2026-11-21; no open questions)
 **Priority:** 5
 **Difficulty:** 8 (a threaded interpreter in MIPS asm, about nine rungs, each with goldens)
 **Created:** 2026-11-21 (William Emerison Six <billsix@gmail.com>)
@@ -83,7 +83,7 @@ Each rung reuses the previous rung's code and lists its diff, as the calc spec d
    `BEGIN UNTIL AGAIN WHILE REPEAT`, `( )` comments, `RECURSE`, then `.` / `.S` written in Forth.
    Idea: the language extends itself with `IMMEDIATE` words.
 9. **`forth-9-prelude`** ("full enough") — `S" ."`, `VARIABLE CONSTANT ALLOT VALUE TO`, `WORDS`,
-   `CASE`, `SEE`. Stop here unless Open question 3 says otherwise.
+   `CASE`, `SEE`. The ladder stops here (Decisions).
 
 ## Plan
 
@@ -93,20 +93,10 @@ Each rung reuses the previous rung's code and lists its diff, as the calc spec d
 3. Build the rungs in order, each with goldens, under the examples test harness; add them to
    `examples/READING-ORDER.md`.
 
-## Open questions
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-11-21: "go with your recommendations")
 
-1. **C twins:** every calc rung is a `.c` + `.asm` pair. Should each Forth rung also have a C version
-   (threading through an array of function pointers), or is the Forth asm-only like jonesforth?
-   *Recommend asm-only; jonesforth is asm by design, and a function-pointer Forth in C teaches
-   something different.*
-2. **Truth values:** keep jonesforth's 1/0 from comparisons, or use ANS Forth's −1/0? *Recommend
-   jonesforth's 1/0, since the port follows it; note the difference in the reference doc.*
-3. **End point:** is rung 9 "full enough", or should the ladder go on to `CATCH`/`THROW` and
-   `FORGET`/`DUMP`? *Recommend stopping at rung 9.*
-4. **Asm teaching style:** the repo's stack-visible style (`tasks/reference/mips-asm-teaching-style.md`:
-   each C local in a `-N($fp)` slot, symbol table, stack-frame snapshot) assumes C-shaped routines.
-   A threaded Forth keeps its state in fixed registers and two hand-run stacks. Mark the Forth rungs
-   exempt (like the register/idiom demos), with a header that documents the register map instead?
-   *Recommend yes.*
-5. **Reading-order placement:** after the calculator ladder (the end of `lang/`), or as its own
-   section after the PGU port? *Recommend right after `calc-tree`; it is the next "language" lesson.*
+- **Assembly only:** no C twin per step.
+- **Truth values 1/0,** as jonesforth; the reference doc notes the difference from ANS Forth's −1/0.
+- **The ladder ends at step 9** (`forth-9-prelude`); `CATCH`/`THROW`, `FORGET`, `DUMP` are out of scope.
+- **Exempt from the stack-visible asm style;** each file's header documents the register map (IP, data stack, return stack, W) instead.
+- **Reading order:** right after `calc-tree`.
