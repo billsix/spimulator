@@ -481,9 +481,8 @@ def _i_type_full_word(
             _lower_bits_of_expression(expression),
         )
     elif global_pointer_offset is not None:
-        computed: int = Tok.ADDIU_OPCODE if opcode == Tok.LUI_OPCODE else opcode
         i_type(
-            computed,
+            Tok.ADDIU_OPCODE if opcode == Tok.LUI_OPCODE else opcode,
             target_register,
             regs.GLOBAL_POINTER_REGISTER,
             make_immediate_expression(global_pointer_offset, None, False),

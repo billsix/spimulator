@@ -42,6 +42,17 @@ The survey was `survey_names_and_scope.py` (same directory as the standards), ru
 - **bash:** one inline, `root` in `port/python/lint.sh` (it fed one `cd`). No script has a one-caller function. The other leads were the two `meson setup` command lines in `entrypoint/buildDebug.sh`, which are not assignments.
 - **JavaScript:** `tree-sitter/grammar.js` had no leads: its one helper, `kw`, is called 26 times.
 
+## Second pass: the Python the first pass read only for nesting (2026-11-25)
+
+The maintainer asked the same day whether every language was fully done ("if not, do it"). Two things were not: `tools/` and `port/harness/` had been read for one-caller helpers only, and the Python port's leads had been judged by hand, five of them applied.
+
+- **`inline_single_use_python.py`** (below) inlined 15 single-use annotated bindings: `body` in `tools/gen_opcodes.py`; `worst` in `port/harness/compare_all_programs.py` and `compare_engines.py`; `module` in `port/python/run_doctests.py`; and in the port `cflag` (`console.py`), `computed` (`instruction.py`), `kind`, `bits` and `current` (`parser.py`), `signed`, `quotient` and three `slt` (`pseudo_op.py`), `cause` (`traps.py`).
+- **The line it draws, which is also why the Rust port's other leads stay:** a binding is inlined only when its value fits on one line of source and nothing with an effect runs before it in the statement that reads it. A value that takes several lines (a table, a conditional, a long computation) keeps its name. A first run without that limit inlined 43 bindings and was discarded: three-line conditionals landed inside call arguments, and `a`, `b` and `accumulator` of the multiply-add became one seven-line expression. The shared standard asks for a comment naming an inlined value; a script cannot write that comment, and without it those inlines lost information.
+- **Also kept:** a value read inside an f-string (the substituted expression is hard to read there); a value whose reader is inside a nested statement, a lambda, a comprehension, a conditional branch or a later `and`/`or` operand (it would run later, repeatedly, only sometimes, or under a different exception handler); `subprocess.run` results; token reads and `record_label` (the Decision).
+- **The Rust port needed nothing more:** its codemod already applied the same one-line limit. Its remaining leads are multi-line values (`slt`, `load_high`, `ast_kind`, `name`, the `text` strings in `listing.rs`) or bindings read several lines later, where the name is what the reader follows across those lines.
+
+**Gate for the second pass:** `make image`, default flags, exit 0; 385 tests OK and 0 failed, then 54 OK under UBSan and 54 under ASan. Before it, in the sandbox: `tools/gen_opcodes.py --check` exit 0, `port/python/lint.sh` exit 0, `compare_engines.py` 35 of 35 for the Python port.
+
 ## Found on the way
 
 - **Seven functions in the core have a definition and a header declaration and no caller:** `assembler_fire_align`, `assembler_fire_segment_change`, `ast_make_error`, `extern_directive`, `lcomm_directive`, `initialize_stack` and `print_undefined_symbols`. `git grep -w` finds each only in its `src/*.c` file and its header (searched `src/`, `include/`, `tests/`, `examples/`, `port/harness/`). They are non-`static`, so `-Wunused-function` does not report them. This task did not remove them: whether each is dead or kept for a planned use is the maintainer's call.
@@ -55,8 +66,9 @@ The survey was `survey_names_and_scope.py` (same directory as the standards), ru
 
 ## How
 
-Three scripts, removed with this archive and kept in this repository's history under `tasks/adhoc/apply-naming-and-scope-rules-per-language/`:
+Four scripts, removed with this archive and kept in this repository's history under `tasks/adhoc/apply-naming-and-scope-rules-per-language/`:
 
 - `inline_single_use_let.py`: the Rust codemod described above. It applies one candidate at a time and puts back any that does not compile. An inline can expose one more candidate, so it was run until it reported none (two passes changed something, the third nothing).
 - `list_single_use_python.py`: read-only; lists annotated assignments stored once and loaded once, by the statement that follows.
-- The C, Haskell, Python, bash and Python-port edits were made by hand from the survey.
+- `inline_single_use_python.py`: the Python inliner of the second pass, working from the `ast` module's positions; it repeats until a pass changes nothing.
+- The C, Haskell and bash edits, the `tools/` nesting (`nest_one_caller.py`) and the first five Python-port inlines were made by hand or with the shared tool.

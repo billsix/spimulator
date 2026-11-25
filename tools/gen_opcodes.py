@@ -408,10 +408,9 @@ def opcode_types_h(table: Table) -> str:
         )
         return f"  {entry.name} = {entry.value},{comment}"
 
-    body: str = "\n".join(grouped(table.types, entry_line))
     return clang_format(
         OPCODE_TYPES_H_PREAMBLE
-        + body
+        + "\n".join(grouped(table.types, entry_line))
         + "\n} opcode_type;\n\n#endif /* OP_TYPES_H */\n",
         "include/opcode-types.h",
     )

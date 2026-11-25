@@ -79,9 +79,12 @@ def raise_exception(code: int) -> None:
             coprocessor_0[regs.COPROCESSOR_0_EXCEPTION_PROGRAM_COUNTER] = machine.s32(
                 regs.cpu.program_counter & ~3
             )
-    cause: int = machine.u32(coprocessor_0[regs.COPROCESSOR_0_CAUSE])
     coprocessor_0[regs.COPROCESSOR_0_CAUSE] = machine.s32(
-        (cause & ~regs.CAUSE_EXCEPTION_CODE) | (code << 2)
+        (
+            machine.u32(coprocessor_0[regs.COPROCESSOR_0_CAUSE])
+            & ~regs.CAUSE_EXCEPTION_CODE
+        )
+        | (code << 2)
     )
     coprocessor_0[regs.COPROCESSOR_0_STATUS] = machine.s32(
         status | regs.STATUS_EXCEPTION_LEVEL

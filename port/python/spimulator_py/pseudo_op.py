@@ -123,17 +123,22 @@ def divide_instruction(
         parser.emit_i(Tok.BNE_OPCODE, 0, target_register, branch_offset(3))
         nop_instruction()
         trap_instruction()
-    signed: bool = opcode in (Tok.DIV_OPCODE, Tok.REM_PSEUDO_OP)
     parser.emit_r(
-        Tok.DIV_OPCODE if signed else Tok.DIVU_OPCODE,
+        Tok.DIV_OPCODE
+        if (opcode in (Tok.DIV_OPCODE, Tok.REM_PSEUDO_OP))
+        else Tok.DIVU_OPCODE,
         0,
         source_register,
         target_register,
     )
     if destination_register != 0:
-        quotient: bool = opcode in (Tok.DIV_OPCODE, Tok.DIVU_OPCODE)
         parser.emit_r(
-            Tok.MFLO_OPCODE if quotient else Tok.MFHI_OPCODE, destination_register, 0, 0
+            Tok.MFLO_OPCODE
+            if (opcode in (Tok.DIV_OPCODE, Tok.DIVU_OPCODE))
+            else Tok.MFHI_OPCODE,
+            destination_register,
+            0,
+            0,
         )
 
 
@@ -193,12 +198,11 @@ def set_less_or_equal_instruction(
     opcode: int, destination_register: int, source_register: int, target_register: int
 ) -> None:
     """Expand sle/sleu."""
-    slt: int = Tok.SLT_OPCODE if opcode == Tok.SLE_PSEUDO_OP else Tok.SLTU_OPCODE
     _set_compare(
         destination_register,
         source_register,
         target_register,
-        slt,
+        Tok.SLT_OPCODE if opcode == Tok.SLE_PSEUDO_OP else Tok.SLTU_OPCODE,
         source_register,
         target_register,
     )
@@ -208,20 +212,23 @@ def set_greater_than_instruction(
     opcode: int, destination_register: int, source_register: int, target_register: int
 ) -> None:
     """Expand sgt/sgtu (slt with the operands swapped)."""
-    slt: int = Tok.SLT_OPCODE if opcode == Tok.SGT_PSEUDO_OP else Tok.SLTU_OPCODE
-    parser.emit_r(slt, destination_register, target_register, source_register)
+    parser.emit_r(
+        Tok.SLT_OPCODE if opcode == Tok.SGT_PSEUDO_OP else Tok.SLTU_OPCODE,
+        destination_register,
+        target_register,
+        source_register,
+    )
 
 
 def set_greater_or_equal_instruction(
     opcode: int, destination_register: int, source_register: int, target_register: int
 ) -> None:
     """Expand sge/sgeu."""
-    slt: int = Tok.SLT_OPCODE if opcode == Tok.SGE_PSEUDO_OP else Tok.SLTU_OPCODE
     _set_compare(
         destination_register,
         source_register,
         target_register,
-        slt,
+        Tok.SLT_OPCODE if opcode == Tok.SGE_PSEUDO_OP else Tok.SLTU_OPCODE,
         target_register,
         source_register,
     )

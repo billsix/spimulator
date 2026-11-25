@@ -193,10 +193,9 @@ def compare(want: Run, got: Run) -> tuple[str, list[str]]:
     if want.status != got.status:
         results.append(("FAIL", [f"exit status: C {want.status}, port {got.status}"]))
     verdicts: list[str] = [verdict for verdict, _ in results]
-    worst: str = (
+    return (
         "FAIL" if "FAIL" in verdicts else "WARN" if "WARN" in verdicts else "PASS"
-    )
-    return worst, [note for _, notes in results for note in notes]
+    ), [note for _, notes in results for note in notes]
 
 
 def resolve_engine(path: str) -> str:
