@@ -1265,11 +1265,10 @@ static void parse_string_list(void) {
     }
     scanner_advance();
     char* const s = (char*)scan_value.pointer;
-    const int length = (int)strlen(s);
     if (text_directive) {
       parse_error_at("Can't put data in text segment");
     } else {
-      emit_data_string(s, length, null_term);
+      emit_data_string(s, (int)strlen(s), null_term);
     }
     free(s);
     if (scanner_peek() == TOKEN_NEWLINE || scanner_peek() == TOKEN_EOF) break;
@@ -2313,8 +2312,7 @@ static void parse_directive(int directive_token) {
 
 /* Helper: is this token an assembler directive? */
 static bool is_directive(int token) {
-  const int t = find_opcode_type(token);
-  return t == ASSEMBLER_DIRECTIVE;
+  return find_opcode_type(token) == ASSEMBLER_DIRECTIVE;
 }
 
 /* OPT_LBL: ID ':'  |  ID '=' EXPRESSION */

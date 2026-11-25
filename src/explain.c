@@ -1286,8 +1286,8 @@ static void explain_syscall(int level) {
 static void write_bits(char* out, uint32_t value, int high, int low) {
   const int width = high - low + 1;
   for (int i = 0; i < width; i++) {
-    const int bit_position = high - i;
-    out[i] = (value & (1u << bit_position)) ? '1' : '0';
+    /* out[i] is bit `high - i`: the most significant bit comes first. */
+    out[i] = (value & (1u << (high - i))) ? '1' : '0';
   }
   out[width] = '\0';
 }
@@ -2286,8 +2286,8 @@ static void emit_category_preamble(const mips_instruction* instruction) {
   write_output(message_out, "    %s\n", category_descriptions[category]);
 
   if (modifier_count > 0) {
-    const char* const mnemonic = instruction_opcode_name(instruction);
-    write_output(message_out, "  Modifiers in `%s`:\n", mnemonic);
+    write_output(message_out, "  Modifiers in `%s`:\n",
+                 instruction_opcode_name(instruction));
     for (int i = 0; i < modifier_count; i++) {
       const instruction_modifier m = modifiers[i];
       write_output(message_out, "    %s — %s\n", modifier_letters[m],
