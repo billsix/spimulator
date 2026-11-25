@@ -277,8 +277,7 @@ impl Machine {
     fn jump(&mut self, target: u32, display: bool) {
         if self.options.delayed_branches {
             self.run.running_in_delay_slot = true;
-            let slot: u32 = self.registers.program_counter.wrapping_add(4);
-            let _ = self.run_spim(slot, 1, display);
+            let _ = self.run_spim(self.registers.program_counter.wrapping_add(4), 1, display);
             self.run.running_in_delay_slot = false;
         }
         // The run loop adds 4 after this instruction.
@@ -534,8 +533,7 @@ impl Machine {
                 self.jump(target, display);
             }
             TOKEN_JR_OPCODE | TOKEN_JR_HB_OPCODE => {
-                let target: u32 = g(self, source_register) as u32;
-                self.jump(target, display);
+                self.jump(g(self, source_register) as u32, display);
             }
             TOKEN_LB_OPCODE => {
                 let value: i32 = self.memory_read_byte(self.effective_address(instruction));

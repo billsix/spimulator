@@ -632,8 +632,14 @@ impl Engine {
             if token == TOKEN_STRING || token == TOKEN_IDENTIFIER {
                 arguments.push(self.machine.scanner.scan_value.text());
             } else if token == TOKEN_INTEGER {
-                let value: i32 = self.machine.scanner.scan_value.int();
-                arguments.push(value.to_string().into_bytes());
+                arguments.push(
+                    self.machine
+                        .scanner
+                        .scan_value
+                        .int()
+                        .to_string()
+                        .into_bytes(),
+                );
             }
         }
         self.program_argv = arguments;

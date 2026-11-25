@@ -366,8 +366,8 @@ def _needs_full_word(opcode: int, value: int, expression: ImmediateExpression) -
     if opcode in _SIGNED_IMMEDIATE_OPCODES or (
         opcode_is_load_store(opcode) and expression.bits == 0
     ):
-        high: int = machine.u32(value) & 0xFFFF8000
-        return high not in (0, 0xFFFF8000)
+        # The bits above the low 15: all clear or all set when the value fits.
+        return (machine.u32(value) & 0xFFFF8000) not in (0, 0xFFFF8000)
     return machine.u32(value) & 0xFFFF0000 != 0
 
 
@@ -813,8 +813,7 @@ def instruction_decode(word: int) -> Instruction:
     destination_register: int = (value >> 11) & 0x1F
     shift_amount: int = (value >> 6) & 0x1F
     immediate: int = value & 0xFFFF
-    kind: int | None = kind_of(token)
-    match kind:
+    match kind_of(token):
         case OpType.BRANCH_COPROCESSOR_CONDITION_INSTRUCTION | OpType.TARGET_REGISTER_IMMEDIATE_INSTRUCTION | OpType.TARGET_REGISTER_SOURCE_REGISTER_IMMEDIATE_INSTRUCTION | OpType.BRANCH_SOURCE_REGISTER_TARGET_REGISTER_LABEL_INSTRUCTION | OpType.TARGET_REGISTER_ADDRESS_INSTRUCTION | OpType.FLOATING_POINT_TARGET_ADDRESS_INSTRUCTION:  # fmt: skip
             return _make_instruction(
                 value,

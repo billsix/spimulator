@@ -249,8 +249,8 @@ def _resolve_a_label_subtract(
     else:
         value = instruction_module.evaluate_immediate_expression(expression)
         field_mask = 0xFFFF
-    high: int = machine.s32(value & ~field_mask)
-    if high not in (0, machine.s32(0xFFFF0000)):
+    # The bits above the field: all clear or all set when the value fits.
+    if machine.s32(value & ~field_mask) not in (0, machine.s32(0xFFFF0000)):
         console.error("Immediate value is too large for field: ")
         instruction_module.print_instruction(program_counter)
     if instruction_module.opcode_is_jump(instruction.opcode):
@@ -298,8 +298,7 @@ def flush_local_labels(issue_undefined_warnings: bool) -> None:
         entry: Label | None = _by_name.get(label.name)
         if entry is None:
             continue
-        bucket: list[Label] = _buckets[hash_slot(label.name)]
-        bucket.remove(entry)
+        _buckets[hash_slot(label.name)].remove(entry)
         del _by_name[label.name]
         if issue_undefined_warnings and entry.address == 0 and not entry.constant_flag:
             console.error(f"Warning: local symbol {entry.name} was not defined\n")

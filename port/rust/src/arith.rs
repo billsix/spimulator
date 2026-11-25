@@ -122,8 +122,7 @@ pub fn c_atoi(text: &[u8]) -> i32 {
         i += 1;
     }
     let signed: i128 = if negative { -value } else { value };
-    let clamped: i64 = signed.clamp(i128::from(i64::MIN), i128::from(i64::MAX)) as i64;
-    low_32_bits(clamped)
+    low_32_bits(signed.clamp(i128::from(i64::MIN), i128::from(i64::MAX)) as i64)
 }
 
 /// C's `atof` (`strtod` on the longest valid prefix, 0.0 if none).
@@ -172,8 +171,10 @@ pub fn c_atof(text: &[u8]) -> f64 {
                 0.0
             };
         }
-        let digits: &str = std::str::from_utf8(&rest[..length]).unwrap_or("0");
-        digits.parse::<f64>().unwrap_or(0.0)
+        std::str::from_utf8(&rest[..length])
+            .unwrap_or("0")
+            .parse::<f64>()
+            .unwrap_or(0.0)
     };
     if negative {
         -magnitude
@@ -256,8 +257,7 @@ fn parse_hex_float(text: &[u8]) -> f64 {
             exponent += if negative { -power } else { power };
         }
     }
-    let exponent_i32: i32 = i32::try_from(exponent.clamp(-100_000, 100_000)).unwrap_or(0);
-    mantissa * 2.0_f64.powi(exponent_i32)
+    mantissa * 2.0_f64.powi(i32::try_from(exponent.clamp(-100_000, 100_000)).unwrap_or(0))
 }
 
 /// The value of a hexadecimal digit.

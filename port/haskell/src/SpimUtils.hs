@@ -144,9 +144,8 @@ initializeRunStack s argv = do
   environmentAddresses :: [Word32] <- forM environment (copyStringToStack s)
   argumentAddresses :: [Word32] <- forM argv (copyStringToStack s)
   sp :: Word32 <- fromIntegral <$> getGeneralPurposeRegister s 29 :: IO Word32
-  let aligned :: Word32
-      aligned = ((sp .&. complement 3) - 4) .&. complement 7
-  setGeneralPurposeRegister s 29 (fromIntegral aligned)
+  -- One word below the word-aligned stack pointer, then down to a multiple of 8.
+  setGeneralPurposeRegister s 29 (fromIntegral (((sp .&. complement 3) - 4) .&. complement 7))
   _ <- copyIntegerToStack s 0
   forM_ (reverse environmentAddresses) $ \a -> copyIntegerToStack s (fromIntegral a) >>= setGeneralPurposeRegister s 6 . fromIntegral
   _ <- copyIntegerToStack s 0

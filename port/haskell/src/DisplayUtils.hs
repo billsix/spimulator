@@ -100,9 +100,8 @@ formatInstructions s from to = concat <$> forM (takeWhile (< to) [from, from + 4
 -- or more zero words (C: @format_mem@).
 formatMemory :: Spim -> Word32 -> Word32 -> IO String
 formatMemory s from to = do
-  let start :: Word32
-      start = (from + 3) .&. complement 3
-  (first, i0) :: (String, Word32) <- partialLine s start
+  -- Start at `from` rounded up to a word boundary.
+  (first, i0) :: (String, Word32) <- partialLine s ((from + 3) .&. complement 3)
   rest :: String <- loop i0
   pure (first ++ rest)
   where

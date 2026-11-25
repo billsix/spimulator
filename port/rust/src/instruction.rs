@@ -708,8 +708,7 @@ impl Machine {
     /// In the data segment, an instruction is stored as its encoding.
     fn store_instruction(&mut self, instruction: InstRef) {
         if self.asm.data_dir {
-            let encoding: i32 = instruction.borrow().encode();
-            self.store_word(encoding);
+            self.store_word(instruction.borrow().encode());
         } else if self.asm.text_directive {
             let at: u32 = self.current_text_location();
             self.exception_occurred = false;
@@ -874,8 +873,7 @@ impl Machine {
         expr: &ImmediateExpression,
         source_register: i32,
     ) -> Option<i32> {
-        let id: LabelId = expr.symbol?;
-        let label: &Label = self.symbols.label(id);
+        let label: &Label = self.symbols.label(expr.symbol?);
         if !label.gp || source_register != 0 {
             return None;
         }
@@ -1048,9 +1046,8 @@ impl Machine {
             // The whole byte offset: asking for the low 16 bits would
             // truncate a branch more than 32 KB away.
             let whole: ImmediateExpression = ImmediateExpression { bits: 0, ..expr };
-            let byte_offset: i32 = self.evaluate_immediate_expression(&whole);
             // Drop the low two bits: instructions are on word boundaries.
-            let mut word_offset: i32 = byte_offset / 4;
+            let mut word_offset: i32 = self.evaluate_immediate_expression(&whole) / 4;
             if self.options.delayed_branches {
                 word_offset -= 1;
             }

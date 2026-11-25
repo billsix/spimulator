@@ -122,8 +122,11 @@ def _listing_observer(event: Event) -> None:
                 f"{'  (global)' if event.flag else ''}\n"
             )
         case Kind.TEXT_INSTRUCTION:
-            text: str = instruction_module.instruction_to_string(event.address)
-            line += f"text   0x{event.address:08x}  {text:<32s}  0x{event.value:08x}\n"
+            line += (
+                f"text   0x{event.address:08x}  "
+                f"{instruction_module.instruction_to_string(event.address):<32s}  "
+                f"0x{event.value:08x}\n"
+            )
         case Kind.DATA_BYTE:
             line += (
                 f"data   0x{event.address:08x}  byte    0x{event.value & 0xFF:02x}\n"
