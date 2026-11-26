@@ -205,8 +205,7 @@ impl Machine {
 
     /// Append a directive or label node.
     fn emit_node(&mut self, kind: AstKind) {
-        let node: AstNode = self.node(kind);
-        self.ast_append(node);
+        self.ast_append(self.node(kind));
     }
 
     /// An immediate expression on an optional label (`make_immediate_expression`).
@@ -255,8 +254,7 @@ impl Machine {
 
     /// Report a syntax error at the current line (`parse_error_at`).
     fn parse_error_at(&mut self, message: &str) {
-        let line: i32 = self.scanner.line_no();
-        self.parse_error_on_line(message, line);
+        self.parse_error_on_line(message, self.scanner.line_no());
     }
 
     /// Report a syntax error on a given line (`parse_error_on_line`).
@@ -1611,8 +1609,9 @@ impl Machine {
                 return;
             }
             self.advance();
-            let value: f64 = self.scanner.scan_value.fp();
-            self.asm.data_floating_point_buffer.push(value);
+            self.asm
+                .data_floating_point_buffer
+                .push(self.scanner.scan_value.fp());
             if self.peek() == TOKEN_NEWLINE || self.peek() == TOKEN_EOF {
                 break;
             }
@@ -2002,8 +2001,7 @@ impl Machine {
                 self.make_label_global(name);
                 let id: LabelId = self.symbols.lookup(name);
                 if self.symbols.label(id).address == 0 {
-                    let program_counter: u32 = self.current_data_location();
-                    self.record_label(name, program_counter, true);
+                    self.record_label(name, self.current_data_location(), true);
                 }
                 self.increment_data_location(*size);
             }
@@ -2011,8 +2009,7 @@ impl Machine {
                 self.align_data(2);
                 let id: LabelId = self.symbols.lookup(name);
                 if self.symbols.label(id).address == 0 {
-                    let program_counter: u32 = self.current_data_location();
-                    self.record_label(name, program_counter, true);
+                    self.record_label(name, self.current_data_location(), true);
                 }
                 self.increment_data_location(*size);
             }

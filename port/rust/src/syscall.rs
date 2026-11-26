@@ -86,8 +86,8 @@ impl Machine {
             6 => {
                 let mut text: [u8; 256] = [0; 256];
                 let count: usize = read_input(&mut text, 256);
-                let value: f32 = c_atof(&text[..count]) as f32;
-                self.registers.set_floating_point_register_single(0, value);
+                self.registers
+                    .set_floating_point_register_single(0, c_atof(&text[..count]) as f32);
             }
             7 => {
                 let mut text: [u8; 256] = [0; 256];

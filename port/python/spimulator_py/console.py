@@ -175,8 +175,7 @@ def console_to_program() -> None:
         )
         parameters[0] = iflag | termios.IGNBRK | termios.IGNPAR | termios.ICRNL
         parameters[1] = termios.OPOST | termios.ONLCR
-        cflag: int = parameters[2]
-        parameters[2] = (cflag & ~termios.PARENB) | termios.CREAD | termios.CS8
+        parameters[2] = (parameters[2] & ~termios.PARENB) | termios.CREAD | termios.CS8
         parameters[3] = 0
         condition_code: list[bytes | int] = parameters[6]
         condition_code[termios.VMIN] = 1

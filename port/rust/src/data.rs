@@ -193,11 +193,9 @@ impl Machine {
             self.store_word(low);
             self.store_word(high);
         } else {
-            let program_counter: u32 = self.current_data_location();
-            self.memory_write_word(program_counter, low);
+            self.memory_write_word(self.current_data_location(), low);
             self.increment_data_location(4);
-            let program_counter: u32 = self.current_data_location();
-            self.memory_write_word(program_counter, high);
+            self.memory_write_word(self.current_data_location(), high);
             self.increment_data_location(4);
         }
         self.asm.data_store_depth -= 1;

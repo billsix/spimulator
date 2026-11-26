@@ -43,109 +43,119 @@ REPO_ROOT: Path = Path(__file__).resolve().parents[1]
 SRC_DIR: Path = REPO_ROOT / "examples" / "src"
 
 
-def spim_path() -> Path:
-    """The spim binary to run — $SPIM if set, else the in-tree build."""
-    env: str | None = os.environ.get("SPIM")
-    return Path(env) if env else REPO_ROOT / "builddir" / "spimulator"
 
 
-def strip_comment(line: str) -> str | None:
-    """Return a comment line's content (after '# '), or None if not a comment."""
-    stripped: str = line.lstrip()
-    if not stripped.startswith("#"):
-        return None
-    return stripped[1:].lstrip()
 
 
-def parse_canonical(path: Path) -> dict[str, object] | None:
-    """Parse the one #CANONICAL block in `path`, or None if it has none."""
-    lines: list[str] = path.read_text().splitlines()
-    start: int = -1
-    for index, line in enumerate(lines):
-        content: str | None = strip_comment(line)
-        if content is not None and content.startswith("CANONICAL"):
-            start = index
-            break
-    if start < 0:
-        return None
-
-    args: list[str] = []
-    stdin_file: str | None = None
-    status: int = 0
-    expected: list[str] = []
-    in_stdout: bool = False
-    for line in lines[start + 1:]:
-        content: str | None = strip_comment(line)
-        if content is None:
-            break  # the block ends at the first non-comment line
-        elif content.startswith("|"):
-            expected.append(content[1:].lstrip() if content[1:].startswith(" ") else content[1:])
-            continue
-        else:
-            if content.startswith("args:"):
-                args = content[len("args:"):].split()
-                in_stdout = False
-            elif content.startswith("stdin:"):
-                stdin_file = content[len("stdin:"):].strip()
-                in_stdout = False
-            elif content.startswith("status:"):
-                status = int(content[len("status:"):].strip())
-                in_stdout = False
-            elif content.startswith("stdout:"):
-                in_stdout = True
-            elif in_stdout:
-                break
-    return {
-        "args": args,
-        "stdin_file": stdin_file,
-        "status": status,
-        "expected": expected,
-    }
 
 
-def run_demo(asm: Path, args: list[str], stdin_file: str | None) -> tuple[str, int]:
-    """Run `spim -f asm args` (optional stdin); return stdout and the exit status.
-
-    stderr is dropped.
-    """
-    cmd: list[str] = [str(spim_path()), "-f", str(asm), *args]
-    stdin_bytes: bytes = b""
-    if stdin_file:
-        stdin_bytes = (SRC_DIR / stdin_file).read_bytes()
-    completed: subprocess.CompletedProcess[bytes] = subprocess.run(
-        cmd, input=stdin_bytes, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-        check=False,
-    )
-    return completed.stdout.decode(), completed.returncode
 
 
-def check_file(asm: Path) -> bool | None:
-    """Check one file. True=pass, False=fail, None=no #CANONICAL block."""
-    block: dict[str, object] | None = parse_canonical(asm)
-    if block is None:
-        return None
-    args: list[str] = block["args"]  # type: ignore[assignment]
-    stdin_file: str | None = block["stdin_file"]  # type: ignore[assignment]
-    expected_lines: list[str] = block["expected"]  # type: ignore[assignment]
-    expected_status: int = block["status"]  # type: ignore[assignment]
-    actual: str
-    status: int
-    actual, status = run_demo(asm, args, stdin_file)
-    actual_lines: list[str] = actual.splitlines()
-    rel: str = asm.relative_to(REPO_ROOT).as_posix()
-    if actual_lines == expected_lines and status == expected_status:
-        print(f"PASS  {rel}")
-        return True
-    print(f"FAIL  {rel}", file=sys.stderr)
-    if status != expected_status:
-        print(f"  exit status: expected {expected_status}, got {status}", file=sys.stderr)
-    print(f"  expected: {expected_lines!r}", file=sys.stderr)
-    print(f"  actual:   {actual_lines!r}", file=sys.stderr)
-    return False
 
 
 def main(argv: list[str]) -> int:
     """Check the files named on the command line (or --all)."""
+
+    def check_file(asm: Path) -> bool | None:
+        """Check one file. True=pass, False=fail, None=no #CANONICAL block."""
+
+        def run_demo(asm: Path, args: list[str], stdin_file: str | None) -> tuple[str, int]:
+            """Run `spim -f asm args` (optional stdin); return stdout and the exit status.
+
+            stderr is dropped.
+            """
+
+            def spim_path() -> Path:
+                """The spim binary to run — $SPIM if set, else the in-tree build."""
+                env: str | None = os.environ.get("SPIM")
+                return Path(env) if env else REPO_ROOT / "builddir" / "spimulator"
+
+            cmd: list[str] = [str(spim_path()), "-f", str(asm), *args]
+            stdin_bytes: bytes = b""
+            if stdin_file:
+                stdin_bytes = (SRC_DIR / stdin_file).read_bytes()
+            completed: subprocess.CompletedProcess[bytes] = subprocess.run(
+                cmd, input=stdin_bytes, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                check=False,
+            )
+            return completed.stdout.decode(), completed.returncode
+
+
+        def parse_canonical(path: Path) -> dict[str, object] | None:
+            """Parse the one #CANONICAL block in `path`, or None if it has none."""
+
+            def strip_comment(line: str) -> str | None:
+                """Return a comment line's content (after '# '), or None if not a comment."""
+                stripped: str = line.lstrip()
+                if not stripped.startswith("#"):
+                    return None
+                return stripped[1:].lstrip()
+
+            lines: list[str] = path.read_text().splitlines()
+            start: int = -1
+            for index, line in enumerate(lines):
+                content: str | None = strip_comment(line)
+                if content is not None and content.startswith("CANONICAL"):
+                    start = index
+                    break
+            if start < 0:
+                return None
+
+            args: list[str] = []
+            stdin_file: str | None = None
+            status: int = 0
+            expected: list[str] = []
+            in_stdout: bool = False
+            for line in lines[start + 1:]:
+                content: str | None = strip_comment(line)
+                if content is None:
+                    break  # the block ends at the first non-comment line
+                elif content.startswith("|"):
+                    expected.append(content[1:].lstrip() if content[1:].startswith(" ") else content[1:])
+                    continue
+                else:
+                    if content.startswith("args:"):
+                        args = content[len("args:"):].split()
+                        in_stdout = False
+                    elif content.startswith("stdin:"):
+                        stdin_file = content[len("stdin:"):].strip()
+                        in_stdout = False
+                    elif content.startswith("status:"):
+                        status = int(content[len("status:"):].strip())
+                        in_stdout = False
+                    elif content.startswith("stdout:"):
+                        in_stdout = True
+                    elif in_stdout:
+                        break
+            return {
+                "args": args,
+                "stdin_file": stdin_file,
+                "status": status,
+                "expected": expected,
+            }
+
+        block: dict[str, object] | None = parse_canonical(asm)
+        if block is None:
+            return None
+        args: list[str] = block["args"]  # type: ignore[assignment]
+        stdin_file: str | None = block["stdin_file"]  # type: ignore[assignment]
+        expected_lines: list[str] = block["expected"]  # type: ignore[assignment]
+        expected_status: int = block["status"]  # type: ignore[assignment]
+        actual: str
+        status: int
+        actual, status = run_demo(asm, args, stdin_file)
+        actual_lines: list[str] = actual.splitlines()
+        rel: str = asm.relative_to(REPO_ROOT).as_posix()
+        if actual_lines == expected_lines and status == expected_status:
+            print(f"PASS  {rel}")
+            return True
+        print(f"FAIL  {rel}", file=sys.stderr)
+        if status != expected_status:
+            print(f"  exit status: expected {expected_status}, got {status}", file=sys.stderr)
+        print(f"  expected: {expected_lines!r}", file=sys.stderr)
+        print(f"  actual:   {actual_lines!r}", file=sys.stderr)
+        return False
+
     if not argv:
         print(__doc__)
         return 2

@@ -268,8 +268,8 @@ static memory_address format_partial_line(string_stream* stream,
     stream_printf(stream, "[0x%08x]		      ", address);
 
     for (; (address % BYTES_PER_LINE) != 0; address += BYTES_PER_WORD) {
-      const memory_word value = memory_read_word(address);
-      stream_printf(stream, "  0x%08x", (unsigned int)value);
+      stream_printf(stream, "  0x%08x",
+                    (unsigned int)memory_read_word(address));
     }
 
     stream_printf(stream, "\n");

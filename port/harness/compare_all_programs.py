@@ -156,10 +156,11 @@ def compare_case(
         )
         verdicts.append(verdict)
         notes += part_notes
-    worst: str = (
-        "FAIL" if "FAIL" in verdicts else "WARN" if "WARN" in verdicts else "PASS"
+    return (
+        label,
+        ("FAIL" if "FAIL" in verdicts else "WARN" if "WARN" in verdicts else "PASS"),
+        notes,
     )
-    return label, worst, notes
 
 
 def main() -> int:

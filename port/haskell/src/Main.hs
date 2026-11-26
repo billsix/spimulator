@@ -814,11 +814,10 @@ printRegisterFromString :: Spim -> String -> IO Bool
 printRegisterFromString s name0 = do
   let name :: String
       name = map toLower (take 100 name0)
-      bare :: String
-      bare = if take 1 name == "$" then drop 1 name else name
       show' :: String -> Int32 -> IO Bool
       show' label v = writeError (printf "%s = 0x%08x (%d)\n" (label :: String) (fromIntegral v :: Word32) (v :: Int32)) >> pure True
-  case bare of
+  -- The name without a leading `$`.
+  case if take 1 name == "$" then drop 1 name else name of
     "pc" -> get (registerProgramCounter s) >>= show' "PC" . fromIntegral
     "hi" -> get (registerMultiplyDivideHigh s) >>= show' "HI"
     "lo" -> get (registerMultiplyDivideLow s) >>= show' "LO"

@@ -10,7 +10,6 @@ import importlib
 import pathlib
 import pkgutil
 import sys
-from types import ModuleType
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import spimulator_py
@@ -25,8 +24,9 @@ def main() -> int:
     failed: int = 0
     attempted: int = 0
     for info in pkgutil.iter_modules(spimulator_py.__path__):
-        module: ModuleType = importlib.import_module(f"spimulator_py.{info.name}")
-        result: doctest.TestResults = doctest.testmod(module)
+        result: doctest.TestResults = doctest.testmod(
+            importlib.import_module(f"spimulator_py.{info.name}")
+        )
         failed += result.failed
         attempted += result.attempted
     print(f"doctests: {attempted} run, {failed} failed")

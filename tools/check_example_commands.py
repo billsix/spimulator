@@ -87,23 +87,6 @@ NOT_DEMOS: tuple[str, ...] = (
 )
 
 
-def is_demo(path: pathlib.Path) -> bool:
-    rel: str = path.relative_to(SRC).as_posix()
-    return "/" in rel and not rel.startswith(NOT_DEMOS)
-
-
-def commands(text: str) -> list[str]:
-    """The `$ ` command lines of the BUILD AND RUN block, in order."""
-    start: int = text.index(MARK)
-    end: int = text.index("*/", start)
-    prefix: str = " *     $ "
-    return [
-        line[len(prefix) :]
-        for line in text[start:end].splitlines()
-        if line.startswith(prefix)
-    ]
-
-
 def run(
     cmd: str, cwd: pathlib.Path, env: dict[str, str]
 ) -> subprocess.CompletedProcess[bytes]:
@@ -118,11 +101,6 @@ def run(
     )
 
 
-def simulator_of(cmd: str) -> str:
-    """The simulator a documented line runs: `spimulator` or `spimulator-NAME`."""
-    return next(w for w in cmd.split() if w.startswith("spimulator"))
-
-
 def check(
     demo: pathlib.Path, scratch: pathlib.Path, env: dict[str, str], ports: set[str]
 ) -> tuple[str | None, int]:
@@ -130,6 +108,22 @@ def check(
 
     A `spimulator-NAME` line runs only when NAME is in ports.
     """
+
+    def simulator_of(cmd: str) -> str:
+        """The simulator a documented line runs: `spimulator` or `spimulator-NAME`."""
+        return next(w for w in cmd.split() if w.startswith("spimulator"))
+
+    def commands(text: str) -> list[str]:
+        """The `$ ` command lines of the BUILD AND RUN block, in order."""
+        start: int = text.index(MARK)
+        end: int = text.index("*/", start)
+        prefix: str = " *     $ "
+        return [
+            line[len(prefix) :]
+            for line in text[start:end].splitlines()
+            if line.startswith(prefix)
+        ]
+
     rel: pathlib.Path = demo.relative_to(SRC)
     lines: list[str] = commands(demo.read_text())
     if len(lines) < 3:
@@ -168,6 +162,11 @@ def check(
 
 
 def main() -> int:
+
+    def is_demo(path: pathlib.Path) -> bool:
+        rel: str = path.relative_to(SRC).as_posix()
+        return "/" in rel and not rel.startswith(NOT_DEMOS)
+
     parser: argparse.ArgumentParser = argparse.ArgumentParser(
         description=__doc__.splitlines()[0]
     )

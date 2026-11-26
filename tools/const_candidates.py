@@ -109,85 +109,6 @@ class LocationTracker:
         return line
 
 
-def declaration_lines(root: Node) -> dict[str, int]:
-    """The source line of every node, by id, walking in clang's printing order.
-
-    clang's JSON writes a location's line only when it differs from the line
-    last printed, so a node's line is known only by visiting everything before it.
-
-    Args:
-        root: the ``TranslationUnitDecl`` node.
-
-    Returns:
-        dict[str, int]: each node id's line.
-    """
-    tracker: LocationTracker = LocationTracker()
-    lines: dict[str, int] = {}
-    stack: list[Node] = [root]
-    while stack:
-        node: Node = stack.pop()
-        lines[node.get("id", "")] = tracker.visit_node(node)
-        stack.extend(reversed(node.get("inner", [])))
-    return lines
-
-
-def clang_arguments(entry: Mapping[str, Any]) -> list[str]:
-    """The compile command of one compile_commands.json entry, made into AST-dump flags.
-
-    Args:
-        entry: one entry of ``compile_commands.json``.
-
-    Returns:
-        list[str]: the compiler's arguments without the compiler, a leading
-        wrapper such as ``ccache``, the output and dependency-file flags, and
-        ``-Werror``.
-    """
-    words: list[str] = (
-        shlex.split(entry["command"])
-        if "command" in entry
-        else list(entry["arguments"])
-    )
-    # The compiler is the first word ending in cc, clang or gcc; anything before
-    # it is a wrapper.
-    compiler_index: int = next(
-        i for i, word in enumerate(words) if word.endswith(("cc", "clang", "gcc"))
-    )
-    kept: list[str] = []
-    skip_next: bool = False
-    for word in words[compiler_index + 1 :]:
-        if skip_next:
-            skip_next = False
-        elif word in FLAGS_WITH_A_VALUE:
-            skip_next = True
-        elif word not in DROPPED_FLAGS:
-            kept.append(word)
-    return kept
-
-
-def ast_for(entry: Mapping[str, Any]) -> Node:
-    """The JSON AST clang builds for one translation unit.
-
-    Args:
-        entry: one entry of ``compile_commands.json``.
-
-    Returns:
-        Node: the ``TranslationUnitDecl`` node.
-    """
-    done: subprocess.CompletedProcess[bytes] = subprocess.run(
-        [
-            "clang",
-            *clang_arguments(entry),
-            "-fsyntax-only",
-            "-Xclang",
-            "-ast-dump=json",
-        ],
-        cwd=entry["directory"],
-        capture_output=True,
-        check=True,
-    )
-    return json.loads(done.stdout)
-
-
 def walk(node: Node) -> Iterator[Node]:
     """Every node of a subtree, the root first.
 
@@ -269,36 +190,6 @@ def base_id(node: Node) -> str | None:
                 return referenced_id(node)
 
 
-def is_const(qual_type: str) -> bool:
-    """Whether a binding of a clang qualType is already const itself (top-level).
-
-    For a pointer that is a trailing ``const`` (``char *const``); a leading
-    one (``const char *``) is only the pointee's. For any other type a leading
-    or trailing ``const`` is top-level.
-
-    Args:
-        qual_type: the type as clang prints it, e.g. ``const char *``.
-
-    Returns:
-        bool: True when the binding itself cannot be assigned.
-    """
-    return qual_type.rstrip().endswith("const") or (
-        "*" not in qual_type and qual_type.startswith("const ")
-    )
-
-
-def is_pointee_const(qual_type: str) -> bool:
-    """Whether a pointer parameter's type already points to const.
-
-    Args:
-        qual_type: the parameter type as clang prints it.
-
-    Returns:
-        bool: True when the type starts with ``const``.
-    """
-    return qual_type.startswith("const ")
-
-
 def scan_function(function: Node) -> list[tuple[str, Node]]:
     """The const candidates in one function definition.
 
@@ -308,6 +199,35 @@ def scan_function(function: Node) -> list[tuple[str, Node]]:
     Returns:
         list[tuple[str, Node]]: (category, declaration) for each candidate.
     """
+
+    def is_pointee_const(qual_type: str) -> bool:
+        """Whether a pointer parameter's type already points to const.
+
+        Args:
+            qual_type: the parameter type as clang prints it.
+
+        Returns:
+            bool: True when the type starts with ``const``.
+        """
+        return qual_type.startswith("const ")
+
+    def is_const(qual_type: str) -> bool:
+        """Whether a binding of a clang qualType is already const itself (top-level).
+
+        For a pointer that is a trailing ``const`` (``char *const``); a leading
+        one (``const char *``) is only the pointee's. For any other type a leading
+        or trailing ``const`` is top-level.
+
+        Args:
+            qual_type: the type as clang prints it, e.g. ``const char *``.
+
+        Returns:
+            bool: True when the binding itself cannot be assigned.
+        """
+        return qual_type.rstrip().endswith("const") or (
+            "*" not in qual_type and qual_type.startswith("const ")
+        )
+
     if function["name"] in SETJMP_FUNCTIONS:
         return []
     parameters: dict[str, Node] = {
@@ -370,6 +290,86 @@ def main() -> int:
     Returns:
         int: the exit status: 0, or 2 when a FILE names no translation unit.
     """
+
+    def ast_for(entry: Mapping[str, Any]) -> Node:
+        """The JSON AST clang builds for one translation unit.
+
+        Args:
+            entry: one entry of ``compile_commands.json``.
+
+        Returns:
+            Node: the ``TranslationUnitDecl`` node.
+        """
+
+        def clang_arguments(entry: Mapping[str, Any]) -> list[str]:
+            """One compile_commands.json entry's command, made into AST-dump flags.
+
+            Args:
+                entry: one entry of ``compile_commands.json``.
+
+            Returns:
+                list[str]: the compiler's arguments without the compiler, a leading
+                wrapper such as ``ccache``, the output and dependency-file flags, and
+                ``-Werror``.
+            """
+            words: list[str] = (
+                shlex.split(entry["command"])
+                if "command" in entry
+                else list(entry["arguments"])
+            )
+            # The compiler is the first word ending in cc, clang or gcc; anything before
+            # it is a wrapper.
+            compiler_index: int = next(
+                i
+                for i, word in enumerate(words)
+                if word.endswith(("cc", "clang", "gcc"))
+            )
+            kept: list[str] = []
+            skip_next: bool = False
+            for word in words[compiler_index + 1 :]:
+                if skip_next:
+                    skip_next = False
+                elif word in FLAGS_WITH_A_VALUE:
+                    skip_next = True
+                elif word not in DROPPED_FLAGS:
+                    kept.append(word)
+            return kept
+
+        done: subprocess.CompletedProcess[bytes] = subprocess.run(
+            [
+                "clang",
+                *clang_arguments(entry),
+                "-fsyntax-only",
+                "-Xclang",
+                "-ast-dump=json",
+            ],
+            cwd=entry["directory"],
+            capture_output=True,
+            check=True,
+        )
+        return json.loads(done.stdout)
+
+    def declaration_lines(root: Node) -> dict[str, int]:
+        """The source line of every node, by id, walking in clang's printing order.
+
+        clang's JSON writes a location's line only when it differs from the line
+        last printed, so a node's line is known only by visiting everything before it.
+
+        Args:
+            root: the ``TranslationUnitDecl`` node.
+
+        Returns:
+            dict[str, int]: each node id's line.
+        """
+        tracker: LocationTracker = LocationTracker()
+        lines: dict[str, int] = {}
+        stack: list[Node] = [root]
+        while stack:
+            node: Node = stack.pop()
+            lines[node.get("id", "")] = tracker.visit_node(node)
+            stack.extend(reversed(node.get("inner", [])))
+        return lines
+
     build: pathlib.Path = pathlib.Path(sys.argv[1])
     wanted: set[pathlib.Path] = {pathlib.Path(f).resolve() for f in sys.argv[2:]}
     entries: list[dict[str, Any]] = [

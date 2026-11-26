@@ -18,11 +18,9 @@
 /// `-nan` (glibc prints the sign of a NaN).
 fn special(x: f64) -> Option<String> {
     if x.is_nan() {
-        let text: &str = if x.is_sign_negative() { "-nan" } else { "nan" };
-        Some(text.to_string())
+        Some((if x.is_sign_negative() { "-nan" } else { "nan" }).to_string())
     } else if x.is_infinite() {
-        let text: &str = if x < 0.0 { "-inf" } else { "inf" };
-        Some(text.to_string())
+        Some((if x < 0.0 { "-inf" } else { "inf" }).to_string())
     } else {
         None
     }

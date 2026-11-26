@@ -39,38 +39,42 @@ C_ENGINE: re.Pattern[str] = re.compile(r"(^|\| )spimulator ")
 ANY_ENGINE: re.Pattern[str] = re.compile(r"(^|\| )spimulator(-[a-z]+)? ")
 
 
-def add_port_lines(text: str, name: str, label: str) -> str:
-    """text with the NAME port's lines added to its BUILD AND RUN block."""
-    lines: list[str] = text.split("\n")
-    start: int = next(i for i, line in enumerate(lines) if MARK in line)
-    end: int = next(i for i in range(start, len(lines)) if lines[i].startswith(" */"))
-    block: list[str] = lines[start:end]
-    if any(f"spimulator-{name} " in line for line in block):
-        return text
-    commands: list[int] = [
-        start + i for i, line in enumerate(block) if line.startswith(COMMAND)
-    ]
-    c_runs: list[int] = [
-        i for i in commands if C_ENGINE.search(lines[i][len(COMMAND) :])
-    ]
-    engine_runs: list[int] = [
-        i for i in commands if ANY_ENGINE.search(lines[i][len(COMMAND) :])
-    ]
-    heading: str = (
-        f" *   the same assembly versions, in the {label} port:"
-        if len(c_runs) > 1
-        else f" *   the same assembly, in the {label} port:"
-    )
-    ported: list[str] = [
-        COMMAND + C_ENGINE.sub(rf"\1spimulator-{name} ", lines[i][len(COMMAND) :])
-        for i in c_runs
-    ]
-    last: int = engine_runs[-1]
-    return "\n".join([*lines[: last + 1], " *", heading, *ported, *lines[last + 1 :]])
-
-
 def main() -> int:
     """Rewrite every example .c that has a BUILD AND RUN block."""
+
+    def add_port_lines(text: str, name: str, label: str) -> str:
+        """text with the NAME port's lines added to its BUILD AND RUN block."""
+        lines: list[str] = text.split("\n")
+        start: int = next(i for i, line in enumerate(lines) if MARK in line)
+        end: int = next(
+            i for i in range(start, len(lines)) if lines[i].startswith(" */")
+        )
+        block: list[str] = lines[start:end]
+        if any(f"spimulator-{name} " in line for line in block):
+            return text
+        commands: list[int] = [
+            start + i for i, line in enumerate(block) if line.startswith(COMMAND)
+        ]
+        c_runs: list[int] = [
+            i for i in commands if C_ENGINE.search(lines[i][len(COMMAND) :])
+        ]
+        engine_runs: list[int] = [
+            i for i in commands if ANY_ENGINE.search(lines[i][len(COMMAND) :])
+        ]
+        heading: str = (
+            f" *   the same assembly versions, in the {label} port:"
+            if len(c_runs) > 1
+            else f" *   the same assembly, in the {label} port:"
+        )
+        ported: list[str] = [
+            COMMAND + C_ENGINE.sub(rf"\1spimulator-{name} ", lines[i][len(COMMAND) :])
+            for i in c_runs
+        ]
+        last: int = engine_runs[-1]
+        return "\n".join(
+            [*lines[: last + 1], " *", heading, *ported, *lines[last + 1 :]]
+        )
+
     if len(sys.argv) != 3:
         print(__doc__.split("Usage:")[1].split("\n\n")[0], file=sys.stderr)
         return 2

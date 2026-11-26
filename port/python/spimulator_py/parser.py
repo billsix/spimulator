@@ -225,8 +225,10 @@ def _data_floating_point_finalize() -> None:
     """Turn the collected floating-point values into one node."""
     if not _data_doubles:
         return
-    kind: Kind = Kind.DATA_FLOAT if _data_kind == Kind.DATA_FLOAT else Kind.DATA_DOUBLE
-    node: Node = ast_nodes.make(kind, doubles=list(_data_doubles))
+    node: Node = ast_nodes.make(
+        Kind.DATA_FLOAT if _data_kind == Kind.DATA_FLOAT else Kind.DATA_DOUBLE,
+        doubles=list(_data_doubles),
+    )
     node.source_line = _data_directive_line
     _append(node)
     _data_doubles.clear()
@@ -1212,9 +1214,11 @@ def _expand_li_floating_point(opcode: int) -> None:
         )
         emit_floating_point_r(Tok.MTC1_OPCODE, 0, floating_point_destination + 1, 1)
     else:
-        bits: int = machine.float_bits(value)
         emit_i(
-            Tok.ORI_OPCODE, 1, 0, instruction_module.constant_immediate_expression(bits)
+            Tok.ORI_OPCODE,
+            1,
+            0,
+            instruction_module.constant_immediate_expression(machine.float_bits(value)),
         )
         emit_floating_point_r(Tok.MTC1_OPCODE, 0, floating_point_destination, 1)
 
@@ -1324,9 +1328,9 @@ def _align_labels_to(alignment: int) -> None:
     """Move the line's labels to where the alignment will put the data."""
     if not data_directive or not _auto_align or not _this_line_labels:
         return
-    current: int = data.current_data_location()
     fix_current_label_address(
-        (current + (1 << alignment) - 1) & ((0xFFFFFFFF << alignment) & 0xFFFFFFFF)
+        (data.current_data_location() + (1 << alignment) - 1)
+        & ((0xFFFFFFFF << alignment) & 0xFFFFFFFF)
     )
 
 

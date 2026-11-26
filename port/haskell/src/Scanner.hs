@@ -307,9 +307,7 @@ scanFloatingPoint sign byteLength = do
       rest :: String
       (lit, rest) = splitAt byteLength (scanStateRest st)
   put st {scanStateRest = rest}
-  let value :: Double
-      value = fromIntegral sign * cStrtod (take 63 lit)
-  pure (ScanItem TokenFloatingPoint (ValueFloatingPoint value))
+  pure (ScanItem TokenFloatingPoint (ValueFloatingPoint (fromIntegral sign * cStrtod (take 63 lit))))
 
 -- | A decimal or hexadecimal integer, wrapping at 32 bits (C: @scan_int@).
 scanInteger :: Int -> Scan ScanItem

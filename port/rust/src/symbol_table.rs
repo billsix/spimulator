@@ -243,8 +243,7 @@ impl Machine {
                 UseSite::Instruction(instruction) => {
                     self.resolve_a_label_subtract(instruction, lab_use.address);
                     if lab_use.address >= DATA_BOTTOM && lab_use.address < self.mem.stack_bottom {
-                        let encoding: i32 = instruction.borrow().encode();
-                        self.memory_write_word(lab_use.address, encoding);
+                        self.memory_write_word(lab_use.address, instruction.borrow().encode());
                     }
                 }
             }
