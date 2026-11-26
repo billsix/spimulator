@@ -227,45 +227,6 @@ memory_address starting_address(void) {
   return (find_symbol_address(DEFAULT_RUN_LOCATION));
 }
 
-constexpr int MAX_ARGUMENTS = 10000;
-
-/* Initialize the SPIM stack from a string containing the command line. */
-
-void initialize_stack(const char* command_line) {
-  int argc = 0;
-  char* argv[MAX_ARGUMENTS];
-  char* a;
-  char* arguments =
-      strdup((char*)command_line); /* Destructively modify string */
-  char* const original_arguments = arguments;
-
-  while (*arguments != '\0') {
-    /* Skip leading blanks */
-    while (*arguments == ' ' || *arguments == '\t') arguments++;
-
-    /* First non-blank char */
-    a = arguments;
-
-    /* Last non-blank, non-null char */
-    while (*arguments != ' ' && *arguments != '\t' && *arguments != '\0')
-      arguments++;
-
-    /* Terminate word */
-    if (a != arguments) {
-      if (*arguments != '\0') *arguments++ = '\0'; /* Null terminate */
-
-      argv[argc++] = a;
-
-      if (MAX_ARGUMENTS == argc) {
-        break; /* If too many, ignore rest of list */
-      }
-    }
-  }
-
-  initialize_run_stack(argc, argv);
-  free(original_arguments);
-}
-
 /* Initialize the SPIM stack with ARGC, ARGV, and ENVP data. */
 
 void initialize_run_stack(int argc, char** argv) {

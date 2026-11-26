@@ -283,13 +283,6 @@ ast_node* ast_make_file(const char* source_file) {
   });
 }
 
-ast_node* ast_make_error(const char* message) {
-  return new_node((ast_node){
-      .kind = AST_ERROR,
-      .payload.error = {.message = message ? strdup(message) : nullptr},
-  });
-}
-
 /* ------------------------------------------------------------------ */
 /* Tree manipulation                                                   */
 /* ------------------------------------------------------------------ */

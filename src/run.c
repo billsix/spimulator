@@ -218,10 +218,6 @@ bool run_spim(memory_address initial_program_counter, int steps_to_run,
         return false;
       }
 
-#ifdef TEST_ASM
-      test_assembly(instruction);
-#endif
-
       DO_DELAYED_UPDATE();
 
       explain_before(instruction, PROGRAM_COUNTER);
@@ -972,16 +968,8 @@ bool run_spim(memory_address initial_program_counter, int steps_to_run,
           break; /* Memory details not implemented */
 
         case TOKEN_RFE_OPCODE:
-#ifdef MIPS1
-          /* This is MIPS-I, not compatible with MIPS32 or the
-             definition of the bits in the CP0 Status register in that
-             architecture. */
-          coprocessor_0_status = (coprocessor_0_status & 0xfffffff0) |
-                                 ((coprocessor_0_status & 0x3c) >> 2);
-#else
           RAISE_EXCEPTION(EXCEPTION_CODE_RESERVED_INSTRUCTION,
                           {}); /* Not MIPS32 instruction */
-#endif
           break;
 
         case TOKEN_SB_OPCODE:
@@ -1033,15 +1021,11 @@ bool run_spim(memory_address initial_program_counter, int steps_to_run,
           const int shift_amount =
               (general_purpose_registers[SOURCE_REGISTER(instruction)] & 0x1f);
 
-          if (shift_amount >= 0 && shift_amount < 32)
-            general_purpose_registers[DESTINATION_REGISTER(instruction)] =
-                (register_word)((unsigned)
-                                    general_purpose_registers[TARGET_REGISTER(
-                                        instruction)]
-                                << shift_amount);
-          else
-            general_purpose_registers[DESTINATION_REGISTER(instruction)] =
-                general_purpose_registers[TARGET_REGISTER(instruction)];
+          general_purpose_registers[DESTINATION_REGISTER(instruction)] =
+              (register_word)((unsigned)
+                                  general_purpose_registers[TARGET_REGISTER(
+                                      instruction)]
+                              << shift_amount);
           break;
         }
 
@@ -1103,12 +1087,8 @@ bool run_spim(memory_address initial_program_counter, int steps_to_run,
           const register_word value =
               general_purpose_registers[TARGET_REGISTER(instruction)];
 
-          if (shift_amount >= 0 && shift_amount < 32)
-            general_purpose_registers[DESTINATION_REGISTER(instruction)] =
-                value >> shift_amount;
-          else
-            general_purpose_registers[DESTINATION_REGISTER(instruction)] =
-                value;
+          general_purpose_registers[DESTINATION_REGISTER(instruction)] =
+              value >> shift_amount;
           break;
         }
 
@@ -1132,12 +1112,8 @@ bool run_spim(memory_address initial_program_counter, int steps_to_run,
           const unsigned_register_word value = (unsigned_register_word)
               general_purpose_registers[TARGET_REGISTER(instruction)];
 
-          if (shift_amount >= 0 && shift_amount < 32)
-            general_purpose_registers[DESTINATION_REGISTER(instruction)] =
-                (register_word)(value >> shift_amount);
-          else
-            general_purpose_registers[DESTINATION_REGISTER(instruction)] =
-                (register_word)value;
+          general_purpose_registers[DESTINATION_REGISTER(instruction)] =
+              (register_word)(value >> shift_amount);
           break;
         }
 
@@ -2157,10 +2133,5 @@ void raise_exception(mips_exception_code exception_code) {
     coprocessor_0_status =
         (register_word)((unsigned_register_word)coprocessor_0_status |
                         COPROCESSOR_0_STATUS_EXCEPTION_LEVEL);
-
-#ifdef MIPS1
-    coprocessor_0_status = (coprocessor_0_status & 0xffffffc0) |
-                           ((coprocessor_0_status & 0xf) << 2);
-#endif
   }
 }

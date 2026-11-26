@@ -41,7 +41,6 @@ label* label_is_defined(const char* name);
 [[nodiscard]] label* lookup_label(const char* name);
 label* make_label_global(const char* name);
 void print_symbols(void);
-void print_undefined_symbols(void);
 label* record_label(const char* name, memory_address address,
                     bool resolve_uses);
 void record_data_uses_symbol(memory_address location, label* symbol,

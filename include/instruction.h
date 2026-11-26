@@ -314,7 +314,6 @@ void r_type(int opcode, int destination_register, int source_register,
             int target_register);
 void raise_exception(mips_exception_code exception_code);
 [[nodiscard]] mips_instruction* set_breakpoint(memory_address address);
-void test_assembly(mips_instruction* instruction);
 void text_begins_at_point(memory_address address);
 void user_kernel_text_segment(bool to_kernel);
 bool is_zero_immediate(const immediate_expression* expression);
