@@ -120,19 +120,11 @@ constexpr char END_OF_TRAP_HANDLER_SYMBOL[] = "__eoth";
 constexpr int DEFAULT_RUN_STEPS = INT_MAX;
 
 /* Address to branch to when exception occurs. */
-#ifdef MIPS1
-/* MIPS R2000 */
-constexpr memory_address EXCEPTION_ADDRESS = 0x80000080;
-#else
 /* MIPS32 */
 constexpr memory_address EXCEPTION_ADDRESS = 0x80000180;
-#endif
 
 /* Maximum size of object stored in the small data segment pointed to by $gp */
 constexpr int SMALL_DATA_SEGMENT_MAX_SIZE = 8;
-
-constexpr int DIRECT_MAPPED = 0;
-constexpr int TWO_WAY_SET = 1;
 
 /* Interval (in instructions) at which memory-mapped IO registers are
    checked and updated. (This is to reduce overhead from making system calls

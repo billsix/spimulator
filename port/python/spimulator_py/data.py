@@ -14,7 +14,6 @@ from . import registers as regs
 _next_data_location: int = 0
 _next_kernel_data_location: int = 0
 _in_kernel: bool = False
-_next_global_pointer_item_address: int = 0
 _enable_data_auto_alignment: bool = True
 
 # One directive fires one assembler event, even when a misaligned .word is
@@ -42,11 +41,10 @@ def end_of_assembly_file() -> None:
 
 def data_begins_at_point(address: int) -> None:
     """Start the user data at addr (after the 64 KB $gp area when not bare)."""
-    global _next_data_location, _next_global_pointer_item_address
+    global _next_data_location
     if options.bare_machine:
         _next_data_location = address
     else:
-        _next_global_pointer_item_address = address
         memory.global_pointer_midpoint = address + 32 * layout.KILO
         regs.cpu.general_purpose_registers[regs.GLOBAL_POINTER_REGISTER] = machine.s32(
             memory.global_pointer_midpoint

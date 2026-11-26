@@ -277,9 +277,6 @@ struct ast_node {
 /* File root */
 [[nodiscard]] ast_node* ast_make_file(const char* source_file);
 
-/* Error recovery sentinel */
-[[nodiscard]] ast_node* ast_make_error(const char* message);
-
 /* ------------------------------------------------------------------ */
 /* Tree manipulation                                                   */
 /* ------------------------------------------------------------------ */

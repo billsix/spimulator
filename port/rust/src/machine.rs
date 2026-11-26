@@ -96,8 +96,6 @@ pub struct AssemblerState {
     pub next_kernel_data_location: u32,
     /// Data goes to the kernel data segment (`.kdata`).
     pub data_in_kernel: bool,
-    /// Address of the next item in the `$gp` small-data area.
-    pub next_global_pointer_item_address: u32,
     /// Align `.word`, `.half`, ... to their size (off after `.align 0`).
     pub data_auto_align: bool,
     /// How deep the store helpers are nested (one listing event per

@@ -32,9 +32,6 @@ static inline memory_address data_location(void) {
   return in_kernel ? next_kernel_data_location : next_data_location;
 }
 
-static memory_address next_global_pointer_item_address; /* Address of next item
-                                                           accessed off $gp */
-
 static bool enable_data_auto_alignment =
     true; /* => align literal to natural bound */
 
@@ -57,7 +54,6 @@ void data_begins_at_point(memory_address address) {
   if (bare_machine)
     next_data_location = address;
   else {
-    next_global_pointer_item_address = address;
     global_pointer_midpoint = address + 32 * kilo;
     general_purpose_registers[GLOBAL_POINTER_REGISTER] =
         (register_word)global_pointer_midpoint;
@@ -123,42 +119,6 @@ void increment_data_location(int delta) {
     next_data_location += (memory_address)delta;
     if (data_top <= next_data_location)
       expand_data((int)ROUND_UP(next_data_location - data_top + 1, 64 * kilo));
-  }
-}
-
-/* Process a .extern NAME SIZE directive. */
-
-void extern_directive(const char* name, int size) {
-  label* symbol = make_label_global(name);
-
-  if (!bare_machine &&
-      !symbol->global_pointer_flag  // Not already a global symbol
-      && size > 0 && size <= SMALL_DATA_SEGMENT_MAX_SIZE &&
-      next_global_pointer_item_address + (memory_address)size <
-          global_pointer_midpoint + 32 * kilo) {
-    symbol->global_pointer_flag = true;
-    symbol->address = next_global_pointer_item_address;
-    next_global_pointer_item_address += (memory_address)size;
-  }
-}
-
-/* Process a .lcomm NAME SIZE directive. */
-
-void lcomm_directive(const char* name, int size) {
-  if (!bare_machine && size > 0 && size <= SMALL_DATA_SEGMENT_MAX_SIZE &&
-      next_global_pointer_item_address + (memory_address)size <
-          global_pointer_midpoint + 32 * kilo) {
-    label* symbol = record_label(name, next_global_pointer_item_address, true);
-    symbol->global_pointer_flag = true;
-
-    next_global_pointer_item_address += (memory_address)size;
-    /* Don't need to initialize since memory starts with 0's */
-  } else {
-    (void)record_label(name, next_data_location, true);
-
-    for (; size > 0; size--) {
-      store_byte(0);
-    }
   }
 }
 

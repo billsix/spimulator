@@ -40,8 +40,6 @@ static void i_type_full_word(int opcode, int target_register,
                              int source_register,
                              const immediate_expression* expression,
                              bool value_known, int32_t value);
-static void compare_instructions(mips_instruction* instruction1,
-                                 mips_instruction* instruction2);
 static mips_instruction* make_r_type(int opcode, int destination_register,
                                      int source_register, int target_register);
 static mips_instruction* make_i_instruction(int32_t value, int opcode,
@@ -1593,37 +1591,4 @@ static mips_instruction* make_j_instruction(int32_t value, int opcode,
   SET_ENCODING(instruction, value);
   SET_EXPRESSION(instruction, nullptr);
   return (instruction);
-}
-
-/* Code to test encode/decode of instructions. */
-
-void test_assembly(mips_instruction* instruction) {
-  mips_instruction* const new_instruction =
-      instruction_decode(instruction_encode(instruction));
-
-  compare_instructions(instruction, new_instruction);
-  free_instruction(new_instruction);
-}
-
-static void compare_instructions(mips_instruction* instruction1,
-                                 mips_instruction* instruction2) {
-  static string_stream stream;
-
-  stream_clear(&stream);
-  if (instruction1->opcode != instruction2->opcode ||
-      instruction1->encoding != instruction2->encoding ||
-      SOURCE_REGISTER(instruction1) != SOURCE_REGISTER(instruction2) ||
-      TARGET_REGISTER(instruction1) != TARGET_REGISTER(instruction2) ||
-      DESTINATION_REGISTER(instruction1) !=
-          DESTINATION_REGISTER(instruction2) ||
-      SHIFT_AMOUNT(instruction1) != SHIFT_AMOUNT(instruction2)) {
-    stream_printf(&stream,
-                  "=================== Not Equal ===================\n");
-    format_an_instruction(&stream, instruction1, 0);
-    stream_printf(&stream, "===================\n");
-    format_an_instruction(&stream, instruction2, 0);
-    stream_printf(&stream,
-                  "=================== Not Equal ===================\n");
-    error("%s", stream_to_string(&stream));
-  }
 }

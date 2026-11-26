@@ -717,8 +717,6 @@ int scanner_advance(void) {
   return t;
 }
 
-int scanner_next(void) { return scanner_advance(); }
-
 /* --- nested-input scanner stack ---------------------------- *
  *
  * spim.c's libedit REPL wraps each command line in a fmemopen FILE*

@@ -117,10 +117,6 @@ void assembler_fire_data_word(memory_address address, int value);
 void assembler_fire_data_double(memory_address address, double value);
 void assembler_fire_data_string(memory_address address, const char* s,
                                 int length, bool null_term);
-void assembler_fire_align(memory_address address, int low_bits, int offset,
-                          assembler_segment segment);
-void assembler_fire_segment_change(assembler_segment segment,
-                                   memory_address address);
 void assembler_fire_forward_reference(memory_address from, const char* symbol);
 void assembler_fire_forward_resolved(memory_address at, const char* symbol,
                                      int32_t value);

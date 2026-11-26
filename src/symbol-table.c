@@ -396,14 +396,6 @@ void for_each_label(void (*callback)(const label* l, void* context),
       if (SYMBOL_IS_DEFINED(l)) callback(l, context);
 }
 
-/* Print all undefined symbols in the table. */
-
-void print_undefined_symbols(void) {
-  for (int i = 0; i < LABEL_HASH_TABLE_SIZE; i++)
-    for (label* l = label_hash_table[i]; l != nullptr; l = l->next)
-      if (l->address == 0) write_output(message_out, "%s\n", l->name);
-}
-
 /* Return a string containing the names of all undefined symbols in the
    table, seperated by a newline character.  Return nullptr if no symbols
    are undefined. */

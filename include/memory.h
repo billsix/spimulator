@@ -29,9 +29,6 @@ constexpr memory_address TEXT_BOTTOM = 0x400000;
 
 extern memory_address text_top;
 
-/* Amount to grow text segment when we run out of space for instructions. */
-constexpr int TEXT_CHUNK_SIZE = 4096;
-
 /* The data segment and boundaries. */
 
 extern memory_word* data_segment;

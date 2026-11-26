@@ -88,26 +88,6 @@ void assembler_fire_data_string(memory_address address, const char* s,
   });
 }
 
-void assembler_fire_align(memory_address address, int low_bits, int offset,
-                          assembler_segment segment) {
-  if (current_observer == nullptr) return;
-  fire((assembler_event){
-      .kind = ASSEMBLER_EVENT_ALIGN,
-      .address = address,
-      .payload.align = {.new_program_counter_low_bits = low_bits,
-                        .new_program_counter_offset = offset,
-                        .segment = segment},
-  });
-}
-
-void assembler_fire_segment_change(assembler_segment segment,
-                                   memory_address address) {
-  if (current_observer == nullptr) return;
-  fire((assembler_event){.kind = ASSEMBLER_EVENT_SEGMENT_CHANGE,
-                         .address = address,
-                         .payload.segment_change = {.segment = segment}});
-}
-
 void assembler_fire_forward_reference(memory_address from, const char* symbol) {
   if (current_observer == nullptr) return;
   fire((assembler_event){

@@ -14,8 +14,7 @@
 
 register_word general_purpose_registers[GENERAL_PURPOSE_REGISTER_COUNT];
 register_word MULTIPLY_DIVIDE_HIGH, MULTIPLY_DIVIDE_LOW;
-int multiply_divide_high_present, multiply_divide_low_present;
-memory_address PROGRAM_COUNTER, next_program_counter;
+memory_address PROGRAM_COUNTER;
 double* floating_point_double_view;   /* Dynamically allocate so overlay */
 float* floating_point_single_view;    /* is possible */
 int32_t* floating_point_integer_view; /* is possible */
@@ -506,8 +505,8 @@ static memory_word bad_memory_read(memory_address address, int mask) {
     /* Grow stack segment */
     expand_stack((int)(stack_bottom - address + 4));
     return (0);
-  } else if (MEMORY_MAPPED_IO_BOTTOM <= address &&
-             address <= MEMORY_MAPPED_IO_TOP)
+  } else if (MEMORY_MAPPED_IO_BOTTOM <= address)
+    /* The I/O region runs to MEMORY_MAPPED_IO_TOP, the last address. */
     return (read_memory_mapped_IO(address));
   else
     /* Address out of range */
@@ -593,8 +592,8 @@ static void bad_memory_write(memory_address address, memory_word value,
           coprocessor_0_bad_virtual_address = (register_word)address)
 
     data_modified = true;
-  } else if (MEMORY_MAPPED_IO_BOTTOM <= address &&
-             address <= MEMORY_MAPPED_IO_TOP)
+  } else if (MEMORY_MAPPED_IO_BOTTOM <= address)
+    /* The I/O region runs to MEMORY_MAPPED_IO_TOP, the last address. */
     write_memory_mapped_IO(address, value);
   else
     /* Address out of range */

@@ -31,7 +31,6 @@ impl Machine {
         if self.options.bare_machine {
             self.asm.next_data_location = address;
         } else {
-            self.asm.next_global_pointer_item_address = address;
             self.mem.global_pointer_midpoint = address + 32 * 1024;
             self.registers.general_purpose_registers[GLOBAL_POINTER_REGISTER] =
                 self.mem.global_pointer_midpoint as i32;

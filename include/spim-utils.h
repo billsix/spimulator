@@ -40,7 +40,6 @@ void format_registers(string_stream* stream,
                       bool print_general_purpose_registers_hex,
                       bool print_floating_point_register_hex);
 void initialize_registers(void);
-void initialize_stack(const char* command_line);
 void initialize_run_stack(int argc, char** argv);
 void initialize_world(const char* exception_file_names, bool print_message);
 void list_breakpoints(void);

@@ -21,7 +21,7 @@ extern register_word
 
 extern register_word MULTIPLY_DIVIDE_HIGH, MULTIPLY_DIVIDE_LOW; /* HI and LO */
 
-extern memory_address PROGRAM_COUNTER, next_program_counter; /* PC and nPC */
+extern memory_address PROGRAM_COUNTER;
 
 /* Argument passing registers */
 constexpr int VALUE_REGISTER_0 = 2;                    /* $v0 */
